@@ -18,11 +18,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
+using System;
 using System.Collections.Generic;
 
 namespace Couchbase.Lite.Query
 {
-    public interface IResultSet : IEnumerable<IQueryRow>
+    public interface IResultSet : IEnumerable<IQueryRow>, IDisposable
     {
         #region Properties
 

@@ -572,10 +572,13 @@ namespace Test
                 .Join(JoinFactory.Join(DataSourceFactory.Database(Db).As("secondary"))
                     .On(ExpressionFactory.Property("number1").From("main")
                         .EqualTo(ExpressionFactory.Property("theone").From("secondary"))))) {
-                var results = q.Run();
-                results.Count.Should().Be(1, "because only one document should match 42");
-                results.First().GetInt(0).Should().Be(58,
-                    "because that was the number stored in 'number2' of the matching doc");
+                using (var results = q.Run()) {
+                    results.Count.Should().Be(1, "because only one document should match 42");
+                    results.First().GetInt(0).Should().Be(58,
+                        "because that was the number stored in 'number2' of the matching doc");
+                }
+            }
+        }
             }
         }
 
@@ -657,15 +660,16 @@ namespace Test
 
         private int VerifyQuery(IQuery query, Action<int, IQueryRow> block)
         {
-            var result = query.Run();
-            using (var e = result.GetEnumerator()) {
-                var n = 0;
-                while(e.MoveNext()) { 
-                    block?.Invoke(++n, e.Current);
-                }
-                
+            using (var result = query.Run()) {
+                using (var e = result.GetEnumerator()) {
+                    var n = 0;
+                    while (e.MoveNext()) {
+                        block?.Invoke(++n, e.Current);
+                    }
 
-                return n;
+
+                    return n;
+                }
             }
         }
     }

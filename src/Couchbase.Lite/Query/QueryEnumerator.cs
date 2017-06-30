@@ -18,7 +18,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -31,14 +30,19 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed unsafe class QueryEnumerator : IEnumerator<IQueryRow>, IResultSet
+    internal sealed unsafe class QueryEnumerator : IResultSet
     {
+        #region Constants
+
         private const string Tag = nameof(QueryEnumerator);
+
+        #endregion
 
         #region Variables
 
-        private readonly IQueryInternal _query;
         private readonly C4QueryEnumerator* _c4Enum;
+
+        private readonly IQueryInternal _query;
 
         #endregion
 
@@ -46,17 +50,13 @@ namespace Couchbase.Lite.Internal.Query
 
         public int Count { get; }
 
-        public IQueryRow Current => _c4Enum->fullTextTermCount > 0
-            ? new FullTextQueryRow(this, _c4Enum)
-            : new QueryRow(this, _c4Enum);
-
-        object IEnumerator.Current => Current;
-
         internal C4Query* C4Query { get; }
 
         internal Database Database => _query?.Database;
 
         #endregion
+
+        #region Constructors
 
         public QueryEnumerator(IQueryInternal query, C4Query* c4Query, C4QueryEnumerator* e)
         {
@@ -73,6 +73,10 @@ namespace Couchbase.Lite.Internal.Query
             Dispose(false);
         }
 
+        #endregion
+
+        #region Public Methods
+
         public QueryEnumerator Refresh()
         {
             var query = _query;
@@ -84,11 +88,17 @@ namespace Couchbase.Lite.Internal.Query
             return new QueryEnumerator(query, C4Query, newEnum);
         }
 
+        #endregion
+
+        #region Private Methods
+
         [SuppressMessage("ReSharper", "UnusedParameter.Local")]
         private void Dispose(bool disposing)
         {
             Native.c4queryenum_free(_c4Enum);
         }
+
+        #endregion
 
         #region IDisposable
 
@@ -109,32 +119,73 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
-        #region IEnumerable<object>
+        #region IEnumerable<IQueryRow>
 
         public IEnumerator<IQueryRow> GetEnumerator()
         {
-            return this;
+            return new Enumerator(this);
         }
 
         #endregion
 
-        #region IEnumerator
+        #region Nested
 
-        public bool MoveNext()
+        private class Enumerator : IEnumerator<IQueryRow>
         {
-            ((QueryRow)Current)?.StopBeingCurrent();
-            C4Error err;
-            var moved = Native.c4queryenum_next(_c4Enum, &err);
-            if (!moved && err.code != 0) {
-                throw new LiteCoreException(err);
+            #region Variables
+
+            private readonly QueryEnumerator _parent;
+
+            #endregion
+
+            #region Properties
+
+            public IQueryRow Current => _parent._c4Enum->fullTextTermCount > 0
+                ? new FullTextQueryRow(_parent, _parent._c4Enum)
+                : new QueryRow(_parent, _parent._c4Enum);
+
+            object IEnumerator.Current => Current;
+
+            #endregion
+
+            #region Constructors
+
+            public Enumerator(QueryEnumerator parent)
+            {
+                _parent = parent;
             }
 
-            return moved;
-        }
+            #endregion
 
-        public void Reset()
-        {
-            throw new NotSupportedException();
+            #region IDisposable
+
+            public void Dispose()
+            {
+                 Native.c4queryenum_seek(_parent._c4Enum, 0, null);
+            }
+
+            #endregion
+
+            #region IEnumerator
+
+            public bool MoveNext()
+            {
+                ((QueryRow)Current)?.StopBeingCurrent();
+                C4Error err;
+                var moved = Native.c4queryenum_next(_parent._c4Enum, &err);
+                if (!moved && err.code != 0) {
+                    throw new LiteCoreException(err);
+                }
+
+                return moved;
+            }
+
+            public void Reset()
+            {
+                throw new NotSupportedException();
+            }
+
+            #endregion
         }
 
         #endregion
