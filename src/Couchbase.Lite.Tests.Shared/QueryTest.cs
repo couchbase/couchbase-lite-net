@@ -579,8 +579,6 @@ namespace Test
                 }
             }
         }
-            }
-        }
 
         private bool TestWhereCompareValidator(IDictionary<string, object> properties, object context)
         {
