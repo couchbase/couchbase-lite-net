@@ -37,6 +37,11 @@ namespace Couchbase.Lite
         Unknown = -1,
 
         /// <summary>
+        /// A required dependency injection class is missing
+        /// </summary>
+        MissingDependency = 1,
+
+        /// <summary>
         /// For internal use
         /// </summary>
         Reserved = 0,

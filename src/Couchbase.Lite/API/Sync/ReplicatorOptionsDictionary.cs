@@ -40,6 +40,7 @@ namespace Couchbase.Lite.Sync
         private const string FilterParamsKey = "filterParams";
         private const string CookiesKey = "cookies";
         private const string PinnedCertKey = "pinnedCert";
+        private const string DocIDsKey = "docIDs";
 
         #endregion
 
@@ -61,6 +62,15 @@ namespace Couchbase.Lite.Sync
         {
             get => this.GetCast<IList<string>>(ChannelsKey);
             set => this[ChannelsKey] = value;
+        }
+
+        /// <summary>
+        /// Gets or sets the docIDs to replicate
+        /// </summary>
+        public IList<string> DocIDs
+        {
+            get => this.GetCast<IList<string>>(DocIDsKey);
+            set => this[DocIDsKey] = value;
         }
 
         /// <summary>
@@ -125,6 +135,10 @@ namespace Couchbase.Lite.Sync
 
             if (raw.ContainsKey(ChannelsKey)) {
                 Channels = (this[ChannelsKey] as IList<object>).Cast<string>().ToList();
+            }
+
+            if (raw.ContainsKey(DocIDsKey)) {
+                DocIDs = (this[DocIDsKey] as IList<object>).Cast<string>().ToList();
             }
 
             if (raw.ContainsKey(PinnedCertKey)) {

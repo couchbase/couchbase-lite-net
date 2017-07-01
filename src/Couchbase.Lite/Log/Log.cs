@@ -99,7 +99,7 @@ namespace Couchbase.Lite.Logging
         {
             get {
                 if (!_ProvidersAdded.Set(true)) {
-                    AddLoggerProvider(Service.Provider.GetRequiredService<ILoggerProvider>());
+                    AddLoggerProvider(Service.Provider.TryGetRequiredService<ILoggerProvider>());
                 }
 
                 return _To;

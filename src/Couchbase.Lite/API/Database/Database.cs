@@ -21,6 +21,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -586,11 +587,12 @@ namespace Couchbase.Lite
 
         private static string DatabasePath(string name, string directory)
         {
+            Debug.Assert(directory != null);
             if (String.IsNullOrWhiteSpace(name)) {
                 return directory;
             }
-
-            return System.IO.Path.Combine(Directory(directory), $"{name}.{DBExtension}");
+            
+            return System.IO.Path.Combine(directory, $"{name}.{DBExtension}");
         }
 
         private static void DbObserverCallback(C4DatabaseObserver* db, object context)
@@ -599,16 +601,6 @@ namespace Couchbase.Lite
               var dbObj = (Database)context;
               dbObj?.PostDatabaseChanged();
             });
-        }
-
-        private static string DefaultDirectory()
-        {
-            return Service.Provider.GetRequiredService<IDefaultDirectoryResolver>().DefaultDirectory();
-        }
-
-        private static string Directory(string directory)
-        {
-            return directory ?? DefaultDirectory();
         }
 
         private static void DocObserverCallback(C4DocumentObserver* obs, string docID, ulong sequence, object context)
@@ -668,7 +660,7 @@ namespace Couchbase.Lite
                 return;
             }
             
-            System.IO.Directory.CreateDirectory(Directory(Config.Directory));
+            Directory.CreateDirectory(Config.Directory);
             var path = DatabasePath(Name, Config.Directory);
             var config = DBConfig;
 

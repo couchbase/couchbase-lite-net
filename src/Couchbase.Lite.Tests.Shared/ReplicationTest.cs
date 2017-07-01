@@ -136,6 +136,42 @@ namespace Test
             });
         }
 
+        [Fact]
+        public void TestDocIDFilter()
+        {
+            var doc1 = new Document("doc1");
+            doc1.Set("species", "Tiger");
+            Db.Save(doc1);
+            doc1.Set("name", "Hobbes");
+            Db.Save(doc1);
+
+            var doc2 = new Document("doc2");
+            doc2.Set("species", "Tiger");
+            Db.Save(doc2);
+            doc2.Set("pattern", "striped");
+            Db.Save(doc2);
+
+            var doc3 = new Document("doc3");
+            doc3.Set("species", "Tiger");
+            _otherDB.Save(doc3);
+            doc3.Set("name", "Hobbes");
+            _otherDB.Save(doc3);
+
+            var doc4 = new Document("doc4");
+            doc4.Set("species", "Tiger");
+            _otherDB.Save(doc4);
+            doc4.Set("pattern", "striped");
+            _otherDB.Save(doc4);
+
+            var config = CreateConfig(true, true);
+            config.Options.DocIDs = new[] {"doc1", "doc3"};
+            RunReplication(config, 0, 0);
+            Db.Count.Should().Be(3, "because only one document should have been pulled");
+            Db.GetDocument("doc3").Should().NotBeNull();
+            _otherDB.Count.Should().Be(3, "because only one document should have been pushed");
+            _otherDB.GetDocument("doc1").Should().NotBeNull();
+        }
+
         // The below tests are disabled because they require orchestration and should be moved
         // to the functional test suite
 #if HAVE_SG

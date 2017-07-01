@@ -76,4 +76,21 @@ namespace Couchbase.Lite.DI
 
         #endregion
     }
+
+    internal static class ServiceProviderExtensions
+    {
+        public static T TryGetRequiredService<T>(this IServiceProvider provider)
+        {
+            try {
+                return provider.GetRequiredService<T>();
+            } catch (InvalidOperationException e) {
+                throw new CouchbaseLiteException(StatusCode.MissingDependency,
+                    "A required dependency injection class is missing." +
+                    "Please ensure that you have called the proper Activate() class in the " +
+                    "support assembly (e.g. Couchbase.Lite.Support.UWP.Activate()) or that you " +
+                    "have manually registered dependencies via the Couchbase.Lite.DI.Service " +
+                    "class.", e);
+            }
+        }
+    }
 }

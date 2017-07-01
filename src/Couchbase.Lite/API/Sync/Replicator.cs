@@ -240,7 +240,7 @@ namespace Couchbase.Lite.Sync
                     Log.To.Sync.W(Tag, $"Conflict resolution of '{logDocID}' failed", e);
                 }
             } else {
-                var transientStr = transient ? "transient" : String.Empty;
+                var transientStr = transient ? "transient " : String.Empty;
                 var dirStr = pushing ? "pushing" : "pulling";
                 Log.To.Sync.I(Tag,
                     $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");

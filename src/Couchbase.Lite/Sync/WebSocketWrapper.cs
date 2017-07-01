@@ -197,7 +197,7 @@ namespace Couchbase.Lite.Sync
             _logic["Sec-WebSocket-Key"] = nonceKey;
 
             if (_logic.UseTls) {
-                var stream = Service.Provider.GetRequiredService<ISslStreamFactory>().Create(_client.GetStream());
+                var stream = Service.Provider.TryGetRequiredService<ISslStreamFactory>().Create(_client.GetStream());
                 stream.PinnedServerCertificate = _options.PinnedServerCertificate;
                 stream.ConnectAsync(_logic.UrlRequest.Host, (ushort)_logic.UrlRequest.Port, null, false).ContinueWith(
                     t =>

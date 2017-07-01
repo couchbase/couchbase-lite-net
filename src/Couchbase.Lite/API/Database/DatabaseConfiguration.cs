@@ -43,7 +43,7 @@ namespace Couchbase.Lite
         /// </summary>
         public string Directory
         {
-            get => _directory ?? Service.Provider.GetRequiredService<IDefaultDirectoryResolver>()
+            get => _directory ?? Service.Provider.TryGetRequiredService<IDefaultDirectoryResolver>()
                        .DefaultDirectory();
             set => _directory = value;
         }
