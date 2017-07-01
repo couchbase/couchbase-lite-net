@@ -32,8 +32,10 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal Having(IExpression expression)
+        internal Having(XQuery source, IExpression expression)
         {
+            Copy(source);
+
             _expression = expression;
             HavingImpl = this;
         }

@@ -18,7 +18,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Lite.Query;
@@ -80,7 +79,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IHaving Having(IExpression expression)
         {
-            throw new NotImplementedException();
+            return new Having(this, expression);
         }
 
         #endregion

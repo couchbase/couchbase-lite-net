@@ -24,7 +24,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class QueryCompoundExpression : QueryExpression
+    internal class QueryCompoundExpression : QueryExpression
     {
         #region Variables
 

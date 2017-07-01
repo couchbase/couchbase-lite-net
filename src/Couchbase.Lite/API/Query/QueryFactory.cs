@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="pathsToSelect">The property paths to select</param>
         /// <returns>The initial SELECT portion of the query</returns>
-        public static ISelect Select(params string[] pathsToSelect)
+        public static ISelect Select(params IExpression[] pathsToSelect)
         {
             return new Select(pathsToSelect, false);
         }
@@ -46,7 +46,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="pathsToSelect">The property paths to select</param>
         /// <returns>The initial SELECT portion of the query</returns>
-        public static ISelect SelectDistinct(params string[] pathsToSelect)
+        public static ISelect SelectDistinct(params IExpression[] pathsToSelect)
         {
             return new Select(pathsToSelect, true);
         }

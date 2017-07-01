@@ -567,7 +567,7 @@ namespace Test
             var testDoc = new Document("joinme");
             testDoc.Set("theone", 42);
             Db.Save(testDoc);
-            using (var q = QueryFactory.Select("main.number2")
+            using (var q = QueryFactory.Select(ExpressionFactory.Property("number2").From("main"))
                 .From(DataSourceFactory.Database(Db).As("main"))
                 .Join(JoinFactory.Join(DataSourceFactory.Database(Db).As("secondary"))
                     .On(ExpressionFactory.Property("number1").From("main")
@@ -577,6 +577,90 @@ namespace Test
                     results.First().GetInt(0).Should().Be(58,
                         "because that was the number stored in 'number2' of the matching doc");
                 }
+            }
+        }
+
+        [Fact]
+        public void TestAggregateFunction()
+        {
+            LoadNumbers(100);
+
+            var avg = FunctionFactory.Avg(ExpressionFactory.Property("number1"));
+            var cnt = FunctionFactory.Count(ExpressionFactory.Property("number1"));
+            var min = FunctionFactory.Min(ExpressionFactory.Property("number1"));
+            var max = FunctionFactory.Max(ExpressionFactory.Property("number1"));
+            var sum = FunctionFactory.Sum(ExpressionFactory.Property("number1"));
+            using (var q = QueryFactory.Select(avg, cnt, min, max, sum)
+                .From(DataSourceFactory.Database(Db))) {
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    row.GetDouble(0).Should().BeApproximately(50.5, Double.Epsilon);
+                    row.GetInt(1).Should().Be(100);
+                    row.GetInt(2).Should().Be(1);
+                    row.GetInt(3).Should().Be(100);
+                    row.GetInt(4).Should().Be(5050);
+                });
+
+                numRows.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public void TestGroupBy()
+        {
+            var expectedStates = new[] {"AL", "CA", "CO", "FL", "IA"};
+            var expectedCounts = new[] {1, 6, 1, 1, 3};
+            var expectedZips = new[] {"35243", "94153", "81223", "33612", "50801"};
+
+            LoadJSONResource("names_100");
+
+            var STATE = ExpressionFactory.Property("contact.address.state");
+            var gender = ExpressionFactory.Property("gender");
+            var COUNT = FunctionFactory.Count(1);
+            var zip = ExpressionFactory.Property("contact.address.zip");
+            var MAXZIP = FunctionFactory.Max(zip);
+
+            using (var q = QueryFactory.Select(STATE, COUNT, MAXZIP)
+                .From(DataSourceFactory.Database(Db))
+                .Where(gender.EqualTo("female"))
+                .GroupBy(GroupByFactory.Expression(STATE))
+                .OrderBy(OrderByFactory.Expression(STATE))) {
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    var state = row.GetString(0);
+                    var count = row.GetInt(1);
+                    var maxZip = row.GetString(2);
+                    if (n - 1 < expectedStates.Length) {
+                        state.Should().Be(expectedStates[n - 1]);
+                        count.Should().Be(expectedCounts[n - 1]);
+                        maxZip.Should().Be(expectedZips[n - 1]);
+                    }
+                });
+                numRows.Should().Be(31);
+            }
+
+            expectedStates = new[] { "CA", "IA", "IN" };
+            expectedCounts = new[] { 6, 3, 2 };
+            expectedZips = new[] {"94153", "50801", "47952"};
+
+            using (var q = QueryFactory.Select(STATE, COUNT, MAXZIP)
+                .From(DataSourceFactory.Database(Db))
+                .Where(gender.EqualTo("female"))
+                .GroupBy(GroupByFactory.Expression(STATE))
+                .Having(COUNT.GreaterThan(1))
+                .OrderBy(OrderByFactory.Expression(STATE))) {
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    var state = row.GetString(0);
+                    var count = row.GetInt(1);
+                    var maxZip = row.GetString(2);
+                    if (n - 1 < expectedStates.Length) {
+                        state.Should().Be(expectedStates[n - 1]);
+                        count.Should().Be(expectedCounts[n - 1]);
+                        maxZip.Should().Be(expectedZips[n - 1]);
+                    }
+                });
+                numRows.Should().Be(15);
             }
         }
 

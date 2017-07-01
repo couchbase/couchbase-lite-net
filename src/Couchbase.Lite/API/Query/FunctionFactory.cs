@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 using System;
+using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
 {
@@ -28,27 +29,27 @@ namespace Couchbase.Lite.Query
 
         public static IFunction Avg(object expression)
         {
-            throw new NotImplementedException();
+            return new Function("AVG()", expression);
         }
 
         public static IFunction Count(object expression)
         {
-            throw new NotImplementedException();
+            return new Function("COUNT()", expression);
         }
 
         public static IFunction Max(object expression)
         {
-            throw new NotImplementedException();
+            return new Function("MAX()", expression);
         }
 
         public static IFunction Min(object expression)
         {
-            throw new NotImplementedException();
+            return new Function("MIN()", expression);
         }
 
         public static IFunction Sum(object expression)
         {
-            throw new NotImplementedException();
+            return new Function("SUM()", expression);
         }
 
         #endregion

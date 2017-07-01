@@ -1,5 +1,5 @@
 ﻿// 
-// GroupByFactory.cs
+// Function.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,17 +18,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using Couchbase.Lite.Internal.Query;
+using Couchbase.Lite.Query;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Internal.Query
 {
-    public static class GroupByFactory
+    internal sealed class Function : QueryCompoundExpression, IFunction
     {
-        #region Public Methods
+        #region Constructors
 
-        public static IGroupBy Expression(IExpression expression)
+        public Function(string op, params object[] subpredicates)
+            : base(op, subpredicates)
         {
-            return new GroupBy(expression);
+            
         }
 
         #endregion

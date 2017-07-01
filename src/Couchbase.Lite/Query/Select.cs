@@ -32,7 +32,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        public Select(string[] selects, bool distinct)
+        public Select(IExpression[] selects, bool distinct)
         {
             if (selects?.Length > 0) {
                 _select = new QueryTypeExpression(selects);
