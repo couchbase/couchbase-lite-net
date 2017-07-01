@@ -515,7 +515,7 @@ namespace Couchbase.Lite
             throw new NotImplementedException();
         }
 
-        internal void ResolveConflict(string docID)
+        internal void ResolveConflict(string docID, IConflictResolver resolver)
         {
             InBatch(() =>
             {
@@ -535,11 +535,11 @@ namespace Couchbase.Lite
                         } else if (doc.IsDeleted) {
                             resolved = otherDoc;
                         } else {
-                            var resolver = doc.EffectiveConflictResolver;
+                            var effectiveResolver = resolver ?? doc.EffectiveConflictResolver;
                             var conflict = new Conflict(doc, otherDoc, baseDoc);
                             Log.To.Database.I(Tag,
-                                $"Resolving doc '{logDocID}' with {resolver.GetType().Name} (mine={doc.RevID}, theirs={otherDoc.RevID}, base={baseDoc?.RevID}");
-                            resolved = resolver.Resolve(conflict);
+                                $"Resolving doc '{logDocID}' with {effectiveResolver.GetType().Name} (mine={doc.RevID}, theirs={otherDoc.RevID}, base={baseDoc?.RevID}");
+                            resolved = effectiveResolver.Resolve(conflict);
                             if (resolved == null) {
                                 throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
                             }
