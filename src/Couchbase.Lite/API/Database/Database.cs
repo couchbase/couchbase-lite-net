@@ -271,7 +271,7 @@ namespace Couchbase.Lite
                 throw new ArgumentNullException(nameof(name));
             }
 
-            return System.IO.Directory.Exists(DatabasePath(name, directory));
+            return Directory.Exists(DatabasePath(name, directory));
         }
 
         /// <summary>
@@ -587,12 +587,14 @@ namespace Couchbase.Lite
 
         private static string DatabasePath(string name, string directory)
         {
-            Debug.Assert(directory != null);
             if (String.IsNullOrWhiteSpace(name)) {
                 return directory;
             }
-            
-            return System.IO.Path.Combine(directory, $"{name}.{DBExtension}");
+
+            var directoryToUse = String.IsNullOrWhiteSpace(directory)
+                ? Service.Provider.TryGetRequiredService<IDefaultDirectoryResolver>().DefaultDirectory()
+                : directory;
+            return System.IO.Path.Combine(directoryToUse, $"{name}.{DBExtension}");
         }
 
         private static void DbObserverCallback(C4DatabaseObserver* db, object context)
