@@ -64,7 +64,7 @@
       <HintPath>packages\Couchbase.Lite.2.0.0-b0141\lib\netstandard1.4\Couchbase.Lite.dll</HintPath>
     </Reference>
     <Reference Include="Couchbase.Lite.Support.Android, Version=2.0.0.0, Culture=neutral, PublicKeyToken=9a46e652e41ce60c, processorArchitecture=MSIL">
-      <HintPath>packages\Couchbase.Lite.Support.Android.2.0.0-b0141\lib\monodroid\Couchbase.Lite.Support.Android.dll</HintPath>
+      <HintPath>packages\Couchbase.Lite.Support.Android.2.0.0-b0141\lib\monoandroid\Couchbase.Lite.Support.Android.dll</HintPath>
     </Reference>
     <Reference Include="FluentAssertions, Version=4.19.0.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
       <HintPath>packages\FluentAssertions.4.19.0\lib\netstandard1.3\FluentAssertions.dll</HintPath>
