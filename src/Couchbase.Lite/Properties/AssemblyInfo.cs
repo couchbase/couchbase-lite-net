@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyDescription("A lightweight embedded NoSQL database that has built-in sync to larger backend structures, such as Couchbase Server.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Couchbase, Inc.")]
-[assembly: AssemblyProduct("Couchbase.Lite")]
+[assembly: AssemblyProduct("Couchbase Lite .NET")]
 [assembly: AssemblyCopyright("Copyright ©  2017")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

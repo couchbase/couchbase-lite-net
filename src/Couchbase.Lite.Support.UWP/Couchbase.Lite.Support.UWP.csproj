@@ -85,9 +85,6 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- A reference to the entire .Net Framework and Windows SDK are automatically included -->
-    <None Include="..\Couchbase.Lite\Properties\version">
-      <Link>Properties\version</Link>
-    </None>
     <None Include="uwp.targets">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
