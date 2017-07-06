@@ -235,9 +235,9 @@
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <SignAssembly>True</SignAssembly>
+    <!-- <SignAssembly>True</SignAssembly>
     <DelaySign>True</DelaySign>
-    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile> -->
     <DocumentationFile>bin\x86\Packaging\Couchbase.Lite.Support.UWP.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|ARM'">
@@ -251,9 +251,9 @@
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <SignAssembly>True</SignAssembly>
+    <!-- <SignAssembly>True</SignAssembly>
     <DelaySign>True</DelaySign>
-    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile> -->
     <DocumentationFile>bin\ARM\Packaging\Couchbase.Lite.Support.UWP.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|x64'">
@@ -267,9 +267,9 @@
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <SignAssembly>True</SignAssembly>
+    <!-- <SignAssembly>True</SignAssembly>
     <DelaySign>True</DelaySign>
-    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile> -->
     <DocumentationFile>bin\x64\Packaging\Couchbase.Lite.Support.UWP.xml</DocumentationFile>
   </PropertyGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\WindowsXaml\v$(VisualStudioVersion)\Microsoft.Windows.UI.Xaml.CSharp.targets" />
