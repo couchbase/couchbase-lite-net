@@ -23,44 +23,24 @@
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
-    <!-- SignAssembly>True</SignAssembly>
+    <SignAssembly>True</SignAssembly>
     <DelaySign>True</DelaySign>
-    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile -->
+    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile>
     <Optimize>True</Optimize>
     <DocumentationFile>bin\Packaging\netstandard1.4\Couchbase.Lite.xml</DocumentationFile>
     <DefineConstants>TRACE;PACKAGING;NETSTANDARD1_4;LITECORE_PACKAGED</DefineConstants>
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>True</DebugSymbols>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|x64'">
-    <Optimize>True</Optimize>
-    <DefineConstants>TRACE;PACKAGING;NETSTANDARD1_4;LITECORE_PACKAGED</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|x86'">
-    <Optimize>True</Optimize>
-    <DefineConstants>TRACE;PACKAGING;NETSTANDARD1_4;LITECORE_PACKAGED</DefineConstants>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>TRACE;DEBUG;NETSTANDARD1_4;LITECORE_PACKAGED</DefineConstants>
     <DebugType>full</DebugType>
     <DebugSymbols>True</DebugSymbols>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <DefineConstants>TRACE;DEBUG;NETSTANDARD1_4;LITECORE_PACKAGED</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-    <DefineConstants>TRACE;DEBUG;NETSTANDARD1_4;LITECORE_PACKAGED</DefineConstants>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DefineConstants>TRACE;RELEASE;NETSTANDARD1_4;LITECORE_PACKAGED</DefineConstants>
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>True</DebugSymbols>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <DefineConstants>TRACE;RELEASE;NETSTANDARD1_4;LITECORE_PACKAGED</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-    <DefineConstants>TRACE;RELEASE;NETSTANDARD1_4;LITECORE_PACKAGED</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\version">

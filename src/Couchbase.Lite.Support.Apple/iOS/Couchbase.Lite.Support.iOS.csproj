@@ -42,9 +42,9 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <DocumentationFile>bin\Packaging\Couchbase.Lite.Support.iOS.xml</DocumentationFile>
-    <!--<SignAssembly>True</SignAssembly>
+    <SignAssembly>True</SignAssembly>
     <DelaySign>True</DelaySign>
-    <AssemblyOriginatorKeyFile>..\..\couchbase.public.snk</AssemblyOriginatorKeyFile>-->
+    <AssemblyOriginatorKeyFile>..\..\couchbase.public.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions, Version=1.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">

@@ -82,10 +82,7 @@ namespace Couchbase.Lite.Support
                 collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
                     .AddSingleton<ISslStreamFactory, SslStreamFactory>()
                     .AddSingleton<ILoggerProvider>(
-                        provider =>
-                        {
-                            return new FileLoggerProvider(Path.Combine(AppContext.BaseDirectory, "Logs"));
-                        });
+                        provider => new FileLoggerProvider(Path.Combine(AppContext.BaseDirectory, "Logs")));
             });
         }
 

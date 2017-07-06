@@ -36,12 +36,12 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expressions">The expressions to group together</param>
         /// <returns>An expression representing the result of a group of given expressions</returns>
-        public static IExpression Group(params IExpression[] expressions)
+        internal static IExpression Group(params IExpression[] expressions)
         {
-            return null;
+            throw new NotImplementedException();
         }
 
-        public static IMeta Meta()
+        internal static IMeta Meta()
         {
             throw new NotImplementedException();
         }
@@ -66,11 +66,23 @@ namespace Couchbase.Lite.Query
             return Negated(expression);
         }
 
+        /// <summary>
+        /// Gets an expression representing a positional parameter (as set in
+        /// <see cref="IQuery.Parameters"/>) for use in a query
+        /// </summary>
+        /// <param name="index">The position of the parameter in the parameter list</param>
+        /// <returns>The expression representing the parameter</returns>
         public static IExpression Parameter(int index)
         {
             return new QueryTypeExpression(index.ToString(), ExpressionType.Parameter);
         }
 
+        /// <summary>
+        /// Gets an expression representing a named parameter (as set in
+        /// <see cref="IQuery.Parameters"/>) for use in a query
+        /// </summary>
+        /// <param name="name">The name of the parameter in the parameter set</param>
+        /// <returns>The expression representing the parameter</returns>
         public static IExpression Parameter(string name)
         {
             return new QueryTypeExpression(name, ExpressionType.Parameter);

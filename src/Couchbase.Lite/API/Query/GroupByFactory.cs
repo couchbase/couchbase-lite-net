@@ -22,10 +22,18 @@ using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
 {
+    /// <summary>
+    /// A class for creating <see cref="IGroupBy"/> instances
+    /// </summary>
     public static class GroupByFactory
     {
         #region Public Methods
 
+        /// <summary>
+        /// Creates an instance that will group a query by the given expression
+        /// </summary>
+        /// <param name="expression">The expression to group the query by</param>
+        /// <returns>An instance that will group a query by the given expression</returns>
         public static IGroupBy Expression(IExpression expression)
         {
             return new GroupBy(expression);

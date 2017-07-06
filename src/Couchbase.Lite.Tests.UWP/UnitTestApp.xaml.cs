@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text;
+using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
@@ -14,6 +16,8 @@ using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
+using Couchbase.Lite.Logging;
+using LiteCore.Interop;
 
 namespace Couchbase.Lite.Tests.UWP
 {
@@ -74,6 +78,20 @@ namespace Couchbase.Lite.Tests.UWP
             Window.Current.Activate();
 
             Microsoft.VisualStudio.TestPlatform.TestExecutor.UnitTestClient.Run(e.Arguments);
+
+            //unsafe
+            //{
+            //    var enc = Native.FLEncoder_New();
+            //    Native.FLEncoder_BeginDict(enc, 1);
+            //    Native.FLEncoder_WriteKey(enc, "answer");
+            //    Native.FLEncoder_WriteInt(enc, 42);
+            //    Native.FLEncoder_EndDict(enc);
+            //    FLError err;
+
+            //    FLSliceResult result;
+            //    NativeRaw.FLEncoder_Finish2(&result, enc, &err);
+            //    Native.FLEncoder_Free(enc);
+            //}
         }
 
         /// <summary>

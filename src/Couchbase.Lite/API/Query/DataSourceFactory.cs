@@ -42,7 +42,7 @@ namespace Couchbase.Lite.Query
             return new DatabaseSource(database);
         }
 
-        public static IDataSourceAs Query(IQuery query)
+        internal static IDataSourceAs Query(IQuery query)
         {
             throw new NotImplementedException();
         }

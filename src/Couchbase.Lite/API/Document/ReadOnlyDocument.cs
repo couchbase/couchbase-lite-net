@@ -60,6 +60,9 @@ namespace Couchbase.Lite
         /// </summary>
         public ulong Sequence => _threadSafety.DoLocked(() => _c4Doc != null ? _c4Doc->sequence : 0UL);
 
+        /// <summary>
+        /// Gets the database that this document belongs to, if any
+        /// </summary>
         public Database Database { get; internal set; }
 
         internal C4Database* c4Db

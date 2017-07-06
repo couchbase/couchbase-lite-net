@@ -27,7 +27,7 @@ using Windows.Storage;
 
 namespace Couchbase.Lite.Support
 {
-    public sealed class UwpLoggerProvider : ILoggerProvider
+    internal sealed class UwpLoggerProvider : ILoggerProvider
     {
         public readonly string _filename = $"Log-{GetTimeStamp()}.txt";
 
