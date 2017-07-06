@@ -79,7 +79,7 @@ echo *** NET DESKTOP ***
 "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Ra Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\Couchbase.Lite.Support.NetDesktop.dll couchbase.snk
 echo.
 echo *** UWP ***
-"C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Ra Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.dll couchbase.snk
+"C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Ra Couchbase.Lite.Support.UWP\bin\x64\Packaging\Couchbase.Lite.Support.UWP.dll couchbase.snk
 
 echo.
 echo *** VERIFYING SIGNATURES ***
@@ -100,7 +100,7 @@ echo *** NET DESKTOP ***
 "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Tp Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\Couchbase.Lite.Support.NetDesktop.dll
 echo.
 echo *** UWP ***
-"C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -v Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.dll || exit /b 1
-"C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Tp Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.dll
+"C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -v Couchbase.Lite.Support.UWP\bin\x64\Packaging\Couchbase.Lite.Support.UWP.dll || exit /b 1
+"C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Tp Couchbase.Lite.Support.UWP\bin\x64\Packaging\Couchbase.Lite.Support.UWP.dll
 popd
 popd
