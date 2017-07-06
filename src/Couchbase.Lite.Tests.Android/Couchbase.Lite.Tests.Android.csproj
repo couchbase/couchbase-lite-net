@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -20,6 +20,9 @@
     <AndroidManifest>Properties\AndroidManifest.xml</AndroidManifest>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <SignAssembly>True</SignAssembly>
+    <DelaySign>True</DelaySign>
+    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>True</DebugSymbols>
@@ -58,16 +61,13 @@
     <AotAssemblies>false</AotAssemblies>
     <EnableLLVM>false</EnableLLVM>
     <BundleAssemblies>false</BundleAssemblies>
-    <SignAssembly>True</SignAssembly>
-    <DelaySign>True</DelaySign>
-    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Couchbase.Lite, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Couchbase.Lite.2.0.0-b0141\lib\netstandard1.4\Couchbase.Lite.dll</HintPath>
+    <Reference Include="Couchbase.Lite, Version=2.0.0.0, Culture=neutral, PublicKeyToken=9a46e652e41ce60c, processorArchitecture=MSIL">
+      <HintPath>packages\Couchbase.Lite.2.0.0-b0174\lib\netstandard1.4\Couchbase.Lite.dll</HintPath>
     </Reference>
     <Reference Include="Couchbase.Lite.Support.Android, Version=2.0.0.0, Culture=neutral, PublicKeyToken=9a46e652e41ce60c, processorArchitecture=MSIL">
-      <HintPath>packages\Couchbase.Lite.Support.Android.2.0.0-b0141\lib\monoandroid\Couchbase.Lite.Support.Android.dll</HintPath>
+      <HintPath>packages\Couchbase.Lite.Support.Android.2.0.0-b0174\lib\monoandroid\Couchbase.Lite.Support.Android.dll</HintPath>
     </Reference>
     <Reference Include="FluentAssertions, Version=4.19.0.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
       <HintPath>packages\FluentAssertions.4.19.0\lib\netstandard1.3\FluentAssertions.dll</HintPath>

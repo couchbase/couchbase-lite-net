@@ -11,6 +11,9 @@
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <SignAssembly>True</SignAssembly>
+    <DelaySign>True</DelaySign>
+    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|iPhoneSimulator' ">
     <DebugSymbols>true</DebugSymbols>
@@ -113,9 +116,6 @@
     <MtouchTlsProvider>Default</MtouchTlsProvider>
     <MtouchHttpClientHandler>NSUrlSessionHandler</MtouchHttpClientHandler>
     <MtouchFloat32>true</MtouchFloat32>
-    <SignAssembly>True</SignAssembly>
-    <DelaySign>True</DelaySign>
-    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|iPhone'">
     <OutputPath>bin\iPhone\Packaging\</OutputPath>
@@ -146,16 +146,13 @@
     <MtouchHttpClientHandler>NSUrlSessionHandler</MtouchHttpClientHandler>
     <MtouchFloat32>true</MtouchFloat32>
     <DeviceSpecificBuild>true</DeviceSpecificBuild>
-    <SignAssembly>True</SignAssembly>
-    <DelaySign>True</DelaySign>
-    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Couchbase.Lite, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Couchbase.Lite.2.0.0-b0143\lib\netstandard1.4\Couchbase.Lite.dll</HintPath>
+    <Reference Include="Couchbase.Lite, Version=2.0.0.0, Culture=neutral, PublicKeyToken=9a46e652e41ce60c, processorArchitecture=MSIL">
+      <HintPath>packages\Couchbase.Lite.2.0.0-b0174\lib\netstandard1.4\Couchbase.Lite.dll</HintPath>
     </Reference>
-    <Reference Include="Couchbase.Lite.Support.iOS, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Couchbase.Lite.Support.iOS.2.0.0-b0143\lib\xamarinios\Couchbase.Lite.Support.iOS.dll</HintPath>
+    <Reference Include="Couchbase.Lite.Support.iOS, Version=2.0.0.0, Culture=neutral, PublicKeyToken=9a46e652e41ce60c, processorArchitecture=MSIL">
+      <HintPath>packages\Couchbase.Lite.Support.iOS.2.0.0-b0174\lib\xamarinios\Couchbase.Lite.Support.iOS.dll</HintPath>
     </Reference>
     <Reference Include="FluentAssertions, Version=4.19.2.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
       <HintPath>packages\FluentAssertions.4.19.2\lib\netstandard1.3\FluentAssertions.dll</HintPath>
@@ -255,11 +252,11 @@
   <Import Project="packages\xunit.runner.devices.2.1.0\build\Xamarin.iOS\xunit.runner.devices.targets" Condition="Exists('packages\xunit.runner.devices.2.1.0\build\Xamarin.iOS\xunit.runner.devices.targets')" />
   <Import Project="packages\Couchbase.Lite.Support.iOS.2.0.0-b0060\build\xamarinios\Couchbase.Lite.Support.iOS.targets" Condition="Exists('packages\Couchbase.Lite.Support.iOS.2.0.0-b0060\build\xamarinios\Couchbase.Lite.Support.iOS.targets')" />
   <Import Project="packages\Couchbase.Lite.2.0.0-b0060\build\Couchbase.Lite.targets" Condition="Exists('packages\Couchbase.Lite.2.0.0-b0060\build\Couchbase.Lite.targets')" />
-  <Import Project="packages\Couchbase.Lite.Support.iOS.2.0.0-b0143\build\xamarinios\Couchbase.Lite.Support.iOS.targets" Condition="Exists('packages\Couchbase.Lite.Support.iOS.2.0.0-b0143\build\xamarinios\Couchbase.Lite.Support.iOS.targets')" />
+  <Import Project="packages\Couchbase.Lite.Support.iOS.2.0.0-b0174\build\xamarinios\Couchbase.Lite.Support.iOS.targets" Condition="Exists('packages\Couchbase.Lite.Support.iOS.2.0.0-b0174\build\xamarinios\Couchbase.Lite.Support.iOS.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('packages\Couchbase.Lite.Support.iOS.2.0.0-b0143\build\xamarinios\Couchbase.Lite.Support.iOS.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Couchbase.Lite.Support.iOS.2.0.0-b0143\build\xamarinios\Couchbase.Lite.Support.iOS.targets'))" />
+    <Error Condition="!Exists('packages\Couchbase.Lite.Support.iOS.2.0.0-b0174\build\xamarinios\Couchbase.Lite.Support.iOS.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Couchbase.Lite.Support.iOS.2.0.0-b0174\build\xamarinios\Couchbase.Lite.Support.iOS.targets'))" />
   </Target>
 </Project>
