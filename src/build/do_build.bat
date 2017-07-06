@@ -64,43 +64,5 @@ echo.
 echo *** BUILDING ***
 echo.
 "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" Couchbase.Lite.sln /p:Configuration=Packaging
-REM echo.
-REM echo *** SIGNING ***
-REM echo *** MAIN ASSEMBLY ***
-REM "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Ra Couchbase.Lite\bin\Packaging\netstandard1.4\Couchbase.Lite.dll couchbase.snk
-REM echo.
-REM echo *** ANDROID ***
-REM "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Ra Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.dll couchbase.snk
-REM echo.
-REM echo *** IOS ***
-REM "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Ra Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.dll couchbase.snk
-REM echo.
-REM echo *** NET DESKTOP ***
-REM "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Ra Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\Couchbase.Lite.Support.NetDesktop.dll couchbase.snk
-REM echo.
-REM echo *** UWP ***
-REM "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Ra Couchbase.Lite.Support.UWP\bin\x64\Packaging\Couchbase.Lite.Support.UWP.dll couchbase.snk
-
-REM echo.
-REM echo *** VERIFYING SIGNATURES ***
-REM echo *** MAIN ASSEMBLY ***
-REM "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -v Couchbase.Lite\bin\Packaging\netstandard1.4\Couchbase.Lite.dll || exit /b 1
-REM "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Tp Couchbase.Lite\bin\Packaging\netstandard1.4\Couchbase.Lite.dll
-REM echo.
-REM echo *** ANDROID ***
-REM "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -v Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.dll || exit /b 1
-REM "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Tp Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.dll
-REM echo.
-REM echo *** IOS ***
-REM "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -v Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.dll || exit /b 1
-REM "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Tp Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.dll
-REM echo.
-REM echo *** NET DESKTOP ***
-REM "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -v Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\Couchbase.Lite.Support.NetDesktop.dll || exit /b 1
-REM "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Tp Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\Couchbase.Lite.Support.NetDesktop.dll
-REM echo.
-REM echo *** UWP ***
-REM "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -v Couchbase.Lite.Support.UWP\bin\x64\Packaging\Couchbase.Lite.Support.UWP.dll || exit /b 1
-REM "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.6.1 Tools\sn.exe" -Tp Couchbase.Lite.Support.UWP\bin\x64\Packaging\Couchbase.Lite.Support.UWP.dll
 popd
 popd

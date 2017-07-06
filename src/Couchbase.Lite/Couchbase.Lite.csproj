@@ -23,9 +23,6 @@
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
-   <!--  <SignAssembly>True</SignAssembly>
-    <DelaySign>True</DelaySign>
-    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile> -->
     <Optimize>True</Optimize>
     <DocumentationFile>bin\Packaging\netstandard1.4\Couchbase.Lite.xml</DocumentationFile>
     <DefineConstants>TRACE;PACKAGING;NETSTANDARD1_4;LITECORE_PACKAGED</DefineConstants>
