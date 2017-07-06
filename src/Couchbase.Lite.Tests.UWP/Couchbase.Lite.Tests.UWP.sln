@@ -20,8 +20,6 @@ Global
 		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{11f38891-8397-49b4-9146-6daf0a9d7866}*SharedItemsImports = 13
 		..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{6ec40f09-4c86-4f51-9f0e-c4397601a567}*SharedItemsImports = 13
 		..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore.Shared\LiteCore.Shared.projitems*{c37dc024-8762-4be4-9034-b2b5970c652c}*SharedItemsImports = 13
-		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{e5679738-ed61-443b-a621-7a10eb5b5605}*SharedItemsImports = 4
-		..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{e5679738-ed61-443b-a621-7a10eb5b5605}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM

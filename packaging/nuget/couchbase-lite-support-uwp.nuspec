@@ -23,10 +23,10 @@
     </dependencies>
   </metadata>
   <files>
-    <file target="build\Couchbase.Lite.Support.UWP.targets" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\uwp.targets" />
-    <file target="lib\uap10.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.dll" />
-    <file target="lib\uap10.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.pdb" />
-    <file target="lib\uap10.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.xml" />
+    <file target="build\Couchbase.Lite.Support.UWP.targets" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x64\uwp.targets" />
+    <file target="lib\uap10.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x64\Couchbase.Lite.Support.UWP.dll" />
+    <file target="lib\uap10.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x64\Couchbase.Lite.Support.UWP.pdb" />
+    <file target="lib\uap10.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x64\Couchbase.Lite.Support.UWP.xml" />
     <file target="runtimes\win10-x86\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x86\*.dll" />
     <file target="runtimes\win10-x64\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x64\*.dll" />
     <file target="runtimes\win10-arm\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\ARM\*.dll" />

@@ -107,9 +107,6 @@
     <Prefer32Bit>true</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
-    <SignAssembly>True</SignAssembly>
-    <DelaySign>True</DelaySign>
-    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|ARM'">
     <OutputPath>bin\ARM\Packaging\</OutputPath>
@@ -125,9 +122,6 @@
     <Prefer32Bit>true</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseDotNetNativeToolchain>false</UseDotNetNativeToolchain>
-    <SignAssembly>True</SignAssembly>
-    <DelaySign>True</DelaySign>
-    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|x64'">
     <OutputPath>bin\x64\Packaging\</OutputPath>
@@ -143,9 +137,12 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
     <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
-    <SignAssembly>True</SignAssembly>
-    <DelaySign>True</DelaySign>
-    <AssemblyOriginatorKeyFile>..\couchbase.public.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>..\couchbase.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <!--A reference to the entire .Net Framework and Windows SDK are automatically included-->
@@ -192,44 +189,6 @@
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
-  <ItemGroup Condition="'$(Configuration)' != 'Packaging'">
-    <Content Condition="'$(Platform)' == 'x86'" Include="..\..\vendor\couchbase-lite-core\build_cmake\x86_store\RelWithDebInfo\LiteCore.dll">
-      <Link>LiteCore.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Condition="'$(Platform)' == 'x86'" Include="..\..\vendor\couchbase-lite-core\build_cmake\x86_store\RelWithDebInfo\sqlite3.dll">
-      <Link>sqlite3.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Condition="'$(Platform)' == 'x64'" Include="..\..\vendor\couchbase-lite-core\build_cmake\x64_store\RelWithDebInfo\LiteCore.dll">
-      <Link>LiteCore.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Condition="'$(Platform)' == 'x64'" Include="..\..\vendor\couchbase-lite-core\build_cmake\x64_store\RelWithDebInfo\sqlite3.dll">
-      <Link>sqlite3.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Condition="'$(Platform)' == 'ARM'" Include="..\..\vendor\couchbase-lite-core\build_cmake\arm\RelWithDebInfo\LiteCore.dll">
-      <Link>LiteCore.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Condition="'$(Platform)' == 'ARM'" Include="..\..\vendor\couchbase-lite-core\build_cmake\arm\RelWithDebInfo\sqlite3.dll">
-      <Link>sqlite3.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj">
-      <Project>{89c2b07b-a5e3-4be9-8d2c-22269b0aa921}</Project>
-      <Name>Couchbase.Lite.Support.UWP</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj">
-      <Project>{dd9cb298-f3a1-4653-883b-352e69c16f93}</Project>
-      <Name>Couchbase.Lite</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" />
-  <Import Project="..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems" Label="Shared" />
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>
