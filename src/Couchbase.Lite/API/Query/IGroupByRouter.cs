@@ -32,9 +32,9 @@ namespace Couchbase.Lite.Query
         /// <summary>
         /// Groups the current query by the given GROUP BY clauses
         /// </summary>
-        /// <param name="groupBy">The clauses to group by</param>
+        /// <param name="expressions">The clauses to group by</param>
         /// <returns>The query grouped by the given clauses for further processing</returns>
-        IGroupBy GroupBy(params IGroupBy[] groupBy);
+        IGroupBy GroupBy(params IExpression[] expressions);
 
         #endregion
     }

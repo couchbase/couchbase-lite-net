@@ -20,21 +20,21 @@ namespace Couchbase.Lite.Internal.Query
 
         public IParameters Parameters { get; } = new QueryParameters();
 
-        protected ISelect SelectImpl { get; set; }
+        protected Select SelectImpl { get; set; }
 
         protected bool Distinct { get; set; }
 
-        protected IDataSource FromImpl { get; set; }
+        protected QueryDataSource FromImpl { get; set; }
 
-        protected IExpression WhereImpl { get; set; }
+        protected QueryExpression WhereImpl { get; set; }
 
-        protected IOrdering OrderingImpl { get; set; }
+        protected QueryOrdering OrderByImpl { get; set; }
 
-        protected IJoin JoinImpl { get; set; }
+        protected QueryJoin JoinImpl { get; set; }
 
-        protected IGroupBy GroupByImpl { get; set; }
+        protected QueryGroupBy GroupByImpl { get; set; }
 
-        protected IHaving HavingImpl { get; set; }
+        protected Having HavingImpl { get; set; }
 
         protected object SkipValue { get; set; }
 
@@ -81,7 +81,7 @@ namespace Couchbase.Lite.Internal.Query
                 Distinct = Distinct,
                 FromImpl = FromImpl,
                 WhereImpl = WhereImpl,
-                OrderingImpl = OrderingImpl,
+                OrderByImpl = OrderByImpl,
                 JoinImpl = JoinImpl,
                 GroupByImpl = GroupByImpl,
                 HavingImpl = HavingImpl,
@@ -97,7 +97,7 @@ namespace Couchbase.Lite.Internal.Query
             Distinct = source.Distinct;
             FromImpl = source.FromImpl;
             WhereImpl = source.WhereImpl;
-            OrderingImpl = source.OrderingImpl;
+            OrderByImpl = source.OrderByImpl;
             JoinImpl = source.JoinImpl;
             GroupByImpl = source.GroupByImpl;
             HavingImpl = source.HavingImpl;
@@ -129,11 +129,8 @@ namespace Couchbase.Lite.Internal.Query
         private string EncodeAsJSON()
         {
             var parameters = new Dictionary<string, object>();
-            var where = WhereImpl as QueryExpression;
-            if (where != null) {
-                parameters["WHERE"] = where.ConvertToJSON();
-            } else if (WhereImpl != null) {
-                throw new NotSupportedException("Custom IWhere not supported");
+            if (WhereImpl != null) {
+                parameters["WHERE"] = WhereImpl.ConvertToJSON();
             }
 
             if (Distinct) {
@@ -147,55 +144,36 @@ namespace Couchbase.Lite.Internal.Query
             if (SkipValue != null) {
                 parameters["OFFSET"] = SkipValue;
             }
-
-            var orderBy = OrderingImpl as QueryOrdering;
-            if (orderBy != null) {
-                parameters["ORDER_BY"] = orderBy.ToJSON();
-            } else if (OrderingImpl != null) {
-                throw new NotSupportedException("Custom IOrdering not supported");
+;
+            if (OrderByImpl != null) {
+                parameters["ORDER_BY"] = OrderByImpl.ToJSON();
             }
 
-            var select = SelectImpl as Select;
-            if (select != null) {
-                var selectParam = select.ToJSON();
-                if (selectParam != null) {
-                    parameters["WHAT"] = selectParam;
-                }
-            } else {
-                throw new NotSupportedException("Custom ISelect not supported");
+            var selectParam = SelectImpl?.ToJSON();
+            if (selectParam != null) {
+                parameters["WHAT"] = selectParam;
             }
-
-            var join = JoinImpl as Join;
-            var from = FromImpl as DataSource;
-            if (join != null) {
-                var fromJson = from?.ToJSON();
+            
+            if (JoinImpl != null) {
+                var fromJson = FromImpl?.ToJSON();
                 if (fromJson == null) {
                     throw new InvalidOperationException(
                         "The default database must have an alias in order to use a JOIN statement" +
                         " (Make sure your data source uses the As() function)");
                 }
 
-                var joinJson = join.ToJSON() as IList<object>;
+                var joinJson = JoinImpl.ToJSON() as IList<object>;
                 Debug.Assert(joinJson != null);
                 joinJson.Insert(0, fromJson);
                 parameters["FROM"] = joinJson;
-            } else if(JoinImpl != null) {
-                throw new NotSupportedException("Custom IJoin not supported");
             }
-
-            var groupBy = GroupByImpl as QueryGroupBy;
-            if (groupBy != null) {
-                parameters["GROUP_BY"] = groupBy.ToJSON();
-            } else if (GroupByImpl != null) {
-                throw new NotSupportedException("Custom IGroupBy not supported");
+            
+            if (GroupByImpl != null) {
+                parameters["GROUP_BY"] = GroupByImpl.ToJSON();
             }
-
-            var having = HavingImpl as Having;
-            if (having != null) {
-                parameters["HAVING"] = having.ToJSON();
-            }
-            else if (HavingImpl != null) {
-                throw new NotSupportedException("Custom IHaving not supported");
+            
+            if (HavingImpl != null) {
+                parameters["HAVING"] = HavingImpl.ToJSON();
             }
 
             return JsonConvert.SerializeObject(parameters);

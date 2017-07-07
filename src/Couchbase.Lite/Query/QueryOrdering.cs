@@ -38,14 +38,14 @@ namespace Couchbase.Lite.Internal.Query
         internal QueryOrdering(IList<IOrdering> orderBy)
         {
             Orders = orderBy;
-            OrderingImpl = this;
+            OrderByImpl = this;
         }
 
         internal QueryOrdering(XQuery query, IList<IOrdering> orderBy)
             : this(orderBy)
         {
             Copy(query);
-            OrderingImpl = this;
+            OrderByImpl = this;
         }
 
         #endregion

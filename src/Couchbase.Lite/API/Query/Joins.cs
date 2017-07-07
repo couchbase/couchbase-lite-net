@@ -25,7 +25,7 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// A class for creating <see cref="IJoin"/> instances
     /// </summary>
-    public static class Joins
+    public static class Join
     {
         #region Public Methods
 
@@ -36,7 +36,7 @@ namespace Couchbase.Lite.Query
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
         public static IJoinOn CrossJoin(IDataSource dataSource)
         {
-            return new Join("CROSS", dataSource);
+            return new QueryJoin("CROSS", dataSource);
         }
 
         /// <summary>
@@ -46,7 +46,7 @@ namespace Couchbase.Lite.Query
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
         public static IJoinOn InnerJoin(IDataSource dataSource)
         {
-            return new Join(null, dataSource);
+            return new QueryJoin(null, dataSource);
         }
 
         /// <summary>
@@ -54,7 +54,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="dataSource">The data source to JOIN with</param>
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
-        public static IJoinOn Join(IDataSource dataSource)
+        public static IJoinOn DefaultJoin(IDataSource dataSource)
         {
             return InnerJoin(dataSource);
         }
@@ -76,7 +76,7 @@ namespace Couchbase.Lite.Query
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
         public static IJoinOn LeftOuterJoin(IDataSource dataSource)
         {
-            return new Join("LEFT OUTER", dataSource);
+            return new QueryJoin("LEFT OUTER", dataSource);
         }
 
         #endregion

@@ -32,10 +32,10 @@ namespace Couchbase.Lite.Query
         /// <summary>
         /// Routes this IExpression to the next ORDER BY portion of the query
         /// </summary>
-        /// <param name="ordering">An array of order by operations to consider in the 
+        /// <param name="orderings">An array of order by operations to consider in the 
         /// ORDER BY portion of the query</param>
         /// <returns>The next ORDER BY portion of the query</returns>
-        IOrdering OrderBy(params IOrdering[] ordering);
+        IOrdering OrderBy(params IOrdering[] orderings);
 
         #endregion
     }

@@ -30,7 +30,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             Copy(query);
 
-            FromImpl = impl;
+            FromImpl = impl as QueryDataSource;
             Database = (impl as DatabaseSource)?.Database;
         }
 
@@ -40,25 +40,25 @@ namespace Couchbase.Lite.Internal.Query
 
         public object ToJSON()
         {
-            return (FromImpl as DataSource)?.ToJSON();
+            return FromImpl?.ToJSON();
         }
 
         #endregion
 
         #region IGroupByRouter
 
-        public IGroupBy GroupBy(params IGroupBy[] groupBy)
+        public IGroupBy GroupBy(params IExpression[] expressions)
         {
-            return new QueryGroupBy(this, groupBy);
+            return new QueryGroupBy(this, expressions);
         }
 
         #endregion
 
         #region IJoinRouter
 
-        public IJoin Join(params IJoin[] @join)
+        public IJoin Joins(params IJoin[] joins)
         {
-            return new Join(this, join);
+            return new QueryJoin(this, joins);
         }
 
         #endregion

@@ -23,7 +23,7 @@ using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class DatabaseSource : DataSource, IDataSourceAs
+    internal sealed class DatabaseSource : QueryDataSource, IDataSourceAs
     {
         #region Variables
 

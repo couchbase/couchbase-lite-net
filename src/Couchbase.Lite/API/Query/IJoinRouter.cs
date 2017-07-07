@@ -34,7 +34,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="joins">The join clauses to add</param>
         /// <returns>The query with the join statement, for further processing</returns>
-        IJoin Join(params IJoin[] joins);
+        IJoin Joins(params IJoin[] joins);
 
         #endregion
     }

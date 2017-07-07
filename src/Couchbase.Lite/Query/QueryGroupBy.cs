@@ -27,22 +27,21 @@ namespace Couchbase.Lite.Internal.Query
     internal sealed class QueryGroupBy : LimitedQuery, IGroupBy
     {
         #region Variables
-
-        private readonly IExpression _expression;
-        private readonly IList<IGroupBy> _groupings;
+        
+        private readonly IList<IExpression> _expressions;
 
         #endregion
 
         #region Constructors
 
-        internal QueryGroupBy(IList<IGroupBy> groupBy)
+        internal QueryGroupBy(IList<IExpression> expressions)
         {
-            _groupings = groupBy;
+            _expressions = expressions;
             GroupByImpl = this;
         }
 
-        internal QueryGroupBy(XQuery query, IList<IGroupBy> groupBy)
-            : this(groupBy)
+        internal QueryGroupBy(XQuery query, IList<IExpression> expressions)
+            : this(expressions)
         {
             Copy(query);
             GroupByImpl = this;
@@ -50,7 +49,7 @@ namespace Couchbase.Lite.Internal.Query
 
         internal QueryGroupBy(IExpression expression)
         {
-            _expression = expression;
+            _expressions = new[] {expression};
             GroupByImpl = this;
         }
 
@@ -60,14 +59,13 @@ namespace Couchbase.Lite.Internal.Query
 
         public object ToJSON()
         {
-            var exp = _expression as QueryExpression;
-            if (exp != null) {
-                return exp.ConvertToJSON();
+            if (_expressions.Count == 1) {
+                return (_expressions.First() as QueryExpression)?.ConvertToJSON();
             }
-
+            
             var obj = new List<object>();
-            foreach (var o in _groupings.OfType<QueryGroupBy>()) {
-                obj.Add(o.ToJSON());
+            foreach (var o in _expressions.OfType<QueryExpression>()) {
+                obj.Add(o.ConvertToJSON());
             }
 
             return obj;

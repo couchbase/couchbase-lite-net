@@ -22,7 +22,7 @@ using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal abstract class DataSource : IDataSource
+    internal abstract class QueryDataSource : IDataSource
     {
         #region Properties
 
@@ -32,7 +32,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        protected DataSource(object source)
+        protected QueryDataSource(object source)
         {
             Source = source;            
         }

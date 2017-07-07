@@ -21,11 +21,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,13 +29,7 @@ using System.Threading.Tasks;
 using Couchbase.Lite;
 using Couchbase.Lite.Query;
 using FluentAssertions;
-using LiteCore.Interop;
 using Newtonsoft.Json;
-using Couchbase.Lite.Internal.Query;
-using DataSource = Couchbase.Lite.Query.DataSource;
-using Function = Couchbase.Lite.Query.Function;
-using GroupBy = Couchbase.Lite.Query.GroupBy;
-using Ordering = Couchbase.Lite.Query.Ordering;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -574,7 +564,7 @@ namespace Test
             var number2Prop = Expression.Property("number2");
             using (var q = Query.Select(SelectResult.Expression(number2Prop.From("main")))
                 .From(DataSource.Database(Db).As("main"))
-                .Join(Joins.Join(DataSource.Database(Db).As("secondary"))
+                .Joins(Join.DefaultJoin(DataSource.Database(Db).As("secondary"))
                     .On(Expression.Property("number1").From("main")
                         .EqualTo(Expression.Property("theone").From("secondary"))))) {
                 using (var results = q.Run()) {
@@ -628,7 +618,7 @@ namespace Test
             using (var q = Query.Select(SelectResult.Expression(STATE), SelectResult.Expression(COUNT), SelectResult.Expression(MAXZIP))
                 .From(DataSource.Database(Db))
                 .Where(gender.EqualTo("female"))
-                .GroupBy(GroupBy.Expression(STATE))
+                .GroupBy(STATE)
                 .OrderBy(Ordering.Expression(STATE))) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
@@ -651,7 +641,7 @@ namespace Test
             using (var q = Query.Select(SelectResult.Expression(STATE), SelectResult.Expression(COUNT), SelectResult.Expression(MAXZIP))
                 .From(DataSource.Database(Db))
                 .Where(gender.EqualTo("female"))
-                .GroupBy(GroupBy.Expression(STATE))
+                .GroupBy(STATE)
                 .Having(COUNT.GreaterThan(1))
                 .OrderBy(Ordering.Expression(STATE))) {
                 var numRows = VerifyQuery(q, (n, row) =>

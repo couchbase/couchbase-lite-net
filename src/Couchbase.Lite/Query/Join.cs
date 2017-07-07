@@ -1,5 +1,5 @@
 ﻿// 
-// Join.cs
+// QueryJoin.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -26,7 +26,7 @@ using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class Join : LimitedQuery, IJoinOn
+    internal sealed class QueryJoin : LimitedQuery, IJoinOn
     {
         #region Properties
 
@@ -39,20 +39,20 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal Join(IList<IJoin> joins)
+        internal QueryJoin(IList<IJoin> joins)
         {
             _joins = joins;
             JoinImpl = this;
         }
 
-        internal Join(XQuery source, IList<IJoin> joins)
+        internal QueryJoin(XQuery source, IList<IJoin> joins)
         {
             Copy(source);
             _joins = joins; 
             JoinImpl = this;
         }
 
-        internal Join(string joinType, IDataSource dataSource)
+        internal QueryJoin(string joinType, IDataSource dataSource)
         {
             _joinType = joinType;
             _source = dataSource;
@@ -64,14 +64,14 @@ namespace Couchbase.Lite.Internal.Query
         {
             if (_joins != null) {
                 var obj = new List<object>();
-                foreach (var o in _joins.OfType<Join>()) {
+                foreach (var o in _joins.OfType<QueryJoin>()) {
                     obj.Add(o.ToJSON());
                 }
 
                 return obj;
             }
 
-            var asObj = (_source as DataSource)?.ToJSON() as Dictionary<string, object>;
+            var asObj = (_source as QueryDataSource)?.ToJSON() as Dictionary<string, object>;
             if (asObj == null) {
                 throw new InvalidOperationException("Missing AS clause for JOIN");
             }

@@ -29,16 +29,16 @@ namespace Couchbase.Lite.Internal.Query
         public Where(XQuery query, IExpression expression)
         {
             Copy(query);
-            WhereImpl = expression;
+            WhereImpl = expression as QueryExpression;
         }
 
         #endregion
 
         #region IGroupByRouter
 
-        public IGroupBy GroupBy(params IGroupBy[] groupBy)
+        public IGroupBy GroupBy(params IExpression[] expressions)
         {
-            return new QueryGroupBy(this, groupBy);
+            return new QueryGroupBy(this, expressions);
         }
 
         #endregion

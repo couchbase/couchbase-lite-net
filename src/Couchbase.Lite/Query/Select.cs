@@ -66,9 +66,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IJoinRouter
 
-        public IJoin Join(params IJoin[] @join)
+        public IJoin Joins(params IJoin[] joins)
         {
-            return new Join(this, join);
+            return new QueryJoin(this, joins);
         }
 
         #endregion
