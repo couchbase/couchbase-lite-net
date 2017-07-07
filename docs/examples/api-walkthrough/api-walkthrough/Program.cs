@@ -74,10 +74,10 @@ namespace api_walkthrough
             var data = taskBlob.Content;
 
             // query
-            var query = QueryFactory.Select()
-            .From(DataSourceFactory.Database(database))
-            .Where(ExpressionFactory.Property("type").EqualTo("user")
-		   .And(ExpressionFactory.Property("admin").EqualTo(false)));
+            var query = Query.Select()
+            .From(DataSource.Database(database))
+            .Where(Expression.Property("type").EqualTo("user")
+		   .And(Expression.Property("admin").EqualTo(false)));
 
             var rows = query.Run();
             foreach (var row in rows)
@@ -86,11 +86,11 @@ namespace api_walkthrough
             }
 
             // live query
-            var liveQuery = query.ToLiveQuery();
+            var liveQuery = query.ToLive();
             liveQuery.Changed += (sender, e) => {
                 Console.WriteLine($"Number of rows :: {e.Rows.Count}");
             };
-            liveQuery.Start();
+            liveQuery.Run();
             var newDoc = new Document();
             newDoc.Set("type", "user");
             newDoc.Set("admin", false);
@@ -110,9 +110,9 @@ namespace api_walkthrough
             // create Index
             database.CreateIndex(new[] { "name" }, IndexType.FullTextIndex, null);
 
-            var ftsQuery = QueryFactory.Select()
-		    .From(DataSourceFactory.Database(database))
-		    .Where(ExpressionFactory.Property("name").Match("'buy'"));
+            var ftsQuery = Query.Select()
+		    .From(DataSource.Database(database))
+		    .Where(Expression.Property("name").Match("'buy'"));
 
             var ftsRows = ftsQuery.Run();
             foreach (var row in ftsRows)
@@ -145,7 +145,7 @@ namespace api_walkthrough
             replication.Start();
 
             // replication change listener
-            replication.StatusChanged += (object sender, ReplicationStatusChangedEventArgs e) => {
+            replication.StatusChanged += (sender, e) => {
                 if (e.Status.Activity == ReplicatorActivityLevel.Stopped) {
                     Console.WriteLine("Replication has completed.");
                 }
