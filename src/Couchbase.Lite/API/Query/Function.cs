@@ -1,5 +1,5 @@
 ﻿// 
-// FunctionFactory.cs
+// QueryFunction.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -25,7 +25,7 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// A class for creating <see cref="IFunction"/> instances
     /// </summary>
-    public static class FunctionFactory
+    public static class Function
     {
         #region Public Methods
 
@@ -38,7 +38,7 @@ namespace Couchbase.Lite.Query
         /// <returns>A function that will calculate the average</returns>
         public static IFunction Avg(object expression)
         {
-            return new Function("AVG()", expression);
+            return new QueryFunction("AVG()", expression);
         }
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace Couchbase.Lite.Query
         /// <returns>A function that will calculate the count</returns>
         public static IFunction Count(object expression)
         {
-            return new Function("COUNT()", expression);
+            return new QueryFunction("COUNT()", expression);
         }
 
         /// <summary>
@@ -62,7 +62,7 @@ namespace Couchbase.Lite.Query
         /// <returns>A function that will calculate the max value</returns>
         public static IFunction Max(object expression)
         {
-            return new Function("MAX()", expression);
+            return new QueryFunction("MAX()", expression);
         }
 
         /// <summary>
@@ -74,7 +74,7 @@ namespace Couchbase.Lite.Query
         /// <returns>A function that will calculate the min value</returns>
         public static IFunction Min(object expression)
         {
-            return new Function("MIN()", expression);
+            return new QueryFunction("MIN()", expression);
         }
 
         /// <summary>
@@ -86,7 +86,7 @@ namespace Couchbase.Lite.Query
         /// <returns>A function that will calculate the sum</returns>
         public static IFunction Sum(object expression)
         {
-            return new Function("SUM()", expression);
+            return new QueryFunction("SUM()", expression);
         }
 
         #endregion

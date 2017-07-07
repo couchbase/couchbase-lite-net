@@ -1,5 +1,5 @@
 ﻿// 
-// DataSourceFactory.cs
+// DataSource.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -27,7 +27,7 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// A factory class for creating data sources for queries
     /// </summary>
-    public static class DataSourceFactory
+    public static class DataSource
     {
         #region Public Methods
 

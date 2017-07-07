@@ -241,7 +241,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IExpression NotBetween(object expression1, object expression2)
         {
-            return ExpressionFactory.Negated(Between(expression1, expression2));
+            return Expression.Negated(Between(expression1, expression2));
         }
 
         public IExpression NotEqualTo(object expression)
@@ -261,7 +261,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IExpression NotInExpressions(IList expressions)
         {
-            return ExpressionFactory.Negated(InExpressions(expressions));
+            return Expression.Negated(InExpressions(expressions));
         }
 
         public IExpression NotLessThan(object expression)
@@ -276,12 +276,12 @@ namespace Couchbase.Lite.Internal.Query
 
         public IExpression NotLike(object expression)
         {
-            return ExpressionFactory.Negated(Like(expression));
+            return Expression.Negated(Like(expression));
         }
 
         public IExpression NotMatch(object expression)
         {
-            return ExpressionFactory.Negated(Match(expression));
+            return Expression.Negated(Match(expression));
         }
 
         public IExpression NotNull()
@@ -291,7 +291,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IExpression NotRegex(object expression)
         {
-            return ExpressionFactory.Negated(Regex(expression));
+            return Expression.Negated(Regex(expression));
         }
 
         public IExpression Or(object expression)

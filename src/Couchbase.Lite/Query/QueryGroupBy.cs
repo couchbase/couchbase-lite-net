@@ -1,5 +1,5 @@
 ﻿// 
-// Having.cs
+// GroupBy.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,26 +18,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+using System.Collections.Generic;
+using System.Linq;
 using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class Having : LimitedQuery, IHaving
+    internal sealed class QueryGroupBy : LimitedQuery, IGroupBy
     {
         #region Variables
 
         private readonly IExpression _expression;
+        private readonly IList<IGroupBy> _groupings;
 
         #endregion
 
         #region Constructors
 
-        internal Having(XQuery source, IExpression expression)
+        internal QueryGroupBy(IList<IGroupBy> groupBy)
         {
-            Copy(source);
+            _groupings = groupBy;
+            GroupByImpl = this;
+        }
 
+        internal QueryGroupBy(XQuery query, IList<IGroupBy> groupBy)
+            : this(groupBy)
+        {
+            Copy(query);
+            GroupByImpl = this;
+        }
+
+        internal QueryGroupBy(IExpression expression)
+        {
             _expression = expression;
-            HavingImpl = this;
+            GroupByImpl = this;
         }
 
         #endregion
@@ -46,7 +60,26 @@ namespace Couchbase.Lite.Internal.Query
 
         public object ToJSON()
         {
-            return (_expression as QueryExpression)?.ConvertToJSON();
+            var exp = _expression as QueryExpression;
+            if (exp != null) {
+                return exp.ConvertToJSON();
+            }
+
+            var obj = new List<object>();
+            foreach (var o in _groupings.OfType<QueryGroupBy>()) {
+                obj.Add(o.ToJSON());
+            }
+
+            return obj;
+        }
+
+        #endregion
+
+        #region IHavingRouter
+
+        public IHaving Having(IExpression expression)
+        {
+            return new Having(this, expression);
         }
 
         #endregion

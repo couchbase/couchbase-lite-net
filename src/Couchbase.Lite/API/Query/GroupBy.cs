@@ -1,5 +1,5 @@
 ﻿// 
-// IGroupBy.cs
+// QueryGroupBy.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,14 +18,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
 {
     /// <summary>
-    /// An interface representing the GROUP BY portion of a query
+    /// A class for creating <see cref="IGroupBy"/> instances
     /// </summary>
-    public interface IGroupBy : IQuery, IHavingRouter, IOrderByRouter
+    public static class GroupBy
     {
-        
+        #region Public Methods
+
+        /// <summary>
+        /// Creates an instance that will group a query by the given expression
+        /// </summary>
+        /// <param name="expression">The expression to group the query by</param>
+        /// <returns>An instance that will group a query by the given expression</returns>
+        public static IGroupBy Expression(IExpression expression)
+        {
+            return new QueryGroupBy(expression);
+        }
+
+        #endregion
     }
 }

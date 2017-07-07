@@ -21,10 +21,20 @@
 
 namespace Couchbase.Lite.Query
 {
+    /// <summary>
+    /// An interface for an expression that will retrieve a property
+    /// from a keypath
+    /// </summary>
     public interface IPropertySource : IExpression
     {
         #region Public Methods
 
+        /// <summary>
+        /// Specifies where to retrieve the property from (necessary
+        /// in instances where the query is coming from multiple sources)
+        /// </summary>
+        /// <param name="alias">The alias of the source to retrieve from</param>
+        /// <returns>The expression, for further processing</returns>
         IExpression From(string alias);
 
         #endregion

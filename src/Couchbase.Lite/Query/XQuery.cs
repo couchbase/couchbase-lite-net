@@ -28,7 +28,7 @@ namespace Couchbase.Lite.Internal.Query
 
         protected IExpression WhereImpl { get; set; }
 
-        protected IOrderBy OrderByImpl { get; set; }
+        protected IOrdering OrderingImpl { get; set; }
 
         protected IJoin JoinImpl { get; set; }
 
@@ -81,7 +81,7 @@ namespace Couchbase.Lite.Internal.Query
                 Distinct = Distinct,
                 FromImpl = FromImpl,
                 WhereImpl = WhereImpl,
-                OrderByImpl = OrderByImpl,
+                OrderingImpl = OrderingImpl,
                 JoinImpl = JoinImpl,
                 GroupByImpl = GroupByImpl,
                 HavingImpl = HavingImpl,
@@ -97,7 +97,7 @@ namespace Couchbase.Lite.Internal.Query
             Distinct = source.Distinct;
             FromImpl = source.FromImpl;
             WhereImpl = source.WhereImpl;
-            OrderByImpl = source.OrderByImpl;
+            OrderingImpl = source.OrderingImpl;
             JoinImpl = source.JoinImpl;
             GroupByImpl = source.GroupByImpl;
             HavingImpl = source.HavingImpl;
@@ -148,11 +148,11 @@ namespace Couchbase.Lite.Internal.Query
                 parameters["OFFSET"] = SkipValue;
             }
 
-            var orderBy = OrderByImpl as OrderBy;
+            var orderBy = OrderingImpl as QueryOrdering;
             if (orderBy != null) {
                 parameters["ORDER_BY"] = orderBy.ToJSON();
-            } else if (OrderByImpl != null) {
-                throw new NotSupportedException("Custom IOrderBy not supported");
+            } else if (OrderingImpl != null) {
+                throw new NotSupportedException("Custom IOrdering not supported");
             }
 
             var select = SelectImpl as Select;
@@ -183,7 +183,7 @@ namespace Couchbase.Lite.Internal.Query
                 throw new NotSupportedException("Custom IJoin not supported");
             }
 
-            var groupBy = GroupByImpl as GroupBy;
+            var groupBy = GroupByImpl as QueryGroupBy;
             if (groupBy != null) {
                 parameters["GROUP_BY"] = groupBy.ToJSON();
             } else if (GroupByImpl != null) {

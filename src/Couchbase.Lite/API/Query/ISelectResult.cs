@@ -1,5 +1,5 @@
 ﻿// 
-// IGroupBy.cs
+// ISelectResult.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -22,10 +22,9 @@
 namespace Couchbase.Lite.Query
 {
     /// <summary>
-    /// An interface representing the GROUP BY portion of a query
+    /// An interface that holds information about what to
+    /// select out of an <see cref="IQuery"/>
     /// </summary>
-    public interface IGroupBy : IQuery, IHavingRouter, IOrderByRouter
-    {
-        
-    }
+    public interface ISelectResult
+    {}
 }

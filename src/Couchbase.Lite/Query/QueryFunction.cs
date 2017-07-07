@@ -1,5 +1,5 @@
 ﻿// 
-// IGroupBy.cs
+// Function.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,14 +18,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+using Couchbase.Lite.Query;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Internal.Query
 {
-    /// <summary>
-    /// An interface representing the GROUP BY portion of a query
-    /// </summary>
-    public interface IGroupBy : IQuery, IHavingRouter, IOrderByRouter
+    internal sealed class QueryFunction : QueryCompoundExpression, IFunction
     {
-        
+        #region Constructors
+
+        public QueryFunction(string op, params object[] subpredicates)
+            : base(op, subpredicates)
+        {
+            
+        }
+
+        #endregion
     }
 }

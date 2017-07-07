@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Couchbase.Lite.Query
 {
-    public interface ILimitRouter
+    internal interface ILimitRouter
     {
         ILimit Limit(object limit);
 

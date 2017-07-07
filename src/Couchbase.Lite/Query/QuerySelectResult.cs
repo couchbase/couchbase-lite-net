@@ -1,5 +1,5 @@
 ﻿// 
-// IGroupBy.cs
+// QuerySelectResult.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -19,13 +19,17 @@
 // limitations under the License.
 // 
 
-namespace Couchbase.Lite.Query
+using Couchbase.Lite.Query;
+
+namespace Couchbase.Lite.Internal.Query
 {
-    /// <summary>
-    /// An interface representing the GROUP BY portion of a query
-    /// </summary>
-    public interface IGroupBy : IQuery, IHavingRouter, IOrderByRouter
+    internal sealed class QuerySelectResult : ISelectResult
     {
-        
+        internal readonly IExpression Expression;
+
+        public QuerySelectResult(IExpression expression)
+        {
+            Expression = expression;
+        }
     }
 }

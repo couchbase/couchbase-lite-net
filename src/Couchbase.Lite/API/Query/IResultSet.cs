@@ -24,10 +24,17 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite.Query
 {
+    /// <summary>
+    /// An interface representing an enumerable collection of results
+    /// from a given <see cref="IQuery"/>
+    /// </summary>
     public interface IResultSet : IEnumerable<IQueryRow>, IDisposable
     {
         #region Properties
 
+        /// <summary>
+        /// Gets the number of results without doing a full enumeration
+        /// </summary>
         int Count { get; }
 
         #endregion

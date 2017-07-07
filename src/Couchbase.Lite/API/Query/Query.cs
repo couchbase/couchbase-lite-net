@@ -26,29 +26,29 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// A factory class for generating the initial portion of a query
     /// </summary>
-    public static class QueryFactory
+    public static class Query
     {
         #region Public Methods
 
         /// <summary>
         /// Selects the given property path from the query under construction
         /// </summary>
-        /// <param name="pathsToSelect">The property paths to select</param>
+        /// <param name="resultsToSelect">The results to select</param>
         /// <returns>The initial SELECT portion of the query</returns>
-        public static ISelect Select(params IExpression[] pathsToSelect)
+        public static ISelect Select(params ISelectResult[] resultsToSelect)
         {
-            return new Select(pathsToSelect, false);
+            return new Select(resultsToSelect, false);
         }
 
 
         /// <summary>
         /// Selects only the distinct results of the query
         /// </summary>
-        /// <param name="pathsToSelect">The property paths to select</param>
+        /// <param name="resultsToSelect">The results to select</param>
         /// <returns>The initial SELECT portion of the query</returns>
-        public static ISelect SelectDistinct(params IExpression[] pathsToSelect)
+        public static ISelect SelectDistinct(params ISelectResult[] resultsToSelect)
         {
-            return new Select(pathsToSelect, true);
+            return new Select(resultsToSelect, true);
         }
 
         #endregion

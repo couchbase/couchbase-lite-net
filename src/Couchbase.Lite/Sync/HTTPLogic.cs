@@ -203,12 +203,6 @@ namespace Couchbase.Lite.Sync
                 return $"Basic {encodedVal}";
             }
 
-            if (challenge["Scheme"] == "Digest") {
-                var digestComponents = DigestCalculator.ParseIntoComponents(authResponse);
-                digestComponents["password"] = Credential.Password;
-                return $"Digest {DigestCalculator.Calculate(digestComponents)}";
-            }
-
             return null;
         }
 

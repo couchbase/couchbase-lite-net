@@ -1,5 +1,5 @@
 ﻿// 
-// IOrderBy.cs
+// IOrdering.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -24,14 +24,14 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// An interface representing the ORDER BY portion of an <see cref="IQuery"/>
     /// </summary>
-    public interface IOrderBy : IQuery, ILimitRouter
+    public interface IOrdering : IQuery
     {}
 
     /// <summary>
-    /// An interface representing the way that an <see cref="IOrderBy"/> should be
+    /// An interface representing the way that an <see cref="IOrdering"/> should be
     /// sorted
     /// </summary>
-    public interface ISortOrder : IOrderBy
+    public interface ISortOrder : IOrdering
     {
         #region Public Methods
 
@@ -39,13 +39,13 @@ namespace Couchbase.Lite.Query
         /// Returns an IExpression that will sort in ascending order
         /// </summary>
         /// <returns>An IExpression that will sort in ascending order</returns>
-        IOrderBy Ascending();
+        IOrdering Ascending();
 
         /// <summary>
         /// Returns an IExpression that will sort in desecending order
         /// </summary>
         /// <returns>An IExpression that will sort in desecending order</returns>
-        IOrderBy Descending();
+        IOrdering Descending();
 
         #endregion
     }

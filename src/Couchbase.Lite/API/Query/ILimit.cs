@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Couchbase.Lite.Query
 {
-    public interface ILimit : IQuery
+    internal interface ILimit : IQuery
     {
     }
 }

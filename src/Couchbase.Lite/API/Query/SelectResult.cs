@@ -1,5 +1,5 @@
 ﻿// 
-// IGroupBy.cs
+// SelectResultFactory.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -19,13 +19,25 @@
 // limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Query;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
-    /// An interface representing the GROUP BY portion of a query
+    /// A class for generating instances of <see cref="ISelectResult"/>.  This *will*
+    /// be expanded on in the near future.
     /// </summary>
-    public interface IGroupBy : IQuery, IHavingRouter, IOrderByRouter
+    public static class SelectResult
     {
-        
+        /// <summary>
+        /// Creates an instance based on the given expression
+        /// </summary>
+        /// <param name="expression">The expression describing what to select from the
+        /// query (e.g. <see cref="Lite.Query.Expression.Property(string)"/>)</param>
+        /// <returns></returns>
+        public static ISelectResult Expression(IExpression expression)
+        {
+            return new QuerySelectResult(expression);
+        }
     }
 }

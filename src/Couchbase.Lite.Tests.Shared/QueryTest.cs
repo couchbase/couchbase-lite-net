@@ -36,6 +36,10 @@ using FluentAssertions;
 using LiteCore.Interop;
 using Newtonsoft.Json;
 using Couchbase.Lite.Internal.Query;
+using DataSource = Couchbase.Lite.Query.DataSource;
+using Function = Couchbase.Lite.Query.Function;
+using GroupBy = Couchbase.Lite.Query.GroupBy;
+using Ordering = Couchbase.Lite.Query.Ordering;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -132,7 +136,7 @@ namespace Test
         public void TestNoWhereQuery()
         {
             LoadJSONResource("names_100");
-            using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db))) {
+            using (var q = Query.Select().From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var expectedID = $"doc-{n:D3}";
@@ -163,10 +167,10 @@ namespace Test
             doc2["age"] = 20;
             doc2.Save();
 
-            var name = ExpressionFactory.Property("name");
-            var address = ExpressionFactory.Property("address");
-            var age = ExpressionFactory.Property("age");
-            var work = ExpressionFactory.Property("work");
+            var name = Expression.Property("name");
+            var address = Expression.Property("address");
+            var age = Expression.Property("age");
+            var work = Expression.Property("work");
 
             var tests = new[] {
                 Tuple.Create(name.NotNull(), new[] { doc1, doc2 }),
@@ -183,7 +187,7 @@ namespace Test
             foreach (var test in tests) {
                 var exp = test.Item1;
                 var expectedDocs = test.Item2;
-                using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db)).Where(exp)) {
+                using (var q = Query.Select().From(DataSourceFactory.Database(Db)).Where(exp)) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         if (n <= expectedDocs.Length) {
@@ -203,7 +207,7 @@ namespace Test
         [Fact]
         public void TestWhereComparison()
         {
-            var n1 = ExpressionFactory.Property("number1");
+            var n1 = Expression.Property("number1");
 
             var l3 = new Func<int, bool>(n => n < 3);
             var nl3 = new Func<int, bool>(n => !(n < 3));
@@ -245,8 +249,8 @@ namespace Test
         [Fact]
         public void TestWhereWithArithmetic()
         {
-            var n1 = ExpressionFactory.Property("number1");
-            var n2 = ExpressionFactory.Property("number2");
+            var n1 = Expression.Property("number1");
+            var n2 = Expression.Property("number2");
 
             var m2g8 = new Func<int, int, bool>((x1, x2) => x1 * 2 > 8);
             var d2g3 = new Func<int, int, bool>((x1, x2) => x1 / 2 > 3);
@@ -288,8 +292,8 @@ namespace Test
         [Fact]
         public void TestWhereAndOr()
         {
-            var n1 = ExpressionFactory.Property("number1");
-            var n2 = ExpressionFactory.Property("number2");
+            var n1 = Expression.Property("number1");
+            var n2 = Expression.Property("number2");
             var cases = new[] {
                 Tuple.Create(n1.GreaterThan(3).And(n2.GreaterThan(3)),
                     (Func<IDictionary<string, object>, object, bool>)TestWhereAndValidator, default(object)),
@@ -307,9 +311,9 @@ namespace Test
             doc1.Set("string", "string");
             Db.Save(doc1);
 
-            using (var q = QueryFactory.Select()
-                .From(DataSourceFactory.Database(Db))
-                .Where(ExpressionFactory.Property("string").Is("string"))) {
+            using (var q = Query.Select()
+                .From(DataSource.Database(Db))
+                .Where(Expression.Property("string").Is("string"))) {
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
@@ -320,9 +324,9 @@ namespace Test
                 numRows.Should().Be(1, "beacuse one row matches the given query");
             }
 
-            using (var q = QueryFactory.Select()
-                .From(DataSourceFactory.Database(Db))
-                .Where(ExpressionFactory.Property("string").IsNot("string1"))) {
+            using (var q = Query.Select()
+                .From(DataSource.Database(Db))
+                .Where(Expression.Property("string").IsNot("string1"))) {
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
@@ -338,7 +342,7 @@ namespace Test
         public void TestWhereBetween()
         {
             LoadNumbers(10);
-            var n1 = ExpressionFactory.Property("number1");
+            var n1 = Expression.Property("number1");
             var cases = new[] {
                 Tuple.Create(n1.Between(3, 7), 
                 (Func<IDictionary<string, object>, object, bool>) TestWhereBetweenValidator, (object)null)
@@ -353,11 +357,11 @@ namespace Test
             LoadJSONResource("names_100");
 
             var expected = new[] {"Marcy", "Margaretta", "Margrett", "Marlen", "Maryjo" };
-            var firstName = ExpressionFactory.Property("name.first");
-            using (var q = QueryFactory.Select()
-                .From(DataSourceFactory.Database(Db))
+            var firstName = Expression.Property("name.first");
+            using (var q = Query.Select()
+                .From(DataSource.Database(Db))
                 .Where(firstName.InExpressions(expected))
-                .OrderBy(OrderByFactory.Property("name.first"))) {
+                .OrderBy(Ordering.Property("name.first"))) {
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
@@ -374,11 +378,11 @@ namespace Test
         {
             LoadJSONResource("names_100");
 
-            var where = ExpressionFactory.Property("name.first").Like("%Mar%");
-            using (var q = QueryFactory.Select()
-                .From(DataSourceFactory.Database(Db))
+            var where = Expression.Property("name.first").Like("%Mar%");
+            using (var q = Query.Select()
+                .From(DataSource.Database(Db))
                 .Where(where)
-                .OrderBy(OrderByFactory.Property("name.first").Ascending())) {
+                .OrderBy(Ordering.Property("name.first").Ascending())) {
 
                 var firstNames = new List<string>();
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -401,11 +405,11 @@ namespace Test
         {
             LoadJSONResource("names_100");
 
-            var where = ExpressionFactory.Property("name.first").Regex("^Mar.*");
-            using (var q = QueryFactory.Select()
-                .From(DataSourceFactory.Database(Db))
+            var where = Expression.Property("name.first").Regex("^Mar.*");
+            using (var q = Query.Select()
+                .From(DataSource.Database(Db))
                 .Where(where)
-                .OrderBy(OrderByFactory.Property("name.first").Ascending())) {
+                .OrderBy(Ordering.Property("name.first").Ascending())) {
 
                 var firstNames = new List<string>();
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -430,10 +434,10 @@ namespace Test
             LoadJSONResource("sentences");
 
             Db.CreateIndex(new[] {"sentence"}, IndexType.FullTextIndex, null);
-            using (var q = QueryFactory.Select()
-                .From(DataSourceFactory.Database(Db))
-                .Where(ExpressionFactory.Property("sentence").Match("'Dummie woman'"))
-                .OrderBy(OrderByFactory.Property("rank(sentence)").Descending())) {
+            using (var q = Query.Select()
+                .From(DataSource.Database(Db))
+                .Where(Expression.Property("sentence").Match("'Dummie woman'"))
+                .OrderBy(Ordering.Property("rank(sentence)").Descending())) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var ftsRow = row as IFullTextQueryRow;
@@ -454,14 +458,14 @@ namespace Test
         {
             LoadJSONResource("names_100");
             foreach (var ascending in new[] {true, false}) {
-                IOrderBy order;
+                IOrdering order;
                 if (ascending) {
-                    order = OrderByFactory.Property("name.first").Ascending();
+                    order = Ordering.Property("name.first").Ascending();
                 } else {
-                    order = OrderByFactory.Property("name.first").Descending();
+                    order = Ordering.Property("name.first").Descending();
                 }
 
-                using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db)).Where(null).OrderBy(order)) {
+                using (var q = Query.Select().From(DataSource.Database(Db)).Where(null).OrderBy(order)) {
                     var firstNames = new List<object>();
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
@@ -497,7 +501,7 @@ namespace Test
             doc2.Set("number", 1);
             Db.Save(doc2);
 
-            var q = QueryFactory.SelectDistinct().From(DataSourceFactory.Database(Db));
+            var q = Query.SelectDistinct().From(DataSource.Database(Db));
             var numRows = VerifyQuery(q, (n, row) =>
             {
                 var doc = row.Document;
@@ -511,8 +515,8 @@ namespace Test
         public async Task TestLiveQuery()
         {
             LoadNumbers(100);
-            using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db))
-                .Where(ExpressionFactory.Property("number1").LessThan(10)).OrderBy(OrderByFactory.Property("number1"))
+            using (var q = Query.Select().From(DataSource.Database(Db))
+                .Where(Expression.Property("number1").LessThan(10)).OrderBy(Ordering.Property("number1"))
                 .ToLive()) {
                 var wa = new WaitAssert();
                 var wa2 = new WaitAssert();
@@ -541,8 +545,8 @@ namespace Test
         public async Task TestLiveQueryNoUpdate()
         {
             LoadNumbers(100);
-            using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db))
-                .Where(ExpressionFactory.Property("number1").LessThan(10)).OrderBy(OrderByFactory.Property("number1"))
+            using (var q = Query.Select().From(DataSource.Database(Db))
+                .Where(Expression.Property("number1").LessThan(10)).OrderBy(Ordering.Property("number1"))
                 .ToLive()) {
 
                 var mre = new ManualResetEventSlim();
@@ -567,11 +571,12 @@ namespace Test
             var testDoc = new Document("joinme");
             testDoc.Set("theone", 42);
             Db.Save(testDoc);
-            using (var q = QueryFactory.Select(ExpressionFactory.Property("number2").From("main"))
-                .From(DataSourceFactory.Database(Db).As("main"))
-                .Join(JoinFactory.Join(DataSourceFactory.Database(Db).As("secondary"))
-                    .On(ExpressionFactory.Property("number1").From("main")
-                        .EqualTo(ExpressionFactory.Property("theone").From("secondary"))))) {
+            var number2Prop = Expression.Property("number2");
+            using (var q = Query.Select(SelectResult.Expression(number2Prop.From("main")))
+                .From(DataSource.Database(Db).As("main"))
+                .Join(Joins.Join(DataSource.Database(Db).As("secondary"))
+                    .On(Expression.Property("number1").From("main")
+                        .EqualTo(Expression.Property("theone").From("secondary"))))) {
                 using (var results = q.Run()) {
                     results.Count.Should().Be(1, "because only one document should match 42");
                     results.First().GetInt(0).Should().Be(58,
@@ -585,13 +590,13 @@ namespace Test
         {
             LoadNumbers(100);
 
-            var avg = FunctionFactory.Avg(ExpressionFactory.Property("number1"));
-            var cnt = FunctionFactory.Count(ExpressionFactory.Property("number1"));
-            var min = FunctionFactory.Min(ExpressionFactory.Property("number1"));
-            var max = FunctionFactory.Max(ExpressionFactory.Property("number1"));
-            var sum = FunctionFactory.Sum(ExpressionFactory.Property("number1"));
-            using (var q = QueryFactory.Select(avg, cnt, min, max, sum)
-                .From(DataSourceFactory.Database(Db))) {
+            var avg = SelectResult.Expression(Function.Avg(Expression.Property("number1")));
+            var cnt = SelectResult.Expression(Function.Count(Expression.Property("number1")));
+            var min = SelectResult.Expression(Function.Min(Expression.Property("number1")));
+            var max = SelectResult.Expression(Function.Max(Expression.Property("number1")));
+            var sum = SelectResult.Expression(Function.Sum(Expression.Property("number1")));
+            using (var q = Query.Select(avg, cnt, min, max, sum)
+                .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     row.GetDouble(0).Should().BeApproximately(50.5, Double.Epsilon);
@@ -614,17 +619,17 @@ namespace Test
 
             LoadJSONResource("names_100");
 
-            var STATE = ExpressionFactory.Property("contact.address.state");
-            var gender = ExpressionFactory.Property("gender");
-            var COUNT = FunctionFactory.Count(1);
-            var zip = ExpressionFactory.Property("contact.address.zip");
-            var MAXZIP = FunctionFactory.Max(zip);
+            var STATE = Expression.Property("contact.address.state");
+            var gender = Expression.Property("gender");
+            var COUNT = Function.Count(1);
+            var zip = Expression.Property("contact.address.zip");
+            var MAXZIP = Function.Max(zip);
 
-            using (var q = QueryFactory.Select(STATE, COUNT, MAXZIP)
-                .From(DataSourceFactory.Database(Db))
+            using (var q = Query.Select(SelectResult.Expression(STATE), SelectResult.Expression(COUNT), SelectResult.Expression(MAXZIP))
+                .From(DataSource.Database(Db))
                 .Where(gender.EqualTo("female"))
-                .GroupBy(GroupByFactory.Expression(STATE))
-                .OrderBy(OrderByFactory.Expression(STATE))) {
+                .GroupBy(GroupBy.Expression(STATE))
+                .OrderBy(Ordering.Expression(STATE))) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var state = row.GetString(0);
@@ -643,12 +648,12 @@ namespace Test
             expectedCounts = new[] { 6, 3, 2 };
             expectedZips = new[] {"94153", "50801", "47952"};
 
-            using (var q = QueryFactory.Select(STATE, COUNT, MAXZIP)
-                .From(DataSourceFactory.Database(Db))
+            using (var q = Query.Select(SelectResult.Expression(STATE), SelectResult.Expression(COUNT), SelectResult.Expression(MAXZIP))
+                .From(DataSource.Database(Db))
                 .Where(gender.EqualTo("female"))
-                .GroupBy(GroupByFactory.Expression(STATE))
+                .GroupBy(GroupBy.Expression(STATE))
                 .Having(COUNT.GreaterThan(1))
-                .OrderBy(OrderByFactory.Expression(STATE))) {
+                .OrderBy(Ordering.Expression(STATE))) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var state = row.GetString(0);
@@ -699,7 +704,7 @@ namespace Test
         {
             int index = 0;
             foreach (var c in validator) {
-                using (var q = QueryFactory.Select().From(DataSourceFactory.Database(Db)).Where(c.Item1)) {
+                using (var q = Query.Select().From(DataSource.Database(Db)).Where(c.Item1)) {
                     var lastN = 0;
                     VerifyQuery(q, (n, row) =>
                     {

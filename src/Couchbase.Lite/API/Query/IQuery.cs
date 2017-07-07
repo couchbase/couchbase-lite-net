@@ -19,7 +19,6 @@
 // limitations under the License.
 // 
 using System;
-using System.Collections.Generic;
 
 namespace Couchbase.Lite.Query
 {
@@ -30,6 +29,11 @@ namespace Couchbase.Lite.Query
     {
         #region Properties
 
+        /// <summary>
+        /// Gets the parameter collection for this query so that parameters may be
+        /// added for substitution into the query API (via <see cref="Expression.Parameter(int)"/>
+        /// or <see cref="Expression.Parameter(string)"/>)
+        /// </summary>
         IParameters Parameters { get; }
 
         #endregion

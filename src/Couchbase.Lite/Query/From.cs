@@ -49,7 +49,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IGroupBy GroupBy(params IGroupBy[] groupBy)
         {
-            return new GroupBy(this, groupBy);
+            return new QueryGroupBy(this, groupBy);
         }
 
         #endregion
@@ -65,9 +65,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        public IOrderBy OrderBy(params IOrderBy[] orderBy)
+        public IOrdering OrderBy(params IOrdering[] ordering)
         {
-            return new OrderBy(this, orderBy);
+            return new QueryOrdering(this, ordering);
         }
 
         #endregion

@@ -25,6 +25,6 @@ namespace Couchbase.Lite.Query
     /// An interface representing the HAVING portion of a query (i.e. WHERE clause
     /// intended for a GROUP BY clause)
     /// </summary>
-    public interface IHaving : IQuery, IOrderByRouter, ILimitRouter
+    public interface IHaving : IQuery, IOrderByRouter
     {}
 }

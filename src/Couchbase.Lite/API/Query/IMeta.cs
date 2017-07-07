@@ -21,7 +21,7 @@
 
 namespace Couchbase.Lite.Query
 {
-    public interface IMeta
+    internal interface IMeta
     {
         #region Properties
 
@@ -32,7 +32,7 @@ namespace Couchbase.Lite.Query
         #endregion
     }
 
-    public interface IMetaSource : IExpression
+    internal interface IMetaSource : IExpression
     {
         #region Public Methods
 

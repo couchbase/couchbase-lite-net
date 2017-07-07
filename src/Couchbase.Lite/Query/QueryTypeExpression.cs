@@ -60,23 +60,6 @@ namespace Couchbase.Lite.Internal.Query
             ExpressionType = ExpressionType.Constant;
         }
 
-        public QueryTypeExpression(string[] keyPaths)
-        {
-            if (keyPaths.Length == 1) {
-                ExpressionType = ExpressionType.KeyPath;
-                KeyPath = keyPaths[0];
-            } else {
-                ExpressionType = ExpressionType.Aggregate;
-                var list = new IExpression[keyPaths.Length];
-                int i = 0;
-                foreach (var path in keyPaths) {
-                    list[i++] = new QueryTypeExpression(path, ExpressionType.KeyPath);
-                }
-
-                _subpredicates = list;
-            }
-        }
-
         public QueryTypeExpression(IList subpredicates)
         {
             ExpressionType = ExpressionType.Aggregate;

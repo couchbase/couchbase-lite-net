@@ -18,6 +18,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
+using System.Linq;
 using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
@@ -32,10 +34,10 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        public Select(IExpression[] selects, bool distinct)
+        public Select(ISelectResult[] selects, bool distinct)
         {
             if (selects?.Length > 0) {
-                _select = new QueryTypeExpression(selects);
+                _select = new QueryTypeExpression(selects.OfType<QuerySelectResult>().Select(x => x.Expression).ToList());
             }
 
             SelectImpl = this;
