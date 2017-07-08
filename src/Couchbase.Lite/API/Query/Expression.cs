@@ -41,9 +41,15 @@ namespace Couchbase.Lite.Query
             throw new NotImplementedException();
         }
 
-        internal static IMeta Meta()
+        /// <summary>
+        /// Creates an object that can generate expressions for retrieving metadata about
+        /// a result
+        /// </summary>
+        /// <returns>An object that can generate expressions for retrieving metadata about
+        /// a result</returns>
+        public static IMeta Meta()
         {
-            throw new NotImplementedException();
+            return new QueryMeta();
         }
 
         /// <summary>
@@ -93,7 +99,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="property">The name of the property to fetch</param>
         /// <returns>An expression representing the value of a named property</returns>
-        public static IPropertySource Property(string property)
+        public static IPropertyExpression Property(string property)
         {
             return new QueryTypeExpression(property, ExpressionType.KeyPath);
         }

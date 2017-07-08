@@ -1,5 +1,5 @@
 ﻿// 
-// IPropertySource.cs
+// QueryMeta.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,24 +18,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+using Couchbase.Lite.Query;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Internal.Query
 {
-    /// <summary>
-    /// An interface for an expression that will retrieve a property
-    /// from a keypath
-    /// </summary>
-    public interface IPropertySource : IExpression
+    internal sealed class QueryMeta : IMeta
     {
-        #region Public Methods
+        #region Properties
 
-        /// <summary>
-        /// Specifies where to retrieve the property from (necessary
-        /// in instances where the query is coming from multiple sources)
-        /// </summary>
-        /// <param name="alias">The alias of the source to retrieve from</param>
-        /// <returns>The expression, for further processing</returns>
-        IExpression From(string alias);
+        public IMetaExpression DocumentID => new QueryTypeExpression("_id", ExpressionType.KeyPath);
+
+        public IMetaExpression Sequence => new QueryTypeExpression("_sequence", ExpressionType.KeyPath);
 
         #endregion
     }

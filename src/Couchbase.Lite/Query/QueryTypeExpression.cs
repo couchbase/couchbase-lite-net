@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Internal.Query
         Aggregate,
     }
 
-    internal sealed class QueryTypeExpression : QueryExpression, IPropertySource
+    internal sealed class QueryTypeExpression : QueryExpression, IPropertyExpression, IMetaExpression
     {
         #region Variables
 

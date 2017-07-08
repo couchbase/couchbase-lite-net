@@ -21,22 +21,24 @@
 
 namespace Couchbase.Lite.Query
 {
-    internal interface IMeta
+    /// <summary>
+    /// An interface representing an object that can generate expressions
+    /// for retrieving metadata information during an <see cref="IQuery"/>
+    /// </summary>
+    public interface IMeta
     {
         #region Properties
 
-        IMetaSource DocumentID { get; }
+        /// <summary>
+        /// Gets an expression for retrieving the unique ID of a document
+        /// </summary>
+        IMetaExpression DocumentID { get; }
 
-        IMetaSource Sequence { get; }
-
-        #endregion
-    }
-
-    internal interface IMetaSource : IExpression
-    {
-        #region Public Methods
-
-        IExpression From(string alias);
+        /// <summary>
+        /// Gets an expression for retrieving the sequence of a document
+        /// (i.e. the auto-incrementing entry in the database)
+        /// </summary>
+        IMetaExpression Sequence { get; }
 
         #endregion
     }

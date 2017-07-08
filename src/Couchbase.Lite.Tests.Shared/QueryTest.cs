@@ -659,6 +659,68 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestParameters()
+        {
+            LoadNumbers(10);
+
+            var NUMBER1 = Expression.Property("number1");
+            var PARAM_N1 = Expression.Parameter("num1");
+            var PARAM_N2 = Expression.Parameter("num2");
+
+            using (var q = Query.Select(SelectResult.Expression(NUMBER1))
+                .From(DataSource.Database(Db))
+                .Where(NUMBER1.Between(PARAM_N1, PARAM_N2))
+                .OrderBy(Ordering.Expression(NUMBER1))) {
+                q.Parameters.Set("num1", 2);
+                q.Parameters.Set("num2", 5);
+
+                var expectedNumbers = new[] {2, 3, 4, 5};
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    var number = row.GetInt(0);
+                    number.Should().Be(expectedNumbers[n - 1]);
+                });
+
+                numRows.Should().Be(4);
+            }
+        }
+
+        [Fact]
+        public void TestMeta()
+        {
+            LoadNumbers(5);
+
+            var DOC_ID = Expression.Meta().DocumentID;
+            var DOC_SEQ = Expression.Meta().Sequence;
+            var NUMBER1 = Expression.Property("number1");
+
+            var RES_DOC_ID = SelectResult.Expression(DOC_ID);
+            var RES_DOC_SEQ = SelectResult.Expression(DOC_SEQ);
+            var RES_NUMBER1 = SelectResult.Expression(NUMBER1);
+
+            using (var q = Query.Select(RES_DOC_ID, RES_DOC_SEQ, RES_NUMBER1)
+                .From(DataSource.Database(Db))
+                .OrderBy(Ordering.Expression(DOC_SEQ))) {
+                var expectedDocIDs = new[] {"doc1", "doc2", "doc3", "doc4", "doc5"};
+                var expectedSeqs = new[] {1, 2, 3, 4, 5};
+                var expectedNumbers = expectedSeqs;
+
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    var docID = row.GetString(0);
+                    var seq = row.GetInt(1);
+                    var number = row.GetInt(2);
+
+                    docID.Should().Be(expectedDocIDs[n - 1]);
+                    seq.Should().Be(expectedSeqs[n - 1]);
+                    number.Should().Be(expectedNumbers[n - 1]);
+                });
+
+                numRows.Should().Be(5);
+            }
+        }
+
         private bool TestWhereCompareValidator(IDictionary<string, object> properties, object context)
         {
             var ctx = (Func<int, bool>)context;
