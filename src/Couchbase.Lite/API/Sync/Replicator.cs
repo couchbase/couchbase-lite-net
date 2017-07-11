@@ -205,9 +205,9 @@ namespace Couchbase.Lite.Sync
             });
         }
 
-        private static void ValidateCallback(string docID, IntPtr body, object context)
+        private static bool ValidateCallback(string docID, IntPtr body, object context)
         {
-            
+            return true;
         }
 
         private void ClearRepl()
