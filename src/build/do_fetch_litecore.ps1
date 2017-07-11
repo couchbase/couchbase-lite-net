@@ -1,11 +1,12 @@
 param(
     [Parameter(Mandatory=$true)][string]$NexusRepo,
     [Parameter(Mandatory=$true)][string[]]$Variants,
+    [string]$Git = "git",
     [switch]$DebugLib
 )
 
 pushd $PSScriptRoot\..\..\vendor\couchbase-lite-core\build_cmake
-$sha = $(& 'C:\Program Files\Git\bin\git.exe' rev-parse HEAD)
+$sha = $(& $Git rev-parse HEAD)
 $suffix = ""
 if($DebugLib) {
     $suffix = "-debug"
