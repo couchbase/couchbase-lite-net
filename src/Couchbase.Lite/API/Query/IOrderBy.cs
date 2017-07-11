@@ -24,7 +24,7 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// An interface representing the ORDER BY portion of an <see cref="IQuery"/>
     /// </summary>
-    public interface IOrdering : IQuery
+    public interface IOrdering : IQuery, ILimitRouter
     {}
 
     /// <summary>

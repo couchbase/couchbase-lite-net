@@ -721,6 +721,32 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestLimit()
+        {
+            LoadNumbers(50);
+
+            var LIMIT = Expression.Parameter("limit");
+            var OFFSET = Expression.Parameter("offset");
+            var NUMBER = Expression.Property("number1");
+
+            using (var q = Query.Select(SelectResult.Expression(NUMBER))
+                .From(DataSource.Database(Db))
+                .OrderBy(Ordering.Expression(NUMBER))
+                .Limit(LIMIT, OFFSET)) {
+                q.Parameters.Set("limit", 5);
+                q.Parameters.Set("offset", 5);
+
+                var expectedNumbers = new[] {6, 7, 8, 9, 10};
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    row.GetInt(0).Should().Be(expectedNumbers[n - 1]);
+                });
+
+                numRows.Should().Be(5);
+            }
+        }
+
         private bool TestWhereCompareValidator(IDictionary<string, object> properties, object context)
         {
             var ctx = (Func<int, bool>)context;

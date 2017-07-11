@@ -52,7 +52,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets whether or not this document is deleted
         /// </summary>
-        public bool IsDeleted => _threadSafety.DoLocked(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.Deleted));
+        public bool IsDeleted => _threadSafety.DoLocked(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.DocDeleted));
 
         /// <summary>
         /// Gets the sequence of this document (a unique incrementing number
@@ -93,7 +93,7 @@ namespace Couchbase.Lite
             }
         }
 
-        internal bool Exists => _threadSafety.DoLocked(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.Exists));
+        internal bool Exists => _threadSafety.DoLocked(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.DocExists));
 
         internal virtual uint Generation => _threadSafety.DoLocked(() => _c4Doc != null ? NativeRaw.c4rev_getGeneration(_c4Doc->revID) : 0U);
 

@@ -25,7 +25,7 @@ namespace Couchbase.Lite.Query
     /// An interface representing a query that has just received a JOIN
     /// clause
     /// </summary>
-    public interface IJoin : IQuery, IWhereRouter, IOrderByRouter
+    public interface IJoin : IQuery, IWhereRouter, IOrderByRouter, ILimitRouter
     {}
 
     /// <summary>

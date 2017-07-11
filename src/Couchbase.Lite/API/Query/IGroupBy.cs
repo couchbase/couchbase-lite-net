@@ -24,7 +24,7 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// An interface representing the GROUP BY portion of a query
     /// </summary>
-    public interface IGroupBy : IQuery, IHavingRouter, IOrderByRouter
+    public interface IGroupBy : IQuery, IHavingRouter, IOrderByRouter, ILimitRouter
     {
         
     }

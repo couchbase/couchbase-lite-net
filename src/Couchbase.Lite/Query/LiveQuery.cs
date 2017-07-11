@@ -38,14 +38,20 @@ namespace Couchbase.Lite.Internal.Query
         #region Variables
 
         private readonly XQuery _query;
+        private readonly TimeSpan _updateInterval;
 
         public event EventHandler<LiveQueryChangedEventArgs> Changed;
 
         private QueryEnumerator _enum;
         private DateTime _lastUpdatedAt;
         private AtomicBool _observing = false;
-        private readonly TimeSpan _updateInterval;
         private AtomicBool _willUpdate = false;
+
+        #endregion
+
+        #region Properties
+
+        public IParameters Parameters => _query.Parameters;
 
         #endregion
 

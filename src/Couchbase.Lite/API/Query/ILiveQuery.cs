@@ -31,14 +31,14 @@ namespace Couchbase.Lite.Query
         #region Properties
 
         /// <summary>
-        /// Gets the updated rows of the query
-        /// </summary>
-        public IResultSet Rows { get; }
-
-        /// <summary>
         /// Gets the error that occurred, if any
         /// </summary>
         public Exception Error { get; }
+
+        /// <summary>
+        /// Gets the updated rows of the query
+        /// </summary>
+        public IResultSet Rows { get; }
 
         #endregion
 
@@ -65,6 +65,15 @@ namespace Couchbase.Lite.Query
         /// An event that fires when the query's result set has changed
         /// </summary>
         event EventHandler<LiveQueryChangedEventArgs> Changed;
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// See <see cref="IQuery.Parameters"/>
+        /// </summary>
+        IParameters Parameters { get; }
 
         #endregion
 

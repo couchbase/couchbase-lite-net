@@ -24,6 +24,6 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// An interface representing the WHERE portion of an <see cref="IQuery"/>
     /// </summary>
-    public interface IWhere : IQuery, IGroupByRouter, IOrderByRouter
+    public interface IWhere : IQuery, IGroupByRouter, IOrderByRouter, ILimitRouter
     {}
 }

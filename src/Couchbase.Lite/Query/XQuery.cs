@@ -138,11 +138,20 @@ namespace Couchbase.Lite.Internal.Query
             }
 
             if (LimitValue != null) {
-                parameters["LIMIT"] = LimitValue;
+                if (LimitValue is QueryExpression e) {
+                    parameters["LIMIT"] = e.ConvertToJSON();
+                } else {
+                    parameters["LIMIT"] = LimitValue;
+                }
             }
 
             if (SkipValue != null) {
-                parameters["OFFSET"] = SkipValue;
+                if (SkipValue is QueryExpression e) {
+                    parameters["OFFSET"] = e.ConvertToJSON();
+                }
+                else {
+                    parameters["OFFSET"] = SkipValue;
+                }
             }
 ;
             if (OrderByImpl != null) {
