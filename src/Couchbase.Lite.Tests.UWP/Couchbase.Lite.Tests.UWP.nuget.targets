@@ -9,6 +9,6 @@
     <Import Project="$(NuGetPackageRoot)microsoft.net.native.sharedlibrary-x64\1.6.0\build\Microsoft.Net.Native.SharedLibrary-x64.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.net.native.sharedlibrary-x64\1.6.0\build\Microsoft.Net.Native.SharedLibrary-x64.targets')" />
     <Import Project="$(NuGetPackageRoot)microsoft.net.native.sharedlibrary-arm\1.6.0\build\Microsoft.Net.Native.SharedLibrary-arm.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.net.native.sharedlibrary-arm\1.6.0\build\Microsoft.Net.Native.SharedLibrary-arm.targets')" />
     <Import Project="$(NuGetPackageRoot)microsoft.net.native.compiler\1.6.0\build\Microsoft.Net.Native.Compiler.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.net.native.compiler\1.6.0\build\Microsoft.Net.Native.Compiler.targets')" />
-    <Import Project="$(NuGetPackageRoot)couchbase.lite.support.uwp\2.0.0-b0174\build\Couchbase.Lite.Support.UWP.targets" Condition="Exists('$(NuGetPackageRoot)couchbase.lite.support.uwp\2.0.0-b0174\build\Couchbase.Lite.Support.UWP.targets')" />
+    <Import Project="$(NuGetPackageRoot)couchbase.lite.support.uwp\2.0.0-b0195\build\Couchbase.Lite.Support.UWP.targets" Condition="Exists('$(NuGetPackageRoot)couchbase.lite.support.uwp\2.0.0-b0195\build\Couchbase.Lite.Support.UWP.targets')" />
   </ImportGroup>
 </Project>
