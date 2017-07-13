@@ -1,5 +1,6 @@
 @echo off
 pushd %~dp0
+del *.nupkg
 if not exist ..\..\nuget.exe (
     powershell -Command "Invoke-WebRequest https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile ..\..\nuget.exe"
 )
@@ -29,7 +30,5 @@ for /r %%i in (*.nuspec) do (
 for /r %%i in (*.nupkg) do (
     ..\..\nuget.exe push %%i %API_KEY% -Source %NUGET_REPO% || exit /b 1
 )
-
-del *.nupkg
 
 popd
