@@ -45,7 +45,7 @@ if(Test-Path "litecore-macosx$suffix.zip"){
 
 if(Test-Path "litecore-linux$suffix.tar.gz"){
     & 7z x litecore-linux$suffix.tar.gz
-    & 7z e -y litecore-linux$suffix.tar lib/*
+    & 7z e -y litecore-linux$suffix.tar lib/libLiteCore.so lib/libsqlite3.so
     rm litecore-linux$suffix.tar
     rm litecore-linux$suffix.tar.gz
 }
