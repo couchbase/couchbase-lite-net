@@ -43,25 +43,9 @@ namespace GitVersion
             string hash = "No git information";
             DirectoryInfo gitFolder = FindGitFolder(new DirectoryInfo(args[0]));
             if(gitFolder != null) {
-                var headPath = Path.Combine(gitFolder.FullName, "HEAD");
-                var headContent = File.ReadAllText(headPath).TrimEnd();
-                if(!headContent.StartsWith("ref:")) {
-                    hash = String.Format("detached HEAD: {0}", headContent.Substring(0, 7));
-                } else {
-                    var sb = new StringBuilder();
-                    foreach(var component in headContent.Split('/').Skip(2)) {
-                        if(sb.Length != 0) {
-                            sb.Append('/');
-                        }
-                        
-                        sb.Append(component);
-                    }
-                    
-                    headPath = Path.Combine(gitFolder.FullName, "logs", "HEAD");
-                    var logLine = LastFullLineOfFile(headPath);
-                    string possibleHash = HashFromLogLine(logLine);
-                    hash = String.Format("{0}: {1}", sb, possibleHash ?? "Unknown hash");
-                }
+                var headPath = Path.Combine(gitFolder.FullName, "logs", "HEAD");
+                var logLine = LastFullLineOfFile(headPath);
+                hash = HashFromLogLine(logLine) ?? "Unknown hash";
             }
             
             File.WriteAllText(args[1], hash);
