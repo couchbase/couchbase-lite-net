@@ -2,11 +2,6 @@
 
 echo This script is meant for the Couchbase build server.  It cannot be used by developers.
 pushd %~dp0..\Couchbase.Lite
-if not exist ..\couchbase.snk (
-    echo Private key not found, aborting...
-    popd
-    exit /b 1
-)
 
 if not defined NUGET_REPO (
     echo NUGET_REPO not defined, aborting...
