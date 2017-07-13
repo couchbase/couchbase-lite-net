@@ -6,13 +6,16 @@ $scriptpath = Split-Path $MyInvocation.MyCommand.Path
 Push-Location $scriptpath
 [Environment]::CurrentDirectory = $scriptpath
 
-$files = "project.json"
-foreach($file in $files) {
-    $content = cat $file | ConvertFrom-Json
-    foreach($key in ($content.dependencies | Get-Member Couchbase.Lite* -MemberType NoteProperty).Name) {
-        $content.dependencies.$key = $version
+$content = [System.IO.File]::ReadAllLines("Couchbase.Lite.Tests.UWP.csproj")
+$regex = New-Object -TypeName "System.Text.RegularExpressions.Regex" ".*?<Version>([0-9]\.[0-9]\.[0-9]-b[0-9]{4})<.*?"
+for($i = 0; $i -lt $content.Length; $i++) {
+    $line = $content[$i]
+    $matches = $regex.Matches($line)
+    if($matches.Count -gt 0) {
+        $oldVersion = $matches[0].Groups[1]
+        $line = $line.Replace($oldVersion, $version)
+        $content[$i] = $line
     }
-
-    $text = ConvertTo-Json $content
-    [System.IO.File]::WriteAllText($file, $text)
 }
+
+[System.IO.File]::WriteAllLines("Couchbase.Lite.Tests.UWP.csproj", $content)
