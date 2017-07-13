@@ -38,7 +38,7 @@ if not exist ..\..\nuget.exe (
 echo.
 echo *** UWP ***
 echo.
-..\..\nuget.exe restore -Source "%NUGET_REPO%;https://api.nuget.org/v3/index.json" Couchbase.Lite.Support.UWP.csproj
+"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" /t:Restore
 popd
 echo.
 echo *** IOS ***
