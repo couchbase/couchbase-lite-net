@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
+using LiteCore;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Serialization
@@ -147,16 +148,16 @@ namespace Couchbase.Lite.Internal.Serialization
 
         private static FLSlice TypeForDict(FLDict* dict, SharedStringCache sharedKeys)
         {
-            var typeKey = FLSlice.Constant("_cbltype");
+            var typeKey = FLSlice.Constant(Constants.ObjectTypeProperty);
             var type = sharedKeys.GetDictValue(dict, typeKey);
             return NativeRaw.FLValue_AsString(type);
         }
 
         private static object ConvertDictionary(IDictionary<string, object> dict, Database database)
         {
-            var type = dict.GetCast<string>("_cbltype");
+            var type = dict.GetCast<string>(Constants.ObjectTypeProperty);
             if (type != null) {
-                if (type == "blob") {
+                if (type == Constants.ObjectTypeBlob) {
                     return new Blob(database, dict);
                 }
             }

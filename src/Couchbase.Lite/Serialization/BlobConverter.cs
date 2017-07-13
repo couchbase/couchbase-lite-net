@@ -22,7 +22,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-
+using Couchbase.Lite.Support;
+using LiteCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -118,16 +119,16 @@ namespace Couchbase.Lite.Internal.Serialization
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             var props = JToken.ReadFrom(reader).ToObject<IDictionary<string, object>>();
-            if(!props.ContainsKey("_cbltype")) {
+            if(!props.ContainsKey(Constants.ObjectTypeProperty)) {
                 return props;
             }
 
-            var type = props["_cbltype"] as string;
-            if(type == "blob") {
+            var type = props[Constants.ObjectTypeProperty] as string;
+            if(type == Constants.ObjectTypeBlob) {
                 return new Blob(_db, props);
             }
 
-            throw new InvalidOperationException($"Unrecognized _cbltype in document ({type})");
+            throw new InvalidOperationException($"Unrecognized type in document ({type})");
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)

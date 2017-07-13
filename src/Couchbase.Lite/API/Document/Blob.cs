@@ -24,14 +24,12 @@ using System.Collections.ObjectModel;
 using System.IO;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
-using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite
 {
-    using static CBLConstants;
 
     /// <summary>
     /// A class representing an arbitrary piece of binary data
@@ -39,8 +37,7 @@ namespace Couchbase.Lite
     public sealed unsafe class Blob
     {
         #region Constants
-
-        internal const string BlobType = "blob";
+        
         private const uint MaxCachedContentLength = 8 * 1024;
         private const int ReadBufferSize = 8 * 1024;
         private const string Tag = nameof(Blob);
@@ -153,7 +150,7 @@ namespace Couchbase.Lite
                 }
 
                 var json = new Dictionary<string, object>(MutableProperties) {
-                    [TypeMetaProperty] = BlobType
+                    [Constants.ObjectTypeProperty] = Constants.ObjectTypeBlob
                 };
 
                 return json;
@@ -242,7 +239,7 @@ namespace Couchbase.Lite
 
             _db = db ?? throw new ArgumentNullException(nameof(db));
             _properties = new Dictionary<string, object>(properties);
-            _properties.Remove(TypeMetaProperty);
+            _properties.Remove(Constants.ObjectTypeProperty);
 
             Length = properties.GetCast<ulong>("length");
             Digest = properties.GetCast<string>("digest");
