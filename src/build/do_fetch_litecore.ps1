@@ -62,7 +62,7 @@ if(Test-Path "litecore-linux$suffix.tar.gz"){
 if(Test-Path "litecore-ios$suffix.zip") {
     New-Item -Type directory -ErrorAction Ignore ios-fat
     cd ios-fat
-    mv ..\litecore-ios$suffix.zip .
+    Move-Item ..\litecore-ios$suffix.zip .
     & 7z e -y litecore-ios$suffix.zip
     rm litecore-ios$suffix.zip
     cd ..
