@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.14
+VisualStudioVersion = 15.0.26430.15
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Support.Android", "..\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj", "{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}"
 EndProject
@@ -15,8 +15,12 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LiteCore.Tests.Shared", "..
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.Android", "Couchbase.Lite.Tests.Android.csproj", "{B6083D32-7EEB-4697-8723-8C92EE3A7149}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.Android.Source", "FromSource\Couchbase.Lite.Tests.Android.Source.csproj", "{0AE748EC-B7AF-42F3-99EA-FE48219F2006}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{0ae748ec-b7af-42f3-99ea-fe48219f2006}*SharedItemsImports = 4
+		..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{0ae748ec-b7af-42f3-99ea-fe48219f2006}*SharedItemsImports = 4
 		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{11f38891-8397-49b4-9146-6daf0a9d7866}*SharedItemsImports = 13
 		..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{6ec40f09-4c86-4f51-9f0e-c4397601a567}*SharedItemsImports = 13
 		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{b6083d32-7eeb-4697-8723-8c92ee3a7149}*SharedItemsImports = 4
@@ -50,6 +54,15 @@ Global
 		{B6083D32-7EEB-4697-8723-8C92EE3A7149}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B6083D32-7EEB-4697-8723-8C92EE3A7149}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B6083D32-7EEB-4697-8723-8C92EE3A7149}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Packaging|Any CPU.ActiveCfg = Release|Any CPU
+		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Packaging|Any CPU.Build.0 = Release|Any CPU
+		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Packaging|Any CPU.Deploy.0 = Release|Any CPU
+		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

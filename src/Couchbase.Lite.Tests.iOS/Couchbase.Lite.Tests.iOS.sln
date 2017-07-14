@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.14
+VisualStudioVersion = 15.0.26430.15
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.iOS", "Couchbase.Lite.Tests.iOS.csproj", "{F5F57919-BE42-46B6-B173-EB6F34CFB022}"
 EndProject
@@ -15,9 +15,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Support.iOS"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LiteCore.Shared", "..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore.Shared\LiteCore.Shared.shproj", "{C37DC024-8762-4BE4-9034-B2B5970C652C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.iOS.Source", "FromSource\Couchbase.Lite.Tests.iOS.Source.csproj", "{646E12A5-FB11-492D-B325-1EF6B169A78C}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{11f38891-8397-49b4-9146-6daf0a9d7866}*SharedItemsImports = 13
+		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{646e12a5-fb11-492d-b325-1ef6b169a78c}*SharedItemsImports = 4
+		..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{646e12a5-fb11-492d-b325-1ef6b169a78c}*SharedItemsImports = 4
 		..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{6ec40f09-4c86-4f51-9f0e-c4397601a567}*SharedItemsImports = 13
 		..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore.Shared\LiteCore.Shared.projitems*{c37dc024-8762-4be4-9034-b2b5970c652c}*SharedItemsImports = 13
 		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{f5f57919-be42-46b6-b173-eb6f34cfb022}*SharedItemsImports = 4
@@ -68,6 +72,18 @@ Global
 		{3D634C07-2603-4474-A8CD-DE0CF495307C}.Release|iPhone.Build.0 = Release|Any CPU
 		{3D634C07-2603-4474-A8CD-DE0CF495307C}.Release|iPhoneSimulator.ActiveCfg = Release|Any CPU
 		{3D634C07-2603-4474-A8CD-DE0CF495307C}.Release|iPhoneSimulator.Build.0 = Release|Any CPU
+		{646E12A5-FB11-492D-B325-1EF6B169A78C}.Debug|iPhone.ActiveCfg = Debug|iPhone
+		{646E12A5-FB11-492D-B325-1EF6B169A78C}.Debug|iPhone.Build.0 = Debug|iPhone
+		{646E12A5-FB11-492D-B325-1EF6B169A78C}.Debug|iPhoneSimulator.ActiveCfg = Debug|iPhoneSimulator
+		{646E12A5-FB11-492D-B325-1EF6B169A78C}.Debug|iPhoneSimulator.Build.0 = Debug|iPhoneSimulator
+		{646E12A5-FB11-492D-B325-1EF6B169A78C}.Packaging|iPhone.ActiveCfg = Release|iPhone
+		{646E12A5-FB11-492D-B325-1EF6B169A78C}.Packaging|iPhone.Build.0 = Release|iPhone
+		{646E12A5-FB11-492D-B325-1EF6B169A78C}.Packaging|iPhoneSimulator.ActiveCfg = Release|iPhoneSimulator
+		{646E12A5-FB11-492D-B325-1EF6B169A78C}.Packaging|iPhoneSimulator.Build.0 = Release|iPhoneSimulator
+		{646E12A5-FB11-492D-B325-1EF6B169A78C}.Release|iPhone.ActiveCfg = Release|iPhone
+		{646E12A5-FB11-492D-B325-1EF6B169A78C}.Release|iPhone.Build.0 = Release|iPhone
+		{646E12A5-FB11-492D-B325-1EF6B169A78C}.Release|iPhoneSimulator.ActiveCfg = Release|iPhoneSimulator
+		{646E12A5-FB11-492D-B325-1EF6B169A78C}.Release|iPhoneSimulator.Build.0 = Release|iPhoneSimulator
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
