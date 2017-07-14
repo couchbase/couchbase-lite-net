@@ -13,16 +13,25 @@ if($DebugLib) {
 
 Write-Host "Fetching variants for $Sha..."
 if($Variants[0].ToLower() -eq "all") {
-    $Variants = @("macosx", "linux")
+    $Variants = @("macosx", "linux", "ios", "android-x86", "android-armeabi-v7a", "android-arm64-v8a")
 }
 
-$VARIANT_EXT = @{"macosx" = "zip"; "linux" = "tar.gz"}
+$VARIANT_EXT = @{
+  "macosx" = "zip"; 
+  "ios" = "zip"; 
+  "linux" = "tar.gz"; 
+  "android-x86" = "zip"; 
+  "android-armeabi-v7a" = "zip";
+  "android-arm64-v8a" = "zip"
+}
+
 try {
     $i = 0
     foreach ($variant in $Variants) {
         echo "Fetching $variant..."
         $extension = $VARIANT_EXT[$variant]
         
+        echo $NexusRepo/couchbase-litecore-$variant/$Sha/couchbase-litecore-$variant-$Sha$suffix.$extension
         Invoke-WebRequest $NexusRepo/couchbase-litecore-$variant/$Sha/couchbase-litecore-$variant-$Sha$suffix.$extension -Out litecore-$variant$suffix.$extension
     }
 } catch [System.Net.WebException] {
@@ -50,4 +59,21 @@ if(Test-Path "litecore-linux$suffix.tar.gz"){
     rm litecore-linux$suffix.tar.gz
 }
 
+if(Test-Path "litecore-ios$suffix.zip") {
+    mkdir -ErrorAction Ignore ios-fat
+    cd ios-fat
+    & 7z e -y ..\litecore-ios$suffix.zip
+    cd ..
+    rm litecore-ios$suffix.zip
+}
+
+foreach($arch in @("x86", "armeabi-v7a", "arm64-v8a")) {
+    if(Test-Path "litecore-android-$arch$suffix.zip") {
+        mkdir -ErrorAction Ignore android\lib\$arch
+        cd android\lib\$arch
+        & 7z e -y ..\..\..\litecore-android-$arch$suffix.zip
+        cd ..\..\..
+        rm litecore-android-$arch$suffix.zip
+    }
+}
 popd
