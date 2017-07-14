@@ -54,7 +54,7 @@ if(Test-Path "litecore-macosx$suffix.zip"){
 
 if(Test-Path "litecore-linux$suffix.tar.gz"){
     & 7z x litecore-linux$suffix.tar.gz
-    & 7z e -y litecore-linux$suffix.tar lib/libLiteCore.so lib/libsqlite3.so
+    & 7z e -y litecore-linux$suffix.tar lib/libLiteCore.so lib/libsqlite3.so lib/libc++.so lib/libc++abi.so
     rm litecore-linux$suffix.tar
     rm litecore-linux$suffix.tar.gz
 }
@@ -62,18 +62,20 @@ if(Test-Path "litecore-linux$suffix.tar.gz"){
 if(Test-Path "litecore-ios$suffix.zip") {
     mkdir -ErrorAction Ignore ios-fat
     cd ios-fat
-    & 7z e -y ..\litecore-ios$suffix.zip
-    cd ..
+    mv ..\litecore-ios$suffix.zip .
+    & 7z e -y litecore-ios$suffix.zip
     rm litecore-ios$suffix.zip
+    cd ..
 }
 
 foreach($arch in @("x86", "armeabi-v7a", "arm64-v8a")) {
     if(Test-Path "litecore-android-$arch$suffix.zip") {
-        mkdir -ErrorAction Ignore android\lib\$arch
+        New-Item -Type directory -ErrorAction Ignore android\lib\$arch
         cd android\lib\$arch
-        & 7z e -y ..\..\..\litecore-android-$arch$suffix.zip
-        cd ..\..\..
+        Move-Item ..\..\..\litecore-android-$arch$suffix.zip .
+        & 7z e -y litecore-android-$arch$suffix.zip
         rm litecore-android-$arch$suffix.zip
+        cd ..\..\..
     }
 }
 popd
