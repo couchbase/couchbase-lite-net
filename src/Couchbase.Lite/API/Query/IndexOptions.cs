@@ -21,7 +21,7 @@
 
 using LiteCore.Interop;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.Query
 {
     /// <summary>
     /// A class representing options for creating an index in a database

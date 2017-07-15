@@ -48,12 +48,11 @@ namespace Couchbase.Lite.Internal.Serialization
         #endregion
     }
 
-    internal abstract unsafe class Serializer : IJsonSerializer, IJsonWriter
+    internal abstract unsafe class Serializer : IJsonSerializer
     {
         #region Properties
 
         public JsonSerializerSettings SerializerSettings { get; set; } = new JsonSerializerSettings {
-            ContractResolver = new CouchbaseLiteContractResolver(),
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
             DefaultValueHandling = DefaultValueHandling.Include,
             FloatFormatHandling = FloatFormatHandling.DefaultValue,
@@ -81,12 +80,6 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #endregion
 
-        #region IJsonWriter
-
-        public abstract void Write(string name, object value);
-        public abstract void Write(string key, IJsonMapped value);
-
-        #endregion
     }
 
     internal sealed unsafe class DefaultSerializer : Serializer
@@ -100,7 +93,6 @@ namespace Couchbase.Lite.Internal.Serialization
         #region Variables
 
         private readonly Database _db;
-        private JsonFLValueWriter _innerWriter;
 
         #endregion
 
@@ -110,28 +102,6 @@ namespace Couchbase.Lite.Internal.Serialization
         {
             _db = db;
             SerializerSettings.Converters = new JsonConverter[] { new BlobWriteConverter(_db), new CouchbaseTypeReadConverter(_db) };
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        public FLSliceResult Serialize(IJsonMapped obj)
-        {
-            using(var writer = new JsonFLValueWriter(_db.c4db)) {
-                _innerWriter = writer;
-                PerfTimer.StartEvent("Serialize_Write");
-                writer.WriteStartObject();
-                obj.WriteTo(this);
-                writer.WriteEndObject();
-                PerfTimer.StopEvent("Serialize_Write");
-                PerfTimer.StartEvent("Serialize_Flush");
-                writer.Flush();
-                PerfTimer.StopEvent("Serialize_Flush");
-
-                _innerWriter = null;
-                return writer.Result;
-            }
         }
 
         #endregion
@@ -174,20 +144,6 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public override FLSliceResult Serialize(object obj)
         {
-            var fast = obj as IJsonMapped;
-            if(fast != null) {
-                return Serialize(fast);
-            }
-            //using(var writer = new JsonFLValueWriter(_db.c4db)) {
-            //    PerfTimer.StartEvent("Serialize_Write");
-            //    writer.Write(obj);
-            //    PerfTimer.StopEvent("Serialize_Write");
-            //    PerfTimer.StartEvent("Serialize_Flush");
-            //    writer.Flush();
-            //    PerfTimer.StopEvent("Serialize_Flush");
-
-            //    return writer.Result;
-            //}
             try {
                 using(var writer = new JsonFLValueWriter(_db.c4db)) {
                     var settings = SerializerSettings;
@@ -204,20 +160,6 @@ namespace Couchbase.Lite.Internal.Serialization
                 Log.To.Database.E(Tag, $"Exception during serialization: {e}");
                 throw new LiteCoreException(new C4Error(FLError.EncodeError));
             }
-        }
-
-        public override void Write(string key, object value)
-        {
-            _innerWriter.WritePropertyName(key);
-            _innerWriter.WriteValue(value);
-        }
-
-        public override void Write(string key, IJsonMapped value)
-        {
-            _innerWriter.WritePropertyName(key);
-            _innerWriter.WriteStartObject();
-            value.WriteTo(this);
-            _innerWriter.WriteEndObject();
         }
 
         #endregion

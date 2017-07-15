@@ -32,7 +32,6 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using LiteCore.Interop;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite.Sync
 {
@@ -51,15 +50,15 @@ namespace Couchbase.Lite.Sync
 
         private readonly byte[] _buffer = new byte[MaxReceivedBytesPending];
         private readonly SerialQueue _c4Queue = new SerialQueue();
-        private readonly SerialQueue _queue = new SerialQueue();
-        private readonly AutoResetEvent _readMutex = new AutoResetEvent(true);
-        private readonly AutoResetEvent _writeMutex = new AutoResetEvent(true);
-		private readonly ManualResetEventSlim _connected = new ManualResetEventSlim();
+        private readonly ManualResetEventSlim _connected = new ManualResetEventSlim();
         private readonly HTTPLogic _logic;
         private readonly ReplicatorOptionsDictionary _options;
-        private TcpClient _client;
+        private readonly SerialQueue _queue = new SerialQueue();
+        private readonly AutoResetEvent _readMutex = new AutoResetEvent(true);
 
         private readonly unsafe C4Socket* _socket;
+        private readonly AutoResetEvent _writeMutex = new AutoResetEvent(true);
+        private TcpClient _client;
         private string _expectedAcceptHeader;
         private uint _receivedBytesPending;
         private bool _receiving;
@@ -177,128 +176,6 @@ namespace Couchbase.Lite.Sync
             return Convert.ToBase64String(hashed);
         }
 
-        private void StartInternal()
-        {
-            Log.To.Sync.I(Tag, $"WebSocket connecting to {_logic.UrlRequest.Host}:{_logic.UrlRequest.Port}");
-            var rng = RandomNumberGenerator.Create();
-            var nonceBytes = new byte[16];
-            rng.GetBytes(nonceBytes);
-            var nonceKey = Convert.ToBase64String(nonceBytes);
-            _expectedAcceptHeader = Base64Digest(nonceKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
-
-            foreach (var header in _options.Headers) {
-                _logic[header.Key] = header.Value as string;
-            }
-
-            _logic["Cookie"] = _options.CookieString;
-            _logic["Connection"] = "Upgrade";
-            _logic["Upgrade"] = "websocket";
-            _logic["Sec-WebSocket-Version"] = "13";
-            _logic["Sec-WebSocket-Key"] = nonceKey;
-
-            if (_logic.UseTls) {
-                var stream = Service.Provider.TryGetRequiredService<ISslStreamFactory>().Create(_client.GetStream());
-                stream.PinnedServerCertificate = _options.PinnedServerCertificate;
-                stream.ConnectAsync(_logic.UrlRequest.Host, (ushort)_logic.UrlRequest.Port, null, false).ContinueWith(
-                    t =>
-                    {
-                        if (!NetworkTaskSuccessful(t)) {
-                            return;
-                        }
-
-                        _queue.DispatchAsync(OnSocketReady);
-                    });
-                NetworkStream = stream.AsStream();
-            }
-            else {
-                NetworkStream = _client.GetStream();
-                OnSocketReady();
-            }
-        }
-
-        private void OnSocketReady()
-        {
-            var httpData = _logic.HTTPRequestData();
-            var cts = new CancellationTokenSource();
-            cts.CancelAfter(IdleTimeout);
-            NetworkStream.WriteAsync(httpData, 0, httpData.Length, cts.Token).ContinueWith(t =>
-            {
-                if (!NetworkTaskSuccessful(t)) {
-                    return;
-                }
-
-                _queue.DispatchAsync(HandleHTTPResponse);
-            }, cts.Token);
-        }
-
-        private async void HandleHTTPResponse()
-        {
-            Log.To.Sync.V(Tag, "WebSocket sent HTTP request...");
-            
-            using (var streamReader = new StreamReader(NetworkStream, Encoding.ASCII, false, 5, true)) {
-                var parser = new HttpMessageParser(await streamReader.ReadLineAsync());
-                while (true) {
-                    var line = await streamReader.ReadLineAsync();
-                    if (String.IsNullOrEmpty(line)) {
-                        break;
-                    }
-
-                    parser.Append(line);
-                }
-
-                ReceivedHttpResponse(parser);
-            }
-        }
-
-        private unsafe void ReceivedHttpResponse(HttpMessageParser parser)
-        {
-            _logic.ReceivedResponse(parser);
-            var httpStatus = _logic.HttpStatus;
-
-            if (_logic.ShouldRetry) {
-                ResetConnections();
-                Start();
-                return;
-            }
-
-            var socket = _socket;
-            _c4Queue.DispatchAsync(() =>
-            {
-                Dictionary<string, object> dict = parser.Headers.ToDictionary(x => x.Key, x => (object) x.Value);
-                Native.c4socket_gotHTTPResponse(socket, httpStatus, dict);
-            });
-
-            if (httpStatus != 101) {
-                var closeCode = C4WebSocketCloseCode.WebSocketClosePolicyError;
-                if (httpStatus >= 300 && httpStatus < 1000) {
-                    closeCode = (C4WebSocketCloseCode)httpStatus;
-                }
-
-                var reason = parser.Reason;
-                DidClose(closeCode, reason);
-            } else if (!CheckHeader(parser, "Connection", "Upgrade", false)) {
-                DidClose(C4WebSocketCloseCode.WebSocketCloseProtocolError, "Invalid 'Connection' header");
-            } else if (!CheckHeader(parser, "Upgrade", "websocket", false)) {
-                DidClose(C4WebSocketCloseCode.WebSocketCloseProtocolError, "Invalid 'Upgrade' header");
-            } else if (!CheckHeader(parser, "Sec-WebSocket-Accept", _expectedAcceptHeader, true)) {
-                DidClose(C4WebSocketCloseCode.WebSocketCloseProtocolError, "Invalid 'Sec-WebSocket-Accept' header");
-            } else {
-                Connected();
-            }
-        }
-
-        private unsafe void Connected()
-        {
-            Log.To.Sync.I(Tag, "WebSocket CONNECTED!");
-            Receive();
-            var socket = _socket;
-            _connected.Set();
-            _c4Queue.DispatchAsync(() =>
-            {
-                Native.c4socket_opened(socket);
-            });
-        }
-
         private static bool CheckHeader(HttpMessageParser parser, string key, string expectedValue, bool caseSens)
         {
             string value;
@@ -310,29 +187,15 @@ namespace Couchbase.Lite.Sync
             return value?.Equals(expectedValue, comparison) == true;
         }
 
-        private bool NetworkTaskSuccessful(Task t)
+        private unsafe void Connected()
         {
-            if (t.IsCanceled) {
-                DidClose(new SocketException((int)SocketError.TimedOut));
-                return false;
-            }
-
-            if (t.Exception != null) {
-                DidClose(t.Exception.Flatten().InnerException);
-                return false;
-            }
-
-            return true;
-        }
-
-        private void ResetConnections()
-        {
-            _queue.DispatchAsync(() =>
+            Log.To.Sync.I(Tag, "WebSocket CONNECTED!");
+            Receive();
+            var socket = _socket;
+            _connected.Set();
+            _c4Queue.DispatchAsync(() =>
             {
-                _client?.Dispose();
-                _client = null;
-                NetworkStream?.Dispose();
-                NetworkStream = null;
+                Native.c4socket_opened(socket);
             });
         }
 
@@ -375,6 +238,55 @@ namespace Couchbase.Lite.Sync
             _c4Queue.DispatchAsync(() => Native.c4socket_closed(_socket, c4errCopy));
         }
 
+        private async void HandleHTTPResponse()
+        {
+            Log.To.Sync.V(Tag, "WebSocket sent HTTP request...");
+            
+            using (var streamReader = new StreamReader(NetworkStream, Encoding.ASCII, false, 5, true)) {
+                var parser = new HttpMessageParser(await streamReader.ReadLineAsync());
+                while (true) {
+                    var line = await streamReader.ReadLineAsync();
+                    if (String.IsNullOrEmpty(line)) {
+                        break;
+                    }
+
+                    parser.Append(line);
+                }
+
+                ReceivedHttpResponse(parser);
+            }
+        }
+
+        private bool NetworkTaskSuccessful(Task t)
+        {
+            if (t.IsCanceled) {
+                DidClose(new SocketException((int)SocketError.TimedOut));
+                return false;
+            }
+
+            if (t.Exception != null) {
+                DidClose(t.Exception.Flatten().InnerException);
+                return false;
+            }
+
+            return true;
+        }
+
+        private void OnSocketReady()
+        {
+            var httpData = _logic.HTTPRequestData();
+            var cts = new CancellationTokenSource();
+            cts.CancelAfter(IdleTimeout);
+            NetworkStream.WriteAsync(httpData, 0, httpData.Length, cts.Token).ContinueWith(t =>
+            {
+                if (!NetworkTaskSuccessful(t)) {
+                    return;
+                }
+
+                _queue.DispatchAsync(HandleHTTPResponse);
+            }, cts.Token);
+        }
+
         private unsafe void Receive()
         {
             _queue.DispatchAsync(() =>
@@ -409,6 +321,54 @@ namespace Couchbase.Lite.Sync
             });
         }
 
+        private unsafe void ReceivedHttpResponse(HttpMessageParser parser)
+        {
+            _logic.ReceivedResponse(parser);
+            var httpStatus = _logic.HttpStatus;
+
+            if (_logic.ShouldRetry) {
+                ResetConnections();
+                Start();
+                return;
+            }
+
+            var socket = _socket;
+            _c4Queue.DispatchAsync(() =>
+            {
+                Dictionary<string, object> dict = parser.Headers.ToDictionary(x => x.Key, x => (object) x.Value);
+                Native.c4socket_gotHTTPResponse(socket, httpStatus, dict);
+            });
+
+            if (httpStatus != 101) {
+                var closeCode = C4WebSocketCloseCode.WebSocketClosePolicyError;
+                if (httpStatus >= 300 && httpStatus < 1000) {
+                    closeCode = (C4WebSocketCloseCode)httpStatus;
+                }
+
+                var reason = parser.Reason;
+                DidClose(closeCode, reason);
+            } else if (!CheckHeader(parser, "Connection", "Upgrade", false)) {
+                DidClose(C4WebSocketCloseCode.WebSocketCloseProtocolError, "Invalid 'Connection' header");
+            } else if (!CheckHeader(parser, "Upgrade", "websocket", false)) {
+                DidClose(C4WebSocketCloseCode.WebSocketCloseProtocolError, "Invalid 'Upgrade' header");
+            } else if (!CheckHeader(parser, "Sec-WebSocket-Accept", _expectedAcceptHeader, true)) {
+                DidClose(C4WebSocketCloseCode.WebSocketCloseProtocolError, "Invalid 'Sec-WebSocket-Accept' header");
+            } else {
+                Connected();
+            }
+        }
+
+        private void ResetConnections()
+        {
+            _queue.DispatchAsync(() =>
+            {
+                _client?.Dispose();
+                _client = null;
+                NetworkStream?.Dispose();
+                NetworkStream = null;
+            });
+        }
+
         private void SetupAuth()
         {
             var auth = _options?.Auth;
@@ -418,6 +378,45 @@ namespace Couchbase.Lite.Sync
                 if (username != null && password != null) {
                     _logic.Credential = new NetworkCredential(username, password);
                 }
+            }
+        }
+
+        private void StartInternal()
+        {
+            Log.To.Sync.I(Tag, $"WebSocket connecting to {_logic.UrlRequest.Host}:{_logic.UrlRequest.Port}");
+            var rng = RandomNumberGenerator.Create();
+            var nonceBytes = new byte[16];
+            rng.GetBytes(nonceBytes);
+            var nonceKey = Convert.ToBase64String(nonceBytes);
+            _expectedAcceptHeader = Base64Digest(nonceKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+
+            foreach (var header in _options.Headers) {
+                _logic[header.Key] = header.Value as string;
+            }
+
+            _logic["Cookie"] = _options.CookieString;
+            _logic["Connection"] = "Upgrade";
+            _logic["Upgrade"] = "websocket";
+            _logic["Sec-WebSocket-Version"] = "13";
+            _logic["Sec-WebSocket-Key"] = nonceKey;
+
+            if (_logic.UseTls) {
+                var stream = Service.Provider.TryGetRequiredService<ISslStreamFactory>().Create(_client.GetStream());
+                stream.PinnedServerCertificate = _options.PinnedServerCertificate;
+                stream.ConnectAsync(_logic.UrlRequest.Host, (ushort)_logic.UrlRequest.Port, null, false).ContinueWith(
+                    t =>
+                    {
+                        if (!NetworkTaskSuccessful(t)) {
+                            return;
+                        }
+
+                        _queue.DispatchAsync(OnSocketReady);
+                    });
+                NetworkStream = stream.AsStream();
+            }
+            else {
+                NetworkStream = _client.GetStream();
+                OnSocketReady();
             }
         }
 

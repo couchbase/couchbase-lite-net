@@ -19,12 +19,8 @@
 // limitations under the License.
 // 
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
-using Couchbase.Lite.Logging;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Query

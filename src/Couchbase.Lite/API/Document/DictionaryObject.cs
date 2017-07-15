@@ -23,7 +23,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Lite.Internal.Doc;
-using Couchbase.Lite.Support;
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite

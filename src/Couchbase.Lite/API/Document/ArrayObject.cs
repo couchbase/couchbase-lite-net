@@ -77,8 +77,7 @@ namespace Couchbase.Lite
         #region Variables
         
         private readonly ThreadSafety _threadSafety = new ThreadSafety();
-
-        private bool _changed;
+        
         private IList _list;
 
         #endregion
@@ -162,7 +161,7 @@ namespace Couchbase.Lite
             }
         }
 
-        private void SetValue(int index, object value, bool isChange)
+        private void SetValue(int index, object value)
         {
             _list[index] = value;
         }
@@ -388,7 +387,7 @@ namespace Couchbase.Lite
                 var oldValue = _list[index];
                 if (value?.Equals(oldValue) == false) {
                     value = DataOps.ConvertValue(value);
-                    SetValue(index, value, true);
+                    SetValue(index, value);
                 }
 
                 return this;

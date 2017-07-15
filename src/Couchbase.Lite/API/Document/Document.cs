@@ -226,7 +226,7 @@ namespace Couchbase.Lite
             }
         }
 
-        private void Save(IConflictResolver resolver, bool deletion, IDocumentModel model = null)
+        private void Save(IConflictResolver resolver, bool deletion)
         {
             if (deletion && !Exists) {
                 throw new CouchbaseLiteException(StatusCode.NotFound);
@@ -237,7 +237,7 @@ namespace Couchbase.Lite
             Database.InBatch(() =>
             {
                 var tmp = default(C4Document*);
-                SaveInto(&tmp, deletion, model);
+                SaveInto(&tmp, deletion);
                 if (tmp == null) {
                     Merge(resolver, deletion);
                     if (!_dict.HasChanges) {
@@ -245,7 +245,7 @@ namespace Couchbase.Lite
                         return;
                     }
 
-                    SaveInto(&tmp, deletion, model);
+                    SaveInto(&tmp, deletion);
                     if (tmp == null) {
                         throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
                     }
@@ -262,7 +262,7 @@ namespace Couchbase.Lite
         }
 
         [SuppressMessage("ReSharper", "AccessToDisposedClosure", Justification = "The closure is executed synchronously")]
-        private void SaveInto(C4Document** outDoc, bool deletion, IDocumentModel model = null)
+        private void SaveInto(C4Document** outDoc, bool deletion)
         {
             var revFlags = (C4RevisionFlags) 0;
             if (deletion) {
@@ -275,7 +275,7 @@ namespace Couchbase.Lite
 
             var body = new FLSliceResult();
             if (!deletion && !IsEmpty) {
-                body = model != null ? Database.JsonSerializer.Serialize(model) : Database.JsonSerializer.Serialize(_dict);
+                body = Database.JsonSerializer.Serialize(_dict);
             } else if (IsEmpty) {
                 var encoder = Native.c4db_createFleeceEncoder(c4Db);
                 Native.FLEncoder_BeginDict(encoder, 0);

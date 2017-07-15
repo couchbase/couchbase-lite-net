@@ -1,24 +1,23 @@
-﻿//
-//  SerialQueue.cs
-//
-//  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
-//
-//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
-//
-//  Licensed under the Apache License, Version 2.0 (the "License");
-//  you may not use this file except in compliance with the License.
-//  You may obtain a copy of the License at
-//
-//  http://www.apache.org/licenses/LICENSE-2.0
-//
-//  Unless required by applicable law or agreed to in writing, software
-//  distributed under the License is distributed on an "AS IS" BASIS,
-//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//  See the License for the specific language governing permissions and
-//  limitations under the License.
-//
-
+﻿// 
+// SerialQueue.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
@@ -30,7 +29,7 @@ using Couchbase.Lite.Logging;
 namespace Couchbase.Lite.Support
 {
     // Inspired by https://github.com/borland/SerialQueue
-    internal sealed class SerialQueue : IDispatchQueue
+    internal sealed class SerialQueue
     {
         #region Constants
 
@@ -62,45 +61,17 @@ namespace Couchbase.Lite.Support
 
         #endregion
 
-        #region Private Methods
+        #region Public Methods
 
-        private void ProcessAsync()
+        public Task DispatchAfter(Action a, TimeSpan time)
         {
-            SerialQueueItem next;
-            var oldThread = _currentProcessingThread;
-            while(_queue.TryDequeue(out next)) {
-                
-                State = SerialQueueState.Processing;
-                lock(_executionLock) {
-                    _currentProcessingThread = Environment.CurrentManagedThreadId;
-                    try {
-                        next.Action();
-                        next.SyncContext.Post(s =>
-                        {
-                            var item = (SerialQueueItem) s;
-                            item.Tcs.SetResult(true);
-                        }, next);
-                    } catch(Exception e) {
-                        Log.To.TaskScheduling.W(Tag, "Exception during DispatchAsync", e);
-                        next.SyncContext.Post(s =>
-                        {
-                            var item = (SerialQueueItem)s;
-                            item.Tcs.SetResult(true);
-                        }, next);
-                    } finally {
-                        _currentProcessingThread = oldThread;
-                    }
-                }
-
-                Count--;
-            }
-
-            State = SerialQueueState.Idle;
+            return Task.Delay(time).ContinueWith(t => DispatchSync(a));
         }
 
-        #endregion
-
-        #region IDispatchQueue
+        public Task<TResult> DispatchAfter<TResult>(Func<TResult> f, TimeSpan time)
+        {
+            return Task.Delay(time).ContinueWith(t => DispatchSync(f));
+        }
 
         public Task DispatchAsync(Action a)
         {
@@ -192,6 +163,44 @@ namespace Couchbase.Lite.Support
 
         #endregion
 
+        #region Private Methods
+
+        private void ProcessAsync()
+        {
+            SerialQueueItem next;
+            var oldThread = _currentProcessingThread;
+            while(_queue.TryDequeue(out next)) {
+                
+                State = SerialQueueState.Processing;
+                lock(_executionLock) {
+                    _currentProcessingThread = Environment.CurrentManagedThreadId;
+                    try {
+                        next.Action();
+                        next.SyncContext.Post(s =>
+                        {
+                            var item = (SerialQueueItem) s;
+                            item.Tcs.SetResult(true);
+                        }, next);
+                    } catch(Exception e) {
+                        Log.To.TaskScheduling.W(Tag, "Exception during DispatchAsync", e);
+                        next.SyncContext.Post(s =>
+                        {
+                            var item = (SerialQueueItem)s;
+                            item.Tcs.SetResult(true);
+                        }, next);
+                    } finally {
+                        _currentProcessingThread = oldThread;
+                    }
+                }
+
+                Count--;
+            }
+
+            State = SerialQueueState.Idle;
+        }
+
+        #endregion
+
         #region Nested
 
         private class SerialQueueItem
@@ -200,9 +209,9 @@ namespace Couchbase.Lite.Support
 
             public Action Action;
 
-            public TaskCompletionSource<bool> Tcs;
-
             public SynchronizationContext SyncContext;
+
+            public TaskCompletionSource<bool> Tcs;
 
             #endregion
         }

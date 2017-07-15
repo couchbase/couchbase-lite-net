@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 using System;
+using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite
 {
@@ -28,6 +29,12 @@ namespace Couchbase.Lite
     /// </summary>
     public sealed class Fragment : ReadOnlyFragment, IDictionaryFragment, IArrayFragment
     {
+        #region Constants
+
+        private const string Tag = nameof(Fragment);
+
+        #endregion
+
         #region Variables
 
         private readonly object _parent;
@@ -86,7 +93,8 @@ namespace Couchbase.Lite
                         }
 
                         _value = a.GetObject(index);
-                    } catch (Exception) {
+                    } catch (Exception e) {
+                        Log.To.Database.W(Tag, "Exception setting Fragment Value", e);
                     }
                 }
             }

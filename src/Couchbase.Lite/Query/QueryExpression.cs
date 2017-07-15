@@ -38,7 +38,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public static object EncodeToJSON(IList expressions)
         {
-            return EncodeExpressions(expressions, false);
+            return EncodeExpressions(expressions);
         }
 
         #endregion
@@ -65,7 +65,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Private Methods
 
-        private static IList EncodeExpressions(IList expressions, bool aggregate)
+        private static IList EncodeExpressions(IList expressions)
         {
             var result = new List<object>();
             foreach (var r in expressions) {

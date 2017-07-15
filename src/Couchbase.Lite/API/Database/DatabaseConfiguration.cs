@@ -21,7 +21,6 @@
 
 
 using Couchbase.Lite.DI;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite
 {

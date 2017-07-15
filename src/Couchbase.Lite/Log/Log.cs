@@ -23,7 +23,6 @@ using System.Collections.Generic;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Util;
 using LiteCore.Interop;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ObjCRuntime;
 
@@ -43,10 +42,11 @@ namespace Couchbase.Lite.Logging
         #endregion
 
         #region Variables
-            
-        private static LogTo _To;
+
         private static AtomicBool _ProvidersAdded = new AtomicBool(false);
         private static LogScrubSensitivity _ScrubSensitivity;
+
+        private static LogTo _To;
 
         #endregion
 
@@ -140,16 +140,6 @@ namespace Couchbase.Lite.Logging
             Factory.AddProvider(provider);
         }
 
-        internal static void ClearLoggerProviders()
-        {
-            _ProvidersAdded.Set(true);
-            var oldFactory = Factory;
-            Factory = new LoggerFactory();
-            oldFactory.Dispose();
-            To = new LogTo();
-            Domains = new LogDomains(_To);
-        }
-
         /// <summary>
         /// An API for setting the logging level of the native LiteCore library
         /// </summary>
@@ -184,6 +174,20 @@ namespace Couchbase.Lite.Logging
             if (levels.Count > 0) {
                 Domains.LiteCore.Level = maxLevel;
             }
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        internal static void ClearLoggerProviders()
+        {
+            _ProvidersAdded.Set(true);
+            var oldFactory = Factory;
+            Factory = new LoggerFactory();
+            oldFactory.Dispose();
+            To = new LogTo();
+            Domains = new LogDomains(_To);
         }
 
         #endregion

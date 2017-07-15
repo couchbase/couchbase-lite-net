@@ -40,6 +40,11 @@
     <DebugSymbols>True</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="Linq\**" />
+    <EmbeddedResource Remove="Linq\**" />
+    <None Remove="Linq\**" />
+  </ItemGroup>
+  <ItemGroup>
     <EmbeddedResource Include="Properties\version">
         <LogicalName>version</LogicalName>
     </EmbeddedResource>

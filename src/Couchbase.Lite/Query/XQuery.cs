@@ -1,7 +1,26 @@
-﻿using System;
+﻿// 
+// XQuery.cs
+// 
+// Author:
+//     Jim Borden  <jim.borden@couchbase.com>
+// 
+// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+// http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 using LiteCore;
@@ -12,83 +31,56 @@ namespace Couchbase.Lite.Internal.Query
 {
     internal unsafe class XQuery : IQuery, IQueryInternal
     {
+        #region Constants
+
         private const string Tag = nameof(XQuery);
 
+        #endregion
+
+        #region Variables
+
         private C4Query* _c4Query;
+
+        #endregion
+
+        #region Properties
 
         public Database Database { get; set; }
 
         public IParameters Parameters { get; } = new QueryParameters();
 
-        protected Select SelectImpl { get; set; }
-
         protected bool Distinct { get; set; }
 
         protected QueryDataSource FromImpl { get; set; }
-
-        protected QueryExpression WhereImpl { get; set; }
-
-        protected QueryOrdering OrderByImpl { get; set; }
-
-        protected QueryJoin JoinImpl { get; set; }
 
         protected QueryGroupBy GroupByImpl { get; set; }
 
         protected Having HavingImpl { get; set; }
 
-        protected object SkipValue { get; set; }
+        protected QueryJoin JoinImpl { get; set; }
 
         protected object LimitValue { get; set; }
+
+        protected QueryOrdering OrderByImpl { get; set; }
+
+        protected Select SelectImpl { get; set; }
+
+        protected object SkipValue { get; set; }
+
+        protected QueryExpression WhereImpl { get; set; }
+
+        #endregion
+
+        #region Constructors
 
         ~XQuery()
         {
             Dispose(true);
         }
 
-        public IResultSet Run()
-        {
-            if (Database == null) {
-                throw new InvalidOperationException("Invalid query, Database == null");
-            }
+        #endregion
 
-            if (SelectImpl == null || FromImpl == null) {
-                throw new InvalidOperationException("Invalid query, missing Select or From");
-            }
-
-
-            if (_c4Query == null) {
-                Check();
-            }
-
-            var options = C4QueryOptions.Default;
-            var paramJson = ((QueryParameters) Parameters).ToString();
-
-            var e = (C4QueryEnumerator*) LiteCoreBridge.Check(err =>
-            {
-                var localOpts = options;
-                return Native.c4query_run(_c4Query, &localOpts, paramJson, err);
-            });
-
-            return new QueryEnumerator(this, _c4Query, e);
-        }
-
-        public ILiveQuery ToLive()
-        {
-            Dispose();
-            return new LiveQuery(new XQuery {
-                Database = Database,
-                SelectImpl = SelectImpl,
-                Distinct = Distinct,
-                FromImpl = FromImpl,
-                WhereImpl = WhereImpl,
-                OrderByImpl = OrderByImpl,
-                JoinImpl = JoinImpl,
-                GroupByImpl = GroupByImpl,
-                HavingImpl = HavingImpl,
-                LimitValue = LimitValue,
-                SkipValue = SkipValue
-            });
-        }
+        #region Protected Methods
 
         protected void Copy(XQuery source)
         {
@@ -111,11 +103,19 @@ namespace Couchbase.Lite.Internal.Query
             _c4Query = null;
         }
 
+        #endregion
+
+        #region Internal Methods
+
         internal string Explain()
         {
             // Used for debugging
             return Native.c4query_explain(_c4Query);
         }
+
+        #endregion
+
+        #region Private Methods
 
         private void Check()
         {
@@ -188,9 +188,64 @@ namespace Couchbase.Lite.Internal.Query
             return JsonConvert.SerializeObject(parameters);
         }
 
+        #endregion
+
+        #region IDisposable
+
         public void Dispose()
         {
             Dispose(false);
         }
+
+        #endregion
+
+        #region IQuery
+
+        public IResultSet Run()
+        {
+            if (Database == null) {
+                throw new InvalidOperationException("Invalid query, Database == null");
+            }
+
+            if (SelectImpl == null || FromImpl == null) {
+                throw new InvalidOperationException("Invalid query, missing Select or From");
+            }
+
+
+            if (_c4Query == null) {
+                Check();
+            }
+
+            var options = C4QueryOptions.Default;
+            var paramJson = ((QueryParameters) Parameters).ToString();
+
+            var e = (C4QueryEnumerator*) LiteCoreBridge.Check(err =>
+            {
+                var localOpts = options;
+                return Native.c4query_run(_c4Query, &localOpts, paramJson, err);
+            });
+
+            return new QueryEnumerator(this, _c4Query, e);
+        }
+
+        public ILiveQuery ToLive()
+        {
+            Dispose();
+            return new LiveQuery(new XQuery {
+                Database = Database,
+                SelectImpl = SelectImpl,
+                Distinct = Distinct,
+                FromImpl = FromImpl,
+                WhereImpl = WhereImpl,
+                OrderByImpl = OrderByImpl,
+                JoinImpl = JoinImpl,
+                GroupByImpl = GroupByImpl,
+                HavingImpl = HavingImpl,
+                LimitValue = LimitValue,
+                SkipValue = SkipValue
+            });
+        }
+
+        #endregion
     }
 }
