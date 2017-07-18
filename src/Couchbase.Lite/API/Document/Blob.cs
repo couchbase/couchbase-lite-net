@@ -338,17 +338,17 @@ namespace Couchbase.Lite
                 if (Length != other.Length) {
                     return false;
                 }
-
-                if (ContentStream == null) {
-                    return other.ContentStream == null;
-                }
-
-                if (other.ContentStream == null) {
-                    return ContentStream == null;
-                }
-
+                
                 using (var stream1 = ContentStream)
                 using (var stream2 = other.ContentStream) {
+                    if (stream1 == null) {
+                        return stream2 == null;
+                    }
+
+                    if (stream2 == null) {
+                        return false;
+                    }
+
                     int next1;
                     while((next1 = stream1.ReadByte()) != -1) {
                         var next2 = stream2.ReadByte();
