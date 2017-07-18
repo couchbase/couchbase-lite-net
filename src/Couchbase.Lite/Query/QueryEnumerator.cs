@@ -85,7 +85,7 @@ namespace Couchbase.Lite.Internal.Query
             }
 
             var newEnum = (C4QueryEnumerator *)LiteCoreBridge.Check(err => Native.c4queryenum_refresh(_c4Enum, err));
-            return new QueryEnumerator(query, C4Query, newEnum);
+            return newEnum != null ? new QueryEnumerator(query, C4Query, newEnum) : null;
         }
 
         #endregion
