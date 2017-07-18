@@ -339,6 +339,14 @@ namespace Couchbase.Lite
                     return false;
                 }
 
+                if (ContentStream == null) {
+                    return other.ContentStream == null;
+                }
+
+                if (other.ContentStream == null) {
+                    return ContentStream == null;
+                }
+
                 using (var stream1 = ContentStream)
                 using (var stream2 = other.ContentStream) {
                     int next1;
