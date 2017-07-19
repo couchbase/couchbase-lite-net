@@ -33,7 +33,7 @@ namespace Couchbase.Lite.Tests.Android
             TerminateAfterExecution = true;
             using (var str = GetType().Assembly.GetManifestResourceStream("result_ip"))
             using (var sr = new StreamReader(str)) {
-                Writer = new TcpTextWriter(sr.ReadToEnd().TrimEnd(), 12345);
+                Writer = new TcpTextWriter(sr.ReadToEnd().TrimEnd(), 54321);
             }
 
             // you cannot add more assemblies once calling base

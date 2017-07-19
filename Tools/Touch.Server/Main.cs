@@ -182,12 +182,25 @@ class SimpleListener {
 	{ 
 		Console.WriteLine ("Touch.Unit Simple Server");
 		Console.WriteLine ("Copyright 2011, Xamarin Inc. All rights reserved.");
+        
+        bool help = false;
+        var port = 12345;
+        var os = new OptionSet () {
+			{ "h|?|help", "Display help", v => help = true },
+            { "p|port=", "TCP port to listen (default: 12345)", v => port = Int32.Parse(v) }
+        };
 		
+        os.Parse(args);
+        if(help) {
+            ShowHelp(os);
+            return 0;
+        }
+        
 		try {
 			var listener = new SimpleListener ();
 			
 			listener.Address = IPAddress.Any;
-		  listener.Port = 12345;
+		    listener.Port = port;
 			listener.AutoExit = true;
 			listener.Initialize ();
 			
