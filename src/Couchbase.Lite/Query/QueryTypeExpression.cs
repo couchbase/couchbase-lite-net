@@ -32,7 +32,7 @@ namespace Couchbase.Lite.Internal.Query
         KeyPath,
         Parameter,
         Variable,
-        Aggregate,
+        Aggregate
     }
 
     internal sealed class QueryTypeExpression : QueryExpression, IPropertyExpression, IMetaExpression

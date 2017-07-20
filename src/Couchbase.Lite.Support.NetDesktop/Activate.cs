@@ -23,17 +23,15 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Couchbase.Lite.DI;
-using Couchbase.Lite.Logging;
-using LiteCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Lite.Support
 {
     /// <summary>
-    /// The UWP support class
+    /// The .NET Desktop support class
     /// </summary>
-    public static class NetDestkop
+    public static class NetDesktop
     {
         #region Public Methods
 

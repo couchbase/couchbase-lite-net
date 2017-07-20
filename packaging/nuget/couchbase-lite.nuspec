@@ -20,7 +20,6 @@
     <dependencies>
       <group targetFramework="netstandard1.4">
         <dependency id="Newtonsoft.Json" version="9.0.1" />
-        <dependency id="Remotion.Linq" version="2.1.1" />
         <dependency id="NETStandard.Library" version="1.6.0" />
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
@@ -29,7 +28,6 @@
       </group>
       <group targetFramework="netcoreapp1.0">
         <dependency id="Newtonsoft.Json" version="9.0.1" />
-        <dependency id="Remotion.Linq" version="2.1.1" />
         <dependency id="NETStandard.Library" version="1.6.0" />
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
@@ -39,7 +37,6 @@
       </group>
       <group targetFramework="net461">
         <dependency id="Newtonsoft.Json" version="9.0.1" />
-        <dependency id="Remotion.Linq" version="2.1.1" />
         <dependency id="NETStandard.Library" version="1.6.0" />
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
@@ -49,7 +46,6 @@
       </group>
       <group targetFramework="uap10.0">
         <dependency id="Newtonsoft.Json" version="9.0.1" />
-        <dependency id="Remotion.Linq" version="2.1.1" />
         <dependency id="NETStandard.Library" version="1.6.0" />
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
@@ -59,7 +55,6 @@
       </group>
       <group targetFramework="monoandroid">
         <dependency id="Newtonsoft.Json" version="9.0.1" />
-        <dependency id="Remotion.Linq" version="2.1.1" />
         <dependency id="NETStandard.Library" version="1.6.0" />
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
@@ -69,7 +64,6 @@
       </group>
       <group targetFramework="xamarinios">
         <dependency id="Newtonsoft.Json" version="9.0.1" />
-        <dependency id="Remotion.Linq" version="2.1.1" />
         <dependency id="NETStandard.Library" version="1.6.0" />
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
@@ -79,7 +73,6 @@
       </group>
       <group targetFramework="xamarintvos">
         <dependency id="Newtonsoft.Json" version="9.0.1" />
-        <dependency id="Remotion.Linq" version="2.1.1" />
         <dependency id="NETStandard.Library" version="1.6.0" />
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />

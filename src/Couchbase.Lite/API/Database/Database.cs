@@ -229,7 +229,11 @@ namespace Couchbase.Lite
         /// </summary>
         ~Database()
         {
-            Dispose(false);
+            try {
+                Dispose(false);
+            } catch (Exception e) {
+                Log.To.Database.E(Tag, "Error during finalizer, swallowing!", e);
+            }
         }
 
         #endregion
@@ -682,12 +686,16 @@ namespace Couchbase.Lite
 
             Log.To.Database.I(Tag, $"Opening {encrypted}database at {path}");
             var localConfig1 = config;
-            _c4db = (C4Database *)LiteCoreBridge.Check(err => {
-                var localConfig2 = localConfig1;
-                return Native.c4db_open(path, &localConfig2, err);
-            });
+            _threadSafety.DoLocked(() =>
+            {
+                _c4db = (C4Database*) LiteCoreBridge.Check(err =>
+                {
+                    var localConfig2 = localConfig1;
+                    return Native.c4db_open(path, &localConfig2, err);
+                });
 
-            _obs = Native.c4dbobs_create(_c4db, _DbObserverCallback, this);
+                _obs = Native.c4dbobs_create(_c4db, _DbObserverCallback, this);
+            });
         }
 
         private void PostDatabaseChanged()

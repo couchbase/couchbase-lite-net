@@ -59,10 +59,6 @@ namespace Couchbase.Lite.Internal.Query
 
         public object ToJSON()
         {
-            if (_expressions.Count == 1) {
-                return (_expressions.First() as QueryExpression)?.ConvertToJSON();
-            }
-            
             var obj = new List<object>();
             foreach (var o in _expressions.OfType<QueryExpression>()) {
                 obj.Add(o.ConvertToJSON());

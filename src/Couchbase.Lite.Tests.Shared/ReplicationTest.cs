@@ -47,7 +47,6 @@ namespace Test
     {
         private Database _otherDB;
         private Replicator _repl;
-        private bool _stopped;
         private WaitAssert _waitAssert;
 
 #if !WINDOWS_UWP
