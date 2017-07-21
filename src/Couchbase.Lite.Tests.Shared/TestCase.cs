@@ -66,7 +66,7 @@ namespace Test
 #if NETCOREAPP1_0
         static TestCase()
         {
-            Couchbase.Lite.Support.NetDestkop.Activate();
+            Couchbase.Lite.Support.NetDesktop.Activate();
         }
 #endif
 
