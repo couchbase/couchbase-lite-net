@@ -13,7 +13,7 @@ if($DebugLib) {
 
 Write-Host "Fetching variants for $Sha..."
 if($Variants[0].ToLower() -eq "all") {
-    $Variants = @("macosx", "linux", "ios", "android-x86", "android-armeabi-v7a", "android-arm64-v8a")
+    $Variants = @("macosx", "linux", "ios", "android-x86", "android-armeabi-v7a", "android-arm64-v8a", "windows-win32", "windows-win64", "windows-arm")
 }
 
 $VARIANT_EXT = @{
@@ -22,7 +22,10 @@ $VARIANT_EXT = @{
   "linux" = "tar.gz"; 
   "android-x86" = "zip"; 
   "android-armeabi-v7a" = "zip";
-  "android-arm64-v8a" = "zip"
+  "android-arm64-v8a" = "zip";
+  "windows-win32" = "zip";
+  "windows-win64" = "zip";
+  "windows-arm" = "zip"
 }
 
 try {
@@ -33,6 +36,11 @@ try {
         
         echo $NexusRepo/couchbase-litecore-$variant/$Sha/couchbase-litecore-$variant-$Sha$suffix.$extension
         Invoke-WebRequest $NexusRepo/couchbase-litecore-$variant/$Sha/couchbase-litecore-$variant-$Sha$suffix.$extension -Out litecore-$variant$suffix.$extension
+        
+        if($variant.StartsWith("windows-win")) {
+            echo $NexusRepo/couchbase-litecore-$variant/$Sha/couchbase-litecore-$variant-$Sha-store$suffix.$extension
+            Invoke-WebRequest $NexusRepo/couchbase-litecore-$variant/$Sha/couchbase-litecore-$variant-$Sha-store$suffix.$extension -Out litecore-$variant-store$suffix.$extension
+        }
     }
 } catch [System.Net.WebException] {
     popd
@@ -76,6 +84,33 @@ foreach($arch in @("x86", "armeabi-v7a", "arm64-v8a")) {
         & 7z e -y litecore-android-$arch$suffix.zip
         rm litecore-android-$arch$suffix.zip
         cd ..\..\..
+    }
+}
+
+foreach($arch in @("win32", "win64", "arm")) {
+    $alt_arch = $arch
+    if($arch -eq "win64") {
+        $alt_arch = "x64"
+    } elseif($arch -eq "win32") {
+        $alt_arch = "x86"
+    }
+    
+    if(Test-Path "litecore-windows-$arch$suffix.zip") {
+        New-Item -Type directory -ErrorAction Ignore $alt_arch\RelWithDebInfo
+        cd $alt_arch\RelWithDebInfo
+        Move-Item ..\..\litecore-windows-$arch$suffix.zip .
+        & 7z e -y litecore-windows-$arch$suffix.zip
+        rm litecore-windows-$arch$suffix.zip
+        cd ..\..
+    }
+    
+    if(Test-Path "litecore-windows-$arch-store$suffix.zip") {
+        New-Item -Type directory -ErrorAction Ignore ${alt_arch}_store\RelWithDebInfo
+        cd ${alt_arch}_store\RelWithDebInfo
+        Move-Item ..\..\litecore-windows-$arch-store$suffix.zip .
+        & 7z e -y litecore-windows-$arch-store$suffix.zip
+        rm litecore-windows-$arch-store$suffix.zip
+        cd ..\..
     }
 }
 popd
