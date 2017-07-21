@@ -23,13 +23,32 @@ using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class QuerySelectResult : ISelectResult
+    internal sealed class QuerySelectResult : ISelectResultAs
     {
         internal readonly IExpression Expression;
+        private string _alias;
 
+        internal string ColumnName
+        {
+            get {
+                if (_alias != null) {
+                    return _alias;
+                }
+
+                QueryTypeExpression keyPathExpr = Expression as QueryTypeExpression;
+                return keyPathExpr?.ExpressionType == ExpressionType.KeyPath ? keyPathExpr.KeyPath : null;
+            }
+        }
+        
         public QuerySelectResult(IExpression expression)
         {
             Expression = expression;
+        }
+
+        public ISelectResult As(string alias)
+        {
+            _alias = alias;
+            return this;
         }
     }
 }

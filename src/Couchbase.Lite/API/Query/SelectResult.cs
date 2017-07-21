@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression describing what to select from the
         /// query (e.g. <see cref="Lite.Query.Expression.Property(string)"/>)</param>
         /// <returns>The instantiated instance</returns>
-        public static ISelectResult Expression(IExpression expression)
+        public static ISelectResultAs Expression(IExpression expression)
         {
             return new QuerySelectResult(expression);
         }

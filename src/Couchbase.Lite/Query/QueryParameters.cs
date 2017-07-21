@@ -29,14 +29,10 @@ namespace Couchbase.Lite.Internal.Query
     {
         private readonly Dictionary<object, object> _params = new Dictionary<object, object>();
 
-        public void Set(string name, object value)
+        public IParameters Set(string name, object value)
         {
             _params[name] = value;
-        }
-
-        public void Set(int index, object value)
-        {
-            _params[index] = value;
+            return this;
         }
 
         public override string ToString()

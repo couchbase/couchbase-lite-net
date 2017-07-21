@@ -33,14 +33,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="name">The name of the parameter for substitution</param>
         /// <param name="value">The value of the parameter</param>
-        void Set(string name, object value);
-
-        /// <summary>
-        /// Sets a positional parameter
-        /// </summary>
-        /// <param name="index">The index of the parameter for substitution</param>
-        /// <param name="value">The value of the parameter</param>
-        void Set(int index, object value);
+        IParameters Set(string name, object value);
 
         #endregion
     }

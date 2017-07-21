@@ -42,7 +42,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public event EventHandler<LiveQueryChangedEventArgs> Changed;
 
-        private QueryEnumerator _enum;
+        private QueryResultSet _enum;
         private DateTime _lastUpdatedAt;
         private AtomicBool _observing = false;
         private AtomicBool _willUpdate = false;
@@ -87,11 +87,11 @@ namespace Couchbase.Lite.Internal.Query
         {
             Log.To.Query.I(Tag, $"{this}: Querying...");
             var oldEnum = _enum;
-            QueryEnumerator newEnum = null;
+            QueryResultSet newEnum = null;
             Exception error = null;
             if (oldEnum == null) {
                 try {
-                    newEnum = (QueryEnumerator) _query.Run();
+                    newEnum = (QueryResultSet) _query.Run();
                 } catch (Exception e) {
                     error = e;
                 }

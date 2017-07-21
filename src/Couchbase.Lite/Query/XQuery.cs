@@ -40,6 +40,7 @@ namespace Couchbase.Lite.Internal.Query
         #region Variables
 
         private C4Query* _c4Query;
+        private Dictionary<string, int> _columnNames;
 
         #endregion
 
@@ -120,10 +121,32 @@ namespace Couchbase.Lite.Internal.Query
         private void Check()
         {
             var jsonData = EncodeAsJSON();
+            if (_columnNames == null) {
+                _columnNames = CreateColumnNames();
+            }
+
             Log.To.Query.I(Tag, $"Query encoded as {jsonData}");
             var query = (C4Query*)LiteCoreBridge.Check(err => Native.c4query_new(Database.c4db, jsonData, err));
             Native.c4query_free(_c4Query);
             _c4Query = query;
+        }
+
+        private Dictionary<string, int> CreateColumnNames()
+        {
+            var map = new Dictionary<string, int>();
+            var index = 0;
+            var provisionKeyIndex = 0;
+            foreach (var select in SelectImpl.SelectResults) {
+                var name = select.ColumnName ?? $"${++provisionKeyIndex}";
+                if (map.ContainsKey(name)) {
+                    throw new CouchbaseLiteException(StatusCode.InvalidQuery, $"Duplicate select result named {name}");
+                }
+
+                map[name] = index;
+                index++;
+            }
+
+            return map;
         }
 
         private string EncodeAsJSON()
@@ -225,7 +248,7 @@ namespace Couchbase.Lite.Internal.Query
                 return Native.c4query_run(_c4Query, &localOpts, paramJson, err);
             });
 
-            return new QueryEnumerator(this, _c4Query, e);
+            return new QueryResultSet(this, e, _columnNames);
         }
 
         public ILiveQuery ToLive()

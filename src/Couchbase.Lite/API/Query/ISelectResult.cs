@@ -27,4 +27,14 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public interface ISelectResult
     {}
+
+    public interface ISelectResultFrom : ISelectResult
+    {
+        ISelectResult From(string alias);
+    }
+
+    public interface ISelectResultAs : ISelectResult
+    {
+        ISelectResult As(string alias);
+    }
 }

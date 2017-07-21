@@ -54,7 +54,12 @@ namespace Couchbase.Lite
         /// <summary>
         /// The requested item does not appear to exist (HTTP compliant)
         /// </summary>
-        NotFound = 404
+        NotFound = 404,
+
+        /// <summary>
+        /// An invalid query was attempted
+        /// </summary>
+        InvalidQuery = 490
     }
 
     internal static class Status
