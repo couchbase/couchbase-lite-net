@@ -29,7 +29,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal unsafe class XQuery : IQuery, IQueryInternal
+    internal unsafe class XQuery : IQuery
     {
         #region Constants
 

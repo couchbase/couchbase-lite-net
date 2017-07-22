@@ -41,7 +41,6 @@ namespace Couchbase.Lite.Internal.Query
         private readonly C4QueryEnumerator* _c4Enum;
 
         private readonly XQuery _query;
-        private C4Error _error;
 
         #endregion
 
@@ -49,12 +48,9 @@ namespace Couchbase.Lite.Internal.Query
 
         public int Count { get; }
 
-        internal C4Query* C4Query { get; }
-
-
         internal IDictionary<string, int> ColumnNames { get; }
 
-        internal Database Database { get; }
+        internal Database Database => _query?.Database;
 
         #endregion
 

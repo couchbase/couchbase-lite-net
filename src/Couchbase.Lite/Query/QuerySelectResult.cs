@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 
+using System.Linq;
 using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
@@ -36,7 +37,7 @@ namespace Couchbase.Lite.Internal.Query
                 }
 
                 QueryTypeExpression keyPathExpr = Expression as QueryTypeExpression;
-                return keyPathExpr?.ExpressionType == ExpressionType.KeyPath ? keyPathExpr.KeyPath : null;
+                return keyPathExpr?.ExpressionType == ExpressionType.KeyPath ? keyPathExpr.KeyPath.Split('.').Last() : null;
             }
         }
         

@@ -34,13 +34,13 @@ namespace Couchbase.Lite.Internal.Query
         #region Variables
 
         private FLArrayIterator _columns;
-        private QueryResultSet _rs;
+        private readonly QueryResultSet _rs;
 
         #endregion
 
         #region Properties
 
-        public int Count => (int)Native.c4query_columnCount(_rs.C4Query);
+        public int Count => _rs.ColumnNames.Count;
 
         public ReadOnlyFragment this[int index]
         {
@@ -96,7 +96,7 @@ namespace Couchbase.Lite.Internal.Query
 
         private int IndexForColumnName(string columnName)
         {
-            var index = -1;
+            int index;
             if (_rs.ColumnNames.TryGetValue(columnName, out index)) {
                 return index;
             }
@@ -130,7 +130,7 @@ namespace Couchbase.Lite.Internal.Query
 
         IEnumerator<object> IEnumerable<object>.GetEnumerator()
         {
-            for (int i = 0; i < Count; i++) {
+            for (var i = 0; i < Count; i++) {
                 yield return GetObject(i);
             }
         }

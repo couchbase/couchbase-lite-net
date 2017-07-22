@@ -349,20 +349,20 @@ namespace Test
                     .OnlyContain(str => regex.IsMatch(str), "because otherwise an incorrect entry came in");
             }
         }
+        
+        [Fact]
+        public void TestWhereMatch()
+        {
+            LoadJSONResource("sentences");
 
-        //TODO: Wait for FTS API
-        //[Fact]
-        //public void TestWhereMatch()
-        //{
-        //    LoadJSONResource("sentences");
-
-        //    Db.CreateIndex(new[] {"sentence"}, IndexType.FullTextIndex, null);
-        //    using (var q = Query.Select()
-        //        .From(DataSource.Database(Db))
-        //        .Where(Expression.Property("sentence").Match("'Dummie woman'"))
-        //        .OrderBy(Ordering.Property("rank(sentence)").Descending())) {
-        //        var numRows = VerifyQuery(q, (n, row) =>
-        //        {
+            Db.CreateIndex(new[] {"sentence"}, IndexType.FullTextIndex, null);
+            using (var q = Query.Select()
+                .From(DataSource.Database(Db))
+                .Where(Expression.Property("sentence").Match("'Dummie woman'"))
+                .OrderBy(Ordering.Property("rank(sentence)").Descending())) {
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    // TODO: FTS API
         //            var ftsRow = row as IFullTextQueryRow;
         //            var text = ftsRow?.FullTextMatched;
         //            text.Should()
@@ -370,11 +370,11 @@ namespace Test
         //                .And.Subject.Should()
         //                .Contain("woman", "because otherwise the full text query failed");
         //            ftsRow.MatchCount.Should().Be(2u, "because otherwise an incorrect number of matches was returned");
-        //        });
+                });
 
-        //        numRows.Should().Be(2, "because two rows in the data match the query");
-        //    }
-        //}
+                numRows.Should().Be(2, "because two rows in the data match the query");
+            }
+        }
 
         [Fact]
         public void TestOrderBy()
@@ -678,6 +678,58 @@ namespace Test
                 });
 
                 numRows.Should().Be(5);
+            }
+        }
+
+        [Fact]
+        public void TestQueryResult()
+        {
+            LoadJSONResource("names_100");
+
+            var FNAME = Expression.Property("name.first");
+            var LNAME = Expression.Property("name.last");
+            var GENDER = Expression.Property("gender");
+            var CITY = Expression.Property("contact.address.city");
+
+            var RES_FNAME = SelectResult.Expression(FNAME).As("firstname");
+            var RES_LNAME = SelectResult.Expression(LNAME).As("lastname");
+            var RES_GENDER = SelectResult.Expression(GENDER);
+            var RES_CITY = SelectResult.Expression(CITY);
+
+            using (var q = Query.Select(RES_FNAME, RES_LNAME, RES_GENDER, RES_CITY)
+                .From(DataSource.Database(Db))) {
+                var numRows = VerifyQuery(q, (n, r) =>
+                {
+                    r.GetObject("firstname").Should().Be(r.GetObject(0));
+                    r.GetObject("lastname").Should().Be(r.GetObject(1));
+                    r.GetObject("gender").Should().Be(r.GetObject(2));
+                    r.GetObject("city").Should().Be(r.GetObject(3));
+                });
+
+                numRows.Should().Be(100);
+            }
+        }
+
+        [Fact]
+        public void TestQueryProjectingKeys()
+        {
+            LoadNumbers(100);
+
+            var avg = SelectResult.Expression(Function.Avg(Expression.Property("number1")));
+            var cnt = SelectResult.Expression(Function.Count(Expression.Property("number1")));
+            var min = SelectResult.Expression(Function.Min(Expression.Property("number1"))).As("min");
+            var max = SelectResult.Expression(Function.Max(Expression.Property("number1")));
+            var sum = SelectResult.Expression(Function.Sum(Expression.Property("number1"))).As("sum");
+            using (var q = Query.Select(avg, cnt, min, max, sum)
+                .From(DataSource.Database(Db))) {
+                var numRows = VerifyQuery(q, (n, r) =>
+                {
+                    r.GetDouble("$1").Should().Be(r.GetDouble(0));
+                    r.GetInt("$2").Should().Be(r.GetInt(1));
+                    r.GetInt("min").Should().Be(r.GetInt(2));
+                    r.GetInt("$3").Should().Be(r.GetInt(3));
+                    r.GetInt("sum").Should().Be(r.GetInt(4));
+                });
             }
         }
 
