@@ -26,7 +26,7 @@ namespace Couchbase.Lite.Internal.Query
     {
         #region Properties
 
-        public IMetaExpression DocumentID => new QueryTypeExpression("_id", ExpressionType.KeyPath);
+        public IMetaExpression ID => new QueryTypeExpression("_id", ExpressionType.KeyPath);
 
         public IMetaExpression Sequence => new QueryTypeExpression("_sequence", ExpressionType.KeyPath);
 

@@ -44,6 +44,9 @@ namespace Test
 #endif
     public class QueryTest : TestCase
     {
+        private static readonly ISelectResult DocID = SelectResult.Expression(Expression.Meta().ID);
+        private static readonly ISelectResult Sequence = SelectResult.Expression(Expression.Meta().Sequence);
+
 #if !WINDOWS_UWP
         public QueryTest(ITestOutputHelper output) : base(output)
         {
@@ -55,13 +58,14 @@ namespace Test
         public void TestNoWhereQuery()
         {
             LoadJSONResource("names_100");
-            using (var q = Query.Select().From(DataSource.Database(Db))) {
+            using (var q = Query.Select(DocID, Sequence).From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var expectedID = $"doc-{n:D3}";
-                    row.DocumentID.Should().Be(expectedID, "because otherwise the IDs were out of order");
-                    row.Sequence.Should().Be((uint)n, "because otherwise the sequences were out of order");
-                    var doc = row.Document;
+                    row.GetString(0).Should().Be(expectedID, "because otherwise the IDs were out of order");
+                    row.GetLong(1).Should().Be(n, "because otherwise the sequences were out of order");
+
+                    var doc = Db.GetDocument(row.GetString(0));
                     doc.Id.Should().Be(expectedID, "because the document ID on the row should match the document");
                     doc.Sequence.Should()
                         .Be((ulong)n, "because the sequence on the row should match the document");
@@ -111,7 +115,7 @@ namespace Test
                     {
                         if (n <= expectedDocs.Length) {
                             var doc = expectedDocs[n - 1];
-                            row.DocumentID.Should()
+                            row.ID.Should()
                                 .Be(doc.Id, $"because otherwise the row results were different than expected ({testNum})");
                         }
                     });
@@ -230,26 +234,26 @@ namespace Test
             doc1.Set("string", "string");
             Db.Save(doc1);
 
-            using (var q = Query.Select()
+            using (var q = Query.Select(DocID)
                 .From(DataSource.Database(Db))
                 .Where(Expression.Property("string").Is("string"))) {
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    var doc = row.Document;
+                    var doc = Db.GetDocument(row.GetString(0));
                     doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
                     doc["string"].ToString().Should().Be("string", "because otherwise garbage data was inserted");
                 });
                 numRows.Should().Be(1, "beacuse one row matches the given query");
             }
 
-            using (var q = Query.Select()
+            using (var q = Query.Select(DocID)
                 .From(DataSource.Database(Db))
                 .Where(Expression.Property("string").IsNot("string1"))) {
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    var doc = row.Document;
+                    var doc = Db.GetDocument(row.GetString(0));
                     doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
                     doc["string"].ToString().Should().Be("string", "because otherwise garbage data was inserted");
                 });
@@ -277,14 +281,15 @@ namespace Test
 
             var expected = new[] {"Marcy", "Margaretta", "Margrett", "Marlen", "Maryjo" };
             var firstName = Expression.Property("name.first");
-            using (var q = Query.Select()
+            using (var q = Query.Select(SelectResult.Expression(firstName))
                 .From(DataSource.Database(Db))
                 .Where(firstName.InExpressions(expected))
                 .OrderBy(Ordering.Property("name.first"))) {
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    var name = row.Document.GetDictionary("name").GetString("first");
+
+                    var name = row.GetString(0);
                     name.Should().Be(expected[n - 1], "because otherwise incorrect rows were returned");
                 });
 
@@ -298,7 +303,7 @@ namespace Test
             LoadJSONResource("names_100");
 
             var where = Expression.Property("name.first").Like("%Mar%");
-            using (var q = Query.Select()
+            using (var q = Query.Select(SelectResult.Expression(Expression.Property("name.first")))
                 .From(DataSource.Database(Db))
                 .Where(where)
                 .OrderBy(Ordering.Property("name.first").Ascending())) {
@@ -306,8 +311,7 @@ namespace Test
                 var firstNames = new List<string>();
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    var doc = row.Document;
-                    var firstName = doc.GetDictionary("name")?.GetString("first");
+                    var firstName = row.GetString(0);
                     if (firstName != null) {
                         firstNames.Add(firstName);
                     }
@@ -325,7 +329,7 @@ namespace Test
             LoadJSONResource("names_100");
 
             var where = Expression.Property("name.first").Regex("^Mar.*");
-            using (var q = Query.Select()
+            using (var q = Query.Select(SelectResult.Expression(Expression.Property("name.first")))
                 .From(DataSource.Database(Db))
                 .Where(where)
                 .OrderBy(Ordering.Property("name.first").Ascending())) {
@@ -333,8 +337,7 @@ namespace Test
                 var firstNames = new List<string>();
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    var doc = row.Document;
-                    var firstName = doc.GetDictionary("name")?.GetString("first");
+                    var firstName = row.GetString(0);
                     if (firstName != null) {
                         firstNames.Add(firstName);
                     }
@@ -346,7 +349,7 @@ namespace Test
                     .OnlyContain(str => regex.IsMatch(str), "because otherwise an incorrect entry came in");
             }
         }
-
+        
         [Fact]
         public void TestWhereMatch()
         {
@@ -359,13 +362,14 @@ namespace Test
                 .OrderBy(Ordering.Property("rank(sentence)").Descending())) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    var ftsRow = row as IFullTextQueryRow;
-                    var text = ftsRow?.FullTextMatched;
-                    text.Should()
-                        .Contain("Dummie")
-                        .And.Subject.Should()
-                        .Contain("woman", "because otherwise the full text query failed");
-                    ftsRow.MatchCount.Should().Be(2u, "because otherwise an incorrect number of matches was returned");
+                    // TODO: FTS API
+        //            var ftsRow = row as IFullTextQueryRow;
+        //            var text = ftsRow?.FullTextMatched;
+        //            text.Should()
+        //                .Contain("Dummie")
+        //                .And.Subject.Should()
+        //                .Contain("woman", "because otherwise the full text query failed");
+        //            ftsRow.MatchCount.Should().Be(2u, "because otherwise an incorrect number of matches was returned");
                 });
 
                 numRows.Should().Be(2, "because two rows in the data match the query");
@@ -384,12 +388,12 @@ namespace Test
                     order = Ordering.Property("name.first").Descending();
                 }
 
-                using (var q = Query.Select().From(DataSource.Database(Db)).Where(null).OrderBy(order)) {
+                using (var q = Query.Select(SelectResult.Expression(Expression.Property("name.first")))
+                    .From(DataSource.Database(Db)).Where(null).OrderBy(order))  {
                     var firstNames = new List<object>();
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
-                        var doc = row.Document;
-                        var firstName = doc.GetDictionary("name").GetString("first");
+                        var firstName = row.GetString(0);
                         if (firstName != null) {
                             firstNames.Add(firstName);
                         }
@@ -408,10 +412,9 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestSelectDistinct()
         {
-            // TODO: Needs LiteCore fix
             var doc1 = new Document();
             doc1.Set("number", 1);
             Db.Save(doc1);
@@ -420,21 +423,23 @@ namespace Test
             doc2.Set("number", 1);
             Db.Save(doc2);
 
-            var q = Query.SelectDistinct().From(DataSource.Database(Db));
-            var numRows = VerifyQuery(q, (n, row) =>
-            {
-                var doc = row.Document;
-                doc.Id.Should().Be(doc1.Id, "because doc2 is identical and should be skipped");
-            });
+            using (var q = Query.SelectDistinct(SelectResult.Expression(Expression.Property("number")))
+                .From(DataSource.Database(Db))) {
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    var number = row.GetInt(0);
+                    number.Should().Be(1);
+                });
 
-            numRows.Should().Be(1, "because there is only one distinct row");
+                numRows.Should().Be(1, "because there is only one distinct row");
+            }
         }
 
         [Fact]
         public async Task TestLiveQuery()
         {
             LoadNumbers(100);
-            using (var q = Query.Select().From(DataSource.Database(Db))
+            using (var q = Query.Select(SelectResult.Expression(Expression.Property("number1"))).From(DataSource.Database(Db))
                 .Where(Expression.Property("number1").LessThan(10)).OrderBy(Ordering.Property("number1"))
                 .ToLive()) {
                 var wa = new WaitAssert();
@@ -447,7 +452,7 @@ namespace Test
                             () => args.Rows.Count == 9);
                     } else {
                         wa2.RunConditionalAssert(
-                            () => args.Rows.Count == 10 && args.Rows.First().Document.GetInt("number1") == -1);
+                            () => args.Rows.Count == 10 && args.Rows.First().GetInt(0) == -1);
                     }
                     
                 };
@@ -620,7 +625,7 @@ namespace Test
         {
             LoadNumbers(5);
 
-            var DOC_ID = Expression.Meta().DocumentID;
+            var DOC_ID = Expression.Meta().ID;
             var DOC_SEQ = Expression.Meta().Sequence;
             var NUMBER1 = Expression.Property("number1");
 
@@ -676,6 +681,58 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestQueryResult()
+        {
+            LoadJSONResource("names_100");
+
+            var FNAME = Expression.Property("name.first");
+            var LNAME = Expression.Property("name.last");
+            var GENDER = Expression.Property("gender");
+            var CITY = Expression.Property("contact.address.city");
+
+            var RES_FNAME = SelectResult.Expression(FNAME).As("firstname");
+            var RES_LNAME = SelectResult.Expression(LNAME).As("lastname");
+            var RES_GENDER = SelectResult.Expression(GENDER);
+            var RES_CITY = SelectResult.Expression(CITY);
+
+            using (var q = Query.Select(RES_FNAME, RES_LNAME, RES_GENDER, RES_CITY)
+                .From(DataSource.Database(Db))) {
+                var numRows = VerifyQuery(q, (n, r) =>
+                {
+                    r.GetObject("firstname").Should().Be(r.GetObject(0));
+                    r.GetObject("lastname").Should().Be(r.GetObject(1));
+                    r.GetObject("gender").Should().Be(r.GetObject(2));
+                    r.GetObject("city").Should().Be(r.GetObject(3));
+                });
+
+                numRows.Should().Be(100);
+            }
+        }
+
+        [Fact]
+        public void TestQueryProjectingKeys()
+        {
+            LoadNumbers(100);
+
+            var avg = SelectResult.Expression(Function.Avg(Expression.Property("number1")));
+            var cnt = SelectResult.Expression(Function.Count(Expression.Property("number1")));
+            var min = SelectResult.Expression(Function.Min(Expression.Property("number1"))).As("min");
+            var max = SelectResult.Expression(Function.Max(Expression.Property("number1")));
+            var sum = SelectResult.Expression(Function.Sum(Expression.Property("number1"))).As("sum");
+            using (var q = Query.Select(avg, cnt, min, max, sum)
+                .From(DataSource.Database(Db))) {
+                var numRows = VerifyQuery(q, (n, r) =>
+                {
+                    r.GetDouble("$1").Should().Be(r.GetDouble(0));
+                    r.GetInt("$2").Should().Be(r.GetInt(1));
+                    r.GetInt("min").Should().Be(r.GetInt(2));
+                    r.GetInt("$3").Should().Be(r.GetInt(3));
+                    r.GetInt("sum").Should().Be(r.GetInt(4));
+                });
+            }
+        }
+
         private bool TestWhereCompareValidator(IDictionary<string, object> properties, object context)
         {
             var ctx = (Func<int, bool>)context;
@@ -711,11 +768,12 @@ namespace Test
         {
             int index = 0;
             foreach (var c in validator) {
-                using (var q = Query.Select().From(DataSource.Database(Db)).Where(c.Item1)) {
+                using (var q = Query.Select(DocID).From(DataSource.Database(Db)).Where(c.Item1)) {
                     var lastN = 0;
                     VerifyQuery(q, (n, row) =>
                     {
-                        var props =row.Document.ToDictionary();
+                        var doc = Db.GetDocument(row.GetString(0));
+                        var props =doc.ToDictionary();
                         c.Item2(props, c.Item3).Should().BeTrue("because otherwise the row failed validation");
                         lastN = n;
                     });
@@ -752,7 +810,7 @@ namespace Test
             return doc;
         }
 
-        private int VerifyQuery(IQuery query, Action<int, IQueryRow> block)
+        private int VerifyQuery(IQuery query, Action<int, IResult> block)
         {
             using (var result = query.Run()) {
                 using (var e = result.GetEnumerator()) {

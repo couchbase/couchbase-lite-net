@@ -32,12 +32,15 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
+        internal QuerySelectResult[] SelectResults { get; }
+
         #region Constructors
 
         public Select(ISelectResult[] selects, bool distinct)
         {
+            SelectResults = selects.OfType<QuerySelectResult>().ToArray();
             if (selects?.Length > 0) {
-                _select = new QueryTypeExpression(selects.OfType<QuerySelectResult>().Select(x => x.Expression).ToList());
+                _select = new QueryTypeExpression(SelectResults.Select(x => x.Expression).ToList());
             }
 
             SelectImpl = this;

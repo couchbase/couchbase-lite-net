@@ -32,7 +32,7 @@ namespace Couchbase.Lite.Query
         /// <summary>
         /// Gets an expression for retrieving the unique ID of a document
         /// </summary>
-        IMetaExpression DocumentID { get; }
+        IMetaExpression ID { get; }
 
         /// <summary>
         /// Gets an expression for retrieving the sequence of a document

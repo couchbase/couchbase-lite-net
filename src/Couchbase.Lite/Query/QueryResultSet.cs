@@ -1,5 +1,5 @@
 ﻿// 
-// QueryEnumerator.cs
+// QueryResultSet.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -21,8 +21,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 using LiteCore;
@@ -30,11 +28,11 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed unsafe class QueryEnumerator : IResultSet
+    internal sealed unsafe class QueryResultSet : IResultSet
     {
         #region Constants
 
-        private const string Tag = nameof(QueryEnumerator);
+        private const string Tag = nameof(QueryResultSet);
 
         #endregion
 
@@ -42,7 +40,7 @@ namespace Couchbase.Lite.Internal.Query
 
         private readonly C4QueryEnumerator* _c4Enum;
 
-        private readonly IQueryInternal _query;
+        private readonly XQuery _query;
 
         #endregion
 
@@ -50,7 +48,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public int Count { get; }
 
-        internal C4Query* C4Query { get; }
+        internal IDictionary<string, int> ColumnNames { get; }
 
         internal Database Database => _query?.Database;
 
@@ -58,17 +56,16 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        public QueryEnumerator(IQueryInternal query, C4Query* c4Query, C4QueryEnumerator* e)
+        internal QueryResultSet(XQuery query, C4QueryEnumerator* e, IDictionary<string, int> columnNames)
         {
-            Debug.Assert(e != null);
             _query = query;
-            C4Query = c4Query;
             _c4Enum = e;
-            Count = (int)Native.c4queryenum_getRowCount(_c4Enum, null);
-            Log.To.Query.I(Tag, $"Beginning query enumeration (0x{(long)_c4Enum:x}");
+            Count = (int)Native.c4queryenum_getRowCount(e, null);
+            ColumnNames = columnNames;
+            Log.To.Query.I(Tag, $"Beginning query enumeration ({(long) _c4Enum:x})");
         }
 
-        ~QueryEnumerator()
+        ~QueryResultSet()
         {
             Dispose(false);
         }
@@ -77,22 +74,21 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Public Methods
 
-        public QueryEnumerator Refresh()
+        public QueryResultSet Refresh()
         {
             var query = _query;
             if (query == null) {
                 return null;
             }
 
-            var newEnum = (C4QueryEnumerator *)LiteCoreBridge.Check(err => Native.c4queryenum_refresh(_c4Enum, err));
-            return newEnum != null ? new QueryEnumerator(query, C4Query, newEnum) : null;
+            var newEnum = (C4QueryEnumerator*)LiteCoreBridge.Check(err => Native.c4queryenum_refresh(_c4Enum, err));
+            return newEnum != null ? new QueryResultSet(query, newEnum, ColumnNames) : null;
         }
 
         #endregion
 
         #region Private Methods
 
-        [SuppressMessage("ReSharper", "UnusedParameter.Local")]
         private void Dispose(bool disposing)
         {
             Native.c4queryenum_free(_c4Enum);
@@ -119,9 +115,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
-        #region IEnumerable<IQueryRow>
+        #region IEnumerable<IResult>
 
-        public IEnumerator<IQueryRow> GetEnumerator()
+        public IEnumerator<IResult> GetEnumerator()
         {
             return new Enumerator(this);
         }
@@ -130,19 +126,17 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Nested
 
-        private class Enumerator : IEnumerator<IQueryRow>
+        private class Enumerator : IEnumerator<IResult>
         {
             #region Variables
 
-            private readonly QueryEnumerator _parent;
+            private readonly QueryResultSet _parent;
 
             #endregion
 
             #region Properties
 
-            public IQueryRow Current => _parent._c4Enum->fullTextTermCount > 0
-                ? new FullTextQueryRow(_parent, _parent._c4Enum)
-                : new QueryRow(_parent, _parent._c4Enum);
+            public IResult Current => new QueryResult(_parent, _parent._c4Enum);
 
             object IEnumerator.Current => Current;
 
@@ -150,7 +144,7 @@ namespace Couchbase.Lite.Internal.Query
 
             #region Constructors
 
-            public Enumerator(QueryEnumerator parent)
+            public Enumerator(QueryResultSet parent)
             {
                 _parent = parent;
             }
@@ -161,7 +155,7 @@ namespace Couchbase.Lite.Internal.Query
 
             public void Dispose()
             {
-                 Native.c4queryenum_seek(_parent._c4Enum, 0, null);
+                Native.c4queryenum_seek(_parent._c4Enum, 0, null);
             }
 
             #endregion
@@ -170,7 +164,6 @@ namespace Couchbase.Lite.Internal.Query
 
             public bool MoveNext()
             {
-                ((QueryRow)Current)?.StopBeingCurrent();
                 C4Error err;
                 var moved = Native.c4queryenum_next(_parent._c4Enum, &err);
                 if (!moved && err.code != 0) {
