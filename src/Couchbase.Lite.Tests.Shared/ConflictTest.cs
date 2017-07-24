@@ -131,6 +131,7 @@ namespace Test
             doc["name"].ToString().Should().Be("Scott of the Sahara", "because the conflict has a longer history");
         }
 
+        // https://github.com/couchbase/couchbase-lite-android/issues/1293
         [Fact]
         public void TestConflictWithoutCommonAncestor()
         {

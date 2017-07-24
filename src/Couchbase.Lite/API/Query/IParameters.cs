@@ -33,6 +33,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="name">The name of the parameter for substitution</param>
         /// <param name="value">The value of the parameter</param>
+        /// <returns>The modified parameters object</returns>
         IParameters Set(string name, object value);
 
         #endregion

@@ -28,13 +28,31 @@ namespace Couchbase.Lite.Query
     public interface ISelectResult
     {}
 
+    /// <summary>
+    /// An interface representing a select result "FROM" a certain data
+    /// source
+    /// </summary>
     public interface ISelectResultFrom : ISelectResult
     {
+        /// <summary>
+        /// Specifies the source of this select result
+        /// </summary>
+        /// <param name="alias">The alias of the data source to select from</param>
+        /// <returns>The modified select result</returns>
         ISelectResult From(string alias);
     }
 
+    /// <summary>
+    /// An interface reprsenting a select result that can be aliased to
+    /// an arbitrary name
+    /// </summary>
     public interface ISelectResultAs : ISelectResult
     {
+        /// <summary>
+        /// Adds an alias to the select result
+        /// </summary>
+        /// <param name="alias">The alias to assign to the select result</param>
+        /// <returns>The modified select result</returns>
         ISelectResult As(string alias);
     }
 }

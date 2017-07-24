@@ -32,7 +32,7 @@ namespace api_walkthrough
         {
             // This only needs to be done once for whatever platform the executable is running
             // (UWP, iOS, Android, or desktop)
-            Couchbase.Lite.Support.NetDestkop.Activate();
+            Couchbase.Lite.Support.NetDesktop.Activate();
 
             // create database
             var database = new Database("my-database");
@@ -74,7 +74,7 @@ namespace api_walkthrough
             var data = taskBlob.Content;
 
             // query
-            var query = Query.Select()
+            var query = Query.Select(SelectResult.Expression(Expression.Meta().ID))
             .From(DataSource.Database(database))
             .Where(Expression.Property("type").EqualTo("user")
 		   .And(Expression.Property("admin").EqualTo(false)));
@@ -82,7 +82,7 @@ namespace api_walkthrough
             var rows = query.Run();
             foreach (var row in rows)
             {
-                Console.WriteLine($"doc ID :: ${row.DocumentID}");
+                Console.WriteLine($"doc ID :: ${row.GetString(0)}");
             }
 
             // live query
@@ -110,14 +110,14 @@ namespace api_walkthrough
             // create Index
             database.CreateIndex(new[] { "name" }, IndexType.FullTextIndex, null);
 
-            var ftsQuery = Query.Select()
+            var ftsQuery = Query.Select(SelectResult.Expression(Expression.Meta().ID).As("id"))
 		    .From(DataSource.Database(database))
 		    .Where(Expression.Property("name").Match("'buy'"));
 
             var ftsRows = ftsQuery.Run();
-            foreach (var row in ftsRows)
-            {
-                Console.WriteLine($"document properties {JsonConvert.SerializeObject(row.Document.ToDictionary(), Formatting.Indented)}");
+            foreach (var row in ftsRows) {
+                var doc = database.GetDocument(row.GetString("id")); // Use alias instead of index
+                Console.WriteLine($"document properties {JsonConvert.SerializeObject(doc.ToDictionary(), Formatting.Indented)}");
             }
 
             // replication (Note: Linux / Mac requires .NET Core 2.0+ due to
