@@ -19,6 +19,7 @@
 //  limitations under the License.
 //
 
+using System.Globalization;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Query
@@ -72,8 +73,8 @@ namespace Couchbase.Lite.Query
         internal static C4IndexOptions Internal(IndexOptions options)
         {
             return new C4IndexOptions {
-                language = options.Language,
-                ignoreDiacritics = options.IgnoreDiacriticals
+                language = options?.Language ?? CultureInfo.CurrentCulture.TwoLetterISOLanguageName,
+                ignoreDiacritics = options?.IgnoreDiacriticals ?? CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "en"
             };
         }
 

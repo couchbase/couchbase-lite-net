@@ -21,6 +21,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -350,12 +351,8 @@ namespace Couchbase.Lite
                 var json = JsonConvert.SerializeObject(jsonObj);
                 LiteCoreBridge.Check(err =>
                 {
-                    if (options == null) {
-                        return Native.c4db_createIndex(c4db, json, (C4IndexType) indexType, null, err);
-                    } 
-
-                    var localOpts = IndexOptions.Internal(options);
-                    return Native.c4db_createIndex(c4db, json, (C4IndexType) indexType, &localOpts, err);
+                    var internalOpts = IndexOptions.Internal(options);
+                    return Native.c4db_createIndex(c4db, json, (C4IndexType) indexType, &internalOpts, err);
                 });
             });
         }
