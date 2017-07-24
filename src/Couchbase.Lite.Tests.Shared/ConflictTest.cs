@@ -131,6 +131,31 @@ namespace Test
             doc["name"].ToString().Should().Be("Scott of the Sahara", "because the conflict has a longer history");
         }
 
+        [Fact]
+        public void TestConflictWithoutCommonAncestor()
+        {
+            ConflictResolver = new NoCommonAncestorValidator();
+            ReopenDB();
+
+            var props = new Dictionary<string, object> {
+                ["hello"] = "world"
+            };
+
+            var doc = new Document("doc1", props);
+            Db.Save(doc);
+
+            doc = Db.GetDocument(doc.Id);
+            doc.Set("university", 1);
+            Db.Save(doc);
+
+            // Create a conflict
+            doc = new Document(doc.Id, props);
+            doc.Set("university", 2);
+
+            Db.Invoking(d => d.Save(doc)).ShouldThrow<LiteCoreException>().Which.Error.Should()
+                .Be(new C4Error(C4ErrorCode.Conflict));
+        }
+
         private Document SetupConflict()
         {
             var doc = new Document("doc1");
@@ -171,6 +196,16 @@ namespace Test
                     return retVal;
                 });
             });
+        }
+    }
+
+    internal class NoCommonAncestorValidator : IConflictResolver
+    {
+        public ReadOnlyDocument Resolve(Conflict conflict)
+        {
+            conflict.Should().NotBeNull();
+            conflict.Base.Should().BeNull();
+            return conflict.Base; // null -> cause exception
         }
     }
 

@@ -207,7 +207,7 @@ namespace Couchbase.Lite
                 } else {
                     // Call the conflict resolver:
                     using (var baseDoc = new ReadOnlyDocument(database, Id, base.c4Doc, Data, false)) {
-                        var conflict = new Conflict(this, current, baseDoc);
+                        var conflict = new Conflict(this, current, base.c4Doc != null ? baseDoc : null);
                         resolved = resolver.Resolve(conflict);
                         if (resolved == null) {
                             throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
