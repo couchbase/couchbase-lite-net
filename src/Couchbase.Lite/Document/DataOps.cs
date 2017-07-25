@@ -48,44 +48,6 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Internal Methods
 
-        internal static bool ContainsBlob(object value)
-        {
-            switch (value) {
-                case Blob b:
-                    return true;
-                case string s:
-                    return false;
-                case IEnumerable<KeyValuePair<string, object>> s:
-                    return ContainsBlob(s);
-                case IEnumerable a:
-                    return ContainsBlob(a);
-                default:
-                    return false;
-            }
-        }
-
-        internal static bool ContainsBlob(IEnumerable<KeyValuePair<string, object>> s)
-        {
-            foreach (var pair in s) {
-                if (ContainsBlob(pair.Value)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        internal static bool ContainsBlob(IEnumerable a)
-        {
-            foreach(var obj in a) {
-                if (ContainsBlob(obj)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         internal static DictionaryObject ConvertDictionary(IDictionary<string, object> dictionary)
         {
             var subdocument = new DictionaryObject();
@@ -176,13 +138,9 @@ namespace Couchbase.Lite.Internal.Doc
                     return null;
                 case DateTimeOffset dto:
                     return dto.ToString("o");
-                case DictionaryObject subdoc:
-                    return subdoc;
-                case ArrayObject arr:
-                    return arr;
-                case ReadOnlyDictionary rosubdoc:
+                case ReadOnlyDictionary rosubdoc when !(rosubdoc is DictionaryObject):
                     return ConvertRODictionary(rosubdoc);
-                case ReadOnlyArray roarr:
+                case ReadOnlyArray roarr when !(roarr is ArrayObject):
                     return ConvertROArray(roarr);
                 case JObject jobj:
                     return ConvertDictionary(jobj.ToObject<IDictionary<string, object>>());

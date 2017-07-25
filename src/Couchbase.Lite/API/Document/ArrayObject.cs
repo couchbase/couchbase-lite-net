@@ -283,7 +283,7 @@ namespace Couchbase.Lite
                     CopyFleeceData();
                 }
 
-                var array = new List<object>();
+                var array = new List<object>(Count);
                 foreach (var item in _list) {
                     switch (item) {
                         case IReadOnlyDictionary dict:

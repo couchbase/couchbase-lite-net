@@ -208,7 +208,7 @@ namespace Couchbase.Lite
                 return new Dictionary<string, object>();
             }
 
-            var dict = new Dictionary<string, object>();
+            var dict = new Dictionary<string, object>(Count);
             foreach (var pair in this) {
                 switch(pair.Value) {
                     case IReadOnlyDictionary d:

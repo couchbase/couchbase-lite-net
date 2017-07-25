@@ -269,13 +269,13 @@ namespace Couchbase.Lite
                 revFlags = C4RevisionFlags.Deleted;
             }
 
-            if (DataOps.ContainsBlob(this)) {
-                revFlags |= C4RevisionFlags.HasAttachments;
-            }
-
             var body = new FLSliceResult();
             if (!deletion && !IsEmpty) {
                 body = Database.JsonSerializer.Serialize(_dict);
+                var root = (FLDict*)NativeRaw.FLValue_FromTrustedData(body);
+                if (Native.c4doc_dictContainsBlobs(root, Native.c4db_getFLSharedKeys(Database.c4db))) {
+                    revFlags |= C4RevisionFlags.HasAttachments;
+                }
             } else if (IsEmpty) {
                 var encoder = Native.c4db_createFleeceEncoder(c4Db);
                 Native.FLEncoder_BeginDict(encoder, 0);
@@ -283,7 +283,7 @@ namespace Couchbase.Lite
                 body = NativeRaw.FLEncoder_Finish(encoder, null);
                 Native.FLEncoder_Free(encoder);
             }
-
+            
             try {
                 var rawDoc = c4Doc;
                 if (rawDoc != null) {
