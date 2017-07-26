@@ -29,6 +29,10 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public sealed class IndexOptions
     {
+        private static readonly string DefaultLanguage = CultureInfo.CurrentCulture.TwoLetterISOLanguageName != "iv"
+            ? CultureInfo.CurrentCulture.TwoLetterISOLanguageName
+            : "en";
+
         #region Properties
 
         /// <summary>
@@ -73,7 +77,7 @@ namespace Couchbase.Lite.Query
         internal static C4IndexOptions Internal(IndexOptions options)
         {
             return new C4IndexOptions {
-                language = options?.Language ?? CultureInfo.CurrentCulture.TwoLetterISOLanguageName,
+                language = options?.Language ?? DefaultLanguage,
                 ignoreDiacritics = options?.IgnoreDiacriticals ?? CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "en"
             };
         }
