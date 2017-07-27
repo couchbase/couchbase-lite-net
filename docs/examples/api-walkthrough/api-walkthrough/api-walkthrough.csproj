@@ -8,4 +8,10 @@
   <ItemGroup>
     <PackageReference Include="Couchbase.Lite" Version="2.0.0-db013" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="avatar.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
