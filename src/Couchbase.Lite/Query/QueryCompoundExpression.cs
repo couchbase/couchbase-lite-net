@@ -50,7 +50,7 @@ namespace Couchbase.Lite.Internal.Query
             var obj = new List<object> { _operation };
             foreach (var subp in _subpredicates) {
                 var queryExp = subp as QueryExpression;
-                obj.Add(queryExp?.ConvertToJSON() ?? subp.ToString());
+                obj.Add(queryExp?.ConvertToJSON() ?? subp);
             }
 
             return obj;

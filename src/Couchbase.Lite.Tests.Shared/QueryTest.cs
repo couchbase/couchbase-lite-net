@@ -737,6 +737,199 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestArrayFunctions()
+        {
+            using (var doc = new Document("doc1")) {
+                var array = new ArrayObject();
+                array.Add("650-123-0001");
+                array.Add("650-123-0002");
+                doc.Set("array", array);
+                Db.Save(doc);
+            }
+
+            using (var q = Query.Select(SelectResult.Expression(Function.ArrayLength(Expression.Property("array"))))
+                .From(DataSource.Database(Db))) {
+                var numRows = VerifyQuery(q, (n, r) =>
+                {
+                    r.GetInt(0).Should().Be(2);
+                });
+
+                numRows.Should().Be(1);
+            }
+
+            using (var q = Query.Select(SelectResult.Expression(Function.ArrayContains(Expression.Property("array"), "650-123-0001")),
+                    SelectResult.Expression(Function.ArrayContains(Expression.Property("array"), "650-123-0003")))
+                .From(DataSource.Database(Db))) {
+                var numRows = VerifyQuery(q, (n, r) =>
+                {
+                    r.GetBoolean(0).Should().BeTrue();
+                    r.GetBoolean(1).Should().BeFalse();
+                });
+
+                numRows.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public void TestMathFunctions()
+        {
+            const double num = 0.6;
+            using (var doc = new Document("doc1")) {
+                var array = new ArrayObject();
+                doc.Set("number", num);
+                Db.Save(doc);
+            }
+
+            var expectedValues = new[] {
+                Math.Abs(num), Math.Acos(num), Math.Asin(num), Math.Atan(num), Math.Atan2(num, 90),
+                Math.Ceiling(num), Math.Cos(num), num * 180.0 / Math.PI, Math.Exp(num),
+                Math.Floor(num), Math.Log(num), Math.Log10(num), Math.Pow(num, 2), num * Math.PI / 180.0,
+                Math.Round(num), Math.Round(num, 1), Math.Sign(num), Math.Sin(num), Math.Sqrt(num),
+                Math.Tan(num), Math.Truncate(num), Math.Truncate(num * 10.0) / 10.0
+            };
+
+            int index = 0;
+            var prop = Expression.Property("number");
+            foreach (var function in new[] {
+                Function.Abs(prop), Function.Acos(prop), Function.Asin(prop), Function.Atan(prop),
+                Function.Atan2(prop, 90),
+                Function.Ceil(prop), Function.Cos(prop), Function.Degrees(prop), Function.Exp(prop),
+                Function.Floor(prop),
+                Function.Ln(prop), Function.Log(prop), Function.Power(prop, 2), Function.Radians(prop),
+                Function.Round(prop),
+                Function.Round(prop, 1), Function.Sign(prop), Function.Sin(prop), Function.Sqrt(prop),
+                Function.Tan(prop),
+                Function.Trunc(prop), Function.Trunc(prop, 1)
+            }) {
+                using (var q = Query.Select(SelectResult.Expression(function))
+                    .From(DataSource.Database(Db))) {
+                    var numRows = VerifyQuery(q, (n, r) =>
+                    {
+                        r.GetDouble(0).Should().Be(expectedValues[index++]);
+                    });
+
+                    numRows.Should().Be(1);
+                }
+            }
+
+            using (var q = Query.Select(SelectResult.Expression(Function.E().Multiply(2)),
+                    SelectResult.Expression(Function.Pi().Multiply(2)))
+                .From(DataSource.Database(Db))) {
+                var numRows = VerifyQuery(q, (n, r) =>
+                {
+                    r.GetDouble(0).Should().Be(Math.E * 2);
+                    r.GetDouble(1).Should().Be(Math.PI * 2);
+                });
+
+                numRows.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public void TestStringFunctions()
+        {
+            const string str = "  See you l8r  ";
+            using (var doc = new Document("doc1")) {
+                var array = new ArrayObject();
+                doc.Set("greeting", str);
+                Db.Save(doc);
+            }
+
+            var prop = Expression.Property("greeting");
+            using (var q = Query.Select(SelectResult.Expression(Function.Contains(prop, "8")),
+                    SelectResult.Expression(Function.Contains(prop, "9")))
+                .From(DataSource.Database(Db))) {
+                var numRows = VerifyQuery(q, (n, r) =>
+                {
+                    r.GetBoolean(0).Should().BeTrue();
+                    r.GetBoolean(1).Should().BeFalse();
+                });
+
+                numRows.Should().Be(1);
+            }
+
+            using (var q = Query.Select(SelectResult.Expression(Function.Length(prop)))
+                .From(DataSource.Database(Db))) {
+                var numRows = VerifyQuery(q, (n, r) =>
+                {
+                    r.GetInt(0).Should().Be(str.Length);
+                });
+
+                numRows.Should().Be(1);
+            }
+
+            using (var q = Query.Select(SelectResult.Expression(Function.Lower(prop)),
+                    SelectResult.Expression(Function.Ltrim(prop)),
+                    SelectResult.Expression(Function.Rtrim(prop)),
+                    SelectResult.Expression(Function.Upper(prop)))
+                .From(DataSource.Database(Db))) {
+                var numRows = VerifyQuery(q, (n, r) =>
+                {
+                    r.GetString(0).Should().Be(str.ToLowerInvariant());
+                    r.GetString(1).Should().Be(str.TrimStart());
+                    r.GetString(2).Should().Be(str.TrimEnd());
+                    r.GetString(3).Should().Be(str.ToUpperInvariant());
+                });
+
+                numRows.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public void TestTypeFunctions()
+        {
+            using (var doc = new Document("doc1")) {
+                doc.Set("element", new ArrayObject {
+                    "a",
+                    "b"
+                });
+                Db.Save(doc);
+            }
+
+            //using (var doc = new Document("doc2")) {
+            //    doc.Set("element", true);
+            //    Db.Save(doc);
+            //}
+
+            using (var doc = new Document("doc2")) {
+                doc.Set("element", 3.14);
+                Db.Save(doc);
+            }
+
+            using (var doc = new Document("doc3")) {
+                var dict = new Dictionary<string, object> {
+                    ["foo"] = "bar"
+                };
+
+                doc.Set("element", dict);
+                Db.Save(doc);
+            }
+
+            using (var doc = new Document("doc4")) {
+                doc.Set("element", "string");
+                Db.Save(doc);
+            }
+
+            int docNum = 1;
+            var prop = Expression.Property("element");
+            foreach (var condition in new[] {
+                Function.IsArray(prop), Function.IsNumber(prop), Function.IsDictionary(prop),
+                Function.IsString(prop)
+            }) {
+                using (var q = Query.Select(SelectResult.Expression(Expression.Meta().ID))
+                    .From(DataSource.Database(Db))
+                    .Where(condition)) {
+                    var numRows = VerifyQuery(q, (n, r) =>
+                    {
+                        r.GetString("id").Should().Be($"doc{docNum++}");
+                    });
+
+                    numRows.Should().Be(1);
+                }
+            }
+        }
+
         private bool TestWhereCompareValidator(IDictionary<string, object> properties, object context)
         {
             var ctx = (Func<int, bool>)context;
