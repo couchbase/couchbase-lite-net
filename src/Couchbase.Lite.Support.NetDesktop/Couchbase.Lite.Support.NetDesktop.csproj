@@ -100,12 +100,12 @@
       <Link>libsqlite3.so</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libc++.so">
-      <Link>libc++.so</Link>
+    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libc++.so.1">
+      <Link>libc++.so.1</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libc++abi.so">
-      <Link>libc++abi.so</Link>
+    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libc++abi.so.1">
+      <Link>libc++abi.so.1</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
