@@ -283,7 +283,7 @@ namespace Test
             var firstName = Expression.Property("name.first");
             using (var q = Query.Select(SelectResult.Expression(firstName))
                 .From(DataSource.Database(Db))
-                .Where(firstName.InExpressions(expected))
+                .Where(firstName.In(expected))
                 .OrderBy(Ordering.Property("name.first"))) {
 
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -926,6 +926,44 @@ namespace Test
                     });
 
                     numRows.Should().Be(1);
+                }
+            }
+        }
+
+        [Fact]
+        public void TestCollectionFunctions()
+        {
+            LoadJSONResource("names_100");
+
+            using (var q = Query.Select(SelectResult.Expression(Expression.Meta().ID))
+                .From(DataSource.Database(Db))
+                .Where(Expression.Any("like").In(Expression.Property("likes"))
+                    .Satisfies(Expression.Variable("like").EqualTo("climbing")))) {
+                var expected = new[] {"doc-017", "doc-021", "doc-023", "doc-045", "doc-060"};
+                using (var results = q.Run()) {
+                    var received = results.Select(x => x.GetString("id"));
+                    received.ShouldBeEquivalentTo(expected);
+                }
+            }
+
+            using (var q = Query.Select(SelectResult.Expression(Expression.Meta().ID))
+                .From(DataSource.Database(Db))
+                .Where(Expression.Every("like").In(Expression.Property("likes"))
+                    .Satisfies(Expression.Variable("like").EqualTo("taxes")))) {
+                using (var results = q.Run()) {
+                    var received = results.Select(x => x.GetString("id")).ToList();
+                    received.Count.Should().Be(42, "because empty array results are included");
+                    received[0].Should().Be("doc-007");
+                }
+            }
+
+            using (var q = Query.Select(SelectResult.Expression(Expression.Meta().ID))
+                .From(DataSource.Database(Db))
+                .Where(Expression.AnyAndEvery("like").In(Expression.Property("likes"))
+                    .Satisfies(Expression.Variable("like").EqualTo("taxes")))) {
+                using (var results = q.Run()) {
+                    var received = results.Select(x => x.GetString("id")).ToList();
+                    received.Count.Should().Be(0, "because nobody likes taxes...");
                 }
             }
         }

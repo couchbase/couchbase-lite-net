@@ -28,6 +28,12 @@ namespace Couchbase.Lite.Internal.Query
 {
     internal abstract class QueryExpression : IExpression
     {
+        #region Constants
+
+        private static readonly string[] MissingValue = new[] {"MISSING"};
+
+        #endregion
+
         #region Variables
 
         private object _serialized;
@@ -45,12 +51,12 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Protected Methods
 
-        protected abstract object ToJSON();
-
         protected void Reset()
         {
             _serialized = null;
         }
+
+        protected abstract object ToJSON();
 
         #endregion
 
@@ -183,7 +189,7 @@ namespace Couchbase.Lite.Internal.Query
             return GetOperator(BinaryOpType.GreaterThanOrEqualTo, expression);
         }
 
-        public IExpression InExpressions(IList expressions)
+        public IExpression In(params object[] expressions)
         {
             var lhs = this as QueryTypeExpression;
             if (lhs == null) {
@@ -204,9 +210,9 @@ namespace Couchbase.Lite.Internal.Query
             return NotEqualTo(expression);
         }
 
-        public IExpression IsNull()
+        public IExpression IsNullOrMissing()
         {
-            return GetOperator(BinaryOpType.Is, null);
+            return GetOperator(BinaryOpType.Is, null).Or(GetOperator(BinaryOpType.Is, MissingValue));
         }
 
         public IExpression LessThan(object expression)
@@ -259,9 +265,9 @@ namespace Couchbase.Lite.Internal.Query
             return LessThan(expression);
         }
 
-        public IExpression NotInExpressions(IList expressions)
+        public IExpression NotIn(params object[] expressions)
         {
-            return Expression.Negated(InExpressions(expressions));
+            return Expression.Negated(In(expressions));
         }
 
         public IExpression NotLessThan(object expression)
@@ -284,9 +290,9 @@ namespace Couchbase.Lite.Internal.Query
             return Expression.Negated(Match(expression));
         }
 
-        public IExpression NotNull()
+        public IExpression NotNullOrMissing()
         {
-            return GetOperator(BinaryOpType.IsNot, null);
+            return GetOperator(BinaryOpType.IsNot, null).And(GetOperator(BinaryOpType.IsNot, MissingValue));
         }
 
         public IExpression NotRegex(object expression)

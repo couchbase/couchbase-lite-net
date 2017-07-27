@@ -19,10 +19,19 @@
 // limitations under the License.
 // 
 
-using System.Collections;
 
 namespace Couchbase.Lite.Query
 {
+    public interface IExpressionIn
+    {
+        IExpressionSatisfies In(object expression);
+    }
+
+    public interface IExpressionSatisfies
+    {
+        IExpression Satisfies(object expression);
+    }
+
     /// <summary>
     /// An interface representing an abstract expression that can act on
     /// a given piece of data
@@ -97,7 +106,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expressions">The list of expressions to check</param>
         /// <returns>The expression representing the new operation</returns>
-        IExpression InExpressions(IList expressions);
+        IExpression In(params object[] expressions);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -117,9 +126,10 @@ namespace Couchbase.Lite.Query
 
         /// <summary>
         /// Gets an expression representing if the current expression is null
+        /// or missing (i.e. does not have a value)
         /// </summary>
         /// <returns>The expression representing the new operation</returns>
-        IExpression IsNull();
+        IExpression IsNullOrMissing();
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -191,7 +201,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expressions">The list of expressions to check</param>
         /// <returns>The expression representing the new operation</returns>
-        IExpression NotInExpressions(IList expressions);
+        IExpression NotIn(params object[] expressions);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -242,10 +252,11 @@ namespace Couchbase.Lite.Query
         IExpression NotMatch(object expression);
 
         /// <summary>
-        /// Gets an expression representing if the current expression is not null
+        /// Gets an expression representing if the current expression is neither null
+        /// nor missing (i.e. has a value)
         /// </summary>
         /// <returns>The expression representing the new operation</returns>
-        IExpression NotNull();
+        IExpression NotNullOrMissing();
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
