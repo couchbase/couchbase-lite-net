@@ -9,6 +9,10 @@
                 <Link>libLiteCore.so</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </Content>
+            <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libsqlite3.so">
+                <Link>libsqlite3.so</Link>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            </Content>
             <Content Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x86\native\LiteCore.dll">
                 <Link>x86\LiteCore.dll</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

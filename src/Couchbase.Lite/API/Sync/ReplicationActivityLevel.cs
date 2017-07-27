@@ -31,6 +31,14 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         Stopped,
         /// <summary>
+        /// The replicator has detected that there is no Internet connection available
+        /// </summary>
+        Offline,
+        /// <summary>
+        /// The replicator is connecting to the remote host
+        /// </summary>
+        Connecting,
+        /// <summary>
         /// The replication is inactive; either waiting for changes or offline
         /// because the remote host is unreachable
         /// </summary>

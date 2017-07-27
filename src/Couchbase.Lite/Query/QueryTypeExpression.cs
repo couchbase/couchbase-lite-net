@@ -21,6 +21,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Couchbase.Lite.Query;
 using Newtonsoft.Json;
 
@@ -41,6 +42,7 @@ namespace Couchbase.Lite.Internal.Query
 
         private readonly IList _subpredicates;
         private string _from;
+        private string _columnName;
 
         #endregion
 
@@ -50,6 +52,8 @@ namespace Couchbase.Lite.Internal.Query
         internal ExpressionType ExpressionType { get; }
 
         internal string KeyPath { get; }
+
+        internal string ColumnName => _columnName ?? (_columnName = KeyPath.Split('.').Last());
 
         #endregion
 
@@ -71,6 +75,13 @@ namespace Couchbase.Lite.Internal.Query
             Debug.Assert(type >= ExpressionType.KeyPath && type <= ExpressionType.Variable);
             ExpressionType = type;
             KeyPath = keyPath;
+        }
+
+        public QueryTypeExpression(string keyPath, string columnName)
+        {
+            ExpressionType = ExpressionType.KeyPath;
+            KeyPath = keyPath;
+            _columnName = columnName;
         }
 
         #endregion

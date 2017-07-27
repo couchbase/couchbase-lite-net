@@ -643,7 +643,11 @@ namespace Test
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var docID = row.GetString(0);
+                    var docID2 = row.GetString("id");
+                    docID.Should().Be(docID2, "because these calls are two ways of accessing the same info");
                     var seq = row.GetInt(1);
+                    var seq2 = row.GetInt("sequence");
+                    seq.Should().Be(seq2, "because these calls are two ways of accessing the same info");
                     var number = row.GetInt(2);
 
                     docID.Should().Be(expectedDocIDs[n - 1]);

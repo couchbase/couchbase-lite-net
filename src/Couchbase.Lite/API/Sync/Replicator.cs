@@ -415,20 +415,7 @@ namespace Couchbase.Lite.Sync
 
             _rawStatus = state;
 
-            ReplicatorActivityLevel level;
-            switch (state.level) {
-                case C4ReplicatorActivityLevel.Stopped:
-                    level = ReplicatorActivityLevel.Stopped;
-                    break;
-                case C4ReplicatorActivityLevel.Idle:
-                case C4ReplicatorActivityLevel.Offline:
-                    level = ReplicatorActivityLevel.Idle;
-                    break;
-                default:
-                    level = ReplicatorActivityLevel.Busy;
-                    break;
-            }
-            
+            var level = (ReplicatorActivityLevel) state.level;
             var progress = new ReplicationProgress(state.progress.completed, state.progress.total);
             Status = new ReplicationStatus(level, progress);
             Log.To.Sync.I(Tag, $"{this} is {state.level}, progress {state.progress.completed}/{state.progress.total}");

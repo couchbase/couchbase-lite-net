@@ -37,7 +37,7 @@ namespace Couchbase.Lite.Internal.Query
                 }
 
                 QueryTypeExpression keyPathExpr = Expression as QueryTypeExpression;
-                return keyPathExpr?.ExpressionType == ExpressionType.KeyPath ? keyPathExpr.KeyPath.Split('.').Last() : null;
+                return keyPathExpr?.ColumnName;
             }
         }
         

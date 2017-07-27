@@ -96,6 +96,10 @@
       <Link>libLiteCore.so</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libsqlite3.so">
+      <Link>libsqlite3.so</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Couchbase.Lite\Properties\DynamicAssemblyInfo.cs">

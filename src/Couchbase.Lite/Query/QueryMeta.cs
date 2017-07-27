@@ -24,11 +24,16 @@ namespace Couchbase.Lite.Internal.Query
 {
     internal sealed class QueryMeta : IMeta
     {
+        private const string IDKeyPath = "_id";
+        private const string IDColumnName = "id";
+        private const string SequenceKeyPath = "_sequence";
+        private const string SequenceColumnName = "sequence";
+
         #region Properties
 
-        public IMetaExpression ID => new QueryTypeExpression("_id", ExpressionType.KeyPath);
+        public IMetaExpression ID => new QueryTypeExpression(IDKeyPath, IDColumnName);
 
-        public IMetaExpression Sequence => new QueryTypeExpression("_sequence", ExpressionType.KeyPath);
+        public IMetaExpression Sequence => new QueryTypeExpression(SequenceKeyPath, SequenceColumnName);
 
         #endregion
     }
