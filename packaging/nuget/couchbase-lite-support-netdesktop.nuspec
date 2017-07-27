@@ -34,6 +34,9 @@
     <file target="runtimes\win7-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\x64\*.pdb" />
     <file target="runtimes\osx-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\libLiteCore.dylib" />
     <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\libLiteCore.so" />
+    <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\libsqlite3.so" />
+    <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\libc++.so" />
+    <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\libc++abi.so" />
     <file target="src" src="src\Couchbase.Lite.Support.NetDesktop\**\*.cs" />
   </files>
 </package>
