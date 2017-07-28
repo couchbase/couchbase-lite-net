@@ -475,6 +475,17 @@ namespace Couchbase.Lite.Query
         }
 
         /// <summary>
+        /// Creates a function that removes whitespace from the start and end of a string
+        /// </summary>
+        /// <param name="expression">The expression to take data from when calculating
+        /// the result</param>
+        /// <returns>A function that removes whitespace from the start and end of a string</returns>
+        public static IFunction Trim(object expression)
+        {
+            return new QueryFunction("TRIM()", expression);
+        }
+
+        /// <summary>
         /// Creates a function that will truncate the given expression (i.e remove all the
         /// digits after the decimal place)
         /// in question

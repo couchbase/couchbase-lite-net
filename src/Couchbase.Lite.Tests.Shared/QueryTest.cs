@@ -776,7 +776,6 @@ namespace Test
         {
             const double num = 0.6;
             using (var doc = new Document("doc1")) {
-                var array = new ArrayObject();
                 doc.Set("number", num);
                 Db.Save(doc);
             }
@@ -831,7 +830,6 @@ namespace Test
         {
             const string str = "  See you l8r  ";
             using (var doc = new Document("doc1")) {
-                var array = new ArrayObject();
                 doc.Set("greeting", str);
                 Db.Save(doc);
             }
@@ -862,6 +860,7 @@ namespace Test
             using (var q = Query.Select(SelectResult.Expression(Function.Lower(prop)),
                     SelectResult.Expression(Function.Ltrim(prop)),
                     SelectResult.Expression(Function.Rtrim(prop)),
+                    SelectResult.Expression(Function.Trim(prop)),
                     SelectResult.Expression(Function.Upper(prop)))
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, r) =>
@@ -869,7 +868,8 @@ namespace Test
                     r.GetString(0).Should().Be(str.ToLowerInvariant());
                     r.GetString(1).Should().Be(str.TrimStart());
                     r.GetString(2).Should().Be(str.TrimEnd());
-                    r.GetString(3).Should().Be(str.ToUpperInvariant());
+                    r.GetString(3).Should().Be(str.Trim());
+                    r.GetString(4).Should().Be(str.ToUpperInvariant());
                 });
 
                 numRows.Should().Be(1);
