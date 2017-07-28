@@ -25,6 +25,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -403,7 +404,12 @@ namespace Couchbase.Lite.Sync
             if (_logic.UseTls) {
                 var stream = Service.Provider.TryGetRequiredService<ISslStreamFactory>().Create(_client.GetStream());
                 stream.PinnedServerCertificate = _options.PinnedServerCertificate;
-                stream.ConnectAsync(_logic.UrlRequest.Host, (ushort)_logic.UrlRequest.Port, null, false).ContinueWith(
+                X509CertificateCollection clientCerts = null;
+                if (_options.ClientCert != null) {
+                    clientCerts = new X509CertificateCollection(new[] {_options.ClientCert as X509Certificate});
+                }
+
+                stream.ConnectAsync(_logic.UrlRequest.Host, (ushort)_logic.UrlRequest.Port, clientCerts, false).ContinueWith(
                     t =>
                     {
                         if (!NetworkTaskSuccessful(t)) {

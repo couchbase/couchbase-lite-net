@@ -34,13 +34,14 @@ namespace Couchbase.Lite.Sync
         #region Constants
 
         private const string AuthOption = "auth";
-        private const string HeadersKey = "headers";
         private const string ChannelsKey = "channels";
+        private const string ClientCertKey = "clientCert";
+        private const string CookiesKey = "cookies";
+        private const string DocIDsKey = "docIDs";
         private const string FilterKey = "filter";
         private const string FilterParamsKey = "filterParams";
-        private const string CookiesKey = "cookies";
+        private const string HeadersKey = "headers";
         private const string PinnedCertKey = "pinnedCert";
-        private const string DocIDsKey = "docIDs";
 
         #endregion
 
@@ -63,6 +64,18 @@ namespace Couchbase.Lite.Sync
             get => this.GetCast<IList<string>>(ChannelsKey);
             set => this[ChannelsKey] = value;
         }
+
+        /// <summary>
+        /// Gets or set the certificate to be used with client side
+        /// authentication during TLS requests (optional)
+        /// </summary>
+        public X509Certificate2 ClientCert { get; set; }
+
+        /// <summary>
+        /// Gets or sets a collection of cookie objects to be passed along
+        /// with the initial HTTP request of the <see cref="Replicator"/>
+        /// </summary>
+        public ICollection<Cookie> Cookies { get; set; } = new List<Cookie>();
 
         /// <summary>
         /// Gets or sets the docIDs to replicate
@@ -102,12 +115,6 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// Gets or sets a collection of cookie objects to be passed along
-        /// with the initial HTTP request of the <see cref="Replicator"/>
-        /// </summary>
-        public ICollection<Cookie> Cookies { get; set; } = new List<Cookie>();
-
-        /// <summary>
         /// Gets or sets a certificate to trust.  All other certificates received
         /// by a <see cref="Replicator"/> with this configuration will be rejected.
         /// </summary>
@@ -142,7 +149,11 @@ namespace Couchbase.Lite.Sync
             }
 
             if (raw.ContainsKey(PinnedCertKey)) {
-                PinnedServerCertificate = new X509Certificate2(this[PinnedCertKey] as byte[]);
+                PinnedServerCertificate = new X509Certificate2(this.GetCast<byte[]>(PinnedCertKey));
+            }
+
+            if (raw.ContainsKey(ClientCertKey)) {
+                ClientCert = new X509Certificate2(this.GetCast<byte[]>(ClientCertKey));
             }
 
             if (raw.ContainsKey(CookiesKey)) {
@@ -167,6 +178,10 @@ namespace Couchbase.Lite.Sync
 
             if (PinnedServerCertificate != null) {
                 this[PinnedCertKey] = PinnedServerCertificate.Export(X509ContentType.Cert);
+            }
+
+            if (ClientCert != null) {
+                this[ClientCertKey] = ClientCert.Export(X509ContentType.Pfx);
             }
         }
 

@@ -120,6 +120,12 @@ namespace Couchbase.Lite.Support
                 _innerStream.Control.IgnorableServerCertificateErrors.Add(ChainValidationResult.Untrusted);
             }
 
+            if (clientCertificates?.Count > 0) {
+                var regularCert = clientCertificates[0];
+                var data = regularCert.Export(X509ContentType.Pkcs7);
+                _innerStream.Control.ClientCertificate = new Certificate(data.AsBuffer());
+            }
+
             await _innerStream.ConnectAsync(new HostName(targetHost), targetPort.ToString());
             try {
                 await _innerStream.UpgradeToSslAsync(SocketProtectionLevel.Tls12, new HostName(targetHost));
