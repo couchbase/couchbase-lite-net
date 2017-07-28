@@ -35,7 +35,9 @@ namespace api_walkthrough
             Couchbase.Lite.Support.NetDesktop.Activate();
 
             // create database
-            var database = new Database("my-database");
+            var config = new DatabaseConfiguration();
+            config.ConflictResolver = new ExampleConflictResolver();
+            var database = new Database("my-database", config);
 
             // create document
             var newTask = new Document();
@@ -120,6 +122,24 @@ namespace api_walkthrough
                 Console.WriteLine($"document properties {JsonConvert.SerializeObject(doc.ToDictionary(), Formatting.Indented)}");
             }
 
+            // create conflict
+            /*
+			 * 1. Create a document twice with the same ID (the document will have two conflicting revisions).
+			 * 2. Upon saving the second revision, the ExampleConflictResolver's resolve method is called.
+			 * The `theirs` ReadOnlyDocument in the conflict resolver represents the current rev and `mine` is what's being saved.
+			 * 3. Read the document after the second save operation and verify its property is as expected.
+			 * The conflict resolver will have deleted the obsolete revision.
+			 */
+            var theirs = new Document("buzz");
+            theirs.Set("status", "theirs");
+            var mine = new Document("buzz");
+            mine.Set("status", "mine");
+            database.Save(theirs);
+            database.Save(mine);
+
+            var conflictResolverResult = database.GetDocument("buzz");
+            Console.WriteLine($"conflictResolverResult doc.status ::: {conflictResolverResult.GetString("status")}");
+
             // replication (Note: Linux / Mac requires .NET Core 2.0+ due to
             // https://github.com/dotnet/corefx/issues/8768)
 			/*
@@ -140,8 +160,8 @@ namespace api_walkthrough
 				}
              */
             var url = new Uri("blip://localhost:4984/db");
-            var config = new ReplicatorConfiguration(database, url);
-            var replication = new Replicator(config);
+            var replConfig = new ReplicatorConfiguration(database, url);
+            var replication = new Replicator(replConfig);
             replication.Start();
 
             // replication change listener
