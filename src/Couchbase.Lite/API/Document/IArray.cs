@@ -18,6 +18,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
+using System;
 using System.Collections;
 
 namespace Couchbase.Lite
@@ -45,8 +47,78 @@ namespace Couchbase.Lite
         /// Adds an entry to this collection
         /// </summary>
         /// <param name="value">The value to add</param>
-        /// <returns>Itself for further processing</returns>
+        /// <returns>The array for further processing</returns>
         IArray Add(object value);
+
+        /// <summary>
+        /// Adds an entry to this collection
+        /// </summary>
+        /// <param name="value">The value to add</param>
+        /// <returns>The array for further processing</returns>
+        IArray Add(string value);
+
+        /// <summary>
+        /// Adds an entry to this collection
+        /// </summary>
+        /// <param name="value">The value to add</param>
+        /// <returns>The array for further processing</returns>
+        IArray Add(int value);
+
+        /// <summary>
+        /// Adds an entry to this collection
+        /// </summary>
+        /// <param name="value">The value to add</param>
+        /// <returns>The array for further processing</returns>
+        IArray Add(long value);
+
+        /// <summary>
+        /// Adds an entry to this collection
+        /// </summary>
+        /// <param name="value">The value to add</param>
+        /// <returns>The array for further processing</returns>
+        IArray Add(float value);
+
+        /// <summary>
+        /// Adds an entry to this collection
+        /// </summary>
+        /// <param name="value">The value to add</param>
+        /// <returns>The array for further processing</returns>
+        IArray Add(double value);
+
+        /// <summary>
+        /// Adds an entry to this collection
+        /// </summary>
+        /// <param name="value">The value to add</param>
+        /// <returns>The array for further processing</returns>
+        IArray Add(bool value);
+
+        /// <summary>
+        /// Adds an entry to this collection
+        /// </summary>
+        /// <param name="value">The value to add</param>
+        /// <returns>The array for further processing</returns>
+        IArray Add(Blob value);
+
+        /// <summary>
+        /// Adds an entry to this collection
+        /// </summary>
+        /// <param name="value">The value to add</param>
+        /// <returns>The array for further processing</returns>
+        IArray Add(DateTimeOffset value);
+
+        /// <summary>
+        /// Adds an entry to this collection
+        /// </summary>
+        /// <param name="value">The value to add</param>
+        /// <returns>The array for further processing</returns>
+        IArray Add(ArrayObject value);
+
+        /// <summary>
+        /// Adds an entry to this collection
+        /// </summary>
+        /// <param name="value">The value to add</param>
+        /// <returns>The array for further processing</returns>
+        IArray Add(DictionaryObject value);
 
         /// <summary>
         /// Gets the value at the given index as an array
@@ -67,21 +139,101 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to insert the item at</param>
         /// <param name="value">The item to insert</param>
-        /// <returns>The value at the index, or <c>null</c></returns>
+        /// <returns>The array for further processing</returns>
         IArray Insert(int index, object value);
+
+        /// <summary>
+        /// Inserts a given value at the given index
+        /// </summary>
+        /// <param name="index">The index to insert the item at</param>
+        /// <param name="value">The item to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Insert(int index, string value);
+
+        /// <summary>
+        /// Inserts a given value at the given index
+        /// </summary>
+        /// <param name="index">The index to insert the item at</param>
+        /// <param name="value">The item to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Insert(int index, int value);
+
+        /// <summary>
+        /// Inserts a given value at the given index
+        /// </summary>
+        /// <param name="index">The index to insert the item at</param>
+        /// <param name="value">The item to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Insert(int index, long value);
+
+        /// <summary>
+        /// Inserts a given value at the given index
+        /// </summary>
+        /// <param name="index">The index to insert the item at</param>
+        /// <param name="value">The item to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Insert(int index, float value);
+
+        /// <summary>
+        /// Inserts a given value at the given index
+        /// </summary>
+        /// <param name="index">The index to insert the item at</param>
+        /// <param name="value">The item to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Insert(int index, double value);
+
+        /// <summary>
+        /// Inserts a given value at the given index
+        /// </summary>
+        /// <param name="index">The index to insert the item at</param>
+        /// <param name="value">The item to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Insert(int index, bool value);
+
+        /// <summary>
+        /// Inserts a given value at the given index
+        /// </summary>
+        /// <param name="index">The index to insert the item at</param>
+        /// <param name="value">The item to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Insert(int index, Blob value);
+
+        /// <summary>
+        /// Inserts a given value at the given index
+        /// </summary>
+        /// <param name="index">The index to insert the item at</param>
+        /// <param name="value">The item to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Insert(int index, DateTimeOffset value);
+
+        /// <summary>
+        /// Inserts a given value at the given index
+        /// </summary>
+        /// <param name="index">The index to insert the item at</param>
+        /// <param name="value">The item to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Insert(int index, ArrayObject value);
+
+        /// <summary>
+        /// Inserts a given value at the given index
+        /// </summary>
+        /// <param name="index">The index to insert the item at</param>
+        /// <param name="value">The item to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Insert(int index, DictionaryObject value);
 
         /// <summary>
         /// Removes the item at the given index
         /// </summary>
         /// <param name="index">The index at which to remove the item</param>
-        /// <returns>The value at the index, or <c>null</c></returns>
+        /// <returns>The array for further processing</returns>
         IArray RemoveAt(int index);
 
         /// <summary>
         /// Replaces the contents of this collection with the contents of the given one
         /// </summary>
         /// <param name="array">The contents to replace the current contents</param>
-        /// <returns>The value at the index, or <c>null</c></returns>
+        /// <returns>The array for further processing</returns>
         IArray Set(IList array);
 
         /// <summary>
@@ -89,8 +241,90 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to overwrite</param>
         /// <param name="value">The value to insert</param>
-        /// <returns>The value at the index, or <c>null</c></returns>
+        /// <returns>The array for further processing</returns>
         IArray Set(int index, object value);
+
+        /// <summary>
+        /// Overwrites the value at the given index with the given value
+        /// </summary>
+        /// <param name="index">The index to overwrite</param>
+        /// <param name="value">The value to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Set(int index, string value);
+
+        /// <summary>
+        /// Overwrites the value at the given index with the given value
+        /// </summary>
+        /// <param name="index">The index to overwrite</param>
+        /// <param name="value">The value to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Set(int index, int value);
+
+        /// <summary>
+        /// Overwrites the value at the given index with the given value
+        /// </summary>
+        /// <param name="index">The index to overwrite</param>
+        /// <param name="value">The value to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Set(int index, long value);
+
+        /// <summary>
+        /// Overwrites the value at the given index with the given value
+        /// </summary>
+        /// <param name="index">The index to overwrite</param>
+        /// <param name="value">The value to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Set(int index, float value);
+
+        /// <summary>
+        /// Overwrites the value at the given index with the given value
+        /// </summary>
+        /// <param name="index">The index to overwrite</param>
+        /// <param name="value">The value to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Set(int index, double value);
+
+        /// <summary>
+        /// Overwrites the value at the given index with the given value
+        /// </summary>
+        /// <param name="index">The index to overwrite</param>
+        /// <param name="value">The value to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Set(int index, bool value);
+
+        /// <summary>
+        /// Overwrites the value at the given index with the given value
+        /// </summary>
+        /// <param name="index">The index to overwrite</param>
+        /// <param name="value">The value to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Set(int index, Blob value);
+
+        /// <summary>
+        /// Overwrites the value at the given index with the given value
+        /// </summary>
+        /// <param name="index">The index to overwrite</param>
+        /// <param name="value">The value to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Set(int index, DateTimeOffset value);
+
+        /// <summary>
+        /// Overwrites the value at the given index with the given value
+        /// </summary>
+        /// <param name="index">The index to overwrite</param>
+        /// <param name="value">The value to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Set(int index, ArrayObject value);
+
+        /// <summary>
+        /// Overwrites the value at the given index with the given value
+        /// </summary>
+        /// <param name="index">The index to overwrite</param>
+        /// <param name="value">The value to insert</param>
+        /// <returns>The array for further processing</returns>
+        IArray Set(int index, DictionaryObject value);
+
+
 
         #endregion
     }

@@ -172,6 +172,12 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
+        public virtual float GetFloat(string key)
+        {
+            return Native.FLValue_AsFloat(FleeceValueForKey(key));
+        }
+
+        /// <inheritdoc />
         public virtual int GetInt(string key)
         {
             return (int)Native.FLValue_AsInt(FleeceValueForKey(key));

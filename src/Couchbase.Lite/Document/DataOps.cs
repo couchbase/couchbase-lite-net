@@ -120,6 +120,18 @@ namespace Couchbase.Lite.Internal.Doc
                     return 0.0;
             }
         }
+        internal static float ConvertToFloat(object value)
+        {
+            // NOTE: Cannot use ConvertToDecimal because float has a greater range
+            switch (value) {
+                case string s: // string is IConvertible, but will throw for non-numeric strings
+                    return 0.0f;
+                case IConvertible c:
+                    return c.ToSingle(CultureInfo.InvariantCulture);
+                default:
+                    return 0.0f;
+            }
+        }
 
         internal static int ConvertToInt(object value)
         {

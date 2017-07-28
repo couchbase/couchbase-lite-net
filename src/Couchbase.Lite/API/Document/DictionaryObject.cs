@@ -424,6 +424,117 @@ namespace Couchbase.Lite
             return this;
         }
 
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, string value)
+        {
+            var oldValue = GetObject(key);
+            if (value == null || !value.Equals(oldValue)) {
+                SetValue(key, value, true);
+            }
+
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, int value)
+        {
+            var oldValue = GetObject(key);
+            if (!value.Equals(oldValue)) {
+                SetValue(key, value, true);
+            }
+
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, long value)
+        {
+            var oldValue = GetObject(key);
+            if (!value.Equals(oldValue)) {
+                SetValue(key, value, true);
+            }
+
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, float value)
+        {
+            var oldValue = GetObject(key);
+            if (!value.Equals(oldValue)) {
+                SetValue(key, value, true);
+            }
+
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, double value)
+        {
+            var oldValue = GetObject(key);
+            if (!value.Equals(oldValue)) {
+                SetValue(key, value, true);
+            }
+
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, bool value)
+        {
+            var oldValue = GetObject(key);
+            if (!value.Equals(oldValue)) {
+                SetValue(key, value, true);
+            }
+
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, Blob value)
+        {
+            var oldValue = GetObject(key);
+            if (value == null || !value.Equals(oldValue)) {
+                SetValue(key, value, true);
+            }
+
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, DateTimeOffset value)
+        {
+            var oldValue = GetObject(key);
+            var newVal = value.ToString("o");
+            if (!newVal.Equals(oldValue)) {
+                SetValue(key, newVal, true);
+            }
+
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, ArrayObject value)
+        {
+            var oldValue = GetObject(key);
+            if (value == null || !value.Equals(oldValue)) {
+                SetValue(key, value, true);
+            }
+
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, DictionaryObject value)
+        {
+            var oldValue = GetObject(key);
+            if (value == null || !value.Equals(oldValue)) {
+                SetValue(key, value, true);
+            }
+
+            return this;
+        }
+
         #endregion
     }
 }

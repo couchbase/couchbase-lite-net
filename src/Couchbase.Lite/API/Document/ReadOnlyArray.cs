@@ -137,6 +137,12 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
+        public virtual float GetFloat(int index)
+        {
+            return Native.FLValue_AsFloat(Native.FLArray_Get(_array, (uint) index));
+        }
+
+        /// <inheritdoc />
         public virtual int GetInt(int index)
         {
             return (int)Native.FLValue_AsInt(Native.FLArray_Get(_array, (uint)index));

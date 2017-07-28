@@ -108,6 +108,17 @@ namespace Couchbase.Lite
             }
         }
 
+        private IList List
+        {
+            get {
+                if (_list == null) {
+                    CopyFleeceData();
+                }
+
+                return _list;
+            }
+        }
+
         #endregion
 
         #region Constructors
@@ -207,6 +218,20 @@ namespace Couchbase.Lite
 
                 var value = _list[index];
                 return DataOps.ConvertToDouble(value);
+            });
+        }
+
+        /// <inheritdoc />
+        public override float GetFloat(int index)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                if (_list == null) {
+                    return base.GetFloat(index);
+                }
+
+                var value = _list[index];
+                return DataOps.ConvertToFloat(value);
             });
         }
 
@@ -311,11 +336,107 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                if (_list == null) {
-                    CopyFleeceData();
-                }
+                List.Add(DataOps.ConvertValue(value));
+                return this;
+            });
+        }
 
-                _list.Add(DataOps.ConvertValue(value));
+        /// <inheritdoc />
+        public IArray Add(string value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Add(value);
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Add(int value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Add(value);
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Add(long value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Add(value);
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Add(float value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Add(value);
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Add(double value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Add(value);
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Add(bool value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Add(value);
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Add(Blob value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Add(value);
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Add(DateTimeOffset value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Add(value.ToString("o"));
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Add(ArrayObject value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Add(value);
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Add(DictionaryObject value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Add(value);
                 return this;
             });
         }
@@ -337,11 +458,107 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                if (_list == null) {
-                    CopyFleeceData();
-                }
+                List.Insert(index, DataOps.ConvertValue(value));
+                return this;
+            });
+        }
 
-                _list.Insert(index, DataOps.ConvertValue(value));
+        /// <inheritdoc />
+        public IArray Insert(int index, string value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Insert(index, value);
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Insert(int index, int value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Insert(index, value);
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Insert(int index, long value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Insert(index, value);
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Insert(int index, float value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Insert(index, value);
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Insert(int index, double value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Insert(index, value);
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Insert(int index, bool value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Insert(index, value);
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Insert(int index, Blob value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Insert(index, value);
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Insert(int index, DateTimeOffset value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Insert(index, value.ToString("o"));
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Insert(int index, ArrayObject value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Insert(index, value);
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Insert(int index, DictionaryObject value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                List.Insert(index, value);
                 return this;
             });
         }
@@ -380,13 +597,150 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                if (_list == null) {
-                    CopyFleeceData();
-                }
-
-                var oldValue = _list[index];
+                var oldValue = List[index];
                 if (value?.Equals(oldValue) == false) {
                     value = DataOps.ConvertValue(value);
+                    SetValue(index, value);
+                }
+
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Set(int index, string value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                var oldValue = List[index];
+                if (value?.Equals(oldValue) == false) {
+                    SetValue(index, value);
+                }
+
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Set(int index, int value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                var oldValue = List[index];
+                if (value.Equals(oldValue) == false) {
+                    SetValue(index, value);
+                }
+
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Set(int index, long value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                var oldValue = List[index];
+                if (value.Equals(oldValue) == false) {
+                    SetValue(index, value);
+                }
+
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Set(int index, float value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                var oldValue = List[index];
+                if (value.Equals(oldValue) == false) {
+                    SetValue(index, value);
+                }
+
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Set(int index, double value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                var oldValue = List[index];
+                if (value.Equals(oldValue) == false) {
+                    SetValue(index, value);
+                }
+
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Set(int index, bool value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                var oldValue = List[index];
+                if (value.Equals(oldValue) == false) {
+                    SetValue(index, value);
+                }
+
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Set(int index, Blob value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                var oldValue = List[index];
+                if (value?.Equals(oldValue) == false) {
+                    SetValue(index, value);
+                }
+
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Set(int index, DateTimeOffset value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                var oldValue = List[index];
+                var newValue = value.ToString("o");
+                if (newValue.Equals(oldValue) == false) {
+                    SetValue(index, newValue);
+                }
+
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Set(int index, ArrayObject value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                var oldValue = List[index];
+                if (value?.Equals(oldValue) == false) {
+                    SetValue(index, value);
+                }
+
+                return this;
+            });
+        }
+
+        /// <inheritdoc />
+        public IArray Set(int index, DictionaryObject value)
+        {
+            return _threadSafety.DoLocked(() =>
+            {
+                var oldValue = List[index];
+                if (value?.Equals(oldValue) == false) {
                     SetValue(index, value);
                 }
 

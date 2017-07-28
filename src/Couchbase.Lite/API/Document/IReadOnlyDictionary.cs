@@ -98,6 +98,15 @@ namespace Couchbase.Lite
         double GetDouble(string key);
 
         /// <summary>
+        /// Gets the value of a given key as a <see cref="Single"/>
+        /// </summary>
+        /// <param name="key">The key to check the value for</param>
+        /// <returns>The contained value, or its converted equivalent</returns>
+        /// <remarks><c>true</c> will be converted to 1.0f, and everything else that
+        /// is non-numeric will be 0.0f</remarks>
+        float GetFloat(string key);
+
+        /// <summary>
         /// Gets the value of a given key as an <see cref="Int32"/>
         /// </summary>
         /// <param name="key">The key to check the value for</param>

@@ -18,6 +18,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
+using System;
 using System.Collections.Generic;
 
 namespace Couchbase.Lite
@@ -77,6 +79,86 @@ namespace Couchbase.Lite
         /// <param name="dictionary">The dictionary to replace the current contents with</param>
         /// <returns>Itself for further processing</returns>
         IDictionaryObject Set(IDictionary<string, object> dictionary);
+
+        /// <summary>
+        /// Sets the given key to the given value
+        /// </summary>
+        /// <param name="key">The key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>Itself for further processing</returns>
+        IDictionaryObject Set(string key, string value);
+
+        /// <summary>
+        /// Sets the given key to the given value
+        /// </summary>
+        /// <param name="key">The key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>Itself for further processing</returns>
+        IDictionaryObject Set(string key, int value);
+
+        /// <summary>
+        /// Sets the given key to the given value
+        /// </summary>
+        /// <param name="key">The key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>Itself for further processing</returns>
+        IDictionaryObject Set(string key, long value);
+
+        /// <summary>
+        /// Sets the given key to the given value
+        /// </summary>
+        /// <param name="key">The key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>Itself for further processing</returns>
+        IDictionaryObject Set(string key, float value);
+
+        /// <summary>
+        /// Sets the given key to the given value
+        /// </summary>
+        /// <param name="key">The key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>Itself for further processing</returns>
+        IDictionaryObject Set(string key, double value);
+
+        /// <summary>
+        /// Sets the given key to the given value
+        /// </summary>
+        /// <param name="key">The key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>Itself for further processing</returns>
+        IDictionaryObject Set(string key, bool value);
+
+        /// <summary>
+        /// Sets the given key to the given value
+        /// </summary>
+        /// <param name="key">The key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>Itself for further processing</returns>
+        IDictionaryObject Set(string key, Blob value);
+
+        /// <summary>
+        /// Sets the given key to the given value
+        /// </summary>
+        /// <param name="key">The key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>Itself for further processing</returns>
+        IDictionaryObject Set(string key, DateTimeOffset value);
+
+        /// <summary>
+        /// Sets the given key to the given value
+        /// </summary>
+        /// <param name="key">The key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>Itself for further processing</returns>
+        IDictionaryObject Set(string key, ArrayObject value);
+
+        /// <summary>
+        /// Sets the given key to the given value
+        /// </summary>
+        /// <param name="key">The key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>Itself for further processing</returns>
+        IDictionaryObject Set(string key, DictionaryObject value);
 
         #endregion
     }
