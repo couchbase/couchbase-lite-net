@@ -423,6 +423,76 @@ namespace Couchbase.Lite
             return this;
         }
 
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, string value)
+        {
+            _dict.Set(key, value);
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, int value)
+        {
+            _dict.Set(key, value);
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, long value)
+        {
+            _dict.Set(key, value);
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, float value)
+        {
+            _dict.Set(key, value);
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, double value)
+        {
+            _dict.Set(key, value);
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, bool value)
+        {
+            _dict.Set(key, value);
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, Blob value)
+        {
+            _dict.Set(key, value);
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, DateTimeOffset value)
+        {
+            _dict.Set(key, value);
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, ArrayObject value)
+        {
+            _dict.Set(key, value);
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IDictionaryObject Set(string key, DictionaryObject value)
+        {
+            _dict.Set(key, value);
+            return this;
+        }
+
         #endregion
 
     }

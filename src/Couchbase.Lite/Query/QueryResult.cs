@@ -169,6 +169,11 @@ namespace Couchbase.Lite.Internal.Query
             return Native.FLValue_AsDouble(FLValueAtIndex(index));
         }
 
+        public float GetFloat(int index)
+        {
+            return Native.FLValue_AsFloat(FLValueAtIndex(index));
+        }
+
         public int GetInt(int index)
         {
             return (int)Native.FLValue_AsInt(FLValueAtIndex(index));
@@ -242,6 +247,12 @@ namespace Couchbase.Lite.Internal.Query
         {
             var index = IndexForColumnName(key);
             return index >= 0 ? GetDouble(index) : 0.0;
+        }
+
+        public float GetFloat(string key)
+        {
+            var index = IndexForColumnName(key);
+            return index >= 0 ? GetFloat(index) : 0.0f;
         }
 
         public int GetInt(string key)

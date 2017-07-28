@@ -736,7 +736,7 @@ namespace Test
         public void TestSetNull()
         {
             var doc = new Document("doc1");
-            doc.Set("null", null);
+            doc.Set("null", default(object));
             SaveDocument(doc, d =>
             {
                 d.GetObject("null").Should().BeNull("because that is what was stored");
