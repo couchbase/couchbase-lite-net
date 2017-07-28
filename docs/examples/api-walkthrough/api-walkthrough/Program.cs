@@ -124,10 +124,11 @@ namespace api_walkthrough
 
             // create conflict
             /*
-			 * 1. Create a document twice with the same ID.
-			 * 2. The `theirs` properties in the conflict resolver represents the current rev and
-			 * `mine` is what's being saved.
+			 * 1. Create a document twice with the same ID (the document will have two conflicting revisions).
+			 * 2. Upon saving the second revision, the ExampleConflictResolver's resolve method is called.
+			 * The `theirs` ReadOnlyDocument in the conflict resolver represents the current rev and `mine` is what's being saved.
 			 * 3. Read the document after the second save operation and verify its property is as expected.
+			 * The conflict resolver will have deleted the obsolete revision.
 			 */
             var theirs = new Document("buzz");
             theirs.Set("status", "theirs");
