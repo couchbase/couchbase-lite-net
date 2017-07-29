@@ -51,6 +51,17 @@ pushd ..
 echo.
 echo *** BUILDING ***
 echo.
+pushd ..\Tools\SourceLink\dotnet-sourcelink-git
+dotnet build -c Release
+cd ..\dotnet-sourcelink
+dotnet build -c Release
+popd
+
+pushd Couchbase.Lite
+dotnet build -c Packaging /p:SourceLinkCreate=true
+dotnet ..\..\Tools\SourceLink\dotnet-sourcelink-git\bin\Release\netcoreapp1.0\dotnet-sourcelink-git.dll create --url "https://raw.githubusercontent.com/couchbase/couchbase-lite-net/{commit}/*"
+popd
 "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" Couchbase.Lite.sln /p:Configuration=Packaging
+
 popd
 popd

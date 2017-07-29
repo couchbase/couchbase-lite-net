@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.15
+VisualStudioVersion = 15.0.26430.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Support.Android", "..\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj", "{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}"
 EndProject
@@ -35,8 +35,8 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}.Packaging|Any CPU.ActiveCfg = Packaging|Any CPU
-		{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}.Packaging|Any CPU.Build.0 = Packaging|Any CPU
+		{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}.Packaging|Any CPU.ActiveCfg = Release|Any CPU
+		{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}.Packaging|Any CPU.Build.0 = Release|Any CPU
 		{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{8D5568EE-4C36-4245-8C36-65D9E7A01833}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
