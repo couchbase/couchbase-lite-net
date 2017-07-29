@@ -53,6 +53,7 @@ echo %cd%
 
 if exist ..\Tools\SourceLink (
     cd ..\Tools\SourceLink\dotnet-sourcelink-git 
+    dotnet restore
     dotnet build -c Release dotnet-sourcelink-git.csproj
     cd ..\..\..\src\Couchbase.Lite
 
