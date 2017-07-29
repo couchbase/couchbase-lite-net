@@ -37,6 +37,5 @@
     <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\libsqlite3.so" />
     <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\libc++.so.1" />
     <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\libc++abi.so.1" />
-    <file target="src" src="src\Couchbase.Lite.Support.NetDesktop\**\*.cs" />
   </files>
 </package>

@@ -77,6 +77,5 @@
     <file target="lib\netstandard1.4\" src="src\Couchbase.Lite\bin\Packaging\netstandard1.4\Couchbase.Lite.dll" />
     <file target="lib\netstandard1.4\" src="src\Couchbase.Lite\bin\Packaging\netstandard1.4\Couchbase.Lite.pdb" />
     <file target="lib\netstandard1.4\" src="src\Couchbase.Lite\bin\Packaging\netstandard1.4\Couchbase.Lite.xml" />
-    <file target="src\" src="src\Couchbase.Lite\**\*.cs" />
   </files>
 </package>

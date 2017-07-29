@@ -26,6 +26,5 @@
     <file target="lib\monoandroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.dll" />
     <file target="lib\monoandroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.pdb" />
     <file target="lib\monoandroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.xml" />
-    <file target="src" src="src\Couchbase.Lite.Support.Android\**\*.cs" />
   </files>
 </package>

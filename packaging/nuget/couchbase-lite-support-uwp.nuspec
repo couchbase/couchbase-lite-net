@@ -34,6 +34,5 @@
     <file target="runtimes\win10-x86\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x86\*.pdb" />
     <file target="runtimes\win10-x64\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x64\*.pdb" />
     <file target="runtimes\win10-arm\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\ARM\*.pdb" />
-    <file target="src" src="src\Couchbase.Lite.Support.UWP\**\*.cs" />
   </files>
 </package>
