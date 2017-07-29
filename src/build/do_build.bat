@@ -1,13 +1,6 @@
 @echo off
 
-echo This script is meant for the Couchbase build server.  It cannot be used by developers.
 pushd %~dp0..\Couchbase.Lite
-
-if not defined NUGET_REPO (
-    echo NUGET_REPO not defined, aborting...
-    popd
-    exit /b 1
-)
 
 echo.
 echo *** TRANSFORMING TEMPLATES ***
@@ -18,12 +11,12 @@ echo.
 echo *** RESTORING PACKAGES ***
 echo *** MAIN ASSEMBLY ***
 echo.
-dotnet restore -s %NUGET_REPO% -s https://api.nuget.org/v3/index.json
+dotnet restore
 pushd ..\Couchbase.Lite.Support.NetDesktop
 echo.
 echo *** NET DESKTOP ***
 echo.
-dotnet restore -s %NUGET_REPO% -s https://api.nuget.org/v3/index.json
+dotnet restore
 popd
 
 pushd ..\Couchbase.Lite.Support.UWP
@@ -39,13 +32,13 @@ echo.
 echo *** IOS ***
 echo.
 pushd ..\Couchbase.Lite.Support.Apple\iOS
-..\..\..\nuget.exe restore -Source "%NUGET_REPO%;https://api.nuget.org/v3/index.json" -SolutionDirectory ..\..
+..\..\..\nuget.exe restore -SolutionDirectory ..\..
 popd
 echo.
 echo *** ANDROID ***
 echo.
 pushd ..\Couchbase.Lite.Support.Android
-..\..\nuget.exe restore -Source "%NUGET_REPO%;https://api.nuget.org/v3/index.json" -SolutionDirectory ..
+..\..\nuget.exe restore -SolutionDirectory ..
 popd
 
 echo.

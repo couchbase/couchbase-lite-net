@@ -35,11 +35,11 @@ try {
         $extension = $VARIANT_EXT[$variant]
         
         echo $NexusRepo/couchbase-litecore-$variant/$Sha/couchbase-litecore-$variant-$Sha$suffix.$extension
-        Invoke-WebRequest $NexusRepo/couchbase-litecore-$variant/$Sha/couchbase-litecore-$variant-$Sha$suffix.$extension -Out litecore-$variant$suffix.$extension
+        Invoke-WebRequest $NexusRepo/couchbase-litecore-$variant/$Sha/couchbase-litecore-$variant-$Sha$suffix.$extension -OutFile litecore-$variant$suffix.$extension
         
         if($variant.StartsWith("windows-win")) {
             echo $NexusRepo/couchbase-litecore-$variant/$Sha/couchbase-litecore-$variant-$Sha-store$suffix.$extension
-            Invoke-WebRequest $NexusRepo/couchbase-litecore-$variant/$Sha/couchbase-litecore-$variant-$Sha-store$suffix.$extension -Out litecore-$variant-store$suffix.$extension
+            Invoke-WebRequest $NexusRepo/couchbase-litecore-$variant/$Sha/couchbase-litecore-$variant-$Sha-store$suffix.$extension -OutFile litecore-$variant-store$suffix.$extension
         }
     }
 } catch [System.Net.WebException] {
