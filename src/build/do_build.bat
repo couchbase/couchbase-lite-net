@@ -57,7 +57,9 @@ if exist ..\Tools\SourceLink (
     dotnet build -c Release dotnet-sourcelink-git.csproj
     cd ..\..\..\src\Couchbase.Lite
 
+    del sourcelink.compile
     dotnet build -c Packaging /p:SourceLinkCreate=true
+    del sourcelink.json
     dotnet ..\..\Tools\SourceLink\dotnet-sourcelink-git\bin\Release\netcoreapp1.0\dotnet-sourcelink-git.dll create --url "https://raw.githubusercontent.com/couchbase/couchbase-lite-net/{commit}/*"
 )
 
