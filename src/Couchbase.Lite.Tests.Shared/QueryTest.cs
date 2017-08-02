@@ -75,20 +75,19 @@ namespace Test
             }
         }
 
-        /*[Fact]
-        public void TestWhereCheckNull()
+        [Fact]
+        public void TestWhereCheckNullOrMissing()
         {
-            IDocument doc1 = null, doc2 = null;
-            doc1 = Db["doc1"];
-            doc1["name"] = "Scott";
-            doc1["address"] = null;
-            doc1.Save();
+            Document doc1 = null, doc2 = null;
+            doc1 = new Document("doc1");
+            doc1.Set("name", "Scott");
+            Db.Save(doc1);
 
-            doc2 = Db["doc2"];
-            doc2["name"] = "Tiger";
-            doc2["address"] = "123 1st ave.";
-            doc2["age"] = 20;
-            doc2.Save();
+            doc2 = new Document("doc2");
+            doc2.Set("name", "Tiger");
+            doc2.Set("address", "123 1st ave.");
+            doc2.Set("age", 20);
+            Db.Save(doc2);
 
             var name = Expression.Property("name");
             var address = Expression.Property("address");
@@ -96,26 +95,26 @@ namespace Test
             var work = Expression.Property("work");
 
             var tests = new[] {
-                Tuple.Create(name.NotNull(), new[] { doc1, doc2 }),
-                Tuple.Create(name.IsNull(), new IDocument[0]),
-                Tuple.Create(address.NotNull(), new[] { doc2 }),
-                Tuple.Create(address.IsNull(), new[] { doc1 }),
-                Tuple.Create(age.NotNull(), new[] { doc1, doc2 }), // null != missing
-                Tuple.Create(age.IsNull(), new IDocument[0]),
-                Tuple.Create(work.NotNull(), new[] { doc1, doc2 }),
-                Tuple.Create(work.IsNull(), new IDocument[0])
+                Tuple.Create(name.NotNullOrMissing(), new[] { doc1, doc2 }),
+                Tuple.Create(name.IsNullOrMissing(), new Document[0]),
+                Tuple.Create(address.NotNullOrMissing(), new[] { doc2 }),
+                Tuple.Create(address.IsNullOrMissing(), new[] { doc1 }),
+                Tuple.Create(age.NotNullOrMissing(), new[] { doc2 }),
+                Tuple.Create(age.IsNullOrMissing(), new[] { doc1 }),
+                Tuple.Create(work.NotNullOrMissing(), new Document[0]),
+                Tuple.Create(work.IsNullOrMissing(), new[] { doc1, doc2 })
             };
 
             int testNum = 1;
             foreach (var test in tests) {
                 var exp = test.Item1;
                 var expectedDocs = test.Item2;
-                using (var q = Query.Select().From(DataSourceFactory.Database(Db)).Where(exp)) {
+                using (var q = Query.Select(SelectResult.Expression(Expression.Meta().ID)).From(DataSource.Database(Db)).Where(exp)) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         if (n <= expectedDocs.Length) {
                             var doc = expectedDocs[n - 1];
-                            row.ID.Should()
+                            row.GetString("id").Should()
                                 .Be(doc.Id, $"because otherwise the row results were different than expected ({testNum})");
                         }
                     });
@@ -125,7 +124,7 @@ namespace Test
 
                 testNum++;
             }
-        }*/
+        }
 
         [Fact]
         public void TestWhereComparison()
@@ -781,7 +780,7 @@ namespace Test
             }
 
             var expectedValues = new[] {
-                Math.Abs(num), Math.Acos(num), Math.Asin(num), Math.Atan(num), Math.Atan2(num, 90),
+                Math.Abs(num), Math.Acos(num), Math.Asin(num), Math.Atan(num), Math.Atan2(90, num), // Note that Atan2 is (y, x)
                 Math.Ceiling(num), Math.Cos(num), num * 180.0 / Math.PI, Math.Exp(num),
                 Math.Floor(num), Math.Log(num), Math.Log10(num), Math.Pow(num, 2), num * Math.PI / 180.0,
                 Math.Round(num), Math.Round(num, 1), Math.Sign(num), Math.Sin(num), Math.Sqrt(num),
@@ -792,7 +791,7 @@ namespace Test
             var prop = Expression.Property("number");
             foreach (var function in new[] {
                 Function.Abs(prop), Function.Acos(prop), Function.Asin(prop), Function.Atan(prop),
-                Function.Atan2(prop, 90),
+                Function.Atan2(prop, 90), // Note: N1QL function definition is the basis for this call, so (x, y)
                 Function.Ceil(prop), Function.Cos(prop), Function.Degrees(prop), Function.Exp(prop),
                 Function.Floor(prop),
                 Function.Ln(prop), Function.Log(prop), Function.Power(prop, 2), Function.Radians(prop),

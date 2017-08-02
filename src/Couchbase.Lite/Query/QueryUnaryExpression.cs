@@ -56,16 +56,14 @@ namespace Couchbase.Lite.Internal.Query
             var obj = new List<object>();
             switch (_type) {
                 case UnaryOpType.Missing:
-                    obj.Add("IS MISSING");
+                case UnaryOpType.Null:
+                    obj.Add("IS");
+                    obj.Add(_type == UnaryOpType.Null ? null : new[] { "MISSING" });
                     break;
                 case UnaryOpType.NotMissing:
-                    obj.Add("IS NOT MISSING");
-                    break;
                 case UnaryOpType.NotNull:
-                    obj.Add("IS NOT NULL");
-                    break;
-                case UnaryOpType.Null:
-                    obj.Add("IS NULL");
+                    obj.Add("IS NOT");
+                    obj.Add(_type == UnaryOpType.NotNull ? null : new[] { "MISSING" });
                     break;
             }
 
@@ -74,10 +72,13 @@ namespace Couchbase.Lite.Internal.Query
             };
 
             if ((operand as QueryTypeExpression)?.ExpressionType == ExpressionType.Aggregate) {
-                obj.AddRange(operand.ConvertToJSON() as IList<object>);
+                obj.InsertRange(1, operand.ConvertToJSON() as IList<object>);
             } else {
-                obj.Add(operand.ConvertToJSON());
+                obj.Insert(1, operand.ConvertToJSON());
             }
+
+
+
             return obj;
         }
 

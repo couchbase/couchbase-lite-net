@@ -103,12 +103,8 @@ namespace Couchbase.Lite.Internal.Query
         private QueryExpression GetOperator(BinaryOpType type, object expression)
         {
             var lhs = this;
-            var rhs = expression as QueryTypeExpression;
+            var rhs = expression as QueryExpression;
             if (rhs == null) {
-                if (expression is QueryExpression) {
-                    throw new ArgumentException("Invalid expression type");
-                }
-
                 rhs = new QueryTypeExpression {
                     ConstantValue = expression
                 };
@@ -212,7 +208,8 @@ namespace Couchbase.Lite.Internal.Query
 
         public IExpression IsNullOrMissing()
         {
-            return GetOperator(BinaryOpType.Is, null).Or(GetOperator(BinaryOpType.Is, MissingValue));
+            return new QueryUnaryExpression(this, UnaryOpType.Null)
+                .Or(new QueryUnaryExpression(this, UnaryOpType.Missing));
         }
 
         public IExpression LessThan(object expression)
@@ -292,7 +289,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IExpression NotNullOrMissing()
         {
-            return GetOperator(BinaryOpType.IsNot, null).And(GetOperator(BinaryOpType.IsNot, MissingValue));
+            return IsNot(IsNullOrMissing());
         }
 
         public IExpression NotRegex(object expression)
