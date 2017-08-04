@@ -121,7 +121,17 @@ namespace Couchbase.Lite.Sync
                     ReceiveTimeout = (int)IdleTimeout.TotalMilliseconds
                 };
 
-                _client.Client.DualMode = true;
+                try {
+                    _client.Client.DualMode = true;
+                } catch(ArgumentException) {
+                    Log.To.Sync.I(Tag, "IPv4/IPv6 dual mode not supported on this device, falling back to IPv4");
+                    _client = new TcpClient(AddressFamily.InterNetwork)
+                    {
+                        SendTimeout = (int)IdleTimeout.TotalMilliseconds,
+                        ReceiveTimeout = (int)IdleTimeout.TotalMilliseconds
+                    };
+                }
+
                 var cts = new CancellationTokenSource();
                 cts.CancelAfter(ConnectTimeout);
                 _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port).ContinueWith(t =>
