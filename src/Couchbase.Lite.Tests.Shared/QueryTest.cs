@@ -1065,9 +1065,11 @@ namespace Test
                 }
             }
 
+            var stringProp = Expression.Property("string") as QueryExpression;
+
             using (var q = Query.Select(SelectResult.Expression(Expression.Property("string")))
                 .From(DataSource.Database(Db))
-                .OrderBy(Ordering.Expression(Expression.Property("string").Collate(Collation.Unicode())))) {
+                .OrderBy(Ordering.Expression(stringProp.Collate(Collation.Unicode())))) {
                 using (var results = q.Run()) {
                     results.Select(x => x.GetString(0)).ShouldBeEquivalentTo(new[] {"A", "Å", "B", "Z"},
                         "because by default Å comes between A and B");
@@ -1076,7 +1078,7 @@ namespace Test
 
             using (var q = Query.Select(SelectResult.Expression(Expression.Property("string")))
                 .From(DataSource.Database(Db))
-                .OrderBy(Ordering.Expression(Expression.Property("string").Collate(Collation.Unicode().Locale("se"))))) {
+                .OrderBy(Ordering.Expression(stringProp.Collate(Collation.Unicode().Locale("se"))))) {
                 using (var results = q.Run()) {
                     results.Select(x => x.GetString(0)).ShouldBeEquivalentTo(new[] { "A", "B", "Z", "Å" },
                         "because in Swedish Å comes after Z");

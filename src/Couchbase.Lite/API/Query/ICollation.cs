@@ -20,17 +20,17 @@
 // 
 namespace Couchbase.Lite.Query
 {
-    public interface ICollation
+    internal interface ICollation
     {
         
     }
 
-    public interface IASCIICollation : ICollation
+    internal interface IASCIICollation : ICollation
     {
         IASCIICollation IgnoreCase(bool ignoreCase);
     }
 
-    public interface IUnicodeCollation : ICollation
+    internal interface IUnicodeCollation : ICollation
     {
         IUnicodeCollation IgnoreCase(bool ignoreCase);
 

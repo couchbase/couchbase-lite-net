@@ -83,7 +83,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The expression representing the new operation</returns>
         IExpression Between(object expression1, object expression2);
 
-        IExpression Collate(ICollation collation);
+        //IExpression Collate(ICollation collation);
 
         /// <summary>
         /// Concatenates the current and given expressions

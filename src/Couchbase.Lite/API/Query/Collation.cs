@@ -23,7 +23,7 @@ using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
 {
-    public static class Collation
+    internal static class Collation
     {
         public static IASCIICollation ASCII()
         {
