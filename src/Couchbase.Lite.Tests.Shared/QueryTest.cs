@@ -22,11 +22,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
+using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Query;
 using FluentAssertions;
 using Newtonsoft.Json;
@@ -995,6 +997,90 @@ namespace Test
                 });
 
                 numRows.Should().Be(100);
+            }
+        }
+        
+        [Fact]
+        public void TestCollateGeneration()
+        {
+            var bothSensitive = (QueryCollation)(Collation.Unicode());
+            var accentSensitive = (QueryCollation)(Collation.Unicode().IgnoreCase(true));
+            var caseSensitive = (QueryCollation)(Collation.Unicode().IgnoreAccents(true));
+            var noSensitive = (QueryCollation)(Collation.Unicode().IgnoreCase(true).IgnoreAccents(true));
+
+            var ascii = (QueryCollation)(Collation.ASCII());
+            var asciiNoSensitive = (QueryCollation)(Collation.ASCII().IgnoreCase(true));
+
+            var locale = (QueryCollation) Collation.Unicode().Locale("ja");
+
+            bothSensitive.SetOperand(Expression.Property("test") as QueryExpression);
+            accentSensitive.SetOperand(Expression.Property("test") as QueryExpression);
+            caseSensitive.SetOperand(Expression.Property("test") as QueryExpression);
+            noSensitive.SetOperand(Expression.Property("test") as QueryExpression);
+            ascii.SetOperand(Expression.Property("test") as QueryExpression);
+            asciiNoSensitive.SetOperand(Expression.Property("test") as QueryExpression);
+            locale.SetOperand(Expression.Property("test") as QueryExpression);
+
+            bothSensitive.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object> {
+                ["UNICODE"] = true
+            }, new[] { ".test" }});
+            accentSensitive.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            {
+                ["UNICODE"] = true,
+                ["CASE"] = false
+            }, new[] { ".test" }});
+            caseSensitive.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            {
+                ["UNICODE"] = true,
+                ["DIACRITIC"] = false
+            }, new[] { ".test" }});
+            noSensitive.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            {
+                ["UNICODE"] = true,
+                ["DIACRITIC"] = false,
+                ["CASE"] = false
+            }, new[] { ".test" }});
+            ascii.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            {
+            }, new[] { ".test" }});
+            asciiNoSensitive.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            {
+                ["CASE"] = false
+            }, new[] { ".test" }});
+
+            locale.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            {
+                ["UNICODE"] = true,
+                ["LOCALE"] = "ja"
+            }, new[] { ".test" }});
+        }
+
+        [Fact]
+        public void TestLocale()
+        {
+            foreach (var letter in new[] {"B", "A", "Z", "Å"}) {
+                using (var doc = new Document()) {
+                    doc.Set("string", letter);
+                    Db.Save(doc);
+                }
+            }
+
+            using (var q = Query.Select(SelectResult.Expression(Expression.Property("string")))
+                .From(DataSource.Database(Db))
+                .OrderBy(Ordering.Expression(Expression.Property("string").Collate(Collation.Unicode())))) {
+                using (var results = q.Run()) {
+                    results.Select(x => x.GetString(0)).ShouldBeEquivalentTo(new[] {"A", "Å", "B", "Z"},
+                        "because by default Å comes between A and B");
+                }
+            }
+
+            using (var q = Query.Select(SelectResult.Expression(Expression.Property("string")))
+                .From(DataSource.Database(Db))
+                .OrderBy(Ordering.Expression(Expression.Property("string").Collate(Collation.Unicode().Locale("se"))))) {
+                using (var results = q.Run()) {
+                    results.Select(x => x.GetString(0)).ShouldBeEquivalentTo(new[] { "A", "B", "Z", "Å" },
+                        "because in Swedish Å comes after Z");
+                }
             }
         }
 

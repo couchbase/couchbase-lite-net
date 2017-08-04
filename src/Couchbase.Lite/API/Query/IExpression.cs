@@ -50,7 +50,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The predicate expression to apply</param>
         /// <returns>The overall expression for further processing</returns>
-        IExpression Satisfies(object expression);
+        IExpression Satisfies(IExpression expression);
     }
 
     /// <summary>
@@ -82,6 +82,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression2">The expression to use as the second bound</param>
         /// <returns>The expression representing the new operation</returns>
         IExpression Between(object expression1, object expression2);
+
+        IExpression Collate(ICollation collation);
 
         /// <summary>
         /// Concatenates the current and given expressions

@@ -19,8 +19,8 @@
 // limitations under the License.
 // 
 
-using System.Linq;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -31,7 +31,7 @@ namespace Couchbase.Lite.Internal.Query
         private readonly string _function;
         private readonly string _variableName;
         private object _in;
-        private object _predicate;
+        private QueryExpression _predicate;
 
         #endregion
 
@@ -49,21 +49,13 @@ namespace Couchbase.Lite.Internal.Query
 
         protected override object ToJSON()
         {
-            var retVal = new object[4] {
+            return new[] {
                 _function,
                 _variableName,
                 _in,
-                _predicate
+                _predicate?.ConvertToJSON()
             };
-
-            return retVal.Select(x =>
-            {
-                if (x is QueryExpression e) {
-                    return e.ConvertToJSON();
-                }
-
-                return x;
-            });        }
+        }
 
         #endregion
 
@@ -79,9 +71,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IExpressionSatisfies
 
-        public IExpression Satisfies(object expression)
+        public IExpression Satisfies(IExpression expression)
         {
-            _predicate = expression;
+            _predicate = Misc.TryCast<IExpression, QueryExpression>(expression);
             return this;
         }
 

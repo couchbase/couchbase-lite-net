@@ -160,6 +160,16 @@ namespace Couchbase.Lite.Internal.Query
             return new QueryBinaryExpression(lhs, rhs, BinaryOpType.Between);
         }
 
+        public IExpression Collate(ICollation collation)
+        {
+            if (!(collation is QueryCollation col)) {
+                throw new NotSupportedException("Custom ICollation not supported");
+            }
+
+            col.SetOperand(this);
+            return col;
+        }
+
         public IExpression Concat(object expression)
         {
             throw new NotSupportedException();
