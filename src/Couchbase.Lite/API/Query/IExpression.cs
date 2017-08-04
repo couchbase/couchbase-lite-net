@@ -22,13 +22,34 @@
 
 namespace Couchbase.Lite.Query
 {
+    /// <summary>
+    /// An interface that represents a portion of a query that chooses
+    /// a collection to be used in a query of each of its elements
+    /// </summary>
     public interface IExpressionIn
     {
+        /// <summary>
+        /// Chooses a collection to be used in a query of each of
+        /// its elements
+        /// </summary>
+        /// <param name="expression">An expression that evaluates to a collection type</param>
+        /// <returns>An object that will determine the predicate for the contents
+        /// of the collection</returns>
         IExpressionSatisfies In(object expression);
     }
 
+    /// <summary>
+    /// An interface representing an object that can accept a predicate to use
+    /// on each item in a collection
+    /// </summary>
     public interface IExpressionSatisfies
     {
+        /// <summary>
+        /// Accepts a predicate to apply to each item of a collection
+        /// received from <see cref="IExpressionIn"/>
+        /// </summary>
+        /// <param name="expression">The predicate expression to apply</param>
+        /// <returns>The overall expression for further processing</returns>
         IExpression Satisfies(object expression);
     }
 

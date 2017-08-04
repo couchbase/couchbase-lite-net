@@ -72,7 +72,8 @@ namespace Couchbase.Lite.Internal.Query
 
         public QueryTypeExpression(string keyPath, ExpressionType type)
         {
-            Debug.Assert(type >= ExpressionType.KeyPath && type <= ExpressionType.Variable);
+            Debug.Assert(type >= ExpressionType.KeyPath && type <= ExpressionType.Variable,
+                $"Cannot use this constructor for {type}");
             ExpressionType = type;
             KeyPath = keyPath;
         }

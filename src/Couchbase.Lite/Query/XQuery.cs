@@ -185,7 +185,7 @@ namespace Couchbase.Lite.Internal.Query
             if (selectParam != null) {
                 parameters["WHAT"] = selectParam;
             }
-            
+
             if (JoinImpl != null) {
                 var fromJson = FromImpl?.ToJSON();
                 if (fromJson == null) {
@@ -198,6 +198,11 @@ namespace Couchbase.Lite.Internal.Query
                 Debug.Assert(joinJson != null);
                 joinJson.Insert(0, fromJson);
                 parameters["FROM"] = joinJson;
+            } else {
+                var fromJson = FromImpl?.ToJSON();
+                if(fromJson != null) {
+                    parameters["FROM"] = new[] { fromJson };
+                }
             }
             
             if (GroupByImpl != null) {

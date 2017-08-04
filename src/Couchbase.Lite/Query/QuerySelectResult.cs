@@ -19,15 +19,18 @@
 // limitations under the License.
 // 
 
+using System;
+using System.Diagnostics;
 using System.Linq;
 using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class QuerySelectResult : ISelectResultAs
+    internal sealed class QuerySelectResult : ISelectResultAs, ISelectResultFrom
     {
         internal readonly IExpression Expression;
         private string _alias;
+        private string _from = String.Empty;
 
         internal string ColumnName
         {
@@ -37,7 +40,12 @@ namespace Couchbase.Lite.Internal.Query
                 }
 
                 QueryTypeExpression keyPathExpr = Expression as QueryTypeExpression;
-                return keyPathExpr?.ColumnName;
+                var columnName = keyPathExpr?.ColumnName;
+                if(columnName == null) {
+                    return null;
+                }
+
+                return $"{_from}.{columnName}";
             }
         }
         
@@ -49,6 +57,13 @@ namespace Couchbase.Lite.Internal.Query
         public ISelectResult As(string alias)
         {
             _alias = alias;
+            return this;
+        }
+
+        public ISelectResult From(string alias)
+        {
+            _from = alias;
+            (Expression as QueryTypeExpression).From(alias);
             return this;
         }
     }

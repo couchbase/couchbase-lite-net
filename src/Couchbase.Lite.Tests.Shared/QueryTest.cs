@@ -967,6 +967,37 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestSelectAll()
+        {
+            LoadNumbers(100);
+            using (var q = Query.Select(SelectResult.All(), SelectResult.Expression(Expression.Property("number1")))
+                .From(DataSource.Database(Db))) {
+                var numRows = VerifyQuery(q, (n, r) =>
+                {
+                    var all = r.GetDictionary(0);
+                    all.GetInt("number1").Should().Be(n);
+                    all.GetInt("number2").Should().Be(100 - n);
+                    r.GetInt(1).Should().Be(n);
+                });
+
+                numRows.Should().Be(100);
+            }
+
+            using (var q = Query.Select(SelectResult.All().From("db"), SelectResult.Expression(Expression.Property("number1").From("db")))
+                .From(DataSource.Database(Db).As("db"))) {
+                var numRows = VerifyQuery(q, (n, r) =>
+                {
+                    var all = r.GetDictionary(0);
+                    all.GetInt("number1").Should().Be(n);
+                    all.GetInt("number2").Should().Be(100 - n);
+                    r.GetInt(1).Should().Be(n);
+                });
+
+                numRows.Should().Be(100);
+            }
+        }
+
         private bool TestWhereCompareValidator(IDictionary<string, object> properties, object context)
         {
             var ctx = (Func<int, bool>)context;

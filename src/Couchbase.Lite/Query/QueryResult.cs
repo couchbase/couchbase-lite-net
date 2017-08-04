@@ -186,7 +186,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public object GetObject(int index)
         {
-            return FLValueConverter.ToObject(FLValueAtIndex(index), null);
+            return FLValueConverter.ToCouchbaseObject(FLValueAtIndex(index), Database.SharedStrings, null, Database);
         }
 
         public string GetString(int index)
