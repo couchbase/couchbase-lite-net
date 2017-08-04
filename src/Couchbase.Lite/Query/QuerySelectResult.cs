@@ -45,7 +45,7 @@ namespace Couchbase.Lite.Internal.Query
                     return null;
                 }
 
-                return $"{_from}.{columnName}";
+                return $"{_from}{columnName}";
             }
         }
         
@@ -62,7 +62,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public ISelectResult From(string alias)
         {
-            _from = alias;
+            _from = $"{alias}.";
             (Expression as QueryTypeExpression).From(alias);
             return this;
         }
