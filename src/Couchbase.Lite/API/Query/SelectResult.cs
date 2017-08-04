@@ -29,7 +29,7 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public static class SelectResult
     {
-        private static readonly IExpression Star = new QueryTypeExpression("*", ExpressionType.KeyPath);
+        private static readonly IExpression Star = new QueryTypeExpression("", ExpressionType.KeyPath);
 
         /// <summary>
         /// Creates an instance based on the given expression
