@@ -23,13 +23,24 @@ using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
 {
-    internal static class Collation
+    /// <summary>
+    /// A factory class for creating <see cref="ICollation"/> instances
+    /// </summary>
+    public static class Collation
     {
+        /// <summary>
+        /// Creates an ASCII based collation instance
+        /// </summary>
+        /// <returns>An ASCII based collation instance</returns>
         public static IASCIICollation ASCII()
         {
             return new QueryCollation(false);
         }
 
+        /// <summary>
+        /// Creates a Unicode based collation instance (http://unicode.org/reports/tr10/)
+        /// </summary>
+        /// <returns>A Unicode based collation instance</returns>
         public static IUnicodeCollation Unicode()
         {
             return new QueryCollation(true);

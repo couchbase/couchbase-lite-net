@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IUnicodeCollation IgnoreAccents(bool ignoreAccents)
         {
-            _collation["DIACRITIC"] = !ignoreAccents;
+            _collation["DIAC"] = !ignoreAccents;
             return this;
         }
 

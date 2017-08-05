@@ -1032,12 +1032,12 @@ namespace Test
             caseSensitive.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
             {
                 ["UNICODE"] = true,
-                ["DIACRITIC"] = false
+                ["DIAC"] = false
             }, new[] { ".test" }});
             noSensitive.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
             {
                 ["UNICODE"] = true,
-                ["DIACRITIC"] = false,
+                ["DIAC"] = false,
                 ["CASE"] = false
             }, new[] { ".test" }});
             ascii.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
@@ -1065,7 +1065,7 @@ namespace Test
                 }
             }
 
-            var stringProp = Expression.Property("string") as QueryExpression;
+            var stringProp = Expression.Property("string");
 
             using (var q = Query.Select(SelectResult.Expression(Expression.Property("string")))
                 .From(DataSource.Database(Db))
@@ -1082,6 +1082,145 @@ namespace Test
                 using (var results = q.Run()) {
                     results.Select(x => x.GetString(0)).ShouldBeEquivalentTo(new[] { "A", "B", "Z", "Å" },
                         "because in Swedish Å comes after Z");
+                }
+            }
+        }
+
+        [Fact]
+        public void TestUnicodeComparison()
+        {
+            var bothSensitive = Collation.Unicode();
+            var accentSensitive = Collation.Unicode().IgnoreCase(true);
+            var caseSensitive = Collation.Unicode().IgnoreAccents(true);
+            var noSensitive = Collation.Unicode().IgnoreCase(true).IgnoreAccents(true);
+
+            var testData = new[] {
+                // Edge cases: empty and 1-char strings
+                Tuple.Create("", "", true, bothSensitive),
+                Tuple.Create("", "a", false, bothSensitive),
+                Tuple.Create("a", "a", true, bothSensitive),
+
+                // Case sensitive: lowercase comes first by Unicode rules
+                Tuple.Create("a", "A", false, bothSensitive),
+                Tuple.Create("abc", "abc", true, bothSensitive),
+                Tuple.Create("Aaa", "abc", false, bothSensitive),
+                Tuple.Create("abc", "abC", false, bothSensitive),
+                Tuple.Create("AB", "abc", false, bothSensitive),
+
+                // Case insensitive
+                Tuple.Create("ABCDEF", "ZYXWVU", false, accentSensitive),
+                Tuple.Create("ABCDEF", "Z", false, accentSensitive),
+
+                Tuple.Create("a", "A", true, accentSensitive),
+                Tuple.Create("abc", "ABC", true, accentSensitive),
+                Tuple.Create("ABA", "abc", false, accentSensitive),
+
+                Tuple.Create("commonprefix1", "commonprefix2", false, accentSensitive),
+                Tuple.Create("commonPrefix1", "commonprefix2", false, accentSensitive),
+
+                Tuple.Create("abcdef", "abcdefghijklm", false, accentSensitive),
+                Tuple.Create("abcdeF", "abcdefghijklm", false, accentSensitive),
+
+                //---- Now bring in non-ASCII characters ----:
+                Tuple.Create("a", "á", false, accentSensitive),
+                Tuple.Create("", "á", false, accentSensitive),
+                Tuple.Create("á", "á", true, accentSensitive),
+                Tuple.Create("•a", "•A", true, accentSensitive),
+
+                Tuple.Create("test a", "test á", false, accentSensitive),
+                Tuple.Create("test á", "test b", false, accentSensitive),
+                Tuple.Create("test á", "test Á", true, accentSensitive),
+                Tuple.Create("test á1", "test Á2", false, accentSensitive),
+
+                // Case sensitive, diacritic sensitive:
+                Tuple.Create("ABCDEF", "ZYXWVU", false, bothSensitive),
+                Tuple.Create("ABCDEF", "Z", false, bothSensitive),
+                Tuple.Create("a", "A", false, bothSensitive),
+                Tuple.Create("abc", "ABC", false, bothSensitive),
+                Tuple.Create("•a", "•A", false, bothSensitive),
+                Tuple.Create("test a", "test á", false, bothSensitive),
+                Tuple.Create("Ähnlichkeit", "apple", false, bothSensitive), // Because 'h'-vs-'p' beats 'Ä'-vs-'a'
+                Tuple.Create("ax", "Äz", false, bothSensitive),
+                Tuple.Create("test a", "test Á", false, bothSensitive),
+                Tuple.Create("test Á", "test e", false, bothSensitive),
+                Tuple.Create("test á", "test Á", false, bothSensitive),
+                Tuple.Create("test á", "test b", false, bothSensitive),
+                Tuple.Create("test u", "test Ü", false, bothSensitive),
+
+                // Case sensitive, diacritic insensitive
+                Tuple.Create("abc", "ABC", false, caseSensitive),
+                Tuple.Create("test á", "test a", true, caseSensitive),
+                Tuple.Create("test á", "test A", false, caseSensitive),
+                Tuple.Create("test á", "test b", false, caseSensitive),
+                Tuple.Create("test á", "test Á", false, caseSensitive),
+
+                // Case and diacritic insensitive
+                Tuple.Create("test á", "test Á", true, noSensitive)
+            };
+
+            int i = 0;
+            foreach (var data in testData) {
+                using (var doc = new Document()) {
+                    doc.Set("value", data.Item1);
+                    Db.Save(doc);
+
+                    var comparison = data.Item3
+                        ? Expression.Property("value").Collate(data.Item4).EqualTo(data.Item2)
+                        : Expression.Property("value").Collate(data.Item4).LessThan(data.Item2);
+
+                    using (var q = Query.Select(SelectResult.All())
+                        .From(DataSource.Database(Db))
+                        .Where(comparison)) {
+                        using (var result = q.Run()) {
+                            result.Count.Should().Be(1,
+                                $"because otherwise the comparison failed for {data.Item1} and {data.Item2} (position {i})");
+                        }
+                    }
+
+                    Db.Delete(doc);
+                }
+
+                i++;
+            }
+        }
+
+        [Fact]
+        public void TestAllComparison()
+        {
+            foreach (var val in new[] {"Apple", "Aardvark", "Ångström", "Zebra", "äpple"}) {
+                using (var doc = new Document()) {
+                    doc.Set("hey", val);
+                    Db.Save(doc);
+                }
+            }
+
+            var testData = new[] {
+                Tuple.Create("BINARY collation", (ICollation) Collation.ASCII(),
+                    new[] {"Aardvark", "Apple", "Zebra", "Ångström", "äpple"}),
+                Tuple.Create("NOCASE collation", (ICollation) Collation.ASCII().IgnoreCase(true),
+                    new[] {"Aardvark", "Apple", "Zebra", "Ångström", "äpple"}),
+                Tuple.Create("Unicode case-sensitive, diacritic-sensitive collation", (ICollation) Collation.Unicode(),
+                    new[] {"Aardvark", "Ångström", "Apple", "äpple", "Zebra"}),
+                Tuple.Create("Unicode case-INsensitive, diacritic-sensitive collation",
+                    (ICollation) Collation.Unicode().IgnoreCase(true),
+                    new[] {"Aardvark", "Ångström", "Apple", "äpple", "Zebra"}),
+                Tuple.Create("Unicode case-sensitive, diacritic-INsensitive collation",
+                    (ICollation) Collation.Unicode().IgnoreAccents(true),
+                    new[] {"Aardvark", "Ångström", "äpple", "Apple", "Zebra"}),
+                Tuple.Create("Unicode case-INsensitive, diacritic-INsensitive collation",
+                    (ICollation) Collation.Unicode().IgnoreAccents(true).IgnoreCase(true),
+                    new[] {"Aardvark", "Ångström", "äpple", "Apple", "Zebra"})
+            };
+
+            var property = Expression.Property("hey");
+            foreach (var data in testData) {
+                WriteLine(data.Item1);
+                using (var q = Query.Select(SelectResult.Expression(Expression.Property("hey")))
+                    .From(DataSource.Database(Db))
+                    .OrderBy(Ordering.Expression(property.Collate(data.Item2)))) {
+                    using (var results = q.Run()) {
+                        results.Select(x => x.GetString(0)).ShouldBeEquivalentTo(data.Item3);
+                    }
                 }
             }
         }

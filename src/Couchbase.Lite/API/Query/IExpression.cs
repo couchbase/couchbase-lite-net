@@ -83,7 +83,15 @@ namespace Couchbase.Lite.Query
         /// <returns>The expression representing the new operation</returns>
         IExpression Between(object expression1, object expression2);
 
-        //IExpression Collate(ICollation collation);
+        /// <summary>
+        /// Collates the previous expression using the given collation instance (normally 
+        /// this is used directly after <see cref="Expression.Property(string)"/> when
+        /// it is part of a <see cref="IWhereRouter.Where(IExpression)"/> or 
+        /// <see cref="IOrderByRouter.OrderBy(IOrdering[])"/>)
+        /// </summary>
+        /// <param name="collation">The collation instance to use when collating</param>
+        /// <returns>The expression representing the new operation</returns>
+        IExpression Collate(ICollation collation);
 
         /// <summary>
         /// Concatenates the current and given expressions
