@@ -49,10 +49,15 @@ namespace Couchbase.Lite.Internal.Query
 
         protected override object ToJSON()
         {
+            var inObj = _in;
+            if (_in is QueryExpression e) {
+                inObj = e.ConvertToJSON();
+            }
+
             return new[] {
                 _function,
                 _variableName,
-                _in,
+                inObj,
                 _predicate?.ConvertToJSON()
             };
         }
