@@ -1059,13 +1059,6 @@ namespace Test
         [Fact]
         public void TestLocale()
         {
-#if NETCOREAPP1_0
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-                Console.WriteLine("Linux support not finished yet");
-                return;
-            }
-#endif
-
             foreach (var letter in new[] {"B", "A", "Z", "Å"}) {
                 using (var doc = new Document()) {
                     doc.Set("string", letter);
@@ -1097,13 +1090,6 @@ namespace Test
         [Fact]
         public void TestUnicodeComparison()
         {
-#if NETCOREAPP1_0
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-                Console.WriteLine("Linux support not finished yet");
-                return;
-            }
-#endif
-
             var bothSensitive = Collation.Unicode();
             var accentSensitive = Collation.Unicode().IgnoreCase(true);
             var caseSensitive = Collation.Unicode().IgnoreAccents(true);
@@ -1202,13 +1188,6 @@ namespace Test
         [Fact]
         public void TestAllComparison()
         {
-#if NETCOREAPP1_0
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-                Console.WriteLine("Linux support not finished yet");
-                return;
-            }
-#endif
-
             foreach (var val in new[] {"Apple", "Aardvark", "Ångström", "Zebra", "äpple"}) {
                 using (var doc = new Document()) {
                     doc.Set("hey", val);

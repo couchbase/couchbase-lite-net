@@ -109,6 +109,18 @@
       <Link>libc++abi.so.1</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libicudata.so.54">
+      <Link>libicudata.so.54</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libicui18n.so.54">
+      <Link>libicui18n.so.54</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libicuuc.so.54">
+      <Link>libicuuc.so.54</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Couchbase.Lite\Properties\DynamicAssemblyInfo.cs">
