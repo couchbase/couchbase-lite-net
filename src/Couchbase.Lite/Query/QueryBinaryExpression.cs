@@ -72,6 +72,7 @@ namespace Couchbase.Lite.Internal.Query
         protected override object ToJSON()
         {
             var obj = new List<object>();
+            var useArrayOp = false;
             switch (_type) {
                 case BinaryOpType.Add:
                     obj.Add("+");
@@ -93,6 +94,7 @@ namespace Couchbase.Lite.Internal.Query
                     break;
                 case BinaryOpType.In:
                     obj.Add("IN");
+                    useArrayOp = true;
                     break;
                 case BinaryOpType.Is:
                     obj.Add("IS");
@@ -131,7 +133,13 @@ namespace Couchbase.Lite.Internal.Query
 
             obj.Add(_lhs.ConvertToJSON());
             if ((_rhs as QueryTypeExpression)?.ExpressionType == ExpressionType.Aggregate) {
-                obj.AddRange(_rhs.ConvertToJSON() as IList<object>);
+                var collection = _rhs.ConvertToJSON() as IList<object>;
+                if (useArrayOp) {
+                    collection.Insert(0, "[]");
+                    obj.Add(collection);
+                } else {
+                    obj.AddRange(collection);
+                }
             } else {
                 obj.Add(_rhs.ConvertToJSON());
             }
