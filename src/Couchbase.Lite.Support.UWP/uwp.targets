@@ -13,18 +13,6 @@
                 <Link>LiteCore.dll</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </Content>
-            <Content Condition=" '$(Platform)' == 'x86' " Include="$(MSBuildThisFileDirectory)..\runtimes\win10-x86\native\sqlite3.dll">
-                <Link>sqlite3.dll</Link>
-                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </Content>
-            <Content Condition=" '$(Platform)' == 'x64' " Include="$(MSBuildThisFileDirectory)..\runtimes\win10-x64\native\sqlite3.dll">
-                <Link>sqlite3.dll</Link>
-                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </Content>
-            <Content Condition=" '$(Platform)' == 'ARM' " Include="$(MSBuildThisFileDirectory)..\runtimes\win10-arm\native\sqlite3.dll">
-                <Link>sqlite3.dll</Link>
-                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </Content>
         </ItemGroup>
         <ItemGroup>
             <SDKReference Include="Microsoft.VCLibs, Version=14.0">

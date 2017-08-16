@@ -9,10 +9,6 @@
                 <Link>libLiteCore.so</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </Content>
-            <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libsqlite3.so">
-                <Link>libsqlite3.so</Link>
-                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </Content>
             <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libc++.so.1">
                 <Link>libc++.so.1</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -21,20 +17,24 @@
                 <Link>libc++abi.so.1</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </Content>
+            <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libicuuc.so.54">
+                <Link>libicuuc.so.54</Link>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            </Content>
+            <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libicui18n.so.54">
+                <Link>libicui18n.so.54</Link>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            </Content>
+            <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libicudata.so.54">
+                <Link>libicudata.so.54</Link>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            </Content>
             <Content Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x86\native\LiteCore.dll">
                 <Link>x86\LiteCore.dll</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </Content>
             <Content Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x64\native\LiteCore.dll">
                 <Link>x64\LiteCore.dll</Link>
-                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </Content>
-            <Content Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x86\native\sqlite3.dll">
-                <Link>x86\sqlite3.dll</Link>
-                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </Content>
-            <Content Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x64\native\sqlite3.dll">
-                <Link>x64\sqlite3.dll</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </Content>
             <Content Include="$(MSBuildThisFileDirectory)..\runtimes\osx-x64\native\libLiteCore.dylib" Condition=" $(IsMac) ">

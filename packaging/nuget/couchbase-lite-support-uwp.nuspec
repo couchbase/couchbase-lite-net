@@ -28,11 +28,11 @@
     <file target="lib\uap10.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.dll" />
     <file target="lib\uap10.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.pdb" />
     <file target="lib\uap10.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.xml" />
-    <file target="runtimes\win10-x86\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x86\*.dll" />
-    <file target="runtimes\win10-x64\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x64\*.dll" />
-    <file target="runtimes\win10-arm\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\ARM\*.dll" />
-    <file target="runtimes\win10-x86\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x86\*.pdb" />
-    <file target="runtimes\win10-x64\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x64\*.pdb" />
-    <file target="runtimes\win10-arm\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\ARM\*.pdb" />
+    <file target="runtimes\win10-x86\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x86\LiteCore.dll" />
+    <file target="runtimes\win10-x64\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x64\LiteCore.dll" />
+    <file target="runtimes\win10-arm\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\ARM\LiteCore.dll" />
+    <file target="runtimes\win10-x86\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x86\LiteCore.pdb" />
+    <file target="runtimes\win10-x64\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\x64\LiteCore.pdb" />
+    <file target="runtimes\win10-arm\native" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\ARM\LiteCore.pdb" />
   </files>
 </package>

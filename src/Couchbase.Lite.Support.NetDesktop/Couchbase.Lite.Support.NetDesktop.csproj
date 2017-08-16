@@ -61,28 +61,12 @@
       <Link>x86\LiteCore.pdb</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x86\RelWithDebInfo\sqlite3.dll">
-      <Link>x86\sqlite3.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x86\RelWithDebInfo\sqlite3.pdb">
-      <Link>x86\sqlite3.pdb</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x64\RelWithDebInfo\LiteCore.dll">
       <Link>x64\LiteCore.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x64\RelWithDebInfo\LiteCore.pdb">
       <Link>x64\LiteCore.pdb</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x64\RelWithDebInfo\sqlite3.dll">
-      <Link>x64\sqlite3.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x64\RelWithDebInfo\sqlite3.pdb">
-      <Link>x64\sqlite3.pdb</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -95,10 +79,6 @@
   <ItemGroup Condition=" (!$(IsMac) AND '$(OS)' == 'Unix') OR '$(Configuration)' == 'Packaging' ">
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libLiteCore.so">
       <Link>libLiteCore.so</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libsqlite3.so">
-      <Link>libsqlite3.so</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libc++.so.1">
