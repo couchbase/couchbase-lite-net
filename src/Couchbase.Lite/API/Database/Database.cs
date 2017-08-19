@@ -801,7 +801,6 @@ namespace Couchbase.Lite
         /// </summary>
         public void Dispose()
         {
-            Console.WriteLine($"DATABASE CLOSED {Environment.StackTrace}");
             GC.SuppressFinalize(this);
             _threadSafety.DoLocked(() => Dispose(true));
         }
