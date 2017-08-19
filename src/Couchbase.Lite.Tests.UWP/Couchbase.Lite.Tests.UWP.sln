@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.15
+VisualStudioVersion = 15.0.26730.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared", "..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.shproj", "{11F38891-8397-49B4-9146-6DAF0A9D7866}"
 EndProject
@@ -49,14 +49,14 @@ Global
 		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Debug|x64.Build.0 = Debug|Any CPU
 		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Debug|x86.ActiveCfg = Debug|Any CPU
 		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Debug|x86.Build.0 = Debug|Any CPU
-		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Packaging|Any CPU.ActiveCfg = Packaging|Any CPU
-		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Packaging|Any CPU.Build.0 = Packaging|Any CPU
-		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Packaging|ARM.ActiveCfg = Packaging|Any CPU
-		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Packaging|ARM.Build.0 = Packaging|Any CPU
-		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Packaging|x64.ActiveCfg = Packaging|Any CPU
-		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Packaging|x64.Build.0 = Packaging|Any CPU
-		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Packaging|x86.ActiveCfg = Packaging|Any CPU
-		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Packaging|x86.Build.0 = Packaging|Any CPU
+		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Packaging|Any CPU.ActiveCfg = Release|Any CPU
+		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Packaging|Any CPU.Build.0 = Release|Any CPU
+		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Packaging|ARM.ActiveCfg = Release|Any CPU
+		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Packaging|ARM.Build.0 = Release|Any CPU
+		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Packaging|x64.ActiveCfg = Release|Any CPU
+		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Packaging|x64.Build.0 = Release|Any CPU
+		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Packaging|x86.ActiveCfg = Release|Any CPU
+		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Packaging|x86.Build.0 = Release|Any CPU
 		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Release|Any CPU.Build.0 = Release|Any CPU
 		{DD9CB298-F3A1-4653-883B-352E69C16F93}.Release|ARM.ActiveCfg = Release|Any CPU
@@ -156,5 +156,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {761D58C7-AD0C-46D1-BC96-A570C0551FE7}
 	EndGlobalSection
 EndGlobal

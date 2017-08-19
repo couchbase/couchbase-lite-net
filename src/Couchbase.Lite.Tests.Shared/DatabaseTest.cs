@@ -30,6 +30,7 @@ using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
 using System.Linq;
+using Couchbase.Lite.Query;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -865,6 +866,57 @@ namespace Test
                 db.Config.ConflictResolver.Should().NotBe(config.ConflictResolver,
                     "because the conflict resolver should be different now");
             }
+        }
+
+        [Fact]
+        public void TestCopy()
+        {
+            for (int i = 0; i < 10; i++) {
+                var docID = $"doc{i}";
+                using (var doc = new Document(docID)) {
+                    doc.Set("name", docID);
+
+                    var data = Encoding.UTF8.GetBytes(docID);
+                    var blob = new Blob("text/plain", data);
+                    doc.Set("data", blob);
+
+                    SaveDocument(doc);
+                }
+            }
+
+            var dbName = "nudb";
+            var config = Db.Config;
+            var dir = config.Directory;
+
+            Database.Delete(dbName, dir);
+            Database.Copy(Db.Path, dbName, config);
+
+            Database.Exists(dbName, dir).Should().BeTrue();
+            using (var nudb = new Database(dbName, config)) {
+                nudb.Count.Should().Be(10, "because it is a copy of another database with 10 items");
+                var DOCID = Expression.Meta().ID;
+                var S_DOCID = SelectResult.Expression(DOCID);
+                using (var q = Query.Select(S_DOCID).From(DataSource.Database(nudb))) {
+                    using (var rs = q.Run()) {
+                        foreach (var r in rs) {
+                            var docID = r.GetString(0);
+                            docID.Should().NotBeNull();
+
+                            var doc = nudb.GetDocument(docID);
+                            doc.Should().NotBeNull();
+                            doc.GetString("name").Should().Be(docID);
+
+                            var blob = doc.GetBlob("data");
+                            blob.Should().NotBeNull();
+
+                            var data = Encoding.UTF8.GetString(blob.Content);
+                            data.Should().Be(docID);
+                        }
+                    }
+                }
+            }
+
+            Database.Delete(dbName, dir);
         }
 
         private void DeleteDB(Database db)

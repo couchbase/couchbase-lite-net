@@ -233,15 +233,14 @@ namespace Couchbase.Lite
             }
 
             C4Document* newDoc = null;
-            var endedEarly = false;
-            Database.InBatch(() =>
-            {
+            var success = true;
+            Database.BeginTransaction();
+            try {
                 var tmp = default(C4Document*);
                 SaveInto(&tmp, deletion);
                 if (tmp == null) {
                     Merge(resolver, deletion);
                     if (!_dict.HasChanges) {
-                        endedEarly = true;
                         return;
                     }
 
@@ -252,10 +251,11 @@ namespace Couchbase.Lite
                 }
 
                 newDoc = tmp;
-            });
-
-            if (endedEarly) {
-                return;
+            } catch (Exception) {
+                success = false;
+                throw;
+            } finally {
+                Database.EndTransaction(success);
             }
 
             c4Doc = newDoc;

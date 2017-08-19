@@ -111,6 +111,10 @@ namespace Couchbase.Lite.Internal.Query
         internal string Explain()
         {
             // Used for debugging
+            if (_c4Query == null) {
+                Check();
+            }
+
             return Native.c4query_explain(_c4Query);
         }
 

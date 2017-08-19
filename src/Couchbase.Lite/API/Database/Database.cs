@@ -241,6 +241,30 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
+        public static void Copy(string path, string name, DatabaseConfiguration config)
+        {
+            var destPath = DatabasePath(name, config.Directory);
+            var nativeConfig = DBConfig;
+            if (config.EncryptionKey != null) {
+#if true
+                throw new NotImplementedException("Encryption is not yet supported");
+#else
+                var key = config.EncryptionKey;
+                int i = 0;
+                nativeConfig.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
+                foreach(var b in key.KeyData) {
+                    nativeConfig.encryptionKey.bytes[i++] = b;
+                }
+#endif
+            }
+
+            LiteCoreBridge.Check(err =>
+            {
+                var nativeConfigCopy = nativeConfig;
+                return Native.c4db_copy(path, destPath, &nativeConfigCopy, err);
+            });
+        }
+
         /// <summary>
         /// Deletes the contents of a database with the given name in the
         /// given directory
@@ -509,9 +533,19 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
+        internal void BeginTransaction()
+        {
+            LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
+        }
+
         internal void ChangeEncryptionKey(object key)
         {
             throw new NotImplementedException();
+        }
+
+        internal void EndTransaction(bool commit)
+        {
+            LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, commit, err));
         }
 
         internal void ResolveConflict(string docID, IConflictResolver resolver)
@@ -697,6 +731,7 @@ namespace Couchbase.Lite
 
         private void PostDatabaseChanged()
         {
+            var allChanges = new List<DatabaseChangedEventArgs>();
 			_threadSafety.DoLocked(() =>
 			{
 				if (_obs == null || _c4db == null || Native.c4db_isInTransaction(_c4db)) {
@@ -716,7 +751,7 @@ namespace Couchbase.Lite
 				        if (docIDs.Count > 0) {
                             // Only notify if there are actually changes to send
 				            var args = new DatabaseChangedEventArgs(this, docIDs, external);
-				            Changed?.Invoke(this, args);
+				            allChanges.Add(args);
 				            docIDs = new List<string>();
 				        }
 				    }
@@ -727,6 +762,10 @@ namespace Couchbase.Lite
 				    }
 				} while (nChanges > 0);
 			});
+
+            foreach (var args in allChanges) {
+                Changed?.Invoke(this, args);
+            }
         }
 
         private void PostDocChanged(string documentID)
@@ -762,6 +801,7 @@ namespace Couchbase.Lite
         /// </summary>
         public void Dispose()
         {
+            Console.WriteLine($"DATABASE CLOSED {Environment.StackTrace}");
             GC.SuppressFinalize(this);
             _threadSafety.DoLocked(() => Dispose(true));
         }

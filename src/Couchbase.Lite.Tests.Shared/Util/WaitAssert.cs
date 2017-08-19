@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
@@ -31,10 +32,43 @@ namespace Couchbase.Lite
 
         public IList<Exception> CaughtExceptions { get; } = new List<Exception>();
 
+        public static void WaitFor(TimeSpan timeout, params WaitAssert[] asserts)
+        {
+            foreach (var assert in asserts) {
+                assert.WaitForResult(timeout);
+            }
+        }
+
         public void RunAssert(Action assertAction)
         {
             try {
                 assertAction();
+            } catch (Exception e) {
+                _caughtException = e;
+                CaughtExceptions.Add(e);
+            } finally {
+                _mre.Set();
+            }
+        }
+
+        public async Task RunAssertAsync(Action assertAction)
+        {
+            try {
+                await Task.Factory.StartNew(assertAction);
+            }
+            catch (Exception e) {
+                _caughtException = e;
+                CaughtExceptions.Add(e);
+            }
+            finally {
+                _mre.Set();
+            }
+        }
+
+        public async Task RunAssertAsync<T>(Action<T> assertAction, T arg)
+        {
+            try {
+                await Task.Factory.StartNew(() => assertAction(arg));
             } catch (Exception e) {
                 _caughtException = e;
                 CaughtExceptions.Add(e);
@@ -55,6 +89,11 @@ namespace Couchbase.Lite
                     _mre.Set();
                 }
             }
+        }
+
+        public void Fulfill()
+        {
+            _mre.Set();
         }
 
         public void WaitForResult(TimeSpan timeout)
