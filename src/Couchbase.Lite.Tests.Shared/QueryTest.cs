@@ -356,21 +356,21 @@ namespace Test
         {
             LoadJSONResource("sentences");
 
-            Db.CreateIndex(new[] {"sentence"}, IndexType.FullTextIndex, null);
-            using (var q = Query.Select()
+            var sentence = Expression.Property("sentence");
+            var s_sentence = SelectResult.Expression(sentence);
+
+            var w = sentence.Match("'Dummie woman'");
+            var o = Ordering.Expression(Function.Rank(sentence)).Descending();
+
+            var index = Index.FTSIndex().On(FTSIndexItem.Expression(Expression.Property("sentence")));
+            Db.CreateIndex("sentence", index);
+            using (var q = Query.Select(DocID, s_sentence)
                 .From(DataSource.Database(Db))
-                .Where(Expression.Property("sentence").Match("'Dummie woman'"))
-                .OrderBy(Ordering.Property("rank(sentence)").Descending())) {
+                .Where(w)
+                .OrderBy(o)) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    // TODO: FTS API
-        //            var ftsRow = row as IFullTextQueryRow;
-        //            var text = ftsRow?.FullTextMatched;
-        //            text.Should()
-        //                .Contain("Dummie")
-        //                .And.Subject.Should()
-        //                .Contain("woman", "because otherwise the full text query failed");
-        //            ftsRow.MatchCount.Should().Be(2u, "because otherwise an incorrect number of matches was returned");
+                    
                 });
 
                 numRows.Should().Be(2, "because two rows in the data match the query");

@@ -385,6 +385,11 @@ namespace Couchbase.Lite.Query
             return new QueryFunction("RADIANS()", expression);
         }
 
+        public static IFunction Rank(IExpression property)
+        {
+            return new QueryFunction("RANK()", property);
+        }
+
         /// <summary>
         /// Creates a function that will round the given expression
         /// in question

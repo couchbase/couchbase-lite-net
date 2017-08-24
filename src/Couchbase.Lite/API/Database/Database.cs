@@ -241,6 +241,13 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
+        /// <summary>
+        /// Copies a database from the given path to be used as the database with
+        /// the given name and configuration
+        /// </summary>
+        /// <param name="path">The path (of the .cblite2 folder) to copy</param>
+        /// <param name="name">The name of the database to be used when opening</param>
+        /// <param name="config">The config to use when copying (for specifying directory, etc)</param>
         public static void Copy(string path, string name, DatabaseConfiguration config)
         {
             var destPath = DatabasePath(name, config.Directory);
@@ -362,35 +369,22 @@ namespace Couchbase.Lite
         /// <summary>
         /// Creates an index of the given type on the given path with the given configuration
         /// </summary>
-        /// <param name="expressions">The expressions to create the index on (must be either string
-        /// or IExpression)</param>
-        /// <param name="indexType">The type of index to create</param>
-        /// <param name="options">The configuration to apply to the index</param>
-        public void CreateIndex(IList expressions, IndexType indexType, IndexOptions options)
+        /// <param name="name">The name to give to the index (must be unique, or previous
+        /// index with the same name will be overwritten)</param>
+        /// <param name="index">The index to creaate</param>
+        public void CreateIndex(string name, IIndex index)
         {
             _threadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                var jsonObj = QueryExpression.EncodeToJSON(expressions);
+                var concreteIndex = Misc.TryCast<IIndex, QueryIndex>(index);
+                var jsonObj = concreteIndex.ToJSON();
                 var json = JsonConvert.SerializeObject(jsonObj);
                 LiteCoreBridge.Check(err =>
                 {
-                    var internalOpts = IndexOptions.Internal(options);
-                    return Native.c4db_createIndex(c4db, json, (C4IndexType) indexType, &internalOpts, err);
+                    var internalOpts = concreteIndex.Options;
+                    return Native.c4db_createIndex(c4db, name, json, concreteIndex.IndexType, &internalOpts, err);
                 });
-            });
-        }
-
-        /// <summary>
-        /// Creates an <see cref="IndexType.ValueIndex"/> index on the given path
-        /// </summary>
-        /// <param name="expressions">The expressions to create the index on</param>
-        public void CreateIndex(IList<IExpression> expressions)
-        {
-            _threadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                CreateIndex(expressions as IList, IndexType.ValueIndex, null);
             });
         }
 
@@ -426,16 +420,15 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Deletes an index of the given <see cref="IndexType"/> on the given propertyPath
+        /// Deletes the index with the given name
         /// </summary>
-        /// <param name="propertyPath">The path of the index to delete</param>
-        /// <param name="type">The type of the index to delete</param>
-        public void DeleteIndex(string propertyPath, IndexType type)
+        /// <param name="name">The name of the index to delete</param>
+        public void DeleteIndex(string name)
         {
             _threadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                LiteCoreBridge.Check(err => Native.c4db_deleteIndex(c4db, propertyPath, (C4IndexType) type, err));
+                LiteCoreBridge.Check(err => Native.c4db_deleteIndex(c4db, name, err));
             });
         }
 
@@ -445,6 +438,41 @@ namespace Couchbase.Lite
         /// <param name="id">The ID to use when creating or getting the document</param>
         /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
         public Document GetDocument(string id) => _threadSafety.DoLocked(() => GetDocument(id, true));
+
+        public IList<string> GetIndexes()
+        {
+            FLArray* array = null;
+            var retVal = new List<string>();
+            _threadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                C4SliceResult result = new C4SliceResult();
+                LiteCoreBridge.Check(err =>
+                {
+                    result = NativeRaw.c4db_getIndexes(c4db, err);
+                    return result.buf != null;
+                });
+
+                var val = NativeRaw.FLValue_FromTrustedData(new FLSlice(result.buf, result.size));
+                if (val == null) {
+                    throw new LiteCoreException(new C4Error(C4ErrorCode.CorruptIndexData));
+                }
+
+                array = Native.FLValue_AsArray(val);
+                if (array == null) {
+                    throw new LiteCoreException(new C4Error(C4ErrorCode.CorruptIndexData));
+                }
+            });
+
+            FLArrayIterator i;
+            Native.FLArrayIterator_Begin(array, &i);
+            while (Native.FLArrayIterator_Next(&i)) {
+                var next = Native.FLArrayIterator_GetValue(&i);
+                retVal.Add(Native.FLValue_AsString(next));
+            }
+
+            return retVal;
+        }
 
         /// <summary>
         /// Runs the given batch of operations as an atomic unit
@@ -538,9 +566,25 @@ namespace Couchbase.Lite
             LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
         }
 
-        internal void ChangeEncryptionKey(object key)
+        internal void ChangeEncryptionKey(IEncryptionKey key)
         {
-            throw new NotImplementedException();
+            _threadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                LiteCoreBridge.Check(err =>
+                {
+                    var newKey = new C4EncryptionKey {
+                        algorithm = C4EncryptionAlgorithm.AES256
+                    };
+
+                    var i = 0;
+                    foreach (var b in key.KeyData) {
+                        newKey.bytes[i++] = b;
+                    }
+
+                    return Native.c4db_rekey(c4db, &newKey, err);
+                });
+            });
         }
 
         internal void EndTransaction(bool commit)
@@ -701,9 +745,6 @@ namespace Couchbase.Lite
 
             var encrypted = "";
             if(Config.EncryptionKey != null) {
-#if true
-                throw new NotImplementedException("Encryption is not yet supported");
-#else
                 var key = Config.EncryptionKey;
                 int i = 0;
                 config.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
@@ -712,7 +753,6 @@ namespace Couchbase.Lite
                 }
 
                 encrypted = "encrypted ";
-#endif
             }
 
             Log.To.Database.I(Tag, $"Opening {encrypted}database at {path}");
