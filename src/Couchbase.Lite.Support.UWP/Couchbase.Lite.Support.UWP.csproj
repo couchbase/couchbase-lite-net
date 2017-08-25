@@ -199,30 +199,6 @@
       <Link>LiteCore.pdb</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Condition="'$(Platform)' == 'x86'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x86_store\RelWithDebInfo\sqlite3.dll">
-      <Link>sqlite3.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Condition="'$(Platform)' == 'x86'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x86_store\RelWithDebInfo\sqlite3.pdb">
-      <Link>sqlite3.pdb</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Condition="'$(Platform)' == 'x64'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x64_store\RelWithDebInfo\sqlite3.dll">
-      <Link>sqlite3.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Condition="'$(Platform)' == 'x64'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x64_store\RelWithDebInfo\sqlite3.pdb">
-      <Link>sqlite3.pdb</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Condition="'$(Platform)' == 'ARM'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\ARM\RelWithDebInfo\sqlite3.dll">
-      <Link>sqlite3.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Condition="'$(Platform)' == 'ARM'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\ARM\RelWithDebInfo\sqlite3.pdb">
-      <Link>sqlite3.pdb</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
