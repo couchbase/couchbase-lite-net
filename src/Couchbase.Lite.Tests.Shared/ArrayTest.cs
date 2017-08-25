@@ -492,6 +492,30 @@ namespace Test
         }
 
         [Fact]
+        public void TestGetFloat()
+        {
+            var array = new ArrayObject();
+            PopulateData(array);
+            array.Count.Should().Be(11, "because that is how many elements were inserted");
+
+            var doc = new Document("doc1");
+            SaveArray(array, doc, "array", a =>
+            {
+                a.GetFloat(0).Should().Be(1.0f, "because a boolean true becomes 1.0f");
+                a.GetFloat(1).Should().Be(0.0f, "because a boolean false becomes 0.0f");
+                a.GetFloat(2).Should().Be(0.0f, "because that is the default value");
+                a.GetFloat(3).Should().Be(0.0f, "because 0 becomes 0.0f");
+                a.GetFloat(4).Should().Be(1.0f, "because 1 becomes 1.0f");
+                a.GetFloat(5).Should().Be(-1.0f, "because -1 becomes -1.0f");
+                a.GetFloat(6).Should().Be(1.1f, "because that is the stored value");
+                a.GetFloat(7).Should().Be(0.0f, "because that is the default value");
+                a.GetFloat(8).Should().Be(0.0f, "because that is the default value");
+                a.GetFloat(9).Should().Be(0.0f, "because that is the default value");
+                a.GetFloat(10).Should().Be(0.0f, "because that is the default value");
+            });
+        }
+
+        [Fact]
         public void TestSetGetMinMaxNumbers()
         {
             var array = new ArrayObject {

@@ -74,6 +74,7 @@ namespace Couchbase.Lite.Internal.Doc
 
             private readonly FleeceArray _parent;
             private bool _first;
+            private readonly bool _empty;
             private FLArrayIterator _iter;
 
             #endregion
@@ -85,7 +86,7 @@ namespace Couchbase.Lite.Internal.Doc
                 get {
                     fixed (FLArrayIterator* i = &_iter) {
                         var val = Native.FLArrayIterator_GetValue(i);
-                        return FLValueConverter.ToObject(val, _parent.Database.SharedStrings);
+                        return FLValueConverter.ToObject(val, _parent.Database?.SharedStrings);
                     }
                 }
             }
@@ -100,6 +101,9 @@ namespace Couchbase.Lite.Internal.Doc
             {
                 _first = true;
                 _parent = parent;
+                if (Native.FLArray_Count(_parent.Array) == 0) {
+                    _empty = true;
+                }
             }
 
             #endregion
@@ -117,6 +121,10 @@ namespace Couchbase.Lite.Internal.Doc
 
             public bool MoveNext()
             {
+                if (_empty) {
+                    return false;
+                }
+
                 if (_first) {
                     _first = false;
                     fixed (FLArrayIterator* i = &_iter) {

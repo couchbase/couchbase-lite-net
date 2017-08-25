@@ -29,6 +29,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Logging;
@@ -464,11 +465,9 @@ namespace Couchbase.Lite
                 }
             });
 
-            FLArrayIterator i;
-            Native.FLArrayIterator_Begin(array, &i);
-            while (Native.FLArrayIterator_Next(&i)) {
-                var next = Native.FLArrayIterator_GetValue(&i);
-                retVal.Add(Native.FLValue_AsString(next));
+            var flArray = new FleeceArray(array, null, null);
+            foreach (var obj in flArray) {
+                retVal.Add(obj as string);
             }
 
             return retVal;
@@ -759,11 +758,16 @@ namespace Couchbase.Lite
             var localConfig1 = config;
             _threadSafety.DoLocked(() =>
             {
-                _c4db = (C4Database*) LiteCoreBridge.Check(err =>
-                {
-                    var localConfig2 = localConfig1;
-                    return Native.c4db_open(path, &localConfig2, err);
-                });
+                _c4db = (C4Database*) NativeHandler.Create()
+                    .AllowError((int) C4ErrorCode.NotADatabaseFile, C4ErrorDomain.LiteCoreDomain).Execute(err =>
+                    {
+                        var localConfig2 = localConfig1;
+                        return Native.c4db_open(path, &localConfig2, err);
+                    });
+
+                if (_c4db == null) {
+                    throw new CouchbaseLiteException(StatusCode.Unauthorized);
+                }
 
                 _obs = Native.c4dbobs_create(_c4db, _DbObserverCallback, this);
             });

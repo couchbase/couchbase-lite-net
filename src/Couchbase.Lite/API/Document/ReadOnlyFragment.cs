@@ -137,6 +137,17 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
+        /// Gets the contained value as a <see cref="Single"/>
+        /// </summary>
+        /// <returns>The cast contained value</returns>
+        /// <remarks><c>true</c> will be converted to 1.0f, and everything else that
+        /// is non-numeric will be 0.0f</remarks>
+        public float ToFloat()
+        {
+            return DataOps.ConvertToFloat(Value);
+        }
+
+        /// <summary>
         /// Gets the contained value as an <see cref="Int32"/>
         /// </summary>
         /// <returns>The cast contained value</returns>

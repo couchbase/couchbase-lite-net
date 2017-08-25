@@ -47,6 +47,12 @@ namespace Couchbase.Lite
         Reserved = 0,
 
         /// <summary>
+        /// The current user does not have the authorization to perform the current action,
+        /// or a given password was incorrect (HTTP compliant)
+        /// </summary>
+        Unauthorized = 401,
+
+        /// <summary>
         /// The requested action is not allowed to be executed by any user (HTTP compliant)
         /// </summary>
         Forbidden = 403,

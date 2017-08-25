@@ -209,6 +209,7 @@ namespace Test
             {
                 d.GetInt("key").Should().Be(0, "because no integer exists for this key");
                 d.GetDouble("key").Should().Be(0.0, "because no double exists for this key");
+                d.GetFloat("key").Should().Be(0.0f, "because no float exists for this key");
                 d.GetBoolean("key").Should().BeFalse("because no boolean exists for this key");
                 d.GetBlob("key").Should().BeNull("because no blob exists for this key");
                 d.GetDate("key").Should().Be(DateTimeOffset.MinValue, "because no date exists for this key");
@@ -228,6 +229,7 @@ namespace Test
 
             doc.GetInt("key").Should().Be(0, "because no integer exists for this key");
             doc.GetDouble("key").Should().Be(0.0, "because no double exists for this key");
+            doc.GetFloat("key").Should().Be(0.0f, "because no float exists for this key");
             doc.GetBoolean("key").Should().BeFalse("because no boolean exists for this key");
             doc.GetBlob("key").Should().BeNull("because no blob exists for this key");
             doc.GetDate("key").Should().Be(DateTimeOffset.MinValue, "because no date exists for this key");
@@ -413,6 +415,28 @@ namespace Test
         }
 
         [Fact]
+        public void TestGetFloat()
+        {
+            var doc = new Document("doc1");
+            PopulateData(doc);
+            SaveDocument(doc, d =>
+            {
+                d.GetFloat("true").Should().Be(1.0f, "because a true bool value will be coalesced to 1.0f");
+                d.GetFloat("false").Should().Be(0.0f, "because a false bool value will be coalesced to 0.0f");
+                d.GetFloat("string").Should().Be(0.0f, "because that is the default value");
+                d.GetFloat("zero").Should().Be(0.0f, "because zero was stored in this key");
+                d.GetFloat("one").Should().Be(1.0f, "because one was stored in this key");
+                d.GetFloat("minus_one").Should().Be(-1.0f, "because -1 was stored in this key");
+                d.GetFloat("one_dot_one").Should().Be(1.1f, "because 1.1f was stored in this key");
+                d.GetFloat("date").Should().Be(0.0f, "because that is the default value");
+                d.GetFloat("dict").Should().Be(0.0f, "because that is the default value");
+                d.GetFloat("array").Should().Be(0.0f, "because that is the default value");
+                d.GetFloat("blob").Should().Be(0.0f, "because that is the default value");
+                d.GetFloat("non_existing_key").Should().Be(0.0f, "because that key has no value");
+            });
+        }
+
+        [Fact]
         public void TestSetGetMinMaxNumbers()
         {
             var doc = new Document("doc1");
@@ -420,6 +444,8 @@ namespace Test
             doc.Set("max_int", Int64.MaxValue);
             doc.Set("min_double", Double.MinValue);
             doc.Set("max_double", Double.MaxValue);
+            doc.Set("min_float", Single.MinValue);
+            doc.Set("max_float", Single.MaxValue);
 
             SaveDocument(doc, d =>
             {
@@ -427,6 +453,8 @@ namespace Test
                 d.GetLong("max_int").Should().Be(Int64.MaxValue, "because that is what was stored");
                 d.GetDouble("min_double").Should().Be(Double.MinValue, "because that is what was stored");
                 d.GetDouble("max_double").Should().Be(Double.MaxValue, "because that is what was stored");
+                d.GetFloat("min_float").Should().Be(Single.MinValue, "because that is what was stored");
+                d.GetFloat("max_float").Should().Be(Single.MaxValue, "because that is what was stored");
             });
         }
 
@@ -1143,6 +1171,7 @@ namespace Test
 
             doc.GetString("name").Should().BeNull("because it was removed");
             doc.GetDouble("weight").Should().Be(0.0, "because it was removed");
+            doc.GetFloat("weight").Should().Be(0.0f, "because it was removed");
             doc.GetLong("age").Should().Be(0L, "because it was removed");
             doc.GetBoolean("active").Should().BeFalse("because it was removed");
 

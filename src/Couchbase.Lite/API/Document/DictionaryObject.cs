@@ -277,6 +277,17 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
+        public override float GetFloat(string key)
+        {
+            object value;
+            if (!_dict.TryGetValue(key, out value)) {
+                return base.GetFloat(key);
+            }
+
+            return DataOps.ConvertToFloat(value);
+        }
+
+        /// <inheritdoc />
         public override int GetInt(string key)
         {
             object value;

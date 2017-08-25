@@ -350,6 +350,12 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
+        public override float GetFloat(string key)
+        {
+            return _dict.GetFloat(key);
+        }
+
+        /// <inheritdoc />
         public override int GetInt(string key)
         {
             return _dict.GetInt(key);

@@ -72,6 +72,15 @@ namespace Test
         }
 
         [Fact]
+        public void TestCreateWithDefaultConfiguration()
+        {
+            using (var db = new Database("db", new DatabaseConfiguration())) {
+                db.Count.Should().Be(0);
+                DeleteDB(db);
+            }
+        }
+
+        [Fact]
         public void TestCreateWithSpecialCharacterDBNames()
         {
             using (var db = OpenDB("`~@#$%&'()_+{}][=-.,;'")) {
@@ -619,11 +628,11 @@ namespace Test
             DeleteDB(Db);
         }
 
-        //[Fact] Known failure, possibly invalid
+        [Fact]
         public void TestDeleteTwice()
         {
-            DeleteDB(Db);
-            DeleteDB(Db);
+            Db.Delete();
+            Db.Invoking(d => d.Delete()).ShouldThrow<InvalidOperationException>();
         }
 
         [Fact]
@@ -696,6 +705,31 @@ namespace Test
                         "because an in-use database cannot be deleted");
             }
         }
+        
+        [Fact]
+        public void TestDeleteWithDefaultDirDB()
+        {
+            string path;
+            using (var db = new Database("db")) {
+                path = db.Path;
+                path.Should().NotBeNull();
+            }
+
+            Database.Delete("db", null);
+            System.IO.Directory.Exists(path).Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestDeleteOpeningDBWithDefaultDir()
+        {
+            using (var db = new Database("db")) {
+                Action a = () =>
+                {
+                    Database.Delete("db", null);
+                };
+                a.ShouldThrow<LiteCoreException>().Which.Error.Should().Be(new C4Error(C4ErrorCode.Busy));
+            }
+        }
 
         [Fact]
         public void TestDeleteByStaticMethod()
@@ -733,10 +767,31 @@ namespace Test
         }
 
         [Fact]
+        public void TestDeleteNonExistingDBWithDefaultDir()
+        {
+            // Expect no-op
+            Database.Delete("notexistdb", null);
+        }
+
+        [Fact]
         public void TestDeleteNonExistingDB()
         {
             // Expect no-op
             Database.Delete("notexistdb", Directory);
+        }
+
+        [Fact]
+        public void TestDatabaseExistsWithDefaultDir()
+        {
+            Database.Delete("db", null);
+            Database.Exists("db", null).Should().BeFalse();
+
+            using (var db = new Database("db")) {
+                Database.Exists("db", null).Should().BeTrue();
+                DeleteDB(db);
+            }
+
+            Database.Exists("db", null).Should().BeFalse();
         }
 
         [Fact]
@@ -761,12 +816,18 @@ namespace Test
         }
 
         [Fact]
-        public void TestDatabaseExistsAainstNonExistDB()
+        public void TestDatabaseExistsAgainstNonExistDBWithDefaultDir()
+        {
+            Database.Exists("nonexist", null).Should().BeFalse("because that DB does not exist");
+        }
+
+        [Fact]
+        public void TestDatabaseExistsAgainstNonExistDB()
         {
             Database.Exists("nonexist", Directory).Should().BeFalse("because that DB does not exist");
         }
 
-        //[Fact] Needs LiteCore fix
+        [Fact]
         public void TestCompact()
         {
             var docs = CreateDocs(20);
@@ -917,6 +978,141 @@ namespace Test
             }
 
             Database.Delete(dbName, dir);
+        }
+
+        [Fact]
+        public void TestCreateIndex()
+        {
+            Db.GetIndexes().Should().BeEmpty();
+
+            var fName = Expression.Property("firstName");
+            var lName = Expression.Property("lastName");
+
+            var fNameItem = ValueIndexItem.Expression(fName);
+            var lNameItem = ValueIndexItem.Expression(lName);
+
+            var index1 = Index.ValueIndex().On(fNameItem, lNameItem);
+            Db.CreateIndex("index1", index1);
+
+            var detail = Expression.Property("detail");
+            var detailItem = FTSIndexItem.Expression(detail);
+            var index2 = Index.FTSIndex().On(detailItem);
+            Db.CreateIndex("index2", index2);
+
+            var detail2 = Expression.Property("es-detail");
+            var detailItem2 = FTSIndexItem.Expression(detail2);
+            var index3 = Index.FTSIndex().On(detailItem2).IgnoreAccents(true).SetLocale("es");
+            Db.CreateIndex("index3", index3);
+
+            Db.GetIndexes().ShouldBeEquivalentTo(new[] {"index1", "index2", "index3"});
+        }
+
+        [Fact]
+        public void TestCreateSameIndexTwice()
+        {
+            var item = ValueIndexItem.Expression(Expression.Property("firstName"));
+            var index = Index.ValueIndex().On(item);
+            Db.CreateIndex("myindex", index);
+            Db.CreateIndex("myindex", index);
+
+            Db.GetIndexes().ShouldBeEquivalentTo(new[] {"myindex"});
+        }
+
+        [Fact]
+        public void TestCreateSameNameIndexes()
+        {
+            var fName = Expression.Property("firstName");
+            var lName = Expression.Property("lastName");
+            var detail = Expression.Property("detail");
+
+            var fNameItem = ValueIndexItem.Expression(fName);
+            var fNameIndex = Index.ValueIndex().On(fNameItem);
+            Db.CreateIndex("myindex", fNameIndex);
+
+            var lNameItem = ValueIndexItem.Expression(lName);
+            var lNameIndex = Index.ValueIndex().On(lNameItem);
+            Db.CreateIndex("myindex", lNameIndex);
+
+            Db.GetIndexes().ShouldBeEquivalentTo(new[] {"myindex"}, "because lNameIndex should overwrite fNameIndex");
+
+            var detailItem = FTSIndexItem.Expression(detail);
+            var detailIndex = Index.FTSIndex().On(detailItem);
+            Db.CreateIndex("myindex", detailIndex);
+
+            Db.GetIndexes().ShouldBeEquivalentTo(new[] { "myindex" }, "because detailIndex should overwrite lNameIndex");
+        }
+
+        [Fact]
+        public void TestDeleteIndex()
+        {
+            TestCreateIndex();
+
+            Db.DeleteIndex("index1");
+            Db.GetIndexes().ShouldBeEquivalentTo(new[] {"index2", "index3"});
+
+            Db.DeleteIndex("index2");
+            Db.GetIndexes().ShouldBeEquivalentTo(new[] { "index3" });
+
+            Db.DeleteIndex("index3");
+            Db.GetIndexes().Should().BeEmpty();
+
+            Db.DeleteIndex("dummy");
+            Db.DeleteIndex("index1");
+            Db.DeleteIndex("index2");
+            Db.DeleteIndex("index3");
+        }
+
+        [Fact]
+        public void TestEncryption()
+        {
+            Database.Delete("seekrit", Directory);
+            var key = new SymmetricKey("letmein");
+            var wrongKey = new SymmetricKey("dontletmein");
+            var config = new DatabaseConfiguration {
+                Directory = Directory,
+                EncryptionKey = key
+            };
+
+            using (var encryptedDb = new Database("seekrit", config))
+            using (var doc = new Document("company_earnings")) {
+                doc.Set("value", 1000000000);
+                encryptedDb.Save(doc);
+            }
+
+            Action badAction = () =>
+            {
+                config.EncryptionKey = wrongKey;
+                var badDb = new Database("seekrit", config);
+            };
+            badAction.ShouldThrow<CouchbaseLiteException>().Which.Status.Should()
+                .Be(StatusCode.Unauthorized);
+
+            badAction = () =>
+            {
+                config.EncryptionKey = null;
+                var badDb = new Database("seekrit", config);
+            };
+            badAction.ShouldThrow<CouchbaseLiteException>().Which.Status.Should()
+                .Be(StatusCode.Unauthorized);
+
+            config.EncryptionKey = key;
+            using (var encryptedDb = new Database("seekrit", config)) {
+                encryptedDb.Count.Should().Be(1);
+                encryptedDb.ChangeEncryptionKey(wrongKey);
+            }
+
+            badAction = () =>
+            {
+                var badDb = new Database("seekrit", config);
+            };
+            badAction.ShouldThrow<CouchbaseLiteException>().Which.Status.Should()
+                .Be(StatusCode.Unauthorized);
+
+            config.EncryptionKey = wrongKey;
+            using (var encryptedDb = new Database("seekrit", config)) {
+                encryptedDb.Count.Should().Be(1);
+                encryptedDb.ChangeEncryptionKey(wrongKey);
+            }
         }
 
         private void DeleteDB(Database db)

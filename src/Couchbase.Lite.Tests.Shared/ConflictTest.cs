@@ -220,11 +220,19 @@ namespace Test
 
     internal class MergeThenTheirsWins : IConflictResolver
     {
+        public bool RequireBaseRevision { get; set; }
+
         public ReadOnlyDocument Resolve(Conflict conflict)
         {
+            if (RequireBaseRevision) {
+                conflict.Base.Should().NotBeNull();
+            }
+
             var resolved = new Document();
-            foreach (var pair in conflict.Base) {
-                resolved.Set(pair.Key, pair.Value);
+            if (conflict.Base != null) {
+                foreach (var pair in conflict.Base) {
+                    resolved.Set(pair.Key, pair.Value);
+                }
             }
 
             var changed = new HashSet<string>();

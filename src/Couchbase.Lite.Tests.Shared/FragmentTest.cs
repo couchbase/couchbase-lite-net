@@ -101,6 +101,7 @@ namespace Test
                 fragment.ToInt().Should().Be(0, "because that is the default value");
                 fragment.ToLong().Should().Be(0L, "because that is the default value");
                 fragment.ToDouble().Should().Be(0.0, "because that is the default value");
+                fragment.ToFloat().Should().Be(0.0f, "because that is the default value");
                 fragment.ToBoolean().Should().Be(true, "because that is the non-zero value");
                 fragment.ToDate().Should().Be(DateTimeOffset.MinValue, "because that is the default value");
                 fragment.ToObject().Should().NotBeNull("because this fragment has a value");
@@ -143,6 +144,7 @@ namespace Test
                 fragment.ToInt().Should().Be(0, "because that is the default value");
                 fragment.ToLong().Should().Be(0L, "because that is the default value");
                 fragment.ToDouble().Should().Be(0.0, "because that is the default value");
+                fragment.ToFloat().Should().Be(0.0f, "because that is the default value");
                 fragment.ToBoolean().Should().Be(true, "because that is the non-zero value");
                 fragment.ToDate().Should().Be(DateTimeOffset.MinValue, "because that is the default value");
                 fragment.ToObject().Should().NotBeNull("because this fragment has a value");
@@ -173,6 +175,30 @@ namespace Test
                 fragment.ToInt().Should().Be(10, "because that is the stored value");
                 fragment.ToLong().Should().Be(10L, "because that is the converted value");
                 fragment.ToDouble().Should().Be(10.0, "because that is the converted value");
+                fragment.ToFloat().Should().Be(10.0f, "because that is the converted value");
+                fragment.ToBoolean().Should().Be(true, "because that is the converted value");
+                fragment.ToDate().Should().Be(DateTimeOffset.MinValue, "because that is the default value");
+                fragment.ToObject().Should().NotBeNull("because this fragment has a value");
+                fragment.Value.Should().NotBeNull("because this fragment has a value");
+            });
+        }
+
+        [Fact]
+        public void TestGetFragmentFromFloat()
+        {
+            var doc = new Document("doc1");
+            doc.Set("float", 100.10f);
+            SaveDocument(doc, d =>
+            {
+                var fragment = d["float"];
+                fragment.Exists.Should().BeTrue("because this portion of the data exists");
+                fragment.ToString().Should().BeNull("because this fragment is not of this type");
+                fragment.ToArray().Should().BeNull("because this fragment is not of this type");
+                fragment.ToDictionary().Should().BeNull("because this fragment is not of this type");
+                fragment.ToInt().Should().Be(100, "because that is the stored value");
+                fragment.ToLong().Should().Be(100L, "because that is the converted value");
+                fragment.ToFloat().Should().Be(100.10f, "because that is the stored value");
+                fragment.ToDouble().Should().BeApproximately(100.10, 0.0001, "because that is the converted value");
                 fragment.ToBoolean().Should().Be(true, "because that is the converted value");
                 fragment.ToDate().Should().Be(DateTimeOffset.MinValue, "because that is the default value");
                 fragment.ToObject().Should().NotBeNull("because this fragment has a value");
@@ -195,6 +221,7 @@ namespace Test
                 fragment.ToInt().Should().Be(10, "because that is the converted value");
                 fragment.ToLong().Should().Be(10L, "because that is the stored value");
                 fragment.ToDouble().Should().Be(10.0, "because that is the converted value");
+                fragment.ToFloat().Should().Be(10.0f, "because that is the converted value");
                 fragment.ToBoolean().Should().Be(true, "because that is the converted value");
                 fragment.ToDate().Should().Be(DateTimeOffset.MinValue, "because that is the default value");
                 fragment.ToObject().Should().NotBeNull("because this fragment has a value");
@@ -217,6 +244,7 @@ namespace Test
                 fragment.ToInt().Should().Be(100, "because that is the converted value");
                 fragment.ToLong().Should().Be(100L, "because that is the converted value");
                 fragment.ToDouble().Should().Be(100.10, "because that is the stored value");
+                fragment.ToFloat().Should().Be(100.10f, "because that is the default value");
                 fragment.ToBoolean().Should().Be(true, "because that is the converted value");
                 fragment.ToDate().Should().Be(DateTimeOffset.MinValue, "because that is the default value");
                 fragment.ToObject().Should().NotBeNull("because this fragment has a value");
@@ -239,6 +267,7 @@ namespace Test
                 fragment.ToInt().Should().Be(1, "because that is the converted value");
                 fragment.ToLong().Should().Be(1L, "because that is the converted value");
                 fragment.ToDouble().Should().Be(1.0, "because that is the converted value");
+                fragment.ToFloat().Should().Be(1.0f, "because that is the converted value");
                 fragment.ToBoolean().Should().Be(true, "because that is the stored value");
                 fragment.ToDate().Should().Be(DateTimeOffset.MinValue, "because that is the default value");
                 fragment.ToObject().Should().NotBeNull("because this fragment has a value");
@@ -262,6 +291,7 @@ namespace Test
                 fragment.ToInt().Should().Be(0, "because that is the default value");
                 fragment.ToLong().Should().Be(0L, "because that is the default value");
                 fragment.ToDouble().Should().Be(0.0, "because that is the default value");
+                fragment.ToFloat().Should().Be(0.0f, "because that is the default value");
                 fragment.ToBoolean().Should().Be(true, "because that is the non-zero value");
                 fragment.ToDate().Should().Be(date, "because that is the stored value");
                 fragment.ToObject().Should().NotBeNull("because this fragment has a value");
@@ -284,6 +314,7 @@ namespace Test
                 fragment.ToInt().Should().Be(0, "because that is the default value");
                 fragment.ToLong().Should().Be(0L, "because that is the default value");
                 fragment.ToDouble().Should().Be(0.0, "because that is the default value");
+                fragment.ToFloat().Should().Be(0.0f, "because that is the default value");
                 fragment.ToBoolean().Should().Be(true, "because that is the non-zero value");
                 fragment.ToDate().Should().Be(DateTimeOffset.MinValue, "because that is the default value");
                 fragment.ToObject().Should().NotBeNull("because this fragment has a value");
@@ -320,6 +351,7 @@ namespace Test
                 fragment.ToInt().Should().Be(0, "because that is the default value");
                 fragment.ToLong().Should().Be(0L, "because that is the default value");
                 fragment.ToDouble().Should().Be(0.0, "because that is the default value");
+                fragment.ToFloat().Should().Be(0.0f, "because that is the default value");
                 fragment.ToBoolean().Should().Be(true, "because that is the non-zero value");
                 fragment.ToDate().Should().Be(DateTimeOffset.MinValue, "because that is the default value");
                 fragment.ToObject().Should().NotBeNull("because this fragment has a value");
@@ -359,6 +391,7 @@ namespace Test
                 fragment.ToInt().Should().Be(0, "because that is the default value");
                 fragment.ToLong().Should().Be(0L, "because that is the default value");
                 fragment.ToDouble().Should().Be(0.0, "because that is the default value");
+                fragment.ToFloat().Should().Be(0.0f, "because that is the default value");
                 fragment.ToBoolean().Should().Be(false, "because that is the default value");
                 fragment.ToDate().Should().Be(DateTimeOffset.MinValue, "because that is the default value");
                 fragment.ToObject().Should().BeNull("because this fragment doesn't have a value");
@@ -387,6 +420,7 @@ namespace Test
                 fragment.ToInt().Should().Be(0, "because that is the default value");
                 fragment.ToLong().Should().Be(0L, "because that is the default value");
                 fragment.ToDouble().Should().Be(0.0, "because that is the default value");
+                fragment.ToFloat().Should().Be(0.0f, "because that is the default value");
                 fragment.ToBoolean().Should().Be(true, "because that is the default value");
                 fragment.ToDate().Should().Be(DateTimeOffset.MinValue, "because that is the default value");
                 fragment.ToObject().Should().NotBeNull("because this fragment has a value");
@@ -423,6 +457,7 @@ namespace Test
                 fragment.ToInt().Should().Be(0, "because that is the default value");
                 fragment.ToLong().Should().Be(0L, "because that is the default value");
                 fragment.ToDouble().Should().Be(0.0, "because that is the default value");
+                fragment.ToFloat().Should().Be(0.0f, "because that is the default value");
                 fragment.ToBoolean().Should().Be(false, "because that is the default value");
                 fragment.ToDate().Should().Be(DateTimeOffset.MinValue, "because that is the default value");
                 fragment.ToObject().Should().BeNull("because this fragment doesn't have a value");
@@ -440,6 +475,7 @@ namespace Test
             doc["bool"].Value = true;
             doc["int"].Value = 7;
             doc["long"].Value = 8L;
+            doc["float"].Value = 2.2f;
             doc["double"].Value = 3.3;
             doc["date"].Value = date;
 
@@ -450,6 +486,7 @@ namespace Test
                 d["int"].ToInt().Should().Be(7, "because that is what was stored");
                 d["long"].ToLong().Should().Be(8L, "because that is what was stored");
                 d["double"].ToDouble().Should().Be(3.3, "because that is what was stored");
+                d["float"].ToFloat().Should().Be(2.2f, "because that is what was stored");
                 d["date"].ToDate().Should().Be(date, "because that is what was stored");
             });
         }
