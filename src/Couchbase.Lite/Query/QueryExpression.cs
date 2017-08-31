@@ -37,7 +37,6 @@ namespace Couchbase.Lite.Internal.Query
         #region Variables
 
         private object _serialized;
-		private bool _hasMatchClause;
 
         #endregion
 
@@ -240,11 +239,6 @@ namespace Couchbase.Lite.Internal.Query
 
         public IExpression Match(object expression)
         {
-			if(_hasMatchClause) {
-				throw new InvalidOperationException("An IExpression can only have one match clause present");
-			}
-
-			_hasMatchClause = true;
             return GetOperator(BinaryOpType.Matches, expression);
         }
 
