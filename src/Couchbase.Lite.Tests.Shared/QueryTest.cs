@@ -1022,23 +1022,27 @@ namespace Test
             locale.SetOperand(Expression.Property("test") as QueryExpression);
 
             bothSensitive.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object> {
-                ["UNICODE"] = true
+                ["UNICODE"] = true,
+				["LOCALE"] = Collation.DefaultLocale
             }, new[] { ".test" }});
             accentSensitive.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
             {
                 ["UNICODE"] = true,
-                ["CASE"] = false
+                ["CASE"] = false,
+				["LOCALE"] = Collation.DefaultLocale
             }, new[] { ".test" }});
             caseSensitive.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
             {
                 ["UNICODE"] = true,
-                ["DIAC"] = false
+                ["DIAC"] = false,
+				["LOCALE"] = Collation.DefaultLocale
             }, new[] { ".test" }});
             noSensitive.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
             {
                 ["UNICODE"] = true,
                 ["DIAC"] = false,
-                ["CASE"] = false
+                ["CASE"] = false,
+				["LOCALE"] = Collation.DefaultLocale
             }, new[] { ".test" }});
             ascii.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
             {
@@ -1055,7 +1059,6 @@ namespace Test
             }, new[] { ".test" }});
         }
 
-#if !__ANDROID__
         [Fact]
         public void TestLocale()
         {
@@ -1225,7 +1228,6 @@ namespace Test
                 }
             }
         }
-#endif
 
         private bool TestWhereCompareValidator(IDictionary<string, object> properties, object context)
         {

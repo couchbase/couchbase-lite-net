@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 
+using System.Globalization;
 using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
@@ -28,6 +29,8 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public static class Collation
     {
+		public static readonly string DefaultLocale = CultureInfo.CurrentCulture.Name == "" ?
+																 "en" : CultureInfo.CurrentCulture.Name.Replace('-', '_');
         /// <summary>
         /// Creates an ASCII based collation instance
         /// </summary>

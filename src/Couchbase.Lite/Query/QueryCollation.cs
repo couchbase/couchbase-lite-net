@@ -19,13 +19,14 @@
 // limitations under the License.
 // 
 using System.Collections.Generic;
+using System.Globalization;
 using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
 {
     internal sealed class QueryCollation : QueryExpression, IASCIICollation, IUnicodeCollation
     {
-        #region Variables
+		#region Variables
 
         private readonly Dictionary<string, object> _collation = new Dictionary<string, object>();
         private List<object> _json;
@@ -38,6 +39,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             if (unicodeAware) {
                 _collation["UNICODE"] = true;
+				_collation["LOCALE"] = Collation.DefaultLocale;
             }
         }
 

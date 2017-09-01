@@ -160,11 +160,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <AndroidAsset Include="Assets\C\tests\data\iTunesMusicLibrary.json" />
-    <AndroidAsset Include="Assets\C\tests\data\names_100.json" />
-    <AndroidAsset Include="Assets\C\tests\data\nested.json" />
-    <AndroidAsset Include="Assets\C\tests\data\sentences.json" />
-    <AndroidAsset Include="Assets\C\tests\data\states_titlecase.json" />
+    <AndroidAsset Include="Assets\C\tests\data\*.*" />
     <None Include="packages.config" />
     <None Include="Resources\AboutResources.txt" />
   </ItemGroup>

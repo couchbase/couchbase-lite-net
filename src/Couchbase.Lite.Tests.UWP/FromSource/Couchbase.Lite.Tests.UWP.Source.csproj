@@ -118,20 +118,8 @@
     </ApplicationDefinition>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\Assets\C\tests\data\iTunesMusicLibrary.json">
-      <Link>Assets\C\tests\data\iTunesMusicLibrary.json</Link>
-    </Content>
-    <Content Include="..\Assets\C\tests\data\names_100.json">
-      <Link>Assets\C\tests\data\names_100.json</Link>
-    </Content>
-    <Content Include="..\Assets\C\tests\data\nested.json">
-      <Link>Assets\C\tests\data\nested.json</Link>
-    </Content>
-    <Content Include="..\Assets\C\tests\data\sentences.json">
-      <Link>Assets\C\tests\data\sentences.json</Link>
-    </Content>
-    <Content Include="..\Assets\C\tests\data\states_titlecase.json">
-      <Link>Assets\C\tests\data\states_titlecase.json</Link>
+    <Content Include="..\Assets\C\tests\data\*.*">
+      <Link>Assets\C\tests\data\%(Filename)%(Extension)</Link>
     </Content>
     <Content Include="..\Assets\localhost-wrong.cert">
       <Link>Assets\localhost-wrong.cert</Link>

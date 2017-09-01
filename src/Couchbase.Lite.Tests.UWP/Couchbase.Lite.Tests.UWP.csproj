@@ -117,11 +117,7 @@
     <AppxManifest Include="Package.appxmanifest">
       <SubType>Designer</SubType>
     </AppxManifest>
-    <Content Include="Assets\C\tests\data\iTunesMusicLibrary.json" />
-    <Content Include="Assets\C\tests\data\names_100.json" />
-    <Content Include="Assets\C\tests\data\nested.json" />
-    <Content Include="Assets\C\tests\data\sentences.json" />
-    <Content Include="Assets\C\tests\data\states_titlecase.json" />
+    <Content Include="Assets\C\tests\data\*.*" />
     <Content Include="Assets\localhost-wrong.cert" />
     <None Include="Couchbase.Lite.Tests.UWP_TemporaryKey.pfx" />
   </ItemGroup>
