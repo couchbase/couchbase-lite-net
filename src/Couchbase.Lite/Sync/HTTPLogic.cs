@@ -20,13 +20,16 @@
 // 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite.Sync
 {
@@ -37,9 +40,11 @@ namespace Couchbase.Lite.Sync
         private const int MaxRedirects = 10;
         private const string Tag = nameof(HTTPLogic);
 
-        #endregion
+		#endregion
 
-        #region Variables
+		#region Variables
+
+		public static readonly string UserAgent = GetUserAgent();
 
         private readonly Dictionary<string, string> _headers = new Dictionary<string, string>();
         private string _authorizationHeader;
@@ -103,20 +108,11 @@ namespace Couchbase.Lite.Sync
 
         #region Public Methods
 
-        public static string UserAgent()
-        {
-            var versionAtt = (AssemblyInformationalVersionAttribute)typeof(Database).GetTypeInfo().Assembly
-                .GetCustomAttribute(typeof(AssemblyInformationalVersionAttribute));
-            var version = versionAtt?.InformationalVersion ?? "<unknown version>";
-            return $"Couchbase Lite .NET Application/{version} ({RuntimeInformation.OSDescription} " +
-                $"[{RuntimeInformation.ProcessArchitecture}] {RuntimeInformation.FrameworkDescription})";
-        }
-
         public byte[] HTTPRequestData()
         {
             var stringBuilder = new StringBuilder($"GET {_urlRequest.Path} HTTP/1.1\r\n");
             if (!_headers.ContainsKey("User-Agent")) {
-                _headers["User-Agent"] = UserAgent();
+                _headers["User-Agent"] = UserAgent;
             }
 
             if (!_headers.ContainsKey("Host")) {
@@ -205,6 +201,41 @@ namespace Couchbase.Lite.Sync
 
             return null;
         }
+
+		private static string GetUserAgent()
+		{
+
+			var versionAtt = (AssemblyInformationalVersionAttribute)typeof(Database).GetTypeInfo().Assembly
+				.GetCustomAttribute(typeof(AssemblyInformationalVersionAttribute));
+			var version = versionAtt?.InformationalVersion ?? "Unknown";
+			var regex = new Regex("([0-9]+\\.[0-9]+\\.[0-9]+\\.)-b([0-9]+)");
+			var build = "0";
+			var commit = "unknown";
+			if (regex.IsMatch(version))
+			{
+				var match = regex.Match(version);
+				build = match.Groups[2].Value;
+				version = match.Groups[1].Value;
+			}
+
+			try
+			{
+				var st = typeof(Database).GetTypeInfo().Assembly.GetManifestResourceStream("version");
+				using (var reader = new StreamReader(st, Encoding.ASCII, false, 32, false))
+				{
+					commit = reader.ReadToEnd();
+				}
+			}
+			catch (Exception e)
+			{
+				Log.To.NoDomain.W(Tag, "Error getting commit information", e);
+			}
+
+			var runtimePlatform = Service.Provider.GetService<IRuntimePlatform>();
+			var osDescription = runtimePlatform?.OSDescription ?? RuntimeInformation.OSDescription;
+			var hardware = runtimePlatform != null ? $"; {runtimePlatform.HardwareName}" : "";
+			return $"CouchbaseLite/{version} (.NET; {osDescription}{hardware}) Build/{build} Commit/{commit}";
+		}
 
         private Dictionary<string, string> ParseAuthHeader(string authResponse)
         {

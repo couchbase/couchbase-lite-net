@@ -172,21 +172,7 @@ namespace Couchbase.Lite
         {
             _DbObserverCallback = DbObserverCallback;
             _DocObserverCallback = DocObserverCallback;
-
-            try {
-                var version = typeof(Database).GetTypeInfo().Assembly
-                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-                    .InformationalVersion;
-                var st = typeof(Database).GetTypeInfo().Assembly.GetManifestResourceStream("version");
-                string gitInfo;
-                using (var reader = new StreamReader(st, Encoding.ASCII, false, 32, false)) {
-                    gitInfo = reader.ReadToEnd();
-                }
-
-                Log.To.NoDomain.I("Startup", $"Couchbase Lite {version} ({gitInfo})");
-            } catch (Exception e) {
-                Log.To.Database.W("Startup", "Error getting version information", e);
-            }
+			Log.To.NoDomain.I("Startup", HTTPLogic.UserAgent);
         }
 
         /// <summary>

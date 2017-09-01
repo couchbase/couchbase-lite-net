@@ -49,7 +49,8 @@ namespace Couchbase.Lite.Support
             {
                 collection.AddSingleton<IDefaultDirectoryResolver>(provider => new DefaultDirectoryResolver(context))
                     .AddSingleton<ISslStreamFactory, SslStreamFactory>()
-                    .AddSingleton<ILoggerProvider>(provider => new AndroidLoggerProvider());
+                    .AddSingleton<ILoggerProvider>(provider => new AndroidLoggerProvider())
+					.AddSingleton<IRuntimePlatform, AndroidRuntimePlatform>();
             });
         }
     }

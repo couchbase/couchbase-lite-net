@@ -81,6 +81,7 @@
     <Compile Include="Support\AndroidDefaultLogger.cs" />
     <Compile Include="Support\DefaultDirectoryResolver.cs" />
     <Compile Include="Activate.cs" />
+    <Compile Include="Support\AndroidRuntimePlatform.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Couchbase.Lite\Properties\version">

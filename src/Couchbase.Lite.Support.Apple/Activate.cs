@@ -44,6 +44,7 @@ namespace Couchbase.Lite.Support
                 collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
 #if __IOS__
                     .AddSingleton<ILoggerProvider>(provider => new iOSLoggerProvider())
+					.AddSingleton<IRuntimePlatform, iOSRuntimePlatform>()
 #else
                     .AddSingleton<ILoggerProvider>(provider => new tvOSLoggerProvider())
 #endif
