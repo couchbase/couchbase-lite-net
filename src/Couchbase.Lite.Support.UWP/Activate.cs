@@ -42,7 +42,8 @@ namespace Couchbase.Lite.Support
                 collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
                     .AddSingleton<ISslStreamFactory, SslStreamFactory>()
                     .AddSingleton<IReachabilityFactory, ReachabilityFactory>()
-                    .AddSingleton<ILoggerProvider>(provider => new UwpLoggerProvider());
+                    .AddSingleton<ILoggerProvider>(provider => new UwpLoggerProvider())
+                    .AddSingleton<IRuntimePlatform, UwpRuntimePlatform>();
             });
         }
 
