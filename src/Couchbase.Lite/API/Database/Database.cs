@@ -238,26 +238,22 @@ namespace Couchbase.Lite
         public static void Copy(string path, string name, DatabaseConfiguration config)
         {
             var destPath = DatabasePath(name, config.Directory);
-            var nativeConfig = DBConfig;
-            if (config.EncryptionKey != null) {
-#if true
-                throw new NotImplementedException("Encryption is not yet supported");
-#else
-                var key = config.EncryptionKey;
-                int i = 0;
-                nativeConfig.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
-                foreach(var b in key.KeyData) {
-                    nativeConfig.encryptionKey.bytes[i++] = b;
-                }
-#endif
-            }
+			LiteCoreBridge.Check(err =>
+			{
+				var nativeConfig = DBConfig;
+				if (config.EncryptionKey != null) {
+					var key = config.EncryptionKey;
+					int i = 0;
+					nativeConfig.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
+					foreach (var b in key.KeyData) {
+						nativeConfig.encryptionKey.bytes[i++] = b;
+					}
+				}
 
-            LiteCoreBridge.Check(err =>
-            {
-                var nativeConfigCopy = nativeConfig;
-                return Native.c4db_copy(path, destPath, &nativeConfigCopy, err);
-            });
-        }
+				return Native.c4db_copy(path, destPath, &nativeConfig, err);
+			});
+
+		}
 
         /// <summary>
         /// Deletes the contents of a database with the given name in the
