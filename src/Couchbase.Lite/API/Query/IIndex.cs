@@ -20,20 +20,41 @@
 // 
 namespace Couchbase.Lite.Query
 {
+    /// <summary>
+    /// The base interface for an index in a <see cref="Database"/>
+    /// </summary>
     public interface IIndex
     {
         
     }
 
+    /// <summary>
+    /// An interface for an index based on a simple property value
+    /// </summary>
     public interface IValueIndex : IIndex
     {
         
     }
 
+    /// <summary>
+    /// An interface for an index based on full text searching
+    /// </summary>
     public interface IFTSIndex : IIndex
     {
+        /// <summary>
+        /// Sets whether or not to ignore accents when performing 
+        /// the full text search
+        /// </summary>
+        /// <param name="ignoreAccents">Whether or not to ignore accents</param>
+        /// <returns>The index for further processing</returns>
         IFTSIndex IgnoreAccents(bool ignoreAccents);
 
+        /// <summary>
+        /// Sets the locale to use when performing full text searching
+        /// </summary>
+        /// <param name="localeCode">The locale code in the form of ISO-639 language code plus, optionally, 
+        /// an underscore and an ISO-3166 country code: "en", "en_US", "fr_CA", etc.</param>
+        /// <returns>The index for further processing</returns>
         IFTSIndex SetLocale(string localeCode);
     }
 }

@@ -385,6 +385,12 @@ namespace Couchbase.Lite.Query
             return new QueryFunction("RADIANS()", expression);
         }
 
+        /// <summary>
+        /// Creates a full-text ranking value function indicating how well the current
+        /// query result matches the full-text query when performing the match comparison.
+        /// </summary>
+        /// <param name="property">The property expression used in the full-text match expression.</param>
+        /// <returns>A function that will perform the ranking</returns>
         public static IFunction Rank(IExpression property)
         {
             return new QueryFunction("RANK()", property);

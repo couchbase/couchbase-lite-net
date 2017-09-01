@@ -19,14 +19,32 @@
 // limitations under the License.
 // 
 namespace Couchbase.Lite.Query
-{
+{ 
+    /// <summary>
+    /// An interface for use when creating value based indexes (e.g.
+    /// Index.ValueIndex().On(...)
+    /// </summary>
     public interface IValueIndexOn
-    {
+    { 
+        /// <summary>
+        /// Specifies the items to create a value based index on
+        /// </summary>
+        /// <param name="items">The items to create the index on</param>
+        /// <returns>The index object</returns>
         IValueIndex On(params IValueIndexItem[] items);
     }
 
+    /// <summary>
+    /// An interface for use when creating FTS based indexes (e.g.
+    /// Index.FTSIndex().On(...)
+    /// </summary>
     public interface IFTSIndexOn
     {
+        /// <summary>
+        /// Specifies the items to create an FTS based index on
+        /// </summary>
+        /// <param name="items">The items to create the index on</param>
+        /// <returns>The index object</returns>
         IFTSIndex On(params IFTSIndexItem[] items);
     }
 }

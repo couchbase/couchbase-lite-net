@@ -22,17 +22,33 @@
 using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
-{
+{ 
+    /// <summary>
+    /// A factory class for creating <see cref="IValueIndexItem"/> instances
+    /// </summary>
     public static class ValueIndexItem
     {
+        /// <summary>
+        /// Creates a value index item based on a given <see cref="IExpression"/>
+        /// </summary>
+        /// <param name="expression">The expression to base the index item on</param>
+        /// <returns>The created index item</returns>
         public static IValueIndexItem Expression(IExpression expression)
         {
             return new QueryIndexItem(expression);
         }
     }
 
+    /// <summary>
+    /// A factory class for creating <see cref="IFTSIndexItem"/> instances
+    /// </summary>
     public static class FTSIndexItem
     {
+        /// <summary>
+        /// Creates an FTS index item based on a given <see cref="IExpression"/>
+        /// </summary>
+        /// <param name="expression">The expression to base the index item on</param>
+        /// <returns>The created index item</returns>
         public static IFTSIndexItem Expression(IExpression expression)
         {
             return new QueryIndexItem(expression);

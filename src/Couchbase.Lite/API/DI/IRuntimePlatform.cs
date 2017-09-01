@@ -19,14 +19,21 @@
 // limitations under the License.
 // 
 
-using System;
-
 namespace Couchbase.Lite.DI
 {
-	public interface IRuntimePlatform
+    /// <summary>
+    /// An interface for getting OS and hardware information from a runtime platform
+    /// </summary>
+    public interface IRuntimePlatform
 	{
+        /// <summary>
+        /// Gets the operating system name and version (and possibly other info)
+        /// </summary>
 		string OSDescription { get; }
 
+        /// <summary>
+        /// Gets the name of the device that is running the program, if possible
+        /// </summary>
 		string HardwareName { get; }
 	}
 }

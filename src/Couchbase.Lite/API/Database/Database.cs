@@ -426,6 +426,10 @@ namespace Couchbase.Lite
         /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
         public Document GetDocument(string id) => _threadSafety.DoLocked(() => GetDocument(id, true));
 
+        /// <summary>
+        /// Gets a list of index names that are present in the database
+        /// </summary>
+        /// <returns>The list of created index names</returns>
         public IList<string> GetIndexes()
         {
             FLArray* array = null;

@@ -23,13 +23,24 @@ using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
 {
+    /// <summary>
+    /// A factory class for creating <see cref="IIndex"/> instances
+    /// </summary>
     public static class Index
     {
+        /// <summary>
+        /// Starts the creation of an index based on a simple property
+        /// </summary>
+        /// <returns>The beginning of a value based index</returns>
         public static IValueIndexOn ValueIndex()
         {
             return new QueryIndex();
         }
 
+        /// <summary>
+        /// Starts the creation of an index based on a full text search
+        /// </summary>
+        /// <returns>The beginning of an FTS based index</returns>
         public static IFTSIndexOn FTSIndex()
         {
             return new QueryIndex();

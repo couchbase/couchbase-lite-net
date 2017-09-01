@@ -29,6 +29,9 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public static class Collation
     {
+        /// <summary>
+        /// The default locale for the current program, for use with Unicode collation
+        /// </summary>
 		public static readonly string DefaultLocale = CultureInfo.CurrentCulture.Name == "" ?
 																 "en" : CultureInfo.CurrentCulture.Name.Replace('-', '_');
         /// <summary>
