@@ -563,6 +563,35 @@ namespace Couchbase.Lite
             });
         }
 
+		/// <summary>
+		/// Sets the encryption key for the database.  If null, encryption is
+		/// removed.
+		/// </summary>
+		/// <param name="key">The new key to encrypt the database with, or <c>null</c>
+		/// to remove encryption</param>
+		public void SetEncryptionKey(EncryptionKey key)
+		{
+			_threadSafety.DoLocked(() =>
+			{
+				CheckOpen();
+				LiteCoreBridge.Check(err =>
+				{
+					var newKey = new C4EncryptionKey
+					{
+						algorithm = C4EncryptionAlgorithm.AES256
+					};
+
+					var i = 0;
+					foreach (var b in key.KeyData)
+					{
+						newKey.bytes[i++] = b;
+					}
+
+					return Native.c4db_rekey(c4db, &newKey, err);
+				});
+			});
+		}
+
         #endregion
 
         #region Internal Methods
@@ -570,27 +599,6 @@ namespace Couchbase.Lite
         internal void BeginTransaction()
         {
             LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
-        }
-
-        internal void ChangeEncryptionKey(IEncryptionKey key)
-        {
-            _threadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                LiteCoreBridge.Check(err =>
-                {
-                    var newKey = new C4EncryptionKey {
-                        algorithm = C4EncryptionAlgorithm.AES256
-                    };
-
-                    var i = 0;
-                    foreach (var b in key.KeyData) {
-                        newKey.bytes[i++] = b;
-                    }
-
-                    return Native.c4db_rekey(c4db, &newKey, err);
-                });
-            });
         }
 
         internal void EndTransaction(bool commit)

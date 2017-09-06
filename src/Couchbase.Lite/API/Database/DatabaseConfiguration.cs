@@ -50,7 +50,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets or sets the encryption key to use on the database
         /// </summary>
-        public IEncryptionKey EncryptionKey { get; set; }
+        public EncryptionKey EncryptionKey { get; set; }
 
         /// <summary>
         /// Copy constructor

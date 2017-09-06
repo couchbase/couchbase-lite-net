@@ -884,7 +884,7 @@ namespace Test
 
             var resolver = new DummyResolver();
             var config2 = new DatabaseConfiguration();
-            var key = new SymmetricKey("key");
+            var key = new EncryptionKey("key");
             config2.Directory = "/tmp/mydb";
             config2.ConflictResolver = resolver;
             config2.EncryptionKey = key;
@@ -1066,8 +1066,8 @@ namespace Test
         public void TestEncryption()
         {
             Database.Delete("seekrit", Directory);
-            var key = new SymmetricKey("letmein");
-            var wrongKey = new SymmetricKey("dontletmein");
+            var key = new EncryptionKey("letmein");
+            var wrongKey = new EncryptionKey("dontletmein");
             var config = new DatabaseConfiguration {
                 Directory = Directory,
                 EncryptionKey = key
@@ -1098,7 +1098,7 @@ namespace Test
             config.EncryptionKey = key;
             using (var encryptedDb = new Database("seekrit", config)) {
                 encryptedDb.Count.Should().Be(1);
-                encryptedDb.ChangeEncryptionKey(wrongKey);
+                encryptedDb.SetEncryptionKey(wrongKey);
             }
 
             badAction = () =>
@@ -1111,7 +1111,7 @@ namespace Test
             config.EncryptionKey = wrongKey;
             using (var encryptedDb = new Database("seekrit", config)) {
                 encryptedDb.Count.Should().Be(1);
-                encryptedDb.ChangeEncryptionKey(wrongKey);
+                encryptedDb.SetEncryptionKey(wrongKey);
             }
         }
 

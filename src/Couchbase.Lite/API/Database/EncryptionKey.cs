@@ -1,5 +1,5 @@
 ﻿// 
-// SymmetricKey.cs
+// EncryptionKey.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -28,7 +28,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// Basic AES encryption. Uses a 256-bit (32-byte) key.
     /// </summary>
-    internal sealed class SymmetricKey : IEncryptionKey
+    public sealed class EncryptionKey
     {
         #region Constants
 
@@ -49,7 +49,7 @@ namespace Couchbase.Lite
 
         private const int KeySize = 32;
 
-        private const string Tag = nameof(SymmetricKey);
+        private const string Tag = nameof(EncryptionKey);
 
         #endregion
 
@@ -57,19 +57,19 @@ namespace Couchbase.Lite
 
         private Aes _cryptor;
 
-        #endregion
+		#endregion
 
-        #region Properties
+		#region Properties
 
-        /// <summary>
-        /// The key data encoded as hex.
-        /// </summary>
-        public string HexData => BitConverter.ToString(KeyData).Replace("-", String.Empty).ToLower();
+		/// <summary>
+		/// The key data encoded as hex.
+		/// </summary>
+		public string HexData => BitConverter.ToString(KeyData).Replace("-", String.Empty).ToLower();
 
-        /// <summary>
-        /// The SymmetricKey's key data; can be used to reconstitute it.
-        /// </summary>
-        public byte[] KeyData => _cryptor.Key;
+		/// <summary>
+		/// The SymmetricKey's key data; can be used to reconstitute it.
+		/// </summary>
+		public byte[] KeyData => _cryptor.Key;
 
         #endregion
 
@@ -78,7 +78,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Creates an instance with a random key.
         /// </summary>
-        public SymmetricKey() 
+        public EncryptionKey() 
         {
             InitCryptor();
             _cryptor.GenerateKey();
@@ -92,7 +92,7 @@ namespace Couchbase.Lite
         /// Should be kept fixed for any particular app, but doesn't need to be secret.</param>
         /// <param name="rounds">The number of rounds of hashing to perform. 
         /// More rounds is more secure but takes longer.</param>
-        public SymmetricKey(string password, byte[] salt, int rounds) 
+        public EncryptionKey(string password, byte[] salt, int rounds) 
         {
             if(password == null) {
                 Log.To.Database.E(Tag, "password cannot be null in ctor, throwing...");
@@ -124,13 +124,13 @@ namespace Couchbase.Lite
         /// <summary>
         /// Creates an instance with a key derived from a password, using default salt and rounds.
         /// </summary>
-        public SymmetricKey(string password) : 
+        public EncryptionKey(string password) : 
         this(password, Encoding.UTF8.GetBytes(DefaultSalt), DefaultPbkdfRounds) {}
 
         /// <summary>
         /// Creates an instance from existing key data.
         /// </summary>
-        public SymmetricKey(byte[] keyData) 
+        public EncryptionKey(byte[] keyData) 
         {
             InitCryptor();
             if(keyData == null || keyData.Length != KeySize) {
