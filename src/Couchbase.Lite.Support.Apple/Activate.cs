@@ -28,46 +28,61 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Lite.Support
 {
-    /// <summary>
-    /// Support classes for Xamarin iOS
-    /// </summary>
-    public static class iOS
-    {
-        /// <summary>
-        /// Activates the Xamarin iOS specific support classes
-        /// </summary>
-        public static void Activate()
-        {
-            Console.WriteLine("Loading support items");
-            Service.RegisterServices(collection =>
-            {
-                collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
+	/// <summary>
+	/// Support classes for Xamarin iOS
+	/// </summary>
+	public static class iOS
+	{
+		/// <summary>
+		/// Activates the Xamarin iOS specific support classes
+		/// </summary>
+		public static void Activate()
+		{
+			Console.WriteLine("Loading support items");
+			Service.RegisterServices(collection =>
+			{
+				collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
 #if __IOS__
-                    .AddSingleton<ILoggerProvider>(provider => new iOSLoggerProvider())
 					.AddSingleton<IRuntimePlatform, iOSRuntimePlatform>()
-#else
-                    .AddSingleton<ILoggerProvider>(provider => new tvOSLoggerProvider())
 #endif
 
-                    .AddSingleton<ISslStreamFactory, SslStreamFactory>();
-            });
- 
-            Console.WriteLine("Loading libLiteCore.dylib");
-            var dylibPath = Path.Combine(NSBundle.MainBundle.BundlePath, "libLiteCore.dylib");
-            if(!File.Exists(dylibPath)) {
-                Console.WriteLine("Failed to find libLiteCore.dylib, nothing is going to work!");
-            }
+					.AddSingleton<ISslStreamFactory, SslStreamFactory>();
+			});
 
-            var loaded = ObjCRuntime.Dlfcn.dlopen(dylibPath, 0);
-            if(loaded == IntPtr.Zero) {
-                Console.WriteLine("Failed to load libLiteCore.dylib, nothing is going to work!");
-                var error = ObjCRuntime.Dlfcn.dlerror();
-                if(String.IsNullOrEmpty(error)) {
-                    Console.WriteLine("dlerror() was empty; most likely missing architecture");
-                } else {
-                    Console.WriteLine($"Error: {error}");
-                }
-            }
-        }
+			Console.WriteLine("Loading libLiteCore.dylib");
+			var dylibPath = Path.Combine(NSBundle.MainBundle.BundlePath, "libLiteCore.dylib");
+			if (!File.Exists(dylibPath))
+			{
+				Console.WriteLine("Failed to find libLiteCore.dylib, nothing is going to work!");
+			}
+
+			var loaded = ObjCRuntime.Dlfcn.dlopen(dylibPath, 0);
+			if (loaded == IntPtr.Zero)
+			{
+				Console.WriteLine("Failed to load libLiteCore.dylib, nothing is going to work!");
+				var error = ObjCRuntime.Dlfcn.dlerror();
+				if (String.IsNullOrEmpty(error))
+				{
+					Console.WriteLine("dlerror() was empty; most likely missing architecture");
+				}
+				else
+				{
+					Console.WriteLine($"Error: {error}");
+				}
+			}
+		}
+
+		/// <summary>
+		/// Enables text based logging for debugging purposes.  Log statements will
+		/// be written to NSLog
+		/// </summary>
+		public static void EnableTextLogging()
+		{
+#if __IOS__
+			Log.AddLoggerProvider(new iOSLoggerProvider());
+#else
+			Log.AddLoggerProvider(new tvOSLoggerProvider());
+#endif
+		}
     }
 }

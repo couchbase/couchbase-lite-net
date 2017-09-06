@@ -161,14 +161,14 @@ namespace Couchbase.Lite.Sync
                     if (_authorizationHeader == null && Credential != null) {
                         _authorizationHeader = CreateAuthHeader(authResponse);
                         var password = new SecureLogString(Credential.Password, LogMessageSensitivity.Insecure);
-                        Log.To.Sync.I(Tag, $"Auth challenge; credential = {Credential.UserName} / {password}");
+                        Log.To.Replicator.I(Tag, $"Auth challenge; credential = {Credential.UserName} / {password}");
                         ShouldRetry = true;
                         break;
                     }
 
                     var auth = new SecureLogString(_authorizationHeader, LogMessageSensitivity.Insecure);
                     var wwwAuth = new SecureLogString(authResponse, LogMessageSensitivity.Insecure);
-                    Log.To.Sync.I(Tag, $"HTTP auth failed; sent Authorization {auth} ; got WWW-Authenticate {wwwAuth}");
+                    Log.To.Replicator.I(Tag, $"HTTP auth failed; sent Authorization {auth} ; got WWW-Authenticate {wwwAuth}");
                     Error = new HttpLogicException(HttpLogicError.Unauthorized);
 
                     break;
@@ -228,7 +228,7 @@ namespace Couchbase.Lite.Sync
 			}
 			catch (Exception e)
 			{
-				Log.To.NoDomain.W(Tag, "Error getting commit information", e);
+				Log.To.Couchbase.W(Tag, "Error getting commit information", e);
 			}
 
 			var runtimePlatform = Service.Provider.GetService<IRuntimePlatform>();

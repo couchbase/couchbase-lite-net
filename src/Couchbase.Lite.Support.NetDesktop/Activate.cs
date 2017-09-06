@@ -23,6 +23,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -77,12 +78,19 @@ namespace Couchbase.Lite.Support
 
             Service.RegisterServices(collection =>
             {
-                collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
-                    .AddSingleton<ISslStreamFactory, SslStreamFactory>()
-                    .AddSingleton<ILoggerProvider>(
-                        provider => new FileLoggerProvider(Path.Combine(AppContext.BaseDirectory, "Logs")));
+				collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
+					.AddSingleton<ISslStreamFactory, SslStreamFactory>();
             });
         }
+
+		/// <summary>
+		/// Turns on text based logging for debugging purposes.  The logs will be written in text
+		/// form to a folder called "Logs" under <c>AppContext.BaseDirectory</c>
+		/// </summary>
+		public static void EnableTextLogging()
+		{
+			Log.AddLoggerProvider(new FileLoggerProvider(Path.Combine(AppContext.BaseDirectory, "Logs")));
+		}
 
         #endregion
 

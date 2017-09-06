@@ -19,128 +19,68 @@
 // limitations under the License.
 //
 
-using System.Linq;
+using System;
+using LiteCore.Interop;
 
 namespace Couchbase.Lite.Logging
 {
     /// <summary>
-    /// Contains all the available logging domains for the library,
-    /// along with some functions to easily manipulate their verbosity
+    /// Contains all the available logging domains for the library
     /// </summary>
-    public sealed class LogDomains
+	[Flags]
+    public enum LogDomain
     {
-        #region Variables
-
-        private readonly LogTo _source;
-
-        #endregion
-
         #region Properties
 
         /// <summary>
         /// Gets all the logging interfaces so logic can be applied to
         /// all of them
         /// </summary>
-        public IDomainLogging All => GetAll();
+        All = Couchbase | Database | LiteCore | Query | Replicator,
+
+		/// <summary>
+		/// Gets the logging domain for overall information that doesn't fit into
+		/// a more specific category, and is not generated from the native LiteCore
+		/// module.
+		/// </summary>
+		Couchbase = 1 << 0,
 
         /// <summary>
-        /// Gets the logging interface for database logging, which is responsible
+        /// Gets the logging domain for database logging, which is responsible
         /// for logging activity between the library and the disk, including creation
         /// of Documents / Revisions, disk I/O, etc
         /// </summary>
-        public IDomainLogging Database => _source.Database;
+        Database = 1 << 1,
 
-        /// <summary>
-        /// Gets the logging interface for listener logging, which is responsible
-        /// for logging information about the P2P REST API listener (connections,
-        /// authorization, non-routing logic)
-        /// </summary>
-        public IDomainLogging Listener => _source.Listener;
+		/// <summary>
+		/// Gets the logging domain for the LiteCore logging, which is responsible
+		/// for messages sent up from the native LiteCore module
+		/// </summary>
+		LiteCore = 1 << 2,
 
-        /// <summary>
-        /// Gets the logging interface for the LiteCore logging, which is responsible
-        /// for messages sent up from the native LiteCore module
-        /// </summary>
-        public IDomainLogging LiteCore => _source.LiteCore;
+		/// <summary>
+		/// Gets the logging domain for query logging, which is responsible for
+		/// logging information about in progress queries on data.
+		/// </summary>
+		Query = 1 << 3,
 
-        /// <summary>
-        /// Gets the logging interface for query logging, which is responsible for
-        /// logging information about in progress queries on data.
-        /// </summary>
-        public IDomainLogging Query => _source.Query;
-
-        /// <summary>
-        /// Gets the logging interface for router logging, which is responsible for
-        /// logging information about the routing logic in the listener component
-        /// (i.e. REST API provider for P2P)
-        /// </summary>
-        public IDomainLogging Router => _source.Router;
-
-        /// <summary>
-        /// Gets the logging interface for sync logging, which is responsible for
-        /// logging activity between the library and remote (network) endpoints.
-        /// </summary>
-        public IDomainLogging Sync => _source.Sync;
-
-        /// <summary>
-        /// Gets the logging interface for task scheduling, which is responsible
-        /// for logging information about scheduling tasks in task schedulers.
-        /// </summary>
-        public IDomainLogging TaskScheduling => _source.TaskScheduling;
-
-        #endregion
-
-        #region Constructors
-
-        internal LogDomains(LogTo source)
-        {
-            _source = source;
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Gets all of the logging interfaces except the ones specified
-        /// so that logic can be applied to all of them
-        /// </summary>
-        /// <param name="loggers">The loggers to exclude</param>
-        /// <returns>The logging object representing the group</returns>
-        public IDomainLogging Except(params IDomainLogging[] loggers)
-        {
-            var exclusiveList = from logger in GetAll()
-                                         where !loggers.Contains(logger)
-                                         select logger;
-
-            return new LogGroup(exclusiveList.ToArray());
-        }
-
-        /// <summary>
-        /// Groups the specified loggers together to apply the given logic
-        /// to all of them at once.  For example:
-        /// 
-        /// <code>
-        /// Log.Domains.Group(Log.Domains.Listener, Log.Domains.Discovery).Level = Log.LogLevel.Verbose;
-        /// </code>
-        /// </summary>
-        /// <param name="loggers">The loggers to apply the logic to.</param>
-        /// <returns>The logging object representing the group</returns>
-        public IDomainLogging Group(params IDomainLogging[] loggers)
-        {
-            return new LogGroup(loggers);
-        }
-
-        #endregion
-
-        #region Private Methods
-
-        private LogGroup GetAll()
-        {
-            return new LogGroup(Database, Query, Router, Sync, Listener, TaskScheduling);
-        }
+		/// <summary>
+		/// Gets the logging domain for sync logging, which is responsible for
+		/// logging activity between the library and remote (network) endpoints.
+		/// </summary>
+		Replicator = 1 << 4
 
         #endregion
     }
+
+	public enum LogLevel
+	{
+		Debug = C4LogLevel.Debug,
+		Verbose = C4LogLevel.Verbose,
+		Info = C4LogLevel.Info,
+		Warning = C4LogLevel.Warning,
+		Error = C4LogLevel.Error,
+		None = C4LogLevel.None
+	}
 }
 

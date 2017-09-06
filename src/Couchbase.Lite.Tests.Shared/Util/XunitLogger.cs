@@ -24,6 +24,7 @@ using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Test.Util
 {

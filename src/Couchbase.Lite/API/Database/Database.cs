@@ -19,13 +19,9 @@
 // limitations under the License.
 // 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Lite.DI;
@@ -40,14 +36,16 @@ using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using LogLevel = Couchbase.Lite.Logging.LogLevel;
 
 namespace Couchbase.Lite
 {
-    /// <summary>
-    /// A container for storing and maintaining Couchbase Lite <see cref="Document"/>s
-    /// </summary>
-    public sealed unsafe class Database : IDisposable
+	/// <summary>
+	/// A container for storing and maintaining Couchbase Lite <see cref="Document"/>s
+	/// </summary>
+	public sealed unsafe class Database : IDisposable
     {
         #region Constants
 
@@ -172,7 +170,7 @@ namespace Couchbase.Lite
         {
             _DbObserverCallback = DbObserverCallback;
             _DocObserverCallback = DocObserverCallback;
-			Log.To.NoDomain.I("Startup", HTTPLogic.UserAgent);
+			Log.To.Couchbase.I("Startup", HTTPLogic.UserAgent);
         }
 
         /// <summary>
@@ -290,6 +288,29 @@ namespace Couchbase.Lite
 
             return Directory.Exists(DatabasePath(name, directory));
         }
+
+		public static void SetLogLevel(LogDomain domain, LogLevel level)
+		{
+			if(domain.HasFlag(LogDomain.Couchbase)) {
+				Log.To.Couchbase.Level = level;
+			}
+
+			if(domain.HasFlag(LogDomain.Database)) {
+				Log.To.Database.Level = level;
+			}
+
+			if(domain.HasFlag(LogDomain.LiteCore)) {
+				Log.To.LiteCore.Level = level;
+			}
+
+			if(domain.HasFlag(LogDomain.Query)) {
+				Log.To.Query.Level = level;
+			}
+
+			if(domain.HasFlag(LogDomain.Replicator)) {
+				Log.To.Replicator.Level = level;
+			}
+		}
 
         /// <summary>
         /// Adds a listener for changes on a certain document (by ID).  Similar to <see cref="Database.Changed"/>

@@ -49,9 +49,17 @@ namespace Couchbase.Lite.Support
             {
                 collection.AddSingleton<IDefaultDirectoryResolver>(provider => new DefaultDirectoryResolver(context))
                     .AddSingleton<ISslStreamFactory, SslStreamFactory>()
-                    .AddSingleton<ILoggerProvider>(provider => new AndroidLoggerProvider())
 					.AddSingleton<IRuntimePlatform, AndroidRuntimePlatform>();
             });
         }
+
+		/// <summary>
+		/// Enables text based logging for debugging purposes.  Log statements will
+		/// be printed to logcat under the CouchbaseLite tag.
+		/// </summary>
+		public static void EnableTextLogging()
+		{
+			Log.AddLoggerProvider(new AndroidLoggerProvider());
+		}
     }
 }

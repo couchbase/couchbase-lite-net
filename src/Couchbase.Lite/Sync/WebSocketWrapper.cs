@@ -124,7 +124,7 @@ namespace Couchbase.Lite.Sync
                 try {
                     _client.Client.DualMode = true;
                 } catch(ArgumentException) {
-                    Log.To.Sync.I(Tag, "IPv4/IPv6 dual mode not supported on this device, falling back to IPv4");
+                    Log.To.Replicator.I(Tag, "IPv4/IPv6 dual mode not supported on this device, falling back to IPv4");
                     _client = new TcpClient(AddressFamily.InterNetwork)
                     {
                         SendTimeout = (int)IdleTimeout.TotalMilliseconds,
@@ -200,7 +200,7 @@ namespace Couchbase.Lite.Sync
 
         private unsafe void Connected()
         {
-            Log.To.Sync.I(Tag, "WebSocket CONNECTED!");
+            Log.To.Replicator.I(Tag, "WebSocket CONNECTED!");
             Receive();
             var socket = _socket;
             _connected.Set();
@@ -223,7 +223,7 @@ namespace Couchbase.Lite.Sync
 
             ResetConnections();
 
-            Log.To.Sync.I(Tag, $"WebSocket CLOSED WITH STATUS {closeCode} \"{reason}\"");
+            Log.To.Replicator.I(Tag, $"WebSocket CLOSED WITH STATUS {closeCode} \"{reason}\"");
             var c4Err = Native.c4error_make(C4ErrorDomain.WebSocketDomain, (int)closeCode, reason);
             _c4Queue.DispatchAsync(() => Native.c4socket_closed(_socket, c4Err));
         }
@@ -238,10 +238,10 @@ namespace Couchbase.Lite.Sync
 
             C4Error c4err;
             if (e != null && !(e is ObjectDisposedException) && !(e.InnerException is ObjectDisposedException)) {
-                Log.To.Sync.I(Tag, $"WebSocket CLOSED WITH ERROR: {e}");
+                Log.To.Replicator.I(Tag, $"WebSocket CLOSED WITH ERROR: {e}");
                 Status.ConvertError(e, &c4err);
             } else {
-                Log.To.Sync.I(Tag, "WebSocket CLOSED");
+                Log.To.Replicator.I(Tag, "WebSocket CLOSED");
                 c4err = new C4Error();
             }
 
@@ -251,7 +251,7 @@ namespace Couchbase.Lite.Sync
 
         private async void HandleHTTPResponse()
         {
-            Log.To.Sync.V(Tag, "WebSocket sent HTTP request...");
+            Log.To.Replicator.V(Tag, "WebSocket sent HTTP request...");
             
             using (var streamReader = new StreamReader(NetworkStream, Encoding.ASCII, false, 5, true)) {
                 var parser = new HttpMessageParser(await streamReader.ReadLineAsync());
@@ -320,7 +320,7 @@ namespace Couchbase.Lite.Sync
                         }
 
                         _receivedBytesPending += (uint) t.Result;
-                        Log.To.Sync.V(Tag, $"<<< received {t.Result} bytes [now {_receivedBytesPending} pending]");
+                        Log.To.Replicator.V(Tag, $"<<< received {t.Result} bytes [now {_receivedBytesPending} pending]");
                         var socket = _socket;
                         var data = _buffer.Take(t.Result).ToArray();
                         _readMutex.Set();
@@ -394,7 +394,7 @@ namespace Couchbase.Lite.Sync
 
         private void StartInternal()
         {
-            Log.To.Sync.I(Tag, $"WebSocket connecting to {_logic.UrlRequest.Host}:{_logic.UrlRequest.Port}");
+            Log.To.Replicator.I(Tag, $"WebSocket connecting to {_logic.UrlRequest.Host}:{_logic.UrlRequest.Port}");
             var rng = RandomNumberGenerator.Create();
             var nonceBytes = new byte[16];
             rng.GetBytes(nonceBytes);

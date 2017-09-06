@@ -57,7 +57,7 @@ namespace Couchbase.Lite.Sync
         {
             var id = (int) socket->nativeHandle;
             if (id == 0) {
-                Log.To.Sync.E(Tag, "DoClose reached after close");
+                Log.To.Replicator.E(Tag, "DoClose reached after close");
                 return;
             }
 
@@ -69,7 +69,7 @@ namespace Couchbase.Lite.Sync
         {
             var id = (int)socket->nativeHandle;
             if (id == 0) {
-                Log.To.Sync.E(Tag, "DoCompletedReceive reached after close");
+                Log.To.Replicator.E(Tag, "DoCompletedReceive reached after close");
                 return;
             }
 
@@ -79,7 +79,7 @@ namespace Couchbase.Lite.Sync
 
         private static void DoError(C4Socket* socket, Exception e)
         {
-            Log.To.Sync.E(Tag, "Websocket Error", e);
+            Log.To.Replicator.E(Tag, "Websocket Error", e);
         }
 
         private static void DoOpen(C4Socket* socket, C4Address* address, C4Slice options)
@@ -119,7 +119,7 @@ namespace Couchbase.Lite.Sync
         {
             var id = (int)socket->nativeHandle;
             if (id == 0) {
-                Log.To.Sync.E(Tag, "DoWrite reached after close");
+                Log.To.Replicator.E(Tag, "DoWrite reached after close");
                 return;
             }
 

@@ -20,6 +20,7 @@
 // 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Util;
 using LiteCore.Interop;
@@ -36,17 +37,14 @@ namespace Couchbase.Lite.Logging
         #region Constants
 
         // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
-        private static readonly C4LogCallback _LogCallback;
+        private static C4LogCallback _LogCallback;
         // ReSharper restore PrivateFieldCanBeConvertedToLocalVariable
 
         #endregion
 
         #region Variables
 
-        private static AtomicBool _ProvidersAdded = new AtomicBool(false);
         private static LogScrubSensitivity _ScrubSensitivity;
-
-        private static LogTo _To;
 
         #endregion
 
@@ -57,22 +55,6 @@ namespace Couchbase.Lite.Logging
         /// nothing will be logged)
         /// </summary>
         public static bool Disabled { get; set; }
-
-        /// <summary>
-        /// The available logging domains (for use with setting the
-        /// logging level on various domains)
-        /// </summary>
-        public static LogDomains Domains { get; private set; }
-
-        /// <summary>
-        /// Gets or sets the logging level for Log.* calls (domains
-        /// must be set with their respective interfaces
-        /// </summary>
-        public static LogLevel Level 
-        {
-            get => To.NoDomain.Level;
-            set => To.NoDomain.Level = value;
-        }
 
         /// <summary>
         /// Gets or sets the level at which the logger will redacted sensivity
@@ -95,17 +77,7 @@ namespace Couchbase.Lite.Logging
 
         internal static ILoggerFactory Factory { get; private set; }
 
-        internal static LogTo To
-        {
-            get {
-                if (!_ProvidersAdded.Set(true)) {
-                    AddLoggerProvider(Service.Provider.TryGetRequiredService<ILoggerProvider>());
-                }
-
-                return _To;
-            }
-            set => _To = value;
-        }
+		internal static LogTo To { get; set; }
 
         #endregion
 
@@ -115,9 +87,18 @@ namespace Couchbase.Lite.Logging
         {
             Factory = new LoggerFactory();
             To = new LogTo();
-            Domains = new LogDomains(_To);
-            _LogCallback = LiteCoreLog;
-            Native.c4log_writeToCallback(C4LogLevel.Debug, _LogCallback, true);
+			var dir = Service.Provider.TryGetRequiredService<IDefaultDirectoryResolver>();
+			var binaryLogDir = Path.Combine(dir.DefaultDirectory(), "Logs");
+			Directory.CreateDirectory(binaryLogDir);
+			C4Error err;
+			var success = Native.c4log_writeToBinaryFile(C4LogLevel.Debug, 
+			                                             Path.Combine(binaryLogDir, 
+			                                             $"log-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"), 
+			                                             &err);
+			if(!success) {
+				Console.WriteLine($"COUCHBASE LITE WARNING: FAILED TO INITIALIZE LOGGING FILE IN {binaryLogDir}");
+				Console.WriteLine($"ERROR {err.domain} / {err.code}");
+			}
         }
 
         #endregion
@@ -129,15 +110,13 @@ namespace Couchbase.Lite.Logging
         /// by the time the first log message comes then a default one will be chosen)
         /// </summary>
         /// <param name="provider">The provider to add</param>
-        /// <param name="keepDefault">If <c>true</c>, then the logging provider will exist along with
-        /// the default one, otherwise the default logger will also be added if applicable</param>
-        public static void AddLoggerProvider(ILoggerProvider provider, bool keepDefault = false)
+        public unsafe static void AddLoggerProvider(ILoggerProvider provider)
         {
-            if (!keepDefault) {
-                _ProvidersAdded.Set(true);
-            }
-
             Factory.AddProvider(provider);
+			if(_LogCallback == null) {
+				_LogCallback = LiteCoreLog;
+				Native.c4log_writeToCallback(C4LogLevel.Debug, _LogCallback, true);
+			}
         }
 
         /// <summary>
@@ -172,7 +151,7 @@ namespace Couchbase.Lite.Logging
             }
 
             if (levels.Count > 0) {
-                Domains.LiteCore.Level = maxLevel;
+                To.LiteCore.Level = maxLevel;
             }
         }
 
@@ -182,12 +161,12 @@ namespace Couchbase.Lite.Logging
 
         internal static void ClearLoggerProviders()
         {
-            _ProvidersAdded.Set(true);
+			_LogCallback = null;
+			Native.c4log_writeToCallback(C4LogLevel.Debug, null, true);
             var oldFactory = Factory;
             Factory = new LoggerFactory();
             oldFactory.Dispose();
             To = new LogTo();
-            Domains = new LogDomains(_To);
         }
 
         #endregion
@@ -198,38 +177,21 @@ namespace Couchbase.Lite.Logging
         private static unsafe void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, string message, IntPtr ignored)
         {
             var name = Native.c4log_getDomainName(domain);
-            switch (level) {
-                case C4LogLevel.Error:
-                    To.DomainOrLiteCore(name).E(name, message);
-                    break;
-                case C4LogLevel.Warning:
-                    To.DomainOrLiteCore(name).W(name, message);
-                    break;
-                case C4LogLevel.Info:
-                    To.DomainOrLiteCore(name).I(name, message);
-                    break;
-                case C4LogLevel.Verbose:
-                    To.DomainOrLiteCore(name).V(name, message);
-                    break;
-                case C4LogLevel.Debug:
-                    To.DomainOrLiteCore(name).D(name, message);
-                    break;
-            }
+            To.DomainOrLiteCore(name).QuickWrite(level, message);
         }
 
         private static C4LogLevel Transform(LogLevel level)
         {
             switch (level) {
-                case LogLevel.Information:
+				case LogLevel.Info:
                     return C4LogLevel.Info;
                 case LogLevel.Debug:
-                case LogLevel.Trace:
+                case LogLevel.Verbose:
                     return C4LogLevel.Debug;
                 case LogLevel.None:
                     return C4LogLevel.None;
                 case LogLevel.Warning:
                     return C4LogLevel.Warning;
-                case LogLevel.Critical:
                 case LogLevel.Error:
                     return C4LogLevel.Error;
                 default:

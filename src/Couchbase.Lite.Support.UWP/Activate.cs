@@ -42,9 +42,18 @@ namespace Couchbase.Lite.Support
                 collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
                     .AddSingleton<ISslStreamFactory, SslStreamFactory>()
                     .AddSingleton<IReachabilityFactory, ReachabilityFactory>()
-                    .AddSingleton<ILoggerProvider>(provider => new UwpLoggerProvider())
                     .AddSingleton<IRuntimePlatform, UwpRuntimePlatform>();
             });
+        }
+
+        /// <summary>
+        /// Enables text based logging for debugging.  Logs will be written to
+        /// a file in the "Logs" folder inside of the application package's
+        /// local files directory
+        /// </summary>
+        public static void EnableTextLogging()
+        {
+            Log.AddLoggerProvider(new UwpLoggerProvider());
         }
 
         #endregion

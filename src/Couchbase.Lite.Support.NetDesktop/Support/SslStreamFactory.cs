@@ -79,20 +79,20 @@ namespace Couchbase.Lite.Support
             if (PinnedServerCertificate != null) {
                 var retVal = certificate.Equals(PinnedServerCertificate);
                 if (!retVal) {
-                    Log.To.Sync.W(Tag, "Server certificate did not match the pinned one!");
+                    Log.To.Replicator.W(Tag, "Server certificate did not match the pinned one!");
                 }
 
                 return retVal;
             }
 
             if (sslPolicyErrors != SslPolicyErrors.None) {
-                Log.To.Sync.W(Tag, $"Error validating TLS chain: {sslPolicyErrors}");
+                Log.To.Replicator.W(Tag, $"Error validating TLS chain: {sslPolicyErrors}");
                 if (chain?.ChainStatus != null) {
                     for (int i = 0; i < chain.ChainStatus.Length; i++) {
                         var element = chain.ChainElements[i];
                         var status = chain.ChainStatus[i];
                         if (status.Status != X509ChainStatusFlags.NoError) {
-                            Log.To.Sync.V(Tag,
+                            Log.To.Replicator.V(Tag,
                                 $"Error {status.Status} ({status.StatusInformation}) for certificate:{Environment.NewLine}{element.Certificate}");
                         }
                     }

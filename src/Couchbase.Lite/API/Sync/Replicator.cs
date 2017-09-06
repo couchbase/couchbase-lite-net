@@ -149,11 +149,11 @@ namespace Couchbase.Lite.Sync
             _threadSafety.DoLocked(() =>
             {
                 if (_repl != null) {
-                    Log.To.Sync.W(Tag, $"{this} has already started");
+                    Log.To.Replicator.W(Tag, $"{this} has already started");
                     return;
                 }
 
-                Log.To.Sync.I(Tag, $"{this}: Starting");
+                Log.To.Replicator.I(Tag, $"{this}: Starting");
                 _retryCount = 0;
                 StartInternal();
             });
@@ -233,16 +233,16 @@ namespace Couchbase.Lite.Sync
             if (!pushing && error.domain == C4ErrorDomain.LiteCoreDomain && error.code == (int) C4ErrorCode.Conflict) {
                 // Conflict pulling a document -- the revision was added but app needs to resolve it:
                 var safeDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
-                Log.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
+                Log.To.Replicator.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
                 try {
                     _config.Database.ResolveConflict(docID, Config.ConflictResolver);
                 } catch (Exception e) {
-                    Log.To.Sync.W(Tag, $"Conflict resolution of '{logDocID}' failed", e);
+                    Log.To.Replicator.W(Tag, $"Conflict resolution of '{logDocID}' failed", e);
                 }
             } else {
                 var transientStr = transient ? "transient " : String.Empty;
                 var dirStr = pushing ? "pushing" : "pulling";
-                Log.To.Sync.I(Tag,
+                Log.To.Replicator.I(Tag,
                     $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
             }
         }
@@ -264,11 +264,11 @@ namespace Couchbase.Lite.Sync
             if (transient) {
                 // On transient error, retry periodically, with exponential backoff
                 var delay = RetryDelay(++_retryCount);
-                Log.To.Sync.I(Tag,
+                Log.To.Replicator.I(Tag,
                     $"{this}: Transient error ({Native.c4error_getMessage(error)}); will retry in {delay}...");
                 _dispatchQueue.DispatchAfter(Retry, delay);
             } else {
-                Log.To.Sync.I(Tag,
+                Log.To.Replicator.I(Tag,
                     $"{this}: Network error ({Native.c4error_getMessage(error)}); will retry when network changes...");
             }
 
@@ -291,7 +291,7 @@ namespace Couchbase.Lite.Sync
         private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)
         {
             if (_repl == null && e.Status == NetworkReachabilityStatus.Reachable) {
-                Log.To.Sync.I(Tag, $"{this}: Server may now be reachable; retrying...");
+                Log.To.Replicator.I(Tag, $"{this}: Server may now be reachable; retrying...");
                 _retryCount = 0;
                 Retry();
             }
@@ -303,7 +303,7 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
-            Log.To.Sync.I(Tag, $"{this}: Retrying...");
+            Log.To.Replicator.I(Tag, $"{this}: Retrying...");
             StartInternal();
         }
 
@@ -418,7 +418,7 @@ namespace Couchbase.Lite.Sync
             var level = (ReplicatorActivityLevel) state.level;
             var progress = new ReplicationProgress(state.progress.completed, state.progress.total);
             Status = new ReplicationStatus(level, progress);
-            Log.To.Sync.I(Tag, $"{this} is {state.level}, progress {state.progress.completed}/{state.progress.total}");
+            Log.To.Replicator.I(Tag, $"{this} is {state.level}, progress {state.progress.completed}/{state.progress.total}");
         }
 
         #endregion
