@@ -166,7 +166,6 @@ namespace Couchbase.Lite.Logging
             var oldFactory = Factory;
             Factory = new LoggerFactory();
             oldFactory.Dispose();
-            To = new LogTo();
         }
 
         #endregion
