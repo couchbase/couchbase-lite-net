@@ -72,7 +72,11 @@ namespace Test.Util
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
         {
             var finalStr = formatter(state, exception);
-            _output.WriteLine($"{logLevel.ToString().ToUpperInvariant()}) {_category} {finalStr}");
+            try {
+                _output.WriteLine($"{logLevel.ToString().ToUpperInvariant()}) {_category} {finalStr}");
+            } catch (Exception) {
+                // _output is busted, the test is probably already finished.  Nothing we can do
+            }
         }
     }
 }

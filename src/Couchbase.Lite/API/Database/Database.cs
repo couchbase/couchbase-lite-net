@@ -171,6 +171,7 @@ namespace Couchbase.Lite
             _DbObserverCallback = DbObserverCallback;
             _DocObserverCallback = DocObserverCallback;
 			Log.To.Couchbase.I("Startup", HTTPLogic.UserAgent);
+            Log.To.Couchbase.I("Startup", Native.c4_getBuildInfo());
         }
 
         /// <summary>
