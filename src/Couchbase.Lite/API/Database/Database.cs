@@ -290,6 +290,11 @@ namespace Couchbase.Lite
             return Directory.Exists(DatabasePath(name, directory));
         }
 
+		/// <summary>
+		/// Sets the log level for the given domain(s)
+		/// </summary>
+		/// <param name="domain">The domain(s) to change the log level for</param>
+		/// <param name="level">The level to set the logging to</param>
 		public static void SetLogLevel(LogDomain domain, LogLevel level)
 		{
 			if(domain.HasFlag(LogDomain.Couchbase)) {

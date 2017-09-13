@@ -73,13 +73,37 @@ namespace Couchbase.Lite.Logging
         #endregion
     }
 
+	/// <summary>
+	/// Defines the Couchbase Lite log verbosity levels
+	/// </summary>
 	public enum LogLevel
 	{
+		/// <summary>
+		/// Debug log messages, only present in debug builds.  Information useful for
+		/// development.
+		/// </summary>
 		Debug = C4LogLevel.Debug,
+		/// <summary>
+		/// Verbose log messages.  Additional information to help track down a problem,
+		/// but noisy in every day use.
+		/// </summary>
 		Verbose = C4LogLevel.Verbose,
+		/// <summary>
+		/// Informational log messages.  Standard messages that indicate what is happening.
+		/// </summary>
 		Info = C4LogLevel.Info,
+		/// <summary>
+		/// Warning log messages, useful to look at if a problem is detected, but not necessarily
+		/// indicative of a problem on their own.
+		/// </summary>
 		Warning = C4LogLevel.Warning,
+		/// <summary>
+		/// Error log messages.  These indicate immediate errors that need to be addressed.
+		/// </summary>
 		Error = C4LogLevel.Error,
+		/// <summary>
+		/// Log level for disabling a given domain
+		/// </summary>
 		None = C4LogLevel.None
 	}
 }
