@@ -110,7 +110,8 @@ namespace api_walkthrough
             }
 
             // create Index
-            database.CreateIndex(new[] { "name" }, IndexType.FullTextIndex, null);
+            var index = Index.FTSIndex().On(FTSIndexItem.Expression(Expression.Property("name")));
+            database.CreateIndex("byName", index);
 
             var ftsQuery = Query.Select(SelectResult.Expression(Expression.Meta().ID).As("id"))
 		    .From(DataSource.Database(database))
