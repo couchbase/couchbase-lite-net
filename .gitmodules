@@ -9,7 +9,7 @@
 	url = https://github.com/couchbasedeps/Newtonsoft.Json.git
 [submodule "src/Couchbase.Lite.Shared/vendor/SQLitePCL"]
 	path = src/Couchbase.Lite.Shared/vendor/SQLitePCL
-	url = https://github.com/couchbasedeps/SQLitePCL.raw.git
+	url = https://github.com/apxlabs/SQLitePCL.raw.git
 [submodule "src/Couchbase.Lite.Shared/vendor/cbforest"]
 	path = src/Couchbase.Lite.Shared/vendor/cbforest
 	url = https://github.com/couchbaselabs/cbforest
