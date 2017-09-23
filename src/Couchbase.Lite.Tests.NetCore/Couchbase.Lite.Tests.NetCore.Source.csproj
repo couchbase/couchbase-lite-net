@@ -6,7 +6,7 @@
     <RootNamespace>Couchbase.Lite.Tests.NetCore</RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>DEBUG;LITECORE_PACKAGED;NETCOREAPP1_0</DefineConstants>
+    <DefineConstants>DEBUG;LITECORE_PACKAGED;HAVE_SG</DefineConstants>
     <WarningLevel>0</WarningLevel>
     <Prefer32Bit>False</Prefer32Bit>
   </PropertyGroup>

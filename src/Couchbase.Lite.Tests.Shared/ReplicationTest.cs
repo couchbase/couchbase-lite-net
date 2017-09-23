@@ -167,7 +167,7 @@ namespace Test
             _otherDB.Save(doc4);
 
             var config = CreateConfig(true, true, false);
-            config.Options.DocIDs = new[] {"doc1", "doc3"};
+            config.DocumentIDs = new[] {"doc1", "doc3"};
             RunReplication(config, 0, 0);
             Db.Count.Should().Be(3, "because only one document should have been pulled");
             Db.GetDocument("doc3").Should().NotBeNull();
@@ -259,9 +259,9 @@ namespace Test
             var installedLocation = Windows.ApplicationModel.Package.Current.InstalledLocation;
             var file = await installedLocation.GetFileAsync("Assets\\localhost-wrong.cert");
             var bytes = File.ReadAllBytes(file.Path);
-            config.Options.PinnedServerCertificate = new X509Certificate2(bytes);
+            config.PinnedServerCertificate = new X509Certificate2(bytes);
 #else
-            config.Options.PinnedServerCertificate = new X509Certificate2("localhost-wrong.cert");
+            config.PinnedServerCertificate = new X509Certificate2("localhost-wrong.cert");
 #endif
             RunReplication(config, 0, 0);
         }
@@ -293,9 +293,9 @@ namespace Test
             var config = CreateConfig(true, false, false, new Uri("blip://localhost:4984/db"));
             RunReplication(config, 0, 0);
 
-            config = new ReplicatorConfiguration(Db, new Uri("blip://localhost:4984/db"));
+            config = new ReplicatorConfiguration(_otherDB, new Uri("blip://localhost:4984/db"));
             ModifyConfig(config, false, true, false);
-            config.Options.Channels = new[] {"my_channel"};
+            config.Channels = new[] {"my_channel"};
             RunReplication(config, 0, 0);
             _otherDB.Count.Should().Be(10, "because 10 documents should be in the given channel");
         }

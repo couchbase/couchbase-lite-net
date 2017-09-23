@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 using System;
+using System.Collections.Generic;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Couchbase.Lite.Sync
 {
@@ -79,14 +81,51 @@ namespace Couchbase.Lite.Sync
         public IConflictResolver ConflictResolver { get; set; }
 
         /// <summary>
-        /// Gets or sets extra options affecting replication.
+        /// Gets or sets a certificate to trust.  All other certificates received
+        /// by a <see cref="Replicator"/> with this configuration will be rejected.
         /// </summary>
-        public ReplicatorOptionsDictionary Options { get; set; } = new ReplicatorOptionsDictionary();
+        public X509Certificate2 PinnedServerCertificate
+        {
+            get => Options.PinnedServerCertificate;
+            set => Options.PinnedServerCertificate = value;
+        }
+
+        /// <summary>
+        /// Extra HTTP headers to send in all requests to the remote target
+        /// </summary>
+        public IDictionary<string, string> Headers
+        {
+            get => Options.Headers;
+            set => Options.Headers = value;
+        }
+
+        /// <summary>
+        /// A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
+        /// The default value is null, meaning that all accessible channels will be pulled.
+        /// Note: channels that are not accessible to the user will be ignored by Sync Gateway.
+        /// </summary>
+        public IList<string> Channels
+        {
+            get => Options.Channels;
+            set => Options.Channels = value;
+        }
+
+        /// <summary>
+        /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
+        /// and/or pulled
+        /// </summary>
+        public IList<string> DocumentIDs
+        {
+            get => Options.DocIDs;
+            set => Options.DocIDs = value;
+        }
 
         /// <summary>
         /// Gets or sets the class which will authenticate the replication
         /// </summary>
         public Authenticator Authenticator { get; set; }
+
+        internal ReplicatorOptionsDictionary Options { get; } = new ReplicatorOptionsDictionary();
 
         internal Database OtherDB { get; }
 

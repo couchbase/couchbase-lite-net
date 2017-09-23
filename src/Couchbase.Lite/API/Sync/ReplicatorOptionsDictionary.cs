@@ -29,7 +29,7 @@ namespace Couchbase.Lite.Sync
     /// <summary>
     ///  A container for options that have to do with a <see cref="Replicator"/>
     /// </summary>
-    public sealed class ReplicatorOptionsDictionary : OptionsDictionary
+    internal sealed class ReplicatorOptionsDictionary : OptionsDictionary
     {
         #region Constants
 
@@ -108,10 +108,10 @@ namespace Couchbase.Lite.Sync
         /// Gets a mutable collection of headers to be passed along with the initial
         /// HTTP request that starts replication
         /// </summary>
-        public IDictionary<string, object> Headers
+        public IDictionary<string, string> Headers
         {
-            get => this.GetCast<IDictionary<string, object>>(HeadersKey);
-            private set => this[HeadersKey] = value;
+            get => this.GetCast<IDictionary<string, string>>(HeadersKey);
+            set => this[HeadersKey] = value;
         }
 
         /// <summary>
@@ -131,7 +131,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public ReplicatorOptionsDictionary()
         {
-            Headers = new Dictionary<string, object>();
+            Headers = new Dictionary<string, string>();
         }
 
         internal ReplicatorOptionsDictionary(Dictionary<string, object> raw) : base(raw)
@@ -141,11 +141,16 @@ namespace Couchbase.Lite.Sync
             }
 
             if (raw.ContainsKey(ChannelsKey)) {
-                Channels = (this[ChannelsKey] as IList<object>).Cast<string>().ToList();
+                Channels = (this[ChannelsKey] as IList<object>)?.Cast<string>().ToList();
             }
 
             if (raw.ContainsKey(DocIDsKey)) {
-                DocIDs = (this[DocIDsKey] as IList<object>).Cast<string>().ToList();
+                DocIDs = (this[DocIDsKey] as IList<object>)?.Cast<string>().ToList();
+            }
+
+            if (raw.ContainsKey(HeadersKey)) {
+                Headers = (this[HeadersKey] as IDictionary<string, object>)?.ToDictionary(x => x.Key,
+                    x => x.Value as string);
             }
 
             if (raw.ContainsKey(PinnedCertKey)) {
@@ -172,9 +177,9 @@ namespace Couchbase.Lite.Sync
         internal override void FreezeInternal()
         {
             Auth?.Freeze();
-            if (Cookies?.Count > 0) {
-                this[CookiesKey] = Cookies.Select(x => $"{x.Name}={x.Value}").Aggregate((l, r) => $"{l}; {r}");
-            }
+            //if (Cookies?.Count > 0) {
+            //    this[CookiesKey] = Cookies.Select(x => $"{x.Name}={x.Value}").Aggregate((l, r) => $"{l}; {r}");
+            //}
 
             if (PinnedServerCertificate != null) {
                 this[PinnedCertKey] = PinnedServerCertificate.Export(X509ContentType.Cert);
@@ -183,6 +188,8 @@ namespace Couchbase.Lite.Sync
             if (ClientCert != null) {
                 this[ClientCertKey] = ClientCert.Export(X509ContentType.Pfx);
             }
+
+            Headers["User-Agent"] = HTTPLogic.UserAgent;
         }
 
         internal override bool Validate(string key, object value)
