@@ -69,6 +69,7 @@ namespace Couchbase.Lite.Listener
                 DocumentContentOptions options = context.ContentOptions;
                 string openRevsParam = context.GetQueryParam("open_revs");
                 bool mustSendJson = context.ExplicitlyAcceptsType("application/json");
+                Status status = new Status();
                 if (openRevsParam == null || isLocalDoc) {
                     //Regular GET:
                     var revId = context.GetQueryParam("rev").AsRevID(); //often null
@@ -83,7 +84,7 @@ namespace Couchbase.Lite.Listener
                             options &= ~DocumentContentOptions.IncludeAttachments;
                         }
 
-                        Status status = new Status();
+                        
                         rev = db.GetDocument(docId, revId, true, status);
                         if(rev != null) {
                             rev = ApplyOptions(options, rev, context, db, status);
@@ -91,12 +92,26 @@ namespace Couchbase.Lite.Listener
 
                         if(rev == null) {
                             if(status.Code == StatusCode.Deleted) {
-                                response.StatusReason = "deleted";
+                                if (revId != null) {
+                                    // Requested a deleted revision by ID
+                                    response.JsonBody = new Body(new Dictionary<string, object>
+                                    {
+                                        ["_id"] = docId,
+                                        ["_rev"] = revId,
+                                        ["_deleted"] = true
+                                    });
+
+                                    response.InternalStatus = StatusCode.Ok;
+                                }
+                                else {
+                                    response.InternalStatus = StatusCode.NotFound;
+                                    response.StatusReason = "deleted";
+                                }
                             } else {
+                                response.InternalStatus = StatusCode.NotFound;
                                 response.StatusReason = "missing";
                             }
-
-                            response.InternalStatus = status.Code;
+                            
                             return response;
                         }
                     }
@@ -141,8 +156,7 @@ namespace Couchbase.Lite.Listener
                             if(!includeDeleted && rev.Deleted) {
                                 continue;
                             }
-
-                            Status status = new Status();
+                            
                             var loadedRev = db.RevisionByLoadingBody(rev, status);
                             if(loadedRev != null) {
                                 ApplyOptions(options, loadedRev, context, db, status);
@@ -172,8 +186,7 @@ namespace Couchbase.Lite.Listener
                                 response.InternalStatus = StatusCode.BadId;
                                 return response;
                             }
-
-                            Status status = new Status();
+                            
                             var rev = db.GetDocument(docId, revID.AsRevID(), true);
                             if(rev != null) {
                                 rev = ApplyOptions(options, rev, context, db, status);
