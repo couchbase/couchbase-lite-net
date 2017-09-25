@@ -162,8 +162,8 @@ namespace Couchbase.Lite.Internal
                 Mode = ChangeTrackerMode.LongPoll;
             }
 
-            if(isError && PollInterval > TimeSpan.Zero) {
-                Log.To.ChangeTracker.I(Tag, "{0} retrying in {1} seconds (PollInterval)...", 
+            if (PollInterval > TimeSpan.Zero) {
+                Log.To.ChangeTracker.I(Tag, "{0} retrying in {1} seconds (PollInterval)...",
                     this, PollInterval.TotalSeconds);
                 Task.Delay(PollInterval).ContinueWith(t1 => Run(), _workExecutor.Scheduler);
             } else {
