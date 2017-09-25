@@ -226,6 +226,8 @@ namespace Couchbase.Lite.Listener
             {
                 var response = context.CreateResponse();
                 string docId = context.DocumentName;
+
+                db.ForgetDesignDocument(context.DesignDocName);
                 if(context.GetQueryParam<bool>("new_edits", bool.TryParse, true)) {
                     // Regular PUT:
                     return UpdateDb(context, db, docId, body, false);

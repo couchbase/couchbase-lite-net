@@ -1382,6 +1382,19 @@ namespace Couchbase.Lite
             Shared.SetValue("reduce", viewName, Name, (object)null);
         }
 
+        internal void ForgetDesignDocument(string designDocName)
+        {
+            if (designDocName == null || _views == null) {
+                return;
+            }
+
+            foreach (var view in _views.Keys.ToArray()) {
+                if (view.StartsWith(designDocName)) {
+                    ForgetView(view);
+                }
+            }
+        }
+
         // This is only used for testing.  It is a one shot view from scratch
         internal Query SlowQuery(MapDelegate map)
         {
