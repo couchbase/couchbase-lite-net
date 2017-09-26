@@ -119,7 +119,11 @@ namespace Couchbase.Lite.Internal
             _remoteRequestCancellationSource?.Cancel();
             _remoteRequestCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token);
             ClientFactory.SocketTimeout = options.SocketTimeout;
+#if __ANDROID__
+            var clientObj = ClientFactory.GetHttpClient(CookieStore, options.RetryStrategy, options.TrustedServerCert);
+#else
             var clientObj = ClientFactory.GetHttpClient(CookieStore, options.RetryStrategy);
+#endif
             clientObj.Timeout = options.RequestTimeout;
             clientObj.SetConcurrencyLimit(options.MaxOpenHttpConnections);
             clientObj.Authenticator = Authenticator;

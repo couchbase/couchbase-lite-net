@@ -139,19 +139,27 @@ namespace Couchbase.Lite.Support
         /// <summary>
         /// Build a pipeline of HttpMessageHandlers.
         /// </summary>
+#if __ANDROID__
+        internal HttpMessageHandler BuildHandlerPipeline(CookieStore store, IRetryStrategy retryStrategy, Java.Security.Cert.Certificate selfSignedCert)
+#else
         internal HttpMessageHandler BuildHandlerPipeline (CookieStore store, IRetryStrategy retryStrategy)
+#endif
         {
-            #if __MOBILE__
+#if __MOBILE__
             var handler = default(HttpClientHandler);
-            #if __ANDROID__
+#if __ANDROID__
             if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.Lollipop) {
                 handler = new Xamarin.Android.Net.AndroidClientHandler
                 {
                     CookieContainer = store,
                     UseCookies = true
                 };
+
+                if(selfSignedCert != null) {
+                    ((Xamarin.Android.Net.AndroidClientHandler)handler).TrustedCerts = new List<Java.Security.Cert.Certificate> {  selfSignedCert };
+                }
             } else
-            #endif
+#endif
             {
                 handler = new HttpClientHandler
                 {
@@ -159,13 +167,13 @@ namespace Couchbase.Lite.Support
                     UseCookies = true
                 };
             }
-            #else
+#else
             var handler = new WebRequestHandler {
                 CookieContainer = store,
                 UseCookies = true,
                 ReadWriteTimeout = (int)SocketTimeout.TotalMilliseconds
             };
-            #endif
+#endif
 
             if(handler.SupportsAutomaticDecompression) {
                 handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate;
@@ -180,9 +188,13 @@ namespace Couchbase.Lite.Support
             return retryHandler;
         }
 
+#if __ANDROID__
+        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy retryStrategy, Java.Security.Cert.Certificate selfSignedCert)
+#else
         public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy retryStrategy)
+#endif
         {
-            var authHandler = BuildHandlerPipeline(cookieStore, retryStrategy);
+            var authHandler = BuildHandlerPipeline(cookieStore, retryStrategy, selfSignedCert);
 
             // As the handler will not be shared, client.Dispose() needs to be 
             // called once the operation is done to release the unmanaged resources 

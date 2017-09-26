@@ -61,7 +61,11 @@ namespace Couchbase.Lite.Support
     internal interface IHttpClientFactory
     {
         // Create an HTTP client based on the cookie store
+#if __ANDROID__
+        CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy retryStrategy, Java.Security.Cert.Certificate selfSignedCert);
+#else
         CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy retryStrategy);
+#endif
 
         TimeSpan SocketTimeout { get; set; }
     }

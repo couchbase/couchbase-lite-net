@@ -177,7 +177,14 @@ namespace Couchbase.Lite
         /// </summary>
         public bool AllNew { get; set; }
 
-        #endregion
+#if __ANDROID__
+        /// <summary>
+        /// Sets an X509 certificate that is unconditionally trusted, even if it would fail
+        /// otherwise (e.g. self signed).  Useful for development, not recommended for production.
+        /// </summary>
+        public Java.Security.Cert.Certificate TrustedServerCert { get; set; }
+
+#endif
 
         #region Constructors
 
