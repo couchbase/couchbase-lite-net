@@ -208,6 +208,13 @@ namespace Couchbase.Lite.Internal
                 }
             }
 
+#if __ANDROID__
+            if(e is Java.Net.SocketTimeoutException || e is Java.Net.ConnectException || e is Java.IO.IOException) {
+                Log.To.Sync.V(Tag, "Rule #4 (Android): Java.Net.SocketTimeoutException, Java.Net.ConnectException, or Java.IO.IOException, ruling transient...");
+                return new ErrorResolution_Impl(e.GetType().Name, ErrorResolutionFlags.Transient);
+            }
+#endif
+
             Log.To.Sync.V(Tag, "No transient exceptions found, ruling fatal...");
             return new ErrorResolution_Impl(code, ErrorResolutionFlags.Permanent);
         }
