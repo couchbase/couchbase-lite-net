@@ -186,6 +186,8 @@ namespace Couchbase.Lite
 
 #endif
 
+        #endregion
+
         #region Constructors
 
         /// <summary>

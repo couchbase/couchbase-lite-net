@@ -43,6 +43,7 @@
 */
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -2331,6 +2332,103 @@ namespace Couchbase.Lite
 
             ((SqliteViewStore)foo.Storage).ViewID.Should().Be(1, "because the view ID should be properly set");
             ((SqliteViewStore)bar.Storage).ViewID.Should().Be(2, "because the view ID should be properly set");
+        }
+
+        // https://github.com/couchbase/couchbase-lite-net/issues/909
+        [NUnit.Framework.Test]
+        public void TestViewGroupedKeyContainsNull()
+        {
+            var docProperties1 = new Dictionary<string, object> {
+                ["_id"] = "1",
+                ["artist"] = "Gang Of Four",
+                ["album"] = "Entertainment!",
+                ["track"] = "Ether",
+                ["time"] = 231
+            };
+            PutDoc(database, docProperties1);
+
+            var docProperties2 = new Dictionary<string, object> {
+                ["_id"] = "2",
+                ["artist"] = "Gang Of Four",
+                ["album"] = "Songs Of The Free",
+                ["track"] = "I Love A Man In Uniform",
+                ["time"] = 248
+            };
+            PutDoc(database, docProperties2);
+
+            var docProperties3 = new Dictionary<string, object> {
+                ["_id"] = "3",
+                ["artist"] = "Gang Of Four",
+                ["album"] = "Entertainment!",
+                ["track"] = "Natural's Not In It",
+                ["time"] = 187
+            };
+            PutDoc(database, docProperties3);
+
+            var docProperties4 = new Dictionary<string, object> {
+                ["_id"] = "4",
+                ["artist"] = "PiL",
+                ["album"] = "Metal Box",
+                ["track"] = "Memories",
+                ["time"] = 309
+            };
+            PutDoc(database, docProperties4);
+
+            var docProperties5 = new Dictionary<string, object> {
+                ["_id"] = "5",
+                ["artist"] = "Gang Of Four",
+                ["album"] = "Entertainment!",
+                ["track"] = "Not Great Men",
+                ["time"] = 187
+            };
+            PutDoc(database, docProperties5);
+
+            var docProperties6 = new Dictionary<string, object>
+            {
+                ["_id"] = "6",
+                ["artist"] = "Gang Of Four",
+                ["album"] = null,
+                ["track"] = "Not Great Men",
+                ["time"] = 100
+            };
+            PutDoc(database, docProperties6);
+
+            var docProperties7 = new Dictionary<string, object>
+            {
+                ["_id"] = "7",
+                ["artist"] = "Gang Of Four",
+                ["album"] = null,
+                ["track"] = "Memories!",
+                ["time"] = 200
+            };
+            PutDoc(database, docProperties7);
+
+            var view = database.GetView("grouper");
+            view.SetMapReduce((document, emitter) =>
+            {
+                IList<object> key = new List<object>();
+                key.Add(document["artist"]);
+                key.Add(document["album"]);
+                key.Add(document["track"]);
+                emitter(key, document["time"]);
+            }, BuiltinReduceFunctions.Sum, "1");
+
+            view.UpdateIndex();
+
+            // group level 2
+            var options = new QueryOptions {
+                Reduce = true,
+                GroupLevel = 2
+            };
+            var rows = view.QueryWithOptions(options).ToList();
+            rows[0].Key.As<IList<object>>().Should().ContainInOrder(new[] {"Gang Of Four", null});
+            rows[1].Key.As<IList<object>>().Should().ContainInOrder(new[] {"Gang Of Four", "Entertainment!"});
+            rows[2].Key.As<IList<object>>().Should().ContainInOrder(new[] { "Gang Of Four", "Songs Of The Free" });
+            rows[3].Key.As<IList<object>>().Should().ContainInOrder(new[] { "PiL", "Metal Box" });
+            rows[0].ValueAs<int>().Should().Be(300);
+            rows[1].ValueAs<int>().Should().Be(605);
+            rows[2].ValueAs<int>().Should().Be(248);
+            rows[3].ValueAs<int>().Should().Be(309);
         }
 
         private IList<IDictionary<string, object>> RowsToDicts(IEnumerable<QueryRow> allDocs)

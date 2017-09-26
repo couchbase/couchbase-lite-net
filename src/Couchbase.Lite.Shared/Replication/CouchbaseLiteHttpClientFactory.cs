@@ -194,7 +194,11 @@ namespace Couchbase.Lite.Support
         public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy retryStrategy)
 #endif
         {
+#if __ANDROID__
             var authHandler = BuildHandlerPipeline(cookieStore, retryStrategy, selfSignedCert);
+#else
+            var authHandler = BuildHandlerPipeline(cookieStore, retryStrategy);
+#endif
 
             // As the handler will not be shared, client.Dispose() needs to be 
             // called once the operation is done to release the unmanaged resources 
