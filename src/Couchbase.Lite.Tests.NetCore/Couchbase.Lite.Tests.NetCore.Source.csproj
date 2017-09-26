@@ -6,12 +6,12 @@
     <RootNamespace>Couchbase.Lite.Tests.NetCore</RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>DEBUG;LITECORE_PACKAGED;HAVE_SG</DefineConstants>
+    <DefineConstants>DEBUG;LITECORE_PACKAGED</DefineConstants>
     <WarningLevel>0</WarningLevel>
     <Prefer32Bit>False</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DefineConstants>LITECORE_PACKAGED</DefineConstants>
+    <DefineConstants>LITECORE_PACKAGED;RELEASE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="C\**" />
