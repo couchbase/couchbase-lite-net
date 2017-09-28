@@ -1,11 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
-    <mdb>dll.mdb</mdb>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
-    <mdb>pdb</mdb>
-  </PropertyGroup>
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -51,7 +45,7 @@
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Listener.Bonjour\net45" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.Bonjour.dll;$(OutputPath)Couchbase.Lite.Listener.Bonjour.$(mdb);$(OutputPath)Couchbase.Lite.Listener.Bonjour.dll.config" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener.Bonjour\net45" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.Bonjour.dll;$(OutputPath)Couchbase.Lite.Listener.Bonjour.pdb;$(OutputPath)Couchbase.Lite.Listener.Bonjour.dll.config" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener.Bonjour\net45" />
   </Target>
   <ItemGroup>
     <ProjectReference Include="..\..\Couchbase.Lite.Listener.Net45\Couchbase.Lite.Listener.Net45.csproj">

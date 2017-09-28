@@ -68,6 +68,6 @@
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite.Listener.Bonjour\Xamarin.iOS10" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.Bonjour.dll;&#xA;    $(OutputPath)Couchbase.Lite.Listener.Bonjour.dll.mdb;$(OutputPath)Couchbase.Lite.Listener.Bonjour.dll.config" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener.Bonjour\Xamarin.iOS10" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.Listener.Bonjour.dll;&#xA;    $(OutputPath)Couchbase.Lite.Listener.Bonjour.pdb;$(OutputPath)Couchbase.Lite.Listener.Bonjour.dll.config" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite.Listener.Bonjour\Xamarin.iOS10" />
   </Target>
 </Project>
