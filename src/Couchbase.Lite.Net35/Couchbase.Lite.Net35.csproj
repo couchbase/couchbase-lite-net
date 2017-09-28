@@ -2,11 +2,9 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
     <MonoPrefix>mono </MonoPrefix>
-    <mdb>dll.mdb</mdb>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
     <MonoPrefix />
-    <mdb>pdb</mdb>
   </PropertyGroup>
   <Target Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
     <Exec Command="$(MonoPrefix)$(ProjectDir)..\..\Tools\GitVersion\GitVersion.exe &quot;$(ProjectDir)..\..&quot; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
@@ -77,7 +75,7 @@
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Condition=" '$(Configuration)' == 'Packaging' Or '$(Archive)' == 'true'" Name="AfterBuild">
     <MakeDir Directories="$(SolutionDir)..\staging\Couchbase.Lite\net35" />
-    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.$(mdb);$(OutputPath)Stateless.dll;&#xD;&#xA;    $(OutputPath)Stateless.dll;$(OutputPath)System.Net.Http.Net35.dll;$(OutputPath)System.Threading.Tasks.Net35.dll;&#xD;&#xA;    $(OutputPath)Rackspace.Threading.dll;$(OutputPath)Stateless.$(mdb);$(OutputPath)System.Net.Http.Net35.$(mdb);&#xD;&#xA;    $(OutputPath)System.Threading.Tasks.Net35.$(mdb);$(OutputPath)Rackspace.Threading.$(mdb);&#xD;&#xA;    $(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.$(mdb);$(OutputPath)Couchbase.Lite.xml" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\net35" />
+    <Copy SourceFiles="$(OutputPath)Couchbase.Lite.dll;$(OutputPath)Couchbase.Lite.pdb;$(OutputPath)Stateless.dll;&#xD;&#xA;    $(OutputPath)Stateless.dll;$(OutputPath)System.Net.Http.Net35.dll;$(OutputPath)System.Threading.Tasks.Net35.dll;&#xD;&#xA;    $(OutputPath)Rackspace.Threading.dll;$(OutputPath)Stateless.pdb;$(OutputPath)System.Net.Http.Net35.pdb;&#xD;&#xA;    $(OutputPath)System.Threading.Tasks.Net35.pdb;$(OutputPath)Rackspace.Threading.pdb;&#xD;&#xA;    $(OutputPath)websocket-sharp.dll;$(OutputPath)websocket-sharp.pdb;$(OutputPath)Couchbase.Lite.xml" DestinationFolder="$(SolutionDir)..\staging\Couchbase.Lite\net35" />
   </Target>
   <ItemGroup>
     <Compile Include="..\Couchbase.Lite.Net45\SecureStorage.cs">
