@@ -88,30 +88,11 @@ namespace Couchbase.Lite.Listener
                         rev = db.GetDocument(docId, revId, true, status);
                         if(rev != null) {
                             rev = ApplyOptions(options, rev, context, db, status);
-                        }
+                        } 
 
                         if(rev == null) {
-                            if(status.Code == StatusCode.Deleted) {
-                                if (revId != null) {
-                                    // Requested a deleted revision by ID
-                                    response.JsonBody = new Body(new Dictionary<string, object>
-                                    {
-                                        ["_id"] = docId,
-                                        ["_rev"] = revId,
-                                        ["_deleted"] = true
-                                    });
-
-                                    response.InternalStatus = StatusCode.Ok;
-                                }
-                                else {
-                                    response.InternalStatus = StatusCode.NotFound;
-                                    response.StatusReason = "deleted";
-                                }
-                            } else {
-                                response.InternalStatus = StatusCode.NotFound;
-                                response.StatusReason = "missing";
-                            }
-                            
+                            response.StatusReason = status.Code == StatusCode.Deleted ? "deleted" : "missing";
+                            response.InternalStatus = StatusCode.NotFound;
                             return response;
                         }
                     }
