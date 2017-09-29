@@ -258,11 +258,10 @@ namespace Couchbase.Lite.Auth
                     _loginCallback(loginUrl, authBaseUrl, (authUrl, error) =>
                     {
                         if(authUrl != null) {
-                            Log.To.Sync.I(Tag, "{0} app login callback returned authUrl=<{1}>", this, authUrl.AbsolutePath);
+                            Log.To.Sync.I(Tag, "{0} app login callback returned authUrl=<{1}>", this, authUrl.AbsoluteUri);
                             // Verify that the authUrl matches the site:
-                            var remoteUrlLeft = remoteUrl.GetLeftPart(UriPartial.Path).TrimEnd('/');
-                            if(String.Compare(authUrl.Host, remoteUrl.Host, StringComparison.InvariantCultureIgnoreCase) != 0 || authUrl.Port != remoteUrl.Port || $"{remoteUrlLeft}/_oidc_callback" != authUrl.GetLeftPart(UriPartial.Path)) {
-                                Log.To.Sync.W(Tag, "{0} app-provided authUrl <{1}> doesn't match server URL; ignoring it", this, authUrl.AbsolutePath);
+                            if(String.Compare(authUrl.Host, remoteUrl.Host, StringComparison.InvariantCultureIgnoreCase) != 0 || authUrl.Port != remoteUrl.Port) {
+                                Log.To.Sync.W(Tag, "{0} app-provided authUrl <{1}> doesn't match server URL; ignoring it", this, authUrl.AbsoluteUri);
                                 authUrl = null;
                                 error = new ArgumentException("authURL does not match server URL");
                             }
