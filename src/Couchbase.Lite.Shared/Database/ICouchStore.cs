@@ -194,9 +194,11 @@ namespace Couchbase.Lite.Store
         /// <param name="limit">The maximum number of results to return, or if 0, unlimited.</param>
         /// <param name="haveBodies">  On return, if not NULL, then* outHaveBodies will be YES if all the
         /// revisions returned have their JSON bodies available, otherwise NO.</param>
+        /// <param name="withBodiesOnly">Specifies whether or not to search for non-empty and non-removed revisions</param>
         /// <returns>An array of revIDs of existing revisions that could be ancestors of `rev`.</returns>
         /// </summary>
-        IEnumerable<RevisionID> GetPossibleAncestors(RevisionInternal rev, int limit, ValueTypePtr<bool> haveBodies);
+        IEnumerable<RevisionID> GetPossibleAncestors(RevisionInternal rev, int limit, ValueTypePtr<bool> haveBodies,
+            bool withBodiesOnly);
 
         /// <summary>
         /// Returns the most recent member of revIDs that appears in rev's ancestry.

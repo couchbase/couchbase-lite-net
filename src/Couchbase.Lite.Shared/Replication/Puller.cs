@@ -576,7 +576,7 @@ namespace Couchbase.Lite.Replicator
             var knownRevs = default(IList<RevisionID>);
             ValueTypePtr<bool> haveBodies = false;
             try {
-                knownRevs = LocalDatabase.Storage.GetPossibleAncestors(rev, MaxAttsSince, haveBodies)?.ToList();
+                knownRevs = LocalDatabase.Storage.GetPossibleAncestors(rev, MaxAttsSince, haveBodies, true)?.ToList();
             } catch(Exception e) {
                 Log.To.Sync.W(TAG, "Error getting possible ancestors (probably database closed)", e);
             }
