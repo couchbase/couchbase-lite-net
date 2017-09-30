@@ -86,7 +86,11 @@ namespace Couchbase.Lite.Tests
             Headers = new Dictionary<string,string>();
         }
 
+#if __ANDROID__
+        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy strategy, Java.Security.Cert.Certificate cert)
+#else
         public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy strategy)
+#endif
         {
             var handler = strategy != null ? (HttpMessageHandler)new TransientErrorRetryHandler(HttpHandler, strategy) : HttpHandler;
             var client = new HttpClient(handler, false);
