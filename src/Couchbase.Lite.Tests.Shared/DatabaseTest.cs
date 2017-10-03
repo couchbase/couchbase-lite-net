@@ -705,6 +705,63 @@ namespace Couchbase.Lite
             Assert.IsTrue(outIsConflict);
         }
 
+        [Test]
+        public void TestConflictAfterPrune()
+        {
+            // Create a conflict where one barnch is more than maxRevTreeDepth generations deeper than
+            // the other
+            database.SetMaxRevTreeDepth(5);
+            var baseRev = database.PutDocument("robin", new Dictionary<string, object>(), null, false, null);
+
+            var shortBranch = database.PutDocument("robin", new Dictionary<string, object> {
+                ["branch"] = "short"
+            }, baseRev.RevID, false, null);
+
+            var longBranch = baseRev;
+            for (int i = 0; i < 8; i++) {
+                longBranch = database.PutDocument("robin", new Dictionary<string, object> {
+                    ["branch"] = "long"
+                }, longBranch.RevID, i == 0, null);
+            }
+
+            WriteDebug("All revisions = {0}", database.Storage.GetAllDocumentRevisions("robin", false, true));
+
+            var all = database.GetDocument("robin").ConflictingRevisions.ToList();
+            all.Count.Should().Be(2, "because there are two branches");
+            var allRevIDs = all.Select(x => x.Id);
+            allRevIDs.Should().Contain(shortBranch.RevID.ToString());
+            allRevIDs.Should().Contain(longBranch.RevID.ToString());
+            var shortConflict = shortBranch;
+            var longConflict = longBranch;
+
+            // Resolve the conflict by adding to the long branch and deleting the short one:
+            var shortHistory = database.GetRevisionHistory(shortBranch, null);
+            var longHistory = database.GetRevisionHistory(longBranch, null);
+
+            shortBranch = database.PutDocument("robin", new Dictionary<string, object> {
+                ["_deleted"] = true
+            }, shortBranch.RevID, false, null);
+
+            longBranch = database.PutDocument("robin", new Dictionary<string, object> {
+                ["branch"] = "merged"
+            }, longBranch.RevID, false, null);
+
+            WriteDebug("After merge, all revisions = {0}", database.Storage.GetAllDocumentRevisions("robin", false, false));
+            all = database.GetDocument("robin").ConflictingRevisions.ToList();
+            all.Count.Should().Be(1);
+            all[0].Id.Should().Be(longBranch.RevID.ToString());
+
+            // Add the conflicting revisions back, as a pull replication might do:
+            database.ForceInsert(shortConflict, shortHistory, null);
+            database.ForceInsert(longConflict, longHistory, null);
+
+            // Make sure this doesn't re-create the conflict:
+            all = database.GetDocument("robin").ConflictingRevisions.ToList();
+            WriteDebug("After pull, all revisions = {0}", database.Storage.GetAllDocumentRevisions("robin", false, false));
+            all.Count.Should().Be(1);
+            all[0].Id.Should().Be(longBranch.RevID.ToString());
+        }
+
         private void CheckRowsOfReplacedDB(string dbName, Action<QueryEnumerator> onComplete)
         {
             var replacedb = default(Database);

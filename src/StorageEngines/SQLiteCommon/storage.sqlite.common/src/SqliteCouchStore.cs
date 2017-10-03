@@ -431,19 +431,102 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return Utility.JoinQuoted(strings);
         }
 
-        private int PruneDocument(long docNumericID, int minGenToKeep)
+        private void PurgeSequences(IEnumerable<long> seqsToPurge)
         {
-            const string sql = "DELETE FROM revs WHERE doc_id=? AND revid < ? AND current=0 AND" +
-                "sequence NOT IN (SELECT parent FROM revs WHERE doc_id=? AND current=1)";
-            var minGen = String.Format("{0}-", minGenToKeep);
-            try {
-                var retVal = StorageEngine?.ExecSQL(sql, docNumericID, minGen, docNumericID);
-                return retVal.HasValue ? retVal.Value : 0;
-            } catch(Exception) {
-                Log.To.Database.W(TAG, "SQLite error {0} pruning generations < {1} of doc {2}", StorageEngine?.LastErrorCode, minGenToKeep, docNumericID);
+            if (seqsToPurge?.Any() != true) {
+                return;
             }
 
-            return 0;
+            var count = seqsToPurge.Count();
+            var seqsString = Utility.JoinQuoted(seqsToPurge.Select(x => x.ToString()));
+            Log.To.Database.V(TAG, $"    purging {count} sequences: {seqsString}");
+            var sql = $"DELETE FROM revs WHERE sequence in ({seqsString})";
+            var purged = StorageEngine?.ExecSQL(sql);
+            if (purged != count) {
+                Log.To.Database.W(TAG, $"PurgeRevisions: Only {purged} sequences deleted of ({seqsString})");
+            }
+        }
+
+        private int PruneDocument(string docID, long docNumericID, int minGenToKeep)
+        {
+            // First find the leaves
+            var leaves = new HashSet<long>();
+            try {
+                using (var c = StorageEngine?.RawQuery("SELECT sequence FROM revs WHERE doc_id=? AND current",
+                    docNumericID)) {
+                    if (c == null) {
+                        return 0;
+                    }
+
+                    while (c.MoveToNext()) {
+                        var seq = c.GetLong(0);
+                        leaves.Add(seq);
+                    }
+                }
+            } catch (Exception) {
+                Log.To.Database.W(TAG, "(1) SQLite error {0} pruning generations < {1} of doc {2}",
+                    StorageEngine?.LastErrorCode, minGenToKeep, docNumericID);
+            }
+
+            if (leaves.Count <= 1) {
+                // There are no branches, so just delete everything below minGenToKeep:
+                try {
+                    var retVal = StorageEngine?.ExecSQL("DELETE FROM revs WHERE doc_id=? AND revid < ? AND current=0",
+                        docNumericID, $"{minGenToKeep}-");
+                    Log.To.Database.V(TAG, $"    pruned {retVal} revs with gen<{minGenToKeep} from {docNumericID}");
+                    return retVal ?? 0;
+                } catch (Exception) {
+                    Log.To.Database.W(TAG, "(2) SQLite error {0} pruning generations < {1} of doc {2}",
+                        StorageEngine?.LastErrorCode, minGenToKeep, docNumericID);
+                }
+            } else {
+                // Doc has branches.  Keep the ancestors of all the leaves, down to _maxRevTreeDepth.
+                // First fetch the skeleton of the rev tree:
+                var revs = new Dictionary<long, long>();
+                try {
+                    using (var c = StorageEngine?.RawQuery("SELECT sequence, parent FROM revs WHERE doc_id=?",
+                        docNumericID)) {
+                        if (c == null) {
+                            return 0;
+                        }
+
+                        while (c.MoveToNext()) {
+                            var seq = c.GetLong(0);
+                            var parent = c.GetLong(1);
+                            revs[seq] = parent;
+                        }
+                    }
+                } catch (Exception) {
+                    Log.To.Database.W(TAG, "(3) SQLite error {0} pruning generations < {1} of doc {2}",
+                        StorageEngine?.LastErrorCode, minGenToKeep, docNumericID);
+                }
+
+                // Now remove each leaf and its ancestors from `revs`:
+                var secureDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
+                Log.To.Database.V(TAG, $"    pruning {secureDocID}, scanning {revs.Count} revs in tree...");
+                foreach (var leaf in leaves) {
+                    var seq = leaf;
+                    for (int i = 0; i < MaxRevTreeDepth; i++) {
+                        if (!revs.ContainsKey(seq)) {
+                            break;
+                        }
+
+                        var parent = revs[seq];
+                        revs.Remove(seq);
+                        if (parent == 0) {
+                            break;
+                        }
+
+                        seq = parent;
+                    }
+                }
+
+                // The remainined keys in `revs` are sequences to purge:
+                PurgeSequences(revs.Keys);
+                return revs.Count;
+            }
+
+            return -1;
         }
 
         private void Open()
@@ -571,7 +654,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 RunInTransaction(() =>
                 {
                     foreach (var pair in toPrune) {
-                        outPruned += PruneDocument(pair.Key, pair.Value);
+                        outPruned += PruneDocument("?", pair.Key, pair.Value);
                     }
 
                     return true;
@@ -1895,7 +1978,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
                 // Delete the deepest revs in the tree to enforce the MaxRevTreeDepth:
                 var minGenToKeep = newRev.Generation - MaxRevTreeDepth + 1;
                 if(minGenToKeep > 1) {
-                    var pruned = PruneDocument(docNumericId, minGenToKeep);
+                    var pruned = PruneDocument(docId, docNumericId, minGenToKeep);
                     if(pruned > 0) {
                         Log.To.Database.V(TAG, "Pruned {0} old revisions of doc '{1}'", pruned,
                             new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
@@ -2096,7 +2179,7 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
                     var minGenToKeep = maxGen - MaxRevTreeDepth + 1;
                     if (minGen < minGenToKeep) {
-                        var pruned = PruneDocument(docNumericId, minGenToKeep);
+                        var pruned = PruneDocument(docId, docNumericId, minGenToKeep);
                         if (pruned > 0) {
                             Log.To.Database.V(TAG, "Pruned {0} old revisions of '{1}'", pruned,
                                 new SecureLogString(docId, LogMessageSensitivity.PotentiallyInsecure));
