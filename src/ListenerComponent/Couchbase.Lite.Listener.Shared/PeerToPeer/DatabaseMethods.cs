@@ -897,7 +897,7 @@ namespace Couchbase.Lite.Listener
                     }
 
                     var rev = new RevisionInternal(docPair.Key, maxRevID, false);
-                    var ancestors = db.Storage.GetPossibleAncestors(rev, 0, ValueTypePtr<bool>.NULL)?.ToList();
+                    var ancestors = db.Storage.GetPossibleAncestors(rev, 0, ValueTypePtr<bool>.NULL, false)?.ToList();
                     if(ancestors != null && ancestors.Count > 0) {
                         docInfo["possible_ancestors"] = ancestors;
                     }

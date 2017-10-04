@@ -1386,7 +1386,8 @@ namespace Couchbase.Lite.Storage.SQLCipher
             return GetAllDocumentRevisions(docId, docNumericId, onlyCurrent, includeDeleted);
         }
 
-        public IEnumerable<RevisionID> GetPossibleAncestors(RevisionInternal rev, int limit, ValueTypePtr<bool> haveBodies)
+        public IEnumerable<RevisionID> GetPossibleAncestors(RevisionInternal rev, int limit, ValueTypePtr<bool> haveBodies,
+            bool withBodiesOnly)
         {
             int generation = rev.Generation;
             if (generation <= 1L) {
@@ -1400,26 +1401,47 @@ namespace Couchbase.Lite.Storage.SQLCipher
 
             int sqlLimit = limit > 0 ? limit : -1;
             haveBodies.Value = true;
-            const string sql = "SELECT revid, json is not null FROM revs " +
-                "WHERE doc_id=? AND current=? AND revid < ? " +
-                "ORDER BY revid DESC LIMIT ?";
+            string sql;
+            if (withBodiesOnly) {
+                sql = "SELECT revid, json is not null, json FROM revs " +
+                      "WHERE doc_id=? AND current=? AND revid < ? " +
+                      "ORDER BY revid DESC LIMIT ?";
+            } else {
+                sql = "SELECT revid, json is not null FROM revs " +
+                                   "WHERE doc_id=? AND current=? AND revid < ? " +
+                                   "ORDER BY revid DESC LIMIT ?";
+            }
 
             // First look only for current revisions; if none match, go to non-current ones.
             var revIDs = new List<RevisionID>();
             for(int current = 1; current >= 0; current--) {
                 var status = TryQuery(c =>
                 {
-                    revIDs.Add(c.GetString(0).AsRevID());
-                    if(haveBodies && c.GetInt(1) == 0) {
-                        haveBodies.Value = false;
+                    if (c.GetInt(1) == 0) {
+                        if (haveBodies) {
+                            haveBodies.Value = false;
+                        }
+
+                        if (withBodiesOnly) {
+                            return true;
+                        }
+                    } else if(withBodiesOnly) {
+                        var body = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(c.GetBlob(2));
+                        if (body.ContainsKey("_removed")) {
+                            return true; // Skip _removed
+                        }
                     }
+                    revIDs.Add(c.GetString(0).AsRevID());
+                    
 
                     return true;
-                }, sql, docNumericId, current, String.Format("{0}-", generation), sqlLimit);
+                }, sql, docNumericId, current, $"{generation}-", sqlLimit);
 
                 if(status.Code != StatusCode.NotFound && status.IsError) {
                     return null;
-                } else if(revIDs.Count > 0) {
+                }
+
+                if (revIDs.Count > 0) {
                     return revIDs;
                 }
             }

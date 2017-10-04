@@ -808,7 +808,8 @@ namespace Couchbase.Lite.Storage.ForestDB
             return retVal;
         }
 
-        public IEnumerable<RevisionID> GetPossibleAncestors(RevisionInternal rev, int limit, ValueTypePtr<bool> haveBodies)
+        public IEnumerable<RevisionID> GetPossibleAncestors(RevisionInternal rev, int limit, ValueTypePtr<bool> haveBodies,
+            bool withBodiesOnly)
         {
             haveBodies.Value = true;
             var returnedCount = 0;
@@ -826,6 +827,17 @@ namespace Couchbase.Lite.Storage.ForestDB
                         Native.c4rev_getGeneration(next.SelectedRev.revID) < generation) {
                         if(haveBodies && !next.HasRevisionBody) {
                             haveBodies.Value = false;
+                            if (withBodiesOnly) {
+                                continue;
+                            }
+                        }
+
+                        if (withBodiesOnly) {
+                            var body = Manager.GetObjectMapper()
+                                .ReadValue<IDictionary<string, object>>(next.SelectedRev.body);
+                            if (body.ContainsKey("_removed")) {
+                                continue;
+                            }
                         }
 
                         yield return next.SelectedRev.revID.AsRevID();

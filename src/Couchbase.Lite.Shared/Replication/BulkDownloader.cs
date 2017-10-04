@@ -355,7 +355,7 @@ namespace Couchbase.Lite.Replicator
 
                 //TODO: Deferred attachments
                 ValueTypePtr<bool> haveBodies = false;
-                var possibleAncestors = database.Storage.GetPossibleAncestors(source, Puller.MaxAttsSince, haveBodies);
+                var possibleAncestors = database.Storage.GetPossibleAncestors(source, Puller.MaxAttsSince, haveBodies, true);
                 
                 var key = new Dictionary<string, object> {
                     ["id"] = source.DocID,
