@@ -216,9 +216,9 @@ namespace Couchbase.Lite
 
             // Check the possible ancestors
             ValueTypePtr<bool> haveBodies = false;
-            CollectionAssert.AreEqual(new List<RevisionID> { doc1r2.RevID, doc1r1.RevID }, database.Storage.GetPossibleAncestors(revToFind1, 0, haveBodies));
-            CollectionAssert.AreEqual(new List<RevisionID> { doc1r2.RevID }, database.Storage.GetPossibleAncestors(revToFind1, 1, haveBodies));
-            CollectionAssert.AreEqual(new List<RevisionID>(), database.Storage.GetPossibleAncestors(revToFind3, 0, haveBodies));
+            CollectionAssert.AreEqual(new List<RevisionID> { doc1r2.RevID, doc1r1.RevID }, database.Storage.GetPossibleAncestors(revToFind1, 0, haveBodies, false));
+            CollectionAssert.AreEqual(new List<RevisionID> { doc1r2.RevID }, database.Storage.GetPossibleAncestors(revToFind1, 1, haveBodies, false));
+            CollectionAssert.AreEqual(new List<RevisionID>(), database.Storage.GetPossibleAncestors(revToFind3, 0, haveBodies, false));
         }
 
         [Test]
