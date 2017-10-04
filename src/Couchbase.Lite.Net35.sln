@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{FF87EED7-5DE9-47E9-82F4-D1DF659D1DC2}"
 EndProject
@@ -65,23 +65,23 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "storage.sqlite.common", "St
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{8555f0b6-3f1a-4c80-8ccb-3eed653d6242}*SharedItemsImports = 13
+		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{032c9c8b-93a0-4391-bf6d-74ff4a5be8f5}*SharedItemsImports = 4
+		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{0bfc8b40-0659-4d45-b111-7cb4ccd22991}*SharedItemsImports = 13
+		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{146576de-ef8a-43ee-ad43-eaf81a2479a4}*SharedItemsImports = 4
+		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{1b765803-7f61-497e-96d0-3be5af32c81a}*SharedItemsImports = 4
+		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{47688577-270f-47dc-8eaf-7db26012a0f3}*SharedItemsImports = 4
 		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{5aa87149-7173-42a0-8bbc-ac618b404d46}*SharedItemsImports = 13
+		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{79fc4a01-1e39-468f-8e55-195bc918232e}*SharedItemsImports = 13
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{81999cc3-2db5-42da-976f-20ef8ae047e1}*SharedItemsImports = 4
+		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{8555f0b6-3f1a-4c80-8ccb-3eed653d6242}*SharedItemsImports = 13
+		..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{891a08fc-f143-4325-bc16-b9864d036b99}*SharedItemsImports = 13
+		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{8e6f8876-64f8-4483-adb2-d3aad5672f7c}*SharedItemsImports = 13
 		..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{b357bac7-529e-4d81-a0d2-71041b19c8de}*SharedItemsImports = 4
+		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{d2192e1b-3e4e-4b11-a134-747a54d614c2}*SharedItemsImports = 13
 		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{d4bd5141-7703-4683-a500-34363f7cfbf4}*SharedItemsImports = 4
 		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{d4bd5141-7703-4683-a500-34363f7cfbf4}*SharedItemsImports = 4
-		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{d2192e1b-3e4e-4b11-a134-747a54d614c2}*SharedItemsImports = 13
-		..\vendor\websocket-sharp\websocket-sharp\websocket-sharp.shared.projitems*{891a08fc-f143-4325-bc16-b9864d036b99}*SharedItemsImports = 13
-		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{032c9c8b-93a0-4391-bf6d-74ff4a5be8f5}*SharedItemsImports = 4
-		ListenerComponent\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems*{146576de-ef8a-43ee-ad43-eaf81a2479a4}*SharedItemsImports = 4
-		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{47688577-270f-47dc-8eaf-7db26012a0f3}*SharedItemsImports = 4
 		ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems*{ed22fdf0-b378-4950-9e59-681726ac02f6}*SharedItemsImports = 4
-		StorageEngines\ForestDB\storage.forestdb.shared\storage.forestdb.shared.projitems*{8e6f8876-64f8-4483-adb2-d3aad5672f7c}*SharedItemsImports = 13
-		Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{1b765803-7f61-497e-96d0-3be5af32c81a}*SharedItemsImports = 4
-		StorageEngines\ForestDB\CBForest\CSharp\cbforest-sharp.Shared\cbforest-sharp.Shared.projitems*{0bfc8b40-0659-4d45-b111-7cb4ccd22991}*SharedItemsImports = 13
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{ff87eed7-5de9-47e9-82f4-d1df659d1dc2}*SharedItemsImports = 13
-		StorageEngines\SQLiteCommon\storage.sqlite.common\storage.sqlite.common.projitems*{79fc4a01-1e39-468f-8e55-195bc918232e}*SharedItemsImports = 13
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_All|Any CPU = Debug_All|Any CPU
@@ -102,7 +102,6 @@ Global
 		{1B765803-7F61-497E-96D0-3BE5AF32C81A}.Release_All|Any CPU.ActiveCfg = Release|Any CPU
 		{1B765803-7F61-497E-96D0-3BE5AF32C81A}.Release_All|Any CPU.Build.0 = Release|Any CPU
 		{1B765803-7F61-497E-96D0-3BE5AF32C81A}.Release_Testing|Any CPU.ActiveCfg = Release|Any CPU
-		{1B765803-7F61-497E-96D0-3BE5AF32C81A}.Release_Testing|Any CPU.Build.0 = Release|Any CPU
 		{1B765803-7F61-497E-96D0-3BE5AF32C81A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{81999CC3-2DB5-42DA-976F-20EF8AE047E1}.Debug_All|Any CPU.ActiveCfg = Debug|Any CPU
 		{81999CC3-2DB5-42DA-976F-20EF8AE047E1}.Debug_All|Any CPU.Build.0 = Debug|Any CPU
@@ -286,7 +285,6 @@ Global
 		{891A08FC-F143-4325-BC16-B9864D036B99} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
 		{B357BAC7-529E-4D81-A0D2-71041B19C8DE} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
 		{678738DA-F723-4920-B9E5-CAD667104BDA} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
-		{D68D4FED-CA32-4800-A628-58BAE485562C} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
 		{5AA87149-7173-42A0-8BBC-AC618B404D46} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
 		{146576DE-EF8A-43EE-AD43-EAF81A2479A4} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
 		{27CD854D-D0A5-4EA0-A997-04CE8EDD5095} = {93A9E803-DBF3-45BE-96FA-87D68422F401}
