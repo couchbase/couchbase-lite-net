@@ -373,6 +373,43 @@ namespace Couchbase.Lite.Tests
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
             }
         }
+
+        public Dictionary<string, object> GenerateSessionCookie(string dbName, string user, string password, TimeSpan? ttl)
+        {
+            var uri = new Uri(AdminUri, $"{dbName}/_session");
+            var body = new Dictionary<string, object>
+            {
+                ["name"] = user,
+                ["password"] = password
+            };
+
+            if (ttl != null) {
+                body["ttl"] = (int)ttl.Value.TotalSeconds;
+            }
+
+            var bodyData = Manager.GetObjectMapper().WriteValueAsBytes(body).ToArray();
+            var message = WebRequest.CreateHttp(uri);
+            message.Method = "POST";
+            message.ContentType = "application/json";
+            message.ContentLength = bodyData.Length;
+            var requestStream = message.GetRequestStream();
+            requestStream.Write(bodyData, 0, bodyData.Length);
+            requestStream.Close();
+            using (var response = (HttpWebResponse) message.GetResponse()) {
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                return Manager.GetObjectMapper().ReadValue<Dictionary<string, object>>(response.GetResponseStream());
+            }
+        }
+
+        public void DeleteSessionCookie(string dbName, string user)
+        {
+            var uri = new Uri(AdminUri, $"{dbName}/_user/{user}/_session");
+            var message = WebRequest.CreateHttp(uri);
+            message.Method = "DELETE";
+            using (var response = (HttpWebResponse) message.GetResponse()) {
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            }
+        }
     }
 
     public sealed class CouchDB : RemoteEndpoint

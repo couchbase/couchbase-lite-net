@@ -471,8 +471,17 @@ namespace Couchbase.Lite.Internal
 
         private void AddRequestHeaders(HttpRequestMessage request)
         {
-            foreach(string requestHeaderKey in RequestHeaders.Keys) {
-                request.Headers.Add(requestHeaderKey, RequestHeaders.Get(requestHeaderKey).ToString());
+            foreach(var requestHeaderKey in RequestHeaders.Keys) {
+                if (requestHeaderKey.ToLowerInvariant() == "cookie") {
+                    var builder = new UriBuilder(request.RequestUri) {
+                        Path = String.Empty
+                    };
+
+                    CookieStore.SetCookies(builder.Uri, RequestHeaders.Get(requestHeaderKey));
+                    continue;
+                }
+
+                request.Headers.Add(requestHeaderKey, RequestHeaders.Get(requestHeaderKey));
             }
         }
 

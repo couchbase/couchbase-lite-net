@@ -3085,5 +3085,54 @@ namespace Couchbase.Lite
                 }
             }
         }
+
+        [Category("issue/842")]
+        [Test]
+        public void TestSetCookieInHeader()
+        {
+            if(!Boolean.Parse((string)GetProperty("replicationTestsEnabled")))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                for (int i = 0; i < 2; i++) {
+                    remoteDb.DisableGuestAccess();
+                    var cookie = _sg.GenerateSessionCookie(remoteDb.Name, "jim", "borden", TimeSpan.FromSeconds(5));
+                    var cookieStr = $"{cookie["cookie_name"]}={cookie["session_id"]}";
+                    var repl = database.CreatePushReplication(remoteDb.RemoteUri);
+                    repl.Continuous = true;
+                    repl.Headers["Cookie"] = cookieStr;
+                    RunReplication(repl);
+                    Assert.IsNull(repl.LastError);
+
+                    // Sleep for more than 10% of the TTL to trigger auto session refresh
+                    // by SGW:
+                    Sleep(1000);
+
+                    // Create a document to push to SGW:
+                    CreateDocumentWithProperties(database, new Dictionary<string, object> {["foo"] = "bar"});
+                    int count = 0;
+                    while (repl.CompletedChangesCount < 1) {
+                        Sleep(500);
+                        if (count++ > 5) {
+                            Assert.Fail("Replication timed out");
+                        }
+                    }
+
+                    repl.Stop();
+                    count = 0;
+                    while (repl.Status != ReplicationStatus.Stopped) {
+                        Sleep(500);
+                        if (count++ > 5) {
+                            Assert.Fail("Replication stop timed out");
+                        }
+                    }
+
+                    _sg.DeleteSessionCookie(remoteDb.Name, "jim");
+                }
+            }
+        }
     }
 }
