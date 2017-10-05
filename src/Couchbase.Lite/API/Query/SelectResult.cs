@@ -29,8 +29,6 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public static class SelectResult
     {
-        private static readonly IExpression Star = new QueryTypeExpression("", ExpressionType.KeyPath);
-
         /// <summary>
         /// Creates an instance based on the given expression
         /// </summary>
@@ -49,7 +47,8 @@ namespace Couchbase.Lite.Query
         /// <returns>The instantiated instance</returns>
         public static ISelectResultFrom All()
         {
-            return new QuerySelectResult(Star);
+            var star = new QueryTypeExpression("", ExpressionType.KeyPath);
+            return new QuerySelectResult(star);
         }
     }
 }
