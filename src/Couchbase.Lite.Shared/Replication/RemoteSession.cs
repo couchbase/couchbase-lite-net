@@ -34,6 +34,10 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
+#if NET_3_5
+using Cookie = System.Net.Couchbase.Cookie;
+#endif
+
 namespace Couchbase.Lite.Internal
 {
     internal sealed class RemoteSessionContructorOptions : ConstructorOptions
