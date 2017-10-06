@@ -416,9 +416,9 @@ namespace Couchbase.Lite.Sync
             _rawStatus = state;
 
             var level = (ReplicatorActivityLevel) state.level;
-            var progress = new ReplicationProgress(state.progress.completed, state.progress.total);
+            var progress = new ReplicationProgress(state.progress.unitsCompleted, state.progress.unitsTotal);
             Status = new ReplicationStatus(level, progress);
-            Log.To.Replicator.I(Tag, $"{this} is {state.level}, progress {state.progress.completed}/{state.progress.total}");
+            Log.To.Replicator.I(Tag, $"{this} is {state.level}, progress {state.progress.unitsCompleted}/{state.progress.unitsTotal}");
         }
 
         #endregion
