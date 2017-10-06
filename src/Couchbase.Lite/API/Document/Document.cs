@@ -258,7 +258,13 @@ namespace Couchbase.Lite
                 Database.EndTransaction(success);
             }
 
+            C4Document* oldDoc = c4Doc;
+
             c4Doc = newDoc;
+
+            if (oldDoc != null) {
+                Native.c4doc_free(oldDoc);
+            }
         }
 
         [SuppressMessage("ReSharper", "AccessToDisposedClosure", Justification = "The closure is executed synchronously")]
