@@ -855,10 +855,19 @@ namespace Couchbase.Lite
             foreach(var header in results.Get("headers").AsDictionary<string, string>()) {
                 if(header.Key.ToLowerInvariant() == "cookie") {
                     var cookie = default(Cookie);
-                    if(CookieParser.TryParse(header.Value, ((Uri)results["remote"]).GetLeftPart(UriPartial.Authority), out cookie)) {
-                        rep.SetCookie(cookie.Name, cookie.Value, cookie.Path, cookie.Expires, cookie.Secure, cookie.HttpOnly);
+                    if(CookieParser.TryParse(header.Value, ((Uri)results["remote"]).Host, out cookie)) {
+                        try {
+                            rep.SetCookie(cookie.Name, cookie.Value, cookie.Path, cookie.Expires, cookie.Secure,
+                                cookie.HttpOnly);
+                        } catch (CookieException e) {
+                            var headerValue = new SecureLogString(header.Value, LogMessageSensitivity.Insecure);
+                            Log.To.Listener.W(TAG, $"Invalid cookie string received ({headerValue}), throwing...", e);
+                            throw new CouchbaseLiteException(StatusCode.BadRequest);
+                        }
                     } else {
-                        Log.To.Listener.W(TAG, "Invalid cookie string received ({0}), ignoring...", header.Value);
+                        var headerValue = new SecureLogString(header.Value, LogMessageSensitivity.Insecure);
+                        Log.To.Listener.W(TAG, $"Invalid cookie string received ({headerValue}), throwing...");
+                        throw new CouchbaseLiteException(StatusCode.BadRequest);
                     }
                 } else {
                     rep.Headers.Add(header.Key, header.Value);

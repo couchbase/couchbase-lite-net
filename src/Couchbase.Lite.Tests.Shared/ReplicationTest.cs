@@ -3100,7 +3100,7 @@ namespace Couchbase.Lite
                 for (int i = 0; i < 2; i++) {
                     remoteDb.DisableGuestAccess();
                     var cookie = _sg.GenerateSessionCookie(remoteDb.Name, "jim", "borden", TimeSpan.FromSeconds(5));
-                    var cookieStr = $"{cookie["cookie_name"]}={cookie["session_id"]}";
+                    var cookieStr = $"{cookie["cookie_name"]}={cookie["session_id"]}; Path=/{remoteDb.Name}";
                     var repl = database.CreatePushReplication(remoteDb.RemoteUri);
                     repl.Continuous = true;
                     repl.Headers["Cookie"] = cookieStr;

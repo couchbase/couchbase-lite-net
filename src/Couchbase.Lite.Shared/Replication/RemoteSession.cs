@@ -473,11 +473,20 @@ namespace Couchbase.Lite.Internal
         {
             foreach(var requestHeaderKey in RequestHeaders.Keys) {
                 if (requestHeaderKey.ToLowerInvariant() == "cookie") {
-                    var builder = new UriBuilder(request.RequestUri) {
-                        Path = String.Empty
-                    };
+                    Cookie cookie;
+                    var cookieStr = RequestHeaders[requestHeaderKey];
+                    if (!CookieParser.TryParse(cookieStr, request.RequestUri.Host, out cookie)) {
+                        Log.To.Sync.W(Tag, "Invalid cookie string received, {0}",
+                            new SecureLogString(cookieStr, LogMessageSensitivity.Insecure));
+                    } else {
+                        try {
+                            CookieStore.Add(cookie);
+                        } catch (CookieException e) {
+                            var headerValue = new SecureLogString(cookieStr, LogMessageSensitivity.Insecure);
+                            Log.To.Sync.W(Tag, $"Invalid cookie string received, {headerValue}", e);
+                        }
+                    }
 
-                    CookieStore.SetCookies(builder.Uri, RequestHeaders.Get(requestHeaderKey));
                     continue;
                 }
 
