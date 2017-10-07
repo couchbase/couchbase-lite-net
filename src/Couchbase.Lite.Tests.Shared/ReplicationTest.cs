@@ -243,6 +243,24 @@ namespace Couchbase.Lite
         }
 
         [Test]
+        public void TestFailedRevisionDuringOneShotPull()
+        {
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var factory = new MockHttpClientFactory(false);
+                factory.HttpHandler.SetResponder("_bulk_get", (request) =>
+                {
+                    throw new TaskCanceledException();
+                });
+
+                manager.DefaultHttpClientFactory = factory;
+                remoteDb.AddDocuments(50, false);
+                var pull = database.CreatePullReplication(remoteDb.RemoteUri);
+                RunReplication(pull);
+                pull.LastError.Should().BeOfType<TaskCanceledException>();
+            }
+        }
+
+        [Test]
         public void TestRejectedDocument()
         {
             var push = database.CreatePushReplication(GetReplicationURL());

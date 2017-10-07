@@ -384,13 +384,12 @@ namespace Couchbase.Lite.Replicator
 
             dl.Complete += (sender, args) =>
             {
-                if(args != null && args.Error != null) {
+                if(args?.Error != null) {
                     RevisionFailed();
-                    if(remainingRevs.Count == 0) {
-                        LastError = args.Error;
-                    }
+                    LastError = args.Error;
+                }
 
-                } else if(remainingRevs.Count > 0) {
+                if (remainingRevs.Count > 0) {
                     Log.To.Sync.W(TAG, "{0} revs not returned from _bulk_get: {1}",
                         remainingRevs.Count, remainingRevs);
                     for(int i = 0; i < remainingRevs.Count; i++) {
@@ -398,15 +397,12 @@ namespace Couchbase.Lite.Replicator
                         if(ShouldRetryDownload(rev.DocID)) {
                             _bulkRevsToPull.Add(remainingRevs[i]);
                         } else {
-                            LastError = args.Error;
                             SafeIncrementCompletedChangesCount();
                         }
                     }
                 }
-
-                SafeAddToCompletedChangesCount(remainingRevs.Count);
+                
                 LastSequence = _pendingSequences.GetCheckpointedValue();
-
                 PullRemoteRevisions();
             };
 
