@@ -164,13 +164,7 @@ namespace Couchbase.Lite.Replicator
             _changeTracker.Continuous = Continuous;
             _changeTracker.PollInterval = pollInterval;
             _changeTracker.Heartbeat = ReplicationOptions.Heartbeat;
-            if(DocIds != null) {
-                if(ServerType != null && ServerType.Name == "CouchDB") {
-                    _changeTracker.DocIDs = DocIds.ToList();
-                } else {
-                    Log.To.Sync.W(TAG, "DocIds parameter only supported on CouchDB");
-                }
-            }       
+            _changeTracker.DocIDs = DocIds?.ToList();
 
             if (Filter != null) {
                 _changeTracker.FilterName = Filter;
