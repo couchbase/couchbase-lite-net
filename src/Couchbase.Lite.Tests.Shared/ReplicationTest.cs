@@ -3100,7 +3100,7 @@ namespace Couchbase.Lite
                 for (int i = 0; i < 2; i++) {
                     remoteDb.DisableGuestAccess();
                     var cookie = _sg.GenerateSessionCookie(remoteDb.Name, "jim", "borden", TimeSpan.FromSeconds(5));
-                    var cookieStr = $"{cookie["cookie_name"]}={cookie["session_id"]}; Path=/{remoteDb.Name}";
+                    var cookieStr = $"{cookie["cookie_name"]}={cookie["session_id"]}";
                     var repl = database.CreatePushReplication(remoteDb.RemoteUri);
                     repl.Continuous = true;
                     repl.Headers["Cookie"] = cookieStr;
@@ -3121,15 +3121,7 @@ namespace Couchbase.Lite
                         }
                     }
 
-                    repl.Stop();
-                    count = 0;
-                    while (repl.Status != ReplicationStatus.Stopped) {
-                        Sleep(500);
-                        if (count++ > 5) {
-                            Assert.Fail("Replication stop timed out");
-                        }
-                    }
-
+                    StopReplication(repl);
                     _sg.DeleteSessionCookie(remoteDb.Name, "jim");
                 }
             }

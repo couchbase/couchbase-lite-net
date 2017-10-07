@@ -131,9 +131,9 @@ namespace Couchbase.Lite.Util
                 DateTimeOffset expires;
                 if (DateTimeOffset.TryParseExact(value, dateFormats, DateTimeFormatInfo.InvariantInfo,
                     DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal,
-                    out expires))
-                {
-                    cookie.Expires = expires.DateTime;
+                    out expires)) {
+                    cookie.Expires = new DateTime(expires.Year, expires.Month, expires.Day, expires.Hour,
+                        expires.Minute, expires.Second, DateTimeKind.Utc);
                     return true;
                 }
                 return false;

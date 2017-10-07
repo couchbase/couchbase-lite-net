@@ -151,8 +151,7 @@ namespace Couchbase.Lite.Support
             if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.Lollipop) {
                 handler = new Xamarin.Android.Net.AndroidClientHandler
                 {
-                    CookieContainer = store,
-                    UseCookies = true
+                    UseCookies = false,
                 };
 
                 if(selfSignedCert != null) {
@@ -163,14 +162,12 @@ namespace Couchbase.Lite.Support
             {
                 handler = new HttpClientHandler
                 {
-                    CookieContainer = store,
-                    UseCookies = true
+                    UseCookies = false,
                 };
             }
 #else
             var handler = new WebRequestHandler {
-                CookieContainer = store,
-                UseCookies = true,
+                UseCookies = false,
                 ReadWriteTimeout = (int)SocketTimeout.TotalMilliseconds
             };
 #endif

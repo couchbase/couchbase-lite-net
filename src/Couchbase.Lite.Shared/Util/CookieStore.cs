@@ -233,6 +233,19 @@ namespace Couchbase.Lite.Util
             }
         }
 
+        public new string GetCookieHeader(Uri uri)
+        {
+            var existing = GetCookies(uri);
+            var str1 = string.Empty;
+            var str2 = string.Empty;
+            foreach (var cookie in existing.Cast<Cookie>().Reverse()) {
+                str1 = str1 + str2 + cookie;
+                str2 = "; ";
+            }
+
+            return str1;
+        }
+
         /// <summary>
         /// Saves the cookies to disk
         /// </summary>

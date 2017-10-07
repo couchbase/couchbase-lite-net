@@ -475,6 +475,7 @@ namespace Couchbase.Lite.Internal
 
         private void AddRequestHeaders(HttpRequestMessage request)
         {
+            
             foreach(var requestHeaderKey in RequestHeaders.Keys) {
                 if (requestHeaderKey.ToLowerInvariant() == "cookie") {
                     Cookie cookie;
@@ -491,8 +492,10 @@ namespace Couchbase.Lite.Internal
                         }
                     }
 
+                    request.Headers.Add("Cookie", CookieStore.GetCookieHeader(request.RequestUri));
                     continue;
                 }
+
 
                 request.Headers.Add(requestHeaderKey, RequestHeaders.Get(requestHeaderKey));
             }
