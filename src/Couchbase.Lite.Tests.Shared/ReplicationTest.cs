@@ -1985,6 +1985,25 @@ namespace Couchbase.Lite
             }
         }
 
+        [Test]
+        public void TestPullFilteredByDocId()
+        {
+            if (!Boolean.Parse((string) GetProperty("replicationTestsEnabled"))) {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var added = remoteDb.AddDocuments(50, false);
+                var docId = added.First();
+                var pull = database.CreatePullReplication(remoteDb.RemoteUri);
+                pull.DocIds = new[] {docId};
+                RunReplication(pull);
+                database.GetDocumentCount().Should().Be(1);
+                database.GetExistingDocument(docId).Should().NotBeNull();
+            }
+        }
+
         /**
         * Verify that running a continuous push replication will emit a change while
         * in an error state when run against a mock server that returns 500 Internal Server
