@@ -201,6 +201,29 @@ namespace Test
             return true;
         }
 
+        internal Stream GetTestAsset(string path)
+        {
+#if WINDOWS_UWP
+                var url = $"ms-appx:///Assets/{path}";
+                var file = Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri(url))
+                    .AsTask()
+                    .ConfigureAwait(false)
+                    .GetAwaiter()
+                    .GetResult();
+
+                return file.OpenStreamForReadAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+#elif __ANDROID__
+            var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
+            return ctx.Assets.Open(path);
+#elif __IOS__
+			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
+			return File.Open(bundlePath, FileMode.Open, FileAccess.Read);
+#else
+            return File.Open(path, FileMode.Open, FileAccess.Read);
+#endif
+
+        }
+
         public void Dispose()
         {
             Dispose(true);

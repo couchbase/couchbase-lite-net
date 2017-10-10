@@ -118,6 +118,7 @@
       <SubType>Designer</SubType>
     </AppxManifest>
     <Content Include="Assets\C\tests\data\*.*" />
+    <Content Include="Assets\replacedb\*.*" />
     <Content Include="Assets\localhost-wrong.cert" />
     <None Include="Couchbase.Lite.Tests.UWP_TemporaryKey.pfx" />
   </ItemGroup>

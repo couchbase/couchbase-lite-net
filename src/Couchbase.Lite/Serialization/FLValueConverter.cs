@@ -62,7 +62,7 @@ namespace Couchbase.Lite.Internal.Serialization
                     case FLValueType.Dict: {
                         var dict = Native.FLValue_AsDict(value);
                         var type = TypeForDict(dict, sharedKeys);
-                        if (type.buf == null) {
+                        if (type.buf == null && !IsOldAttachment(database, dict)) {
                             var data = new FleeceDictionary(dict, document, database);
                             return new ReadOnlyDictionary(data);
                         }
@@ -153,16 +153,35 @@ namespace Couchbase.Lite.Internal.Serialization
             return NativeRaw.FLValue_AsString(type);
         }
 
+        private static bool IsOldAttachment(Database db, FLDict* dict)
+        {
+            var flDigest = db.SharedStrings.GetDictValue(dict, "digest");
+            var flLength = db.SharedStrings.GetDictValue(dict, "length");
+            var flStub = db.SharedStrings.GetDictValue(dict, "stub");
+            var flRevPos = db.SharedStrings.GetDictValue(dict, "revpos");
+            var flContentType = db.SharedStrings.GetDictValue(dict, "content_type");
+
+            return flDigest != null && flLength != null && flStub != null && flRevPos != null && flContentType != null;
+        }
+
+        private static bool IsOldAttachment(IDictionary<string, object> dict)
+        {
+            var digest = dict.Get("digest");
+            var length = dict.Get("length");
+            var stub = dict.Get("stub");
+            var revpos = dict.Get("revpos");
+            var contentType = dict.Get("content_type");
+            return digest != null && length != null && stub != null && revpos != null && contentType != null;
+        }
+
         private static object ConvertDictionary(IDictionary<string, object> dict, Database database)
         {
             var type = dict.GetCast<string>(Constants.ObjectTypeProperty);
-            if (type != null) {
-                if (type == Constants.ObjectTypeBlob) {
-                    return new Blob(database, dict);
-                }
+            if (type == null) {
+                return IsOldAttachment(dict) ? new Blob(database, dict) : null;
             }
 
-            return null; // Invalid!
+            return type == Constants.ObjectTypeBlob ? new Blob(database, dict) : null;
         }
     }
 }

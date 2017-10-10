@@ -121,6 +121,9 @@
     <Content Include="..\Assets\C\tests\data\*.*">
       <Link>Assets\C\tests\data\%(Filename)%(Extension)</Link>
     </Content>
+    <Content Include="..\Assets\replacedb\*.*">
+      <Link>Assets\replacedb\%(Filename)%(Extension)</Link>
+    </Content>
     <Content Include="..\Assets\localhost-wrong.cert">
       <Link>Assets\localhost-wrong.cert</Link>
     </Content>

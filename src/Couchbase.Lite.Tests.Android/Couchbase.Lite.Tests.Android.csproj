@@ -161,6 +161,7 @@
   </ItemGroup>
   <ItemGroup>
     <AndroidAsset Include="Assets\C\tests\data\*.*" />
+    <AndroidAsset Include="Assets\replacedb\*.* />
     <None Include="packages.config" />
     <None Include="Resources\AboutResources.txt" />
   </ItemGroup>
