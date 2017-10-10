@@ -835,7 +835,7 @@ namespace Couchbase.Lite.Storage.ForestDB
                         if (withBodiesOnly) {
                             var body = Manager.GetObjectMapper()
                                 .ReadValue<IDictionary<string, object>>(next.SelectedRev.body);
-                            if (body.ContainsKey("_removed")) {
+                            if (body?.ContainsKey("_removed") == true) {
                                 continue;
                             }
                         }
