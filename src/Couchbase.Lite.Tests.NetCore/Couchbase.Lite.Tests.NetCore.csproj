@@ -28,6 +28,11 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.3.0-beta3-build3705" />
     <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.0-beta1-build3642" />
   </ItemGroup>
+   <ItemGroup>
+    <Content Include="replacedb\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <ItemGroup>
     <None Condition="$(DefineConstants.Contains('HAVE_SG'))" Include="..\Couchbase.Lite.Tests.UWP\Assets\localhost-wrong.cert" Link="localhost-wrong.cert">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
