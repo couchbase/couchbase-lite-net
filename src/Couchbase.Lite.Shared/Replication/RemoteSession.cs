@@ -124,7 +124,7 @@ namespace Couchbase.Lite.Internal
             _remoteRequestCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token);
             ClientFactory.SocketTimeout = options.SocketTimeout;
 #if __ANDROID__
-            var clientObj = ClientFactory.GetHttpClient(CookieStore, options.RetryStrategy, options.TrustedServerCert);
+            var clientObj = ClientFactory.GetHttpClient(CookieStore, options.RetryStrategy, options.AllowSelfSigned);
 #else
             var clientObj = ClientFactory.GetHttpClient(CookieStore, options.RetryStrategy);
 #endif

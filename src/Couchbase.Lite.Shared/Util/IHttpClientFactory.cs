@@ -62,7 +62,7 @@ namespace Couchbase.Lite.Support
     {
         // Create an HTTP client based on the cookie store
 #if __ANDROID__
-        CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy retryStrategy, Java.Security.Cert.Certificate selfSignedCert);
+        CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy retryStrategy, bool allowSelfSigned);
 #else
         CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy retryStrategy);
 #endif

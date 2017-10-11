@@ -96,6 +96,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
     </Compile>
+    <Compile Include="CouchbaseAndroidClientHandler.cs" />
     <Compile Include="Resources\Resource.designer.cs" />
     <Compile Include="SecureStorageAES.cs" />
     <Compile Include="SecureStorageRSA.cs" />

@@ -77,7 +77,7 @@ namespace Couchbase.Lite.Tests
         }
 
 #if __ANDROID__
-        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy strategy, Java.Security.Cert.Certificate cert)
+        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy strategy, bool allowSelfSigned)
 #else
         public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy strategy)
 #endif

@@ -140,7 +140,7 @@ namespace Couchbase.Lite.Support
         /// Build a pipeline of HttpMessageHandlers.
         /// </summary>
 #if __ANDROID__
-        internal HttpMessageHandler BuildHandlerPipeline(CookieStore store, IRetryStrategy retryStrategy, Java.Security.Cert.Certificate selfSignedCert)
+        internal HttpMessageHandler BuildHandlerPipeline(CookieStore store, IRetryStrategy retryStrategy, bool allowSelfSigned)
 #else
         internal HttpMessageHandler BuildHandlerPipeline (CookieStore store, IRetryStrategy retryStrategy)
 #endif
@@ -149,14 +149,11 @@ namespace Couchbase.Lite.Support
             var handler = default(HttpClientHandler);
 #if __ANDROID__
             if (global::Android.OS.Build.VERSION.SdkInt >= global::Android.OS.BuildVersionCodes.Lollipop) {
-                handler = new Xamarin.Android.Net.AndroidClientHandler
+                handler = new CouchbaseAndroidClientHandler
                 {
-                    UseCookies = false,
+                    AllowSelfSigned = allowSelfSigned,
+                    UseCookies = false
                 };
-
-                if(selfSignedCert != null) {
-                    ((Xamarin.Android.Net.AndroidClientHandler)handler).TrustedCerts = new List<Java.Security.Cert.Certificate> {  selfSignedCert };
-                }
             } else
 #endif
             {
@@ -186,13 +183,13 @@ namespace Couchbase.Lite.Support
         }
 
 #if __ANDROID__
-        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy retryStrategy, Java.Security.Cert.Certificate selfSignedCert)
+        public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy retryStrategy, bool allowSelfSigned)
 #else
         public CouchbaseLiteHttpClient GetHttpClient(CookieStore cookieStore, IRetryStrategy retryStrategy)
 #endif
         {
 #if __ANDROID__
-            var authHandler = BuildHandlerPipeline(cookieStore, retryStrategy, selfSignedCert);
+            var authHandler = BuildHandlerPipeline(cookieStore, retryStrategy, allowSelfSigned);
 #else
             var authHandler = BuildHandlerPipeline(cookieStore, retryStrategy);
 #endif
