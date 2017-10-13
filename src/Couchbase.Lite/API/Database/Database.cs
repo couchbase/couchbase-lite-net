@@ -36,16 +36,15 @@ using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using LogLevel = Couchbase.Lite.Logging.LogLevel;
 
 namespace Couchbase.Lite
 {
-	/// <summary>
-	/// A container for storing and maintaining Couchbase Lite <see cref="Document"/>s
-	/// </summary>
-	public sealed unsafe class Database : IDisposable
+    /// <summary>
+    /// A container for storing and maintaining Couchbase Lite <see cref="Document"/>s
+    /// </summary>
+    public sealed unsafe class Database : IDisposable
     {
         #region Constants
 
@@ -175,25 +174,11 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Creates a database instance with the given name.  Internally
-        /// it may be operating on the same underlying data as another instance.
-        /// </summary>
-        /// <param name="name">The name of the database</param>
-        /// <returns>The instantiated database object</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <c>name</c> is <c>null</c></exception>
-        /// <exception cref="ArgumentException"><c>name</c> contains invalid characters</exception> 
-        /// <exception cref="LiteCoreException">An error occurred during LiteCore interop</exception>
-        public Database(string name) : this(name, new DatabaseConfiguration())
-        {
-            
-        }
-
-        /// <summary>
         /// Creates a database given a name and some configuration
         /// </summary>
         /// <param name="name">The name of the database</param>
         /// <param name="configuration">The configuration to open it with</param>
-        public Database(string name, DatabaseConfiguration configuration) 
+        public Database(string name, DatabaseConfiguration configuration = new DatabaseConfiguration()) 
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Config = configuration;
@@ -544,12 +529,13 @@ namespace Couchbase.Lite
             {
                 CheckOpen();
                 var count = _documentChanged.Remove(documentID, handler);
-                if (count == 0) {
-                    DocumentObserver obs;
-                    if (_docObs.TryGetValue(documentID, out obs)) {
-                        obs.Dispose();
-                        _docObs.Remove(documentID);
-                    }
+                if (count != 0) {
+                    return;
+                }
+
+                if (_docObs.TryGetValue(documentID, out var obs)) {
+                    obs.Dispose();
+                    _docObs.Remove(documentID);
                 }
             });
         }
@@ -667,15 +653,6 @@ namespace Couchbase.Lite
                     }
                 }
             });
-        }
-
-        internal void SetHasUnsavedChanges(Document doc, bool hasChanges)
-        {
-            if (hasChanges) {
-                _unsavedDocuments.Add(doc);
-            } else {
-                _unsavedDocuments.Remove(doc);
-            }
         }
 
         #endregion

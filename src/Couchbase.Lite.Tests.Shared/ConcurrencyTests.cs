@@ -22,14 +22,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Query;
 using FluentAssertions;
-using LiteCore;
-using LiteCore.Interop;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;

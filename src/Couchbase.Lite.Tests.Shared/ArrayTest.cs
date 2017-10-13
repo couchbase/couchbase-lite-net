@@ -846,10 +846,5 @@ namespace Test
 
             eval(array);
         }
-
-        private string GetBlobContent(Blob blob)
-        {
-            return Encoding.UTF8.GetString(blob.Content);
-        }
     }
 }

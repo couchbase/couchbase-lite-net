@@ -27,24 +27,6 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
-    internal sealed class ObjectChangedEventArgs<T> : EventArgs
-    {
-        #region Properties
-
-        public T ChangedObject { get; }
-
-        #endregion
-
-        #region Constructors
-
-        internal ObjectChangedEventArgs(T changedObject)
-        {
-            ChangedObject = changedObject;
-        }
-
-        #endregion
-    }
-
     internal sealed class DictionaryObjectConverter : JsonConverter
     {
         #region Properties
@@ -195,8 +177,7 @@ namespace Couchbase.Lite
         private IEnumerator<KeyValuePair<string, object>> GetGenerator()
         {
             foreach (var key in Keys) {
-                object value;
-                if (_dict.TryGetValue(key, out value) && ReferenceEquals(value, RemovedValue)) {
+                if (_dict.TryGetValue(key, out var value) && ReferenceEquals(value, RemovedValue)) {
                     continue;
                 }
 
@@ -224,8 +205,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override bool Contains(string key)
         {
-            object value;
-            if (_dict.TryGetValue(key, out value)) {
+            if (_dict.TryGetValue(key, out var value)) {
                 return !ReferenceEquals(value, RemovedValue);
             }
 
@@ -241,8 +221,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override bool GetBoolean(string key)
         {
-            object value;
-            if (!_dict.TryGetValue(key, out value)) {
+            if (!_dict.TryGetValue(key, out var value)) {
                 return base.GetBoolean(key);
             }
 

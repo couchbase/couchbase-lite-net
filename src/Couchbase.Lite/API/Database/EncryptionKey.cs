@@ -124,12 +124,14 @@ namespace Couchbase.Lite
         /// <summary>
         /// Creates an instance with a key derived from a password, using default salt and rounds.
         /// </summary>
+        /// <param name="password">The password to derive the key from</param>
         public EncryptionKey(string password) : 
         this(password, Encoding.UTF8.GetBytes(DefaultSalt), DefaultPbkdfRounds) {}
 
         /// <summary>
         /// Creates an instance from existing key data.
         /// </summary>
+        /// <param name="keyData">The derived key data to use</param>
         public EncryptionKey(byte[] keyData) 
         {
             InitCryptor();

@@ -25,7 +25,6 @@ using System.Runtime.InteropServices;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Lite.Support
 {

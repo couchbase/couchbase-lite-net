@@ -21,25 +21,6 @@
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// An enum representing the operation type that caused a <see cref="Conflict"/>
-    /// </summary>
-    public enum OperationType
-    {
-        /// <summary>
-        /// A local write operation to a database
-        /// </summary>
-        DatabaseWrite,
-        /// <summary>
-        /// A push replication
-        /// </summary>
-        PushReplication,
-        /// <summary>
-        /// A pull replication
-        /// </summary>
-        PullReplication
-    }
-
-    /// <summary>
     /// A class representing a conflict situation.  A conflict occurs as part of a distributed system
     /// where two offline nodes modify the same data at the same time.  This class serves to give
     /// information on such situations so that they can be resolved correctly.
