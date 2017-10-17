@@ -66,7 +66,7 @@ namespace Couchbase.Lite.Sync
         public string this[string key]
         {
             get => _headers[key];
-            set => _headers[key] = value;
+            set => _headers[key] = value?.TrimEnd();
         }
 
         public ushort Port
@@ -223,7 +223,7 @@ namespace Couchbase.Lite.Sync
 				var st = typeof(Database).GetTypeInfo().Assembly.GetManifestResourceStream("version");
 				using (var reader = new StreamReader(st, Encoding.ASCII, false, 32, false))
 				{
-					commit = reader.ReadToEnd();
+					commit = reader.ReadToEnd().TrimEnd();
 				}
 			}
 			catch (Exception e)

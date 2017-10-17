@@ -402,7 +402,7 @@ namespace Couchbase.Lite.Sync
             _expectedAcceptHeader = Base64Digest(nonceKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
 
             foreach (var header in _options.Headers) {
-                _logic[header.Key] = header.Value as string;
+                _logic[header.Key] = header.Value;
             }
 
             _logic["Cookie"] = _options.CookieString;

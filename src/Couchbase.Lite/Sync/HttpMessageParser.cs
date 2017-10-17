@@ -19,7 +19,7 @@ namespace Couchbase.Lite.Sync
 
         public HttpMessageParser(string firstLine)
         {
-            if (firstLine.StartsWith("HTTP")) {
+            if (firstLine?.StartsWith("HTTP") == true) {
                 var split = firstLine.Split(' ');
                 StatusCode = (HttpStatusCode)Int32.Parse(split[1]);
                 Reason = split.Skip(2).Aggregate((l, r) => l + " " + r);
