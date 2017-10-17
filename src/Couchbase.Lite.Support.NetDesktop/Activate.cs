@@ -46,7 +46,7 @@ namespace Couchbase.Lite.Support
                     codeBase = codeBase + "\\";
                 }
 
-                UriBuilder uri = new UriBuilder(codeBase);
+                var uri = new UriBuilder(codeBase);
                 var directory = Path.GetDirectoryName(Uri.UnescapeDataString(uri.Path));
 
                 Debug.Assert(Path.IsPathRooted(directory), "directory is not rooted.");

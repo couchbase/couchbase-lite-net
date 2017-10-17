@@ -258,7 +258,7 @@ namespace Couchbase.Lite
                 Database.EndTransaction(success);
             }
 
-            C4Document* oldDoc = c4Doc;
+            var oldDoc = c4Doc;
 
             c4Doc = newDoc;
 

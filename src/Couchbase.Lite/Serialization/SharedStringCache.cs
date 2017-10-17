@@ -69,11 +69,7 @@ namespace Couchbase.Lite.Internal.Serialization
                 return null;
             }
 
-            if (Native.FLValue_IsInteger(key)) {
-                return GetKey((int)Native.FLValue_AsInt(key));
-            }
-
-            return FLValueConverter.ToObject(key, this) as string;
+            return Native.FLValue_IsInteger(key) ? GetKey((int)Native.FLValue_AsInt(key)) : Native.FLValue_AsString(key);
         }
 
         public FLValue* GetDictValue(FLDict* dict, string key)

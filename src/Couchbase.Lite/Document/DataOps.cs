@@ -95,10 +95,11 @@ namespace Couchbase.Lite.Internal.Doc
                     return DateTimeOffset.MinValue;
                 case DateTimeOffset dto:
                     return dto;
+                case DateTime dt:
+                    return new DateTimeOffset(dt.ToUniversalTime());
                 case string s:
-                    DateTimeOffset retVal;
                     if (DateTimeOffset.TryParseExact(s, "o", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                        out retVal)) {
+                        out var retVal)) {
                         return retVal;
                     }
 
@@ -167,28 +168,6 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
-        [Conditional("DEBUG")]
-        internal static void ValidateValue(object value)
-        {
-            if (value == null) {
-                return;
-            }
-
-            var type = value.GetType();
-            if (IsValidScalarType(type)) {
-                return;
-            }
-
-            var jType = value as JToken;
-            if (jType != null) {
-                if (jType.Type == JTokenType.Object || jType.Type == JTokenType.Array) {
-                    return;
-                }
-
-                throw new ArgumentException($"Invalid type in document properties: {type.Name}", nameof(value));
-            }
-        }
-
         #endregion
 
         #region Private Methods
@@ -203,16 +182,6 @@ namespace Couchbase.Lite.Internal.Doc
                 default:
                     return 0;
             }
-        }
-
-        private static bool IsValidScalarType(Type type)
-        {
-            var info = type.GetTypeInfo();
-            if (info.IsPrimitive) {
-                return true;
-            }
-
-            return ValidTypes.Any(x => info.IsAssignableFrom(x));
         }
 
         #endregion

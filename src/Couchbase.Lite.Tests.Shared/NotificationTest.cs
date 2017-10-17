@@ -58,7 +58,11 @@ namespace Test
             Db.Changed += (sender, args) =>
             {
                 var docIDs = args.DocumentIDs;
-                wa.RunAssert(() => docIDs.Should().HaveCount(10, "because that is the number of expected rows"));
+                wa.RunAssert(() =>
+                {
+                    args.Database.Should().Be(Db);
+                    docIDs.Should().HaveCount(10, "because that is the number of expected rows");
+                });
             };
 
             Db.InBatch(() =>

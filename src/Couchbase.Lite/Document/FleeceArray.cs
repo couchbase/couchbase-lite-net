@@ -18,6 +18,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Couchbase.Lite.Internal.Serialization;
@@ -31,19 +33,16 @@ namespace Couchbase.Lite.Internal.Doc
 
         public FLArray* Array { get; }
 
-        public C4Document* C4Doc { get; }
-
         public Database Database { get; }
 
         #endregion
 
         #region Constructors
 
-        public FleeceArray(FLArray* array, C4Document* doc, Database database)
+        public FleeceArray(FLArray* array, Database database)
         {
             Array = array;
-            C4Doc = doc;
-            Database = database;
+            Database = database ?? throw new ArgumentNullException(nameof(database));
         }
 
         #endregion
@@ -86,7 +85,7 @@ namespace Couchbase.Lite.Internal.Doc
                 get {
                     fixed (FLArrayIterator* i = &_iter) {
                         var val = Native.FLArrayIterator_GetValue(i);
-                        return FLValueConverter.ToObject(val, _parent.Database?.SharedStrings);
+                        return FLValueConverter.ToCouchbaseObject(val, _parent.Database, true);
                     }
                 }
             }

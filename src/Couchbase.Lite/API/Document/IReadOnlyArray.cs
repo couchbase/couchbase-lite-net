@@ -26,16 +26,8 @@ namespace Couchbase.Lite
     /// <summary>
     /// An interface representing a read-only linear collection of objects
     /// </summary>
-    public interface IReadOnlyArray : IReadOnlyArrayFragment, IEnumerable<object>
+    public interface IReadOnlyArray : IReadOnlyArrayFragment, IReadOnlyCollection<object>
     {
-        #region Properties
-
-        /// <summary>
-        /// Gets the number of elements in the collection
-        /// </summary>
-        int Count { get; }
-
-        #endregion
 
         #region Public Methods
 

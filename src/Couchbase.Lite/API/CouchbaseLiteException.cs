@@ -45,13 +45,7 @@ namespace Couchbase.Lite
                
         }
 
-        internal CouchbaseLiteException(StatusCode status, string message)
-            : this(status, message, null)
-        {
-            
-        }
-
-        internal CouchbaseLiteException(StatusCode status, string message, Exception innerException)
+        internal CouchbaseLiteException(StatusCode status, string message, Exception innerException = null)
             : base(message, innerException)
         {
             Status = status;

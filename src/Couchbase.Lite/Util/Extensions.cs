@@ -39,25 +39,13 @@ namespace Couchbase.Lite.Util
         /// <param name="obj">The object to cast</param>
         /// <param name="defaultVal">The default value to use on failure</param>
         /// <returns>The cast object, or <c>defaultVal</c> if not successful</returns>
-        public static T CastOrDefault<T>(object obj, T defaultVal)
+        public static T CastOrDefault<T>(object obj, T defaultVal = default(T))
         {
-            T retVal;
-            if(obj != null && TryCast(obj, out retVal)) {
+            if(obj != null && TryCast(obj, out T retVal)) {
                 return retVal;
             }
 
             return defaultVal;
-        }
-
-        /// <summary>
-        /// Attempts to cast an object to a given type, and returning a compiler default value if not successful
-        /// </summary>
-        /// <typeparam name="T">The type to cast the object to</typeparam>
-        /// <param name="obj">The object to cast</param>
-        /// <returns>The cast object, or the compiler default value if not successful</returns>
-        public static T CastOrDefault<T>(object obj)
-        {
-            return CastOrDefault(obj, default(T));
         }
 
         /// <summary>
@@ -71,8 +59,7 @@ namespace Couchbase.Lite.Util
         /// <returns>The value for the given key, or a default value</returns>
         public static TValue Get<TKey, TValue>(this IDictionary<TKey, TValue> d, TKey key)
         {
-            TValue val;
-            d.TryGetValue(key, out val);
+            d.TryGetValue(key, out var val);
             return val;
         }
 
@@ -87,22 +74,8 @@ namespace Couchbase.Lite.Util
         /// <returns>The value for the given key, or a default value</returns>
         public static TValue Get<TKey, TValue>(this IReadOnlyDictionary<TKey, TValue> d, TKey key)
         {
-            TValue val;
-            d.TryGetValue(key, out val);
+            d.TryGetValue(key, out var val);
             return val;
-        }
-
-        /// <summary>
-        /// Gets the value for the given key as the given type, or the compiler default value
-        /// if the value does not exist or is the incorrect type
-        /// </summary>
-        /// <typeparam name="T">The type to cast the result to</typeparam>
-        /// <param name="collection">The dictionary to operate on (implicit)</param>
-        /// <param name="key">The key to attempt to retrieve the value for</param>
-        /// <returns>The fetched value, or the compiler default value if not successful</returns>
-        public static T GetCast<T>(this IDictionary<string, object> collection, string key)
-        {
-            return GetCast(collection, key, default(T));
         }
 
         /// <summary>
@@ -114,26 +87,13 @@ namespace Couchbase.Lite.Util
         /// <param name="key">The key to attempt to retrieve the value for</param>
         /// <param name="defaultVal">The value to return on failure</param>
         /// <returns>The fetched value, or the compiler default value if not successful</returns>
-        public static T GetCast<T>(this IDictionary<string, object> collection, string key, T defaultVal)
+        public static T GetCast<T>(this IDictionary<string, object> collection, string key, T defaultVal = default(T))
         {
             var value = Get(collection, key);
             return CastOrDefault(value, defaultVal);
         }
 
         /// <summary>
-        /// Gets the value for the given key as the given type, or the compiler default value
-        /// if the value does not exist or is the incorrect type
-        /// </summary>
-        /// <typeparam name="T">The type to cast the result to</typeparam>
-        /// <param name="collection">The dictionary to operate on (implicit)</param>
-        /// <param name="key">The key to attempt to retrieve the value for</param>
-        /// <returns>The fetched value, or the compiler default value if not successful</returns>
-        public static T GetCast<T>(this IReadOnlyDictionary<string, object> collection, string key)
-        {
-            return GetCast(collection, key, default(T));
-        }
-
-        /// <summary>
         /// Gets the value for the given key as the given type, or a default value
         /// if the value does not exist or is the incorrect type
         /// </summary>
@@ -142,7 +102,7 @@ namespace Couchbase.Lite.Util
         /// <param name="key">The key to attempt to retrieve the value for</param>
         /// <param name="defaultVal">The value to return on failure</param>
         /// <returns>The fetched value, or the compiler default value if not successful</returns>
-        public static T GetCast<T>(this IReadOnlyDictionary<string, object> collection, string key, T defaultVal)
+        public static T GetCast<T>(this IReadOnlyDictionary<string, object> collection, string key, T defaultVal = default(T))
         {
             var value = Get(collection, key);
             return CastOrDefault(value, defaultVal);

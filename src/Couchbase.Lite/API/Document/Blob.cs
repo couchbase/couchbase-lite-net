@@ -65,40 +65,40 @@ namespace Couchbase.Lite
                     return _content;
                 }
 
-                if(_db != null) {
+                if (_db != null) {
                     C4BlobStore* blobStore;
                     C4BlobKey key;
-                    if(!GetBlobStore(&blobStore, &key)) {
+                    if (!GetBlobStore(&blobStore, &key)) {
                         return null;
                     }
 
                     //TODO: If data is large, can get the file path & memory-map it
                     var content = Native.c4blob_getContents(blobStore, key, null);
-                    if(content?.Length <= MaxCachedContentLength) {
+                    if (content?.Length <= MaxCachedContentLength) {
                         _content = content;
                     }
 
                     return content;
-                } else {
-                    if(_initialContentStream == null) {
-                        throw new InvalidOperationException("Blob has no data available");
-                    }
-
-                    var result = new List<byte>();
-                    using(var reader = new BinaryReader(_initialContentStream)) {
-                        byte[] buffer;
-                        do {
-                            buffer = reader.ReadBytes(ReadBufferSize);
-                            result.AddRange(buffer);
-                        } while(buffer.Length == ReadBufferSize);
-                    }
-
-                    _initialContentStream.Dispose();
-                    _initialContentStream = null;
-                    _content = result.ToArray();
-                    Length = (ulong)_content.Length;
-                    return _content;
                 }
+
+                if(_initialContentStream == null) {
+                    throw new InvalidOperationException("Blob has no data available");
+                }
+
+                var result = new List<byte>();
+                using(var reader = new BinaryReader(_initialContentStream)) {
+                    byte[] buffer;
+                    do {
+                        buffer = reader.ReadBytes(ReadBufferSize);
+                        result.AddRange(buffer);
+                    } while(buffer.Length == ReadBufferSize);
+                }
+
+                _initialContentStream.Dispose();
+                _initialContentStream = null;
+                _content = result.ToArray();
+                Length = (ulong)_content.Length;
+                return _content;
             }
         }
 

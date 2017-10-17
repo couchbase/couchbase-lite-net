@@ -1112,6 +1112,11 @@ namespace Test
             using (var encryptedDb = new Database("seekrit", config)) {
                 encryptedDb.Count.Should().Be(1);
                 encryptedDb.SetEncryptionKey(wrongKey);
+                Database.Delete("seekrit2", config.Directory);
+                Database.Copy(encryptedDb.Path, "seekrit2", config);
+                using(var encryptedDb2 = new Database("seekrit2", config)) {
+                    encryptedDb2.Count.Should().Be(1);
+                }
             }
         }
 

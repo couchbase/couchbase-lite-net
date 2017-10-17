@@ -72,7 +72,7 @@ namespace Couchbase.Lite
     {
         public static unsafe void ConvertError(Exception e, C4Error* outError)
         {
-            C4Error c4err = new C4Error(C4ErrorCode.RemoteError);
+            var c4err = new C4Error(C4ErrorCode.RemoteError);
             switch (e) {
                 case SocketException se:
                     switch (se.SocketErrorCode) {

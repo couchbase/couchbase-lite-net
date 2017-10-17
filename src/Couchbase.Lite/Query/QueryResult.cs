@@ -81,7 +81,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             var value = FLValueAtIndex(index);
             if (value != null) {
-                return FLValueConverter.ToObject(value, Database.SharedStrings);
+                return FLValueConverter.ToCouchbaseObject(value, Database, true);
             }
 
             return null;
@@ -186,7 +186,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public object GetObject(int index)
         {
-            return FLValueConverter.ToCouchbaseObject(FLValueAtIndex(index), Database.SharedStrings, null, Database);
+            return FLValueConverter.ToCouchbaseObject(FLValueAtIndex(index), Database, true);
         }
 
         public string GetString(int index)
@@ -198,7 +198,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             var array = new List<object>();
             for (int i = 0; i < Count; i++) {
-                array.Add(FLValueConverter.ToObject(FLValueAtIndex(i), Database.SharedStrings));
+                array.Add(FLValueConverter.ToCouchbaseObject(FLValueAtIndex(i), Database, true));
             }
 
             return array;

@@ -227,7 +227,7 @@ namespace Couchbase.Lite
 				var nativeConfig = DBConfig;
 				if (config.EncryptionKey != null) {
 					var key = config.EncryptionKey;
-					int i = 0;
+					var i = 0;
 					nativeConfig.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
 					foreach (var b in key.KeyData) {
 						nativeConfig.encryptionKey.bytes[i++] = b;
@@ -445,7 +445,7 @@ namespace Couchbase.Lite
             _threadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                C4SliceResult result = new C4SliceResult();
+                var result = new C4SliceResult();
                 LiteCoreBridge.Check(err =>
                 {
                     result = NativeRaw.c4db_getIndexes(c4db, err);
@@ -463,7 +463,7 @@ namespace Couchbase.Lite
                 }
             });
 
-            var flArray = new FleeceArray(array, null, null);
+            var flArray = new FleeceArray(array, this);
             foreach (var obj in flArray) {
                 retVal.Add(obj as string);
             }
@@ -743,7 +743,7 @@ namespace Couchbase.Lite
             var encrypted = "";
             if(Config.EncryptionKey != null) {
                 var key = Config.EncryptionKey;
-                int i = 0;
+                var i = 0;
                 config.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
                 foreach(var b in key.KeyData) {
                     config.encryptionKey.bytes[i++] = b;
@@ -799,7 +799,7 @@ namespace Couchbase.Lite
 				    }
 
 				    external = newExternal;
-				    for (int i = 0; i < nChanges; i++) {
+				    for (var i = 0; i < nChanges; i++) {
 				        docIDs.Add(changes[i].docID.CreateString());
 				    }
 				} while (nChanges > 0);

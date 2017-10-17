@@ -88,7 +88,7 @@ namespace Couchbase.Lite.Support
             if (sslPolicyErrors != SslPolicyErrors.None) {
                 Log.To.Replicator.W(Tag, $"Error validating TLS chain: {sslPolicyErrors}");
                 if (chain?.ChainStatus != null) {
-                    for (int i = 0; i < chain.ChainStatus.Length; i++) {
+                    for (var i = 0; i < chain.ChainStatus.Length; i++) {
                         var element = chain.ChainElements[i];
                         var status = chain.ChainStatus[i];
                         if (status.Status != X509ChainStatusFlags.NoError) {

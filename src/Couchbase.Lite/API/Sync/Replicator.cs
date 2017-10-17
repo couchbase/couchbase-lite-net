@@ -320,7 +320,7 @@ namespace Couchbase.Lite.Sync
             var remoteUrl = _config.RemoteUrl;
             string dbNameStr = null;
             if (remoteUrl != null) {
-                string pathStr = String.Concat(remoteUrl.Segments.Take(remoteUrl.Segments.Length - 1));
+                var pathStr = String.Concat(remoteUrl.Segments.Take(remoteUrl.Segments.Length - 1));
                 dbNameStr = remoteUrl.Segments.Last().TrimEnd('/');
                 scheme = new C4String(remoteUrl.Scheme);
                 host = new C4String(remoteUrl.Host);

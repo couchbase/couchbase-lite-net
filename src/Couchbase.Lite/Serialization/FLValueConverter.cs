@@ -37,47 +37,80 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Public Methods
 
-        public static object ToTypedObject(FLValue* value, SharedStringCache sharedKeys, Database database)
-        {
-            if (Native.FLValue_GetType(value) == FLValueType.Dict) {
-                var dict = Native.FLValue_AsDict(value);
-                var type = TypeForDict(dict, sharedKeys);
-                if (type.buf == null) {
-                    var result = ToObject(value, sharedKeys) as IDictionary<string, object>;
-                    return ConvertDictionary(result, database);
-                }
-            }
-
-            return null;
-        }
-
-        public static object ToCouchbaseObject(FLValue* value, SharedStringCache sharedKeys, C4Document* document, Database database)
+        public static object ToCouchbaseObject(FLValue* value, Database database, bool dotNetTypes)
         {
                 switch (Native.FLValue_GetType(value)) {
                     case FLValueType.Array: {
+                        if(dotNetTypes) {
+                            return ToObject(value, database.SharedStrings);
+                        }
+
                         var array = Native.FLValue_AsArray(value);
-                        var data = new FleeceArray(array, document, database);
+                        var data = new FleeceArray(array, database);
                         return new ReadOnlyArray(data);
                     }
                     case FLValueType.Dict: {
                         var dict = Native.FLValue_AsDict(value);
-                        var type = TypeForDict(dict, sharedKeys);
-                        if (type.buf == null && !IsOldAttachment(database, dict)) {
-                            var data = new FleeceDictionary(dict, document, database);
+                        var type = TypeForDict(dict, database.SharedStrings);
+                        if (!dotNetTypes && type.buf == null && !IsOldAttachment(database, dict)) {
+                            var data = new FleeceDictionary(dict, database);
                             return new ReadOnlyDictionary(data);
                         }
 
-                        var result = ToObject(value, sharedKeys) as IDictionary<string, object>;
+                        var result = ToObject(value, database.SharedStrings) as IDictionary<string, object>;
                         return ConvertDictionary(result, database);
                     }
                     case FLValueType.Undefined:
                         return null;
                     default:
-                        return ToObject(value, sharedKeys);
+                        return ToObject(value, database.SharedStrings);
                 }
         }
 
-        public static object ToObject(FLValue* value, SharedStringCache sharedKeys)
+        #endregion
+
+        #region Private Methods
+
+        private static object ConvertDictionary(IDictionary<string, object> dict, Database database)
+        {
+            var type = dict.GetCast<string>(Constants.ObjectTypeProperty);
+            if (type == null) {
+                if(IsOldAttachment(dict)) {
+                    return new Blob(database, dict);
+                }
+
+                return dict;
+            }
+
+            if(type == Constants.ObjectTypeBlob) {
+                return new Blob(database, dict);
+            }
+
+            return dict;
+        }
+
+        private static bool IsOldAttachment(Database db, FLDict* dict)
+        {
+            var flDigest = db.SharedStrings.GetDictValue(dict, "digest");
+            var flLength = db.SharedStrings.GetDictValue(dict, "length");
+            var flStub = db.SharedStrings.GetDictValue(dict, "stub");
+            var flRevPos = db.SharedStrings.GetDictValue(dict, "revpos");
+            var flContentType = db.SharedStrings.GetDictValue(dict, "content_type");
+
+            return flDigest != null && flLength != null && flStub != null && flRevPos != null && flContentType != null;
+        }
+
+        private static bool IsOldAttachment(IDictionary<string, object> dict)
+        {
+            var digest = dict.Get("digest");
+            var length = dict.Get("length");
+            var stub = dict.Get("stub");
+            var revpos = dict.Get("revpos");
+            var contentType = dict.Get("content_type");
+            return digest != null && length != null && stub != null && revpos != null && contentType != null;
+        }
+
+        private static object ToObject(FLValue* value, SharedStringCache sharedKeys)
         {
             if (value == null) {
                 return null;
@@ -86,12 +119,11 @@ namespace Couchbase.Lite.Internal.Serialization
             switch (Native.FLValue_GetType(value)) {
                 case FLValueType.Array: {
                         var arr = Native.FLValue_AsArray(value);
-                        var retVal = new object[Native.FLArray_Count(arr)];
+                        var retVal = new List<object>((int)Native.FLArray_Count(arr));
                         var i = default(FLArrayIterator);
                         Native.FLArrayIterator_Begin(arr, &i);
-                        int pos = 0;
                         do {
-                            retVal[pos++] = ToObject(Native.FLArrayIterator_GetValue(&i), sharedKeys);
+                            retVal.Add(ToObject(Native.FLArrayIterator_GetValue(&i), sharedKeys));
                         } while (Native.FLArrayIterator_Next(&i));
 
                         return retVal;
@@ -144,44 +176,16 @@ namespace Couchbase.Lite.Internal.Serialization
             }
         }
 
-        #endregion
-
         private static FLSlice TypeForDict(FLDict* dict, SharedStringCache sharedKeys)
         {
             var typeKey = FLSlice.Constant(Constants.ObjectTypeProperty);
-            var type = sharedKeys.GetDictValue(dict, typeKey);
+            var type = sharedKeys != null
+                ? sharedKeys.GetDictValue(dict, typeKey)
+                : NativeRaw.FLDict_Get(dict, typeKey);
+
             return NativeRaw.FLValue_AsString(type);
         }
 
-        private static bool IsOldAttachment(Database db, FLDict* dict)
-        {
-            var flDigest = db.SharedStrings.GetDictValue(dict, "digest");
-            var flLength = db.SharedStrings.GetDictValue(dict, "length");
-            var flStub = db.SharedStrings.GetDictValue(dict, "stub");
-            var flRevPos = db.SharedStrings.GetDictValue(dict, "revpos");
-            var flContentType = db.SharedStrings.GetDictValue(dict, "content_type");
-
-            return flDigest != null && flLength != null && flStub != null && flRevPos != null && flContentType != null;
-        }
-
-        private static bool IsOldAttachment(IDictionary<string, object> dict)
-        {
-            var digest = dict.Get("digest");
-            var length = dict.Get("length");
-            var stub = dict.Get("stub");
-            var revpos = dict.Get("revpos");
-            var contentType = dict.Get("content_type");
-            return digest != null && length != null && stub != null && revpos != null && contentType != null;
-        }
-
-        private static object ConvertDictionary(IDictionary<string, object> dict, Database database)
-        {
-            var type = dict.GetCast<string>(Constants.ObjectTypeProperty);
-            if (type == null) {
-                return IsOldAttachment(dict) ? new Blob(database, dict) : null;
-            }
-
-            return type == Constants.ObjectTypeBlob ? new Blob(database, dict) : null;
-        }
+        #endregion
     }
 }

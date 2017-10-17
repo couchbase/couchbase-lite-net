@@ -237,8 +237,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override double GetDouble(string key)
         {
-            object value;
-            if (!_dict.TryGetValue(key, out value)) {
+            if (!_dict.TryGetValue(key, out var value)) {
                 return base.GetDouble(key);
             }
 
@@ -258,8 +257,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override float GetFloat(string key)
         {
-            object value;
-            if (!_dict.TryGetValue(key, out value)) {
+            if (!_dict.TryGetValue(key, out var value)) {
                 return base.GetFloat(key);
             }
 
@@ -269,8 +267,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override int GetInt(string key)
         {
-            object value;
-            if (!_dict.TryGetValue(key, out value)) {
+            if (!_dict.TryGetValue(key, out var value)) {
                 return base.GetInt(key);
             }
 
@@ -280,8 +277,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override long GetLong(string key)
         {
-            object value;
-            if (!_dict.TryGetValue(key, out value)) {
+            if (!_dict.TryGetValue(key, out var value)) {
                 return base.GetLong(key);
             }
 
@@ -291,8 +287,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override object GetObject(string key)
         {
-            object value;
-            if (!_dict.TryGetValue(key, out value)) {
+            if (!_dict.TryGetValue(key, out var value)) {
                 value = base.GetObject(key);
                 switch (value) {
                     case ReadOnlyDictionary sub:

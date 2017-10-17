@@ -85,7 +85,7 @@ namespace Couchbase.Lite
                         root = Native.FLValue_AsDict(NativeRaw.FLValue_FromTrustedData(new FLSlice(body.buf, body.size)));
                     }
 
-                    Data = new FleeceDictionary(root, value, Database);
+                    Data = new FleeceDictionary(root, Database);
                 }
                 else {
                     Data = null;

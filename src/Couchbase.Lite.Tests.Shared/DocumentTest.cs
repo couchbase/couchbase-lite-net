@@ -1410,6 +1410,10 @@ namespace Test
                 contentStream.Dispose();
                 bytesRead.Should().Be(5, "because the data is 5 bytes long");
             }
+
+            var stream = new MemoryStream(content);
+            data = new Blob("text/plain", stream);
+            data.Content.SequenceEqual(content).Should().BeTrue();
         }
 
         [Fact]

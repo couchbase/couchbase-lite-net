@@ -28,7 +28,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// Basic AES encryption. Uses a 256-bit (32-byte) key.
     /// </summary>
-    public sealed class EncryptionKey
+    public sealed class EncryptionKey : IDisposable
     {
         #region Constants
 

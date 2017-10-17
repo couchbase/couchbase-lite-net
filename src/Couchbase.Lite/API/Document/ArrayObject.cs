@@ -166,7 +166,7 @@ namespace Couchbase.Lite
             Debug.Assert(_list == null);
             var count = base.Count;
             _list = new List<object>(count);
-            for (int i = 0; i < count; i++) {
+            for (var i = 0; i < count; i++) {
                 var value = base.GetObject(i);
                 _list.Add(DataOps.ConvertValue(value));
             }

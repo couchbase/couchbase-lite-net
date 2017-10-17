@@ -69,8 +69,7 @@ namespace Couchbase.Lite
         {
             var value = Native.FLArray_Get(_array, (uint) index);
             if (value != null) {
-                var c4Doc = Data != null ? Data.C4Doc : null;
-                return FLValueConverter.ToCouchbaseObject(value, _sharedKeys, c4Doc, Data?.Database);
+                return FLValueConverter.ToCouchbaseObject(value, Data?.Database, false);
             }
 
             return null;

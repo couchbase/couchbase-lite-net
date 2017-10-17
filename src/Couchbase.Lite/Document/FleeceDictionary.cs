@@ -27,14 +27,11 @@ namespace Couchbase.Lite.Internal.Doc
     {
         public FLDict* Dict { get; }
 
-        public C4Document* C4Doc { get; }
-
         public Database Database { get; }
 
-        public FleeceDictionary(FLDict* dict, C4Document* doc, Database database)
+        public FleeceDictionary(FLDict* dict, Database database)
         {
             Dict = dict;
-            C4Doc = doc;
             Database = database;
         }
     }
