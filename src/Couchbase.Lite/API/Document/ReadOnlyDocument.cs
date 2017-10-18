@@ -38,7 +38,8 @@ namespace Couchbase.Lite
 
         private readonly bool _owner;
         private C4Document* _c4Doc;
-        internal readonly ThreadSafety _threadSafety = new ThreadSafety();
+        internal readonly ThreadSafety _selfThreadSafety = new ThreadSafety();
+        private Database _database;
 
         #endregion
 
@@ -52,18 +53,25 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets whether or not this document is deleted
         /// </summary>
-        public bool IsDeleted => _threadSafety.DoLocked(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.DocDeleted));
+        public bool IsDeleted => _selfThreadSafety.DoLocked(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.DocDeleted));
 
         /// <summary>
         /// Gets the sequence of this document (a unique incrementing number
         /// identifying its status in a database)
         /// </summary>
-        public ulong Sequence => _threadSafety.DoLocked(() => _c4Doc != null ? _c4Doc->sequence : 0UL);
+        public ulong Sequence => _selfThreadSafety.DoLocked(() => _c4Doc != null ? _c4Doc->sequence : 0UL);
 
         /// <summary>
         /// Gets the database that this document belongs to, if any
         /// </summary>
-        public Database Database { get; internal set; }
+        public Database Database
+        {
+            get => _database;
+            set {
+                _database = value;
+                DatabaseThreadSafety = value?.ThreadSafety;
+            }
+        }
 
         internal C4Database* c4Db
         {
@@ -93,38 +101,46 @@ namespace Couchbase.Lite
             }
         }
 
-        internal bool Exists => _threadSafety.DoLocked(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.DocExists));
+        internal bool Exists => _selfThreadSafety.DoLocked(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.DocExists));
 
-        internal virtual uint Generation => _threadSafety.DoLocked(() => _c4Doc != null ? NativeRaw.c4rev_getGeneration(_c4Doc->revID) : 0U);
+        internal virtual uint Generation => _selfThreadSafety.DoLocked(() => _c4Doc != null ? NativeRaw.c4rev_getGeneration(_c4Doc->revID) : 0U);
 
         internal string RevID => _c4Doc != null ? _c4Doc->selectedRev.revID.CreateString() : null;
 
         internal IConflictResolver EffectiveConflictResolver => Database?.Config.ConflictResolver ??
                                                                         new DefaultConflictResolver();
 
+        internal ThreadSafety DatabaseThreadSafety { get; private set; }
+
         #endregion
 
         #region Constructors
 
-        internal ReadOnlyDocument(Database database, string documentID, C4Document* c4Doc, FleeceDictionary data, bool owner = true)
+        internal ReadOnlyDocument(Database database, string documentID, C4Document* c4Doc, FleeceDictionary data, ThreadSafety threadSafety,
+            bool owner = true)
             : base(data)
         {
             Database = database;
             Id = documentID ?? throw new ArgumentNullException(nameof(documentID));
             _c4Doc = c4Doc;
             _owner = owner;
+            Debug.Assert(database == null || threadSafety != null);
+            DatabaseThreadSafety = threadSafety;
             if (!owner) {
                 GC.SuppressFinalize(this);
             }
         }
 
-        internal ReadOnlyDocument(Database database, string documentID, bool mustExist, bool owner = true)
-            : this(database, documentID, null, null, owner)
+        internal ReadOnlyDocument(Database database, string documentID, bool mustExist, ThreadSafety threadSafety, bool owner = true)
+            : this(database, documentID, null, null, threadSafety, owner)
         {
             var db = database ?? throw new ArgumentNullException(nameof(database));
-            var doc = (C4Document*) NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
-                err => Native.c4doc_get(db.c4db, documentID, mustExist, err));
-            c4Doc = doc;
+            threadSafety.DoLocked(() =>
+            {
+                var doc = (C4Document*)NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
+                    err => Native.c4doc_get(db.c4db, documentID, mustExist, err));
+                c4Doc = doc;
+            });
         }
 
         /// <summary>
@@ -166,15 +182,20 @@ namespace Couchbase.Lite
                 throw new InvalidOperationException("No revision data on the document!");
             }
 
-            LiteCoreBridge.Check(err => Native.c4doc_selectNextLeafRevision(_c4Doc, false, true, err));
+            _selfThreadSafety.DoLockedBridge(err => Native.c4doc_selectNextLeafRevision(_c4Doc, false, true, err));
             c4Doc = _c4Doc;
         }
 
         internal bool SelectCommonAncestor(ReadOnlyDocument doc1, ReadOnlyDocument doc2)
         {
-            if (_c4Doc == null ||
-                !NativeRaw.c4doc_selectCommonAncestorRevision(_c4Doc, doc1.c4Doc->selectedRev.revID,
-                    doc2.c4Doc->selectedRev.revID)) {
+            if (_c4Doc == null) {
+                return false;
+            }
+
+            var success = false;
+            _selfThreadSafety.DoLocked(() => success = NativeRaw.c4doc_selectCommonAncestorRevision(_c4Doc, doc1.c4Doc->selectedRev.revID,
+                doc2.c4Doc->selectedRev.revID));
+            if(!success) {
                 return false;
             }
 
@@ -203,7 +224,7 @@ namespace Couchbase.Lite
         /// </summary>
         public void Dispose()
         {
-            _threadSafety.DoLocked(() => Dispose(true));
+            _selfThreadSafety.DoLocked(() => Dispose(true));
             GC.SuppressFinalize(this);
         }
 

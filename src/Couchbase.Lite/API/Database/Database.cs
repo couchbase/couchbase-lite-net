@@ -71,8 +71,7 @@ namespace Couchbase.Lite
             new FilteredEvent<string, DocumentChangedEventArgs>();
 
         private readonly SharedStringCache _sharedStrings;
-
-        private readonly ThreadSafety _threadSafety = new ThreadSafety();
+        
         private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
 
         /// <summary>
@@ -96,7 +95,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the total number of documents in the database
         /// </summary>
-        public ulong Count => _threadSafety.DoLocked(() => Native.c4db_getDocumentCount(_c4db));
+        public ulong Count => ThreadSafety.DoLocked(() => Native.c4db_getDocumentCount(_c4db));
 
         /// <summary>
         /// Bracket operator for retrieving <see cref="DocumentFragment"/> objects
@@ -116,7 +115,7 @@ namespace Couchbase.Lite
         public string Path
         {
             get {
-                return _threadSafety.DoLocked(() => _c4db != null ? Native.c4db_getPath(c4db) : null);
+                return ThreadSafety.DoLocked(() => _c4db != null ? Native.c4db_getPath(c4db) : null);
             }
         }
 
@@ -126,7 +125,7 @@ namespace Couchbase.Lite
         {
             get {
                 var retVal = default(C4BlobStore*);
-                _threadSafety.DoLocked(() =>
+                ThreadSafety.DoLocked(() =>
                 {
                     CheckOpen();
                     retVal = (C4BlobStore*) LiteCoreBridge.Check(err => Native.c4db_getBlobStore(c4db, err));
@@ -140,10 +139,12 @@ namespace Couchbase.Lite
         {
             get {
                 var retVal = default(C4Database*);
-                _threadSafety.DoLocked(() => retVal = _c4db);
+                ThreadSafety.DoLocked(() => retVal = _c4db);
                 return retVal;
             }
         }
+
+        internal bool InTransaction => ThreadSafety.DoLocked(() => _c4db != null && Native.c4db_isInTransaction(_c4db));
 
         internal IJsonSerializer JsonSerializer
         {
@@ -153,7 +154,9 @@ namespace Couchbase.Lite
 
         internal IDictionary<Uri, Replicator> Replications { get; } = new Dictionary<Uri, Replicator>();
 
-        internal SharedStringCache SharedStrings => _threadSafety.DoLocked(() => _sharedStrings);
+        internal SharedStringCache SharedStrings => ThreadSafety.DoLocked(() => _sharedStrings);
+
+        internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
 
         private C4Database *_c4db
         {
@@ -183,7 +186,9 @@ namespace Couchbase.Lite
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Config = configuration;
             Open();
-            _sharedStrings = new SharedStringCache(_c4db);
+            var keys = default(FLSharedKeys*);
+            ThreadSafety.DoLocked(() => keys = Native.c4db_getFLSharedKeys(_c4db));
+            _sharedStrings = new SharedStringCache(keys);
         }
 
         /// <summary>
@@ -311,7 +316,7 @@ namespace Couchbase.Lite
         /// <param name="handler">The logic to handle the event</param>
         public void AddDocumentChangedListener(string documentID, EventHandler<DocumentChangedEventArgs> handler)
         {
-            _threadSafety.DoLocked(() =>
+            ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
 
@@ -337,11 +342,11 @@ namespace Couchbase.Lite
         /// </summary>
         public void Compact()
         {
-            _threadSafety.DoLocked(() => LiteCoreBridge.Check(err =>
+            ThreadSafety.DoLockedBridge(err =>
             {
                 CheckOpen();
                 return Native.c4db_compact(_c4db, err);
-            }));
+            });
         }
 
         /// <summary>
@@ -352,7 +357,7 @@ namespace Couchbase.Lite
         /// <returns><c>true</c> if the <see cref="Document"/> exists, <c>false</c> otherwise</returns>
         public bool Contains(string docID)
         {
-            return _threadSafety.DoLocked(() =>
+            return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 using (var doc = GetDocument(docID, true)) {
@@ -369,7 +374,7 @@ namespace Couchbase.Lite
         /// <param name="index">The index to creaate</param>
         public void CreateIndex(string name, IIndex index)
         {
-            _threadSafety.DoLocked(() =>
+            ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 var concreteIndex = Misc.TryCast<IIndex, QueryIndex>(index);
@@ -388,7 +393,7 @@ namespace Couchbase.Lite
         /// </summary>
         public void Delete()
         {
-            _threadSafety.DoLocked(() =>
+            ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 LiteCoreBridge.Check(err => Native.c4db_delete(_c4db, err));
@@ -407,7 +412,7 @@ namespace Couchbase.Lite
         /// other than the one it was previously added to</exception>
         public void Delete(Document document)
         {
-            _threadSafety.DoLocked(() =>
+            ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 VerifyDB(document).Delete();
@@ -420,10 +425,10 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the index to delete</param>
         public void DeleteIndex(string name)
         {
-            _threadSafety.DoLocked(() =>
+            ThreadSafety.DoLockedBridge(err =>
             {
                 CheckOpen();
-                LiteCoreBridge.Check(err => Native.c4db_deleteIndex(c4db, name, err));
+                return Native.c4db_deleteIndex(c4db, name, err);
             });
         }
 
@@ -432,7 +437,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="id">The ID to use when creating or getting the document</param>
         /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
-        public Document GetDocument(string id) => _threadSafety.DoLocked(() => GetDocument(id, true));
+        public Document GetDocument(string id) => ThreadSafety.DoLocked(() => GetDocument(id, true));
 
         /// <summary>
         /// Gets a list of index names that are present in the database
@@ -442,7 +447,7 @@ namespace Couchbase.Lite
         {
             FLArray* array = null;
             var retVal = new List<string>();
-            _threadSafety.DoLocked(() =>
+            ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 var result = new C4SliceResult();
@@ -477,7 +482,7 @@ namespace Couchbase.Lite
         /// <param name="a">The <see cref="Action"/> containing the operations. </param>
         public void InBatch(Action a)
         {
-            _threadSafety.DoLocked(() =>
+            ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 PerfTimer.StartEvent("InBatch_BeginTransaction");
@@ -510,7 +515,7 @@ namespace Couchbase.Lite
         /// other than the one it was previously added to</exception>
         public void Purge(Document document)
         {
-            _threadSafety.DoLocked(() =>
+            ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 VerifyDB(document).Purge();
@@ -525,7 +530,7 @@ namespace Couchbase.Lite
         /// <param name="handler">The logic to handle the event</param>
         public void RemoveDocumentChangedListener(string documentID, EventHandler<DocumentChangedEventArgs> handler)
         {
-            _threadSafety.DoLocked(() =>
+            ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 var count = _documentChanged.Remove(documentID, handler);
@@ -548,7 +553,7 @@ namespace Couchbase.Lite
         /// other than the one it was previously added to</exception>
         public void Save(Document document)
         {
-            _threadSafety.DoLocked(() =>
+            ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 VerifyDB(document).Save();
@@ -563,24 +568,20 @@ namespace Couchbase.Lite
 		/// to remove encryption</param>
 		public void SetEncryptionKey(EncryptionKey key)
 		{
-			_threadSafety.DoLocked(() =>
+			ThreadSafety.DoLockedBridge(err =>
 			{
-				CheckOpen();
-				LiteCoreBridge.Check(err =>
+				var newKey = new C4EncryptionKey
 				{
-					var newKey = new C4EncryptionKey
-					{
-						algorithm = C4EncryptionAlgorithm.AES256
-					};
+					algorithm = C4EncryptionAlgorithm.AES256
+				};
 
-					var i = 0;
-					foreach (var b in key.KeyData)
-					{
-						newKey.bytes[i++] = b;
-					}
+				var i = 0;
+				foreach (var b in key.KeyData)
+				{
+					newKey.bytes[i++] = b;
+				}
 
-					return Native.c4db_rekey(c4db, &newKey, err);
-				});
+				return Native.c4db_rekey(c4db, &newKey, err);
 			});
 		}
 
@@ -590,22 +591,22 @@ namespace Couchbase.Lite
 
         internal void BeginTransaction()
         {
-            LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
+            ThreadSafety.DoLockedBridge(err => Native.c4db_beginTransaction(_c4db, err));
         }
 
         internal void EndTransaction(bool commit)
         {
-            LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, commit, err));
+            ThreadSafety.DoLockedBridge(err => Native.c4db_endTransaction(_c4db, commit, err));
         }
 
         internal void ResolveConflict(string docID, IConflictResolver resolver)
         {
             InBatch(() =>
             {
-                using (var doc = new ReadOnlyDocument(this, docID, true))
-                using (var otherDoc = new ReadOnlyDocument(this, docID, true)) {
+                using (var doc = new ReadOnlyDocument(this, docID, true, ThreadSafety))
+                using (var otherDoc = new ReadOnlyDocument(this, docID, true, ThreadSafety)) {
                     otherDoc.SelectConflictingRevision();
-                    using (var tmp = new ReadOnlyDocument(this, docID, true)) {
+                    using (var tmp = new ReadOnlyDocument(this, docID, true, ThreadSafety)) {
                         var baseDoc = tmp;
                         if (!baseDoc.SelectCommonAncestor(doc, otherDoc)) {
                             baseDoc = null;
@@ -645,6 +646,10 @@ namespace Couchbase.Lite
 
                         // Tell LiteCore to do the resolution
                         var rawDoc = doc.c4Doc;
+                        
+                        // This technically needs a lock on the document, but since no thread sensitive
+                        // methods are exposed on ReadOnlyDocument to the public, and this object lives
+                        // entirely in this scope, we can skip the lock
                         LiteCoreBridge.Check(
                             err => Native.c4doc_resolveConflict(rawDoc, winningRevID, losingRevID,
                                        mergedBody, err) && Native.c4doc_save(rawDoc, 0, err));
@@ -719,7 +724,7 @@ namespace Couchbase.Lite
         private Document GetDocument(string docID, bool mustExist)
         {
             CheckOpen();
-            var doc = new Document(this, docID, mustExist);
+            var doc = new Document(this, docID, mustExist, ThreadSafety);
 
             if (mustExist && !doc.Exists) {
                 Log.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist", 
@@ -754,7 +759,7 @@ namespace Couchbase.Lite
 
             Log.To.Database.I(Tag, $"Opening {encrypted}database at {path}");
             var localConfig1 = config;
-            _threadSafety.DoLocked(() =>
+            ThreadSafety.DoLocked(() =>
             {
                 _c4db = (C4Database*) NativeHandler.Create()
                     .AllowError((int) C4ErrorCode.NotADatabaseFile, C4ErrorDomain.LiteCoreDomain).Execute(err =>
@@ -774,9 +779,9 @@ namespace Couchbase.Lite
         private void PostDatabaseChanged()
         {
             var allChanges = new List<DatabaseChangedEventArgs>();
-			_threadSafety.DoLocked(() =>
+			ThreadSafety.DoLocked(() =>
 			{
-				if (_obs == null || _c4db == null || Native.c4db_isInTransaction(_c4db)) {
+				if (_obs == null || _c4db == null || InTransaction) {
 					return;
 				}
 
@@ -812,7 +817,7 @@ namespace Couchbase.Lite
 
         private void PostDocChanged(string documentID)
         {
-            _threadSafety.DoLocked(() =>
+            ThreadSafety.DoLocked(() =>
             {
                 if (!_docObs.ContainsKey(documentID) || _c4db == null || Native.c4db_isInTransaction(_c4db)) {
                     return;
@@ -844,7 +849,7 @@ namespace Couchbase.Lite
         public void Dispose()
         {
             GC.SuppressFinalize(this);
-            _threadSafety.DoLocked(() => Dispose(true));
+            ThreadSafety.DoLocked(() => Dispose(true));
         }
 
         #endregion

@@ -57,7 +57,8 @@ namespace Couchbase.Lite.Sync
         #region Variables
 
         private readonly ReplicatorConfiguration _config;
-        private readonly ThreadSafety _threadSafety = new ThreadSafety();
+        private readonly ThreadSafety _selfThreadSafety = new ThreadSafety();
+        private ThreadSafety _databaseThreadSafety;
 
         /// <summary>
         /// An event that is fired when the replicator changes its status for reasons like
@@ -90,8 +91,8 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public Exception LastError
         {
-            get => _threadSafety.DoLocked(() => _lastError);
-            set => _threadSafety.DoLocked(() => _lastError = value);
+            get => _selfThreadSafety.DoLocked(() => _lastError);
+            set => _selfThreadSafety.DoLocked(() => _lastError = value);
         }
 
 
@@ -100,8 +101,8 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public ReplicationStatus Status
         {
-            get => _threadSafety.DoLocked(() => _status);
-            private set => _threadSafety.DoLocked(() => _status = value);
+            get => _selfThreadSafety.DoLocked(() => _status);
+            private set => _selfThreadSafety.DoLocked(() => _status = value);
         }
 
         #endregion
@@ -146,7 +147,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public void Start()
         {
-            _threadSafety.DoLocked(() =>
+            _selfThreadSafety.DoLocked(() =>
             {
                 if (_repl != null) {
                     Log.To.Replicator.W(Tag, $"{this} has already started");
@@ -164,7 +165,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public void Stop()
         {
-            _threadSafety.DoLocked(() =>
+            _selfThreadSafety.DoLocked(() =>
             {
                 if (_repl != null) {
                     Native.c4repl_stop(_repl);
@@ -348,9 +349,15 @@ namespace Couchbase.Lite.Sync
             _nativeParams = new ReplicatorParameters(Mkmode(push, continuous), Mkmode(pull, continuous), options, ValidateCallback, 
                 OnDocError, StatusChangedCallback, this);
 
-            C4Error err;
-            _repl = Native.c4repl_new(_config.Database.c4db, addr, dbNameStr, otherDB != null ? otherDB.c4db : null,
-                _nativeParams.C4Params, &err);
+
+            var err = new C4Error();
+            _config.Database.ThreadSafety.DoLocked(() =>
+            {
+                C4Error localErr;
+                _repl = Native.c4repl_new(_config.Database.c4db, addr, dbNameStr, otherDB != null ? otherDB.c4db : null,
+                    _nativeParams.C4Params, &localErr);
+                err = localErr;
+            });
 
             scheme.Dispose();
             path.Dispose();

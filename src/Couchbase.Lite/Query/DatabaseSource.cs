@@ -20,6 +20,7 @@
 // 
 using System.Collections.Generic;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Support;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -39,7 +40,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        public DatabaseSource(Database database) : base(database)
+        public DatabaseSource(Database database, ThreadSafety threadSafety) : base(database, threadSafety)
         {
             
         }

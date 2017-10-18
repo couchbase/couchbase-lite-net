@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 using System;
+using LiteCore;
+using LiteCore.Interop;
 
 namespace Couchbase.Lite.Support
 {
@@ -49,6 +51,39 @@ namespace Couchbase.Lite.Support
             lock (_lock) {
 #endif
                 return f();
+#if !NO_THREADSAFE
+            }
+#endif
+        }
+
+        public void DoLockedBridge(C4TryLogicDelegate1 a)
+        {
+#if !NO_THREADSAFE
+            lock (_lock) {
+#endif
+                LiteCoreBridge.Check(a);
+#if !NO_THREADSAFE
+            }
+#endif
+        }
+
+        public unsafe void* DoLockedBridge(C4TryLogicDelegate2 a)
+        {
+#if !NO_THREADSAFE
+            lock (_lock) {
+#endif
+                return LiteCoreBridge.Check(a);
+#if !NO_THREADSAFE
+            }
+#endif
+        }
+
+        public void DoLockedBridge(C4TryLogicDelegate3 a)
+        {
+#if !NO_THREADSAFE
+            lock (_lock) {
+#endif
+                LiteCoreBridge.Check(a);
 #if !NO_THREADSAFE
             }
 #endif

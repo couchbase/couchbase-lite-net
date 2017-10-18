@@ -138,8 +138,8 @@ namespace Couchbase.Lite.Sync
         /// <param name="targetDatabase">The target database to use as the endpoint</param>
         public ReplicatorConfiguration(Database localDatabase, Database targetDatabase)
         {
-            Database = localDatabase;
-            Target = OtherDB = targetDatabase;
+            Database = localDatabase ?? throw new ArgumentNullException(nameof(localDatabase));
+            Target = OtherDB = targetDatabase ?? throw new ArgumentNullException(nameof(targetDatabase));
         }
 
         /// <summary>
@@ -149,8 +149,8 @@ namespace Couchbase.Lite.Sync
         /// <param name="endpoint">The URL to replicate with</param>
         public ReplicatorConfiguration(Database localDatabase, Uri endpoint)
         {
-            Database = localDatabase;
-            Target = RemoteUrl = endpoint;
+            Database = localDatabase ?? throw new ArgumentNullException(nameof(localDatabase));
+            Target = RemoteUrl = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
         }
 
         internal static ReplicatorConfiguration Clone(ReplicatorConfiguration source)

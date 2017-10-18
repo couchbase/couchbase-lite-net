@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 using LiteCore.Interop;
@@ -42,13 +43,15 @@ namespace Couchbase.Lite.Internal.Serialization
             
         }
 
-        public SharedStringCache(C4Database* db)
+        public SharedStringCache(FLSharedKeys* keys)
         {
-            _sharedKeys = Native.c4db_getFLSharedKeys(db);
+            Debug.Assert(keys != null);
+            _sharedKeys = keys;
         }
 
         public SharedStringCache(SharedStringCache other)
         {
+            Debug.Assert(other != null);
             _sharedKeys = other._sharedKeys;
         }
 

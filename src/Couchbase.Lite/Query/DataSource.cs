@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Support;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -28,13 +29,16 @@ namespace Couchbase.Lite.Internal.Query
 
         internal object Source { get; }
 
+        internal ThreadSafety ThreadSafety { get; }
+
         #endregion
 
         #region Constructors
 
-        protected QueryDataSource(object source)
+        protected QueryDataSource(object source, ThreadSafety threadSafety)
         {
-            Source = source;            
+            Source = source;
+            ThreadSafety = threadSafety;
         }
 
         #endregion

@@ -23,6 +23,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Support;
 using LiteCore;
 using LiteCore.Interop;
 
@@ -41,6 +42,7 @@ namespace Couchbase.Lite.Internal.Query
         private readonly C4QueryEnumerator* _c4Enum;
 
         private readonly XQuery _query;
+        private readonly ThreadSafety _threadSafety;
 
         #endregion
 
@@ -56,12 +58,18 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal QueryResultSet(XQuery query, C4QueryEnumerator* e, IDictionary<string, int> columnNames)
+        internal QueryResultSet(XQuery query, ThreadSafety threadSafety, C4QueryEnumerator* e, IDictionary<string, int> columnNames)
         {
             _query = query;
             _c4Enum = e;
-            Count = (int)Native.c4queryenum_getRowCount(e, null);
+            var count = 0;
+            threadSafety.DoLocked(() =>
+            {
+                count = (int)Native.c4queryenum_getRowCount(e, null);
+            });
+            Count = count;
             ColumnNames = columnNames;
+            _threadSafety = threadSafety;
             Log.To.Query.I(Tag, $"Beginning query enumeration ({(long) _c4Enum:x})");
         }
 
@@ -81,8 +89,8 @@ namespace Couchbase.Lite.Internal.Query
                 return null;
             }
 
-            var newEnum = (C4QueryEnumerator*)LiteCoreBridge.Check(err => Native.c4queryenum_refresh(_c4Enum, err));
-            return newEnum != null ? new QueryResultSet(query, newEnum, ColumnNames) : null;
+            var newEnum = (C4QueryEnumerator*)_threadSafety.DoLockedBridge(err => Native.c4queryenum_refresh(_c4Enum, err));
+            return newEnum != null ? new QueryResultSet(query, _threadSafety, newEnum, ColumnNames) : null;
         }
 
         #endregion
@@ -155,7 +163,7 @@ namespace Couchbase.Lite.Internal.Query
 
             public void Dispose()
             {
-                Native.c4queryenum_seek(_parent._c4Enum, 0, null);
+                _parent._threadSafety.DoLockedBridge(err => _parent.Count == 0 || Native.c4queryenum_seek(_parent._c4Enum, 0, err));
             }
 
             #endregion
@@ -164,12 +172,8 @@ namespace Couchbase.Lite.Internal.Query
 
             public bool MoveNext()
             {
-                C4Error err;
-                var moved = Native.c4queryenum_next(_parent._c4Enum, &err);
-                if (!moved && err.code != 0) {
-                    throw new LiteCoreException(err);
-                }
-
+                var moved = false;
+                _parent._threadSafety.DoLockedBridge(err => moved = Native.c4queryenum_next(_parent._c4Enum, err));
                 return moved;
             }
 

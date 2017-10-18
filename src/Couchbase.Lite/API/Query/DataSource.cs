@@ -39,7 +39,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The source of data for the <see cref="IQuery" /></returns>
         public static IDataSourceAs Database(Database database)
         {
-            return new DatabaseSource(database);
+            return new DatabaseSource(database, database.ThreadSafety);
         }
 
         internal static IDataSourceAs Query(IQuery query)

@@ -24,6 +24,7 @@ using System.Diagnostics.CodeAnalysis;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using LiteCore;
 using LiteCore.Interop;
@@ -89,7 +90,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="documentID">The ID for the document</param>
         public Document(string documentID)
-            : this(null, documentID ?? Misc.CreateGuid(), null, null)
+            : this(null, documentID ?? Misc.CreateGuid(), null, null, null)
         {
             
         }
@@ -115,14 +116,14 @@ namespace Couchbase.Lite
             Set(dictionary);
         }
 
-        internal Document(Database database, string documentID, bool mustExist)
-            : base(database, documentID, mustExist)
+        internal Document(Database database, string documentID, bool mustExist, ThreadSafety threadSafety)
+            : base(database, documentID, mustExist, threadSafety)
         {
 
         }
 
-        internal Document(Database database, string documentID, C4Document* c4Doc, FleeceDictionary data)
-            : base(database, documentID, c4Doc, data)
+        internal Document(Database database, string documentID, C4Document* c4Doc, FleeceDictionary data, ThreadSafety threadSafety)
+            : base(database, documentID, c4Doc, data, threadSafety)
         {
             _dict = new DictionaryObject(Data);
         }
@@ -133,12 +134,12 @@ namespace Couchbase.Lite
 
         internal void Delete()
         {
-            _threadSafety.DoLocked(() => Save(EffectiveConflictResolver, true));
+            DatabaseThreadSafety.DoLocked(() => Save(EffectiveConflictResolver, true));
         }
 
         internal void Purge()
         {
-            _threadSafety.DoLocked(() =>
+            DatabaseThreadSafety.DoLocked(() =>
             {
                 if (!Exists) {
                     throw new CouchbaseLiteException(StatusCode.NotFound);
@@ -146,43 +147,22 @@ namespace Couchbase.Lite
 
                 Database.InBatch(() =>
                 {
-                    LiteCoreBridge.Check(err => NativeRaw.c4doc_purgeRevision(c4Doc, C4Slice.Null, err));
-                    LiteCoreBridge.Check(err => Native.c4doc_save(c4Doc, 0, err));
+                    // InBatch has an implicit database thread safety lock, so just lock
+                    // the document
+                    _selfThreadSafety.DoLocked(() =>
+                    {
+                        LiteCoreBridge.Check(err => NativeRaw.c4doc_purgeRevision(c4Doc, C4Slice.Null, err));
+                        LiteCoreBridge.Check(err => Native.c4doc_save(c4Doc, 0, err));
+                    });
                 });
 
                 c4Doc = null;
             });
         }
 
-        //internal bool ResolveExistingConflict()
-        //{
-        //    // Read the conflicting remote revision:
-        //    var otherDoc = new ReadOnlyDocument(Database, Id, true);
-        //    if (!otherDoc.SelectConflictingRevision()) {
-        //        return false;
-        //    }
-
-        //    // Read the common ancestor revision (if it's available)
-        //    var baseDoc = new ReadOnlyDocument(Database, Id, true);
-        //    if (!baseDoc.SelectCommonAncestor(this, otherDoc) || baseDoc.Data == null) {
-        //        baseDoc = null;
-        //    }
-
-        //    // Call the conflict resolver:
-        //    ReadOnlyDocument resolved;
-        //    if (otherDoc.IsDeleted) {
-        //        resolved = this;
-        //    } else if (IsDeleted) {
-        //        resolved = otherDoc;
-        //    } else {
-        //        var resolver = Database?.Config?.ConflictResolver ?? new MostActiveWinsConflictResolver();
-
-        //    }
-        //}
-
         internal void Save()
         {
-            _threadSafety.DoLocked(() => Save(EffectiveConflictResolver, false));
+            DatabaseThreadSafety.DoLocked(() => Save(EffectiveConflictResolver, false));
         }
 
         #endregion
@@ -196,7 +176,7 @@ namespace Couchbase.Lite
             }
 
             var database = Database;
-            using (var current = new ReadOnlyDocument(database, Id, true, false)) {
+            using (var current = new ReadOnlyDocument(database, Id, true, DatabaseThreadSafety, false)) {
                 var curC4doc = current.c4Doc;
 
                 // Resolve conflict:
@@ -206,7 +186,7 @@ namespace Couchbase.Lite
                     resolved = current;
                 } else {
                     // Call the conflict resolver:
-                    using (var baseDoc = new ReadOnlyDocument(database, Id, base.c4Doc, Data, false)) {
+                    using (var baseDoc = new ReadOnlyDocument(database, Id, base.c4Doc, Data, DatabaseThreadSafety, false)) {
                         var conflict = new Conflict(this, current, base.c4Doc != null ? baseDoc : null);
                         resolved = resolver.Resolve(conflict);
                         if (resolved == null) {
@@ -279,11 +259,18 @@ namespace Couchbase.Lite
             if (!deletion && !IsEmpty) {
                 body = Database.JsonSerializer.Serialize(_dict);
                 var root = (FLDict*)NativeRaw.FLValue_FromTrustedData(body);
-                if (Native.c4doc_dictContainsBlobs(root, Native.c4db_getFLSharedKeys(Database.c4db))) {
-                    revFlags |= C4RevisionFlags.HasAttachments;
-                }
+                var sharedKeys = default(FLSharedKeys*);
+                DatabaseThreadSafety.DoLocked(() =>
+                {
+                    sharedKeys = Native.c4db_getFLSharedKeys(Database.c4db);
+                    if (Native.c4doc_dictContainsBlobs(root, sharedKeys)) {
+                        revFlags |= C4RevisionFlags.HasAttachments;
+                    }
+                });
+                
             } else if (IsEmpty) {
-                var encoder = Native.c4db_createFleeceEncoder(c4Db);
+                var encoder = default(FLEncoder*);
+                DatabaseThreadSafety.DoLocked(() => encoder = Native.c4db_createFleeceEncoder(c4Db));
                 Native.FLEncoder_BeginDict(encoder, 0);
                 Native.FLEncoder_EndDict(encoder);
                 body = NativeRaw.FLEncoder_Finish(encoder, null);
@@ -293,15 +280,24 @@ namespace Couchbase.Lite
             try {
                 var rawDoc = c4Doc;
                 if (rawDoc != null) {
-                    *outDoc = (C4Document*) NativeHandler.Create()
-                        .AllowError((int) C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                            err => NativeRaw.c4doc_update(rawDoc, body, revFlags, err));
+                    _selfThreadSafety.DoLocked(() =>
+                    {
+                        DatabaseThreadSafety.DoLocked(() =>
+                        {
+                            *outDoc = (C4Document*)NativeHandler.Create()
+                                .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
+                                    err => NativeRaw.c4doc_update(rawDoc, body, revFlags, err));
+                        });
+                    });
                 } else {
-                    using (var docID_ = new C4String(Id)) {
-                        *outDoc = (C4Document*) NativeHandler.Create()
-                            .AllowError((int) C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                err => NativeRaw.c4doc_create(c4Db, docID_.AsC4Slice(), body, revFlags, err));
-                    }
+                    DatabaseThreadSafety.DoLocked(() =>
+                    {
+                        using (var docID_ = new C4String(Id)) {
+                            *outDoc = (C4Document*)NativeHandler.Create()
+                                .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
+                                    err => NativeRaw.c4doc_create(c4Db, docID_.AsC4Slice(), body, revFlags, err));
+                        }
+                    });
                 }
             } finally {
                 Native.FLSliceResult_Free(body);

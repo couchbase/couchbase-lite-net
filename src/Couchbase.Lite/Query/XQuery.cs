@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Support;
 using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
@@ -100,7 +101,15 @@ namespace Couchbase.Lite.Internal.Query
 
         protected virtual void Dispose(bool finalizing)
         {
-            Native.c4query_free(_c4Query);
+            if (!finalizing) {
+                FromImpl.ThreadSafety.DoLocked(() => Native.c4query_free(_c4Query));
+            }
+            else {
+                // Database is not valid inside finalizer, but thread safety
+                // is guaranteed
+                Native.c4query_free(_c4Query);
+            }
+
             _c4Query = null;
         }
 
@@ -115,7 +124,7 @@ namespace Couchbase.Lite.Internal.Query
                 Check();
             }
 
-            return Native.c4query_explain(_c4Query);
+            return FromImpl.ThreadSafety.DoLocked(() => Native.c4query_explain(_c4Query));
         }
 
         #endregion
@@ -130,9 +139,18 @@ namespace Couchbase.Lite.Internal.Query
             }
 
             Log.To.Query.I(Tag, $"Query encoded as {jsonData}");
-            var query = (C4Query*)LiteCoreBridge.Check(err => Native.c4query_new(Database.c4db, jsonData, err));
-            Native.c4query_free(_c4Query);
-            _c4Query = query;
+
+            FromImpl.ThreadSafety.DoLockedBridge(err =>
+            {
+                var query = Native.c4query_new(Database.c4db, jsonData, err);
+                if(query == null) {
+                    return false;
+                }
+
+                Native.c4query_free(_c4Query);
+                _c4Query = query;
+                return true;
+            });
         }
 
         private Dictionary<string, int> CreateColumnNames()
@@ -251,13 +269,13 @@ namespace Couchbase.Lite.Internal.Query
             var options = C4QueryOptions.Default;
             var paramJson = ((QueryParameters) Parameters).ToString();
 
-            var e = (C4QueryEnumerator*) LiteCoreBridge.Check(err =>
+            var e = (C4QueryEnumerator*) FromImpl.ThreadSafety.DoLockedBridge(err =>
             {
                 var localOpts = options;
                 return Native.c4query_run(_c4Query, &localOpts, paramJson, err);
             });
 
-            return new QueryResultSet(this, e, _columnNames);
+            return new QueryResultSet(this, FromImpl.ThreadSafety, e, _columnNames);
         }
 
         public ILiveQuery ToLive()
