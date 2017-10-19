@@ -141,6 +141,11 @@ namespace Couchbase.Lite.Replicator
 
         protected override HttpRequestMessage ProcessRequest(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            lock (_locker) {
+                request.Headers.Remove("Cookie");
+                request.Headers.Add("Cookie", _cookieStore.GetCookieHeader(request.RequestUri));
+            }
+
             if(request.Content != null && !(request.Content is CompressedContent)) {
                 // This helps work around .NET 3.5's tendency to read from filestreams
                 // multiple times (the second time will be zero length since the filestream
