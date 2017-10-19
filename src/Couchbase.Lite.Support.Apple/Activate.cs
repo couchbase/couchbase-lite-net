@@ -22,6 +22,7 @@ using System;
 using System.IO;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Util;
 using Foundation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -33,11 +34,18 @@ namespace Couchbase.Lite.Support
 	/// </summary>
 	public static class iOS
 	{
+        
+        private static AtomicBool _Activated;
+        
 		/// <summary>
 		/// Activates the Xamarin iOS specific support classes
 		/// </summary>
 		public static void Activate()
 		{
+            if(_Activated.Set(true)) {
+                return;
+            }
+            
 			Console.WriteLine("Loading support items");
 			Service.RegisterServices(collection =>
 			{

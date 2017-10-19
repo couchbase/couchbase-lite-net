@@ -24,6 +24,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Util;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite.Support
@@ -33,6 +34,12 @@ namespace Couchbase.Lite.Support
     /// </summary>
     public static class NetDesktop
     {
+        #region Variables
+
+        private static AtomicBool _Activated;
+
+        #endregion
+
         #region Public Methods
 
         /// <summary>
@@ -40,6 +47,10 @@ namespace Couchbase.Lite.Support
         /// </summary>
         public static void Activate()
         {
+            if(_Activated.Set(true)) {
+                return;
+            }
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 var codeBase = AppContext.BaseDirectory;
                 if (!codeBase.EndsWith("\\")) {
@@ -82,7 +93,7 @@ namespace Couchbase.Lite.Support
             });
         }
 
-		/// <summary>
+        /// <summary>
 		/// Turns on text based logging for debugging purposes.  The logs will be written in text
 		/// form to a folder called "Logs" under <c>AppContext.BaseDirectory</c>
 		/// </summary>

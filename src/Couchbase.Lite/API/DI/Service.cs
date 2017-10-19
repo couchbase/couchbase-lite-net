@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 using System;
+using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -30,6 +31,30 @@ namespace Couchbase.Lite.DI
     public static class Service
     {
         #region Constants
+
+        public static bool IsComplete
+        {
+            get {
+                if(_Collection != null) {
+                    var remaining = _RequiredTypes.Intersect(_Collection.Select(x => x.ServiceType));
+                    return remaining.Count() == _RequiredTypes.Length;
+                }
+
+                foreach(var type in _RequiredTypes) {
+                    if(_Provider.GetService(type) == null) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether or not the services for this program have been finalized.  Further 
+        /// attemps to add services will throw exceptions
+        /// </summary>
+        public static bool IsFinalized => _Collection == null;
 
         /// <summary>
         /// Gets the service provider that is used to resolve dependencies in the library
@@ -47,6 +72,11 @@ namespace Couchbase.Lite.DI
                 return _Provider;
             }
         }
+
+        private static readonly Type[] _RequiredTypes = new[] {
+            typeof(IDefaultDirectoryResolver),
+            typeof(ISslStreamFactory)
+        };
 
         #endregion
 
@@ -67,7 +97,7 @@ namespace Couchbase.Lite.DI
         /// <param name="config">The action to configure the service collection</param>
         public static void RegisterServices(Action<IServiceCollection> config)
         {
-            if (_Collection == null) {
+            if (IsFinalized) {
                 throw new InvalidOperationException("Cannot register services after the provider has been created");
             }
 
@@ -79,6 +109,8 @@ namespace Couchbase.Lite.DI
 
     internal static class ServiceProviderExtensions
     {
+        #region Public Methods
+
         public static T TryGetRequiredService<T>(this IServiceProvider provider)
         {
             try {
@@ -92,5 +124,7 @@ namespace Couchbase.Lite.DI
                     "class.", e);
             }
         }
+
+        #endregion
     }
 }

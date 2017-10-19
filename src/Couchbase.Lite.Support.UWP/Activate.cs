@@ -20,6 +20,7 @@
 // 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Util;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -30,6 +31,12 @@ namespace Couchbase.Lite.Support
     /// </summary>
     public static class UWP
     {
+        #region Variables
+        
+        private static AtomicBool _Activated;
+        
+        #endregion
+        
         #region Public Methods
 
         /// <summary>
@@ -37,6 +44,10 @@ namespace Couchbase.Lite.Support
         /// </summary>
         public static void Activate()
         {
+            if(_Activated.Set(true)) {
+                return;
+            }
+            
             Service.RegisterServices(collection =>
             {
                 collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
