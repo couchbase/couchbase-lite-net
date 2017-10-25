@@ -51,7 +51,7 @@ namespace Couchbase.Lite
         private static readonly DocumentObserverCallback _DocObserverCallback;
 
         private static readonly C4DatabaseConfig DBConfig = new C4DatabaseConfig {
-            flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact | C4DatabaseFlags.Bundled | C4DatabaseFlags.SharedKeys,
+            flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact | C4DatabaseFlags.SharedKeys,
             storageEngine = "SQLite",
             versioning = C4DocumentVersioning.RevisionTrees
         };
@@ -249,11 +249,7 @@ namespace Couchbase.Lite
             }
 
             var path = DatabasePath(name, directory);
-            LiteCoreBridge.Check(err =>
-            {
-                var localConfig = DBConfig;
-                return Native.c4db_deleteAtPath(path, &localConfig, err) || err->code == 0;
-            });
+            LiteCoreBridge.Check(err => Native.c4db_deleteAtPath(path, err) || err->code == 0);
         }
 
         /// <summary>
