@@ -32,6 +32,10 @@ namespace Couchbase.Lite.DI
     {
         #region Constants
 
+        /// <summary>
+        /// Gets whether or not the services for this program are complete (i.e. all of the required
+        /// interfaces have implementations registered)
+        /// </summary>
         public static bool IsComplete
         {
             get {

@@ -1,5 +1,5 @@
 ﻿// 
-// ISelectRouter.cs
+// NullThreadSafety.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,22 +18,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+using System;
 
-namespace Couchbase.Lite.Query
+namespace Couchbase.Lite.Support
 {
-    /// <summary>
-    /// An interface representing an IExpression that can be routed to a SELECT
-    /// portion of a query
-    /// </summary>
-    public interface ISelectRouter
+    internal sealed class NullThreadSafety : IThreadSafety
     {
-        #region Public Methods
+        #region Constants
 
-        /// <summary>
-        /// Routes this IExpression to a SELECT portion of a query
-        /// </summary>
-        /// <returns>The next SELECT portion of the query</returns>
-        ISelect Select();
+        public static readonly NullThreadSafety Instance = new NullThreadSafety();
+
+        #endregion
+
+        #region Constructors
+
+        private NullThreadSafety()
+        {
+            
+        }
+
+        #endregion
+
+        #region IThreadSafety
+
+        public void DoLocked(Action a) => a();
+
+        public T DoLocked<T>(Func<T> f) => f();
 
         #endregion
     }

@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
@@ -39,7 +40,7 @@ namespace Couchbase.Lite.Sync
     /// (i.e. pusher and puller are no longer separate) between a database and a URL
     /// or a database and another database on the same filesystem.
     /// </summary>
-    public sealed unsafe class Replicator
+    public sealed unsafe class Replicator : IDisposable
     {
         #region Constants
 
@@ -58,8 +59,8 @@ namespace Couchbase.Lite.Sync
 
         private readonly ReplicatorConfiguration _config;
         private readonly ThreadSafety _selfThreadSafety = new ThreadSafety();
-        private ThreadSafety _databaseThreadSafety;
-
+        private readonly ThreadSafety _databaseThreadSafety;
+        
         /// <summary>
         /// An event that is fired when the replicator changes its status for reasons like
         /// processing more data or changing its condition
@@ -73,7 +74,6 @@ namespace Couchbase.Lite.Sync
         private C4Replicator* _repl;
         private IDictionary<string, object> _responseHeaders;
         private int _retryCount;
-        private ReplicationStatus _status;
         private IReachability _reachability;
         private readonly SerialQueue _dispatchQueue = new SerialQueue();
 
@@ -91,19 +91,15 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public Exception LastError
         {
-            get => _selfThreadSafety.DoLocked(() => _lastError);
-            set => _selfThreadSafety.DoLocked(() => _lastError = value);
+            get => _lastError;
+            set => Interlocked.Exchange(ref _lastError, value);
         }
 
 
         /// <summary>
         /// Gets the current status of the <see cref="Replicator"/>
         /// </summary>
-        public ReplicationStatus Status
-        {
-            get => _selfThreadSafety.DoLocked(() => _status);
-            private set => _selfThreadSafety.DoLocked(() => _status = value);
-        }
+        public ReplicationStatus Status { get; set; }
 
         #endregion
 
@@ -121,6 +117,7 @@ namespace Couchbase.Lite.Sync
         public Replicator(ReplicatorConfiguration config)
         {
             _config = ReplicatorConfiguration.Clone(config);
+            _databaseThreadSafety = _config.Database.ThreadSafety;
         }
 
         /// <summary>
@@ -221,11 +218,11 @@ namespace Couchbase.Lite.Sync
         private void Dispose(bool finalizing)
         {
             if (!finalizing) {
-                _reachability.Stop();
+                _reachability?.Stop();
+                _nativeParams?.Dispose();
             }
 
             Native.c4repl_free(_repl);
-			_nativeParams?.Dispose();
         }
 
         private void OnDocError(C4Error error, bool pushing, string docID, bool transient)
@@ -351,7 +348,7 @@ namespace Couchbase.Lite.Sync
 
 
             var err = new C4Error();
-            _config.Database.ThreadSafety.DoLocked(() =>
+            _databaseThreadSafety.DoLocked(() =>
             {
                 C4Error localErr;
                 _repl = Native.c4repl_new(_config.Database.c4db, addr, dbNameStr, otherDB != null ? otherDB.c4db : null,

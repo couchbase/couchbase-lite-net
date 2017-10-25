@@ -23,6 +23,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -30,7 +31,7 @@ namespace Couchbase.Lite.Internal.Query
     {
         #region Constants
 
-        private static readonly string[] MissingValue = new[] {"MISSING"};
+        protected static readonly string[] MissingValue = { "MISSING" };
 
         #endregion
 
@@ -103,12 +104,9 @@ namespace Couchbase.Lite.Internal.Query
         private QueryExpression GetOperator(BinaryOpType type, object expression)
         {
             var lhs = this;
-            var rhs = expression as QueryExpression;
-            if (rhs == null) {
-                rhs = new QueryTypeExpression {
-                    ConstantValue = expression
-                };
-            }
+            var rhs = expression as QueryExpression ?? new QueryTypeExpression {
+                ConstantValue = expression
+            };
 
             return new QueryBinaryExpression(lhs, rhs, type);
         }
@@ -162,17 +160,9 @@ namespace Couchbase.Lite.Internal.Query
 
         public IExpression Collate(ICollation collation)
         {
-            if (!(collation is QueryCollation col)) {
-                throw new NotSupportedException("Custom ICollation not supported");
-            }
-
+            var col = Misc.TryCast<ICollation, QueryCollation>(collation);
             col.SetOperand(this);
             return col;
-        }
-
-        public IExpression Concat(object expression)
-        {
-            throw new NotSupportedException();
         }
 
         public IExpression Divide(object expression)

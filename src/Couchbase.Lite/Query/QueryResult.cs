@@ -35,6 +35,7 @@ namespace Couchbase.Lite.Internal.Query
 
         private FLArrayIterator _columns;
         private readonly QueryResultSet _rs;
+        private readonly MContext _context;
 
         #endregion
 
@@ -45,8 +46,11 @@ namespace Couchbase.Lite.Internal.Query
         public ReadOnlyFragment this[int index]
         {
             get {
-                var value = index < Count ? FleeceValueToObject(index) : null;
-                return new ReadOnlyFragment(value);
+                if (index >= Count) {
+                    return ReadOnlyFragment.Null;
+                }
+
+                return new ReadOnlyFragment(this, index);
             }
         }
 
@@ -67,10 +71,11 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal QueryResult(QueryResultSet rs, C4QueryEnumerator* e)
+        internal QueryResult(QueryResultSet rs, C4QueryEnumerator* e, MContext context)
         {
             _rs = rs;
             _columns = e->columns;
+            _context = context;
         }
 
         #endregion
@@ -80,11 +85,12 @@ namespace Couchbase.Lite.Internal.Query
         private object FleeceValueToObject(int index)
         {
             var value = FLValueAtIndex(index);
-            if (value != null) {
-                return FLValueConverter.ToCouchbaseObject(value, Database, true);
+            if (value == null) {
+                return null;
             }
 
-            return null;
+            var root = new MRoot(_context, value, false);
+            return root.AsObject();
         }
 
         private FLValue* FLValueAtIndex(int index)
@@ -141,12 +147,12 @@ namespace Couchbase.Lite.Internal.Query
 
         public IReadOnlyArray GetArray(int index)
         {
-            return GetObject(index) as IReadOnlyArray;
+            return FleeceValueToObject(index) as IReadOnlyArray;
         }
 
         public Blob GetBlob(int index)
         {
-            return GetObject(index) as Blob;  
+            return FleeceValueToObject(index) as Blob;  
         }
 
         public bool GetBoolean(int index)
@@ -161,7 +167,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IReadOnlyDictionary GetDictionary(int index)
         {
-            return GetObject(index) as IReadOnlyDictionary;
+            return FleeceValueToObject(index) as IReadOnlyDictionary;
         }
 
         public double GetDouble(int index)
@@ -186,7 +192,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public object GetObject(int index)
         {
-            return FLValueConverter.ToCouchbaseObject(FLValueAtIndex(index), Database, false);
+            return FleeceValueToObject(index);
         }
 
         public string GetString(int index)

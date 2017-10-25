@@ -42,36 +42,26 @@ namespace Couchbase.Lite
 
         //private const string Tag = nameof(Document);
 
-        #endregion
-
-        #region Variables
-
-        private DictionaryObject _dict;
+        private static readonly Dictionary<Guid, Document> _NativeCacheMap = new Dictionary<Guid, Document>();
 
         #endregion
 
         #region Properties
 
         /// <inheritdoc />
-        public override int Count => _dict.Count;
+        public new Fragment this[string key] => Dict[key];
 
-        /// <inheritdoc />
-        public new Fragment this[string key] => _dict[key];
-
-
-        internal override bool IsEmpty => _dict.IsEmpty;
+        internal static IReadOnlyDictionary<Guid, Document> NativeCacheMap => _NativeCacheMap;
 
         internal override uint Generation => base.Generation + Convert.ToUInt32(Changed);
-        internal override C4Document* c4Doc
-        {
-            get => base.c4Doc;
-            set {
-                base.c4Doc = value;
-                _dict = new DictionaryObject(Data);
-            }
-        }
+        
+        internal override bool IsMutable => true;
 
-        private bool Changed => _dict?.HasChanges ?? false;
+        private bool Changed => (_dict as DictionaryObject)?.HasChanges ?? (_dict as InMemoryDictionary)?.HasChanges ?? false;
+
+        private bool IsEmpty => Dict.Count == 0;
+
+        private IDictionaryObject Dict => _dict as IDictionaryObject;
 
         #endregion
 
@@ -122,10 +112,10 @@ namespace Couchbase.Lite
 
         }
 
-        internal Document(Database database, string documentID, C4Document* c4Doc, FleeceDictionary data, ThreadSafety threadSafety)
+        private Document(Database database, string documentID, C4Document* c4Doc, FLDict* data, ThreadSafety threadSafety)
             : base(database, documentID, c4Doc, data, threadSafety)
         {
-            _dict = new DictionaryObject(Data);
+            
         }
 
         #endregion
@@ -186,8 +176,8 @@ namespace Couchbase.Lite
                     resolved = current;
                 } else {
                     // Call the conflict resolver:
-                    using (var baseDoc = new ReadOnlyDocument(database, Id, base.c4Doc, Data, DatabaseThreadSafety, false)) {
-                        var conflict = new Conflict(this, current, base.c4Doc != null ? baseDoc : null);
+                    using (var baseDoc = new ReadOnlyDocument(database, Id, c4Doc, Data, DatabaseThreadSafety, false)) {
+                        var conflict = new Conflict(this, current, c4Doc != null ? baseDoc : null);
                         resolved = resolver.Resolve(conflict);
                         if (resolved == null) {
                             throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
@@ -220,7 +210,7 @@ namespace Couchbase.Lite
                 SaveInto(&tmp, deletion);
                 if (tmp == null) {
                     Merge(resolver, deletion);
-                    if (!_dict.HasChanges) {
+                    if (!Changed) {
                         return;
                     }
 
@@ -257,13 +247,14 @@ namespace Couchbase.Lite
 
             var body = new FLSliceResult();
             if (!deletion && !IsEmpty) {
-                body = Database.JsonSerializer.Serialize(_dict);
-                var root = (FLDict*)NativeRaw.FLValue_FromTrustedData(body);
-                var sharedKeys = default(FLSharedKeys*);
+
+                var encoded = Encode();
+                body.buf = encoded.buf;
+                body.size = encoded.size;
+                var root = NativeRaw.FLValue_FromTrustedData((FLSlice)body);
                 DatabaseThreadSafety.DoLocked(() =>
                 {
-                    sharedKeys = Native.c4db_getFLSharedKeys(Database.c4db);
-                    if (Native.c4doc_dictContainsBlobs(root, sharedKeys)) {
+                    if (Native.c4doc_dictContainsBlobs((FLDict *)root, Database.SharedStrings.SharedKeys)) {
                         revFlags |= C4RevisionFlags.HasAttachments;
                     }
                 });
@@ -286,7 +277,7 @@ namespace Couchbase.Lite
                         {
                             *outDoc = (C4Document*)NativeHandler.Create()
                                 .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                    err => NativeRaw.c4doc_update(rawDoc, body, revFlags, err));
+                                    err => NativeRaw.c4doc_update(rawDoc, (C4Slice)body, revFlags, err));
                         });
                     });
                 } else {
@@ -295,7 +286,7 @@ namespace Couchbase.Lite
                         using (var docID_ = new C4String(Id)) {
                             *outDoc = (C4Document*)NativeHandler.Create()
                                 .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                    err => NativeRaw.c4doc_create(c4Db, docID_.AsC4Slice(), body, revFlags, err));
+                                    err => NativeRaw.c4doc_create(c4Db, docID_.AsC4Slice(), (C4Slice)body, revFlags, err));
                         }
                     });
                 }
@@ -308,83 +299,30 @@ namespace Couchbase.Lite
 
         #region Overrides
 
-        internal override byte[] Encode()
+        internal override FLSlice Encode()
         {
-            using (var raw = Database.JsonSerializer.Serialize(_dict)) {
-                return ((C4Slice) raw).ToArrayFast();
+            var encoder = default(FLEncoder*);
+            DatabaseThreadSafety.DoLocked(() => encoder = Native.c4db_getSharedFleeceEncoder(c4Db));
+            var guid = Guid.NewGuid();
+            _NativeCacheMap[guid] = this;
+            Native.FLEncoder_SetExtraInfo(encoder, &guid);
+
+            try {
+                _dict.FLEncode(encoder);
+            } catch (Exception) {
+                Native.FLEncoder_Reset(encoder);
+                throw;
+            } finally {
+                _NativeCacheMap.Remove(guid);
             }
-        }
 
-        /// <inheritdoc />
-        public override bool Contains(string key)
-        {
-            return _dict.Contains(key);
-        }
+            FLError err;
+            var body = NativeRaw.FLEncoder_Finish(encoder, &err);
+            if (body.buf == null) {
+                throw new LiteCoreException(new C4Error(err));
+            }
 
-        /// <inheritdoc />
-        public override Blob GetBlob(string key)
-        {
-            return _dict.GetBlob(key);
-        }
-
-        /// <inheritdoc />
-        public override bool GetBoolean(string key)
-        {
-            return _dict.GetBoolean(key);
-        }
-
-        /// <inheritdoc />
-        public override DateTimeOffset GetDate(string key)
-        {
-            return _dict.GetDate(key);
-        }
-
-        /// <inheritdoc />
-        public override double GetDouble(string key)
-        {
-            return _dict.GetDouble(key);
-        }
-
-        /// <inheritdoc />
-        public override IEnumerator<KeyValuePair<string, object>> GetEnumerator()
-        {
-            return _dict.GetEnumerator();
-        }
-
-        /// <inheritdoc />
-        public override float GetFloat(string key)
-        {
-            return _dict.GetFloat(key);
-        }
-
-        /// <inheritdoc />
-        public override int GetInt(string key)
-        {
-            return _dict.GetInt(key);
-        }
-
-        /// <inheritdoc />
-        public override long GetLong(string key)
-        {
-            return _dict.GetLong(key);
-        }
-
-        /// <inheritdoc />
-        public override object GetObject(string key)
-        {
-            return _dict.GetObject(key);
-        }
-
-        /// <inheritdoc />
-        public override string GetString(string key)
-        {
-            return _dict.GetString(key);
-        }
-
-        /// <inheritdoc />
-        public override IDictionary<string, object> ToDictionary()
-        {
-            return _dict.ToDictionary();
+            return (FLSlice)body;
         }
 
         /// <inheritdoc />
@@ -401,107 +339,106 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public new IArray GetArray(string key)
         {
-            return _dict.GetArray(key);
+            return Dict.GetArray(key);
         }
 
         /// <inheritdoc />
         public new IDictionaryObject GetDictionary(string key)
         {
-            return _dict.GetDictionary(key);
+            return Dict.GetDictionary(key);
         }
 
         /// <inheritdoc />
         public IDictionaryObject Remove(string key)
         {
-            _dict.Remove(key);
+            Dict.Remove(key);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, object value)
         {
-            _dict.Set(key, value);
+            Dict.Set(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(IDictionary<string, object> dictionary)
         {
-            _dict.Set(dictionary);
+            Dict.Set(dictionary);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, string value)
         {
-            _dict.Set(key, value);
+            Dict.Set(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, int value)
         {
-            _dict.Set(key, value);
+            Dict.Set(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, long value)
         {
-            _dict.Set(key, value);
+            Dict.Set(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, float value)
         {
-            _dict.Set(key, value);
+            Dict.Set(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, double value)
         {
-            _dict.Set(key, value);
+            Dict.Set(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, bool value)
         {
-            _dict.Set(key, value);
+            Dict.Set(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, Blob value)
         {
-            _dict.Set(key, value);
+            Dict.Set(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, DateTimeOffset value)
         {
-            _dict.Set(key, value);
+            Dict.Set(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, ArrayObject value)
         {
-            _dict.Set(key, value);
+            Dict.Set(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, DictionaryObject value)
         {
-            _dict.Set(key, value);
+            Dict.Set(key, value);
             return this;
         }
 
         #endregion
-
     }
 }

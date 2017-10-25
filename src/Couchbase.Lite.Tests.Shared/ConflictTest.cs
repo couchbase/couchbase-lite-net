@@ -186,8 +186,10 @@ namespace Test
                     save = true
                 };
 
-                var body = Db.JsonSerializer.Serialize(props);
-                put.body = body;
+                var enc = Native.c4db_getSharedFleeceEncoder(Db.c4db);
+                props.FLEncode(enc);
+                var body = NativeRaw.FLEncoder_Finish(enc, null);
+                put.body = (C4Slice)body;
 
                 LiteCoreBridge.Check(err =>
                 {

@@ -25,7 +25,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Lite.DI;
-using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Logging;
@@ -79,9 +78,12 @@ namespace Couchbase.Lite
         /// </summary>
         public event EventHandler<DatabaseChangedEventArgs> Changed;
 
+        #if false
         private IJsonSerializer _jsonSerializer;
+        #endif
+
         private DatabaseObserver _obs;
-        private long p_c4db;
+        private C4Database* _c4db;
 
         #endregion
 
@@ -144,25 +146,14 @@ namespace Couchbase.Lite
             }
         }
 
-        internal bool InTransaction => ThreadSafety.DoLocked(() => _c4db != null && Native.c4db_isInTransaction(_c4db));
-
-        internal IJsonSerializer JsonSerializer
-        {
-            get => _jsonSerializer ?? (_jsonSerializer = Serializer.CreateDefaultFor(this));
-            set => _jsonSerializer = value;
-        }
 
         internal IDictionary<Uri, Replicator> Replications { get; } = new Dictionary<Uri, Replicator>();
 
         internal SharedStringCache SharedStrings => ThreadSafety.DoLocked(() => _sharedStrings);
 
         internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
-
-        private C4Database *_c4db
-        {
-            get => (C4Database *)p_c4db;
-            set => p_c4db = (long)value;
-        }
+        
+        private bool InTransaction => ThreadSafety.DoLocked(() => _c4db != null && Native.c4db_isInTransaction(_c4db));
 
         #endregion
 
@@ -174,6 +165,7 @@ namespace Couchbase.Lite
             _DocObserverCallback = DocObserverCallback;
 			Log.To.Couchbase.I("Startup", HTTPLogic.UserAgent);
             Log.To.Couchbase.I("Startup", Native.c4_getBuildInfo());
+            FLSliceExtensions.RegisterFLEncodeExtension(FLValueConverter.FLEncode);
         }
 
         /// <summary>
@@ -445,8 +437,7 @@ namespace Couchbase.Lite
         /// <returns>The list of created index names</returns>
         public IList<string> GetIndexes()
         {
-            FLArray* array = null;
-            var retVal = new List<string>();
+            object retVal = null;
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -459,21 +450,15 @@ namespace Couchbase.Lite
 
                 var val = NativeRaw.FLValue_FromTrustedData(new FLSlice(result.buf, result.size));
                 if (val == null) {
+                    Native.c4slice_free(result);
                     throw new LiteCoreException(new C4Error(C4ErrorCode.CorruptIndexData));
                 }
 
-                array = Native.FLValue_AsArray(val);
-                if (array == null) {
-                    throw new LiteCoreException(new C4Error(C4ErrorCode.CorruptIndexData));
-                }
+                retVal = FLValueConverter.ToCouchbaseObject(val, this, true, typeof(string));
+                Native.c4slice_free(result);
             });
 
-            var flArray = new FleeceArray(array, this);
-            foreach (var obj in flArray) {
-                retVal.Add(obj as string);
-            }
-
-            return retVal;
+            return retVal as IList<string> ?? new List<string>();
         }
 
         /// <summary>
@@ -640,7 +625,15 @@ namespace Couchbase.Lite
                             losingRevID = otherDoc.RevID;
                             if (resolved != doc) {
                                 resolved.Database = this;
-                                mergedBody = resolved.Encode();
+                                var encoded = resolved.Encode();
+                                mergedBody = ((C4Slice) encoded).ToArrayFast();
+                                if (resolved is Document) {
+                                    // HACK: Find a better way to do this
+                                    Native.FLSliceResult_Free(new FLSliceResult {
+                                        buf = encoded.buf,
+                                        size = encoded.size
+                                    });
+                                }
                             }
                         }
 

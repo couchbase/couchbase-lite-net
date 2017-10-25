@@ -21,58 +21,16 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
-using System.Reflection;
-
+using Couchbase.Lite.Internal.Serialization;
+using LiteCore.Interop;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Internal.Doc
 {
     internal static class DataOps
     {
-        #region Constants
-
-        private static readonly TypeInfo[] ValidTypes = {
-            typeof(string).GetTypeInfo(),
-            typeof(DateTimeOffset).GetTypeInfo(),
-            typeof(Blob).GetTypeInfo(),
-            typeof(IReadOnlyArray).GetTypeInfo(),
-            typeof(IReadOnlyDictionary).GetTypeInfo(),
-            typeof(IDictionary<string,object>).GetTypeInfo(),
-            typeof(IList<>).GetTypeInfo()
-        };
-
-        #endregion
-
         #region Internal Methods
-
-        internal static DictionaryObject ConvertDictionary(IDictionary<string, object> dictionary)
-        {
-            var subdocument = new DictionaryObject();
-            subdocument.Set(dictionary);
-            return subdocument;
-        }
-
-        internal static ArrayObject ConvertList(IList list)
-        {
-            var array = new ArrayObject();
-            array.Set(list);
-            return array;
-        }
-
-        internal static ArrayObject ConvertROArray(ReadOnlyArray readOnlyArray)
-        {
-            var array = new ArrayObject(readOnlyArray.Data);
-            return array;
-        }
-
-        internal static DictionaryObject ConvertRODictionary(ReadOnlyDictionary readOnlySubdoc)
-        {
-            var subdocument = new DictionaryObject(readOnlySubdoc.Data);
-            return subdocument;
-        }
 
         internal static bool ConvertToBoolean(object value)
         {
@@ -121,6 +79,7 @@ namespace Couchbase.Lite.Internal.Doc
                     return 0.0;
             }
         }
+
         internal static float ConvertToFloat(object value)
         {
             // NOTE: Cannot use ConvertToDecimal because float has a greater range
@@ -144,17 +103,17 @@ namespace Couchbase.Lite.Internal.Doc
             return (long)Math.Truncate(ConvertToDecimal(value));
         }
 
-        internal static object ConvertValue(object value)
+        internal static object ToCouchbaseObject(object value)
         {
             switch (value) {
                 case null:
                     return null;
                 case DateTimeOffset dto:
                     return dto.ToString("o");
-                case ReadOnlyDictionary rosubdoc when !(rosubdoc is DictionaryObject):
-                    return ConvertRODictionary(rosubdoc);
+                case ReadOnlyDictionary rodic when !(rodic is DictionaryObject):
+                    return rodic.ToMutable();
                 case ReadOnlyArray roarr when !(roarr is ArrayObject):
-                    return ConvertROArray(roarr);
+                    return roarr.ToMutable();
                 case JObject jobj:
                     return ConvertDictionary(jobj.ToObject<IDictionary<string, object>>());
                 case JArray jarr:
@@ -168,9 +127,58 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
+        internal static object ToNetObject(object value)
+        {
+            switch (value) {
+                case null:
+                    return null;
+                case InMemoryDictionary inMem:
+                    return inMem.ToDictionary();
+                case IReadOnlyDictionary roDic:
+                    return roDic.ToDictionary();
+                case IReadOnlyArray roarr:
+                    return roarr.ToList();
+                default:
+                    return value;
+            }
+        }
+
+        internal static unsafe bool ValueWouldChange(object newValue, MValue oldValue, MCollection container)
+        {
+            // As a simplification we assume that array and fict values are always different, to avoid
+            // a possibly expensive comparison
+            var oldType = Native.FLValue_GetType(oldValue.Value);
+            if (oldType == FLValueType.Undefined || oldType == FLValueType.Dict || oldType == FLValueType.Array) {
+                return true;
+            }
+
+            switch (newValue) {
+                case ReadOnlyArray arr:
+                case ReadOnlyDictionary dict:
+                    return true;
+                default:
+                    var oldVal = oldValue.AsObject(container);
+                    return !newValue?.Equals(oldVal) ?? oldVal != null;
+            }
+        }
+
         #endregion
 
         #region Private Methods
+
+        private static DictionaryObject ConvertDictionary(IDictionary<string, object> dictionary)
+        {
+            var subdocument = new DictionaryObject();
+            subdocument.Set(dictionary);
+            return subdocument;
+        }
+
+        private static ArrayObject ConvertList(IList list)
+        {
+            var array = new ArrayObject();
+            array.Set(list);
+            return array;
+        }
 
         private static decimal ConvertToDecimal(object value)
         {

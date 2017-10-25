@@ -37,7 +37,7 @@ namespace Couchbase.Lite
     public sealed unsafe class Blob
     {
         #region Constants
-        
+
         private const uint MaxCachedContentLength = 8 * 1024;
         private const int ReadBufferSize = 8 * 1024;
         private const string Tag = nameof(Blob);
@@ -252,7 +252,42 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        internal void Install(Database db)
+        internal void FLEncode(FLEncoder* enc)
+        {
+            var extra = Native.FLEncoder_GetExtraInfo(enc);
+            if (extra != null) {
+                var guid = *(Guid*) extra;
+                var document = Document.NativeCacheMap[guid];
+                var database = document.Database;
+                try {
+                    Install(database);
+                } catch (Exception) {
+                    Log.To.Database.W(Tag, "Error installing blob to database, throwing...");
+                    throw;
+                }
+            } else {
+                Log.To.Database.W(Tag, "Couldn't find database for blob, not installing!");
+            }
+
+            var dict = JsonRepresentation;
+            dict.FLEncode(enc);
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private bool GetBlobStore(C4BlobStore** outBlobStore, C4BlobKey* outKey)
+        {
+            try {
+                *outBlobStore = _db.BlobStore;
+                return Digest != null && Native.c4blob_keyFromString(Digest, outKey);
+            } catch(InvalidOperationException) {
+                return false;
+            }
+        }
+
+        private void Install(Database db)
         {
             if(db == null) {
                 throw new ArgumentNullException(nameof(db));
@@ -298,30 +333,7 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region Private Methods
-
-        private bool GetBlobStore(C4BlobStore** outBlobStore, C4BlobKey* outKey)
-        {
-            try {
-                *outBlobStore = _db.BlobStore;
-                return Digest != null && Native.c4blob_keyFromString(Digest, outKey);
-            } catch(InvalidOperationException) {
-                return false;
-            }
-        }
-
-        #endregion
-
         #region Overrides
-
-        /// <summary>
-        /// Returns a string that represents the current object.
-        /// </summary>
-        /// <returns>A string that represents the current object.</returns>
-        public override string ToString()
-        {
-            return $"Blob[{ContentType}; {(Length + 512) / 1024} KB]";
-        }
 
         /// <summary>
         /// Determines whether the specified object is equal to the current object.
@@ -362,6 +374,15 @@ namespace Couchbase.Lite
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Returns a string that represents the current object.
+        /// </summary>
+        /// <returns>A string that represents the current object.</returns>
+        public override string ToString()
+        {
+            return $"Blob[{ContentType}; {(Length + 512) / 1024} KB]";
         }
 
         #endregion

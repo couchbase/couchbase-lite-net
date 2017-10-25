@@ -26,14 +26,9 @@ namespace Couchbase.Lite
     /// <summary>
     /// An interface representing a readonly key-value collection with type-safe accessors
     /// </summary>
-    public interface IReadOnlyDictionary : IReadOnlyDictionaryFragment, IEnumerable<KeyValuePair<string, object>>
+    public interface IReadOnlyDictionary : IReadOnlyDictionaryFragment, IReadOnlyCollection<KeyValuePair<string, object>>
     {
         #region Properties
-
-        /// <summary>
-        /// Gets the number of entries in the dictionary
-        /// </summary>
-        int Count { get; }
 
         /// <summary>
         /// Gets all the keys held by this dictionary

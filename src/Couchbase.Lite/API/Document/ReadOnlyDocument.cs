@@ -19,12 +19,13 @@
 // limitations under the License.
 // 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
-using LiteCore;
+using Couchbase.Lite.Util;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite
@@ -32,34 +33,26 @@ namespace Couchbase.Lite
     /// <summary>
     /// A class representing a document which cannot be altered
     /// </summary>
-    public unsafe class ReadOnlyDocument : ReadOnlyDictionary, IDisposable
+    public unsafe class ReadOnlyDocument : IReadOnlyDictionary, IDisposable
     {
         #region Variables
 
-        private readonly bool _owner;
-        private C4Document* _c4Doc;
         internal readonly ThreadSafety _selfThreadSafety = new ThreadSafety();
+
+        private readonly bool _owner;
+        protected IReadOnlyDictionary _dict;
+        private C4Document* _c4Doc;
         private Database _database;
+        private MRoot _root;
 
         #endregion
 
         #region Properties
 
         /// <summary>
-        /// Gets this document's unique ID
+        /// Gets the number of top level entries in this document
         /// </summary>
-        public string Id { get; }
-
-        /// <summary>
-        /// Gets whether or not this document is deleted
-        /// </summary>
-        public bool IsDeleted => _selfThreadSafety.DoLocked(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.DocDeleted));
-
-        /// <summary>
-        /// Gets the sequence of this document (a unique incrementing number
-        /// identifying its status in a database)
-        /// </summary>
-        public ulong Sequence => _selfThreadSafety.DoLocked(() => _c4Doc != null ? _c4Doc->sequence : 0UL);
+        public int Count => _dict?.Count ?? 0;
 
         /// <summary>
         /// Gets the database that this document belongs to, if any
@@ -73,6 +66,33 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <summary>
+        /// Gets this document's unique ID
+        /// </summary>
+        public string Id { get; }
+
+        /// <summary>
+        /// Gets whether or not this document is deleted
+        /// </summary>
+        public bool IsDeleted => _selfThreadSafety.DoLocked(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.DocDeleted));
+
+        /// <summary>
+        /// Accesses JSON paths in the document to get their values
+        /// </summary>
+        /// <param name="key">The key to create the fragment from</param>
+        public ReadOnlyFragment this[string key] => _dict[key];
+
+        /// <summary>
+        /// Gets all the keys present in this document
+        /// </summary>
+        public ICollection<string> Keys => _dict.Keys;
+
+        /// <summary>
+        /// Gets the sequence of this document (a unique incrementing number
+        /// identifying its status in a database)
+        /// </summary>
+        public ulong Sequence => _selfThreadSafety.DoLocked(() => _c4Doc != null ? _c4Doc->sequence : 0UL);
+
         internal C4Database* c4Db
         {
             get {
@@ -81,54 +101,58 @@ namespace Couchbase.Lite
             }
         }
 
-        internal virtual C4Document* c4Doc
+        internal C4Document* c4Doc
         {
             get => _c4Doc;
             set {
                 _c4Doc = value;
+                Data = null;
+
                 if (value != null) {
-                    FLDict* root = null;
                     var body = value->selectedRev.body;
                     if (body.size > 0) {
-                        root = Native.FLValue_AsDict(NativeRaw.FLValue_FromTrustedData(new FLSlice(body.buf, body.size)));
+                        Data = Native.FLValue_AsDict(NativeRaw.FLValue_FromTrustedData(new FLSlice(body.buf, body.size)));
                     }
+                }
 
-                    Data = new FleeceDictionary(root, Database);
-                }
-                else {
-                    Data = null;
-                }
+                UpdateDictionary();
             }
         }
+
+        internal FLDict* Data { get; private set; }
+
+        internal ThreadSafety DatabaseThreadSafety { get; private set; }
+
+        internal IConflictResolver EffectiveConflictResolver => Database?.Config.ConflictResolver ??
+                                                                        new DefaultConflictResolver();
 
         internal bool Exists => _selfThreadSafety.DoLocked(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.DocExists));
 
         internal virtual uint Generation => _selfThreadSafety.DoLocked(() => _c4Doc != null ? NativeRaw.c4rev_getGeneration(_c4Doc->revID) : 0U);
 
+        internal virtual bool IsMutable => false;
+
         internal string RevID => _c4Doc != null ? _c4Doc->selectedRev.revID.CreateString() : null;
-
-        internal IConflictResolver EffectiveConflictResolver => Database?.Config.ConflictResolver ??
-                                                                        new DefaultConflictResolver();
-
-        internal ThreadSafety DatabaseThreadSafety { get; private set; }
 
         #endregion
 
         #region Constructors
 
-        internal ReadOnlyDocument(Database database, string documentID, C4Document* c4Doc, FleeceDictionary data, ThreadSafety threadSafety,
+        internal ReadOnlyDocument(Database database, string documentID, C4Document* c4Doc, FLDict* data, ThreadSafety threadSafety,
             bool owner = true)
-            : base(data)
         {
             Database = database;
             Id = documentID ?? throw new ArgumentNullException(nameof(documentID));
             _c4Doc = c4Doc;
+            Data = data;
             _owner = owner;
             Debug.Assert(database == null || threadSafety != null);
             DatabaseThreadSafety = threadSafety;
             if (!owner) {
                 GC.SuppressFinalize(this);
             }
+
+            UpdateDictionary();
         }
 
         internal ReadOnlyDocument(Database database, string documentID, bool mustExist, ThreadSafety threadSafety, bool owner = true)
@@ -159,9 +183,12 @@ namespace Couchbase.Lite
         /// Used for disposing this object
         /// </summary>
         /// <param name="disposing"><c>true</c> if disposing, <c>false</c> if finalizing</param>
-        [SuppressMessage("ReSharper", "UnusedParameter.Local", Justification = "Only types that need to be disposed unconditionally are dealt with")]
         protected virtual void Dispose(bool disposing)
         {
+            if (disposing) {
+                _root?.Dispose();
+            }
+
             if (_owner) {
                 Native.c4doc_free(_c4Doc);
             }
@@ -171,19 +198,11 @@ namespace Couchbase.Lite
 
         #endregion
 
-        internal virtual byte[] Encode()
-        {
-            return _c4Doc != null ? _c4Doc->selectedRev.body.ToArrayFast() : new byte[0];
-        }
+        #region Internal Methods
 
-        internal void SelectConflictingRevision()
+        internal virtual FLSlice Encode()
         {
-            if (_c4Doc == null) {
-                throw new InvalidOperationException("No revision data on the document!");
-            }
-
-            _selfThreadSafety.DoLockedBridge(err => Native.c4doc_selectNextLeafRevision(_c4Doc, false, true, err));
-            c4Doc = _c4Doc;
+            return _c4Doc != null ? (FLSlice)_c4Doc->selectedRev.body : new FLSlice();
         }
 
         internal bool SelectCommonAncestor(ReadOnlyDocument doc1, ReadOnlyDocument doc2)
@@ -202,6 +221,34 @@ namespace Couchbase.Lite
             c4Doc = _c4Doc;
             return true;
         }
+
+        internal void SelectConflictingRevision()
+        {
+            if (_c4Doc == null) {
+                throw new InvalidOperationException("No revision data on the document!");
+            }
+
+            _selfThreadSafety.DoLockedBridge(err => Native.c4doc_selectNextLeafRevision(_c4Doc, false, true, err));
+            c4Doc = _c4Doc;
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private void UpdateDictionary()
+        {
+            if (Data != null) {
+                Misc.SafeSwap(ref _root,
+                    new MRoot(new DocContext(_database, _c4Doc), (FLValue*) Data, IsMutable));
+                _dict = (ReadOnlyDictionary) _root.AsObject();
+            } else {
+                Misc.SafeSwap(ref _root, null);
+                _dict = IsMutable ? (IReadOnlyDictionary)new InMemoryDictionary() : new ReadOnlyDictionary();
+            }
+        }
+
+        #endregion
 
         #region Overrides
 
@@ -227,6 +274,48 @@ namespace Couchbase.Lite
             _selfThreadSafety.DoLocked(() => Dispose(true));
             GC.SuppressFinalize(this);
         }
+
+        #endregion
+
+        #region IEnumerable
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        #endregion
+
+        #region IEnumerable<KeyValuePair<string,object>>
+
+        public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => _dict.GetEnumerator();
+
+        #endregion
+
+        #region IReadOnlyDictionary
+
+        public bool Contains(string key) => _dict.Contains(key);
+
+        public IReadOnlyArray GetArray(string key) => _dict.GetArray(key);
+
+        public Blob GetBlob(string key) => _dict.GetBlob(key);
+
+        public bool GetBoolean(string key) => _dict.GetBoolean(key);
+
+        public DateTimeOffset GetDate(string key) => _dict.GetDate(key);
+
+        public IReadOnlyDictionary GetDictionary(string key) => _dict.GetDictionary(key);
+
+        public double GetDouble(string key) => _dict.GetDouble(key);
+
+        public float GetFloat(string key) => _dict.GetFloat(key);
+
+        public int GetInt(string key) => _dict.GetInt(key);
+
+        public long GetLong(string key) => _dict.GetLong(key);
+
+        public object GetObject(string key) => _dict.GetObject(key);
+
+        public string GetString(string key) => _dict.GetString(key);
+
+        public IDictionary<string, object> ToDictionary() => _dict.ToDictionary();
 
         #endregion
     }

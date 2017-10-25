@@ -22,7 +22,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Couchbase.Lite.DI;
-using Couchbase.Lite.Util;
 using LiteCore.Interop;
 using Microsoft.Extensions.Logging;
 using ObjCRuntime;
@@ -36,13 +35,15 @@ namespace Couchbase.Lite.Logging
     {
         #region Constants
 
-        // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
-        private static C4LogCallback _LogCallback;
-        // ReSharper restore PrivateFieldCanBeConvertedToLocalVariable
+        internal static LogTo To { get; }
 
         #endregion
 
         #region Variables
+
+        // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
+        private static C4LogCallback _LogCallback;
+        // ReSharper restore PrivateFieldCanBeConvertedToLocalVariable
 
         private static LogScrubSensitivity _ScrubSensitivity;
 
@@ -77,8 +78,6 @@ namespace Couchbase.Lite.Logging
 
         internal static ILoggerFactory Factory { get; private set; }
 
-		internal static LogTo To { get; set; }
-
         #endregion
 
         #region Constructors
@@ -110,7 +109,7 @@ namespace Couchbase.Lite.Logging
         /// by the time the first log message comes then a default one will be chosen)
         /// </summary>
         /// <param name="provider">The provider to add</param>
-        public unsafe static void AddLoggerProvider(ILoggerProvider provider)
+        public static unsafe void AddLoggerProvider(ILoggerProvider provider)
         {
             Factory.AddProvider(provider);
 			if(_LogCallback == null) {

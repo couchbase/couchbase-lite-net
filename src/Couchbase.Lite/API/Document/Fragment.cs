@@ -19,7 +19,7 @@
 // limitations under the License.
 // 
 using System;
-using Couchbase.Lite.Logging;
+using System.Diagnostics;
 
 namespace Couchbase.Lite
 {
@@ -31,32 +31,48 @@ namespace Couchbase.Lite
     {
         #region Constants
 
-        private const string Tag = nameof(Fragment);
-
-        #endregion
-
-        #region Variables
-
-        private readonly object _parent;
-        private readonly object _parentKey;
-        private object _value;
+        //private const string Tag = nameof(Fragment);
+        public new static readonly Fragment Null = new Fragment(null, null);
 
         #endregion
 
         #region Properties
 
-        /// <inheritdoc />
-        public override bool Exists => _value != null;
+        /// <summary>
+        /// Gets or sets the value of the fragment
+        /// </summary>
+        public override object Value
+        {
+            set {
+                if (this == Null) {
+                    throw new InvalidOperationException("Specified fragment path does not exist in object, cannot set value");
+                }
+
+                if (_parent == null) {
+                    return;
+                }
+
+                if (_key != null) {
+                    ((IDictionaryObject) _parent).Set(_key, value);
+                } else {
+                    ((IArray) _parent).Set(_index, value);
+                }
+            }
+        }
 
         /// <inheritdoc />
         public new Fragment this[string key]
         {
             get {
-                if (_value is IDictionaryObject d) {
-                    return d[key];
+                Debug.Assert(key != null);
+                var value = ToObject();
+                if (!(ToObject() is IDictionaryObject)) {
+                    return Null;
                 }
 
-                return new Fragment(null, null, null);
+                _parent = value;
+                _key = key;
+                return this;
             }
         }
 
@@ -64,39 +80,19 @@ namespace Couchbase.Lite
         public new Fragment this[int index]
         {
             get {
-                if (_value is IArray a) {
-                    return a[index];
+                var value = ToObject();
+                if (!(ToObject() is IArray a)) {
+                    return Null;
                 }
 
-                return new Fragment(null, null, null);
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the value of this object
-        /// </summary>
-        public new object Value
-        {
-            get => _value;
-            set {
-                if (_parent is DictionaryObject d) {
-                    var key = (string) _parentKey;
-                    d.Set(key, value);
-                    _value = d.GetObject(key);
-                } else if (_parent is ArrayObject a) {
-                    var index = (int) _parentKey;
-                    try {
-                        if (index == a.Count) {
-                            a.Add(value);
-                        } else {
-                            a.Set(index, value);
-                        }
-
-                        _value = a.GetObject(index);
-                    } catch (Exception e) {
-                        Log.To.Database.W(Tag, "Exception setting Fragment Value", e);
-                    }
+                if (index < 0 || index >= a.Count) {
+                    return Null;
                 }
+
+                _parent = value;
+                _index = index;
+                _key = null;
+                return this;
             }
         }
 
@@ -104,12 +100,16 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal Fragment(object value, object parent, object parentKey)
-            : base(value)
+        internal Fragment(IReadOnlyDictionary parent, string key)
+            : base(parent, key)
         {
-            _value = value;
-            _parent = parent;
-            _parentKey = parentKey;
+            
+        }
+
+        internal Fragment(IReadOnlyArray parent, int index)
+            : base(parent, index)
+        {
+
         }
 
         #endregion
@@ -122,7 +122,7 @@ namespace Couchbase.Lite
         /// <returns>The cast contained value, or <c>null</c></returns>
         public new ArrayObject ToArray()
         {
-            return _value as ArrayObject;
+            return ToObject() as ArrayObject;
         }
 
         /// <summary>
@@ -131,7 +131,7 @@ namespace Couchbase.Lite
         /// <returns>The cast contained value, or <c>null</c></returns>
         public new DictionaryObject ToDictionary()
         {
-            return _value as DictionaryObject;
+            return ToObject() as DictionaryObject;
         }
 
         #endregion

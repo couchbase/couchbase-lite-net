@@ -25,7 +25,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Lite.Logging
 {
-    internal unsafe sealed class DomainLogger
+    internal sealed unsafe class DomainLogger
     {
         #region Variables
 

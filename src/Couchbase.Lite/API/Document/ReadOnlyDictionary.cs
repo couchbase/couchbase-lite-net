@@ -23,91 +23,100 @@ using System.Collections;
 using System.Collections.Generic;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
-using LiteCore.Interop;
+using Couchbase.Lite.Support;
 
 namespace Couchbase.Lite
 {
     /// <summary>
     /// A class representing a key-value collection that is read only
     /// </summary>
-    public unsafe class ReadOnlyDictionary : IReadOnlyDictionary
+    public class ReadOnlyDictionary : IReadOnlyDictionary
     {
         #region Variables
 
-        private FleeceDictionary _data;
-        private FLDict* _dict;
-        private SharedStringCache _sharedKeys;
+        internal readonly MDict _dict = new MDict();
+        internal readonly ThreadSafety _threadSafety = new ThreadSafety();
+        private List<string> _keys;
 
         #endregion
 
         #region Properties
 
         /// <inheritdoc />
-        public virtual int Count => (int)Native.FLDict_Count(_dict);
+        public int Count => _dict.Count;
 
         /// <inheritdoc />
-        public ReadOnlyFragment this[string key] => new ReadOnlyFragment(GetObject(key));
+        public ReadOnlyFragment this[string key] => new ReadOnlyFragment(this, key);
 
         /// <inheritdoc />
-        public virtual ICollection<string> Keys
+        public ICollection<string> Keys
         {
             get {
-                var keys = new List<string>();
-                if (_dict != null) {
-                    FLDictIterator iter;
-                    Native.FLDictIterator_Begin(_dict, &iter);
-                    string key;
-                    while (null != (key = _sharedKeys.GetDictIterKey(&iter))) {
-                        keys.Add(key);
-                        Native.FLDictIterator_Next(&iter);
-                    }
+                if (_keys == null) {
+                    _keys = new List<string>(_dict.Count);
+                    _threadSafety.DoLocked(() =>
+                    {
+                        foreach (var item in _dict.AllItems()) {
+                            _keys.Add(item.Key);
+                        }
+                    });
                 }
 
-                return keys;
+                return _keys;
             }
         }
-
-        internal FleeceDictionary Data
-        {
-            get => _data;
-            set {
-                _data = value;
-                _dict = value != null ? value.Dict : null;
-                _sharedKeys = value?.Database?.SharedStrings;
-            }
-        }
-
-        internal virtual bool IsEmpty => Count == 0;
 
         #endregion
 
         #region Constructors
 
-        internal ReadOnlyDictionary(FleeceDictionary data)
+        internal ReadOnlyDictionary()
         {
-            Data = data;
+            
+        }
+
+        internal ReadOnlyDictionary(MValue mv, MCollection parent)
+        {
+            _dict.InitInSlot(mv, parent);
+        }
+
+        internal ReadOnlyDictionary(MDict dict, bool isMutable)
+        {
+            _dict.InitAsCopyOf(dict, isMutable);
         }
 
         #endregion
 
-        private FLValue* FleeceValueForKey(string key)
-        {
-            if (_sharedKeys == null) {
-                return null;
-            }
+        #region Protected Methods
 
-            return _sharedKeys.GetDictValue(_dict, key);
+        protected void KeysChanged()
+        {
+            _keys = null;
         }
 
-        private object FleeceValueToObject(string key)
-        {
-            var value = FleeceValueForKey(key);
-            if (value != null) {
-                return FLValueConverter.ToCouchbaseObject(value, Data?.Database, false);
-            }
+        #endregion
 
-            return null;
+        #region Internal Methods
+
+        internal MCollection ToMCollection()
+        {
+            return _dict;
         }
+
+        internal DictionaryObject ToMutable()
+        {
+            return new DictionaryObject(_dict, true);
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private static object GetObject(MDict dict, string key, IThreadSafety threadSafety = null) => (threadSafety ?? NullThreadSafety.Instance).DoLocked(() => dict.Get(key).AsObject(dict));
+
+        private static T GetObject<T>(MDict dict, string key, IThreadSafety threadSafety = null) where T : class => GetObject(dict, key, threadSafety) as T;
+
+        #endregion
 
         #region IEnumerable
 
@@ -126,7 +135,7 @@ namespace Couchbase.Lite
         /// <returns>An enumerator that can be used to iterate through the collection.</returns>
         public virtual IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
-            return new Enumerator(this);
+            return new Enumerator(_dict);
         }
 
         #endregion
@@ -134,127 +143,73 @@ namespace Couchbase.Lite
         #region IReadOnlyDictionary
 
         /// <inheritdoc />
-        public virtual bool Contains(string key)
-        {
-            var type = Native.FLValue_GetType(FleeceValueForKey(key));
-            return type != FLValueType.Undefined;
-        }
+        public virtual bool Contains(string key) => _threadSafety.DoLocked(() => !_dict.Get(key).IsEmpty);
 
         /// <inheritdoc />
-        public IReadOnlyArray GetArray(string key)
-        {
-            return FleeceValueToObject(key) as IReadOnlyArray;
-        }
+        public IReadOnlyArray GetArray(string key) => GetObject<IReadOnlyArray>(_dict, key, _threadSafety);
 
         /// <inheritdoc />
-        public virtual Blob GetBlob(string key)
-        {
-            return FleeceValueToObject(key) as Blob;
-        }
+        public virtual Blob GetBlob(string key) => GetObject<Blob>(_dict, key, _threadSafety);
 
         /// <inheritdoc />
-        public virtual bool GetBoolean(string key)
-        {
-            return Native.FLValue_AsBool(FleeceValueForKey(key));
-        }
+        public virtual bool GetBoolean(string key) => DataOps.ConvertToBoolean(GetObject(_dict, key, _threadSafety));
 
         /// <inheritdoc />
-        public virtual DateTimeOffset GetDate(string key)
-        {
-            return DataOps.ConvertToDate(FleeceValueToObject(key));
-        }
+        public virtual DateTimeOffset GetDate(string key) => DataOps.ConvertToDate(GetObject(_dict, key, _threadSafety));
 
         /// <inheritdoc />
-        public virtual double GetDouble(string key)
-        {
-            return Native.FLValue_AsDouble(FleeceValueForKey(key));
-        }
+        public IReadOnlyDictionary GetDictionary(string key) => GetObject<IReadOnlyDictionary>(_dict, key, _threadSafety);
 
         /// <inheritdoc />
-        public virtual float GetFloat(string key)
-        {
-            return Native.FLValue_AsFloat(FleeceValueForKey(key));
-        }
+        public virtual double GetDouble(string key) => DataOps.ConvertToDouble(GetObject(_dict, key, _threadSafety));
 
         /// <inheritdoc />
-        public virtual int GetInt(string key)
-        {
-            return (int)Native.FLValue_AsInt(FleeceValueForKey(key));
-        }
+        public virtual float GetFloat(string key) => DataOps.ConvertToFloat(GetObject(_dict, key, _threadSafety));
 
         /// <inheritdoc />
-        public virtual long GetLong(string key)
-        {
-            return Native.FLValue_AsInt(FleeceValueForKey(key));
-        }
+        public virtual int GetInt(string key) => DataOps.ConvertToInt(GetObject(_dict, key, _threadSafety));
 
         /// <inheritdoc />
-        public virtual object GetObject(string key)
-        {
-            return FleeceValueToObject(key);
-        }
+        public virtual long GetLong(string key) => DataOps.ConvertToLong(GetObject(_dict, key, _threadSafety));
 
         /// <inheritdoc />
-        public virtual string GetString(string key)
-        {
-            return FleeceValueToObject(key) as string;
-        }
+        public virtual object GetObject(string key) => GetObject(_dict, key, _threadSafety);
 
         /// <inheritdoc />
-        public IReadOnlyDictionary GetDictionary(string key)
-        {
-            return FleeceValueToObject(key) as IReadOnlyDictionary;
-        }
+        public virtual string GetString(string key) => GetObject<string>(_dict, key, _threadSafety);
 
         /// <inheritdoc />
         public virtual IDictionary<string, object> ToDictionary()
         {
-            if (Count == 0) {
-                return new Dictionary<string, object>();
-            }
-
-            var dict = new Dictionary<string, object>(Count);
-            foreach (var pair in this) {
-                switch(pair.Value) {
-                    case IReadOnlyDictionary d:
-                        dict[pair.Key] = d.ToDictionary();
-                        break;
-                    case IReadOnlyArray a:
-                        dict[pair.Key] = a.ToList();
-                        break;
-                    default:
-                        dict[pair.Key] = pair.Value;
-                        break;
+            var result = new Dictionary<string, object>(_dict.Count);
+            _threadSafety.DoLocked(() =>
+            {
+                foreach (var item in _dict.AllItems()) {
+                    result[item.Key] = DataOps.ToNetObject(item.Value.AsObject(_dict));
                 }
-            }
+            });
 
-            return dict;
+            return result;
         }
 
         #endregion
+
+        #region Nested
 
         private class Enumerator : IEnumerator<KeyValuePair<string, object>>
         {
             #region Variables
 
-            private readonly ReadOnlyDictionary _parent;
-            private bool _first;
-            private FLDictIterator _iter;
+            private readonly IEnumerator<KeyValuePair<string, MValue>> _inner;
+
+            private readonly MDict _parent;
 
             #endregion
 
             #region Properties
 
-            public KeyValuePair<string, object> Current
-            {
-                get {
-                    fixed (FLDictIterator* i = &_iter) {
-                        var key = _parent._sharedKeys.GetDictIterKey(i);
-                        var value = _parent.GetObject(key);
-                        return new KeyValuePair<string, object>(key, value);
-                    }
-                }
-            }
+            public KeyValuePair<string, object> Current => new KeyValuePair<string, object>(_inner.Current.Key,
+                _inner.Current.Value.AsObject(_parent));
 
             object IEnumerator.Current => Current;
 
@@ -262,10 +217,10 @@ namespace Couchbase.Lite
 
             #region Constructors
 
-            public Enumerator(ReadOnlyDictionary parent)
+            public Enumerator(MDict parent)
             {
                 _parent = parent;
-                _first = true;
+                _inner = parent.AllItems().GetEnumerator();
             }
 
             #endregion
@@ -274,40 +229,20 @@ namespace Couchbase.Lite
 
             public void Dispose()
             {
-                // No-op
+                _inner.Dispose();
             }
 
             #endregion
 
             #region IEnumerator
 
-            public bool MoveNext()
-            {
-                if (_first) {
-                    if (_parent._dict == null) {
-                        return false;
-                    }
+            public bool MoveNext() => _inner.MoveNext();
 
-                    _first = false;
-                    fixed (FLDictIterator* i = &_iter) {
-                        Native.FLDictIterator_Begin(_parent._dict, i);
-                    }
-
-                    return true;
-                }
-
-                fixed (FLDictIterator* i = &_iter) {
-                    return Native.FLDictIterator_Next(i);
-                }
-            }
-
-            public void Reset()
-            {
-                _first = true;
-            }
+            public void Reset() => _inner.Reset();
 
             #endregion
         }
 
+        #endregion
     }
 }

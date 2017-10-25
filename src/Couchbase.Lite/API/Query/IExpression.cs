@@ -93,12 +93,12 @@ namespace Couchbase.Lite.Query
         /// <returns>The expression representing the new operation</returns>
         IExpression Collate(ICollation collation);
 
-        /// <summary>
-        /// Concatenates the current and given expressions
-        /// </summary>
-        /// <param name="expression">The expression to concatenate with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression Concat(object expression);
+        ///// <summary>
+        ///// Concatenates the current and given expressions
+        ///// </summary>
+        ///// <param name="expression">The expression to concatenate with the current one</param>
+        ///// <returns>The expression representing the new operation</returns>
+        //IExpression Concat(object expression);
 
         /// <summary>
         /// Matehematically divides the current and given expressions

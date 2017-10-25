@@ -31,10 +31,11 @@ namespace Couchbase.Lite.Internal.Serialization
         #region Variables
 
         private readonly IDictionary<int, string> _documentStrings = new Dictionary<int, string>();
-        private readonly FLSharedKeys* _sharedKeys;
         private FLDict* _root;
 
         #endregion
+
+        public FLSharedKeys* SharedKeys { get; }
 
         #region Constructors
 
@@ -46,13 +47,13 @@ namespace Couchbase.Lite.Internal.Serialization
         public SharedStringCache(FLSharedKeys* keys)
         {
             Debug.Assert(keys != null);
-            _sharedKeys = keys;
+            SharedKeys = keys;
         }
 
         public SharedStringCache(SharedStringCache other)
         {
             Debug.Assert(other != null);
-            _sharedKeys = other._sharedKeys;
+            SharedKeys = other.SharedKeys;
         }
 
         public SharedStringCache(SharedStringCache other, FLDict* root)
@@ -77,12 +78,12 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public FLValue* GetDictValue(FLDict* dict, string key)
         {
-            return Native.FLDict_GetSharedKey(dict, Encoding.UTF8.GetBytes(key), _sharedKeys);
+            return Native.FLDict_GetSharedKey(dict, Encoding.UTF8.GetBytes(key), SharedKeys);
         }
 
         public FLValue* GetDictValue(FLDict* dict, FLSlice key)
         {
-            return NativeRaw.FLDict_GetSharedKey(dict, key, _sharedKeys);
+            return NativeRaw.FLDict_GetSharedKey(dict, key, SharedKeys);
         }
 
         public string GetKey(int index)
@@ -92,7 +93,7 @@ namespace Couchbase.Lite.Internal.Serialization
                 return retVal;
             }
 
-            retVal = Native.FLSharedKey_GetKeyString(_sharedKeys, index, null);
+            retVal = Native.FLSharedKey_GetKeyString(SharedKeys, index, null);
             if(retVal != null) {
                 _documentStrings[index] = retVal;
             }

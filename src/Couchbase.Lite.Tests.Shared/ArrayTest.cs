@@ -58,7 +58,7 @@ namespace Test
             var doc = new Document("doc1");
             doc.Set("array", array);
             doc.GetArray("array")
-                .As<object>()
+                .As<ArrayObject>()
                 .Should()
                 .BeSameAs(array, "because the doc should return the same object");
 

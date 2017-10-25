@@ -19,7 +19,6 @@
 // limitations under the License.
 // 
 
-using System;
 using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
@@ -42,30 +41,7 @@ namespace Couchbase.Lite.Query
             return new DatabaseSource(database, database.ThreadSafety);
         }
 
-        internal static IDataSourceAs Query(IQuery query)
-        {
-            throw new NotImplementedException();
-        }
-
         #endregion
 
-        #region Internal Methods
-
-        //internal static IQueryable<TElement> LinqDataSource<TElement>(Database database, bool prefetch)
-        //    where TElement : class, IDocumentModel, new()
-        //{
-        //    if (database == null) {
-        //        throw new ArgumentNullException(nameof(database));
-        //    }
-
-        //    var db = database as Database;
-        //    if (db == null) {
-        //        throw new NotSupportedException("Custom IDatabase not supported");
-        //    }
-
-        //    return new DatabaseQueryable<TElement>(db, prefetch);
-        //}
-
-        #endregion
     }
 }

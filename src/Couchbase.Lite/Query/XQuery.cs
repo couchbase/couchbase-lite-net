@@ -23,8 +23,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
-using Couchbase.Lite.Support;
-using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
 
@@ -198,7 +196,7 @@ namespace Couchbase.Lite.Internal.Query
                     parameters["OFFSET"] = SkipValue;
                 }
             }
-;
+
             if (OrderByImpl != null) {
                 parameters["ORDER_BY"] = OrderByImpl.ToJSON();
             }

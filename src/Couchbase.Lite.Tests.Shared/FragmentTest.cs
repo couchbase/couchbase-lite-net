@@ -321,9 +321,9 @@ namespace Test
                 fragment.Value.Should().NotBeNull("because this fragment has a value");
                 fragment.ToObject()
                     .Should()
-                    .BeSameAs(fragment.Value)
-                    .And.BeSameAs(fragment.ToString(),
-                        "because all three of these accessors should return the same object");
+                    .Be(fragment.Value)
+                    .And.Be(fragment.ToString(),
+                        "because all three of these accessors should return the same value");
             });
         }
 
@@ -427,10 +427,11 @@ namespace Test
                 fragment.Value.Should().NotBeNull("because this fragment has a value");
                 fragment.ToDictionary().Should().BeNull("because that is the default value");
                 fragment.ToArray().Should().NotBeNull("because this fragment is of this type");
-                fragment.ToObject()
+                fragment.ToObject().As<ArrayObject>()
                     .Should()
-                    .BeSameAs(fragment.ToArray())
-                    .And.BeSameAs(fragment.Value, "because all three of these accessors should return the same value");
+                    .ContainInOrder(fragment.ToArray())
+                    .And.ContainInOrder(fragment.Value.As<ArrayObject>(),
+                        "because all three of these accessors should return the same value");
                 fragment.ToArray().Should().ContainInOrder(nested, "because that is what was stored");
                 fragment.ToArray().Count.Should().Be(3, "because there are three elements inside");
             });
@@ -748,18 +749,19 @@ namespace Test
         public void TestNonExistingArrayFragmentSetObject()
         {
             var doc = new Document("doc1");
-            doc["array"].Value = new List<object>();
-            doc["array"][0].Value = new List<object>();
 
-            doc["array"][0][0].Value = 1;
-            doc["array"][0][1].Value = false;
-            doc["array"][0][2].Value = "hello";
+            doc.Invoking(d => d["array"][0][0].Value = 1)
+                .ShouldThrow<InvalidOperationException>("because the path does not exist");
+            doc.Invoking(d => d["array"][0][1].Value = false)
+                .ShouldThrow<InvalidOperationException>("because the path does not exist");
+            doc.Invoking(d => d["array"][0][2].Value = "hello")
+                .ShouldThrow<InvalidOperationException>("because the path does not exist");
 
             SaveDocument(doc, d =>
             {
-                d["array"][0][0].ToInt().Should().Be(1, "because that is the value that was stored");
-                d["array"][0][1].ToBoolean().Should().Be(false, "because that is the value that was stored");
-                d["array"][0][2].ToString().Should().Be("hello", "because that is the value that was stored");
+                d["array"][0][0].ToInt().Should().Be(0);
+                d["array"][0][1].ToBoolean().Should().Be(false);
+                d["array"][0][2].ToString().Should().BeNull();
             });
         }
 
@@ -769,12 +771,11 @@ namespace Test
             var doc = new Document("doc1");
             doc["array"].Value = new List<object>();
             doc["array"].ToArray().Add(new object[] { "Jason", 5.5, true });
-            doc["array"][0][3].Value = 1;
+            doc.Invoking(d => d["array"][0][3].Value = 1).ShouldThrow<InvalidOperationException>();
 
             SaveDocument(doc, d =>
             {
-                d["array"][0][3].Should().NotBeNull("because the subscript operator should never return null");
-                d["array"][0][3].Exists.Should().BeTrue("because a value was inserted at that index");
+                d["array"][0][3].Exists.Should().BeFalse();
             });
         }
 

@@ -21,7 +21,6 @@
 using System.Linq;
 using Couchbase.Lite.Query;
 using LiteCore.Interop;
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
 {

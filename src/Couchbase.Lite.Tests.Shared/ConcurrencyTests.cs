@@ -145,6 +145,10 @@ namespace Test
 
             ConcurrentRuns(nConcurrent, (index) =>
             {
+                if (Db == null) {
+                    return;
+                }
+
                 Db.InBatch(() =>
                 {
                     var tag = $"Create{index}";

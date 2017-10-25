@@ -20,104 +20,22 @@
 // 
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
 using Couchbase.Lite.Internal.Doc;
-using Couchbase.Lite.Support;
-using Newtonsoft.Json;
+using Couchbase.Lite.Internal.Serialization;
 
 namespace Couchbase.Lite
 {
-    internal sealed class ArrayObjectConverter : JsonConverter
-    {
-        #region Properties
-
-        public override bool CanRead => false;
-
-        public override bool CanWrite => true;
-
-        #endregion
-
-        #region Overrides
-
-        public override bool CanConvert(Type objectType)
-        {
-            return objectType.GetTypeInfo().IsAssignableFrom(typeof(ArrayObject).GetTypeInfo());
-        }
-
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        {
-            var arr = (ArrayObject)value;
-            arr.LockedForRead(() =>
-            {
-                writer.WriteStartArray();
-                foreach (var obj in arr) {
-                    serializer.Serialize(writer, obj);
-                }
-                writer.WriteEndArray();
-            });
-        }
-
-        #endregion
-    }
-
     /// <summary>
     /// A class representing an editable collection of objects
     /// </summary>
-    [JsonConverter(typeof(ArrayObjectConverter))]
     public sealed class ArrayObject : ReadOnlyArray, IArray
     {
-        #region Variables
-        
-        private readonly ThreadSafety _threadSafety = new ThreadSafety();
-        
-        private IList _list;
-
-        #endregion
-
         #region Properties
 
         /// <inheritdoc />
-        public override int Count
-        {
-            get {
-                return _threadSafety.DoLocked(() =>
-                {
-                    if (_list == null) {
-                        return base.Count;
-                    }
-
-                    return _list.Count;
-                });
-            }
-        }
-
-        /// <inheritdoc />
-        public new Fragment this[int index]
-        {
-            get {
-                var value = index >= 0 && index < Count ? GetObject(index) : null;
-                return new Fragment(value, this, index);
-            }
-        }
-
-        private IList List
-        {
-            get {
-                if (_list == null) {
-                    CopyFleeceData();
-                }
-
-                return _list;
-            }
-        }
+        public new Fragment this[int index] => index >= _array.Count
+            ? Fragment.Null
+            : new Fragment(this, index);
 
         #endregion
 
@@ -127,7 +45,6 @@ namespace Couchbase.Lite
         /// Default Constructor
         /// </summary>
         public ArrayObject()
-            : base(default(FleeceArray))
         {
             
         }
@@ -142,188 +59,28 @@ namespace Couchbase.Lite
             Set(array);
         }
 
-        internal ArrayObject(FleeceArray data)
-            : base(data)
+        internal ArrayObject(MArray array, bool isMutable)
+        {
+            _array.InitAsCopyOf(array, isMutable);
+        }
+
+        internal ArrayObject(MValue mv, MCollection parent)
+            : base(mv, parent)
         {
             
         }
 
         #endregion
 
-        #region Internal Methods
-
-        internal void LockedForRead(Action a)
-        {
-            _threadSafety.DoLocked(a);
-        }
-
-        #endregion
-
         #region Private Methods
-
-        private void CopyFleeceData()
-        {
-            Debug.Assert(_list == null);
-            var count = base.Count;
-            _list = new List<object>(count);
-            for (var i = 0; i < count; i++) {
-                var value = base.GetObject(i);
-                _list.Add(DataOps.ConvertValue(value));
-            }
-        }
 
         private void SetValue(int index, object value)
         {
-            _list[index] = value;
-        }
-
-        #endregion
-
-        #region Overrides
-
-        /// <inheritdoc />
-        public override Blob GetBlob(int index)
-        {
-            return GetObject(index) as Blob;
-        }
-
-        /// <inheritdoc />
-        public override bool GetBoolean(int index)
-        {
-            return _threadSafety.DoLocked(() =>
+            _threadSafety.DoLocked(() =>
             {
-                if (_list == null) {
-                    return base.GetBoolean(index);
+                if (DataOps.ValueWouldChange(value, _array.Get(index), _array)) {
+                    _array.Set(index, DataOps.ToCouchbaseObject(value));
                 }
-
-                var value = _list[index];
-                return DataOps.ConvertToBoolean(value);
-            });
-        }
-
-        /// <inheritdoc />
-        public override DateTimeOffset GetDate(int index)
-        {
-            return DataOps.ConvertToDate(GetObject(index));
-        }
-
-        /// <inheritdoc />
-        public override double GetDouble(int index)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                if (_list == null) {
-                    return base.GetDouble(index);
-                }
-
-                var value = _list[index];
-                return DataOps.ConvertToDouble(value);
-            });
-        }
-
-        /// <inheritdoc />
-        public override float GetFloat(int index)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                if (_list == null) {
-                    return base.GetFloat(index);
-                }
-
-                var value = _list[index];
-                return DataOps.ConvertToFloat(value);
-            });
-        }
-
-        /// <inheritdoc />
-        public override IEnumerator<object> GetEnumerator()
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                if (_list == null) {
-                    return base.GetEnumerator();
-                }
-
-                return _list.Cast<object>().GetEnumerator();
-            });
-        }
-
-        /// <inheritdoc />
-        public override int GetInt(int index)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                if (_list == null) {
-                    return base.GetInt(index);
-                }
-
-                var value = _list[index];
-                return DataOps.ConvertToInt(value);
-            });
-        }
-
-        /// <inheritdoc />
-        public override long GetLong(int index)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                if (_list == null) {
-                    return base.GetLong(index);
-                }
-
-                var value = _list[index];
-                return DataOps.ConvertToLong(value);
-            });
-        }
-
-        /// <inheritdoc />
-        public override object GetObject(int index)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                if (_list == null) {
-                    var value = base.GetObject(index);
-                    if (value is IReadOnlyDictionary || value is IReadOnlyArray) {
-                        CopyFleeceData();
-                    } else {
-                        return value;
-                    }
-                }
-                return _list[index];
-            });
-        }
-
-        /// <inheritdoc />
-        public override string GetString(int index)
-        {
-            return GetObject(index) as string;
-        }
-
-        /// <inheritdoc />
-        public override IList<object> ToList()
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                if (_list == null) {
-                    CopyFleeceData();
-                }
-
-                var array = new List<object>(Count);
-                foreach (var item in _list) {
-                    switch (item) {
-                        case IReadOnlyDictionary dict:
-                            array.Add(dict.ToDictionary());
-                            break;
-                        case IReadOnlyArray arr:
-                            array.Add(arr.ToList());
-                            break;
-                        default:
-                            array.Add(item);
-                            break;
-                    }
-                }
-
-                return array;
             });
         }
 
@@ -336,7 +93,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Add(DataOps.ConvertValue(value));
+                _array.Add(DataOps.ToCouchbaseObject(value));
                 return this;
             });
         }
@@ -346,7 +103,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Add(value);
+                _array.Add(value);
                 return this;
             });
         }
@@ -356,7 +113,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Add(value);
+                _array.Add(value);
                 return this;
             });
         }
@@ -366,7 +123,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Add(value);
+                _array.Add(value);
                 return this;
             });
         }
@@ -376,7 +133,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Add(value);
+                _array.Add(value);
                 return this;
             });
         }
@@ -386,7 +143,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Add(value);
+                _array.Add(value);
                 return this;
             });
         }
@@ -396,7 +153,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Add(value);
+                _array.Add(value);
                 return this;
             });
         }
@@ -406,7 +163,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Add(value);
+                _array.Add(value);
                 return this;
             });
         }
@@ -416,7 +173,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Add(value.ToString("o"));
+                _array.Add(value.ToString("o"));
                 return this;
             });
         }
@@ -426,7 +183,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Add(value);
+                _array.Add(value);
                 return this;
             });
         }
@@ -436,7 +193,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Add(value);
+                _array.Add(value);
                 return this;
             });
         }
@@ -444,13 +201,13 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public new IArray GetArray(int index)
         {
-            return GetObject(index) as IArray;
+            return base.GetArray(index) as IArray;
         }
 
         /// <inheritdoc />
         public new IDictionaryObject GetDictionary(int index)
         {
-            return GetObject(index) as IDictionaryObject;
+            return base.GetDictionary(index) as IDictionaryObject;
         }
 
         /// <inheritdoc />
@@ -458,7 +215,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Insert(index, DataOps.ConvertValue(value));
+                _array.Insert(index, DataOps.ToCouchbaseObject(value));
                 return this;
             });
         }
@@ -468,7 +225,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Insert(index, value);
+                _array.Insert(index, value);
                 return this;
             });
         }
@@ -478,7 +235,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Insert(index, value);
+                _array.Insert(index, value);
                 return this;
             });
         }
@@ -488,7 +245,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Insert(index, value);
+                _array.Insert(index, value);
                 return this;
             });
         }
@@ -498,7 +255,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Insert(index, value);
+                _array.Insert(index, value);
                 return this;
             });
         }
@@ -508,7 +265,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Insert(index, value);
+                _array.Insert(index, value);
                 return this;
             });
         }
@@ -518,7 +275,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Insert(index, value);
+                _array.Insert(index, value);
                 return this;
             });
         }
@@ -528,7 +285,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Insert(index, value);
+                _array.Insert(index, value);
                 return this;
             });
         }
@@ -538,7 +295,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Insert(index, value.ToString("o"));
+                _array.Insert(index, value.ToString("o"));
                 return this;
             });
         }
@@ -548,7 +305,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Insert(index, value);
+                _array.Insert(index, value);
                 return this;
             });
         }
@@ -558,7 +315,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                List.Insert(index, value);
+                _array.Insert(index, value);
                 return this;
             });
         }
@@ -568,11 +325,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                if (_list == null) {
-                    CopyFleeceData();
-                }
-                
-                _list.RemoveAt(index);
+                _array.RemoveAt(index);
                 return this;
             });
         }
@@ -582,12 +335,11 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                var result = new List<object>();
+                _array.Clear();
                 foreach (var item in array) {
-                    result.Add(DataOps.ConvertValue(item));
+                    _array.Add(DataOps.ToCouchbaseObject(item));
                 }
 
-                _list = result;
                 return this;
             });
         }
@@ -597,12 +349,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                var oldValue = List[index];
-                if (value?.Equals(oldValue) == false) {
-                    value = DataOps.ConvertValue(value);
-                    SetValue(index, value);
-                }
-
+                SetValue(index, value);
                 return this;
             });
         }
@@ -612,11 +359,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                var oldValue = List[index];
-                if (value?.Equals(oldValue) == false) {
-                    SetValue(index, value);
-                }
-
+                SetValue(index, value);
                 return this;
             });
         }
@@ -626,11 +369,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                var oldValue = List[index];
-                if (value.Equals(oldValue) == false) {
-                    SetValue(index, value);
-                }
-
+                SetValue(index, value);
                 return this;
             });
         }
@@ -640,11 +379,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                var oldValue = List[index];
-                if (value.Equals(oldValue) == false) {
-                    SetValue(index, value);
-                }
-
+                SetValue(index, value);
                 return this;
             });
         }
@@ -654,11 +389,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                var oldValue = List[index];
-                if (value.Equals(oldValue) == false) {
-                    SetValue(index, value);
-                }
-
+                SetValue(index, value);
                 return this;
             });
         }
@@ -668,11 +399,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                var oldValue = List[index];
-                if (value.Equals(oldValue) == false) {
-                    SetValue(index, value);
-                }
-
+                SetValue(index, value);
                 return this;
             });
         }
@@ -682,11 +409,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                var oldValue = List[index];
-                if (value.Equals(oldValue) == false) {
-                    SetValue(index, value);
-                }
-
+                SetValue(index, value);
                 return this;
             });
         }
@@ -696,11 +419,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                var oldValue = List[index];
-                if (value?.Equals(oldValue) == false) {
-                    SetValue(index, value);
-                }
-
+                SetValue(index, value);
                 return this;
             });
         }
@@ -710,12 +429,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                var oldValue = List[index];
-                var newValue = value.ToString("o");
-                if (newValue.Equals(oldValue) == false) {
-                    SetValue(index, newValue);
-                }
-
+                SetValue(index, value);
                 return this;
             });
         }
@@ -725,11 +439,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                var oldValue = List[index];
-                if (value?.Equals(oldValue) == false) {
-                    SetValue(index, value);
-                }
-
+                SetValue(index, value);
                 return this;
             });
         }
@@ -739,11 +449,7 @@ namespace Couchbase.Lite
         {
             return _threadSafety.DoLocked(() =>
             {
-                var oldValue = List[index];
-                if (value?.Equals(oldValue) == false) {
-                    SetValue(index, value);
-                }
-
+                SetValue(index, value);
                 return this;
             });
         }

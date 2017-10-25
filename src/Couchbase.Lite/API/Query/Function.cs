@@ -231,11 +231,6 @@ namespace Couchbase.Lite.Query
             return new QueryFunction("ISARRAY()", expression);
         }
 
-        internal static IFunction IsBool(object expression)
-        {
-            return new QueryFunction("ISBOOLEAN()", expression);
-        }
-
         /// <summary>
         /// Creates a function that checks if the given expression is a numeric type
         /// in question

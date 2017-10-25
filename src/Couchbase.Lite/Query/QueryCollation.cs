@@ -19,7 +19,6 @@
 // limitations under the License.
 // 
 using System.Collections.Generic;
-using System.Globalization;
 using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query

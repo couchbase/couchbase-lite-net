@@ -58,12 +58,12 @@ namespace Couchbase.Lite.Internal.Query
                 case UnaryOpType.Missing:
                 case UnaryOpType.Null:
                     obj.Add("IS");
-                    obj.Add(_type == UnaryOpType.Null ? null : new[] { "MISSING" });
+                    obj.Add(_type == UnaryOpType.Null ? null : MissingValue );
                     break;
                 case UnaryOpType.NotMissing:
                 case UnaryOpType.NotNull:
                     obj.Add("IS NOT");
-                    obj.Add(_type == UnaryOpType.NotNull ? null : new[] { "MISSING" });
+                    obj.Add(_type == UnaryOpType.NotNull ? null : MissingValue );
                     break;
             }
 

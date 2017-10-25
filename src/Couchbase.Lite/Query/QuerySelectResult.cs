@@ -20,8 +20,6 @@
 // 
 
 using System;
-using System.Diagnostics;
-using System.Linq;
 using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query

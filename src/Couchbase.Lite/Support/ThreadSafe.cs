@@ -24,7 +24,7 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.Support
 {
-    internal sealed class ThreadSafety
+    internal sealed class ThreadSafety : IThreadSafety
     {
         #region Variables
 
@@ -56,7 +56,7 @@ namespace Couchbase.Lite.Support
 #endif
         }
 
-        public void DoLockedBridge(C4TryLogicDelegate1 a)
+        public unsafe void DoLockedBridge(C4TryLogicDelegate1 a)
         {
 #if !NO_THREADSAFE
             lock (_lock) {
@@ -78,7 +78,7 @@ namespace Couchbase.Lite.Support
 #endif
         }
 
-        public void DoLockedBridge(C4TryLogicDelegate3 a)
+        public unsafe void DoLockedBridge(C4TryLogicDelegate3 a)
         {
 #if !NO_THREADSAFE
             lock (_lock) {

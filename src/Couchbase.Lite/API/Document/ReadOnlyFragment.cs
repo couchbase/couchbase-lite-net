@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 using System;
+using System.Diagnostics;
 using Couchbase.Lite.Internal.Doc;
 
 namespace Couchbase.Lite
@@ -29,22 +30,53 @@ namespace Couchbase.Lite
     /// </summary>
     public class ReadOnlyFragment : IReadOnlyArrayFragment, IReadOnlyDictionaryFragment
     {
+        #region Constants
+
+        public static readonly ReadOnlyFragment Null = new ReadOnlyFragment(null, null);
+
+        #endregion
+
+        #region Variables
+
+        protected int _index;
+        protected string _key;
+        protected object _parent;
+
+        #endregion
+
         #region Properties
 
         /// <summary>
         /// Gets whether or not this object exists in the hierarchy
         /// </summary>
-        public virtual bool Exists => Value != null;
+        public bool Exists => ToObject() != null;
+
+        /// <summary>
+        /// Gets the value of the fragment as an untyped object (set will throw)
+        /// </summary>
+        public virtual object Value
+        {
+            get => ToObject();
+            set => throw new InvalidOperationException("Cannot set on a ReadOnlyFragment");
+        }
 
         /// <inheritdoc />
         public ReadOnlyFragment this[int index]
         {
             get {
-                if (Value is IReadOnlyArray a) {
-                    return a[index];
+                var value = ToObject();
+                if (!(ToObject() is IReadOnlyArray a)) {
+                    return Null;
                 }
 
-                return new ReadOnlyFragment(null);
+                if (index < 0 || index >= a.Count) {
+                    return Null;
+                }
+
+                _parent = value;
+                _index = index;
+                _key = null;
+                return this;
             }
         }
 
@@ -52,26 +84,32 @@ namespace Couchbase.Lite
         public ReadOnlyFragment this[string key]
         {
             get {
-                if (Value is IReadOnlyDictionary d) {
-                    return d[key];
+                Debug.Assert(key != null);
+                var value = ToObject();
+                if (!(ToObject() is IReadOnlyDictionary)) {
+                    return Null;
                 }
 
-                return new ReadOnlyFragment(null);
+                _parent = value;
+                _key = key;
+                return this;
             }
         }
-
-        /// <summary>
-        /// Gets the raw contained value of this object
-        /// </summary>
-        public object Value { get; }
 
         #endregion
 
         #region Constructors
 
-        internal ReadOnlyFragment(object value)
+        internal ReadOnlyFragment(IReadOnlyDictionary parent, string parentKey)
         {
-            Value = value;
+            _parent = parent;
+            _key = parentKey;
+        }
+
+        internal ReadOnlyFragment(IReadOnlyArray parent, int index)
+        {
+            _parent = parent;
+            _index = index;
         }
 
         #endregion
@@ -84,7 +122,7 @@ namespace Couchbase.Lite
         /// <returns>The cast contained value, or <c>null</c></returns>
         public ReadOnlyArray ToArray()
         {
-            return Value as ReadOnlyArray;
+            return ToObject() as ReadOnlyArray;
         }
 
         /// <summary>
@@ -93,7 +131,7 @@ namespace Couchbase.Lite
         /// <returns>The cast contained value, or <c>null</c></returns>
         public Blob ToBlob()
         {
-            return Value as Blob;
+            return ToObject() as Blob;
         }
 
         /// <summary>
@@ -104,7 +142,7 @@ namespace Couchbase.Lite
         /// any sort of parsing</remarks>
         public bool ToBoolean()
         {
-            return DataOps.ConvertToBoolean(Value);
+            return DataOps.ConvertToBoolean(ToObject());
         }
 
         /// <summary>
@@ -113,7 +151,7 @@ namespace Couchbase.Lite
         /// <returns>The cast contained value, or a default value</returns>
         public DateTimeOffset ToDate()
         {
-            return DataOps.ConvertToDate(Value);
+            return DataOps.ConvertToDate(ToObject());
         }
 
         /// <summary>
@@ -122,7 +160,7 @@ namespace Couchbase.Lite
         /// <returns>The cast contained value, or <c>null</c></returns>
         public ReadOnlyDictionary ToDictionary()
         {
-            return Value as ReadOnlyDictionary;
+            return ToObject() as ReadOnlyDictionary;
         }
 
         /// <summary>
@@ -133,7 +171,7 @@ namespace Couchbase.Lite
         /// is non-numeric will be 0.0</remarks>
         public double ToDouble()
         {
-            return DataOps.ConvertToDouble(Value);
+            return DataOps.ConvertToDouble(ToObject());
         }
 
         /// <summary>
@@ -144,7 +182,7 @@ namespace Couchbase.Lite
         /// is non-numeric will be 0.0f</remarks>
         public float ToFloat()
         {
-            return DataOps.ConvertToFloat(Value);
+            return DataOps.ConvertToFloat(ToObject());
         }
 
         /// <summary>
@@ -155,7 +193,7 @@ namespace Couchbase.Lite
         /// will be rounded, and everything else non-numeric will be 0</remarks>
         public int ToInt()
         {
-            return DataOps.ConvertToInt(Value);
+            return DataOps.ConvertToInt(ToObject());
         }
 
         /// <summary>
@@ -166,7 +204,7 @@ namespace Couchbase.Lite
         /// will be rounded, and everything else non-numeric will be 0</remarks>
         public long ToLong()
         {
-            return DataOps.ConvertToLong(Value);
+            return DataOps.ConvertToLong(ToObject());
         }
 
         /// <summary>
@@ -178,7 +216,13 @@ namespace Couchbase.Lite
         /// <see cref="InvalidCastException"/>s </remarks>
         public object ToObject()
         {
-            return Value;
+            if (_parent == null) {
+                return null;
+            }
+
+            return _key != null
+                ? ((IReadOnlyDictionary) _parent).GetObject(_key)
+                : ((IReadOnlyArray) _parent).GetObject(_index);
         }
 
         #endregion
@@ -191,7 +235,7 @@ namespace Couchbase.Lite
         /// <returns>A string that represents the current object.</returns>
         public override string ToString()
         {
-            return Value as string;
+            return ToObject() as string;
         }
 
         #endregion

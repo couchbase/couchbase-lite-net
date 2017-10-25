@@ -31,11 +31,8 @@ namespace Couchbase.Lite.Util
         public static TClass TryCast<TInterface, TClass>(TInterface iface)
             where TClass : class, TInterface
         {
-            if (!(iface is TClass cls)) {
-                throw new NotSupportedException($"Custom {typeof(TInterface).Name} is not supported");
-            }
-
-            return cls;
+            return iface as TClass ??
+                   throw new NotSupportedException($"Custom {typeof(TInterface).Name} is not supported");
         }
 
         public static void SafeSwap<T>(ref T old, T @new) where T : class, IDisposable

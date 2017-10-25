@@ -19,7 +19,6 @@
 // limitations under the License.
 // 
 
-using System;
 using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
@@ -73,16 +72,6 @@ namespace Couchbase.Lite.Query
         public static IExpressionIn Every(string variable)
         {
             return new QueryTernaryExpression("EVERY", variable);
-        }
-
-        /// <summary>
-        /// Returns an expression representing the result of a group of given expressions
-        /// </summary>
-        /// <param name="expressions">The expressions to group together</param>
-        /// <returns>An expression representing the result of a group of given expressions</returns>
-        internal static IExpression Group(params IExpression[] expressions)
-        {
-            throw new NotImplementedException();
         }
 
         /// <summary>

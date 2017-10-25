@@ -21,59 +21,92 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
-using LiteCore.Interop;
+using Couchbase.Lite.Support;
 
 namespace Couchbase.Lite
 {
     /// <summary>
     /// A class representing a readonly ordered collection of objects
     /// </summary>
-    public unsafe class ReadOnlyArray : IReadOnlyArray
+    public class ReadOnlyArray : IReadOnlyArray
     {
-        private readonly FLArray* _array;
-        private readonly SharedStringCache _sharedKeys;
+        #region Variables
+
+        internal readonly MArray _array = new MArray();
+        internal readonly ThreadSafety _threadSafety = new ThreadSafety();
+
+        #endregion
 
         #region Properties
 
         /// <inheritdoc />
-        public virtual int Count => (int) Native.FLArray_Count(_array);
+        public virtual int Count => _array.Count;
 
         /// <inheritdoc />
-        public ReadOnlyFragment this[int index]
-        {
-            get {
-                var value = index >= 0 && index < Count ? GetObject(index) : null;
-                return new ReadOnlyFragment(value);
-            }
-        }
-
-        internal FleeceArray Data { get; set; }
+        public ReadOnlyFragment this[int index] => index >= _array.Count ? ReadOnlyFragment.Null : new ReadOnlyFragment(this, index);
 
         #endregion
 
         #region Constructors
 
-        internal ReadOnlyArray(FleeceArray data)
+        internal ReadOnlyArray()
         {
-            Data = data;
-            _array = data != null ? data.Array : null;
-            _sharedKeys = data?.Database?.SharedStrings;
+        }
+
+        internal ReadOnlyArray(MArray array, bool isMutable)
+        {
+            _array.InitAsCopyOf(array, isMutable);
+        }
+
+        internal ReadOnlyArray(ReadOnlyArray original, bool mutable)
+            : this(original._array, mutable)
+        {
+            
+        }
+
+        internal ReadOnlyArray(MValue mv, MCollection parent)
+        {
+            _array.InitInSlot(mv, parent);
         }
 
         #endregion
 
-        private object FleeceValueToObject(int index)
-        {
-            var value = Native.FLArray_Get(_array, (uint) index);
-            if (value != null) {
-                return FLValueConverter.ToCouchbaseObject(value, Data?.Database, false);
-            }
+        #region Internal Methods
 
-            return null;
+        internal MCollection ToMCollection()
+        {
+            return _array;
         }
+
+        internal ArrayObject ToMutable()
+        {
+            return new ArrayObject(_array, true);
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private static MValue Get(MArray array, int index, IThreadSafety threadSafety = null)
+        {
+            return (threadSafety ?? NullThreadSafety.Instance).DoLocked(() =>
+            {
+                var val = array.Get(index);
+                if (val.IsEmpty) {
+                    throw new IndexOutOfRangeException();
+                }
+
+                return val;
+            });
+        }
+
+        private static object GetObject(MArray array, int index, IThreadSafety threadSafety = null) => Get(array, index, threadSafety).AsObject(array);
+
+        private static T GetObject<T>(MArray array, int index, IThreadSafety threadSafety = null) where T : class => GetObject(array, index, threadSafety) as T;
+
+        #endregion
 
         #region IEnumerable
 
@@ -90,91 +123,58 @@ namespace Couchbase.Lite
         /// Returns an enumerator that iterates through the collection.
         /// </summary>
         /// <returns>An enumerator that can be used to iterate through the collection.</returns>
-        public virtual IEnumerator<object> GetEnumerator()
-        {
-            if (Data == null) {
-                yield break;
-            }
-
-            foreach (var item in Data) {
-                yield return item;
-            }
-        }
+        public virtual IEnumerator<object> GetEnumerator() => _array.GetEnumerator();
 
         #endregion
 
         #region IReadOnlyArray
 
         /// <inheritdoc />
-        public IReadOnlyArray GetArray(int index)
-        {
-            return FleeceValueToObject(index) as IReadOnlyArray;
-        }
+        public IReadOnlyArray GetArray(int index) => GetObject<IReadOnlyArray>(_array, index, _threadSafety);
 
         /// <inheritdoc />
-        public virtual Blob GetBlob(int index)
-        {
-            return FleeceValueToObject(index) as Blob;
-        }
+        public Blob GetBlob(int index) => GetObject<Blob>(_array, index, _threadSafety);
 
         /// <inheritdoc />
-        public virtual bool GetBoolean(int index)
-        {
-            return Native.FLValue_AsBool(Native.FLArray_Get(_array, (uint) index));
-        }
+        public bool GetBoolean(int index) => DataOps.ConvertToBoolean(GetObject(_array, index, _threadSafety));
 
         /// <inheritdoc />
-        public virtual DateTimeOffset GetDate(int index)
-        {
-            return DataOps.ConvertToDate(FleeceValueToObject(index) as string);
-        }
+        public DateTimeOffset GetDate(int index) => DataOps.ConvertToDate(GetObject(_array, index, _threadSafety));
 
         /// <inheritdoc />
-        public virtual double GetDouble(int index)
-        {
-            return Native.FLValue_AsDouble(Native.FLArray_Get(_array, (uint)index));
-        }
+        public IReadOnlyDictionary GetDictionary(int index) => GetObject<IReadOnlyDictionary>(_array, index, _threadSafety);
 
         /// <inheritdoc />
-        public virtual float GetFloat(int index)
-        {
-            return Native.FLValue_AsFloat(Native.FLArray_Get(_array, (uint) index));
-        }
+        public double GetDouble(int index) => DataOps.ConvertToDouble(GetObject(_array, index, _threadSafety));
 
         /// <inheritdoc />
-        public virtual int GetInt(int index)
-        {
-            return (int)Native.FLValue_AsInt(Native.FLArray_Get(_array, (uint)index));
-        }
+        public float GetFloat(int index) => DataOps.ConvertToFloat(GetObject(_array, index, _threadSafety));
 
         /// <inheritdoc />
-        public virtual long GetLong(int index)
-        {
-            return Native.FLValue_AsInt(Native.FLArray_Get(_array, (uint)index));
-        }
+        public int GetInt(int index) => DataOps.ConvertToInt(GetObject(_array, index, _threadSafety));
 
         /// <inheritdoc />
-        public virtual object GetObject(int index)
-        {
-            return FleeceValueToObject(index);
-        }
+        public long GetLong(int index) => DataOps.ConvertToLong(GetObject(_array, index, _threadSafety));
 
         /// <inheritdoc />
-        public virtual string GetString(int index)
-        {
-            return FleeceValueToObject(index) as string;
-        }
+        public object GetObject(int index) => GetObject(_array, index, _threadSafety);
 
         /// <inheritdoc />
-        public IReadOnlyDictionary GetDictionary(int index)
-        {
-            return FleeceValueToObject(index) as IReadOnlyDictionary;
-        }
+        public string GetString(int index) => GetObject<string>(_array, index, _threadSafety);
 
         /// <inheritdoc />
-        public virtual IList<object> ToList()
+        public IList<object> ToList()
         {
-            return Data.ToList();
+            var count = _array.Count;
+            var result = new List<object>(count);
+            _threadSafety.DoLocked(() =>
+            {
+                for (var i = 0; i < count; i++) {
+                    result.Add(DataOps.ToNetObject(GetObject(_array, i)));
+                }
+            });
+
+            return result;
         }
 
         #endregion

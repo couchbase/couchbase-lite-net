@@ -115,7 +115,7 @@ namespace Couchbase.Lite.Logging
                     str = "(null)";
                 }
 
-                _string = str.Length > 100 ? $"{new string(str.Take(100).ToArray())}..." : str;
+                _string = str.Length > 100 ? $"{new string(str.Take(CharLimit).ToArray())}..." : str;
 
                 return _string;
             }

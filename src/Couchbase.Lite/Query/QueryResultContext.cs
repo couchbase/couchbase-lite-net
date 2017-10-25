@@ -1,5 +1,5 @@
 ﻿// 
-// FleeceDictionary.cs
+// QueryResultContext.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,21 +18,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-
+using Couchbase.Lite.Internal.Doc;
 using LiteCore.Interop;
 
-namespace Couchbase.Lite.Internal.Doc
+namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed unsafe class FleeceDictionary
+    internal sealed unsafe class QueryResultContext : DocContext
     {
-        public FLDict* Dict { get; }
+        #region Variables
 
-        public Database Database { get; }
+        private readonly C4QueryEnumerator* _enumerator;
 
-        public FleeceDictionary(FLDict* dict, Database database)
+        #endregion
+
+        #region Constructors
+
+        public QueryResultContext(Database db, C4QueryEnumerator* enumerator)
+            : base(db, null)
         {
-            Dict = dict;
-            Database = database;
+            _enumerator = enumerator;
         }
+
+        #endregion
+
+        #region Overrides
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            Native.c4queryenum_free(_enumerator);
+        }
+
+        #endregion
     }
 }

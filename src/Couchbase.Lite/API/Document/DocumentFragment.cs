@@ -39,7 +39,7 @@ namespace Couchbase.Lite
         public bool Exists => Document != null;
 
         /// <inheritdoc />
-        public Fragment this[string key] => Exists ? Document[key] : new Fragment(null, this, key);
+        public Fragment this[string key] => Exists ? Document[key] : Fragment.Null;
 
         #endregion
 

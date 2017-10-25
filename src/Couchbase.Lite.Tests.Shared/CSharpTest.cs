@@ -31,6 +31,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
+using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Sync;
 using FluentAssertions;
 using LiteCore.Interop;
@@ -90,65 +91,47 @@ namespace Test
         }
 
         [Fact]
-        public unsafe void TestReadOnlyFragment()
-        {
-            var blob = new Blob("text/plain", Encoding.UTF8.GetBytes("There is no spoon"));
-            var fragment = new ReadOnlyFragment(blob);
-            fragment.ToBlob().Should().Be(blob);
-            fragment.ToArray().Should().BeNull();
-            fragment.ToDictionary().Should().BeNull();
-
-            var flData = Db.JsonSerializer.Serialize(new[] {1, 2, 3});
-            var flValue = NativeRaw.FLValue_FromTrustedData(flData);
-            var array = new ReadOnlyArray(new FleeceArray(Native.FLValue_AsArray(flValue), Db));
-            fragment = new ReadOnlyFragment(array);
-            fragment.ToBlob().Should().BeNull();
-            fragment.ToArray().SequenceEqual(array).Should().BeTrue();
-            fragment.ToDictionary().Should().BeNull();
-            Native.FLSliceResult_Free(flData);
-
-            flData = Db.JsonSerializer.Serialize(new[] {"foo", "bar"});
-            flValue = NativeRaw.FLValue_FromTrustedData(flData);
-            var dict = new ReadOnlyDictionary(new FleeceDictionary(Native.FLValue_AsDict(flValue), Db));
-            fragment = new ReadOnlyFragment(dict);
-            fragment.ToBlob().Should().BeNull();
-            fragment.ToArray().Should().BeNull();
-            fragment.ToDictionary().Should().BeEquivalentTo(dict);
-            fragment.Exists.Should().BeTrue();
-            Native.FLSliceResult_Free(flData);
-        }
-
-        [Fact]
         public unsafe void TestReadOnlyArray()
         {
-            var blob = new Blob("text/plain", Encoding.UTF8.GetBytes("A spoonful of sugar"));
             var now = DateTimeOffset.UtcNow;
             var nestedArray = new[] {1L, 2L, 3L};
             var nestedDict = new Dictionary<string, object> {["foo"] = "bar"};
-            var masterData = new object[] {1, blob, "str", nestedArray, now, nestedDict};
+            var masterData = new object[] {1, "str", nestedArray, now, nestedDict};
 
             var flData = new FLSliceResult();
             Db.InBatch(() =>
             {
-                flData = Db.JsonSerializer.Serialize(masterData);
+                flData = masterData.FLEncode();
             });
 
-            var flValue = NativeRaw.FLValue_FromTrustedData(flData);
-            var deserializedArray = new ReadOnlyArray(new FleeceArray(Native.FLValue_AsArray(flValue), Db));
-            deserializedArray.GetArray(3).Should().Equal(1L, 2L, 3L);
-            deserializedArray.GetArray(4).Should().BeNull();
-            deserializedArray.GetBlob(1).Should().Be(blob);
-            deserializedArray.GetBlob(2).Should().BeNull();
-            deserializedArray.GetDate(4).Should().Be(now);
-            deserializedArray.GetDate(5).Should().Be(DateTimeOffset.MinValue);
-            deserializedArray[2].ToString().Should().Be("str");
-            deserializedArray.GetString(3).Should().BeNull();
-            deserializedArray.GetDictionary(5).Should().BeEquivalentTo(nestedDict);
-            deserializedArray[0].ToDictionary().Should().BeNull();
+            try {
+                var context = new DocContext(Db, null);
+                using (var mRoot = new MRoot(context)) {
+                    mRoot.Context.Should().BeSameAs(context);
+                    var flValue = NativeRaw.FLValue_FromTrustedData((FLSlice) flData);
+                    var mArr = new MArray(new MValue(flValue), mRoot);
+                    var deserializedArray = new ReadOnlyArray(mArr, false);
+                    deserializedArray.GetArray(2).Should().Equal(1L, 2L, 3L);
+                    deserializedArray.GetArray(3).Should().BeNull();
+                    deserializedArray.GetBlob(1).Should().BeNull();
+                    deserializedArray.GetDate(3).Should().Be(now);
+                    deserializedArray.GetDate(4).Should().Be(DateTimeOffset.MinValue);
+                    deserializedArray[1].ToString().Should().Be("str");
+                    deserializedArray.GetString(2).Should().BeNull();
+                    deserializedArray.GetDictionary(4).Should().BeEquivalentTo(nestedDict);
+                    deserializedArray[0].ToDictionary().Should().BeNull();
 
-            var list = deserializedArray.ToList();
-            list[3].Should().BeAssignableTo<IList<object>>();
-            list[5].Should().BeAssignableTo<IDictionary<string, object>>();
+                    var list = deserializedArray.ToList();
+                    list[2].Should().BeAssignableTo<IList<object>>();
+                    list[4].Should().BeAssignableTo<IDictionary<string, object>>();
+                }
+
+#if DEBUG
+                context.Disposed.Should().BeTrue();
+#endif
+            } finally {
+                Native.FLSliceResult_Free(flData);
+            }
         }
 
         [Fact]
@@ -196,13 +179,11 @@ namespace Test
         [Fact]
         public unsafe void TestReadOnlyDictionary()
         {
-            var blob = new Blob("text/plain", Encoding.UTF8.GetBytes("A spoonful of sugar"));
             var now = DateTimeOffset.UtcNow;
             var nestedArray = new[] {1L, 2L, 3L};
             var nestedDict = new Dictionary<string, object> {["foo"] = "bar"};
             var masterData = new Dictionary<string, object>
             {
-                ["blob"] = blob,
                 ["date"] = now,
                 ["array"] = nestedArray,
                 ["dict"] = nestedDict
@@ -211,24 +192,36 @@ namespace Test
             var flData = new FLSliceResult();
             Db.InBatch(() =>
             {
-                flData = Db.JsonSerializer.Serialize(masterData);
+                flData = masterData.FLEncode();
             });
 
-            var flValue = NativeRaw.FLValue_FromTrustedData(flData);
-            var deserializedDict = new ReadOnlyDictionary(new FleeceDictionary(Native.FLValue_AsDict(flValue), Db));
-            deserializedDict.GetBlob("blob").Should().Be(blob);
-            deserializedDict["bogus"].ToBlob().Should().BeNull();
-            deserializedDict["date"].ToDate().Should().Be(now);
-            deserializedDict.GetDate("bogus").Should().Be(DateTimeOffset.MinValue);
-            deserializedDict.GetArray("array").Should().Equal(1L, 2L, 3L);
-            deserializedDict.GetArray("bogus").Should().BeNull();
-            deserializedDict.GetDictionary("dict").Should().BeEquivalentTo(nestedDict);
-            deserializedDict.GetDictionary("bogus").Should().BeNull();
+            try {
+                var context = new DocContext(Db, null);
+                using (var mRoot = new MRoot(context)) {
+                    mRoot.Context.Should().BeSameAs(context);
+                    var flValue = NativeRaw.FLValue_FromTrustedData((FLSlice) flData);
+                    var mDict = new MDict(new MValue(flValue), mRoot);
+                    var deserializedDict = new ReadOnlyDictionary(mDict, false);
 
-            var dict = deserializedDict.ToDictionary();
-            dict["blob"].Should().Be(masterData["blob"]);
-            dict["array"].As<IList>().Should().Equal(1L, 2L, 3L);
-            dict["dict"].As<IDictionary<string, object>>().ShouldBeEquivalentTo(nestedDict);
+                    deserializedDict["bogus"].ToBlob().Should().BeNull();
+                    deserializedDict["date"].ToDate().Should().Be(now);
+                    deserializedDict.GetDate("bogus").Should().Be(DateTimeOffset.MinValue);
+                    deserializedDict.GetArray("array").Should().Equal(1L, 2L, 3L);
+                    deserializedDict.GetArray("bogus").Should().BeNull();
+                    deserializedDict.GetDictionary("dict").Should().BeEquivalentTo(nestedDict);
+                    deserializedDict.GetDictionary("bogus").Should().BeNull();
+
+                    var dict = deserializedDict.ToDictionary();
+                    dict["array"].As<IList>().Should().Equal(1L, 2L, 3L);
+                    dict["dict"].As<IDictionary<string, object>>().ShouldBeEquivalentTo(nestedDict);
+                }
+
+#if DEBUG
+                context.Disposed.Should().BeTrue();
+#endif
+            } finally {
+                Native.FLSliceResult_Free(flData);
+            }
         }
 
         [Fact]
@@ -284,25 +277,27 @@ Transfer-Encoding: chunked";
                 return true;
             });
 
-            var flData = new FLSliceResult();
-            try {
-                Db.InBatch(() => { flData = Db.JsonSerializer.Serialize(masterList); });
-
-                var retrieved =
-                    Db.JsonSerializer.Deserialize<List<Dictionary<string, object>>>(
-                        NativeRaw.FLValue_FromTrustedData(flData));
-
-                int i = 0;
-                foreach (var entry in retrieved) {
-                    var entry2 = masterList[i];
-                    foreach (var key in entry.Keys) {
-                        entry[key].Should().Be(entry2[key]);
-                    }
-
-                    i++;
+            var retrieved = default(List<Dictionary<string, object>>);
+            Db.InBatch(() =>
+            {
+                using (var flData = masterList.FLEncode()) {
+                    retrieved =
+                        FLValueConverter.ToCouchbaseObject(NativeRaw.FLValue_FromTrustedData((FLSlice) flData), Db,
+                                true, typeof(Dictionary<,>).MakeGenericType(typeof(string), typeof(object))) as
+                            List<Dictionary<string, object>>;
                 }
-            } finally {
-                Native.FLSliceResult_Free(flData);
+            });
+
+                
+
+            var i = 0;
+            foreach (var entry in retrieved) {
+                var entry2 = masterList[i];
+                foreach (var key in entry.Keys) {
+                    entry[key].Should().Be(entry2[key]);
+                }
+
+                i++;
             }
         }
 

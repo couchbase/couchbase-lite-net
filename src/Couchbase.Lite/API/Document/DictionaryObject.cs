@@ -19,58 +19,15 @@
 // limitations under the License.
 // 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using Couchbase.Lite.Internal.Doc;
-using Newtonsoft.Json;
+using Couchbase.Lite.Internal.Serialization;
 
 namespace Couchbase.Lite
 {
-    internal sealed class DictionaryObjectConverter : JsonConverter
-    {
-        #region Properties
-
-        public override bool CanRead => false;
-
-        public override bool CanWrite => true;
-
-        #endregion
-
-        #region Overrides
-
-        public override bool CanConvert(Type objectType)
-        {
-            return typeof(DictionaryObject) == objectType;
-        }
-
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        {
-            var dict = (IDictionaryObject)value;
-            writer.WriteStartObject();
-            foreach (var pair in dict) {
-                if (ReferenceEquals(pair.Value, DictionaryObject.RemovedValue)) {
-                    continue;
-                }
-
-                writer.WritePropertyName(pair.Key);
-                serializer.Serialize(writer, pair.Value);
-            }
-            writer.WriteEndObject();
-        }
-
-        #endregion
-    }
-
     /// <summary>
     /// A class representing a writeable string to object dictionary
     /// </summary>
-    [JsonConverter(typeof(DictionaryObjectConverter))]
     public sealed class DictionaryObject : ReadOnlyDictionary, IDictionaryObject
     {
         #region Constants
@@ -79,66 +36,12 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region Variables
-
-        private ConcurrentDictionary<string, object> _dict = new ConcurrentDictionary<string, object>();
-
-        #endregion
-
         #region Properties
 
         /// <inheritdoc />
-        public override int Count
-        {
-            get {
-                var count = _dict.Count;
-                foreach (var key in Keys) {
-                    if (!_dict.ContainsKey(key)) {
-                        count += 1;
-                    }
-                }
+        public new Fragment this[string key] => new Fragment(this, key);
 
-                foreach (var val in _dict.Values) {
-                    if (ReferenceEquals(val, RemovedValue)) {
-                        count -= 1;
-                    }
-                }
-
-                return count;
-            }
-        }
-
-        /// <inheritdoc />
-        public new Fragment this[string key]
-        {
-            get {
-                var value = GetObject(key);
-                return new Fragment(value, this, key);
-            }
-        }
-
-        /// <inheritdoc />
-        public override ICollection<string> Keys
-        {
-            get {
-                var result = new HashSet<string>();
-                foreach (var key in base.Keys) {
-                    result.Add(key);
-                }
-
-                foreach (var pair in _dict) {
-                    if (!ReferenceEquals(pair.Value, RemovedValue)) {
-                        result.Add(pair.Key);
-                    }
-                }
-
-                return result;
-            }
-        }
-
-        internal bool HasChanges { get; private set; }
-
-        internal override bool IsEmpty => _dict.All(x => ReferenceEquals(x.Value, RemovedValue)) && base.IsEmpty;
+        internal bool HasChanges => _dict.IsMutated;
 
         #endregion
 
@@ -148,7 +51,6 @@ namespace Couchbase.Lite
         /// Default Constructor
         /// </summary>
         public DictionaryObject()
-            : this(default(FleeceDictionary))
         {
             
         }
@@ -159,364 +61,154 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="dict">The dictionary to copy the keys and values from</param>
         public DictionaryObject(IDictionary<string, object> dict)
-            : this(default(FleeceDictionary))
         {
             Set(dict);
         }
 
-        internal DictionaryObject(FleeceDictionary data)
-            : base(data)
+        internal DictionaryObject(MDict dict, bool isMutable)
         {
+            _dict.InitAsCopyOf(dict, isMutable);
+        }
 
+        internal DictionaryObject(MValue mv, MCollection parent)
+            : base(mv, parent)
+        {
+            
         }
 
         #endregion
 
-        #region Private Methods
-
-        private IEnumerator<KeyValuePair<string, object>> GetGenerator()
+        private void SetValue(string key, object value)
         {
-            foreach (var key in Keys) {
-                if (_dict.TryGetValue(key, out var value) && ReferenceEquals(value, RemovedValue)) {
-                    continue;
+            _threadSafety.DoLocked(() =>
+            {
+                var oldValue = _dict.Get(key);
+                if (value != null) {
+                    value = DataOps.ToCouchbaseObject(value);
+                    if (DataOps.ValueWouldChange(value, oldValue, _dict)) {
+                        _dict.Set(key, new MValue(value));
+                        KeysChanged();
+                    }
+                } else {
+                    if (!oldValue.IsEmpty) {
+                        _dict.Remove(key);
+                        KeysChanged();
+                    }
                 }
-
-                yield return new KeyValuePair<string, object>(key, GetObject(key));
-            }
+            });
         }
-
-        private void SetChanged()
-        {
-            HasChanges = true;
-        }
-
-        private void SetValue(string key, object value, bool isChange)
-        {
-            _dict[key] = value;
-            if(isChange) {
-                SetChanged();
-            }
-        }
-
-        #endregion
-
-        #region Overrides
-
-        /// <inheritdoc />
-        public override bool Contains(string key)
-        {
-            if (_dict.TryGetValue(key, out var value)) {
-                return !ReferenceEquals(value, RemovedValue);
-            }
-
-            return base.Contains(key);
-        }
-
-        /// <inheritdoc />
-        public override Blob GetBlob(string key)
-        {
-            return GetObject(key) as Blob;
-        }
-
-        /// <inheritdoc />
-        public override bool GetBoolean(string key)
-        {
-            if (!_dict.TryGetValue(key, out var value)) {
-                return base.GetBoolean(key);
-            }
-
-            return DataOps.ConvertToBoolean(value);
-        }
-
-        /// <inheritdoc />
-        public override DateTimeOffset GetDate(string key)
-        {
-            return DataOps.ConvertToDate(GetObject(key));
-        }
-
-        /// <inheritdoc />
-        public override double GetDouble(string key)
-        {
-            if (!_dict.TryGetValue(key, out var value)) {
-                return base.GetDouble(key);
-            }
-
-            return DataOps.ConvertToDouble(value);
-        }
-
-        /// <inheritdoc />
-        public override IEnumerator<KeyValuePair<string, object>> GetEnumerator()
-        {
-            if (!HasChanges) {
-                return base.GetEnumerator();
-            }
-
-            return GetGenerator();
-        }
-
-        /// <inheritdoc />
-        public override float GetFloat(string key)
-        {
-            if (!_dict.TryGetValue(key, out var value)) {
-                return base.GetFloat(key);
-            }
-
-            return DataOps.ConvertToFloat(value);
-        }
-
-        /// <inheritdoc />
-        public override int GetInt(string key)
-        {
-            if (!_dict.TryGetValue(key, out var value)) {
-                return base.GetInt(key);
-            }
-
-            return DataOps.ConvertToInt(value);
-        }
-
-        /// <inheritdoc />
-        public override long GetLong(string key)
-        {
-            if (!_dict.TryGetValue(key, out var value)) {
-                return base.GetLong(key);
-            }
-
-            return DataOps.ConvertToLong(value);
-        }
-
-        /// <inheritdoc />
-        public override object GetObject(string key)
-        {
-            if (!_dict.TryGetValue(key, out var value)) {
-                value = base.GetObject(key);
-                switch (value) {
-                    case ReadOnlyDictionary sub:
-                        value = DataOps.ConvertRODictionary(sub);
-                        SetValue(key, value, false);
-                        break;
-                    case ReadOnlyArray arr:
-                        value = DataOps.ConvertROArray(arr);
-                        SetValue(key, value, false);
-                        break;
-                }
-            } else if (ReferenceEquals(value, RemovedValue)) {
-                value = null;
-            }
-
-            return value;
-        }
-
-        /// <inheritdoc />
-        public override string GetString(string key)
-        {
-            var value = GetObject(key);
-
-            if (value is DateTimeOffset dto) {
-                return dto.ToString("o");
-            }
-
-            return value as string;
-        }
-
-        /// <inheritdoc />
-        public override IDictionary<string, object> ToDictionary()
-        {
-            var result = new Dictionary<string, object>(_dict);
-            var backingData = base.ToDictionary();
-            foreach (var pair in backingData) {
-                if (!result.ContainsKey(pair.Key)) {
-                    result[pair.Key] = pair.Value;
-                }
-            }
-
-            foreach (var key in result.Keys.ToArray()) {
-                var value = result[key];
-                switch (value) {
-                    case IReadOnlyDictionary dic:
-                        result[key] = dic.ToDictionary();
-                        break;
-                    case IReadOnlyArray arr:
-                        result[key] = arr.ToList();
-                        break;
-                    default:
-                        if (ReferenceEquals(value, RemovedValue)) {
-                            result.Remove(key);
-                        }
-
-                        break;
-                }
-            }
-
-            return result;
-        }
-
-        #endregion
 
         #region IDictionaryObject
 
         /// <inheritdoc />
         public new IArray GetArray(string key)
         {
-            return GetObject(key) as ArrayObject;
+            return base.GetArray(key) as IArray;
         }
 
         /// <inheritdoc />
         public new IDictionaryObject GetDictionary(string key)
         {
-            return GetObject(key) as DictionaryObject;
+            return base.GetDictionary(key) as IDictionaryObject;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Remove(string key)
         {
-            if (Contains(key)) {
-                Set(key, RemovedValue);
-            }
-
+            _threadSafety.DoLocked(() => _dict.Remove(key));
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, object value)
-        { 
-            var oldValue = GetObject(key);
-            if (value == null || !value.Equals(oldValue)) {
-                value = DataOps.ConvertValue(value);
-                SetValue(key, value, true);
-            }
-
+        {
+            SetValue(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(IDictionary<string, object> dictionary)
         {
-            var result = new ConcurrentDictionary<string, object>();
-            foreach (var pair in dictionary) {
-                result[pair.Key] = DataOps.ConvertValue(pair.Value);
-            }
-
-            var backingData = base.ToDictionary();
-            foreach (var pair in backingData) {
-                if (!result.ContainsKey(pair.Key)) {
-                    result[pair.Key] = RemovedValue;
+            _threadSafety.DoLocked(() =>
+            {
+                _dict.Clear();
+                foreach (var item in dictionary) {
+                    _dict.Set(item.Key, new MValue(DataOps.ToCouchbaseObject(item.Value)));
                 }
-            }
 
-            _dict = result;
+                KeysChanged();
+            });
 
-            SetChanged();
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, string value)
         {
-            var oldValue = GetObject(key);
-            if (value == null || !value.Equals(oldValue)) {
-                SetValue(key, value, true);
-            }
-
+            SetValue(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, int value)
         {
-            var oldValue = GetObject(key);
-            if (!value.Equals(oldValue)) {
-                SetValue(key, value, true);
-            }
-
+            SetValue(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, long value)
         {
-            var oldValue = GetObject(key);
-            if (!value.Equals(oldValue)) {
-                SetValue(key, value, true);
-            }
-
+            SetValue(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, float value)
         {
-            var oldValue = GetObject(key);
-            if (!value.Equals(oldValue)) {
-                SetValue(key, value, true);
-            }
-
+            SetValue(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, double value)
         {
-            var oldValue = GetObject(key);
-            if (!value.Equals(oldValue)) {
-                SetValue(key, value, true);
-            }
-
+            SetValue(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, bool value)
         {
-            var oldValue = GetObject(key);
-            if (!value.Equals(oldValue)) {
-                SetValue(key, value, true);
-            }
-
+            SetValue(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, Blob value)
         {
-            var oldValue = GetObject(key);
-            if (value == null || !value.Equals(oldValue)) {
-                SetValue(key, value, true);
-            }
-
+            SetValue(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, DateTimeOffset value)
         {
-            var oldValue = GetObject(key);
-            var newVal = value.ToString("o");
-            if (!newVal.Equals(oldValue)) {
-                SetValue(key, newVal, true);
-            }
-
+            SetValue(key, value.ToString("o"));
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, ArrayObject value)
         {
-            var oldValue = GetObject(key);
-            if (value == null || !value.Equals(oldValue)) {
-                SetValue(key, value, true);
-            }
-
+            SetValue(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IDictionaryObject Set(string key, DictionaryObject value)
         {
-            var oldValue = GetObject(key);
-            if (value == null || !value.Equals(oldValue)) {
-                SetValue(key, value, true);
-            }
-
+            SetValue(key, value);
             return this;
         }
 
