@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Internal.Query
                     return null;
                 }
 
-                return $"{_from}{columnName}";
+                return $"{_from}{columnName}".TrimEnd('.');
             }
         }
         

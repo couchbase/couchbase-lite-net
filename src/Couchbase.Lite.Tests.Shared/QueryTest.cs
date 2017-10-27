@@ -508,6 +508,17 @@ namespace Test
                         "because that was the number stored in 'number2' of the matching doc");
                 }
             }
+
+            using (var q = Query.Select(SelectResult.All().From("main"))
+                .From(DataSource.Database(Db).As("main"))
+                .Joins(Join.DefaultJoin(DataSource.Database(Db).As("secondary"))
+                    .On(Expression.Property("number1").From("main")
+                        .EqualTo(Expression.Property("theone").From("secondary"))))) {
+                using (var results = q.Run()) {
+                    results.Count.Should().Be(1, "because only one document should match 42");
+                    results.First().Keys.FirstOrDefault().Should().Be("main");
+                }
+            }
         }
 
         [Fact]
