@@ -125,7 +125,7 @@ namespace Couchbase.Lite
         /// Converts this object to a standard .NET collection
         /// </summary>
         /// <returns>The contents of this collection as a .NET collection</returns>
-        IList<object> ToList();
+        List<object> ToList();
 
         #endregion
     }

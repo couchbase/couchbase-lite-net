@@ -143,43 +143,43 @@ namespace Couchbase.Lite
         #region IReadOnlyDictionary
 
         /// <inheritdoc />
-        public virtual bool Contains(string key) => _threadSafety.DoLocked(() => !_dict.Get(key).IsEmpty);
+        public bool Contains(string key) => _threadSafety.DoLocked(() => !_dict.Get(key).IsEmpty);
 
         /// <inheritdoc />
         public IReadOnlyArray GetArray(string key) => GetObject<IReadOnlyArray>(_dict, key, _threadSafety);
 
         /// <inheritdoc />
-        public virtual Blob GetBlob(string key) => GetObject<Blob>(_dict, key, _threadSafety);
+        public Blob GetBlob(string key) => GetObject<Blob>(_dict, key, _threadSafety);
 
         /// <inheritdoc />
-        public virtual bool GetBoolean(string key) => DataOps.ConvertToBoolean(GetObject(_dict, key, _threadSafety));
+        public bool GetBoolean(string key) => DataOps.ConvertToBoolean(GetObject(_dict, key, _threadSafety));
 
         /// <inheritdoc />
-        public virtual DateTimeOffset GetDate(string key) => DataOps.ConvertToDate(GetObject(_dict, key, _threadSafety));
+        public DateTimeOffset GetDate(string key) => DataOps.ConvertToDate(GetObject(_dict, key, _threadSafety));
 
         /// <inheritdoc />
         public IReadOnlyDictionary GetDictionary(string key) => GetObject<IReadOnlyDictionary>(_dict, key, _threadSafety);
 
         /// <inheritdoc />
-        public virtual double GetDouble(string key) => DataOps.ConvertToDouble(GetObject(_dict, key, _threadSafety));
+        public double GetDouble(string key) => DataOps.ConvertToDouble(GetObject(_dict, key, _threadSafety));
 
         /// <inheritdoc />
-        public virtual float GetFloat(string key) => DataOps.ConvertToFloat(GetObject(_dict, key, _threadSafety));
+        public float GetFloat(string key) => DataOps.ConvertToFloat(GetObject(_dict, key, _threadSafety));
 
         /// <inheritdoc />
-        public virtual int GetInt(string key) => DataOps.ConvertToInt(GetObject(_dict, key, _threadSafety));
+        public int GetInt(string key) => DataOps.ConvertToInt(GetObject(_dict, key, _threadSafety));
 
         /// <inheritdoc />
-        public virtual long GetLong(string key) => DataOps.ConvertToLong(GetObject(_dict, key, _threadSafety));
+        public long GetLong(string key) => DataOps.ConvertToLong(GetObject(_dict, key, _threadSafety));
 
         /// <inheritdoc />
-        public virtual object GetObject(string key) => GetObject(_dict, key, _threadSafety);
+        public object GetObject(string key) => GetObject(_dict, key, _threadSafety);
 
         /// <inheritdoc />
-        public virtual string GetString(string key) => GetObject<string>(_dict, key, _threadSafety);
+        public string GetString(string key) => GetObject<string>(_dict, key, _threadSafety);
 
         /// <inheritdoc />
-        public virtual IDictionary<string, object> ToDictionary()
+        public Dictionary<string, object> ToDictionary()
         {
             var result = new Dictionary<string, object>(_dict.Count);
             _threadSafety.DoLocked(() =>

@@ -163,7 +163,7 @@ namespace Couchbase.Lite
         public string GetString(int index) => GetObject<string>(_array, index, _threadSafety);
 
         /// <inheritdoc />
-        public IList<object> ToList()
+        public List<object> ToList()
         {
             var count = _array.Count;
             var result = new List<object>(count);

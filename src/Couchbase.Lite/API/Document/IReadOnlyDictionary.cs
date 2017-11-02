@@ -138,10 +138,10 @@ namespace Couchbase.Lite
 
         /// <summary>
         /// Converts this object to a standard .NET string to object
-        /// <see cref="IDictionary{TKey, TValue}"/>
+        /// <see cref="Dictionary{TKey, TValue}"/>
         /// </summary>
         /// <returns>The contents of this object as a .NET dictionary</returns>
-        IDictionary<string, object> ToDictionary();
+        Dictionary<string, object> ToDictionary();
 
         #endregion
     }

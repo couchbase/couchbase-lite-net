@@ -315,7 +315,7 @@ namespace Couchbase.Lite
 
         public string GetString(string key) => _dict.GetString(key);
 
-        public IDictionary<string, object> ToDictionary() => _dict.ToDictionary();
+        public Dictionary<string, object> ToDictionary() => _dict.ToDictionary();
 
         #endregion
     }

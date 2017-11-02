@@ -18,13 +18,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite.Support
@@ -47,7 +50,7 @@ namespace Couchbase.Lite.Support
         /// </summary>
         public static void Activate()
         {
-            if(_Activated.Set(true)) {
+            if (_Activated.Set(true)) {
                 return;
             }
 
@@ -88,19 +91,19 @@ namespace Couchbase.Lite.Support
 
             Service.RegisterServices(collection =>
             {
-				collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
-					.AddSingleton<ISslStreamFactory, SslStreamFactory>();
+                collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
+                    .AddSingleton<ISslStreamFactory, SslStreamFactory>();
             });
         }
 
         /// <summary>
-		/// Turns on text based logging for debugging purposes.  The logs will be written in text
-		/// form to a folder called "Logs" under <c>AppContext.BaseDirectory</c>
-		/// </summary>
-		public static void EnableTextLogging()
-		{
-			Log.AddLoggerProvider(new FileLoggerProvider(Path.Combine(AppContext.BaseDirectory, "Logs")));
-		}
+        /// Turns on text based logging for debugging purposes.  The logs will be written in text
+        /// form to a folder called "Logs" under <c>AppContext.BaseDirectory</c>
+        /// </summary>
+        public static void EnableTextLogging()
+        {
+            Log.AddLoggerProvider(new FileLoggerProvider(Path.Combine(AppContext.BaseDirectory, "Logs")));
+        }
 
         #endregion
 

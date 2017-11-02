@@ -200,7 +200,7 @@ namespace Couchbase.Lite.Internal.Query
             return Native.FLValue_AsString(FLValueAtIndex(index));
         }
 
-        public IList<object> ToList()
+        public List<object> ToList()
         {
             var array = new List<object>();
             for (int i = 0; i < Count; i++) {
@@ -285,7 +285,7 @@ namespace Couchbase.Lite.Internal.Query
             return index >= 0 ? GetString(index) : null;
         }
 
-        public IDictionary<string, object> ToDictionary()
+        public Dictionary<string, object> ToDictionary()
         {
             var dict = new Dictionary<string, object>();
             foreach (var key in Keys) {

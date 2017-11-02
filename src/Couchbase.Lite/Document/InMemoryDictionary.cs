@@ -242,7 +242,7 @@ namespace Couchbase.Lite.Internal.Doc
             return GetObject(key) as string;
         }
 
-        public IDictionary<string, object> ToDictionary()
+        public Dictionary<string, object> ToDictionary()
         {
             return _dict.ToDictionary(x => x.Key, x => DataOps.ToNetObject(x.Value));
         }
