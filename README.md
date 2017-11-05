@@ -1,4 +1,4 @@
-Couchbase Lite for .NET [![GitHub release](https://img.shields.io/github/release/couchbase/couchbase-lite-net.svg?style=plastic)]()
+Couchbase Lite for .NET [![GitHub release](https://img.shields.io/github/release/couchbase/couchbase-lite-net.svg?style=plastic)]() [![Coverity Scan Build Status](https://img.shields.io/coverity/scan/14247.svg?style=plastic)]()
 ==================
 
 Couchbase Lite is a lightweight embedded NoSQL database that has built-in sync to larger backend structures, such as Couchbase Server.
@@ -52,4 +52,4 @@ If you simply build the solution file that will cause a build of *all* projects 
 [![Stories in Backlog](https://badge.waffle.io/couchbase/couchbase-lite-net.png?label=backlog&title=Backlogged)](https://waffle.io/couchbase/couchbase-lite-net)<br>
 [![Throughput Graph](http://graphs.waffle.io/couchbase/couchbase-lite-net/throughput.svg)](https://waffle.io/couchbase/couchbase-lite-net/metrics)
 
-[![GitHub license](https://img.shields.io/github/license/couchbase/couchbase-lite-net.svg?style=plastic)]()
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=plastic)](https://opensource.org/licenses/Apache-2.0)
