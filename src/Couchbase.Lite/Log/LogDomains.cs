@@ -36,7 +36,7 @@ namespace Couchbase.Lite.Logging
         /// Gets all the logging interfaces so logic can be applied to
         /// all of them
         /// </summary>
-        All = Couchbase | Database | LiteCore | Query | Replicator,
+        All = Couchbase | Database | Query | Replicator | Network,
 
 		/// <summary>
 		/// Gets the logging domain for overall information that doesn't fit into
@@ -53,22 +53,22 @@ namespace Couchbase.Lite.Logging
         Database = 1 << 1,
 
 		/// <summary>
-		/// Gets the logging domain for the LiteCore logging, which is responsible
-		/// for messages sent up from the native LiteCore module
-		/// </summary>
-		LiteCore = 1 << 2,
-
-		/// <summary>
 		/// Gets the logging domain for query logging, which is responsible for
 		/// logging information about in progress queries on data.
 		/// </summary>
-		Query = 1 << 3,
+		Query = 1 << 2,
 
 		/// <summary>
 		/// Gets the logging domain for sync logging, which is responsible for
 		/// logging activity between the library and remote (network) endpoints.
 		/// </summary>
-		Replicator = 1 << 4
+		Replicator = 1 << 3,
+
+        /// <summary>
+        /// Gest the logging domain for network related logging (web socket connections,
+        /// BLIP protocol, etc)
+        /// </summary>
+        Network = 1 << 4
 
         #endregion
     }

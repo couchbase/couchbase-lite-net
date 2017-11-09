@@ -223,7 +223,7 @@ namespace Couchbase.Lite.Logging
                 return false;
             }
 
-            return Level >= level;
+            return Level <= level;
         }
 
         #endregion
@@ -258,15 +258,15 @@ namespace Couchbase.Lite.Logging
 
 		#region Properties
 
-		internal DomainLogger Couchbase => _allLoggers[4];
+        internal DomainLogger Couchbase => _allLoggers[3];
 
         internal DomainLogger Database => _allLoggers[0];
 
-        internal DomainLogger LiteCore => _allLoggers[3];
+        internal DomainLogger LiteCore => _allLoggers[4];
 
         internal DomainLogger Query => _allLoggers[1];
 
-        internal DomainLogger Replicator => _allLoggers[2];
+        internal DomainLogger Sync => _allLoggers[2];
 
         #endregion
 
@@ -275,28 +275,13 @@ namespace Couchbase.Lite.Logging
         internal LogTo()
         {
             var domains = new[] {
-                "DB", "QUERY", "REPLICATOR", "LITECORE", "COUCHBASE"
+                "Database", "Query", "Sync", "Couchbase", "LiteCore"
             };
             _allLoggers = new DomainLogger[domains.Length];
             int i = 0;
             foreach (var domain in domains) {
                 CreateAndAddLogger(domain, i++);
             }
-        }
-
-        #endregion
-
-        #region Internal Methods
-
-        internal DomainLogger DomainOrLiteCore(string domainName)
-        {
-            foreach (var logger in _allLoggers) {
-                if (logger.Domain?.ToUpper() == domainName) {
-                    return logger;
-                }
-            }
-
-            return LiteCore;
         }
 
         #endregion

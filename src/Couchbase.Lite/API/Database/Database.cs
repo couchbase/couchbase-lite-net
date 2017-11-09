@@ -163,8 +163,6 @@ namespace Couchbase.Lite
         {
             _DbObserverCallback = DbObserverCallback;
             _DocObserverCallback = DocObserverCallback;
-			Log.To.Couchbase.I("Startup", HTTPLogic.UserAgent);
-            Log.To.Couchbase.I("Startup", Native.c4_getBuildInfo());
             FLSliceExtensions.RegisterFLEncodeExtension(FLValueConverter.FLEncode);
         }
 
@@ -277,23 +275,28 @@ namespace Couchbase.Lite
 		{
 			if(domain.HasFlag(LogDomain.Couchbase)) {
 				Log.To.Couchbase.Level = level;
+			    Log.To.LiteCore.Level = level;
 			}
 
 			if(domain.HasFlag(LogDomain.Database)) {
 				Log.To.Database.Level = level;
-			}
-
-			if(domain.HasFlag(LogDomain.LiteCore)) {
-				Log.To.LiteCore.Level = level;
+                Native.c4log_setLevel(Log.LogDomainDB, (C4LogLevel)level);
 			}
 
 			if(domain.HasFlag(LogDomain.Query)) {
 				Log.To.Query.Level = level;
+                Native.c4log_setLevel(Log.LogDomainSQL, (C4LogLevel)level);
 			}
 
 			if(domain.HasFlag(LogDomain.Replicator)) {
-				Log.To.Replicator.Level = level;
+				Log.To.Sync.Level = level;
 			}
+
+		    if (domain.HasFlag(LogDomain.Network)) {
+		        Native.c4log_setLevel(Log.LogDomainBLIP, (C4LogLevel)level);
+                Native.c4log_setLevel(Log.LogDomainActor, (C4LogLevel)level);
+                Native.c4log_setLevel(Log.LogDomainWebSocket, (C4LogLevel)level);
+		    }
 		}
 
         /// <summary>
