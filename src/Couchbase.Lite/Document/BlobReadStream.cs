@@ -87,6 +87,8 @@ namespace Couchbase.Lite.Internal.Doc
 
         protected override void Dispose(bool disposing)
         {
+            base.Dispose();
+
             Native.c4stream_close(_readStream);
             _readStream = null;
         }

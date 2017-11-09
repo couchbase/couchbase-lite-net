@@ -27,7 +27,8 @@ namespace Couchbase.Lite.DI
 {
     /// <summary>
     /// WARNING: This interface is a temporary solution to https://github.com/dotnet/corefx/issues/19783
-    /// and is not meant to be permanent.  Once UWP 6.0 is out, this interface will be removed.
+    /// and is not meant to be permanent.  Once UWP 6.0 is out, and becomes old enough to become the minimum
+    /// target for Couchbase Lite, this interface will be removed.
     /// 
     /// This interface is designed to create an <see cref="ISslStream"/> for use in writing data over
     /// a TLS encrypted TCP connection.  Normally, we could just use <c>System.Net.Security.SslStream</c>

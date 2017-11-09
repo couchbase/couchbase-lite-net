@@ -38,7 +38,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public Select(ISelectResult[] selects, bool distinct)
         {
-            SelectResults = selects.OfType<QuerySelectResult>().ToArray();
+            SelectResults = selects?.OfType<QuerySelectResult>()?.ToArray();
             if (selects?.Length > 0) {
                 _select = new QueryTypeExpression(SelectResults.Select(x => x.Expression).ToList());
             }

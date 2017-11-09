@@ -76,8 +76,9 @@ namespace Couchbase.Lite.Internal.Doc
 
         public static object AsObject(FLSlice fleeceData, FLSharedKeys* sk = null, bool mutableContainers = true)
         {
-            var root = new MRoot(fleeceData, sk, mutableContainers);
-            return root.AsObject();
+            using (var root = new MRoot(fleeceData, sk, mutableContainers)) {
+                return root.AsObject();
+            }
         }
 
         public static implicit operator bool(MRoot root)

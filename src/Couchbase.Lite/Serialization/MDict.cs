@@ -102,7 +102,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public void InitInSlot(MValue mv, MCollection parent)
         {
-            InitInSlot(mv, parent, parent.MutableChildren);
+            InitInSlot(mv, parent, parent?.MutableChildren == true);
         }
 
         public void Remove(string key)

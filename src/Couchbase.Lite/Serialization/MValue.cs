@@ -125,7 +125,7 @@ namespace Couchbase.Lite.Internal.Serialization
                     return parent?.MutableChildren == true ? new ArrayObject(mv, parent) : new ReadOnlyArray(mv, parent);
                 case FLValueType.Dict:
                     cache = true;
-                    var context = parent.Context as DocContext;
+                    var context = parent?.Context as DocContext;
                     var sk = context != null ? context.SharedKeys : null;
                     var flDict = Native.FLValue_AsDict(mv.Value);
                     var subType = Native.FLValue_AsString(Native.FLDict_GetSharedKey(flDict,
