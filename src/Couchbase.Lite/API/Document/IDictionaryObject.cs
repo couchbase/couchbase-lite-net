@@ -18,147 +18,130 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-
 using System;
 using System.Collections.Generic;
 
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// An interface representing a writeable key value collection
+    /// An interface representing a readonly key-value collection with type-safe accessors
     /// </summary>
-    public interface IDictionaryObject : IReadOnlyDictionary, IDictionaryFragment
+    public interface IDictionaryObject : IDictionaryFragment, IReadOnlyCollection<KeyValuePair<string, object>>
     {
         #region Properties
 
         /// <summary>
-        /// Gets the value of the given key, or lack thereof,
-        /// wrapped inside of a <see cref="Fragment"/>
+        /// Gets all the keys held by this dictionary
         /// </summary>
-        /// <param name="key">The key to check</param>
-        /// <returns>The value of the given key, or lack thereof</returns>
-        new Fragment this[string key] { get; }
+        ICollection<string> Keys { get; }
 
         #endregion
 
         #region Public Methods
 
         /// <summary>
-        /// Gets the value of a given key as an <see cref="IArray"/>
+        /// Checks if a given key is present in the dictionary
+        /// </summary>
+        /// <param name="key">The key to check for</param>
+        /// <returns><c>true</c> if the dictionary contains the key, else <c>false</c></returns>
+        bool Contains(string key);
+
+        /// <summary>
+        /// Gets the value of a given key as an <see cref="IReadOnlyArray"/>
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        new IArray GetArray(string key);
+        IArray GetArray(string key);
 
         /// <summary>
-        /// Gets the value of a given key as a dictionary
+        /// Gets the value of a given key as a <see cref="Blob"/>
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        new IDictionaryObject GetDictionary(string key);
+        Blob GetBlob(string key);
 
         /// <summary>
-        /// Removes the given key from this dictionary
+        /// Gets the value of a given key as a <see cref="Boolean"/>
         /// </summary>
-        /// <param name="key">The key to remove</param>
-        /// <returns>Itself for further processing</returns>
-        IDictionaryObject Remove(string key);
+        /// <param name="key">The key to check the value for</param>
+        /// <returns>The contained value, or its converted equivalent</returns>
+        /// <remarks>Any non-zero object will be treated as true, so don't rely on 
+        /// any sort of parsing</remarks>
+        bool GetBoolean(string key);
 
         /// <summary>
-        /// Sets the given key to the given value
+        /// Gets the value of a given key as a <see cref="DateTimeOffset"/>
         /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IDictionaryObject Set(string key, object value);
+        /// <param name="key">The key to check the value for</param>
+        /// <returns>The contained value, or a default value</returns>
+        DateTimeOffset GetDate(string key);
 
         /// <summary>
-        /// Replaces the contents of this dictionary with the contents of the
-        /// given one
+        /// Gets the value of a given key as a readonly dictionary
         /// </summary>
-        /// <param name="dictionary">The dictionary to replace the current contents with</param>
-        /// <returns>Itself for further processing</returns>
-        IDictionaryObject Set(IDictionary<string, object> dictionary);
+        /// <param name="key">The key to check the value for</param>
+        /// <returns>The contained value, or <c>null</c></returns>
+        IDictionaryObject GetDictionary(string key);
 
         /// <summary>
-        /// Sets the given key to the given value
+        /// Gets the value of a given key as a <see cref="Double"/>
         /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IDictionaryObject Set(string key, string value);
+        /// <param name="key">The key to check the value for</param>
+        /// <returns>The contained value, or its converted equivalent</returns>
+        /// <remarks><c>true</c> will be converted to 1.0, and everything else that
+        /// is non-numeric will be 0.0</remarks>
+        double GetDouble(string key);
 
         /// <summary>
-        /// Sets the given key to the given value
+        /// Gets the value of a given key as a <see cref="Single"/>
         /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IDictionaryObject Set(string key, int value);
+        /// <param name="key">The key to check the value for</param>
+        /// <returns>The contained value, or its converted equivalent</returns>
+        /// <remarks><c>true</c> will be converted to 1.0f, and everything else that
+        /// is non-numeric will be 0.0f</remarks>
+        float GetFloat(string key);
 
         /// <summary>
-        /// Sets the given key to the given value
+        /// Gets the value of a given key as an <see cref="Int32"/>
         /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IDictionaryObject Set(string key, long value);
+        /// <param name="key">The key to check the value for</param>
+        /// <returns>The contained value, or its converted equivalent</returns>
+        /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
+        /// will be rounded, and everything else non-numeric will be 0</remarks>
+        int GetInt(string key);
 
         /// <summary>
-        /// Sets the given key to the given value
+        /// Gets the value of a given key as an <see cref="Int64"/>
         /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IDictionaryObject Set(string key, float value);
+        /// <param name="key">The key to check the value for</param>
+        /// <returns>The contained value, or its converted equivalent</returns>
+        /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
+        /// will be rounded, and everything else non-numeric will be 0</remarks>
+        long GetLong(string key);
 
         /// <summary>
-        /// Sets the given key to the given value
+        /// Gets the value of a given key as an untyped object
         /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IDictionaryObject Set(string key, double value);
+        /// <param name="key">The key to check the value for</param>
+        /// <returns>The contained value, or <c>null</c></returns>
+        /// <remarks>This method should be avoided for numeric types, whose
+        /// underlying representation is subject to change and thus
+        /// <see cref="InvalidCastException"/>s </remarks>
+        object GetObject(string key);
 
         /// <summary>
-        /// Sets the given key to the given value
+        /// Gets the value of a given key as a <see cref="String"/>
         /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IDictionaryObject Set(string key, bool value);
+        /// <param name="key">The key to check the value for</param>
+        /// <returns>The contained value, or <c>null</c></returns>
+        string GetString(string key);
 
         /// <summary>
-        /// Sets the given key to the given value
+        /// Converts this object to a standard .NET string to object
+        /// <see cref="Dictionary{TKey, TValue}"/>
         /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IDictionaryObject Set(string key, Blob value);
-
-        /// <summary>
-        /// Sets the given key to the given value
-        /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IDictionaryObject Set(string key, DateTimeOffset value);
-
-        /// <summary>
-        /// Sets the given key to the given value
-        /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IDictionaryObject Set(string key, ArrayObject value);
-
-        /// <summary>
-        /// Sets the given key to the given value
-        /// </summary>
-        /// <param name="key">The key to set</param>
-        /// <param name="value">The value to set</param>
-        /// <returns>Itself for further processing</returns>
-        IDictionaryObject Set(string key, DictionaryObject value);
+        /// <returns>The contents of this object as a .NET dictionary</returns>
+        Dictionary<string, object> ToDictionary();
 
         #endregion
     }

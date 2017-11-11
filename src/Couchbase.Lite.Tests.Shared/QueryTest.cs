@@ -80,12 +80,12 @@ namespace Test
         [Fact]
         public void TestWhereCheckNullOrMissing()
         {
-            Document doc1 = null, doc2 = null;
-            doc1 = new Document("doc1");
+            MutableDocument doc1 = null, doc2 = null;
+            doc1 = new MutableDocument("doc1");
             doc1.Set("name", "Scott");
             Db.Save(doc1);
 
-            doc2 = new Document("doc2");
+            doc2 = new MutableDocument("doc2");
             doc2.Set("name", "Tiger");
             doc2.Set("address", "123 1st ave.");
             doc2.Set("age", 20);
@@ -98,12 +98,12 @@ namespace Test
 
             var tests = new[] {
                 Tuple.Create(name.NotNullOrMissing(), new[] { doc1, doc2 }),
-                Tuple.Create(name.IsNullOrMissing(), new Document[0]),
+                Tuple.Create(name.IsNullOrMissing(), new MutableDocument[0]),
                 Tuple.Create(address.NotNullOrMissing(), new[] { doc2 }),
                 Tuple.Create(address.IsNullOrMissing(), new[] { doc1 }),
                 Tuple.Create(age.NotNullOrMissing(), new[] { doc2 }),
                 Tuple.Create(age.IsNullOrMissing(), new[] { doc1 }),
-                Tuple.Create(work.NotNullOrMissing(), new Document[0]),
+                Tuple.Create(work.NotNullOrMissing(), new MutableDocument[0]),
                 Tuple.Create(work.IsNullOrMissing(), new[] { doc1, doc2 })
             };
 
@@ -231,7 +231,7 @@ namespace Test
         [Fact]
         public void TestWhereIs()
         {
-            var doc1 = new Document();
+            var doc1 = new MutableDocument();
             doc1.Set("string", "string");
             Db.Save(doc1);
 
@@ -416,11 +416,11 @@ namespace Test
         [Fact]
         public void TestSelectDistinct()
         {
-            var doc1 = new Document();
+            var doc1 = new MutableDocument();
             doc1.Set("number", 1);
             Db.Save(doc1);
 
-            var doc2 = new Document();
+            var doc2 = new MutableDocument();
             doc2.Set("number", 1);
             Db.Save(doc2);
 
@@ -493,7 +493,7 @@ namespace Test
         public void TestJoin()
         {
             LoadNumbers(100);
-            var testDoc = new Document("joinme");
+            var testDoc = new MutableDocument("joinme");
             testDoc.Set("theone", 42);
             Db.Save(testDoc);
             var number2Prop = Expression.Property("number2");
@@ -752,8 +752,8 @@ namespace Test
         [Fact]
         public void TestArrayFunctions()
         {
-            using (var doc = new Document("doc1")) {
-                var array = new ArrayObject();
+            using (var doc = new MutableDocument("doc1")) {
+                var array = new MutableArray();
                 array.Add("650-123-0001");
                 array.Add("650-123-0002");
                 doc.Set("array", array);
@@ -787,7 +787,7 @@ namespace Test
         public void TestMathFunctions()
         {
             const double num = 0.6;
-            using (var doc = new Document("doc1")) {
+            using (var doc = new MutableDocument("doc1")) {
                 doc.Set("number", num);
                 Db.Save(doc);
             }
@@ -841,7 +841,7 @@ namespace Test
         public void TestStringFunctions()
         {
             const string str = "  See you l8r  ";
-            using (var doc = new Document("doc1")) {
+            using (var doc = new MutableDocument("doc1")) {
                 doc.Set("greeting", str);
                 Db.Save(doc);
             }
@@ -891,25 +891,25 @@ namespace Test
         [Fact]
         public void TestTypeFunctions()
         {
-            using (var doc = new Document("doc1")) {
-                doc.Set("element", new ArrayObject {
+            using (var doc = new MutableDocument("doc1")) {
+                doc.Set("element", new MutableArray {
                     "a",
                     "b"
                 });
                 Db.Save(doc);
             }
 
-            //using (var doc = new Document("doc2")) {
+            //using (var doc = new MutableDocument("doc2")) {
             //    doc.Set("element", true);
             //    Db.Save(doc);
             //}
 
-            using (var doc = new Document("doc2")) {
+            using (var doc = new MutableDocument("doc2")) {
                 doc.Set("element", 3.14);
                 Db.Save(doc);
             }
 
-            using (var doc = new Document("doc3")) {
+            using (var doc = new MutableDocument("doc3")) {
                 var dict = new Dictionary<string, object> {
                     ["foo"] = "bar"
                 };
@@ -918,7 +918,7 @@ namespace Test
                 Db.Save(doc);
             }
 
-            using (var doc = new Document("doc4")) {
+            using (var doc = new MutableDocument("doc4")) {
                 doc.Set("element", "string");
                 Db.Save(doc);
             }
@@ -1074,7 +1074,7 @@ namespace Test
         public void TestLocale()
         {
             foreach (var letter in new[] {"B", "A", "Z", "Å"}) {
-                using (var doc = new Document()) {
+                using (var doc = new MutableDocument()) {
                     doc.Set("string", letter);
                     Db.Save(doc);
                 }
@@ -1175,7 +1175,7 @@ namespace Test
 
             int i = 0;
             foreach (var data in testData) {
-                using (var doc = new Document()) {
+                using (var doc = new MutableDocument()) {
                     doc.Set("value", data.Item1);
                     Db.Save(doc);
 
@@ -1203,7 +1203,7 @@ namespace Test
         public void TestAllComparison()
         {
             foreach (var val in new[] {"Apple", "Aardvark", "Ångström", "Zebra", "äpple"}) {
-                using (var doc = new Document()) {
+                using (var doc = new MutableDocument()) {
                     doc.Set("hey", val);
                     Db.Save(doc);
                 }
@@ -1298,7 +1298,7 @@ namespace Test
             {
                 for (int i = 1; i <= num; i++) {
                     var docID = $"doc{i}";
-                    var doc = new Document(docID);
+                    var doc = new MutableDocument(docID);
                     doc.Set("number1", i);
                     doc.Set("number2", num - i);
                     Db.Save(doc);
@@ -1310,7 +1310,7 @@ namespace Test
         private Document CreateDocInSeries(int entry, int max)
         {
             var docID = $"doc{entry}";
-            var doc = new Document(docID);
+            var doc = new MutableDocument(docID);
             doc.Set("number1", entry);
             doc.Set("number2", max - entry);
             Db.Save(doc);

@@ -122,7 +122,7 @@ namespace Couchbase.Lite.Internal.Serialization
             switch (type) {
                 case FLValueType.Array:
                     cache = true;
-                    return parent?.MutableChildren == true ? new ArrayObject(mv, parent) : new ReadOnlyArray(mv, parent);
+                    return parent?.MutableChildren == true ? new MutableArray(mv, parent) : new ArrayObject(mv, parent);
                 case FLValueType.Dict:
                     cache = true;
                     var context = parent?.Context as DocContext;
@@ -136,8 +136,8 @@ namespace Couchbase.Lite.Internal.Serialization
                     }
 
                     return parent?.MutableChildren == true
-                        ? new DictionaryObject(mv, parent)
-                        : new ReadOnlyDictionary(mv, parent);
+                        ? new MutableDictionary(mv, parent)
+                        : new DictionaryObject(mv, parent);
                 default:
                     return FLSliceExtensions.ToObject(mv.Value);
             }
@@ -154,9 +154,9 @@ namespace Couchbase.Lite.Internal.Serialization
         private static MCollection CollectionFromObject(object obj)
         {
             switch (obj) {
-                case ReadOnlyArray arr:
+                case ArrayObject arr:
                     return arr.ToMCollection();
-                case ReadOnlyDictionary dict:
+                case DictionaryObject dict:
                     return dict.ToMCollection();
                 default:
                     return null;

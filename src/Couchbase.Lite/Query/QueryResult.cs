@@ -43,18 +43,18 @@ namespace Couchbase.Lite.Internal.Query
 
         public int Count => _rs.ColumnNames.Count;
 
-        public ReadOnlyFragment this[int index]
+        public Fragment this[int index]
         {
             get {
                 if (index >= Count) {
-                    return ReadOnlyFragment.Null;
+                    return Fragment.Null;
                 }
 
-                return new ReadOnlyFragment(this, index);
+                return new Fragment(this, index);
             }
         }
 
-        public ReadOnlyFragment this[string key] => this[IndexForColumnName(key)];
+        public Fragment this[string key] => this[IndexForColumnName(key)];
 
         public ICollection<string> Keys => _rs.ColumnNames.Keys;
 
@@ -145,9 +145,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IReadOnlyArray
 
-        public IReadOnlyArray GetArray(int index)
+        public IArray GetArray(int index)
         {
-            return FleeceValueToObject(index) as IReadOnlyArray;
+            return FleeceValueToObject(index) as IArray;
         }
 
         public Blob GetBlob(int index)
@@ -165,9 +165,9 @@ namespace Couchbase.Lite.Internal.Query
             return DataOps.ConvertToDate(GetObject(index));
         }
 
-        public IReadOnlyDictionary GetDictionary(int index)
+        public IDictionaryObject GetDictionary(int index)
         {
-            return FleeceValueToObject(index) as IReadOnlyDictionary;
+            return FleeceValueToObject(index) as IDictionaryObject;
         }
 
         public double GetDouble(int index)
@@ -219,7 +219,7 @@ namespace Couchbase.Lite.Internal.Query
             return IndexForColumnName(key) >= 0;
         }
 
-        public IReadOnlyArray GetArray(string key)
+        public IArray GetArray(string key)
         {
             var index = IndexForColumnName(key);
             return index >= 0 ? GetArray(index) : null;
@@ -243,7 +243,7 @@ namespace Couchbase.Lite.Internal.Query
             return index >= 0 ? GetDate(index) : DateTimeOffset.MinValue;
         }
 
-        public IReadOnlyDictionary GetDictionary(string key)
+        public IDictionaryObject GetDictionary(string key)
         {
             var index = IndexForColumnName(key);
             return index >= 0 ? GetDictionary(index) : null;

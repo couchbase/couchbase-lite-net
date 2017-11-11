@@ -68,7 +68,7 @@ namespace Test
             Db.InBatch(() =>
             {
                 for (uint i = 0; i < 10; i++) {
-                    var doc = new Document($"doc-{i}");
+                    var doc = new MutableDocument($"doc-{i}");
                     doc.Set("type", "demo");
                     Db.Save(doc);
                 }
@@ -80,13 +80,13 @@ namespace Test
         [Fact]
         public void TestDocumentChange()
         {
-            var doc1 = new Document("doc1");
+            var doc1 = new MutableDocument("doc1");
             doc1.Set("name", "Scott");
-            SaveDocument(doc1);
+            doc1 = Db.Save(doc1).ToMutable();
 
-            var doc2 = new Document("doc2");
+            var doc2 = new MutableDocument("doc2");
             doc2.Set("name", "Daniel");
-            SaveDocument(doc2);
+            doc2 = Db.Save(doc2).ToMutable();
 
             Db.AddDocumentChangedListener("doc1", DocumentChanged);
             Db.AddDocumentChangedListener("doc2", DocumentChanged);
@@ -100,13 +100,13 @@ namespace Test
             _wa = new WaitAssert();
 
             doc1.Set("name", "Scott Tiger");
-            SaveDocument(doc1);
+            Db.Save(doc1);
 
             Db.Delete(doc2);
 
-            var doc3 = new Document("doc3");
+            var doc3 = new MutableDocument("doc3");
             doc3.Set("name", "Jack");
-            SaveDocument(doc3);
+            Db.Save(doc3);
 
             _wa.WaitForResult(TimeSpan.FromSeconds(5));
         }
@@ -114,9 +114,9 @@ namespace Test
         [Fact]
         public async Task TestAddSameChangeListeners()
         {
-            var doc1 = new Document("doc1");
+            var doc1 = new MutableDocument("doc1");
             doc1.Set("name", "Scott");
-            SaveDocument(doc1);
+            Db.Save(doc1);
 
             Db.AddDocumentChangedListener("doc1", DocumentChanged);
             Db.AddDocumentChangedListener("doc1", DocumentChanged);
@@ -129,7 +129,7 @@ namespace Test
                 "doc1"
             };
             doc1.Set("name", "Scott Tiger");
-            SaveDocument(doc1);
+            Db.Save(doc1);
 
             await Task.Delay(500);
             _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
@@ -138,9 +138,9 @@ namespace Test
         [Fact]
         public async Task TestRemoveDocumentChangeListener()
         {
-            var doc1 = new Document("doc1");
+            var doc1 = new MutableDocument("doc1");
             doc1.Set("name", "Scott");
-            SaveDocument(doc1);
+            Db.Save(doc1);
 
             Db.AddDocumentChangedListener("doc1", DocumentChanged);
 
@@ -150,7 +150,7 @@ namespace Test
             };
 
             doc1.Set("name", "Scott Tiger");
-            SaveDocument(doc1);
+            Db.Save(doc1);
             _wa.WaitForResult(TimeSpan.FromSeconds(5));
 
             Db.RemoveDocumentChangedListener("doc1", DocumentChanged);
@@ -158,7 +158,7 @@ namespace Test
             _wa = new WaitAssert();
             _docCallbackShouldThrow = true;
             doc1.Set("name", "Scott Pilgrim");
-            SaveDocument(doc1);
+            Db.Save(doc1);
 
             await Task.Delay(500);
             _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");

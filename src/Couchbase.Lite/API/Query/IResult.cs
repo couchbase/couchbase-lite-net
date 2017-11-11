@@ -24,6 +24,6 @@ namespace Couchbase.Lite.Query
     /// An interface representing information about a "row" in the result of an
     /// <see cref="IQuery"/>
     /// </summary>
-    public interface IResult : IReadOnlyArray, IReadOnlyDictionary
+    public interface IResult : IArray, IDictionaryObject
     {}
 }

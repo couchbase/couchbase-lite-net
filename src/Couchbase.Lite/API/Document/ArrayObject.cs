@@ -1,5 +1,5 @@
 ﻿// 
-// ArrayObject.cs
+// ReadOnlyArray.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -20,43 +20,39 @@
 // 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
+using Couchbase.Lite.Support;
 
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// A class representing an editable collection of objects
+    /// A class representing a readonly ordered collection of objects
     /// </summary>
-    public sealed class ArrayObject : ReadOnlyArray, IArray
+    public class ArrayObject : IArray
     {
+        #region Variables
+
+        internal readonly MArray _array = new MArray();
+        internal readonly ThreadSafety _threadSafety = new ThreadSafety();
+
+        #endregion
+
         #region Properties
 
         /// <inheritdoc />
-        public new Fragment this[int index] => index >= _array.Count
-            ? Fragment.Null
-            : new Fragment(this, index);
+        public int Count => _array.Count;
+
+        /// <inheritdoc />
+        public Fragment this[int index] => index >= _array.Count ? Fragment.Null : new Fragment(this, index);
 
         #endregion
 
         #region Constructors
 
-        /// <summary>
-        /// Default Constructor
-        /// </summary>
-        public ArrayObject()
+        internal ArrayObject()
         {
-            
-        }
-
-        /// <summary>
-        /// Creates an array with the given data
-        /// </summary>
-        /// <param name="array">The data to populate the array with</param>
-        public ArrayObject(IList array)
-            : this()
-        {
-            Set(array);
         }
 
         internal ArrayObject(MArray array, bool isMutable)
@@ -64,394 +60,121 @@ namespace Couchbase.Lite
             _array.InitAsCopyOf(array, isMutable);
         }
 
-        internal ArrayObject(MValue mv, MCollection parent)
-            : base(mv, parent)
+        internal ArrayObject(ArrayObject original, bool mutable)
+            : this(original._array, mutable)
         {
             
+        }
+
+        internal ArrayObject(MValue mv, MCollection parent)
+        {
+            _array.InitInSlot(mv, parent);
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        internal MCollection ToMCollection()
+        {
+            return _array;
+        }
+
+        internal MutableArray ToMutable()
+        {
+            return new MutableArray(_array, true);
         }
 
         #endregion
 
         #region Private Methods
 
-        private void SetValue(int index, object value)
+        private static MValue Get(MArray array, int index, IThreadSafety threadSafety = null)
         {
-            _threadSafety.DoLocked(() =>
+            return (threadSafety ?? NullThreadSafety.Instance).DoLocked(() =>
             {
-                if (DataOps.ValueWouldChange(value, _array.Get(index), _array)) {
-                    _array.Set(index, DataOps.ToCouchbaseObject(value));
+                var val = array.Get(index);
+                if (val.IsEmpty) {
+                    throw new IndexOutOfRangeException();
                 }
+
+                return val;
             });
+        }
+
+        private static object GetObject(MArray array, int index, IThreadSafety threadSafety = null) => Get(array, index, threadSafety).AsObject(array);
+
+        private static T GetObject<T>(MArray array, int index, IThreadSafety threadSafety = null) where T : class => GetObject(array, index, threadSafety) as T;
+
+        #endregion
+
+        #region IEnumerable
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
 
         #endregion
 
-        #region IArray
+        #region IEnumerable<object>
+
+        /// <summary>
+        /// Returns an enumerator that iterates through the collection.
+        /// </summary>
+        /// <returns>An enumerator that can be used to iterate through the collection.</returns>
+        public virtual IEnumerator<object> GetEnumerator() => _array.GetEnumerator();
+
+        #endregion
+
+        #region IReadOnlyArray
 
         /// <inheritdoc />
-        public IArray Add(object value)
+        public IArray GetArray(int index) => GetObject<IArray>(_array, index, _threadSafety);
+
+        /// <inheritdoc />
+        public Blob GetBlob(int index) => GetObject<Blob>(_array, index, _threadSafety);
+
+        /// <inheritdoc />
+        public bool GetBoolean(int index) => DataOps.ConvertToBoolean(GetObject(_array, index, _threadSafety));
+
+        /// <inheritdoc />
+        public DateTimeOffset GetDate(int index) => DataOps.ConvertToDate(GetObject(_array, index, _threadSafety));
+
+        /// <inheritdoc />
+        public IDictionaryObject GetDictionary(int index) => GetObject<IDictionaryObject>(_array, index, _threadSafety);
+
+        /// <inheritdoc />
+        public double GetDouble(int index) => DataOps.ConvertToDouble(GetObject(_array, index, _threadSafety));
+
+        /// <inheritdoc />
+        public float GetFloat(int index) => DataOps.ConvertToFloat(GetObject(_array, index, _threadSafety));
+
+        /// <inheritdoc />
+        public int GetInt(int index) => DataOps.ConvertToInt(GetObject(_array, index, _threadSafety));
+
+        /// <inheritdoc />
+        public long GetLong(int index) => DataOps.ConvertToLong(GetObject(_array, index, _threadSafety));
+
+        /// <inheritdoc />
+        public object GetObject(int index) => GetObject(_array, index, _threadSafety);
+
+        /// <inheritdoc />
+        public string GetString(int index) => GetObject<string>(_array, index, _threadSafety);
+
+        /// <inheritdoc />
+        public List<object> ToList()
         {
-            return _threadSafety.DoLocked(() =>
+            var count = _array.Count;
+            var result = new List<object>(count);
+            _threadSafety.DoLocked(() =>
             {
-                _array.Add(DataOps.ToCouchbaseObject(value));
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Add(string value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Add(int value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Add(long value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Add(float value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Add(double value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Add(bool value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Add(Blob value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Add(DateTimeOffset value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value.ToString("o"));
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Add(ArrayObject value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Add(DictionaryObject value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public new IArray GetArray(int index)
-        {
-            return base.GetArray(index) as IArray;
-        }
-
-        /// <inheritdoc />
-        public new IDictionaryObject GetDictionary(int index)
-        {
-            return base.GetDictionary(index) as IDictionaryObject;
-        }
-
-        /// <inheritdoc />
-        public IArray Insert(int index, object value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, DataOps.ToCouchbaseObject(value));
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Insert(int index, string value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Insert(int index, int value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Insert(int index, long value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Insert(int index, float value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Insert(int index, double value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Insert(int index, bool value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Insert(int index, Blob value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Insert(int index, DateTimeOffset value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value.ToString("o"));
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Insert(int index, ArrayObject value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Insert(int index, DictionaryObject value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray RemoveAt(int index)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.RemoveAt(index);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Set(IList array)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Clear();
-                foreach (var item in array) {
-                    _array.Add(DataOps.ToCouchbaseObject(item));
+                for (var i = 0; i < count; i++) {
+                    result.Add(DataOps.ToNetObject(GetObject(_array, i)));
                 }
-
-                return this;
             });
-        }
 
-        /// <inheritdoc />
-        public IArray Set(int index, object value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValue(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Set(int index, string value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValue(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Set(int index, int value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValue(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Set(int index, long value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValue(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Set(int index, float value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValue(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Set(int index, double value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValue(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Set(int index, bool value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValue(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Set(int index, Blob value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValue(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Set(int index, DateTimeOffset value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValue(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Set(int index, ArrayObject value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValue(index, value);
-                return this;
-            });
-        }
-
-        /// <inheritdoc />
-        public IArray Set(int index, DictionaryObject value)
-        {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValue(index, value);
-                return this;
-            });
+            return result;
         }
 
         #endregion

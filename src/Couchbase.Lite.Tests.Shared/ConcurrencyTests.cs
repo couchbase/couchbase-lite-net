@@ -253,7 +253,7 @@ namespace Test
 
             exp1.RunAssertAsync(() =>
             {
-                Db.Save(new Document("doc1"));
+                Db.Save(new MutableDocument("doc1"));
             });
 
             exp1.WaitForResult(TimeSpan.FromSeconds(10));
@@ -274,7 +274,7 @@ namespace Test
 
             exp1.RunAssertAsync(() =>
             {
-                Db.Save(new Document("doc1"));
+                Db.Save(new MutableDocument("doc1"));
             });
 
             exp1.WaitForResult(TimeSpan.FromSeconds(10));
@@ -296,7 +296,7 @@ namespace Test
             uint n = 0;
             for (uint r = 1; r <= rounds; r++) {
                 foreach (var docID in docIDs) {
-                    var doc = Db.GetDocument(docID);
+                    var doc = Db.GetDocument(docID).ToMutable();
                     doc.Set("tag", tag);
 
                     var address = doc.GetDictionary("address");
@@ -344,22 +344,22 @@ namespace Test
             count.Should().Be(numRows);
         }
 
-        private Document CreateDocument(string tag)
+        private MutableDocument CreateDocument(string tag)
         {
-            var doc = new Document();
+            var doc = new MutableDocument();
 
             doc.Set("tag", tag);
 
             doc.Set("firstName", "Daniel");
             doc.Set("lastName", "Tiger");
 
-            var address = new DictionaryObject();
+            var address = new MutableDictionary();
             address.Set("street", "1 Main street");
             address.Set("city", "Mountain View");
             address.Set("state", "CA");
             doc.Set("address", address);
 
-            var phones = new ArrayObject {
+            var phones = new MutableArray {
                 "650-123-0001",
                 "650-123-0002"
             };
@@ -375,8 +375,7 @@ namespace Test
             for (uint i = 1; i <= count; i++) {
                 var doc = CreateDocument(tag);
                 WriteLine($"[{tag}] rounds: {i} saving {doc.Id}");
-                Db.Save(doc);
-                yield return doc;
+                yield return Db.Save(doc);
             }
         }
 

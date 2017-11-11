@@ -110,7 +110,7 @@ namespace Test
                     mRoot.Context.Should().BeSameAs(context);
                     var flValue = NativeRaw.FLValue_FromTrustedData((FLSlice) flData);
                     var mArr = new MArray(new MValue(flValue), mRoot);
-                    var deserializedArray = new ReadOnlyArray(mArr, false);
+                    var deserializedArray = new ArrayObject(mArr, false);
                     deserializedArray.GetArray(2).Should().Equal(1L, 2L, 3L);
                     deserializedArray.GetArray(3).Should().BeNull();
                     deserializedArray.GetBlob(1).Should().BeNull();
@@ -139,16 +139,16 @@ namespace Test
         {
             var now = DateTimeOffset.UtcNow;
             var nowStr = now.ToString("o");
-            var ao = new ArrayObject();
+            var ao = new MutableArray();
             var blob = new Blob("text/plain", Encoding.UTF8.GetBytes("Winter is coming"));
-            var dict = new DictionaryObject(new Dictionary<string, object> {["foo"] = "bar"});
+            var dict = new MutableDictionary(new Dictionary<string, object> {["foo"] = "bar"});
             ao.Add(1.1f);
             ao.Add(blob);
             ao.Add(now);
             ao.Add(dict);
 
             var obj = new Object();
-            var arr = new ArrayObject(new[] {5, 4, 3, 2, 1});
+            var arr = new MutableArray(new[] {5, 4, 3, 2, 1});
             ao.Insert(0, obj);
             ao.Insert(0, 42);
             ao.Insert(0, Int64.MaxValue);
@@ -201,7 +201,7 @@ namespace Test
                     mRoot.Context.Should().BeSameAs(context);
                     var flValue = NativeRaw.FLValue_FromTrustedData((FLSlice) flData);
                     var mDict = new MDict(new MValue(flValue), mRoot);
-                    var deserializedDict = new ReadOnlyDictionary(mDict, false);
+                    var deserializedDict = new DictionaryObject(mDict, false);
 
                     deserializedDict["bogus"].ToBlob().Should().BeNull();
                     deserializedDict["date"].ToDate().Should().Be(now);

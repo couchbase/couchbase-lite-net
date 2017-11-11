@@ -126,12 +126,6 @@ namespace Test
             }
         }
 
-        //[Fact] Not yet implemented 
-        public void TestCreateWithCustomConflictResolver()
-        {
-            
-        }
-
         [Fact]
         public void TestGetNonExistingDocWithID()
         {
@@ -200,10 +194,10 @@ namespace Test
         public void TestSaveDoc()
         {
             var docID = "doc1";
-            var doc = GenerateDocument(docID);
+            var doc = GenerateDocument(docID).ToMutable();
 
             doc.Set("key", 2);
-            SaveDocument(doc);
+            Db.Save(doc);
 
             Db.Count.Should().Be(1, "because a document was updated, not added");
             Db.Contains(docID).Should().BeTrue("because the document still exists");
@@ -215,7 +209,7 @@ namespace Test
         public void TestSaveDocInDifferentDBInstance()
         {
             var docID = "doc1";
-            var doc = GenerateDocument(docID);
+            var doc = GenerateDocument(docID).ToMutable();
             using (var otherDB = OpenDB(Db.Name)) {
                 otherDB.Count.Should()
                     .Be(1UL, "because the other database instance should reflect existing data");
@@ -232,7 +226,7 @@ namespace Test
         {
             Database.Delete("otherDB", Directory);
             var docID = "doc1";
-            var doc = GenerateDocument(docID);
+            var doc = GenerateDocument(docID).ToMutable();
             using (var otherDB = OpenDB("otherDB")) {
                 otherDB.Count.Should()
                     .Be(0UL, "because the other database is empty");
@@ -249,11 +243,11 @@ namespace Test
         public void TestSaveSameDocTwice()
         {
             var docID = "doc1";
-            var doc = GenerateDocument(docID);
+            var doc = GenerateDocument(docID).ToMutable();
 
-            SaveDocument(doc);
+            var savedDoc = Db.Save(doc);
 
-            doc.Id.Should().Be(docID, "because the doc ID should never change");
+            savedDoc.Id.Should().Be(docID, "because the doc ID should never change");
             Db.Count.Should().Be(1UL, "because there is still only one document");
         }
 
@@ -270,7 +264,7 @@ namespace Test
         public void TestSaveDocToClosedDB()
         {
             Db.Close();
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc.Set("key", 1);
 
             Db.Invoking(d => d.Save(doc))
@@ -283,7 +277,7 @@ namespace Test
         public void TestSaveDocToDeletedDB()
         {
             DeleteDB(Db);
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc.Set("key", 1);
 
             Db.Invoking(d => d.Save(doc))
@@ -295,7 +289,7 @@ namespace Test
         [Fact]
         public void TestDeletePreSaveDoc()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc.Set("key", 1);
 
             Db.Invoking(d => d.Delete(doc))
@@ -393,8 +387,6 @@ namespace Test
                     var docID = $"doc_{i:D3}";
                     var doc = Db.GetDocument(docID);
                     Db.Delete(doc);
-                    doc.IsDeleted.Should().BeTrue("because the doc was just deleted");
-                    doc.GetObject("key").Should().BeNull("because deleted docs have no properties");
                     Db.Count.Should().Be(9UL - (ulong)i, "because the document count should be accurate after deletion");
                 }
             });
@@ -429,7 +421,7 @@ namespace Test
         [Fact]
         public void TestPurgePreSaveDoc()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc.Set("key", 1);
 
             Db.Invoking(d => d.Purge(doc))
@@ -443,10 +435,9 @@ namespace Test
         public void TestPurgeDoc()
         {
             var doc = GenerateDocument("doc1");
+
             PurgeDocAndVerify(doc);
             Db.Count.Should().Be(0UL, "because the only document was purged");
-            SaveDocument(doc);
-            doc.Sequence.Should().Be(2UL, "because it is the second entry into the database");
         }
 
         [Fact]
@@ -518,9 +509,7 @@ namespace Test
                 for (int i = 0; i < 10; i++) {
                     var docID = $"doc_{i:D3}";
                     var doc = Db.GetDocument(docID);
-                    Db.Purge(doc);
-                    doc.IsDeleted.Should().BeFalse("because the doc has no more record");
-                    doc.GetObject("key").Should().BeNull("because deleted docs have no properties");
+                    PurgeDocAndVerify(doc);
                     Db.Count.Should().Be(9UL - (ulong)i, "because the document count should be accurate after deletion");
                 }
             });
@@ -577,18 +566,19 @@ namespace Test
             doc.GetInt("key").Should().Be(1, "because the document's data should still be accessible");
 
             // Modification should still succeed
-            doc.Set("key", 2);
-            doc.Set("key1", "value");
+            var updatedDoc = doc.ToMutable();
+            updatedDoc.Set("key", 2);
+            updatedDoc.Set("key1", "value");
         }
 
         [Fact]
         public void TestCloseThenAccessBlob()
         {
-            var doc = GenerateDocument("doc1");
-            StoreBlob(Db, doc, Encoding.UTF8.GetBytes("12345"));
+            var doc = GenerateDocument("doc1").ToMutable();
+            var savedDoc = StoreBlob(Db, doc, Encoding.UTF8.GetBytes("12345"));
 
             Db.Close();
-            var blob = doc.GetBlob("data");
+            var blob = savedDoc.GetBlob("data");
             blob.Should().NotBeNull("because the blob should still exist and be accessible");
             blob.Length.Should().Be(5UL, "because the blob's metadata should still be accessible");
             blob.Content.Should().BeNull("because the content cannot be read from a closed database");
@@ -647,22 +637,22 @@ namespace Test
             doc.GetInt("key").Should().Be(1, "because the document's data should still be accessible");
 
             // Modification should still succeed
-            doc.Set("key", 2);
-            doc.Set("key1", "value");
+            var updatedDoc = doc.ToMutable();
+            updatedDoc.Set("key", 2);
+            updatedDoc.Set("key1", "value");
         }
 
         [Fact]
         public void TestDeleteThenAccessBlob()
         {
-            var doc = GenerateDocument("doc1");
-            StoreBlob(Db, doc, Encoding.UTF8.GetBytes("12345"));
+            var doc = GenerateDocument("doc1").ToMutable();
+            var savedDoc = StoreBlob(Db, doc, Encoding.UTF8.GetBytes("12345"));
 
             DeleteDB(Db);
-            var blob = doc.GetBlob("data");
+            var blob = savedDoc.GetBlob("data");
             blob.Should().NotBeNull("because the blob should still exist and be accessible");
             blob.Length.Should().Be(5UL, "because the blob's metadata should still be accessible");
             blob.Content.Should().BeNull("because the content cannot be read from a closed database");
-            //TODO: TO BE CLARIFIED: Instead of returning null should a Forbidden exception be thrown?
         }
 
         [Fact]
@@ -836,8 +826,9 @@ namespace Test
             {
                 foreach (var doc in docs) {
                     for (int i = 0; i < 25; i++) {
-                        doc.Set("number", i);
-                        SaveDocument(doc);
+                        var mDoc = doc.ToMutable();
+                        mDoc.Set("number", i);
+                        Db.Save(mDoc);
                     }
                 }
             });
@@ -845,8 +836,9 @@ namespace Test
             foreach (var doc in docs) {
                 var content = Encoding.UTF8.GetBytes(doc.Id);
                 var blob = new Blob("text/plain", content);
-                doc.Set("blob", blob);
-                SaveDocument(doc);
+                var mDoc = doc.ToMutable();
+                mDoc.Set("blob", blob);
+                Db.Save(mDoc);
             }
 
             Db.Count.Should().Be(20, "because that is the number of documents that were added");
@@ -934,14 +926,14 @@ namespace Test
         {
             for (int i = 0; i < 10; i++) {
                 var docID = $"doc{i}";
-                using (var doc = new Document(docID)) {
+                using (var doc = new MutableDocument(docID)) {
                     doc.Set("name", docID);
 
                     var data = Encoding.UTF8.GetBytes(docID);
                     var blob = new Blob("text/plain", data);
                     doc.Set("data", blob);
 
-                    SaveDocument(doc);
+                    Db.Save(doc);
                 }
             }
 
@@ -1074,7 +1066,7 @@ namespace Test
             };
 
             using (var encryptedDb = new Database("seekrit", config))
-            using (var doc = new Document("company_earnings")) {
+            using (var doc = new MutableDocument("company_earnings")) {
                 doc.Set("value", 1000000000);
                 encryptedDb.Save(doc);
             }
@@ -1130,13 +1122,13 @@ namespace Test
 
         private Document GenerateDocument(string docID)
         {
-            var doc = new Document(docID);
+            var doc = new MutableDocument(docID);
             doc.Set("key", 1);
 
-            SaveDocument(doc);
+            var saveDoc = Db.Save(doc);
             Db.Count.Should().Be(1UL, "because this is the first document");
-            doc.Sequence.Should().Be(1UL, "because this is the first document");
-            return doc;
+            saveDoc.Sequence.Should().Be(1UL, "because this is the first document");
+            return saveDoc;
         }
 
         private void VerifyGetDocument(string docID)
@@ -1166,10 +1158,9 @@ namespace Test
         {
             var docs = new List<Document>();
             for (int i = 0; i < n; i++) {
-                var doc = new Document($"doc_{i:D3}");
+                var doc = new MutableDocument($"doc_{i:D3}");
                 doc.Set("key", i);
-                SaveDocument(doc);
-                docs.Add(doc);
+                docs.Add(Db.Save(doc));
             }
 
             Db.Count.Should().Be((ulong)n, "because otherwise an incorrect number of documents were made");
@@ -1197,22 +1188,19 @@ namespace Test
         {
             var docID = doc.Id;
             Db.Purge(doc);
-            doc.Id.Should().Be(docID, "because a document's ID should never change");
-            doc.Sequence.Should().Be(0UL, "because the document no longer has a database entry");
-            doc.IsDeleted.Should().BeFalse("because the document has no record of deletion");
-            doc.GetObject("key").Should().BeNull("because the content should now be empty");
+            Db.GetDocument(docID).Should().BeNull("because it no longer exists");
         }
 
-        private void StoreBlob(Database db, Document doc, byte[] content)
+        private Document StoreBlob(Database db, MutableDocument doc, byte[] content)
         {
             var blob = new Blob("text/plain", content);
             doc.Set("data", blob);
-            SaveDocument(doc);
+            return Db.Save(doc);
         }
 
         internal sealed class DummyResolver : IConflictResolver
         {
-            public ReadOnlyDocument Resolve(Conflict conflict)
+            public Document Resolve(Conflict conflict)
             {
                 throw new NotImplementedException();
             }

@@ -1,297 +1,219 @@
 // 
-// Document.cs
+//  Document.cs
 // 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
+//  Author:
+//   Jim Borden  <jim.borden@couchbase.com>
 // 
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
 // 
-// http://www.apache.org/licenses/LICENSE-2.0
+//  http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
 // 
+
 using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using LiteCore;
+
 using LiteCore.Interop;
-using LiteCore.Util;
 
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// A class representing an entry in a Couchbase Lite <see cref="Lite.Database"/>.  
-    /// It consists of some metadata, and a collection of user-defined properties
+    /// A class representing a document which cannot be altered
     /// </summary>
-    public sealed unsafe class Document : ReadOnlyDocument, IDictionaryObject
+    public unsafe class Document : IDictionaryObject, IDisposable
     {
-        #region Constants
+        #region Variables
 
-        //private const string Tag = nameof(Document);
-
-        private static readonly Dictionary<Guid, Document> _NativeCacheMap = new Dictionary<Guid, Document>();
+        private readonly bool _owner;
+        private C4Document* _c4Doc;
+        private Database _database;
+        protected IDictionaryObject _dict;
+        private MRoot _root;
 
         #endregion
 
         #region Properties
 
-        /// <inheritdoc />
-        public new Fragment this[string key] => Dict[key];
+        internal C4Database* c4Db
+        {
+            get {
+                Debug.Assert(Database != null && Database.c4db != null);
+                return Database.c4db;
+            }
+        }
 
-        internal static IReadOnlyDictionary<Guid, Document> NativeCacheMap => _NativeCacheMap;
+        internal C4Document* c4Doc
+        {
+            get => _c4Doc;
+            set {
+                _c4Doc = value;
+                Data = null;
 
-        internal override uint Generation => base.Generation + Convert.ToUInt32(Changed);
-        
-        internal override bool IsMutable => true;
+                if (value != null) {
+                    var body = value->selectedRev.body;
+                    if (body.size > 0) {
+                        Data = Native.FLValue_AsDict(NativeRaw.FLValue_FromTrustedData(new FLSlice(body.buf, body.size)));
+                    }
+                }
 
-        private bool Changed => (_dict as DictionaryObject)?.HasChanges ?? (_dict as InMemoryDictionary)?.HasChanges ?? false;
+                UpdateDictionary();
+            }
+        }
 
-        private bool IsEmpty => Dict.Count == 0;
+        internal FLDict* Data { get; private set; }
 
-        private IDictionaryObject Dict => _dict as IDictionaryObject;
+        /// <summary>
+        /// Gets the database that this document belongs to, if any
+        /// </summary>
+        public Database Database
+        {
+            get => _database;
+            set {
+                _database = value;
+                DatabaseThreadSafety = value?.ThreadSafety;
+            }
+        }
+
+        internal ThreadSafety DatabaseThreadSafety { get; private set; }
+
+        internal bool Exists => ThreadSafety.DoLocked(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.DocExists));
+
+        internal virtual uint Generation => ThreadSafety.DoLocked(() => _c4Doc != null ? NativeRaw.c4rev_getGeneration(_c4Doc->revID) : 0U);
+
+        /// <summary>
+        /// Gets this document's unique ID
+        /// </summary>
+        public string Id { get; }
+
+        /// <summary>
+        /// Gets whether or not this document is deleted
+        /// </summary>
+        public bool IsDeleted => ThreadSafety.DoLocked(() => _c4Doc != null && _c4Doc->flags.HasFlag(C4DocumentFlags.DocDeleted));
+
+        internal bool IsEmpty => _dict.Count == 0;
+
+        internal virtual bool IsMutable => false;
+
+        internal string RevID => _c4Doc != null ? _c4Doc->selectedRev.revID.CreateString() : null;
+
+        /// <summary>
+        /// Gets the sequence of this document (a unique incrementing number
+        /// identifying its status in a database)
+        /// </summary>
+        public ulong Sequence => ThreadSafety.DoLocked(() => _c4Doc != null ? _c4Doc->sequence : 0UL);
+
+        internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
+
+        /// <summary>
+        /// Accesses JSON paths in the document to get their values
+        /// </summary>
+        /// <param name="key">The key to create the fragment from</param>
+        public Fragment this[string key] => _dict[key];
+
+        /// <summary>
+        /// Gets all the keys present in this document
+        /// </summary>
+        public ICollection<string> Keys => _dict.Keys;
+
+        /// <summary>
+        /// Gets the number of top level entries in this document
+        /// </summary>
+        public int Count => _dict?.Count ?? 0;
 
         #endregion
 
         #region Constructors
 
-        /// <summary>
-        /// Default Constructor
-        /// </summary>
-        public Document() : this(default(string))
+        internal Document(Database database, string documentID, C4Document* c4Doc, ThreadSafety threadSafety,
+            bool owner = true)
         {
+            Database = database;
+            Id = documentID ?? throw new ArgumentNullException(nameof(documentID));
+            _owner = owner;
+            Debug.Assert(database == null || threadSafety != null);
+            DatabaseThreadSafety = threadSafety;
+            if (!owner) {
+                GC.SuppressFinalize(this);
+            }
 
+            this.c4Doc = c4Doc;
+        }
+
+        internal Document(Database database, string documentID, bool mustExist, ThreadSafety threadSafety, bool owner = true)
+            : this(database, documentID, null, threadSafety, owner)
+        {
+            var db = database ?? throw new ArgumentNullException(nameof(database));
+            threadSafety.DoLocked(() =>
+            {
+                var doc = (C4Document*)NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
+                    err => Native.c4doc_get(db.c4db, documentID, mustExist, err));
+                c4Doc = doc;
+            });
         }
 
         /// <summary>
-        /// Creates a document given an ID
+        /// Finalizer
         /// </summary>
-        /// <param name="documentID">The ID for the document</param>
-        public Document(string documentID)
-            : this(null, documentID ?? Misc.CreateGuid(), null, null, null)
+        ~Document()
         {
-            
-        }
-
-        /// <summary>
-        /// Creates a document with the given properties
-        /// </summary>
-        /// <param name="dictionary">The properties of the document</param>
-        public Document(IDictionary<string, object> dictionary)
-            : this()
-        {
-            Set(dictionary);
-        }
-
-        /// <summary>
-        /// Creates a document with the given ID and properties
-        /// </summary>
-        /// <param name="documentID">The ID for the document</param>
-        /// <param name="dictionary">The properties for the document</param>
-        public Document(string documentID, IDictionary<string, object> dictionary)
-            : this(documentID)
-        {
-            Set(dictionary);
-        }
-
-        internal Document(Database database, string documentID, bool mustExist, ThreadSafety threadSafety)
-            : base(database, documentID, mustExist, threadSafety)
-        {
-
-        }
-
-        private Document(Database database, string documentID, C4Document* c4Doc, FLDict* data, ThreadSafety threadSafety)
-            : base(database, documentID, c4Doc, data, threadSafety)
-        {
-            
+            Dispose(false);
         }
 
         #endregion
 
-        #region Internal Methods
-
-        internal void Delete()
+        public virtual MutableDocument ToMutable()
         {
-            DatabaseThreadSafety.DoLocked(() => Save(EffectiveConflictResolver, true));
+            return new MutableDocument(this);
         }
 
-        internal void Purge()
+        #region Protected Methods
+
+        /// <summary>
+        /// Used for disposing this object
+        /// </summary>
+        /// <param name="disposing"><c>true</c> if disposing, <c>false</c> if finalizing</param>
+        protected virtual void Dispose(bool disposing)
         {
-            DatabaseThreadSafety.DoLocked(() =>
-            {
-                if (!Exists) {
-                    throw new CouchbaseLiteException(StatusCode.NotFound);
-                }
+            if (disposing) {
+                _root?.Dispose();
+            }
 
-                Database.InBatch(() =>
-                {
-                    // InBatch has an implicit database thread safety lock, so just lock
-                    // the document
-                    _selfThreadSafety.DoLocked(() =>
-                    {
-                        LiteCoreBridge.Check(err => NativeRaw.c4doc_purgeRevision(c4Doc, C4Slice.Null, err));
-                        LiteCoreBridge.Check(err => Native.c4doc_save(c4Doc, 0, err));
-                    });
-                });
+            if (_owner) {
+                Native.c4doc_free(_c4Doc);
+            }
 
-                c4Doc = null;
-            });
-        }
-
-        internal void Save()
-        {
-            DatabaseThreadSafety.DoLocked(() => Save(EffectiveConflictResolver, false));
+            c4Doc = null;
         }
 
         #endregion
 
         #region Private Methods
 
-        private void Merge(IConflictResolver resolver, bool deletion)
+        private void UpdateDictionary()
         {
-            if (resolver == null) {
-                throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
-            }
-
-            var database = Database;
-            using (var current = new ReadOnlyDocument(database, Id, true, DatabaseThreadSafety, false)) {
-                var curC4doc = current.c4Doc;
-
-                // Resolve conflict:
-                ReadOnlyDocument resolved;
-                if (deletion) {
-                    // Deletion always loses a conflict:
-                    resolved = current;
-                } else {
-                    // Call the conflict resolver:
-                    using (var baseDoc = new ReadOnlyDocument(database, Id, c4Doc, Data, DatabaseThreadSafety, false)) {
-                        var conflict = new Conflict(this, current, c4Doc != null ? baseDoc : null);
-                        resolved = resolver.Resolve(conflict);
-                        if (resolved == null) {
-                            throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
-                        }
-                    }
-                }
-
-                // Now update my state to the current C4Document and the merged/resolved properties
-                if (!resolved.Equals(current)) {
-                    var dict = resolved.ToDictionary();
-                    c4Doc = curC4doc;
-                    Set(dict);
-                } else {
-                    c4Doc = curC4doc;
-                }
-            }
-        }
-
-        private void Save(IConflictResolver resolver, bool deletion)
-        {
-            if (deletion && !Exists) {
-                throw new CouchbaseLiteException(StatusCode.NotFound);
-            }
-
-            C4Document* newDoc = null;
-            var success = true;
-            Database.BeginTransaction();
-            try {
-                var tmp = default(C4Document*);
-                SaveInto(&tmp, deletion);
-                if (tmp == null) {
-                    Merge(resolver, deletion);
-                    if (!Changed) {
-                        return;
-                    }
-
-                    SaveInto(&tmp, deletion);
-                    if (tmp == null) {
-                        throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
-                    }
-                }
-
-                newDoc = tmp;
-            } catch (Exception) {
-                success = false;
-                throw;
-            } finally {
-                Database.EndTransaction(success);
-            }
-
-            var oldDoc = c4Doc;
-
-            c4Doc = newDoc;
-
-            if (oldDoc != null) {
-                Native.c4doc_free(oldDoc);
-            }
-        }
-
-        [SuppressMessage("ReSharper", "AccessToDisposedClosure", Justification = "The closure is executed synchronously")]
-        private void SaveInto(C4Document** outDoc, bool deletion)
-        {
-            var revFlags = (C4RevisionFlags) 0;
-            if (deletion) {
-                revFlags = C4RevisionFlags.Deleted;
-            }
-
-            var body = new FLSliceResult();
-            if (!deletion && !IsEmpty) {
-
-                var encoded = Encode();
-                body.buf = encoded.buf;
-                body.size = encoded.size;
-                var root = NativeRaw.FLValue_FromTrustedData((FLSlice)body);
-                DatabaseThreadSafety.DoLocked(() =>
-                {
-                    if (Native.c4doc_dictContainsBlobs((FLDict *)root, Database.SharedStrings.SharedKeys)) {
-                        revFlags |= C4RevisionFlags.HasAttachments;
-                    }
-                });
-                
-            } else if (IsEmpty) {
-                var encoder = default(FLEncoder*);
-                DatabaseThreadSafety.DoLocked(() => encoder = Native.c4db_createFleeceEncoder(c4Db));
-                Native.FLEncoder_BeginDict(encoder, 0);
-                Native.FLEncoder_EndDict(encoder);
-                body = NativeRaw.FLEncoder_Finish(encoder, null);
-                Native.FLEncoder_Free(encoder);
-            }
-            
-            try {
-                var rawDoc = c4Doc;
-                if (rawDoc != null) {
-                    _selfThreadSafety.DoLocked(() =>
-                    {
-                        DatabaseThreadSafety.DoLocked(() =>
-                        {
-                            *outDoc = (C4Document*)NativeHandler.Create()
-                                .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                    err => NativeRaw.c4doc_update(rawDoc, (C4Slice)body, revFlags, err));
-                        });
-                    });
-                } else {
-                    DatabaseThreadSafety.DoLocked(() =>
-                    {
-                        using (var docID_ = new C4String(Id)) {
-                            *outDoc = (C4Document*)NativeHandler.Create()
-                                .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                    err => NativeRaw.c4doc_create(c4Db, docID_.AsC4Slice(), (C4Slice)body, revFlags, err));
-                        }
-                    });
-                }
-            } finally {
-                Native.FLSliceResult_Free(body);
+            if (Data != null) {
+                Misc.SafeSwap(ref _root,
+                    new MRoot(new DocContext(_database, _c4Doc), (FLValue*) Data, IsMutable));
+                _dict = (DictionaryObject) _root.AsObject();
+            } else {
+                Misc.SafeSwap(ref _root, null);
+                _dict = IsMutable ? (IDictionaryObject)new InMemoryDictionary() : new DictionaryObject();
             }
         }
 
@@ -299,33 +221,10 @@ namespace Couchbase.Lite
 
         #region Overrides
 
-        internal override FLSlice Encode()
-        {
-            var encoder = default(FLEncoder*);
-            DatabaseThreadSafety.DoLocked(() => encoder = Native.c4db_getSharedFleeceEncoder(c4Db));
-            var guid = Guid.NewGuid();
-            _NativeCacheMap[guid] = this;
-            Native.FLEncoder_SetExtraInfo(encoder, &guid);
-
-            try {
-                _dict.FLEncode(encoder);
-            } catch (Exception) {
-                Native.FLEncoder_Reset(encoder);
-                throw;
-            } finally {
-                _NativeCacheMap.Remove(guid);
-            }
-
-            FLError err;
-            var body = NativeRaw.FLEncoder_Finish(encoder, &err);
-            if (body.buf == null) {
-                throw new LiteCoreException(new C4Error(err));
-            }
-
-            return (FLSlice)body;
-        }
-
-        /// <inheritdoc />
+        /// <summary>
+        /// Returns a string that represents the current object.
+        /// </summary>
+        /// <returns>A string that represents the current object.</returns>
         public override string ToString()
         {
             var id = new SecureLogString(Id, LogMessageSensitivity.PotentiallyInsecure);
@@ -336,109 +235,89 @@ namespace Couchbase.Lite
 
         #region IDictionaryObject
 
-        /// <inheritdoc />
-        public new IArray GetArray(string key)
-        {
-            return Dict.GetArray(key);
-        }
+        public bool Contains(string key) => _dict.Contains(key);
 
-        /// <inheritdoc />
-        public new IDictionaryObject GetDictionary(string key)
-        {
-            return Dict.GetDictionary(key);
-        }
+        public IArray GetArray(string key) => _dict.GetArray(key);
 
-        /// <inheritdoc />
-        public IDictionaryObject Remove(string key)
-        {
-            Dict.Remove(key);
-            return this;
-        }
+        public Blob GetBlob(string key) => _dict.GetBlob(key);
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, object value)
-        {
-            Dict.Set(key, value);
-            return this;
-        }
+        public bool GetBoolean(string key) => _dict.GetBoolean(key);
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(IDictionary<string, object> dictionary)
-        {
-            Dict.Set(dictionary);
-            return this;
-        }
+        public DateTimeOffset GetDate(string key) => _dict.GetDate(key);
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, string value)
-        {
-            Dict.Set(key, value);
-            return this;
-        }
+        public IDictionaryObject GetDictionary(string key) => _dict.GetDictionary(key);
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, int value)
-        {
-            Dict.Set(key, value);
-            return this;
-        }
+        public double GetDouble(string key) => _dict.GetDouble(key);
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, long value)
-        {
-            Dict.Set(key, value);
-            return this;
-        }
+        public float GetFloat(string key) => _dict.GetFloat(key);
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, float value)
-        {
-            Dict.Set(key, value);
-            return this;
-        }
+        public int GetInt(string key) => _dict.GetInt(key);
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, double value)
-        {
-            Dict.Set(key, value);
-            return this;
-        }
+        public long GetLong(string key) => _dict.GetLong(key);
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, bool value)
-        {
-            Dict.Set(key, value);
-            return this;
-        }
+        public object GetObject(string key) => _dict.GetObject(key);
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, Blob value)
-        {
-            Dict.Set(key, value);
-            return this;
-        }
+        public string GetString(string key) => _dict.GetString(key);
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, DateTimeOffset value)
-        {
-            Dict.Set(key, value);
-            return this;
-        }
+        public Dictionary<string, object> ToDictionary() => _dict.ToDictionary();
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, ArrayObject value)
-        {
-            Dict.Set(key, value);
-            return this;
-        }
+        #endregion
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, DictionaryObject value)
+        #region IDisposable
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
         {
-            Dict.Set(key, value);
-            return this;
+            ThreadSafety.DoLocked(() => Dispose(true));
+            GC.SuppressFinalize(this);
         }
 
         #endregion
+
+        #region IEnumerable
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        #endregion
+
+        #region IEnumerable<KeyValuePair<string,object>>
+
+        public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => _dict.GetEnumerator();
+
+        #endregion
+
+        internal virtual FLSlice Encode()
+        {
+            return _c4Doc != null ? (FLSlice)_c4Doc->selectedRev.body : new FLSlice();
+        }
+
+        internal bool SelectCommonAncestor(Document doc1, Document doc2)
+        {
+            if (_c4Doc == null) {
+                return false;
+            }
+
+            var success = false;
+            ThreadSafety.DoLocked(() => success = NativeRaw.c4doc_selectCommonAncestorRevision(_c4Doc, doc1.c4Doc->selectedRev.revID,
+                doc2.c4Doc->selectedRev.revID));
+            if(!success) {
+                return false;
+            }
+
+            c4Doc = _c4Doc;
+            return true;
+        }
+
+        internal void SelectConflictingRevision()
+        {
+            if (_c4Doc == null) {
+                throw new InvalidOperationException("No revision data on the document!");
+            }
+
+            ThreadSafety.DoLockedBridge(err => Native.c4doc_selectNextLeafRevision(_c4Doc, false, true, err));
+            c4Doc = _c4Doc;
+        }
     }
 }

@@ -257,7 +257,7 @@ namespace Couchbase.Lite
             var extra = Native.FLEncoder_GetExtraInfo(enc);
             if (extra != null) {
                 var guid = *(Guid*) extra;
-                var document = Document.NativeCacheMap[guid];
+                var document = MutableDocument.NativeCacheMap[guid];
                 var database = document.Database;
                 try {
                     Install(database);

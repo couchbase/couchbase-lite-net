@@ -19,50 +19,65 @@
 // limitations under the License.
 // 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
+using Couchbase.Lite.Support;
 
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// A class representing a writeable string to object dictionary
+    /// A class representing a key-value collection that is read only
     /// </summary>
-    public sealed class DictionaryObject : ReadOnlyDictionary, IDictionaryObject
+    public class DictionaryObject : IDictionaryObject
     {
-        #region Constants
+        #region Variables
 
-        internal static readonly object RemovedValue = new object();
+        internal readonly MDict _dict = new MDict();
+        internal readonly ThreadSafety _threadSafety = new ThreadSafety();
+        private List<string> _keys;
 
         #endregion
 
         #region Properties
 
         /// <inheritdoc />
-        public new Fragment this[string key] => new Fragment(this, key);
+        public int Count => _dict.Count;
 
-        internal bool HasChanges => _dict.IsMutated;
+        /// <inheritdoc />
+        public Fragment this[string key] => new Fragment(this, key);
+
+        /// <inheritdoc />
+        public ICollection<string> Keys
+        {
+            get {
+                if (_keys == null) {
+                    _keys = new List<string>(_dict.Count);
+                    _threadSafety.DoLocked(() =>
+                    {
+                        foreach (var item in _dict.AllItems()) {
+                            _keys.Add(item.Key);
+                        }
+                    });
+                }
+
+                return _keys;
+            }
+        }
 
         #endregion
 
         #region Constructors
 
-        /// <summary>
-        /// Default Constructor
-        /// </summary>
-        public DictionaryObject()
+        internal DictionaryObject()
         {
             
         }
 
-        /// <summary>
-        /// Creates a dictionary given the initial set of keys and values
-        /// from an existing dictionary
-        /// </summary>
-        /// <param name="dict">The dictionary to copy the keys and values from</param>
-        public DictionaryObject(IDictionary<string, object> dict)
+        internal DictionaryObject(MValue mv, MCollection parent)
         {
-            Set(dict);
+            _dict.InitInSlot(mv, parent);
         }
 
         internal DictionaryObject(MDict dict, bool isMutable)
@@ -70,146 +85,162 @@ namespace Couchbase.Lite
             _dict.InitAsCopyOf(dict, isMutable);
         }
 
-        internal DictionaryObject(MValue mv, MCollection parent)
-            : base(mv, parent)
+        #endregion
+
+        #region Protected Methods
+
+        protected void KeysChanged()
         {
-            
+            _keys = null;
         }
 
         #endregion
 
-        private void SetValue(string key, object value)
+        #region Internal Methods
+
+        internal MCollection ToMCollection()
         {
-            _threadSafety.DoLocked(() =>
-            {
-                var oldValue = _dict.Get(key);
-                if (value != null) {
-                    value = DataOps.ToCouchbaseObject(value);
-                    if (DataOps.ValueWouldChange(value, oldValue, _dict)) {
-                        _dict.Set(key, new MValue(value));
-                        KeysChanged();
-                    }
-                } else {
-                    if (!oldValue.IsEmpty) {
-                        _dict.Remove(key);
-                        KeysChanged();
-                    }
-                }
-            });
+            return _dict;
         }
+
+        internal DictionaryObject ToMutable()
+        {
+            return new DictionaryObject(_dict, true);
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private static object GetObject(MDict dict, string key, IThreadSafety threadSafety = null) => (threadSafety ?? NullThreadSafety.Instance).DoLocked(() => dict.Get(key).AsObject(dict));
+
+        private static T GetObject<T>(MDict dict, string key, IThreadSafety threadSafety = null) where T : class => GetObject(dict, key, threadSafety) as T;
+
+        #endregion
+
+        #region IEnumerable
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        #endregion
+
+        #region IEnumerable<KeyValuePair<string,object>>
+
+        /// <summary>
+        /// Returns an enumerator that iterates through the collection.
+        /// </summary>
+        /// <returns>An enumerator that can be used to iterate through the collection.</returns>
+        public virtual IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+        {
+            return new Enumerator(_dict);
+        }
+
+        #endregion
 
         #region IDictionaryObject
 
         /// <inheritdoc />
-        public new IArray GetArray(string key)
-        {
-            return base.GetArray(key) as IArray;
-        }
+        public bool Contains(string key) => _threadSafety.DoLocked(() => !_dict.Get(key).IsEmpty);
 
         /// <inheritdoc />
-        public new IDictionaryObject GetDictionary(string key)
-        {
-            return base.GetDictionary(key) as IDictionaryObject;
-        }
+        public IArray GetArray(string key) => GetObject<IArray>(_dict, key, _threadSafety);
 
         /// <inheritdoc />
-        public IDictionaryObject Remove(string key)
-        {
-            _threadSafety.DoLocked(() => _dict.Remove(key));
-            return this;
-        }
+        public Blob GetBlob(string key) => GetObject<Blob>(_dict, key, _threadSafety);
 
         /// <inheritdoc />
-        public IDictionaryObject Set(string key, object value)
-        {
-            SetValue(key, value);
-            return this;
-        }
+        public bool GetBoolean(string key) => DataOps.ConvertToBoolean(GetObject(_dict, key, _threadSafety));
 
         /// <inheritdoc />
-        public IDictionaryObject Set(IDictionary<string, object> dictionary)
+        public DateTimeOffset GetDate(string key) => DataOps.ConvertToDate(GetObject(_dict, key, _threadSafety));
+
+        /// <inheritdoc />
+        public IDictionaryObject GetDictionary(string key) => GetObject<IDictionaryObject>(_dict, key, _threadSafety);
+
+        /// <inheritdoc />
+        public double GetDouble(string key) => DataOps.ConvertToDouble(GetObject(_dict, key, _threadSafety));
+
+        /// <inheritdoc />
+        public float GetFloat(string key) => DataOps.ConvertToFloat(GetObject(_dict, key, _threadSafety));
+
+        /// <inheritdoc />
+        public int GetInt(string key) => DataOps.ConvertToInt(GetObject(_dict, key, _threadSafety));
+
+        /// <inheritdoc />
+        public long GetLong(string key) => DataOps.ConvertToLong(GetObject(_dict, key, _threadSafety));
+
+        /// <inheritdoc />
+        public object GetObject(string key) => GetObject(_dict, key, _threadSafety);
+
+        /// <inheritdoc />
+        public string GetString(string key) => GetObject<string>(_dict, key, _threadSafety);
+
+        /// <inheritdoc />
+        public Dictionary<string, object> ToDictionary()
         {
+            var result = new Dictionary<string, object>(_dict.Count);
             _threadSafety.DoLocked(() =>
             {
-                _dict.Clear();
-                foreach (var item in dictionary) {
-                    _dict.Set(item.Key, new MValue(DataOps.ToCouchbaseObject(item.Value)));
+                foreach (var item in _dict.AllItems()) {
+                    result[item.Key] = DataOps.ToNetObject(item.Value.AsObject(_dict));
                 }
-
-                KeysChanged();
             });
 
-            return this;
+            return result;
         }
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, string value)
-        {
-            SetValue(key, value);
-            return this;
-        }
+        #endregion
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, int value)
-        {
-            SetValue(key, value);
-            return this;
-        }
+        #region Nested
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, long value)
+        private class Enumerator : IEnumerator<KeyValuePair<string, object>>
         {
-            SetValue(key, value);
-            return this;
-        }
+            #region Variables
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, float value)
-        {
-            SetValue(key, value);
-            return this;
-        }
+            private readonly IEnumerator<KeyValuePair<string, MValue>> _inner;
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, double value)
-        {
-            SetValue(key, value);
-            return this;
-        }
+            private readonly MDict _parent;
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, bool value)
-        {
-            SetValue(key, value);
-            return this;
-        }
+            #endregion
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, Blob value)
-        {
-            SetValue(key, value);
-            return this;
-        }
+            #region Properties
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, DateTimeOffset value)
-        {
-            SetValue(key, value.ToString("o"));
-            return this;
-        }
+            public KeyValuePair<string, object> Current => new KeyValuePair<string, object>(_inner.Current.Key,
+                _inner.Current.Value.AsObject(_parent));
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, ArrayObject value)
-        {
-            SetValue(key, value);
-            return this;
-        }
+            object IEnumerator.Current => Current;
 
-        /// <inheritdoc />
-        public IDictionaryObject Set(string key, DictionaryObject value)
-        {
-            SetValue(key, value);
-            return this;
+            #endregion
+
+            #region Constructors
+
+            public Enumerator(MDict parent)
+            {
+                _parent = parent;
+                _inner = parent.AllItems().GetEnumerator();
+            }
+
+            #endregion
+
+            #region IDisposable
+
+            public void Dispose()
+            {
+                _inner.Dispose();
+            }
+
+            #endregion
+
+            #region IEnumerator
+
+            public bool MoveNext() => _inner.MoveNext();
+
+            public void Reset() => _inner.Reset();
+
+            #endregion
         }
 
         #endregion

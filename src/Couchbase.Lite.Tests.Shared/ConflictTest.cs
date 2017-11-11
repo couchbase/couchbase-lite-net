@@ -58,7 +58,7 @@ namespace Test
             Db.Save(doc);
             doc["name"].ToString().Should().Be("Scotty", "because the 'theirs' version should win");
 
-            doc = new Document("doc2");
+            doc = new MutableDocument("doc2");
             ConflictResolver = new MergeThenTheirsWins();
             ReopenDB();
             doc.Set("type", "profile");
@@ -142,24 +142,24 @@ namespace Test
                 ["hello"] = "world"
             };
 
-            var doc = new Document("doc1", props);
+            var doc = new MutableDocument("doc1", props);
             Db.Save(doc);
 
-            doc = Db.GetDocument(doc.Id);
+            doc = Db.GetDocument(doc.Id).ToMutable();
             doc.Set("university", 1);
             Db.Save(doc);
 
             // Create a conflict
-            doc = new Document(doc.Id, props);
+            doc = new MutableDocument(doc.Id, props);
             doc.Set("university", 2);
 
             Db.Invoking(d => d.Save(doc)).ShouldThrow<LiteCoreException>().Which.Error.Should()
                 .Be(new C4Error(C4ErrorCode.Conflict));
         }
 
-        private Document SetupConflict()
+        private MutableDocument SetupConflict()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc.Set("type", "profile");
             doc.Set("name", "Scott");
             Db.Save(doc);
@@ -204,7 +204,7 @@ namespace Test
 
     internal class NoCommonAncestorValidator : IConflictResolver
     {
-        public ReadOnlyDocument Resolve(Conflict conflict)
+        public Document Resolve(Conflict conflict)
         {
             conflict.Should().NotBeNull();
             conflict.Base.Should().BeNull();
@@ -214,7 +214,7 @@ namespace Test
 
     internal class TheirsWins : IConflictResolver
     {
-        public ReadOnlyDocument Resolve(Conflict conflict)
+        public Document Resolve(Conflict conflict)
         {
             return conflict.Theirs;
         }
@@ -224,13 +224,13 @@ namespace Test
     {
         public bool RequireBaseRevision { get; set; }
 
-        public ReadOnlyDocument Resolve(Conflict conflict)
+        public Document Resolve(Conflict conflict)
         {
             if (RequireBaseRevision) {
                 conflict.Base.Should().NotBeNull();
             }
 
-            var resolved = new Document();
+            var resolved = new MutableDocument();
             if (conflict.Base != null) {
                 foreach (var pair in conflict.Base) {
                     resolved.Set(pair.Key, pair.Value);
@@ -255,7 +255,7 @@ namespace Test
 
     internal class GiveUp : IConflictResolver
     {
-        public ReadOnlyDocument Resolve(Conflict conflict)
+        public Document Resolve(Conflict conflict)
         {
             return null;
         }
@@ -263,7 +263,7 @@ namespace Test
 
     internal class DoNotResolve : IConflictResolver
     {
-        public ReadOnlyDocument Resolve(Conflict conflict)
+        public Document Resolve(Conflict conflict)
         {
             throw new NotImplementedException();
         }
