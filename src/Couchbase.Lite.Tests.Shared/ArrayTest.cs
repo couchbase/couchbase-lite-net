@@ -843,7 +843,7 @@ namespace Test
             var savedDoc = Db.Save(doc);
             
             var savedArray = savedDoc.GetArray("array");
-            eval(array);
+            eval(savedArray);
 
             return savedDoc;
         }

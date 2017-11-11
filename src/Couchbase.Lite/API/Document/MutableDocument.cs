@@ -78,7 +78,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="documentID">The ID for the document</param>
         public MutableDocument(string documentID)
-            : this(null, documentID ?? Misc.CreateGuid(), null, null)
+            : this(null, documentID ?? Misc.CreateGuid(), null)
         {
             
         }
@@ -104,20 +104,20 @@ namespace Couchbase.Lite
             Set(dictionary);
         }
 
-        internal MutableDocument(Database database, string documentID, bool mustExist, ThreadSafety threadSafety)
-            : base(database, documentID, mustExist, threadSafety)
+        internal MutableDocument(Database database, string documentID, bool mustExist)
+            : base(database, documentID, mustExist)
         {
 
         }
 
         internal MutableDocument(Document doc)
-            : this(doc.Database, doc.Id, doc.c4Doc, doc.DatabaseThreadSafety)
+            : this(doc?.Database, doc?.Id, doc?.c4Doc?.Retain<C4DocumentWrapper>())
         {
-            
+            doc?.Dispose();
         }
 
-        private MutableDocument(Database database, string documentID, C4Document* c4Doc, ThreadSafety threadSafety)
-            : base(database, documentID, c4Doc, threadSafety)
+        private MutableDocument(Database database, string documentID, C4DocumentWrapper c4Doc)
+            : base(database, documentID, c4Doc)
         {
             
         }
@@ -135,8 +135,7 @@ namespace Couchbase.Lite
 
         internal override FLSlice Encode()
         {
-            var encoder = default(FLEncoder*);
-            DatabaseThreadSafety.DoLocked(() => encoder = Native.c4db_getSharedFleeceEncoder(c4Db));
+            var encoder = Database.SharedEncoder;
             var guid = Guid.NewGuid();
             _NativeCacheMap[guid] = this;
             Native.FLEncoder_SetExtraInfo(encoder, &guid);
