@@ -102,7 +102,7 @@ namespace Couchbase.Lite.Support
             }
 
             _innerStream.Dispose();
-            Log.To.Replicator.W(Tag, "Server certificate did not match the pinned one");
+            Log.To.Sync.W(Tag, "Server certificate did not match the pinned one");
             throw new AuthenticationException();
         }
 
@@ -134,7 +134,7 @@ namespace Couchbase.Lite.Support
                     return;
                 }
 
-                Log.To.Replicator.W(Tag, "Exception while negotiating SSL connection", e);
+                Log.To.Sync.W(Tag, "Exception while negotiating SSL connection", e);
                 var rethrow = false;
                 for (var i = 0; i < _innerStream.Information.ServerCertificateErrors.Count; i++) {
                     var err = _innerStream.Information.ServerCertificateErrors[i];
@@ -144,7 +144,7 @@ namespace Couchbase.Lite.Support
 
                     var cert = (i == _innerStream.Information.ServerCertificateErrors.Count - 1)
                         ? _innerStream.Information.ServerCertificate : _innerStream.Information.ServerIntermediateCertificates[i];
-                    Log.To.Replicator.V(Tag, $"Got result {err} for certificate: " +
+                    Log.To.Sync.V(Tag, $"Got result {err} for certificate: " +
                                        $"{Environment.NewLine}[SN]{cert.Subject} " +
                                        $"{Environment.NewLine}[Issuer]{cert.Issuer}" +
                                        $"{Environment.NewLine}[Serial]{BitConverter.ToString(cert.SerialNumber)}" +

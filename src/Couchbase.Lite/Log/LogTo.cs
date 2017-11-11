@@ -19,6 +19,8 @@
 // limitations under the License.
 //
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
 using LiteCore.Interop;
 using Microsoft.Extensions.Logging;
@@ -59,6 +61,7 @@ namespace Couchbase.Lite.Logging
         {
             _domain = domain ?? "Default";
 			_domainObj = Native.c4log_getDomain(domain, true);
+            Level = LogLevel.Warning;
             _logger = Log.Factory.CreateLogger(_domain);
         }
 
@@ -267,6 +270,8 @@ namespace Couchbase.Lite.Logging
         internal DomainLogger Query => _allLoggers[1];
 
         internal DomainLogger Sync => _allLoggers[2];
+
+        internal IEnumerable<DomainLogger> All => _allLoggers;
 
         #endregion
 

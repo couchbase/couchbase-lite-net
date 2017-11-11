@@ -45,10 +45,11 @@ namespace Couchbase.Lite.Logging
         {
             get {
                 if (!_Initialized.Set(true)) {
+                    var oldLevel = Database.GetLogLevels(LogDomain.Couchbase)[LogDomain.Couchbase];
                     Database.SetLogLevel(LogDomain.Couchbase, LogLevel.Info);
                     To.Couchbase.I("Startup", HTTPLogic.UserAgent);
                     To.Couchbase.I("Startup", Native.c4_getBuildInfo());
-                    Database.SetLogLevel(LogDomain.All, LogLevel.Warning);
+                    Database.SetLogLevel(LogDomain.Couchbase, oldLevel);
                 }
 
                 return _To;
@@ -172,6 +173,14 @@ namespace Couchbase.Lite.Logging
         [MonoPInvokeCallback(typeof(C4LogCallback))]
         private static void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, string message, IntPtr ignored)
         {
+            var domainName = Native.c4log_getDomainName(domain);
+            foreach (var logger in To.All) {
+                if (logger.Domain == domainName) {
+                    logger.QuickWrite(level, message);
+                    return;
+                }
+            }
+
             To.LiteCore.QuickWrite(level, message);
         }
 

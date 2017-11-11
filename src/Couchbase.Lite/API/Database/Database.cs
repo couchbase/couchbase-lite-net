@@ -24,7 +24,9 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Logging;
@@ -32,11 +34,12 @@ using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
+
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+
 using Newtonsoft.Json;
-using LogLevel = Couchbase.Lite.Logging.LogLevel;
 
 namespace Couchbase.Lite
 {
@@ -267,37 +270,63 @@ namespace Couchbase.Lite
         }
 
 		/// <summary>
-		/// Sets the log level for the given domain(s)
+		/// Sets the log level for the given domains(s)
 		/// </summary>
-		/// <param name="domain">The domain(s) to change the log level for</param>
+		/// <param name="domains">The domains(s) to change the log level for</param>
 		/// <param name="level">The level to set the logging to</param>
-		public static void SetLogLevel(LogDomain domain, LogLevel level)
+		public static void SetLogLevel(LogDomain domains, LogLevel level)
 		{
-			if(domain.HasFlag(LogDomain.Couchbase)) {
+			if(domains.HasFlag(LogDomain.Couchbase)) {
 				Log.To.Couchbase.Level = level;
 			    Log.To.LiteCore.Level = level;
 			}
 
-			if(domain.HasFlag(LogDomain.Database)) {
+			if(domains.HasFlag(LogDomain.Database)) {
 				Log.To.Database.Level = level;
                 Native.c4log_setLevel(Log.LogDomainDB, (C4LogLevel)level);
 			}
 
-			if(domain.HasFlag(LogDomain.Query)) {
+			if(domains.HasFlag(LogDomain.Query)) {
 				Log.To.Query.Level = level;
                 Native.c4log_setLevel(Log.LogDomainSQL, (C4LogLevel)level);
 			}
 
-			if(domain.HasFlag(LogDomain.Replicator)) {
+			if(domains.HasFlag(LogDomain.Replicator)) {
 				Log.To.Sync.Level = level;
 			}
 
-		    if (domain.HasFlag(LogDomain.Network)) {
+		    if (domains.HasFlag(LogDomain.Network)) {
 		        Native.c4log_setLevel(Log.LogDomainBLIP, (C4LogLevel)level);
                 Native.c4log_setLevel(Log.LogDomainActor, (C4LogLevel)level);
                 Native.c4log_setLevel(Log.LogDomainWebSocket, (C4LogLevel)level);
 		    }
 		}
+
+        internal static IReadOnlyDictionary<LogDomain, LogLevel> GetLogLevels(LogDomain domains)
+        {
+            var retVal = new Dictionary<LogDomain, LogLevel>();
+            if(domains.HasFlag(LogDomain.Couchbase)) {
+                retVal[LogDomain.Couchbase] = Log.To.Couchbase.Level;
+            }
+
+            if(domains.HasFlag(LogDomain.Database)) {
+                retVal[LogDomain.Database] = Log.To.Database.Level;
+            }
+
+            if(domains.HasFlag(LogDomain.Query)) {
+                retVal[LogDomain.Query] = Log.To.Query.Level;
+            }
+
+            if(domains.HasFlag(LogDomain.Replicator)) {
+                retVal[LogDomain.Replicator] = Log.To.Sync.Level;
+            }
+
+            if (domains.HasFlag(LogDomain.Network)) {
+                retVal[LogDomain.Network] = (LogLevel)Native.c4log_getLevel(Log.LogDomainBLIP);
+            }
+
+            return retVal;
+        }
 
         /// <summary>
         /// Adds a listener for changes on a certain document (by ID).  Similar to <see cref="Database.Changed"/>
