@@ -160,22 +160,27 @@ namespace Test
         [Fact]
         public void TestGetExistingDocWithIDInBatch()
         {
-            CreateDocs(10);
+            var docs = CreateDocs(10);
 
             Db.InBatch(() => ValidateDocs(10));
+
+            foreach(var doc in docs) {
+                doc.Dispose();
+            }
         }
 
         [Fact]
         public void TestGetDocFromClosedDB()
         {
-            GenerateDocument("doc1");
+            using(var doc = GenerateDocument("doc1")) {
 
-            Db.Close();
+                Db.Close();
 
-            Db.Invoking(d => d.GetDocument("doc1"))
-                .ShouldThrow<InvalidOperationException>()
-                .WithMessage("Attempt to perform an operation on a closed database",
-                    "because this operation is invalid");
+                Db.Invoking(d => d.GetDocument("doc1"))
+                    .ShouldThrow<InvalidOperationException>()
+                    .WithMessage("Attempt to perform an operation on a closed database",
+                        "because this operation is invalid");
+            };
         }
 
         [Fact]
@@ -194,22 +199,22 @@ namespace Test
         public void TestSaveDoc()
         {
             var docID = "doc1";
-            var doc = GenerateDocument(docID).ToMutable();
+            using(var doc = GenerateDocument(docID).ToMutable()) {
+                doc.Set("key", 2);
+                Db.Save(doc);
 
-            doc.Set("key", 2);
-            Db.Save(doc);
+                Db.Count.Should().Be(1, "because a document was updated, not added");
+                Db.Contains(docID).Should().BeTrue("because the document still exists");
 
-            Db.Count.Should().Be(1, "because a document was updated, not added");
-            Db.Contains(docID).Should().BeTrue("because the document still exists");
-
-            VerifyGetDocument(docID, 2);
+                VerifyGetDocument(docID, 2);
+            }
         }
 
         [Fact]
         public void TestSaveDocInDifferentDBInstance()
         {
             var docID = "doc1";
-            var doc = GenerateDocument(docID).ToMutable();
+            using (var doc = GenerateDocument(docID).ToMutable())
             using (var otherDB = OpenDB(Db.Name)) {
                 otherDB.Count.Should()
                     .Be(1UL, "because the other database instance should reflect existing data");
@@ -226,7 +231,7 @@ namespace Test
         {
             Database.Delete("otherDB", Directory);
             var docID = "doc1";
-            var doc = GenerateDocument(docID).ToMutable();
+            using (var doc = GenerateDocument(docID).ToMutable())
             using (var otherDB = OpenDB("otherDB")) {
                 otherDB.Count.Should()
                     .Be(0UL, "because the other database is empty");
@@ -243,12 +248,11 @@ namespace Test
         public void TestSaveSameDocTwice()
         {
             var docID = "doc1";
-            var doc = GenerateDocument(docID).ToMutable();
-
-            var savedDoc = Db.Save(doc);
-
-            savedDoc.Id.Should().Be(docID, "because the doc ID should never change");
-            Db.Count.Should().Be(1UL, "because there is still only one document");
+            using(var doc = GenerateDocument(docID).ToMutable())
+            using(var savedDoc = Db.Save(doc)) {
+                savedDoc.Id.Should().Be(docID, "because the doc ID should never change");
+                Db.Count.Should().Be(1UL, "because there is still only one document");
+            }
         }
 
         [Fact]
@@ -308,6 +312,7 @@ namespace Test
             Db.Delete(doc);
             Db.Count.Should().Be(0UL, "because the only document was deleted");
 
+            doc = Db.GetDocument(docID);
             doc.Id.Should().Be(docID, "because the document ID should never change");
             doc.IsDeleted.Should().BeTrue("because the document was deleted");
             doc.Sequence.Should().Be(2UL, "because the deletion is the second revision");
@@ -365,6 +370,8 @@ namespace Test
 
             Db.Delete(doc);
             Db.Count.Should().Be(0UL, "because the only document was deleted");
+
+            doc = Db.GetDocument(docID);
             doc.GetObject("key").Should().BeNull("because a deleted document has no properties");
             doc.IsDeleted.Should().BeTrue("because the document was deleted");
             doc.Sequence.Should().Be(2UL, "because the deletion is the second revision");
@@ -372,6 +379,8 @@ namespace Test
             // Second deletion
             Db.Delete(doc);
             Db.Count.Should().Be(0UL, "because the only document was deleted");
+
+            doc = Db.GetDocument(docID);
             doc.GetObject("key").Should().BeNull("because a deleted document has no properties");
             doc.IsDeleted.Should().BeTrue("because the document was deleted");
             doc.Sequence.Should().Be(3UL, "because the deletion is the third revision");
@@ -850,8 +859,9 @@ namespace Test
             Db.Compact();
 
             foreach (var doc in docs) {
-                Db.Delete(doc);
-                doc.IsDeleted.Should().BeTrue("because the document was just deleted");
+                var savedDoc = Db.GetDocument(doc.Id);
+                Db.Delete(savedDoc);
+                Db.GetDocument(savedDoc.Id).IsDeleted.Should().BeTrue("because the document was just deleted");
             }
 
             Db.Count.Should().Be(0, "because all documents were deleted");
@@ -1122,13 +1132,14 @@ namespace Test
 
         private Document GenerateDocument(string docID)
         {
-            var doc = new MutableDocument(docID);
-            doc.Set("key", 1);
+            using(var doc = new MutableDocument(docID)) {
+                doc.Set("key", 1);
 
-            var saveDoc = Db.Save(doc);
-            Db.Count.Should().Be(1UL, "because this is the first document");
-            saveDoc.Sequence.Should().Be(1UL, "because this is the first document");
-            return saveDoc;
+                var saveDoc = Db.Save(doc);
+                Db.Count.Should().Be(1UL, "because this is the first document");
+                saveDoc.Sequence.Should().Be(1UL, "because this is the first document");
+                return saveDoc;
+            }
         }
 
         private void VerifyGetDocument(string docID)
@@ -1158,9 +1169,10 @@ namespace Test
         {
             var docs = new List<Document>();
             for (int i = 0; i < n; i++) {
-                var doc = new MutableDocument($"doc_{i:D3}");
-                doc.Set("key", i);
-                docs.Add(Db.Save(doc));
+                using(var doc = new MutableDocument($"doc_{i:D3}")) {
+                    doc.Set("key", i);
+                    docs.Add(Db.Save(doc));
+                }
             }
 
             Db.Count.Should().Be((ulong)n, "because otherwise an incorrect number of documents were made");

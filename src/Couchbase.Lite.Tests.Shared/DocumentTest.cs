@@ -616,7 +616,7 @@ namespace Test
             savedDoc.GetObject("dict").Should().NotBeSameAs(dict, "beacuse a new MutableDocument should return a new object");
             savedDoc.GetObject("dict")
                 .Should()
-                .BeSameAs(doc.GetDictionary("dict"), "because the same document should return the same thing");
+                .BeSameAs(savedDoc.GetDictionary("dict"), "because the same document should return the same thing");
             savedDoc.GetDictionary("dict")
                 .ToDictionary()
                 .ShouldBeEquivalentTo(dict.ToDictionary(), "because the contents should be the same");
@@ -639,7 +639,7 @@ namespace Test
             savedDoc.GetObject("dict").Should().NotBeSameAs(dict, "beacuse a new MutableDocument should return a new object");
             savedDoc.GetObject("dict")
                 .Should()
-                .BeSameAs(doc.GetDictionary("dict"), "because the same document should return the same thing");
+                .BeSameAs(savedDoc.GetDictionary("dict"), "because the same document should return the same thing");
             savedDoc.GetDictionary("dict")
                 .ToDictionary()
                 .ShouldBeEquivalentTo(csharpDict, "because the contents should be the same as before");
@@ -700,7 +700,7 @@ namespace Test
             savedDoc.GetObject("array").Should().NotBeSameAs(array, "because a new MutableDocument should return a new object");
             savedDoc.GetObject("array")
                 .Should()
-                .BeSameAs(doc.GetArray("array"), "because the same doc should return the same object");
+                .BeSameAs(savedDoc.GetArray("array"), "because the same doc should return the same object");
             savedDoc.GetArray("array")
                 .Should()
                 .ContainInOrder(new[] { "item1", "item2", "item3" }, "because otherwise the contents are incorrect");
@@ -714,7 +714,7 @@ namespace Test
             savedDoc.GetObject("array").Should().NotBeSameAs(array, "because a new MutableDocument should return a new object");
             savedDoc.GetObject("array")
                 .Should()
-                .BeSameAs(doc.GetArray("array"), "because the same doc should return the same object");
+                .BeSameAs(savedDoc.GetArray("array"), "because the same doc should return the same object");
             savedDoc.GetArray("array")
                 .Should()
                 .ContainInOrder(new[] { "item1", "item2", "item3", "item4", "item5" },

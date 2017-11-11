@@ -54,32 +54,41 @@ namespace Test
         {
             ConflictResolver = new TheirsWins();
             ReopenDB();
-            var doc = SetupConflict();
-            Db.Save(doc);
-            doc["name"].ToString().Should().Be("Scotty", "because the 'theirs' version should win");
+            var doc1 = SetupConflict();
+            var savedDoc1 = Db.Save(doc1);
+            savedDoc1["name"].ToString().Should().Be("Scotty", "because the 'theirs' version should win");
+            doc1.Dispose();
+            savedDoc1.Dispose();
 
-            doc = new MutableDocument("doc2");
             ConflictResolver = new MergeThenTheirsWins();
             ReopenDB();
-            doc.Set("type", "profile");
-            doc.Set("name", "Scott");
-            Db.Save(doc);
+
+            var doc2 = new MutableDocument("doc2");
+            doc2.Set("type", "profile");
+            doc2.Set("name", "Scott");
+            var savedDoc2 = Db.Save(doc2);
 
             // Force a conflict again
-            var properties = doc.ToDictionary();
+            var properties = doc2.ToDictionary();
             properties["type"] = "bio";
             properties["gender"] = "male";
-            SaveProperties(properties, doc.Id);
+            SaveProperties(properties, doc2.Id);
+            doc2.Dispose();
 
             // Save and make sure that the correct conflict resolver won
-            doc.Set("type", "bio");
-            doc.Set("age", 31);
-            Db.Save(doc);
+            doc2 = savedDoc2.ToMutable();
+            doc2.Set("type", "bio");
+            doc2.Set("age", 31);
+            
+            savedDoc2.Dispose();
+            savedDoc2 = Db.Save(doc2);
+            doc2.Dispose();
 
-            doc["age"].ToLong().Should().Be(31L, "because 'age' was changed by 'mine' and not 'theirs'");
-            doc["type"].ToString().Should().Be("bio", "because 'type' was changed by 'mine' and 'theirs' so 'theirs' should win");
-            doc["gender"].ToString().Should().Be("male", "because 'gender' was changed by 'theirs' but not 'mine'");
-            doc["name"].ToString().Should().Be("Scott", "because 'name' was unchanged");
+            savedDoc2["age"].ToLong().Should().Be(31L, "because 'age' was changed by 'mine' and not 'theirs'");
+            savedDoc2["type"].ToString().Should().Be("bio", "because 'type' was changed by 'mine' and 'theirs' so 'theirs' should win");
+            savedDoc2["gender"].ToString().Should().Be("male", "because 'gender' was changed by 'theirs' but not 'mine'");
+            savedDoc2["name"].ToString().Should().Be("Scott", "because 'name' was unchanged");
+            savedDoc2.Dispose();
         }
 
         [Fact]
@@ -99,10 +108,15 @@ namespace Test
         {
             ConflictResolver = new DoNotResolve();
             ReopenDB();
-            var doc = SetupConflict();
-            Db.Delete(doc);
-            doc.IsDeleted.Should().BeFalse("because there was a conflict in place of the deletion");
-            doc["name"].ToString().Should().Be("Scotty", "because that was the pre-deletion value");
+
+            using (var doc = SetupConflict()) {
+                Db.Delete(doc);
+
+                using (var savedDoc = Db.GetDocument(doc.Id)) {
+                    savedDoc.IsDeleted.Should().BeFalse("because there was a conflict in place of the deletion");
+                    savedDoc["name"].ToString().Should().Be("Scotty", "because that was the pre-deletion value");
+                }
+            }
         }
 
         [Fact]
@@ -120,15 +134,18 @@ namespace Test
         {
             ConflictResolver = null;
             ReopenDB();
-            var doc = SetupConflict();
+            using (var doc = SetupConflict()) {
 
-            // Add another revision to the conflict, so it'll have a higher generation
-            var properties = doc.ToDictionary();
-            properties["name"] = "Scott of the Sahara";
-            SaveProperties(properties, doc.Id);
-            Db.Save(doc);
+                // Add another revision to the conflict, so it'll have a higher generation
+                var properties = doc.ToDictionary();
+                properties["name"] = "Scott of the Sahara";
+                SaveProperties(properties, doc.Id);
 
-            doc["name"].ToString().Should().Be("Scott of the Sahara", "because the conflict has a longer history");
+                using (var savedDoc = Db.Save(doc)) {
+                    savedDoc["name"].ToString().Should()
+                        .Be("Scott of the Sahara", "because the conflict has a longer history");
+                }
+            }
         }
 
         // https://github.com/couchbase/couchbase-lite-android/issues/1293
@@ -162,13 +179,15 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc.Set("type", "profile");
             doc.Set("name", "Scott");
-            Db.Save(doc);
+            var savedDoc = Db.Save(doc);
 
             // Force a conflict
             var properties = doc.ToDictionary();
             properties["name"] = "Scotty";
             SaveProperties(properties, doc.Id);
 
+            doc.Dispose();
+            doc = savedDoc.ToMutable();
             doc.Set("name", "Scott Pilgrim");
             return doc;
         }

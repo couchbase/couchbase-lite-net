@@ -96,8 +96,9 @@ namespace Test
         protected void SaveDocument(MutableDocument document, Action<Document> eval)
         {
             eval(document);
-            var retVal = Db.Save(document);
-            eval(retVal);
+            using (var retVal = Db.Save(document)) {
+                eval(retVal);
+            }
         }
 
         protected void OpenDB()

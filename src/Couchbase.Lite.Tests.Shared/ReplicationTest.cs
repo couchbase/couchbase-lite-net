@@ -114,29 +114,38 @@ namespace Test
         {
             var doc1 = new MutableDocument("doc");
             doc1.Set("species", "Tiger");
-            Db.Save(doc1);
+            Db.Save(doc1).Dispose();
+
+            var config = CreateConfig(true, false, false);
+            RunReplication(config, 0, 0);
+
+            doc1.Dispose();
+            doc1 = Db.GetDocument("doc").ToMutable();
             doc1.Set("name", "Hobbes");
-            Db.Save(doc1);
+            Db.Save(doc1).Dispose();
+            doc1.Dispose();
 
-            var doc2 = new MutableDocument("doc");
-            doc2.Set("species", "Tiger");
-            _otherDB.Save(doc2);
+            var doc2 = _otherDB.GetDocument("doc").ToMutable();
             doc2.Set("pattern", "striped");
-            _otherDB.Save(doc2);
+            _otherDB.Save(doc2).Dispose();
+            doc2.Dispose();
 
-            var config = CreateConfig(false, true, false);
-            config.ConflictResolver = new MergeThenTheirsWins {
-                RequireBaseRevision = true    
+            config = CreateConfig(false, true, false);
+            config.ConflictResolver = new MergeThenTheirsWins
+            {
+                RequireBaseRevision = true
             };
 
             RunReplication(config, 0, 0);
             Db.Count.Should().Be(1, "because the document should go through the conflict handler");
             var gotDoc1 = Db.GetDocument("doc");
-            gotDoc1.ShouldBeEquivalentTo(new Dictionary<string, object> {
+            gotDoc1.ShouldBeEquivalentTo(new Dictionary<string, object>
+            {
                 ["species"] = "Tiger",
                 ["name"] = "Hobbes",
                 ["pattern"] = "striped"
             });
+            gotDoc1.Dispose();;
         }
 
         [Fact]
@@ -359,7 +368,7 @@ namespace Test
             
             _repl.Start();
             try {
-                _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
+                _waitAssert.WaitForResult(TimeSpan.FromSeconds(1000));
             } catch {
                 _repl.Stop();
                 throw;

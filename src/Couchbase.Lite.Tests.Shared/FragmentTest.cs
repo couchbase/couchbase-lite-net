@@ -587,6 +587,8 @@ namespace Test
                 d["dict"]["array"][3].Value.Should().BeNull("because that is an invalid index");
                 d["dict"]["array"][3].Exists.Should().BeFalse("because there is no data at the invalid index");
             });
+
+            doc.Dispose();
         }
 
         [Fact]
@@ -596,10 +598,14 @@ namespace Test
             doc.Set("string1", "value1").Set("string2", "value2");
             SaveDocument(doc, d =>
             {
-                d["string1"].Value = 10;
-                d["string1"].ToInt().Should().Be(10, "because the value was changed");
-                d["string2"].ToString().Should().Be("value2", "because that is what was stored");
+                var md = d.ToMutable();
+                md["string1"].Value = 10;
+                md["string1"].ToInt().Should().Be(10, "because the value was changed");
+                md["string2"].ToString().Should().Be("value2", "because that is what was stored");
+                md.Dispose();
             });
+
+            doc.Dispose();
         }
 
         [Fact]
@@ -818,9 +824,9 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc["name"].Value = "Jason";
 
-            doc["address"].Value = new DictionaryObject();
+            doc["address"].Value = new MutableDictionary();
             doc["address"]["street"].Value = "1 Main Street";
-            doc["address"]["phones"].Value = new DictionaryObject();
+            doc["address"]["phones"].Value = new MutableDictionary();
             doc["address"]["phones"]["mobile"].Value = "650-123-4567";
 
             doc["name"].ToString().Should().Be("Jason", "because that is what was stored");

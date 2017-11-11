@@ -1177,7 +1177,7 @@ namespace Test
             foreach (var data in testData) {
                 using (var doc = new MutableDocument()) {
                     doc.Set("value", data.Item1);
-                    Db.Save(doc);
+                    var savedDoc = Db.Save(doc);
 
                     var comparison = data.Item3
                         ? Expression.Property("value").Collate(data.Item4).EqualTo(data.Item2)
@@ -1192,7 +1192,7 @@ namespace Test
                         }
                     }
 
-                    Db.Delete(doc);
+                    Db.Delete(savedDoc);
                 }
 
                 i++;

@@ -57,7 +57,7 @@ namespace Couchbase.Lite
         public virtual object Value
         {
             get => ToObject();
-            set => throw new InvalidOperationException("Cannot set on a ReadOnlyFragment");
+            set => throw new InvalidOperationException("Cannot set on a Fragment (make sure you got this Fragment from a mutable type)");
         }
 
         /// <inheritdoc />
