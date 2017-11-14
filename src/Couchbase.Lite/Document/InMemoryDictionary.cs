@@ -28,7 +28,7 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Doc
 {
-    internal sealed class InMemoryDictionary : IDictionaryObject, IFLEncodable
+    internal sealed class InMemoryDictionary : IMutableDictionary, IFLEncodable
     {
         private IDictionary<string, object> _dict;
        
@@ -61,7 +61,7 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
-        ReadOnlyFragment IReadOnlyDictionaryFragment.this[string key] => new ReadOnlyFragment(this, key);
+        Fragment IDictionaryFragment.this[string key] => new Fragment(this, key);
 
         public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
@@ -92,7 +92,7 @@ namespace Couchbase.Lite.Internal.Doc
             return GetObject(key) as IDictionaryObject;
         }
 
-        public IDictionaryObject Remove(string key)
+        public IMutableDictionary Remove(string key)
         {
             if (_dict.ContainsKey(key)) {
                 _dict.Remove(key);
@@ -102,84 +102,84 @@ namespace Couchbase.Lite.Internal.Doc
             return this;
         }
 
-        public IDictionaryObject Set(string key, object value)
+        public IMutableDictionary Set(string key, object value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IDictionaryObject Set(IDictionary<string, object> dictionary)
+        public IMutableDictionary Set(IDictionary<string, object> dictionary)
         {
             _dict = dictionary.ToDictionary(x => x.Key, x => DataOps.ToCouchbaseObject(x.Value));
             HasChanges = true;
             return this;
         }
 
-        public IDictionaryObject Set(string key, string value)
+        public IMutableDictionary Set(string key, string value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IDictionaryObject Set(string key, int value)
+        public IMutableDictionary Set(string key, int value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IDictionaryObject Set(string key, long value)
+        public IMutableDictionary Set(string key, long value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IDictionaryObject Set(string key, float value)
+        public IMutableDictionary Set(string key, float value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IDictionaryObject Set(string key, double value)
+        public IMutableDictionary Set(string key, double value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IDictionaryObject Set(string key, bool value)
+        public IMutableDictionary Set(string key, bool value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IDictionaryObject Set(string key, Blob value)
+        public IMutableDictionary Set(string key, Blob value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IDictionaryObject Set(string key, DateTimeOffset value)
+        public IMutableDictionary Set(string key, DateTimeOffset value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IDictionaryObject Set(string key, ArrayObject value)
+        public IMutableDictionary Set(string key, MutableArray value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IDictionaryObject Set(string key, DictionaryObject value)
+        public IMutableDictionary Set(string key, MutableDictionary value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public Fragment this[string key] => new Fragment(this, key);
+        public MutableFragment this[string key] => new MutableFragment(this, key);
 
-        IReadOnlyArray IReadOnlyDictionary.GetArray(string key)
+        IMutableArray IMutableDictionary.GetArray(string key)
         {
-            return GetObject(key) as IReadOnlyArray;
+            return GetObject(key) as IMutableArray;
         }
 
         public Blob GetBlob(string key)
@@ -197,9 +197,9 @@ namespace Couchbase.Lite.Internal.Doc
             return DataOps.ConvertToDate(GetObject(key));
         }
 
-        IReadOnlyDictionary IReadOnlyDictionary.GetDictionary(string key)
+        IMutableDictionary IMutableDictionary.GetDictionary(string key)
         {
-            return GetObject(key) as IReadOnlyDictionary;
+            return GetObject(key) as IMutableDictionary;
         }
 
         public double GetDouble(string key)

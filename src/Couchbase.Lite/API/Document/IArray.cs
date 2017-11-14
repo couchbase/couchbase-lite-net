@@ -1,5 +1,5 @@
 ﻿// 
-// IArray.cs
+// IReadOnlyArray.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,313 +18,114 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-
 using System;
-using System.Collections;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// An interface representing a writeable collection of objects
+    /// An interface representing a read-only linear collection of objects
     /// </summary>
-    public interface IArray : IReadOnlyArray, IArrayFragment
+    public interface IArray : IArrayFragment, IReadOnlyCollection<object>
     {
-        #region Properties
-
-        /// <summary>
-        /// Gets the value of the given index, or lack thereof,
-        /// wrapped inside of a <see cref="Fragment"/>
-        /// </summary>
-        /// <param name="index">The index to check</param>
-        /// <returns>The value of the given index, or lack thereof</returns>
-        new Fragment this[int index] { get; }
-
-        #endregion
 
         #region Public Methods
 
         /// <summary>
-        /// Adds an entry to this collection
-        /// </summary>
-        /// <param name="value">The value to add</param>
-        /// <returns>The array for further processing</returns>
-        IArray Add(object value);
-
-        /// <summary>
-        /// Adds an entry to this collection
-        /// </summary>
-        /// <param name="value">The value to add</param>
-        /// <returns>The array for further processing</returns>
-        IArray Add(string value);
-
-        /// <summary>
-        /// Adds an entry to this collection
-        /// </summary>
-        /// <param name="value">The value to add</param>
-        /// <returns>The array for further processing</returns>
-        IArray Add(int value);
-
-        /// <summary>
-        /// Adds an entry to this collection
-        /// </summary>
-        /// <param name="value">The value to add</param>
-        /// <returns>The array for further processing</returns>
-        IArray Add(long value);
-
-        /// <summary>
-        /// Adds an entry to this collection
-        /// </summary>
-        /// <param name="value">The value to add</param>
-        /// <returns>The array for further processing</returns>
-        IArray Add(float value);
-
-        /// <summary>
-        /// Adds an entry to this collection
-        /// </summary>
-        /// <param name="value">The value to add</param>
-        /// <returns>The array for further processing</returns>
-        IArray Add(double value);
-
-        /// <summary>
-        /// Adds an entry to this collection
-        /// </summary>
-        /// <param name="value">The value to add</param>
-        /// <returns>The array for further processing</returns>
-        IArray Add(bool value);
-
-        /// <summary>
-        /// Adds an entry to this collection
-        /// </summary>
-        /// <param name="value">The value to add</param>
-        /// <returns>The array for further processing</returns>
-        IArray Add(Blob value);
-
-        /// <summary>
-        /// Adds an entry to this collection
-        /// </summary>
-        /// <param name="value">The value to add</param>
-        /// <returns>The array for further processing</returns>
-        IArray Add(DateTimeOffset value);
-
-        /// <summary>
-        /// Adds an entry to this collection
-        /// </summary>
-        /// <param name="value">The value to add</param>
-        /// <returns>The array for further processing</returns>
-        IArray Add(ArrayObject value);
-
-        /// <summary>
-        /// Adds an entry to this collection
-        /// </summary>
-        /// <param name="value">The value to add</param>
-        /// <returns>The array for further processing</returns>
-        IArray Add(DictionaryObject value);
-
-        /// <summary>
-        /// Gets the value at the given index as an array
+        /// Gets the value at the given index as a read only array
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
-        new IArray GetArray(int index);
+        IArray GetArray(int index);
 
         /// <summary>
-        /// Gets the value at the given index as an <see cref="IDictionaryObject"/>
+        /// Gets the value at the given index as a <see cref="Blob"/>
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
-        new IDictionaryObject GetDictionary(int index);
+        Blob GetBlob(int index);
 
         /// <summary>
-        /// Inserts a given value at the given index
+        /// Gets the value at the given index as a <see cref="Boolean"/>
         /// </summary>
-        /// <param name="index">The index to insert the item at</param>
-        /// <param name="value">The item to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Insert(int index, object value);
+        /// <param name="index">The index to lookup</param>
+        /// <returns>The value at the index, or its converted equivalent</returns>
+        /// <remarks>Any non-zero object will be treated as true, so don't rely on 
+        /// any sort of parsing</remarks>
+        bool GetBoolean(int index);
 
         /// <summary>
-        /// Inserts a given value at the given index
+        /// Gets the value at the given index as a <see cref="DateTimeOffset"/>
         /// </summary>
-        /// <param name="index">The index to insert the item at</param>
-        /// <param name="value">The item to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Insert(int index, string value);
+        /// <param name="index">The index to lookup</param>
+        /// <returns>The value at the index, or a default</returns>
+        DateTimeOffset GetDate(int index);
 
         /// <summary>
-        /// Inserts a given value at the given index
+        /// Gets the value at the given index as an <see cref="IReadOnlyDictionary"/>
         /// </summary>
-        /// <param name="index">The index to insert the item at</param>
-        /// <param name="value">The item to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Insert(int index, int value);
+        /// <param name="index">The index to lookup</param>
+        /// <returns>The value at the index, or <c>null</c></returns>
+        IDictionaryObject GetDictionary(int index);
 
         /// <summary>
-        /// Inserts a given value at the given index
+        /// Gets the value at the given index as a <see cref="Double"/>
         /// </summary>
-        /// <param name="index">The index to insert the item at</param>
-        /// <param name="value">The item to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Insert(int index, long value);
+        /// <param name="index">The index to lookup</param>
+        /// <returns>The value at the index, or its converted equivalent</returns>
+        /// <remarks><c>true</c> will be converted to 1.0, and everything else that
+        /// is non-numeric will be 0.0</remarks>
+        double GetDouble(int index);
 
         /// <summary>
-        /// Inserts a given value at the given index
+        /// Gets the value at the given index as a <see cref="Single"/>
         /// </summary>
-        /// <param name="index">The index to insert the item at</param>
-        /// <param name="value">The item to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Insert(int index, float value);
+        /// <param name="index">The index to lookup</param>
+        /// <returns>The value at the index, or its converted equivalent</returns>
+        /// <remarks><c>true</c> will be converted to 1.0f, and everything else that
+        /// is non-numeric will be 0.0f</remarks>
+        float GetFloat(int index);
 
         /// <summary>
-        /// Inserts a given value at the given index
+        /// Gets the value at the given index as an <see cref="Int32"/>
         /// </summary>
-        /// <param name="index">The index to insert the item at</param>
-        /// <param name="value">The item to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Insert(int index, double value);
+        /// <param name="index">The index to lookup</param>
+        /// <returns>The value at the index, or its converted equivalent</returns>
+        /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
+        /// will be rounded, and everything else non-numeric will be 0</remarks>
+        int GetInt(int index);
 
         /// <summary>
-        /// Inserts a given value at the given index
+        /// Gets the value at the given index as an <see cref="Int64"/>
         /// </summary>
-        /// <param name="index">The index to insert the item at</param>
-        /// <param name="value">The item to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Insert(int index, bool value);
+        /// <param name="index">The index to lookup</param>
+        /// <returns>The value at the index, or its converted equivalent</returns>
+        /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
+        /// will be rounded, and everything else non-numeric will be 0</remarks>
+        long GetLong(int index);
 
         /// <summary>
-        /// Inserts a given value at the given index
+        /// Gets the value at the given index as an untyped object
         /// </summary>
-        /// <param name="index">The index to insert the item at</param>
-        /// <param name="value">The item to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Insert(int index, Blob value);
+        /// <param name="index">The index to lookup</param>
+        /// <returns>The value at the index, or <c>null</c></returns>
+        /// <remarks>This method should be avoided for numeric types, whose
+        /// underlying representation is subject to change and thus
+        /// <see cref="InvalidCastException"/>s </remarks>
+        object GetObject(int index);
 
         /// <summary>
-        /// Inserts a given value at the given index
+        /// Gets the value at the given index as a <see cref="String"/>
         /// </summary>
-        /// <param name="index">The index to insert the item at</param>
-        /// <param name="value">The item to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Insert(int index, DateTimeOffset value);
+        /// <param name="index">The index to lookup</param>
+        /// <returns>The value at the index, or <c>null</c></returns>
+        string GetString(int index);
 
         /// <summary>
-        /// Inserts a given value at the given index
+        /// Converts this object to a standard .NET collection
         /// </summary>
-        /// <param name="index">The index to insert the item at</param>
-        /// <param name="value">The item to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Insert(int index, ArrayObject value);
-
-        /// <summary>
-        /// Inserts a given value at the given index
-        /// </summary>
-        /// <param name="index">The index to insert the item at</param>
-        /// <param name="value">The item to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Insert(int index, DictionaryObject value);
-
-        /// <summary>
-        /// Removes the item at the given index
-        /// </summary>
-        /// <param name="index">The index at which to remove the item</param>
-        /// <returns>The array for further processing</returns>
-        IArray RemoveAt(int index);
-
-        /// <summary>
-        /// Replaces the contents of this collection with the contents of the given one
-        /// </summary>
-        /// <param name="array">The contents to replace the current contents</param>
-        /// <returns>The array for further processing</returns>
-        IArray Set(IList array);
-
-        /// <summary>
-        /// Overwrites the value at the given index with the given value
-        /// </summary>
-        /// <param name="index">The index to overwrite</param>
-        /// <param name="value">The value to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Set(int index, object value);
-
-        /// <summary>
-        /// Overwrites the value at the given index with the given value
-        /// </summary>
-        /// <param name="index">The index to overwrite</param>
-        /// <param name="value">The value to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Set(int index, string value);
-
-        /// <summary>
-        /// Overwrites the value at the given index with the given value
-        /// </summary>
-        /// <param name="index">The index to overwrite</param>
-        /// <param name="value">The value to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Set(int index, int value);
-
-        /// <summary>
-        /// Overwrites the value at the given index with the given value
-        /// </summary>
-        /// <param name="index">The index to overwrite</param>
-        /// <param name="value">The value to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Set(int index, long value);
-
-        /// <summary>
-        /// Overwrites the value at the given index with the given value
-        /// </summary>
-        /// <param name="index">The index to overwrite</param>
-        /// <param name="value">The value to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Set(int index, float value);
-
-        /// <summary>
-        /// Overwrites the value at the given index with the given value
-        /// </summary>
-        /// <param name="index">The index to overwrite</param>
-        /// <param name="value">The value to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Set(int index, double value);
-
-        /// <summary>
-        /// Overwrites the value at the given index with the given value
-        /// </summary>
-        /// <param name="index">The index to overwrite</param>
-        /// <param name="value">The value to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Set(int index, bool value);
-
-        /// <summary>
-        /// Overwrites the value at the given index with the given value
-        /// </summary>
-        /// <param name="index">The index to overwrite</param>
-        /// <param name="value">The value to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Set(int index, Blob value);
-
-        /// <summary>
-        /// Overwrites the value at the given index with the given value
-        /// </summary>
-        /// <param name="index">The index to overwrite</param>
-        /// <param name="value">The value to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Set(int index, DateTimeOffset value);
-
-        /// <summary>
-        /// Overwrites the value at the given index with the given value
-        /// </summary>
-        /// <param name="index">The index to overwrite</param>
-        /// <param name="value">The value to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Set(int index, ArrayObject value);
-
-        /// <summary>
-        /// Overwrites the value at the given index with the given value
-        /// </summary>
-        /// <param name="index">The index to overwrite</param>
-        /// <param name="value">The value to insert</param>
-        /// <returns>The array for further processing</returns>
-        IArray Set(int index, DictionaryObject value);
-
-
+        /// <returns>The contents of this collection as a .NET collection</returns>
+        List<object> ToList();
 
         #endregion
     }

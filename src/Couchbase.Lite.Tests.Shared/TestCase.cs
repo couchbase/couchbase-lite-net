@@ -92,18 +92,13 @@ namespace Test
 #endif
         }
 
-        protected Document SaveDocument(Document document)
-        {
-            Db.Save(document);
-            return Db.GetDocument(document.Id);
-        }
 
-        protected Document SaveDocument(Document document, Action<Document> eval)
+        protected void SaveDocument(MutableDocument document, Action<Document> eval)
         {
             eval(document);
-            document = SaveDocument(document);
-            eval(document);
-            return document;
+            using (var retVal = Db.Save(document)) {
+                eval(retVal);
+            }
         }
 
         protected void OpenDB()
@@ -149,7 +144,7 @@ namespace Test
                     var docID = $"doc-{++n:D3}";
                     var json = JsonConvert.DeserializeObject<IDictionary<string, object>>(line);
                     json.Should().NotBeNull("because otherwise the line failed to parse");
-                    var doc = new Document(docID);
+                    var doc = new MutableDocument(docID);
                     doc.Set(json);
                     Db.Save(doc);
 

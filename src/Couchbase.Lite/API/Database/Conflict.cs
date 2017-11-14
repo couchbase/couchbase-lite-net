@@ -32,24 +32,24 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the state of the document before any edits were made
         /// </summary>
-        public ReadOnlyDocument Base { get; }
+        public Document Base { get; }
 
         /// <summary>
         /// Gets the version of the document that is already existing
         /// </summary>
-        public ReadOnlyDocument Mine { get; }
+        public Document Mine { get; }
 
         /// <summary>
         /// Gets the version of the document that is attempting to be
         /// written but cannot due to an existing version
         /// </summary>
-        public ReadOnlyDocument Theirs { get; }
+        public Document Theirs { get; }
 
         #endregion
 
         #region Constructors
 
-        internal Conflict(ReadOnlyDocument mine, ReadOnlyDocument theirs, ReadOnlyDocument @base)
+        internal Conflict(Document mine, Document theirs, Document @base)
         {
             Mine = mine;
             Theirs = theirs;

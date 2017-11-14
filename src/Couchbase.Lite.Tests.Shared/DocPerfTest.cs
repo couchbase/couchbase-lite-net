@@ -71,7 +71,7 @@ namespace Test
 
         private void AddRevisions(uint count)
         {
-            var doc = Db.GetDocument("doc");
+            var doc = Db.GetDocument("doc").ToMutable();
             Db.InBatch(() =>
             {
                 for (uint i = 0; i < count; i++) {

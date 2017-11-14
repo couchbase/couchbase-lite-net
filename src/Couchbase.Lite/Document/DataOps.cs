@@ -42,7 +42,7 @@ namespace Couchbase.Lite.Internal.Doc
                 case IConvertible c:
                     return c.ToBoolean(CultureInfo.InvariantCulture);
                 default:
-                    return !ReferenceEquals(value, DictionaryObject.RemovedValue);
+                    return !ReferenceEquals(value, MutableDictionary.RemovedValue);
             }
         }
 
@@ -110,9 +110,9 @@ namespace Couchbase.Lite.Internal.Doc
                     return null;
                 case DateTimeOffset dto:
                     return dto.ToString("o");
-                case ReadOnlyDictionary rodic when !(rodic is DictionaryObject):
+                case DictionaryObject rodic when !(rodic is MutableDictionary):
                     return rodic.ToMutable();
-                case ReadOnlyArray roarr when !(roarr is ArrayObject):
+                case ArrayObject roarr when !(roarr is MutableArray):
                     return roarr.ToMutable();
                 case JObject jobj:
                     return ConvertDictionary(jobj.ToObject<IDictionary<string, object>>());
@@ -134,9 +134,9 @@ namespace Couchbase.Lite.Internal.Doc
                     return null;
                 case InMemoryDictionary inMem:
                     return inMem.ToDictionary();
-                case IReadOnlyDictionary roDic:
+                case IDictionaryObject roDic:
                     return roDic.ToDictionary();
-                case IReadOnlyArray roarr:
+                case IArray roarr:
                     return roarr.ToList();
                 default:
                     return value;
@@ -153,8 +153,8 @@ namespace Couchbase.Lite.Internal.Doc
             }
 
             switch (newValue) {
-                case ReadOnlyArray arr:
-                case ReadOnlyDictionary dict:
+                case ArrayObject arr:
+                case DictionaryObject dict:
                     return true;
                 default:
                     var oldVal = oldValue.AsObject(container);
@@ -166,16 +166,16 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Private Methods
 
-        private static DictionaryObject ConvertDictionary(IDictionary<string, object> dictionary)
+        private static MutableDictionary ConvertDictionary(IDictionary<string, object> dictionary)
         {
-            var subdocument = new DictionaryObject();
+            var subdocument = new MutableDictionary();
             subdocument.Set(dictionary);
             return subdocument;
         }
 
-        private static ArrayObject ConvertList(IList list)
+        private static MutableArray ConvertList(IList list)
         {
-            var array = new ArrayObject();
+            var array = new MutableArray();
             array.Set(list);
             return array;
         }

@@ -33,7 +33,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="conflict">The conflict that occurred</param>
         /// <returns>The new version of the document</returns>
-        ReadOnlyDocument Resolve(Conflict conflict);
+        Document Resolve(Conflict conflict);
 
         #endregion
     }
@@ -43,7 +43,7 @@ namespace Couchbase.Lite
         #region IConflictResolver
 
         /// <inheritdoc />
-        public ReadOnlyDocument Resolve(Conflict conflict)
+        public Document Resolve(Conflict conflict)
         {
             // Default resolution algorithm is "most active wins", i.e. higher generation number
             var mine = conflict.Mine;

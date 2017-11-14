@@ -47,14 +47,14 @@ namespace Couchbase.Lite.Internal.Serialization
                             return ToObject(value, database.SharedStrings, 0, hintType1);
                         }
 
-                        var array = new ReadOnlyArray(new MArray(new MValue(value), null), false);
+                        var array = new ArrayObject(new MArray(new MValue(value), null), false);
                         return array;
                     }
                     case FLValueType.Dict: {
                         var dict = Native.FLValue_AsDict(value);
                         var type = TypeForDict(dict, database.SharedStrings);
                         if (!dotNetTypes && type.buf == null && !IsOldAttachment(database, dict)) {
-                            return new ReadOnlyDictionary(new MDict(new MValue(value), null), false);
+                            return new DictionaryObject(new MDict(new MValue(value), null), false);
                         }
 
                         var result = ToObject(value, database.SharedStrings, 0, hintType1) as IDictionary<string, object>;
@@ -74,10 +74,10 @@ namespace Couchbase.Lite.Internal.Serialization
         internal static bool FLEncode(object obj, FLEncoder* enc)
         {
             switch (obj) {
-                case ReadOnlyArray arObj:
+                case ArrayObject arObj:
                     arObj.ToMCollection().FLEncode(enc);
                     return true;
-                case ReadOnlyDictionary roDict:
+                case DictionaryObject roDict:
                     roDict.ToMCollection().FLEncode(enc);
                     return true;
                 case Blob b:

@@ -57,7 +57,7 @@ namespace Test
                 }
             };
 
-            SaveDocument(new Document("doc1", dict));
+            Db.Save(new MutableDocument("doc1", dict));
 
             var doc = Db["doc1"];
             doc.Should().NotBeNull("because the subscript operator should never return null");
@@ -91,7 +91,7 @@ namespace Test
                 }
             };
 
-            var doc = new Document("doc1", dict);
+            var doc = new MutableDocument("doc1", dict);
             SaveDocument(doc, d =>
             {
                 var fragment = d["address"];
@@ -134,7 +134,7 @@ namespace Test
                 ["references"] = references
             };
 
-            var doc = new Document("doc1", dict);
+            var doc = new MutableDocument("doc1", dict);
             SaveDocument(doc, d =>
             {
                 var fragment = d["references"];
@@ -163,7 +163,7 @@ namespace Test
         [Fact]
         public void TestGetFragmentFromInteger()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc.Set("integer", 10);
             SaveDocument(doc, d =>
             {
@@ -186,7 +186,7 @@ namespace Test
         [Fact]
         public void TestGetFragmentFromFloat()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc.Set("float", 100.10f);
             SaveDocument(doc, d =>
             {
@@ -209,7 +209,7 @@ namespace Test
         [Fact]
         public void TestGetFragmentFromLong()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc.Set("long", 10L);
             SaveDocument(doc, d =>
             {
@@ -232,7 +232,7 @@ namespace Test
         [Fact]
         public void TestGetFragmentFromDouble()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc.Set("double", 100.10);
             SaveDocument(doc, d =>
             {
@@ -255,7 +255,7 @@ namespace Test
         [Fact]
         public void TestGetFragmentFromBoolean()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc.Set("boolean", true);
             SaveDocument(doc, d =>
             {
@@ -279,7 +279,7 @@ namespace Test
         public void TestGetFragmentFromDate()
         {
             var date = DateTimeOffset.Now;
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc.Set("date", date);
             SaveDocument(doc, d =>
             {
@@ -302,7 +302,7 @@ namespace Test
         [Fact]
         public void TestGetFragmentFromString()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc.Set("string", "hello world");
             SaveDocument(doc, d =>
             {
@@ -341,7 +341,7 @@ namespace Test
                 }
             };
 
-            var doc = new Document("doc1", dict);
+            var doc = new MutableDocument("doc1", dict);
             SaveDocument(doc, d =>
             {
                 var fragment = d["address"]["phones"];
@@ -381,7 +381,7 @@ namespace Test
                 }
             };
 
-            var doc = new Document("doc1", dict);
+            var doc = new MutableDocument("doc1", dict);
             SaveDocument(doc, d =>
             {
                 var fragment = d["address"]["country"];
@@ -411,7 +411,7 @@ namespace Test
                 }
             };
 
-            var doc = new Document("doc1", dict);
+            var doc = new MutableDocument("doc1", dict);
             SaveDocument(doc, d =>
             {
                 var fragment = d["nested-array"][1];
@@ -448,7 +448,7 @@ namespace Test
                 }
             };
 
-            var doc = new Document("doc1", dict);
+            var doc = new MutableDocument("doc1", dict);
             SaveDocument(doc, d =>
             {
                 var fragment = d["nested-array"][2];
@@ -471,7 +471,7 @@ namespace Test
         public void TestDictionaryFragmentSet()
         {
             var date = DateTimeOffset.Now;
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc["string"].Value = "value";
             doc["bool"].Value = true;
             doc["int"].Value = 7;
@@ -495,8 +495,8 @@ namespace Test
         [Fact]
         public void TestDictionaryFragmentSetDictionary()
         {
-            var doc = new Document("doc1");
-            var dict = new DictionaryObject();
+            var doc = new MutableDocument("doc1");
+            var dict = new MutableDictionary();
             dict.Set("name", "Jason")
                 .Set("address", new Dictionary<string, object> {
                     ["street"] = "1 Main Street",
@@ -522,8 +522,8 @@ namespace Test
         [Fact]
         public void TestDicionaryFragmentSetArray()
         {
-            var doc = new Document("doc1");
-            var array = new ArrayObject() {
+            var doc = new MutableDocument("doc1");
+            var array = new MutableArray() {
                 0,
                 1,
                 2
@@ -545,7 +545,7 @@ namespace Test
         [Fact]
         public void TestDictionaryFragmentSetCSharpDictionary()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc["dict"].Value = new Dictionary<string, object> {
                 ["name"] = "Jason",
                 ["address"] = new Dictionary<string, object> {
@@ -573,7 +573,7 @@ namespace Test
         [Fact]
         public void TestDictionaryFragmentSetCSharpList()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc["dict"].Value = new Dictionary<string, object>();
             doc["dict"]["array"].Value = new[] {0, 1, 2};
 
@@ -587,26 +587,32 @@ namespace Test
                 d["dict"]["array"][3].Value.Should().BeNull("because that is an invalid index");
                 d["dict"]["array"][3].Exists.Should().BeFalse("because there is no data at the invalid index");
             });
+
+            doc.Dispose();
         }
 
         [Fact]
         public void TestNonDictionaryFragmentSetObject()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc.Set("string1", "value1").Set("string2", "value2");
             SaveDocument(doc, d =>
             {
-                d["string1"].Value = 10;
-                d["string1"].ToInt().Should().Be(10, "because the value was changed");
-                d["string2"].ToString().Should().Be("value2", "because that is what was stored");
+                var md = d.ToMutable();
+                md["string1"].Value = 10;
+                md["string1"].ToInt().Should().Be(10, "because the value was changed");
+                md["string2"].ToString().Should().Be("value2", "because that is what was stored");
+                md.Dispose();
             });
+
+            doc.Dispose();
         }
 
         [Fact]
         public void TestArrayFragmentSet()
         {
             var date = DateTimeOffset.Now;
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc["array"].Value = new object[] {
                 "string",
                 10,
@@ -638,8 +644,8 @@ namespace Test
         [Fact]
         public void TestArrayFragmentSetDictionary()
         {
-            var doc = new Document("doc1");
-            var dict = new DictionaryObject();
+            var doc = new MutableDocument("doc1");
+            var dict = new MutableDictionary();
             dict.Set("name", "Jason")
                 .Set("address", new Dictionary<string, object> {
                     ["street"] = "1 Main Street",
@@ -675,7 +681,7 @@ namespace Test
         [Fact]
         public void TestArrayFragmentSetCSharpDictionary()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc["array"].Value = new List<object>();
             doc["array"]
                 .ToArray()
@@ -712,9 +718,9 @@ namespace Test
         [Fact]
         public void TestArrayFragmentSetArrayObject()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc["array"].Value = new List<object>();
-            var array = new ArrayObject() {
+            var array = new MutableArray {
                 "Jason",
                 5.5,
                 true
@@ -733,7 +739,7 @@ namespace Test
         [Fact]
         public void TestArrayFragmentSetArray()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc["array"].Value = new List<object>();
             doc["array"].ToArray().Add(new object[] {"Jason", 5.5, true});
 
@@ -748,7 +754,7 @@ namespace Test
         [Fact]
         public void TestNonExistingArrayFragmentSetObject()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
 
             doc.Invoking(d => d["array"][0][0].Value = 1)
                 .ShouldThrow<InvalidOperationException>("because the path does not exist");
@@ -768,7 +774,7 @@ namespace Test
         [Fact]
         public void TestOutOfRangeArrayFragmentSetObject()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc["array"].Value = new List<object>();
             doc["array"].ToArray().Add(new object[] { "Jason", 5.5, true });
             doc.Invoking(d => d["array"][0][3].Value = 1).ShouldThrow<InvalidOperationException>();
@@ -782,7 +788,7 @@ namespace Test
         [Fact]
         public void TestGetFragmentValues()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc.Set(new Dictionary<string, object> {
                 ["name"] = "Jason",
                 ["address"] = new Dictionary<string, object> {
@@ -815,12 +821,12 @@ namespace Test
         [Fact]
         public void TestSetFragmentValues()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc["name"].Value = "Jason";
 
-            doc["address"].Value = new DictionaryObject();
+            doc["address"].Value = new MutableDictionary();
             doc["address"]["street"].Value = "1 Main Street";
-            doc["address"]["phones"].Value = new DictionaryObject();
+            doc["address"]["phones"].Value = new MutableDictionary();
             doc["address"]["phones"]["mobile"].Value = "650-123-4567";
 
             doc["name"].ToString().Should().Be("Jason", "because that is what was stored");

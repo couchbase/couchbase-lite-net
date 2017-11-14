@@ -20,6 +20,7 @@
 // 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -149,8 +150,19 @@ namespace Couchbase.Lite
             }
         }
 
+        private IConflictResolver EffectiveConflictResolver => Config.ConflictResolver ??
+                                                                new DefaultConflictResolver();
 
         internal IDictionary<Uri, Replicator> Replications { get; } = new Dictionary<Uri, Replicator>();
+
+        internal FLEncoder* SharedEncoder
+        {
+            get {
+                FLEncoder* encoder = null;
+                ThreadSafety.DoLocked(() => encoder = Native.c4db_getSharedFleeceEncoder(_c4db));
+                return encoder;
+            }
+        }
 
         internal SharedStringCache SharedStrings => ThreadSafety.DoLocked(() => _sharedStrings);
 
@@ -435,7 +447,7 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                VerifyDB(document).Delete();
+                Save(document, true);
             });
         }
 
@@ -531,7 +543,19 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                VerifyDB(document).Purge();
+                VerifyDB(document);
+
+                if (!document.Exists) {
+                    throw new CouchbaseLiteException(StatusCode.NotFound);
+                }
+
+                InBatch(() =>
+                {
+                    var result = Native.c4doc_purgeRevision(document.c4Doc.RawDoc, null, null);
+                    if (result >= 0) {
+                        LiteCoreBridge.Check(err => Native.c4doc_save(document.c4Doc.RawDoc, 0, err));
+                    }
+                });
             });
         }
 
@@ -559,17 +583,17 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Saves the given <see cref="Document"/> into this database
+        /// Saves the given <see cref="MutableDocument"/> into this database
         /// </summary>
         /// <param name="document">The document to save</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
         /// other than the one it was previously added to</exception>
-        public void Save(Document document)
+        public Document Save(MutableDocument document)
         {
-            ThreadSafety.DoLocked(() =>
+            return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                VerifyDB(document).Save();
+                return Save(document, false);
             });
         }
 
@@ -616,23 +640,23 @@ namespace Couchbase.Lite
         {
             InBatch(() =>
             {
-                using (var doc = new ReadOnlyDocument(this, docID, true, ThreadSafety))
-                using (var otherDoc = new ReadOnlyDocument(this, docID, true, ThreadSafety)) {
+                using (var doc = new Document(this, docID, true))
+                using (var otherDoc = new Document(this, docID, true)) {
                     otherDoc.SelectConflictingRevision();
-                    using (var tmp = new ReadOnlyDocument(this, docID, true, ThreadSafety)) {
+                    using (var tmp = new Document(this, docID, true)) {
                         var baseDoc = tmp;
                         if (!baseDoc.SelectCommonAncestor(doc, otherDoc)) {
                             baseDoc = null;
                         }
 
-                        ReadOnlyDocument resolved;
+                        Document resolved;
                         var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
                         if (otherDoc.IsDeleted) {
                             resolved = doc;
                         } else if (doc.IsDeleted) {
                             resolved = otherDoc;
                         } else {
-                            var effectiveResolver = resolver ?? doc.EffectiveConflictResolver;
+                            var effectiveResolver = resolver ?? EffectiveConflictResolver;
                             var conflict = new Conflict(doc, otherDoc, baseDoc);
                             Log.To.Database.I(Tag,
                                 $"Resolving doc '{logDocID}' with {effectiveResolver.GetType().Name} (mine={doc.RevID}, theirs={otherDoc.RevID}, base={baseDoc?.RevID}");
@@ -655,7 +679,7 @@ namespace Couchbase.Lite
                                 resolved.Database = this;
                                 var encoded = resolved.Encode();
                                 mergedBody = ((C4Slice) encoded).ToArrayFast();
-                                if (resolved is Document) {
+                                if (resolved is MutableDocument) {
                                     // HACK: Find a better way to do this
                                     Native.FLSliceResult_Free(new FLSliceResult {
                                         buf = encoded.buf,
@@ -672,10 +696,10 @@ namespace Couchbase.Lite
                         // methods are exposed on ReadOnlyDocument to the public, and this object lives
                         // entirely in this scope, we can skip the lock
                         LiteCoreBridge.Check(
-                            err => Native.c4doc_resolveConflict(rawDoc, winningRevID, losingRevID,
-                                       mergedBody, err) && Native.c4doc_save(rawDoc, 0, err));
+                            err => Native.c4doc_resolveConflict(rawDoc.RawDoc, winningRevID, losingRevID,
+                                       mergedBody, err) && Native.c4doc_save(rawDoc.RawDoc, 0, err));
                         Log.To.Database.I(Tag,
-                            $"Conflict resolved as doc '{logDocID}' rev {rawDoc->revID.CreateString()}");
+                            $"Conflict resolved as doc '{logDocID}' rev {rawDoc.RawDoc->revID.CreateString()}");
                     }
                 }
             });
@@ -745,7 +769,7 @@ namespace Couchbase.Lite
         private Document GetDocument(string docID, bool mustExist)
         {
             CheckOpen();
-            var doc = new Document(this, docID, mustExist, ThreadSafety);
+            var doc = new Document(this, docID, mustExist);
 
             if (mustExist && !doc.Exists) {
                 Log.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist", 
@@ -754,6 +778,29 @@ namespace Couchbase.Lite
             }
 
             return doc;
+        }
+
+        private Document Merge(Document doc, bool deletion, out Document outCurrent)
+        {
+            var current = new Document(this, doc.Id, true);
+            Document resolved;
+            if (deletion) {
+                // Deletion always loses a conflict:
+                resolved = current;
+            } else {
+                // Call the conflict resolver:
+                using (var baseDoc = new Document(this, doc.Id, doc.c4Doc?.Retain<C4DocumentWrapper>())) {
+                    var resolver = EffectiveConflictResolver;
+                    var conflict = new Conflict(doc, current, doc.c4Doc?.HasValue == true ? baseDoc : null);
+                    resolved = resolver.Resolve(conflict);
+                    if (resolved == null) {
+                        throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
+                    }
+                }
+            }
+
+            outCurrent = current;
+            return resolved;
         }
 
         private void Open()
@@ -831,33 +878,137 @@ namespace Couchbase.Lite
 				} while (nChanges > 0);
 			});
 
-            foreach (var args in allChanges) {
-                Changed?.Invoke(this, args);
-            }
+            Task.Factory.StartNew(() =>
+            {
+                foreach (var args in allChanges) {
+                    Changed?.Invoke(this, args);
+                }
+            });
         }
 
         private void PostDocChanged(string documentID)
         {
+            DocumentChangedEventArgs change = null;
             ThreadSafety.DoLocked(() =>
             {
                 if (!_docObs.ContainsKey(documentID) || _c4db == null || Native.c4db_isInTransaction(_c4db)) {
                     return;
                 }
 
-                var change = new DocumentChangedEventArgs(documentID);
-                _documentChanged.Fire(documentID, this, change);
+                change = new DocumentChangedEventArgs(documentID);
             });
+
+            Task.Factory.StartNew(() => _documentChanged.Fire(documentID, this, change));
         }
 
-        private Document VerifyDB(Document document)
+        private Document Save(Document doc, bool deletion)
+        {
+            VerifyDB(doc);
+            if (deletion && !doc.Exists) {
+                throw new CouchbaseLiteException(StatusCode.NotFound);
+            }
+
+            Document retVal = null;
+            C4Document* retValDoc = null;
+            InBatch(() =>
+            {
+                C4Document* newDoc;
+                Save(doc, &newDoc, null, deletion);
+                if (newDoc == null) {
+                    // There's been a conflict; first merge with the new saved revision:
+                    var resolved = Merge(doc, deletion, out var current);
+                    if (resolved == current) {
+                        retVal = resolved;
+                        return;
+                    }
+
+                    if (resolved.Database == null) {
+                        resolved.Database = this;
+                    }
+
+                    Save(resolved, &newDoc, current.c4Doc.RawDoc, deletion);
+                    Debug.Assert(newDoc != null);
+                }
+
+                retValDoc = newDoc;
+            });
+
+            if (deletion) {
+                // Objective-C handles this by letting the wrapper go
+                // out of scope, but I'd rather avoid that
+                retVal?.Dispose();
+                Native.c4doc_free(retValDoc);
+                return null;
+            }
+
+            return retVal ?? new Document(this, doc.Id, new C4DocumentWrapper(retValDoc));
+        }
+
+        private void Save(Document doc, C4Document** outDoc, C4Document* baseDoc, bool deletion)
+        {
+            var revFlags = (C4RevisionFlags) 0;
+            if (deletion) {
+                revFlags = C4RevisionFlags.Deleted;
+            }
+
+            var body = new FLSliceResult();
+            if (!deletion && !doc.IsEmpty) {
+
+                var encoded = doc.Encode();
+                body.buf = encoded.buf;
+                body.size = encoded.size;
+                var root = NativeRaw.FLValue_FromTrustedData((FLSlice)body);
+                ThreadSafety.DoLocked(() =>
+                {
+                    if (Native.c4doc_dictContainsBlobs((FLDict *)root, SharedStrings.SharedKeys)) {
+                        revFlags |= C4RevisionFlags.HasAttachments;
+                    }
+                });
+                
+            } else if (doc.IsEmpty) {
+                var encoder = default(FLEncoder*);
+                ThreadSafety.DoLocked(() => encoder = Native.c4db_getSharedFleeceEncoder(_c4db));
+                Native.FLEncoder_BeginDict(encoder, 0);
+                Native.FLEncoder_EndDict(encoder);
+                body = NativeRaw.FLEncoder_Finish(encoder, null);
+                Native.FLEncoder_Reset(encoder);
+            }
+            
+            try {
+                var rawDoc = baseDoc != null ? baseDoc :
+                    doc.c4Doc?.HasValue == true ? doc.c4Doc.RawDoc : null;
+                if (rawDoc != null) {
+                    doc.ThreadSafety.DoLocked(() =>
+                    {
+                        ThreadSafety.DoLocked(() =>
+                        {
+                            *outDoc = (C4Document*)NativeHandler.Create()
+                                .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
+                                    err => NativeRaw.c4doc_update(rawDoc, (C4Slice)body, revFlags, err));
+                        });
+                    });
+                } else {
+                    ThreadSafety.DoLocked(() =>
+                    {
+                        using (var docID_ = new C4String(doc.Id)) {
+                            *outDoc = (C4Document*)NativeHandler.Create()
+                                .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
+                                    err => NativeRaw.c4doc_create(_c4db, docID_.AsC4Slice(), (C4Slice)body, revFlags, err));
+                        }
+                    });
+                }
+            } finally {
+                Native.FLSliceResult_Free(body);
+            }
+        }
+
+        private void VerifyDB(Document document)
         {
             if (document.Database == null) {
                 document.Database = this;
             } else if (document.Database != this) {
                 throw new CouchbaseLiteException(StatusCode.Forbidden, "Cannot operate on a document from another database");
             }
-
-            return document;
         }
 
         #endregion

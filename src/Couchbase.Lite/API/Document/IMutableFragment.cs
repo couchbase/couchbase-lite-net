@@ -1,5 +1,5 @@
 ﻿// 
-// IReadOnlyObjectFragment.cs
+// IFragment.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -22,41 +22,37 @@
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// An interface representing a readonly entry in a key path that is
-    /// able to be indexed by <see cref="System.String"/>
-    /// (e.g. object["key1"]["key2"])
+    /// An interface representing a writeable object capable of being indexed 
+    /// via <see cref="System.String"/>
     /// </summary>
-    public interface IDictionaryFragment
+    public interface IMutableDictionaryFragment
     {
         #region Properties
 
         /// <summary>
-        /// Gets the value of the given key, or lack thereof,
-        /// wrapped inside of a <see cref="Fragment"/>
+        /// Gets the value of an arbitrary <see cref="System.String"/> key
         /// </summary>
-        /// <param name="key">The key to check</param>
-        /// <returns>The value of the given key, or lack thereof</returns>
-        Fragment this[string key] { get; }
+        /// <param name="key">The key to lookup the value for</param>
+        /// <returns>The value, or lack thereof, wrapped in a <see cref="MutableFragment"/></returns>
+        MutableFragment this[string key] { get; }
 
         #endregion
     }
 
     /// <summary>
-    /// An interface representing a readonly entry in a key path
-    /// that is able to be indexed by position
-    /// (e.g. object[0][1])
+    /// An interface representing a writeable object capable of being indexed
+    /// via <see cref="System.Int32"/>
     /// </summary>
-    public interface IArrayFragment
+    public interface IMutableArrayFragment
     {
         #region Properties
 
         /// <summary>
-        /// Gets the value of the given index, or lack thereof,
-        /// wrapped inside of a <see cref="Fragment"/>
+        /// Gets the value of an arbitrary index
         /// </summary>
-        /// <param name="index">The index to check</param>
-        /// <returns>The value of the given index, or lack thereof</returns>
-        Fragment this[int index] { get; }
+        /// <param name="index">The index to lookup the value for</param>
+        /// <returns>The value, or lack thereof, wrapped in a <see cref="MutableFragment"/></returns>
+        MutableFragment this[int index] { get; }
 
         #endregion
     }

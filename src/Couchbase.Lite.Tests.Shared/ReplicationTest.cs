@@ -80,7 +80,7 @@ namespace Test
             Db.InBatch(() =>
             {
                 for (int i = 0; i < 100; i++) {
-                    var doc = new Document();
+                    var doc = new MutableDocument();
                     Db.Save(doc);
                 }
             });
@@ -93,12 +93,12 @@ namespace Test
         public void TestPullDoc()
         {
             // For https://github.com/couchbase/couchbase-lite-core/issues/156
-            var doc1 = new Document("doc1");
+            var doc1 = new MutableDocument("doc1");
             doc1.Set("name", "Tiger");
             Db.Save(doc1);
             Db.Count.Should().Be(1, "because only one document was saved so far");
 
-            var doc2 = new Document("doc2");
+            var doc2 = new MutableDocument("doc2");
             doc2.Set("name", "Cat");
             _otherDB.Save(doc2);
 
@@ -112,55 +112,64 @@ namespace Test
         [Fact]
         public void TestPullConflict()
         {
-            var doc1 = new Document("doc");
+            var doc1 = new MutableDocument("doc");
             doc1.Set("species", "Tiger");
-            Db.Save(doc1);
+            Db.Save(doc1).Dispose();
+
+            var config = CreateConfig(true, false, false);
+            RunReplication(config, 0, 0);
+
+            doc1.Dispose();
+            doc1 = Db.GetDocument("doc").ToMutable();
             doc1.Set("name", "Hobbes");
-            Db.Save(doc1);
+            Db.Save(doc1).Dispose();
+            doc1.Dispose();
 
-            var doc2 = new Document("doc");
-            doc2.Set("species", "Tiger");
-            _otherDB.Save(doc2);
+            var doc2 = _otherDB.GetDocument("doc").ToMutable();
             doc2.Set("pattern", "striped");
-            _otherDB.Save(doc2);
+            _otherDB.Save(doc2).Dispose();
+            doc2.Dispose();
 
-            var config = CreateConfig(false, true, false);
-            config.ConflictResolver = new MergeThenTheirsWins {
-                RequireBaseRevision = true    
+            config = CreateConfig(false, true, false);
+            config.ConflictResolver = new MergeThenTheirsWins
+            {
+                RequireBaseRevision = true
             };
 
             RunReplication(config, 0, 0);
             Db.Count.Should().Be(1, "because the document should go through the conflict handler");
-            doc1 = Db.GetDocument("doc");
-            doc1.ShouldBeEquivalentTo(new Dictionary<string, object> {
+            var gotDoc1 = Db.GetDocument("doc");
+            gotDoc1.ShouldBeEquivalentTo(new Dictionary<string, object>
+            {
                 ["species"] = "Tiger",
                 ["name"] = "Hobbes",
                 ["pattern"] = "striped"
             });
+            gotDoc1.Dispose();;
         }
 
         [Fact]
         public void TestDocIDFilter()
         {
-            var doc1 = new Document("doc1");
+            var doc1 = new MutableDocument("doc1");
             doc1.Set("species", "Tiger");
             Db.Save(doc1);
             doc1.Set("name", "Hobbes");
             Db.Save(doc1);
 
-            var doc2 = new Document("doc2");
+            var doc2 = new MutableDocument("doc2");
             doc2.Set("species", "Tiger");
             Db.Save(doc2);
             doc2.Set("pattern", "striped");
             Db.Save(doc2);
 
-            var doc3 = new Document("doc3");
+            var doc3 = new MutableDocument("doc3");
             doc3.Set("species", "Tiger");
             _otherDB.Save(doc3);
             doc3.Set("name", "Hobbes");
             _otherDB.Save(doc3);
 
-            var doc4 = new Document("doc4");
+            var doc4 = new MutableDocument("doc4");
             doc4.Set("species", "Tiger");
             _otherDB.Save(doc4);
             doc4.Set("pattern", "striped");
@@ -183,13 +192,13 @@ namespace Test
             // think it needs to preserve the body; so when it pulls a conflict, there won't be a base
             // revision for the resolver.
 
-            var doc1 = new Document("doc");
+            var doc1 = new MutableDocument("doc");
             doc1.Set("species", "tiger");
             Db.Save(doc1);
             doc1.Set("name", "Hobbes");
             Db.Save(doc1);
 
-            var doc2 = new Document("doc");
+            var doc2 = new MutableDocument("doc");
             doc2.Set("species", "Tiger");
             _otherDB.Save(doc2);
             doc2.Set("pattern", "striped");
@@ -200,8 +209,8 @@ namespace Test
             RunReplication(config, 0, 0);
 
             Db.Count.Should().Be(1, "because the document in otherDB has the same ID");
-            doc1 = Db.GetDocument("doc");
-            doc1.ToDictionary().ShouldBeEquivalentTo(new Dictionary<string, object> {
+            var gotDoc1 = Db.GetDocument("doc");
+            gotDoc1.ToDictionary().ShouldBeEquivalentTo(new Dictionary<string, object> {
                 ["species"] = "Tiger",
                 ["name"] = "Hobbes",
                 ["pattern"] = "striped"
@@ -275,14 +284,14 @@ namespace Test
             Db.InBatch(() =>
             {
                 for (int i = 0; i < 5; i++) {
-                    using (var doc = new Document($"doc-{i}")) {
+                    using (var doc = new MutableDocument($"doc-{i}")) {
                         doc["foo"].Value = "bar";
                         Db.Save(doc);
                     }
                 }
 
                 for (int i = 0; i < 10; i++) {
-                    using (var doc = new Document($"doc-{i+5}")) {
+                    using (var doc = new MutableDocument($"doc-{i+5}")) {
                         doc["channels"].Value = "my_channel";
                         Db.Save(doc);
                     }
@@ -359,7 +368,7 @@ namespace Test
             
             _repl.Start();
             try {
-                _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
+                _waitAssert.WaitForResult(TimeSpan.FromSeconds(1000));
             } catch {
                 _repl.Stop();
                 throw;

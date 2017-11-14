@@ -49,19 +49,19 @@ namespace Test
         [Fact]
         public void TestCreateDictionary()
         {
-            var address = new DictionaryObject();
+            var address = new MutableDictionary();
             address.Count.Should().Be(0, "because the dictionary is empty");
             address.ToDictionary().Should().BeEmpty("because the dictionary is empty");
 
-            var doc1 = new Document("doc1");
+            var doc1 = new MutableDocument("doc1");
             doc1.Set("address", address);
             doc1.GetDictionary("address")
                 .Should()
                 .BeSameAs(address, "because the document should return the same instance");
 
             Db.Save(doc1);
-            doc1 = Db.GetDocument("doc1");
-            doc1.GetDictionary("address").ToDictionary().Should().BeEmpty("because the content should not have changed");
+            var gotDoc = Db.GetDocument("doc1");
+            gotDoc.GetDictionary("address").ToDictionary().Should().BeEmpty("because the content should not have changed");
         }
 
         [Fact]
@@ -72,19 +72,19 @@ namespace Test
                 ["city"] = "Mountain View",
                 ["state"] = "CA"
             };
-            var address = new DictionaryObject(dict);
+            var address = new MutableDictionary(dict);
             address.ShouldBeEquivalentTo(dict, "because that is what was stored");
             address.ToDictionary().ShouldBeEquivalentTo(dict, "because that is what was stored");
 
-            var doc1 = new Document("doc1");
+            var doc1 = new MutableDocument("doc1");
             doc1.Set("address", address);
             doc1.GetDictionary("address")
                 .Should()
                 .BeSameAs(address, "because the document should return the same instance");
 
             Db.Save(doc1);
-            doc1 = Db.GetDocument("doc1");
-            doc1.GetDictionary("address")
+            var gotDoc = Db.GetDocument("doc1");
+            gotDoc.GetDictionary("address")
                 .ToDictionary()
                 .ShouldBeEquivalentTo(dict, "because the content should not have changed");
         }
@@ -92,7 +92,7 @@ namespace Test
         [Fact]
         public void TestGetValueFromNewEmptyDictionary()
         {
-            IDictionaryObject dict = new DictionaryObject();
+            IDictionaryObject dict = new MutableDictionary();
             dict.GetInt("key").Should().Be(0, "because that is the default value");
             dict.GetLong("key").Should().Be(0L, "because that is the default value");
             dict.GetDouble("key").Should().Be(0.0, "because that is the default value");
@@ -105,12 +105,12 @@ namespace Test
             dict.GetArray("key").Should().BeNull("because that is the default value");
             dict.ToDictionary().Should().BeEmpty("because the dictionary is empty");
 
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc.Set("dict", dict);
 
             Db.Save(doc);
-            doc = Db.GetDocument("doc1");
-            dict = doc.GetDictionary("dict");
+            var gotDoc = Db.GetDocument("doc1");
+            dict = gotDoc.GetDictionary("dict");
             dict.GetInt("key").Should().Be(0, "because that is the default value");
             dict.GetLong("key").Should().Be(0L, "because that is the default value");
             dict.GetDouble("key").Should().Be(0.0, "because that is the default value");
@@ -127,16 +127,16 @@ namespace Test
         [Fact]
         public void TestSetNestedDictionaries()
         {
-            var doc = new Document("doc1");
-            IDictionaryObject level1 = new DictionaryObject();
+            var doc = new MutableDocument("doc1");
+            IMutableDictionary level1 = new MutableDictionary();
             level1.Set("name", "n1");
             doc.Set("level1", level1);
 
-            IDictionaryObject level2 = new DictionaryObject();
+            IMutableDictionary level2 = new MutableDictionary();
             level2.Set("name", "n2");
             level1.Set("level2", level2);
 
-            IDictionaryObject level3 = new DictionaryObject();
+            IMutableDictionary level3 = new MutableDictionary();
             level3.Set("name", "n3");
             level2.Set("level3", level3);
 
@@ -158,23 +158,15 @@ namespace Test
             doc.ToDictionary().ShouldBeEquivalentTo(dict, "because otherwise the document's contents are incorrect");
 
             Db.Save(doc);
-            doc = Db.GetDocument("doc1");
-            doc.GetDictionary("level1")
-                .Should()
-                .NotBeSameAs(level1, "because a new document should return a new instance");
-            level1 = doc.GetDictionary("level1");
-            level2 = level1.GetDictionary("level2");
-            level3 = level2.GetDictionary("level3");
-
-            level1.GetDictionary("level2").ShouldBeEquivalentTo(level2, "because otherwise the contents are wrong");
-            level2.GetDictionary("level3").ShouldBeEquivalentTo(level3, "because otherwise the contents are wrong");
-            doc.ToDictionary().ShouldBeEquivalentTo(dict, "because otherwise the document's contents are incorrect");
+            var gotDoc = Db.GetDocument("doc1");
+            gotDoc.GetDictionary("level1").Should().NotBeSameAs(level1);
+            gotDoc.ToDictionary().ShouldBeEquivalentTo(dict);
         }
 
         [Fact]
         public void TestDictionaryArray()
         {
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             var data = new[] {
                 new Dictionary<string, object> {
                     ["name"] = "1"
@@ -208,30 +200,30 @@ namespace Test
             d4.GetString("name").Should().Be("4", "because that is what was stored");
 
             Db.Save(doc);
-            doc = Db.GetDocument("doc1");
-            dicts = doc.GetArray("dicts");
-            dicts.Count.Should().Be(4, "because that is the number of entries");
+            var gotDoc = Db.GetDocument("doc1");
+            var savedDicts = gotDoc.GetArray("dicts");
+            savedDicts.Count.Should().Be(4, "because that is the number of entries");
 
-            d1 = dicts.GetDictionary(0);
-            d2 = dicts.GetDictionary(1);
-            d3 = dicts.GetDictionary(2);
-            d4 = dicts.GetDictionary(3);
-            d1.GetString("name").Should().Be("1", "because that is what was stored");
-            d2.GetString("name").Should().Be("2", "because that is what was stored");
-            d3.GetString("name").Should().Be("3", "because that is what was stored");
-            d4.GetString("name").Should().Be("4", "because that is what was stored");
+            var savedD1 = savedDicts.GetDictionary(0);
+            var savedD2 = savedDicts.GetDictionary(1);
+            var savedD3 = savedDicts.GetDictionary(2);
+            var savedD4 = savedDicts.GetDictionary(3);
+            savedD1.GetString("name").Should().Be("1", "because that is what was stored");
+            savedD2.GetString("name").Should().Be("2", "because that is what was stored");
+            savedD3.GetString("name").Should().Be("3", "because that is what was stored");
+            savedD4.GetString("name").Should().Be("4", "because that is what was stored");
         }
 
         [Fact]
         public void TestReplaceDictionary()
         {
-            var doc = new Document("doc1");
-            var profile1 = new DictionaryObject();
+            var doc = new MutableDocument("doc1");
+            var profile1 = new MutableDictionary();
             profile1.Set("name", "Scott Tiger");
             doc.Set("profile", profile1);
             doc.GetDictionary("profile").ShouldBeEquivalentTo(profile1, "because that is what was set");
 
-            IDictionaryObject profile2 = new DictionaryObject();
+            IMutableDictionary profile2 = new MutableDictionary();
             profile2.Set("name", "Daniel Tiger");
             doc.Set("profile", profile2);
             doc.GetDictionary("profile").ShouldBeEquivalentTo(profile2, "because that is what was set");
@@ -244,20 +236,20 @@ namespace Test
             profile2.GetObject("age").Should().BeNull("because profile2 should be unchanged");
 
             Db.Save(doc);
-            doc = Db.GetDocument("doc1");
+            var gotDoc = Db.GetDocument("doc1");
 
-            doc.GetDictionary("profile")
+            gotDoc.GetDictionary("profile")
                 .Should()
-                .NotBeSameAs(profile2, "because a new document should return a new instance");
-            profile2 = doc.GetDictionary("profile");
-            profile2.GetString("name").Should().Be("Daniel Tiger", "because that is what was saved");
+                .NotBeSameAs(profile2, "because a new MutableDocument should return a new instance");
+            var savedProfile2 = gotDoc.GetDictionary("profile");
+            savedProfile2.GetString("name").Should().Be("Daniel Tiger", "because that is what was saved");
         }
 
         [Fact]
         public void TestReplaceDictionaryDifferentType()
         {
-            var doc = new Document("doc1");
-            var profile1 = new DictionaryObject();
+            var doc = new MutableDocument("doc1");
+            var profile1 = new MutableDictionary();
             profile1.Set("name", "Scott Tiger");
             doc.Set("profile", profile1);
             doc.GetDictionary("profile").ShouldBeEquivalentTo(profile1, "because that is what was set");
@@ -272,15 +264,15 @@ namespace Test
             doc.GetString("profile").Should().Be("Daniel Tiger", "because profile1 should not affect the new value");
 
             Db.Save(doc);
-            doc = Db.GetDocument("doc1");
-            doc.GetString("profile").Should().Be("Daniel Tiger", "because that is what was saved");
+            var gotDoc = Db.GetDocument("doc1");
+            gotDoc.GetString("profile").Should().Be("Daniel Tiger", "because that is what was saved");
         }
 
         [Fact]
         public void TestRemoveDictionary()
         {
-            var doc = new Document("doc1");
-            var profile1 = new DictionaryObject();
+            var doc = new MutableDocument("doc1");
+            var profile1 = new MutableDictionary();
             profile1.Set("name", "Scott Tiger");
             doc.Set("profile", profile1);
             doc.GetDictionary("profile").ShouldBeEquivalentTo(profile1, "because that was what was inserted");
@@ -297,16 +289,16 @@ namespace Test
             doc.GetObject("profile").Should()
                 .BeNull("because changes to the dictionary should not have any affect anymore");
 
-            doc = SaveDocument(doc);
+            var savedDoc = Db.Save(doc);
 
-            doc.GetObject("profile").Should().BeNull("beacuse the value for 'profile' was removed");
-            doc.Contains("profile").Should().BeFalse("because the value was removed");
+            savedDoc.GetObject("profile").Should().BeNull("beacuse the value for 'profile' was removed");
+            savedDoc.Contains("profile").Should().BeFalse("because the value was removed");
         }
 
         [Fact]
         public void TestEnumeratingDictionary()
         {
-            var dict = new DictionaryObject();
+            var dict = new MutableDictionary();
             for (int i = 0; i < 20; i++) {
                 dict.Set($"key{i}", i);
             }
@@ -327,7 +319,7 @@ namespace Test
 
             result.ShouldBeEquivalentTo(content, "because that is the correct content");
 
-            var doc = new Document("doc1");
+            var doc = new MutableDocument("doc1");
             doc.Set("dict", dict);
             SaveDocument(doc, d =>
             {
