@@ -24,7 +24,7 @@
   </dependencies>
   </metadata>
   <files>
-    <file target="build\Couchbase.Lite.Support.NetDesktop.targets" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netstandard1.4\desktop.targets" />
+    <file target="build\Couchbase.Lite.Support.NetDesktop.targets" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\desktop.targets" />
     <file target="lib\net461\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\Couchbase.Lite.Support.NetDesktop.dll" />
     <file target="lib\net461\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\Couchbase.Lite.Support.NetDesktop.pdb" />
     <file target="lib\net461\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\Couchbase.Lite.Support.NetDesktop.xml" />
