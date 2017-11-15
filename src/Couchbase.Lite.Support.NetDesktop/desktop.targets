@@ -29,14 +29,6 @@
                 <Link>libicudata.so.54</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </Content>
-            <Content Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x86\native\LiteCore.dll">
-                <Link>x86\LiteCore.dll</Link>
-                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </Content>
-            <Content Condition=" '$(OS)' == 'Windows_NT' " Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x64\native\LiteCore.dll">
-                <Link>x64\LiteCore.dll</Link>
-                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </Content>
             <Content Include="$(MSBuildThisFileDirectory)..\runtimes\osx-x64\native\libLiteCore.dylib" Condition=" $(IsMac) ">
                 <Link>libLiteCore.dylib</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

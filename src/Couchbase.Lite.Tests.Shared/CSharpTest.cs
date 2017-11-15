@@ -125,10 +125,6 @@ namespace Test
                     list[2].Should().BeAssignableTo<IList<object>>();
                     list[4].Should().BeAssignableTo<IDictionary<string, object>>();
                 }
-
-#if DEBUG
-                context.Disposed.Should().BeTrue();
-#endif
             } finally {
                 Native.FLSliceResult_Free(flData);
             }
@@ -215,10 +211,6 @@ namespace Test
                     dict["array"].As<IList>().Should().Equal(1L, 2L, 3L);
                     dict["dict"].As<IDictionary<string, object>>().ShouldBeEquivalentTo(nestedDict);
                 }
-
-#if DEBUG
-                context.Disposed.Should().BeTrue();
-#endif
             } finally {
                 Native.FLSliceResult_Free(flData);
             }

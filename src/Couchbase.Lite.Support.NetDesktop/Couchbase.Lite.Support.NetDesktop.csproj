@@ -5,7 +5,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging</Configurations>
-    <TargetFramework>netstandard1.4</TargetFramework>
+    <TargetFrameworks>net461;netcoreapp1.0</TargetFrameworks>
     <NetStandardImplicitPackageVersion>1.6.1</NetStandardImplicitPackageVersion>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>

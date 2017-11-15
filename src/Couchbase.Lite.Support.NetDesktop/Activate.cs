@@ -22,6 +22,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 using Couchbase.Lite.DI;
@@ -55,23 +56,27 @@ namespace Couchbase.Lite.Support
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                var codeBase = AppContext.BaseDirectory;
-                if (!codeBase.EndsWith("\\")) {
-                    codeBase = codeBase + "\\";
+                var codeBase = Path.GetDirectoryName(typeof(NetDesktop).GetTypeInfo().Assembly.Location);
+                if (codeBase == null) {
+                    throw new DllNotFoundException(
+                        "Couldn't find directory of the loaded support assembly, very weird!");
                 }
 
-                var uri = new UriBuilder(codeBase);
-                var directory = Path.GetDirectoryName(Uri.UnescapeDataString(uri.Path));
-
-                Debug.Assert(Path.IsPathRooted(directory), "directory is not rooted.");
                 var architecture = IntPtr.Size == 4
                     ? "x86"
                     : "x64";
+                
+                var nugetBase = codeBase;
+                for (int i = 0; i < 2; i++) {
+                    nugetBase = Path.GetDirectoryName(nugetBase);
+                }
 
-                var dllPath = Path.Combine(directory, architecture, "LiteCore.dll");
-                var dllPathAsp = Path.Combine(directory, "bin", architecture, "LiteCore.dll");
+                var dllPath = Path.Combine(codeBase, architecture, "LiteCore.dll");
+                var dllPathAsp = Path.Combine(codeBase, "bin", architecture, "LiteCore.dll");
+                var dllPathNuget =
+                    Path.Combine(nugetBase, "runtimes", $"win7-{architecture}", "native", "LiteCore.dll");
                 var foundPath = default(string);
-                foreach (var path in new[] { dllPath, dllPathAsp }) {
+                foreach (var path in new[] { dllPathNuget, dllPath, dllPathAsp }) {
                     foundPath = File.Exists(path) ? path : null;
                     if (foundPath != null) {
                         break;
