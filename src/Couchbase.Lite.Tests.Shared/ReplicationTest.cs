@@ -93,20 +93,24 @@ namespace Test
         public void TestPullDoc()
         {
             // For https://github.com/couchbase/couchbase-lite-core/issues/156
-            var doc1 = new MutableDocument("doc1");
-            doc1.Set("name", "Tiger");
-            Db.Save(doc1);
-            Db.Count.Should().Be(1, "because only one document was saved so far");
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.Set("name", "Tiger");
+                Db.Save(doc1).Dispose();
+                Db.Count.Should().Be(1, "because only one document was saved so far");
+            }
 
-            var doc2 = new MutableDocument("doc2");
-            doc2.Set("name", "Cat");
-            _otherDB.Save(doc2);
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.Set("name", "Cat");
+                _otherDB.Save(doc2).Dispose();
+            }
 
             var config = CreateConfig(false, true, false);
             RunReplication(config, 0, 0);
 
             Db.Count.Should().Be(2, "because the replicator should have pulled doc2 from the other DB");
-            doc2.GetString("name").Should().Be("Cat");
+            using (var doc2 = Db.GetDocument("doc2")) {
+                doc2.GetString("name").Should().Be("Cat");
+            }
         }
 
         [Fact]

@@ -84,13 +84,18 @@ namespace Couchbase.Lite.Support
                 }
 
                 if (foundPath == null) {
-                    throw new DllNotFoundException("Could not find LiteCore.dll!  Nothing is going to work!");
+                    throw new DllNotFoundException("Could not find LiteCore.dll!  Nothing is going to work!\r\n" +
+                                                   "Tried searching in:\r\n" +
+                                                   $"{dllPathNuget}\r\n" +
+                                                   $"{dllPath}\r\n" +
+                                                   $"{dllPathAsp}\r\n");
                 }
 
                 const uint loadWithAlteredSearchPath = 8;
                 var ptr = LoadLibraryEx(foundPath, IntPtr.Zero, loadWithAlteredSearchPath);
                 if (ptr == IntPtr.Zero) {
-                    throw new BadImageFormatException("Could not load LiteCore.dll!  Nothing is going to work!");
+                    throw new BadImageFormatException("Could not load LiteCore.dll!  Nothing is going to work!\r\n" +
+                                                      $"LiteCore found in: ${foundPath}");
                 }
             }
 
