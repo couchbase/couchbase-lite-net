@@ -208,7 +208,7 @@ namespace Couchbase.Lite.Sync
 			var versionAtt = (AssemblyInformationalVersionAttribute)typeof(Database).GetTypeInfo().Assembly
 				.GetCustomAttribute(typeof(AssemblyInformationalVersionAttribute));
 			var version = versionAtt?.InformationalVersion ?? "Unknown";
-			var regex = new Regex("([0-9]+\\.[0-9]+\\.[0-9]+\\.)-b([0-9]+)");
+            var regex = new Regex("([0-9]+\\.[0-9]+\\.[0-9]+)-b0*([1-9]+)");
 			var build = "0";
 			var commit = "unknown";
 			if (regex.IsMatch(version))

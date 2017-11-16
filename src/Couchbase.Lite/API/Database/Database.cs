@@ -898,7 +898,7 @@ namespace Couchbase.Lite
                 change = new DocumentChangedEventArgs(documentID);
             });
 
-            Task.Factory.StartNew(() => _documentChanged.Fire(documentID, this, change));
+            _documentChanged.Fire(documentID, this, change);
         }
 
         private Document Save(Document doc, bool deletion)
