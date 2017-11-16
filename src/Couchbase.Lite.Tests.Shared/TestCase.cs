@@ -21,11 +21,15 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
+
 using Couchbase.Lite;
 using Couchbase.Lite.Logging;
 using FluentAssertions;
 using Newtonsoft.Json;
 using Test.Util;
+using LiteCore;
+using LiteCore.Interop;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -79,7 +83,24 @@ namespace Test
         public TestCase()
         { 
 #endif
-            Database.Delete(DatabaseName, Directory);
+            var attempt = 1;
+            var success = false;
+            while (attempt < 5 && !success) {
+                try {
+                    Database.Delete(DatabaseName, Directory);
+                    success = true;
+                } catch (LiteCoreException e) {
+                    if (e.Error.domain != C4ErrorDomain.LiteCoreDomain || e.Error.code != (int) C4ErrorCode.Busy) {
+                        throw;
+                    }
+
+                    if (attempt < 5) {
+                        WriteLine($"Database busy!  Waiting for 200 ms (attempt {attempt++})");
+                        Task.Delay(200).Wait();
+                    }
+                }
+            }
+
             OpenDB();
         }
 
