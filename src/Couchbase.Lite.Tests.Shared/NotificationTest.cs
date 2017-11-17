@@ -179,12 +179,15 @@ namespace Test
                 WriteLine($"Received {args.DocumentID}");
                 _wa.RunConditionalAssert(() =>
                 {
-                    _expectedDocumentChanges.Should()
-                        .Contain(args.DocumentID, "because otherwise a rogue notification came");
-                    _expectedDocumentChanges.Remove(args.DocumentID);
+                    lock (_expectedDocumentChanges) {
+                        _expectedDocumentChanges.Should()
+                            .Contain(args.DocumentID, "because otherwise a rogue notification came");
+                        _expectedDocumentChanges.Remove(args.DocumentID);
 
-                    WriteLine($"Expecting {_expectedDocumentChanges.Count} more changes ({JsonConvert.SerializeObject(_expectedDocumentChanges)}");
-                    return _expectedDocumentChanges.Count == 0;
+                        WriteLine(
+                            $"Expecting {_expectedDocumentChanges.Count} more changes ({JsonConvert.SerializeObject(_expectedDocumentChanges)})");
+                        return _expectedDocumentChanges.Count == 0;
+                    }
                 });
             }
         }
