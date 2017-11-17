@@ -1,43 +1,49 @@
-﻿//
-// Activate.cs
-//
-// Author:
-// 	Jim Borden  <jim.borden@couchbase.com>
-//
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+﻿// 
+//  Activate.cs
+// 
+//  Author:
+//   Jim Borden  <jim.borden@couchbase.com>
+// 
+//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+// 
+//  http://www.apache.org/licenses/LICENSE-2.0
+// 
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+// 
+
 using System;
 using System.IO;
+
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
+
 using Foundation;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Lite.Support
 {
-	/// <summary>
-	/// Support classes for Xamarin iOS
-	/// </summary>
-	public static class iOS
+    /// <summary>
+    /// Support classes for Xamarin iOS
+    /// </summary>
+    public static class iOS
 	{
-        
-        private static AtomicBool _Activated;
-        
-		/// <summary>
+	    #region Variables
+
+	    private static AtomicBool _Activated = false;
+
+	    #endregion
+
+	    #region Public Methods
+
+	    /// <summary>
 		/// Activates the Xamarin iOS specific support classes
 		/// </summary>
 		public static void Activate()
@@ -47,15 +53,7 @@ namespace Couchbase.Lite.Support
             }
             
 			Console.WriteLine("Loading support items");
-			Service.RegisterServices(collection =>
-			{
-				collection.AddSingleton<IDefaultDirectoryResolver, DefaultDirectoryResolver>()
-#if __IOS__
-					.AddSingleton<IRuntimePlatform, iOSRuntimePlatform>()
-#endif
-
-					.AddSingleton<ISslStreamFactory, SslStreamFactory>();
-			});
+            Service.AutoRegister(typeof(iOS).Assembly);
 
 			Console.WriteLine("Loading libLiteCore.dylib");
 			var dylibPath = Path.Combine(NSBundle.MainBundle.BundlePath, "libLiteCore.dylib");
@@ -80,17 +78,15 @@ namespace Couchbase.Lite.Support
 			}
 		}
 
-		/// <summary>
+	    /// <summary>
 		/// Enables text based logging for debugging purposes.  Log statements will
 		/// be written to NSLog
 		/// </summary>
 		public static void EnableTextLogging()
 		{
-#if __IOS__
 			Log.AddLoggerProvider(new iOSLoggerProvider());
-#else
-			Log.AddLoggerProvider(new tvOSLoggerProvider());
-#endif
 		}
-    }
+
+	    #endregion
+	}
 }

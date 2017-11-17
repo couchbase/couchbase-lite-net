@@ -25,6 +25,7 @@ using Couchbase.Lite.DI;
 
 namespace Couchbase.Lite.Support
 {
+    [CouchbaseDependency]
 	internal sealed class AndroidRuntimePlatform : IRuntimePlatform
 	{
 		public string OSDescription => $"Android {Build.VERSION.Release} [API {(int)Build.VERSION.SdkInt}]";

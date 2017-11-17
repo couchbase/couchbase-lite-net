@@ -24,6 +24,7 @@ using Foundation;
 
 namespace Couchbase.Lite.Support
 {
+    [CouchbaseDependency]
     internal sealed class DefaultDirectoryResolver : IDefaultDirectoryResolver
     {
         public string DefaultDirectory()
