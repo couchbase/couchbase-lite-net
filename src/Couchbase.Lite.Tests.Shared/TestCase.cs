@@ -93,13 +93,13 @@ namespace Test
                 }
 
                 #if true
-                DatabaseTracker.Report(Path.Combine(Directory, $"{DatabaseName}.cblite2\\"));
+                DatabaseTracker.Report(Path.Combine(Directory, $"{DatabaseName}.cblite2{Path.DirectorySeparatorChar}"));
                 #endif
                 throw;
             }
 
 #if true
-            DatabaseTracker.Reset(Path.Combine(Directory, $"{DatabaseName}.cblite2\\"));
+            DatabaseTracker.Reset(Path.Combine(Directory, $"{DatabaseName}.cblite2{Path.DirectorySeparatorChar}"));
 #endif
             OpenDB();
         }
