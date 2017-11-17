@@ -751,7 +751,10 @@ namespace Couchbase.Lite
                 return;
             }
 
+#if DEBUG
             TrackDatabase();
+#endif
+
             Log.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(_c4db)}");
             LiteCoreBridge.Check(err => Native.c4db_close(_c4db, err));
             Native.c4db_free(_c4db);
@@ -844,14 +847,17 @@ namespace Couchbase.Lite
                 _obs = Native.c4dbobs_create(_c4db, _DbObserverCallback, this);
             });
 
+#if DEBUG
             TrackDatabase();
+#endif
         }
 
-        [Conditional("DEBUG")]
+#if DEBUG
         private void TrackDatabase()
         {
             DatabaseTracker.OpenOrCloseDatabase(Path);
         }
+#endif
 
         private void PostDatabaseChanged()
         {
