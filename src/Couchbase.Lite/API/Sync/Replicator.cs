@@ -63,6 +63,7 @@ namespace Couchbase.Lite.Sync
         private readonly ReplicatorConfiguration _config;
         private readonly SerialQueue _threadSafetyQueue = new SerialQueue();
         private readonly ThreadSafety _databaseThreadSafety;
+        private bool _disposed;
         
         /// <summary>
         /// An event that is fired when the replicator changes its status for reasons like
@@ -148,6 +149,10 @@ namespace Couchbase.Lite.Sync
         {
             _threadSafetyQueue.DispatchSync(() =>
             {
+                if (_disposed) {
+                    throw new ObjectDisposedException("Replication cannot be started after disposal");
+                }
+
                 if (_repl != null) {
                     Log.To.Sync.W(Tag, $"{this} has already started");
                     return;
@@ -214,8 +219,11 @@ namespace Couchbase.Lite.Sync
         {
             _threadSafetyQueue.DispatchSync(() =>
             {
+                if (_disposed) {
+                    return;
+                }
 #if true
-                TrackDatabase();
+                TrackDatabase(_repl != null);
 #endif
 
                 Native.c4repl_free(_repl);
@@ -229,7 +237,7 @@ namespace Couchbase.Lite.Sync
             _threadSafetyQueue.DispatchSync(() =>
             {
 #if true
-                TrackDatabase();
+                TrackDatabase(_repl != null);
 #endif
 
                 if (!finalizing) {
@@ -238,6 +246,8 @@ namespace Couchbase.Lite.Sync
                 }
 
                 Native.c4repl_free(_repl);
+                _repl = null;
+                _disposed = true;
             });
         }
 
@@ -379,7 +389,7 @@ namespace Couchbase.Lite.Sync
             });
 
 #if true
-            TrackDatabase();
+            TrackDatabase(true);
 #endif
 
             scheme.Dispose();
@@ -438,8 +448,12 @@ namespace Couchbase.Lite.Sync
         }
 
 #if true
-        private void TrackDatabase()
+        private void TrackDatabase(bool perform)
         {
+            if (!perform) {
+                return;
+            }
+
             DatabaseTracker.OpenOrCloseDatabase(Config.Database.Path);
         }
 #endif

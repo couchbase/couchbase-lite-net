@@ -767,6 +767,11 @@ namespace Couchbase.Lite
                         $"Closing database with {_unsavedDocuments.Count} such as {_unsavedDocuments.Any()}");
                 }
                 _unsavedDocuments.Clear();
+                foreach (var repl in ActiveReplications) {
+                    repl.Dispose();
+                }
+
+                ActiveReplications.Clear();
             }
         }
 
@@ -845,11 +850,10 @@ namespace Couchbase.Lite
                 }
 
                 _obs = Native.c4dbobs_create(_c4db, _DbObserverCallback, this);
-            });
-
 #if true
-            TrackDatabase();
+                TrackDatabase();
 #endif
+            });
         }
 
 #if true
