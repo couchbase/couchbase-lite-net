@@ -211,21 +211,28 @@ namespace Couchbase.Lite.Sync
 
         private void ClearRepl()
         {
+#if DEBUG
+            TrackDatabase();
+#endif
+
             Native.c4repl_free(_repl);
             _repl = null;
             _desc = null;
-            TrackDatabase();
+            
         }
 
         private void Dispose(bool finalizing)
         {
+#if DEBUG
+            TrackDatabase();
+#endif
+
             if (!finalizing) {
                 _reachability?.Stop();
                 _nativeParams?.Dispose();
             }
 
             Native.c4repl_free(_repl);
-            TrackDatabase();
         }
 
         private void OnDocError(C4Error error, bool pushing, string docID, bool transient)
@@ -359,7 +366,9 @@ namespace Couchbase.Lite.Sync
                 err = localErr;
             });
 
+#if DEBUG
             TrackDatabase();
+#endif
 
             scheme.Dispose();
             path.Dispose();
@@ -411,11 +420,12 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        [Conditional("DEBUG")]
+#if DEBUG
         private void TrackDatabase()
         {
             DatabaseTracker.OpenOrCloseDatabase(Config.Database.Path);
         }
+#endif
 
         private void UpdateStateProperties(C4ReplicatorStatus state)
         {
