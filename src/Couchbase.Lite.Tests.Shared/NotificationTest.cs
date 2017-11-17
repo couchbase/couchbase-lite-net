@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using Couchbase.Lite;
 using FluentAssertions;
 
+using Newtonsoft.Json;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -181,6 +182,8 @@ namespace Test
                     _expectedDocumentChanges.Should()
                         .Contain(args.DocumentID, "because otherwise a rogue notification came");
                     _expectedDocumentChanges.Remove(args.DocumentID);
+
+                    WriteLine($"Expecting {_expectedDocumentChanges.Count} more changes ({JsonConvert.SerializeObject(_expectedDocumentChanges)}");
                     return _expectedDocumentChanges.Count == 0;
                 });
             }
