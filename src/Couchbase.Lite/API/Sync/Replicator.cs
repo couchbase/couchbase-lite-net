@@ -211,7 +211,7 @@ namespace Couchbase.Lite.Sync
 
         private void ClearRepl()
         {
-#if DEBUG
+#if true
             TrackDatabase();
 #endif
 
@@ -223,7 +223,7 @@ namespace Couchbase.Lite.Sync
 
         private void Dispose(bool finalizing)
         {
-#if DEBUG
+#if true
             TrackDatabase();
 #endif
 
@@ -366,7 +366,7 @@ namespace Couchbase.Lite.Sync
                 err = localErr;
             });
 
-#if DEBUG
+#if true
             TrackDatabase();
 #endif
 
@@ -420,7 +420,7 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-#if DEBUG
+#if true
         private void TrackDatabase()
         {
             DatabaseTracker.OpenOrCloseDatabase(Config.Database.Path);

@@ -266,17 +266,23 @@ namespace Test
             var exp2 = new WaitAssert();
             Db.AddDocumentChangedListener("doc1", (sender, args) =>
             {
+                WriteLine("Reached document changed callback");
                 exp2.RunAssert(() =>
                 {
+                    WriteLine("Waiting for exp1 in document changed callback");
                     exp1.WaitForResult(TimeSpan.FromSeconds(20)); // Test deadlock
                 });
             });
 
+            WriteLine("Triggering async save");
             exp1.RunAssertAsync(() =>
             {
+                WriteLine("Running async save");
                 Db.Save(new MutableDocument("doc1"));
+                WriteLine("Async save completed");
             });
 
+            WriteLine("Waiting for exp1 in test method");
             exp1.WaitForResult(TimeSpan.FromSeconds(10));
         }
 

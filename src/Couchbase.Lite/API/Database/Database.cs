@@ -751,7 +751,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-#if DEBUG
+#if true
             TrackDatabase();
 #endif
 
@@ -847,12 +847,12 @@ namespace Couchbase.Lite
                 _obs = Native.c4dbobs_create(_c4db, _DbObserverCallback, this);
             });
 
-#if DEBUG
+#if true
             TrackDatabase();
 #endif
         }
 
-#if DEBUG
+#if true
         private void TrackDatabase()
         {
             DatabaseTracker.OpenOrCloseDatabase(Path);

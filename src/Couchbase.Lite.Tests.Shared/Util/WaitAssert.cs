@@ -54,7 +54,7 @@ namespace Couchbase.Lite
         public async Task RunAssertAsync(Action assertAction)
         {
             try {
-                await Task.Factory.StartNew(assertAction);
+                await Task.Factory.StartNew(assertAction).ConfigureAwait(false);
             }
             catch (Exception e) {
                 _caughtException = e;
