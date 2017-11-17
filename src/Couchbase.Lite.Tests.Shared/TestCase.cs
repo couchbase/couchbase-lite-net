@@ -50,7 +50,7 @@ namespace Test
     {
         public const string DatabaseName = "testdb";
 #if !WINDOWS_UWP
-        private readonly ITestOutputHelper _output;
+        protected readonly ITestOutputHelper _output;
 #else
         private TestContext _testContext;
         public TestContext TestContext
@@ -92,9 +92,16 @@ namespace Test
                     throw;
                 }
 
+                
                 #if true
-                DatabaseTracker.Report(Path.Combine(Directory, $"{DatabaseName}.cblite2{Path.DirectorySeparatorChar}"));
-                #endif
+                using (var sw = new StringWriter()) {
+                    DatabaseTracker.Report(
+                        Path.Combine(Directory, $"{DatabaseName}.cblite2{Path.DirectorySeparatorChar}"), sw);
+                    DatabaseTracker.Reset(Path.Combine(Directory,
+                        $"{DatabaseName}.cblite2{Path.DirectorySeparatorChar}"));
+                    WriteLine(sw.ToString());
+                }
+#endif
                 throw;
             }
 

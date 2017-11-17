@@ -19,16 +19,10 @@
 // limitations under the License.
 // 
 using System;
-using Couchbase.Lite.Support;
 using Couchbase.Lite.Sync;
 
 namespace Couchbase.Lite.DI
 {
-    internal interface IReachabilityFactory
-    {
-        IReachability Create();
-    }
-
     internal interface IReachability
     {
         #region Variables
@@ -39,7 +33,7 @@ namespace Couchbase.Lite.DI
 
         #region Public Methods
 
-        void Start(SerialQueue queue);
+        void Start();
 
         void Stop();
 

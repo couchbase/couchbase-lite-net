@@ -21,6 +21,8 @@
 using System;
 using System.Linq;
 using System.Net.NetworkInformation;
+using System.Threading.Tasks;
+
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
@@ -65,9 +67,7 @@ namespace Couchbase.Lite.Sync
         public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
 
         internal static bool AllowLoopback = false; // For unit tests
-
-        private SerialQueue _dispatchQueue;
-
+        
         #endregion
 
         #region Internal Methods
@@ -75,7 +75,7 @@ namespace Couchbase.Lite.Sync
         internal void InvokeNetworkChangeEvent(NetworkReachabilityStatus status)
         {
             var eventArgs = new NetworkReachabilityChangeEventArgs(status);
-            _dispatchQueue.DispatchAsync(() => StatusChanged?.Invoke(this, eventArgs));
+            Task.Factory.StartNew(() => StatusChanged?.Invoke(this, eventArgs));
         }
 
         #endregion
@@ -136,9 +136,8 @@ namespace Couchbase.Lite.Sync
 
         #region IReachability
 
-        public void Start(SerialQueue dispatchQueue)
+        public void Start()
         {
-            _dispatchQueue = dispatchQueue;
             NetworkChange.NetworkAddressChanged += OnNetworkChange;
         }
 

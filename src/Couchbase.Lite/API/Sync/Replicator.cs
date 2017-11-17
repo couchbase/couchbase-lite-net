@@ -25,12 +25,14 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite.Sync
@@ -76,7 +78,6 @@ namespace Couchbase.Lite.Sync
         private IDictionary<string, object> _responseHeaders;
         private int _retryCount;
         private IReachability _reachability;
-        private readonly SerialQueue _dispatchQueue = new SerialQueue();
 
         #endregion
 
@@ -189,19 +190,24 @@ namespace Couchbase.Lite.Sync
         private static void OnDocError(bool pushing, string docID, C4Error error, bool transient, object context)
         {
             var replicator = context as Replicator;
-            replicator?._dispatchQueue.DispatchAsync(() =>
+            Task.Factory.StartNew(() =>
+                {
+                    replicator?._selfThreadSafety.DoLocked(
+                        () => replicator.OnDocError(error, pushing, docID, transient));
+                }).ContinueWith(t =>
             {
-                replicator.OnDocError(error, pushing, docID, transient);
-            });
+                Log.To.Sync.E(Tag, "Exception during OnDocError", t.Exception.InnerException);
+            }, TaskContinuationOptions.OnlyOnFaulted);
         }
 
         private static void StatusChangedCallback(C4ReplicatorStatus status, object context)
         {
             var repl = context as Replicator;
-            repl?._dispatchQueue.DispatchAsync(() =>
-            {
-                repl.StatusChangedCallback(status);
-            });
+            try {
+                repl?._selfThreadSafety.DoLocked(() => repl.StatusChangedCallback(status));
+            } catch (Exception e) {
+                Log.To.Sync.E(Tag, "Exception during StatusChangedCallback", e);
+            }
         }
 
         private static bool ValidateCallback(string docID, IntPtr body, object context)
@@ -211,28 +217,33 @@ namespace Couchbase.Lite.Sync
 
         private void ClearRepl()
         {
+            _selfThreadSafety.DoLocked(() =>
+            {
 #if true
-            TrackDatabase();
+                TrackDatabase();
 #endif
 
-            Native.c4repl_free(_repl);
-            _repl = null;
-            _desc = null;
-            
+                Native.c4repl_free(_repl);
+                _repl = null;
+                _desc = null;
+            });
         }
 
         private void Dispose(bool finalizing)
         {
+            _selfThreadSafety.DoLocked(() =>
+            {
 #if true
-            TrackDatabase();
+                TrackDatabase();
 #endif
 
-            if (!finalizing) {
-                _reachability?.Stop();
-                _nativeParams?.Dispose();
-            }
+                if (!finalizing) {
+                    _reachability?.Stop();
+                    _nativeParams?.Dispose();
+                }
 
-            Native.c4repl_free(_repl);
+                Native.c4repl_free(_repl);
+            });
         }
 
         private void OnDocError(C4Error error, bool pushing, string docID, bool transient)
@@ -274,7 +285,7 @@ namespace Couchbase.Lite.Sync
                 var delay = RetryDelay(++_retryCount);
                 Log.To.Sync.I(Tag,
                     $"{this}: Transient error ({Native.c4error_getMessage(error)}); will retry in {delay}...");
-                _dispatchQueue.DispatchAfter(Retry, delay);
+                Task.Delay(delay).ContinueWith(t => Retry());
             } else {
                 Log.To.Sync.I(Tag,
                     $"{this}: Network error ({Native.c4error_getMessage(error)}); will retry when network changes...");
@@ -291,9 +302,9 @@ namespace Couchbase.Lite.Sync
                 return;   
             }
 
-            _reachability = Service.Provider.GetService<IReachabilityFactory>()?.Create() ?? new Reachability();
+            _reachability = Service.Provider.GetService<IReachability>() ?? new Reachability();
             _reachability.StatusChanged += ReachabilityChanged;
-            _reachability.Start(_dispatchQueue);
+            _reachability.Start();
         }
 
         private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)
@@ -307,12 +318,15 @@ namespace Couchbase.Lite.Sync
 
         private void Retry()
         {
-            if (_repl != null || _rawStatus.level != C4ReplicatorActivityLevel.Offline) {
-                return;
-            }
+            _selfThreadSafety.DoLocked(() =>
+            {
+                if (_repl != null || _rawStatus.level != C4ReplicatorActivityLevel.Offline) {
+                    return;
+                }
 
-            Log.To.Sync.I(Tag, $"{this}: Retrying...");
-            StartInternal();
+                Log.To.Sync.I(Tag, $"{this}: Retrying...");
+                StartInternal();
+            });
         }
 
         private void StartInternal()
@@ -412,7 +426,11 @@ namespace Couchbase.Lite.Sync
             }
 
             UpdateStateProperties(status);
-            StatusChanged?.Invoke(this, new ReplicationStatusChangedEventArgs(Status, LastError));
+            try {
+                StatusChanged?.Invoke(this, new ReplicationStatusChangedEventArgs(Status, LastError));
+            } catch (Exception e) {
+                Log.To.Sync.W(Tag, "Exception during StatusChanged callback", e);
+            }
 
             if (status.level == C4ReplicatorActivityLevel.Stopped) {
                 ClearRepl();

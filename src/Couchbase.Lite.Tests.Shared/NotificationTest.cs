@@ -175,6 +175,7 @@ namespace Test
             if (_docCallbackShouldThrow) {
                 _wa.RunAssert(() => throw new InvalidOperationException("Unexpected doc change notification"));
             } else {
+                WriteLine($"Received {args.DocumentID}");
                 _wa.RunConditionalAssert(() =>
                 {
                     _expectedDocumentChanges.Should()

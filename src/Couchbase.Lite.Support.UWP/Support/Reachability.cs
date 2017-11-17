@@ -19,27 +19,20 @@
 // limitations under the License.
 // 
 using System;
+using System.Threading.Tasks;
+
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Sync;
 using Windows.Networking.Connectivity;
 
 namespace Couchbase.Lite.Support
 {
-    internal sealed class ReachabilityFactory : IReachabilityFactory
-    {
-        public IReachability Create()
-        {
-            return new Reachability();
-        }
-    }
-
+    [CouchbaseDependency(Transient = true)]
     internal sealed class Reachability : IReachability
     {
         #region Variables
 
         public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
-
-        private SerialQueue _dispatchQueue;
 
         #endregion
 
@@ -52,16 +45,15 @@ namespace Couchbase.Lite.Support
                 ? NetworkReachabilityStatus.Unreachable
                 : NetworkReachabilityStatus.Reachable;
 
-            _dispatchQueue.DispatchAsync(() => StatusChanged?.Invoke(this, new NetworkReachabilityChangeEventArgs(status)));
+			Task.Factory.StartNew(() => { StatusChanged?.Invoke(this, new NetworkReachabilityChangeEventArgs(status)); });
         }
 
         #endregion
 
         #region IReachability
 
-        public void Start(SerialQueue queue)
+        public void Start()
         {
-            _dispatchQueue = queue;
             NetworkInformation.NetworkStatusChanged += OnNetworkStatusChanged;
         }
 

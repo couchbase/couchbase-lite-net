@@ -25,6 +25,10 @@ using Couchbase.Lite.DI;
 
 namespace Couchbase.Lite.Support
 {
+    // NOTE: AppContext.BaseDirectory is not entirely reliable, but there is no other choice
+    // It seems to usually be in the right place?
+
+    [CouchbaseDependency]
     internal sealed class DefaultDirectoryResolver : IDefaultDirectoryResolver
     {
         #region IDefaultDirectoryResolver

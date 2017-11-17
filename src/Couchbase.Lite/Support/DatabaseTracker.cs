@@ -47,6 +47,10 @@ namespace Couchbase.Lite.Support
         public static void Report(string path, TextWriter writer = null)
         {
             var actualWriter = writer ?? Console.Error;
+            if (!Calls.ContainsKey(path)) {
+                actualWriter.WriteLine($"No report found for {path}");
+            }
+
             actualWriter.WriteLine($"Report for {path}:");
             foreach (var call in Calls[path]) {
                 actualWriter.WriteLine(call);

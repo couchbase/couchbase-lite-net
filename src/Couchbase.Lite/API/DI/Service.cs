@@ -1,26 +1,29 @@
 ﻿// 
-// Service.cs
+//  Service.cs
 // 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
+//  Author:
+//   Jim Borden  <jim.borden@couchbase.com>
 // 
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
 // 
-// http://www.apache.org/licenses/LICENSE-2.0
+//  http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
 // 
+
 using System;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite.DI
@@ -31,6 +34,15 @@ namespace Couchbase.Lite.DI
     public static class Service
     {
         #region Constants
+
+        private static readonly Type[] _RequiredTypes = new[] {
+            typeof(IDefaultDirectoryResolver),
+            typeof(ISslStreamFactory)
+        };
+
+        #endregion
+
+        #region Properties
 
         /// <summary>
         /// Gets whether or not the services for this program are complete (i.e. all of the required
@@ -77,18 +89,6 @@ namespace Couchbase.Lite.DI
             }
         }
 
-        private static readonly Type[] _RequiredTypes = new[] {
-            typeof(IDefaultDirectoryResolver),
-            typeof(ISslStreamFactory)
-        };
-
-        #endregion
-
-        #region Variables
-
-        private static IServiceCollection _Collection = new ServiceCollection();
-        private static IServiceProvider _Provider;
-
         #endregion
 
         #region Public Methods
@@ -108,7 +108,46 @@ namespace Couchbase.Lite.DI
             config?.Invoke(_Collection);
         }
 
+        /// <summary>
+        /// Automatically register all the dependency types declared
+        /// <see cref="CouchbaseDependencyAttribute" />s.  To auto register classes,
+        /// they must implement an interface and must have a default constructor.
+        /// </summary>
+        /// <param name="assembly"></param>
+        public static void AutoRegister(Assembly assembly)
+        {
+            foreach (var type in assembly.GetTypes().Where(x => x.GetTypeInfo().IsClass)) {
+                var ti = type.GetTypeInfo();
+                var attribute = ti.GetCustomAttribute<CouchbaseDependencyAttribute>();
+                if (attribute == null) {
+                    continue;
+                }
+
+                var interfaceType = ti.ImplementedInterfaces.FirstOrDefault();
+                if (interfaceType == null) {
+                    throw new InvalidOperationException($"{type.Name} does not implement any interfaces!");
+                }
+
+                if(ti.DeclaredConstructors.All(x => x.GetParameters().Length != 0)) {
+                    throw new InvalidOperationException($"{type.Name} does not contain a default constructor");
+                }
+
+                if (attribute.Transient) {
+                    _Collection.AddTransient(interfaceType, type);
+                } else {
+                    if (attribute.Lazy) {
+                        _Collection.AddSingleton(interfaceType, type);
+                    } else {
+                        _Collection.AddSingleton(interfaceType, Activator.CreateInstance(type));
+                    }
+                }
+            }
+        }
+
         #endregion
+
+        private static IServiceCollection _Collection = new ServiceCollection();
+        private static IServiceProvider _Provider;
     }
 
     internal static class ServiceProviderExtensions

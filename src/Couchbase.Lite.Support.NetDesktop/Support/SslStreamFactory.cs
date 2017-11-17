@@ -30,6 +30,7 @@ using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
+    [CouchbaseDependency(Lazy = true)]
     internal sealed class SslStreamFactory : ISslStreamFactory
     {
         #region ISslStreamFactory

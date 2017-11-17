@@ -48,6 +48,7 @@ namespace Couchbase.Lite.Support
         #endregion
     }
 
+    [CouchbaseDependency(Lazy = true)]
     internal sealed class SslStreamFactory : ISslStreamFactory
     {
         #region ISslStreamFactory
