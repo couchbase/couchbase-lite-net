@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Couchbase.Lite.Support
 {
@@ -41,7 +42,9 @@ namespace Couchbase.Lite.Support
                 Calls[path] = new List<string>();
             }
 
-            Calls[path].Add(Environment.StackTrace);
+            var trace = Environment.StackTrace.Replace("\r", "").Split('\n');
+            var linesToUse = trace.Skip(4).TakeWhile(x => x.Contains("couchbase"));
+            Calls[path].Add(String.Join(Environment.NewLine, linesToUse));
         }
 
         public static void Report(string path, TextWriter writer = null)
