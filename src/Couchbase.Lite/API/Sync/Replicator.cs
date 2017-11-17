@@ -21,6 +21,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -213,6 +214,7 @@ namespace Couchbase.Lite.Sync
             Native.c4repl_free(_repl);
             _repl = null;
             _desc = null;
+            TrackDatabase();
         }
 
         private void Dispose(bool finalizing)
@@ -223,6 +225,7 @@ namespace Couchbase.Lite.Sync
             }
 
             Native.c4repl_free(_repl);
+            TrackDatabase();
         }
 
         private void OnDocError(C4Error error, bool pushing, string docID, bool transient)
@@ -356,6 +359,8 @@ namespace Couchbase.Lite.Sync
                 err = localErr;
             });
 
+            TrackDatabase();
+
             scheme.Dispose();
             path.Dispose();
             host.Dispose();
@@ -404,6 +409,12 @@ namespace Couchbase.Lite.Sync
                 ClearRepl();
                 _config.Database.ActiveReplications.Remove(this);
             }
+        }
+
+        [Conditional("DEBUG")]
+        private void TrackDatabase()
+        {
+            DatabaseTracker.OpenOrCloseDatabase(Config.Database.Path);
         }
 
         private void UpdateStateProperties(C4ReplicatorStatus state)

@@ -25,6 +25,8 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Support;
+
 using FluentAssertions;
 using Newtonsoft.Json;
 using Test.Util;
@@ -83,24 +85,22 @@ namespace Test
         public TestCase()
         { 
 #endif
-            var attempt = 1;
-            var success = false;
-            while (attempt < 5 && !success) {
-                try {
-                    Database.Delete(DatabaseName, Directory);
-                    success = true;
-                } catch (LiteCoreException e) {
-                    if (e.Error.domain != C4ErrorDomain.LiteCoreDomain || e.Error.code != (int) C4ErrorCode.Busy) {
-                        throw;
-                    }
-
-                    if (attempt < 5) {
-                        WriteLine($"Database busy!  Waiting for 200 ms (attempt {attempt++})");
-                        Task.Delay(200).Wait();
-                    }
+            try {
+                Database.Delete(DatabaseName, Directory);
+            } catch (LiteCoreException e) {
+                if (e.Error.domain != C4ErrorDomain.LiteCoreDomain || e.Error.code != (int) C4ErrorCode.Busy) {
+                    throw;
                 }
+
+                #if DEBUG
+                DatabaseTracker.Report(Path.Combine(Directory, $"{DatabaseName}.cblite2\\"));
+                #endif
+                throw;
             }
 
+#if DEBUG
+            DatabaseTracker.Reset(Path.Combine(Directory, $"{DatabaseName}.cblite2\\"));
+#endif
             OpenDB();
         }
 
@@ -141,7 +141,7 @@ namespace Test
             return new Database(name, options);
         }
 
-        protected virtual void ReopenDB()
+        protected void ReopenDB()
         {
             Db.Dispose();
             Db = null;
