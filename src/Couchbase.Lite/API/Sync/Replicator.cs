@@ -61,7 +61,7 @@ namespace Couchbase.Lite.Sync
         #region Variables
 
         private readonly ReplicatorConfiguration _config;
-        private readonly ThreadSafety _selfThreadSafety = new ThreadSafety();
+        private readonly SerialQueue _threadSafetyQueue = new SerialQueue();
         private readonly ThreadSafety _databaseThreadSafety;
         
         /// <summary>
@@ -146,7 +146,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public void Start()
         {
-            _selfThreadSafety.DoLocked(() =>
+            _threadSafetyQueue.DispatchSync(() =>
             {
                 if (_repl != null) {
                     Log.To.Sync.W(Tag, $"{this} has already started");
@@ -164,7 +164,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public void Stop()
         {
-            _selfThreadSafety.DoLocked(() =>
+            _threadSafetyQueue.DispatchSync(() =>
             {
                 if (_repl != null) {
                     Native.c4repl_stop(_repl);
@@ -190,24 +190,19 @@ namespace Couchbase.Lite.Sync
         private static void OnDocError(bool pushing, string docID, C4Error error, bool transient, object context)
         {
             var replicator = context as Replicator;
-            Task.Factory.StartNew(() =>
-                {
-                    replicator?._selfThreadSafety.DoLocked(
-                        () => replicator.OnDocError(error, pushing, docID, transient));
-                }).ContinueWith(t =>
+            replicator?._threadSafetyQueue.DispatchAsync(() =>
             {
-                Log.To.Sync.E(Tag, "Exception during OnDocError", t.Exception.InnerException);
-            }, TaskContinuationOptions.OnlyOnFaulted);
+                replicator.OnDocError(error, pushing, docID, transient);
+            });
         }
 
         private static void StatusChangedCallback(C4ReplicatorStatus status, object context)
         {
             var repl = context as Replicator;
-            try {
-                repl?._selfThreadSafety.DoLocked(() => repl.StatusChangedCallback(status));
-            } catch (Exception e) {
-                Log.To.Sync.E(Tag, "Exception during StatusChangedCallback", e);
-            }
+            repl?._threadSafetyQueue.DispatchAsync(() =>
+            {
+                repl.StatusChangedCallback(status);
+            });
         }
 
         private static bool ValidateCallback(string docID, IntPtr body, object context)
@@ -217,7 +212,7 @@ namespace Couchbase.Lite.Sync
 
         private void ClearRepl()
         {
-            _selfThreadSafety.DoLocked(() =>
+            _threadSafetyQueue.DispatchSync(() =>
             {
 #if true
                 TrackDatabase();
@@ -231,7 +226,7 @@ namespace Couchbase.Lite.Sync
 
         private void Dispose(bool finalizing)
         {
-            _selfThreadSafety.DoLocked(() =>
+            _threadSafetyQueue.DispatchSync(() =>
             {
 #if true
                 TrackDatabase();
@@ -246,6 +241,7 @@ namespace Couchbase.Lite.Sync
             });
         }
 
+        // Must be called from within the SerialQueue
         private void OnDocError(C4Error error, bool pushing, string docID, bool transient)
         {
             var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
@@ -285,7 +281,7 @@ namespace Couchbase.Lite.Sync
                 var delay = RetryDelay(++_retryCount);
                 Log.To.Sync.I(Tag,
                     $"{this}: Transient error ({Native.c4error_getMessage(error)}); will retry in {delay}...");
-                Task.Delay(delay).ContinueWith(t => Retry());
+                _threadSafetyQueue.DispatchAfter(Retry, delay);
             } else {
                 Log.To.Sync.I(Tag,
                     $"{this}: Network error ({Native.c4error_getMessage(error)}); will retry when network changes...");
@@ -309,26 +305,28 @@ namespace Couchbase.Lite.Sync
 
         private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)
         {
-            if (_repl == null && e.Status == NetworkReachabilityStatus.Reachable) {
-                Log.To.Sync.I(Tag, $"{this}: Server may now be reachable; retrying...");
-                _retryCount = 0;
-                Retry();
-            }
-        }
-
-        private void Retry()
-        {
-            _selfThreadSafety.DoLocked(() =>
+            _threadSafetyQueue.DispatchAsync(() =>
             {
-                if (_repl != null || _rawStatus.level != C4ReplicatorActivityLevel.Offline) {
-                    return;
+                if (_repl == null && e.Status == NetworkReachabilityStatus.Reachable) {
+                    Log.To.Sync.I(Tag, $"{this}: Server may now be reachable; retrying...");
+                    _retryCount = 0;
+                    Retry();
                 }
-
-                Log.To.Sync.I(Tag, $"{this}: Retrying...");
-                StartInternal();
             });
         }
 
+        // Must be called from within the SerialQueue
+        private void Retry()
+        {
+            if (_repl != null || _rawStatus.level != C4ReplicatorActivityLevel.Offline) {
+                return;
+            }
+
+            Log.To.Sync.I(Tag, $"{this}: Retrying...");
+            StartInternal();
+        }
+
+        // Must be called from within the SerialQueue
         private void StartInternal()
         {
             _desc = ToString(); // Cache this; it may be called a lot when logging
@@ -406,6 +404,7 @@ namespace Couchbase.Lite.Sync
 
         }
 
+        // Must be called from within the SerialQueue
         private void StatusChangedCallback(C4ReplicatorStatus status)
         {
             if (_responseHeaders == null && _repl != null) {
