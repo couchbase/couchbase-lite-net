@@ -24,6 +24,7 @@ using UIKit;
 
 namespace Couchbase.Lite.Support
 {
+    [CouchbaseDependency]
 	internal sealed class iOSRuntimePlatform : IRuntimePlatform
 	{
 		public string OSDescription => $"iOS {NSProcessInfo.ProcessInfo.OperatingSystemVersion}";

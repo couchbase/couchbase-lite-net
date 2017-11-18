@@ -223,7 +223,9 @@ namespace Couchbase.Lite.Sync
                     return;
                 }
 #if true
-                TrackDatabase(_repl != null);
+                if (_repl != null) {
+                    DatabaseTracker.CloseDatabase(_config.Database.Path);
+                }
 #endif
 
                 Native.c4repl_free(_repl);
@@ -237,7 +239,9 @@ namespace Couchbase.Lite.Sync
             _threadSafetyQueue.DispatchSync(() =>
             {
 #if true
-                TrackDatabase(_repl != null);
+                if (_repl != null) {
+                    DatabaseTracker.CloseDatabase(_config.Database.Path);
+                }
 #endif
 
                 if (!finalizing) {
@@ -389,7 +393,7 @@ namespace Couchbase.Lite.Sync
             });
 
 #if true
-            TrackDatabase(true);
+            DatabaseTracker.OpenDatabase(_config.Database.Path);
 #endif
 
             scheme.Dispose();
@@ -446,17 +450,6 @@ namespace Couchbase.Lite.Sync
                 _config.Database.ActiveReplications.Remove(this);
             }
         }
-
-#if true
-        private void TrackDatabase(bool perform)
-        {
-            if (!perform) {
-                return;
-            }
-
-            DatabaseTracker.OpenOrCloseDatabase(_config.Database.Path);
-        }
-#endif
 
         private void UpdateStateProperties(C4ReplicatorStatus state)
         {

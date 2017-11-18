@@ -754,7 +754,7 @@ namespace Couchbase.Lite
             }
 
 #if true
-            TrackDatabase();
+            DatabaseTracker.CloseDatabase(Path);
 #endif
 
             Log.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(_c4db)}");
@@ -848,17 +848,10 @@ namespace Couchbase.Lite
 
                 _obs = Native.c4dbobs_create(_c4db, _DbObserverCallback, this);
 #if true
-                TrackDatabase();
+                DatabaseTracker.OpenDatabase(Path);
 #endif
             });
         }
-
-#if true
-        private void TrackDatabase()
-        {
-            DatabaseTracker.OpenOrCloseDatabase(Path);
-        }
-#endif
 
         private void PostDatabaseChanged()
         {

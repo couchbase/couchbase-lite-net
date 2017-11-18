@@ -372,7 +372,7 @@ namespace Test
             
             _repl.Start();
             try {
-                _waitAssert.WaitForResult(TimeSpan.FromSeconds(1000));
+                _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
             } catch {
                 _repl.Stop();
                 throw;

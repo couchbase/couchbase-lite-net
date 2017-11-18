@@ -31,20 +31,36 @@ namespace Couchbase.Lite.Support
         #region Constants
 
         private static readonly Dictionary<string, List<string>> Calls = new Dictionary<string, List<string>>();
+        private static readonly Dictionary<string, int> Count = new Dictionary<string, int>();
 
         #endregion
 
         #region Public Methods
 
-        public static void OpenOrCloseDatabase(string path)
+        public static void OpenDatabase(string path)
         {
             if (!Calls.ContainsKey(path)) {
                 Calls[path] = new List<string>();
+                Count[path] = 0;
             }
 
             var trace = Environment.StackTrace.Replace("\r", "").Split('\n');
             var linesToUse = trace.Skip(4).TakeWhile(x => x.Contains("couchbase"));
             Calls[path].Add(String.Join(Environment.NewLine, linesToUse));
+            Count[path]++;
+        }
+
+        public static void CloseDatabase(string path)
+        {
+            if (!Calls.ContainsKey(path)) {
+                Calls[path] = new List<string>();
+                Count[path] = 1;
+            }
+
+            var trace = Environment.StackTrace.Replace("\r", "").Split('\n');
+            var linesToUse = trace.Skip(4).TakeWhile(x => x.Contains("couchbase"));
+            Calls[path].Add(String.Join(Environment.NewLine, linesToUse));
+            Count[path]--;
         }
 
         public static void Report(string path, TextWriter writer = null)
@@ -54,7 +70,7 @@ namespace Couchbase.Lite.Support
                 actualWriter.WriteLine($"No report found for {path}");
             }
 
-            actualWriter.WriteLine($"Report for {path}:");
+            actualWriter.WriteLine($"Report for {path} (open count {Count[path]}):");
             foreach (var call in Calls[path]) {
                 actualWriter.WriteLine(call);
                 actualWriter.WriteLine();
@@ -65,6 +81,7 @@ namespace Couchbase.Lite.Support
         {
             if (Calls.ContainsKey(path)) {
                 Calls[path].Clear();
+                Count[path] = 0;
             }
         }
 
