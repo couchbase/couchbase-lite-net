@@ -25,6 +25,8 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
+using Microsoft.Extensions.DependencyInjection;
+
 namespace Couchbase.Lite.Support
 {
     /// <summary>
@@ -51,6 +53,10 @@ namespace Couchbase.Lite.Support
 			}
 
             Service.AutoRegister(typeof(Droid).Assembly);
+            Service.RegisterServices(container =>
+            {
+                container.AddSingleton<IDefaultDirectoryResolver>(p => new DefaultDirectoryResolver(context));
+            });
         }
 
         /// <summary>

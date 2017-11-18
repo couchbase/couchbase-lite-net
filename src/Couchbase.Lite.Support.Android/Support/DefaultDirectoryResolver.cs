@@ -24,7 +24,6 @@ using Couchbase.Lite.DI;
 
 namespace Couchbase.Lite.Support
 {
-    [CouchbaseDependency]
     internal sealed class DefaultDirectoryResolver : IDefaultDirectoryResolver
     {
         private readonly Context _context;
