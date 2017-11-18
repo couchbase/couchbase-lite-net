@@ -756,20 +756,20 @@ namespace Couchbase.Lite
 #if true
             DatabaseTracker.CloseDatabase(Path);
 #endif
+            if (disposing) {
+                Misc.SafeSwap(ref _obs, null);
+                if (_unsavedDocuments.Count > 0) {
+                    Log.To.Database.W(Tag,
+                        $"Closing database with {_unsavedDocuments.Count} such as {_unsavedDocuments.Any()}");
+                }
+
+                _unsavedDocuments.Clear();
+            }
 
             Log.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(_c4db)}");
             LiteCoreBridge.Check(err => Native.c4db_close(_c4db, err));
             Native.c4db_free(_c4db);
             _c4db = null;
-            if (disposing) {
-                var obs = Interlocked.Exchange(ref _obs, null);
-                obs?.Dispose();
-                if (_unsavedDocuments.Count > 0) {
-                    Log.To.Database.W(Tag,
-                        $"Closing database with {_unsavedDocuments.Count} such as {_unsavedDocuments.Any()}");
-                }
-                _unsavedDocuments.Clear();
-            }
         }
 
         private Document GetDocument(string docID, bool mustExist)

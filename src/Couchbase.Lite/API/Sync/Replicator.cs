@@ -439,15 +439,15 @@ namespace Couchbase.Lite.Sync
             }
 
             UpdateStateProperties(status);
+            if (status.level == C4ReplicatorActivityLevel.Stopped) {
+                ClearRepl();
+                _config.Database.ActiveReplications.Remove(this);
+            }
+
             try {
                 StatusChanged?.Invoke(this, new ReplicationStatusChangedEventArgs(Status, LastError));
             } catch (Exception e) {
                 Log.To.Sync.W(Tag, "Exception during StatusChanged callback", e);
-            }
-
-            if (status.level == C4ReplicatorActivityLevel.Stopped) {
-                ClearRepl();
-                _config.Database.ActiveReplications.Remove(this);
             }
         }
 
