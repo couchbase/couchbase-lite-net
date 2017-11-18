@@ -102,7 +102,22 @@ namespace Test
                     WriteLine(sw.ToString());
                 }
 #endif
-                throw;
+
+                int retryAttempt = 0;
+                var success = false;
+                while (!success && retryAttempt < 5) {
+                    WriteLine($"Database busy, waiting for 1 sec (attempt {retryAttempt++}");
+                    Task.Delay(TimeSpan.FromSeconds(1)).Wait();
+                    try {
+                        Database.Delete(DatabaseName, Directory);
+                        success = true;
+                    } catch (Exception) {
+                    }
+                }
+
+                if (!success) {
+                    throw;
+                }
             }
 
 #if true
