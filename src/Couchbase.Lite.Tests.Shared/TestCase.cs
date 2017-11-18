@@ -75,54 +75,17 @@ namespace Test
             Couchbase.Lite.Support.NetDesktop.Activate();
         }
 #endif
-
+        
 #if !WINDOWS_UWP
         public TestCase(ITestOutputHelper output)
-        { 
+        {
             Log.AddLoggerProvider(new XunitLoggerProvider(output));
             _output = output;
 #else
         public TestCase()
         { 
 #endif
-            try {
-                Database.Delete(DatabaseName, Directory);
-            } catch (LiteCoreException e) {
-                if (e.Error.domain != C4ErrorDomain.LiteCoreDomain || e.Error.code != (int) C4ErrorCode.Busy) {
-                    throw;
-                }
-
-                
-                #if true
-                using (var sw = new StringWriter()) {
-                    DatabaseTracker.Report(
-                        Path.Combine(Directory, $"{DatabaseName}.cblite2{Path.DirectorySeparatorChar}"), sw);
-                    DatabaseTracker.Reset(Path.Combine(Directory,
-                        $"{DatabaseName}.cblite2{Path.DirectorySeparatorChar}"));
-                    WriteLine(sw.ToString());
-                }
-#endif
-
-                int retryAttempt = 0;
-                var success = false;
-                while (!success && retryAttempt < 5) {
-                    WriteLine($"Database busy, waiting for 1 sec (attempt {retryAttempt++}");
-                    Task.Delay(TimeSpan.FromSeconds(1)).Wait();
-                    try {
-                        Database.Delete(DatabaseName, Directory);
-                        success = true;
-                    } catch (Exception) {
-                    }
-                }
-
-                if (!success) {
-                    throw;
-                }
-            }
-
-#if true
-            DatabaseTracker.Reset(Path.Combine(Directory, $"{DatabaseName}.cblite2{Path.DirectorySeparatorChar}"));
-#endif
+            Database.Delete(DatabaseName, Directory);
             OpenDB();
         }
 

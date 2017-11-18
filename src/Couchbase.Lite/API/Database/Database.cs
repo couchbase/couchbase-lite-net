@@ -753,9 +753,6 @@ namespace Couchbase.Lite
                 return;
             }
 
-#if true
-            DatabaseTracker.CloseDatabase(Path);
-#endif
             if (disposing) {
                 Misc.SafeSwap(ref _obs, null);
                 if (_unsavedDocuments.Count > 0) {
@@ -847,9 +844,6 @@ namespace Couchbase.Lite
                 }
 
                 _obs = Native.c4dbobs_create(_c4db, _DbObserverCallback, this);
-#if true
-                DatabaseTracker.OpenDatabase(Path);
-#endif
             });
         }
 

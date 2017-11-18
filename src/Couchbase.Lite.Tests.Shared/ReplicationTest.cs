@@ -28,6 +28,8 @@ using System.Threading.Tasks;
 using Couchbase.Lite;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Sync;
+using Couchbase.Lite.Util;
+
 using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
@@ -349,7 +351,7 @@ namespace Test
 
         private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, C4ErrorDomain expectedErrDomain)
         {
-            _repl = new Replicator(config);
+            Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
             _repl.StatusChanged += (sender, args) =>
             {
@@ -381,11 +383,13 @@ namespace Test
 
         protected override void Dispose(bool disposing)
         {
+            _repl?.Dispose();
+            _repl = null;
+
             base.Dispose(disposing);
 
             _otherDB.Delete();
             _otherDB = null;
-            _repl = null;
         }
     }
 }

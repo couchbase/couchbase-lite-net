@@ -53,11 +53,15 @@ namespace Couchbase.Lite.Support
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+#if NETCOREAPP1_0
                 var codeBase = Path.GetDirectoryName(typeof(NetDesktop).GetTypeInfo().Assembly.Location);
                 if (codeBase == null) {
                     throw new DllNotFoundException(
                         "Couldn't find directory of the loaded support assembly, very weird!");
                 }
+#else
+                var codeBase = AppContext.BaseDirectory;
+#endif
 
                 var architecture = IntPtr.Size == 4
                     ? "x86"

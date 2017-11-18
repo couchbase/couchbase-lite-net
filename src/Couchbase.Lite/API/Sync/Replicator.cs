@@ -76,7 +76,6 @@ namespace Couchbase.Lite.Sync
         private Exception _lastError;
         private C4ReplicatorStatus _rawStatus;
         private C4Replicator* _repl;
-        private IDictionary<string, object> _responseHeaders;
         private int _retryCount;
         private IReachability _reachability;
 
@@ -203,8 +202,9 @@ namespace Couchbase.Lite.Sync
 
         private static void StatusChangedCallback(C4ReplicatorStatus status, object context)
         {
+            //TODO: Change to async
             var repl = context as Replicator;
-            repl?._threadSafetyQueue.DispatchAsync(() =>
+            repl?._threadSafetyQueue.DispatchSync(() =>
             {
                 repl.StatusChangedCallback(status);
             });
@@ -222,11 +222,6 @@ namespace Couchbase.Lite.Sync
                 if (_disposed) {
                     return;
                 }
-#if true
-                if (_repl != null) {
-                    DatabaseTracker.CloseDatabase(_config.Database.Path);
-                }
-#endif
 
                 Native.c4repl_free(_repl);
                 _repl = null;
@@ -238,11 +233,9 @@ namespace Couchbase.Lite.Sync
         {
             _threadSafetyQueue.DispatchSync(() =>
             {
-#if true
-                if (_repl != null) {
-                    DatabaseTracker.CloseDatabase(_config.Database.Path);
+                if (_disposed) {
+                    return;
                 }
-#endif
 
                 if (!finalizing) {
                     _reachability?.Stop();
@@ -392,10 +385,6 @@ namespace Couchbase.Lite.Sync
                 err = localErr;
             });
 
-#if true
-            DatabaseTracker.OpenDatabase(_config.Database.Path);
-#endif
-
             scheme.Dispose();
             path.Dispose();
             host.Dispose();
@@ -421,21 +410,14 @@ namespace Couchbase.Lite.Sync
         // Must be called from within the SerialQueue
         private void StatusChangedCallback(C4ReplicatorStatus status)
         {
-            if (_responseHeaders == null && _repl != null) {
-                var h = Native.c4repl_getResponseHeaders(_repl);
-                if (h.buf != null) {
-                    _responseHeaders =
-                        FLSliceExtensions.ToObject(NativeRaw.FLValue_FromTrustedData((FLSlice) h)) as
-                            IDictionary<string, object>;
-                }
-            }
-
             if (status.level == C4ReplicatorActivityLevel.Stopped) {
                 if (HandleError(status.error)) {
                     status.level = C4ReplicatorActivityLevel.Offline;
                 }
             } else if (status.level > C4ReplicatorActivityLevel.Connecting) {
                 _retryCount = 0;
+                _reachability?.Stop();
+                _reachability = null;
             }
 
             UpdateStateProperties(status);
