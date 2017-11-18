@@ -454,7 +454,7 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
-            DatabaseTracker.OpenOrCloseDatabase(Config.Database.Path);
+            DatabaseTracker.OpenOrCloseDatabase(_config.Database.Path);
         }
 #endif
 

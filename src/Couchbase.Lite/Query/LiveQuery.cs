@@ -61,6 +61,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             _updateInterval = DefaultLiveQueryUpdateInterval;
             _query = query;
+            _query?.Database?.ActiveLiveQueries.Add(this);
         }
 
         #endregion
@@ -144,7 +145,8 @@ namespace Couchbase.Lite.Internal.Query
         {
             Stop();
             Misc.SafeSwap(ref _enum, null);
-            _query.Dispose();
+            _query?.Database?.ActiveLiveQueries.Remove(this);
+            _query?.Dispose();
         }
 
         #endregion

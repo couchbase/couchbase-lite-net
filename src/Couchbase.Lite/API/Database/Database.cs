@@ -125,6 +125,8 @@ namespace Couchbase.Lite
             }
         }
 
+        internal ICollection<LiveQuery> ActiveLiveQueries { get; } = new HashSet<LiveQuery>();
+
         internal ICollection<Replicator> ActiveReplications { get; } = new HashSet<Replicator>();
 
         internal C4BlobStore* BlobStore
@@ -767,11 +769,6 @@ namespace Couchbase.Lite
                         $"Closing database with {_unsavedDocuments.Count} such as {_unsavedDocuments.Any()}");
                 }
                 _unsavedDocuments.Clear();
-                foreach (var repl in ActiveReplications) {
-                    repl.Dispose();
-                }
-
-                ActiveReplications.Clear();
             }
         }
 
@@ -1040,7 +1037,28 @@ namespace Couchbase.Lite
         public void Dispose()
         {
             GC.SuppressFinalize(this);
-            ThreadSafety.DoLocked(() => Dispose(true));
+            HashSet<Replicator> activeReplications = null;
+            HashSet<LiveQuery> activeLiveQueries = null;
+            ThreadSafety.DoLocked(() =>
+            {
+                activeReplications = new HashSet<Replicator>(ActiveReplications);
+                activeLiveQueries = new HashSet<LiveQuery>(ActiveLiveQueries);
+                ActiveReplications.Clear();
+                ActiveLiveQueries.Clear();
+            });
+
+            foreach (var repl in activeReplications) {
+                repl.Dispose();
+            }
+
+            foreach (var query in activeLiveQueries) {
+                query.Dispose();
+            }
+
+            ThreadSafety.DoLocked(() =>
+            {
+                Dispose(true);
+            });
         }
 
         #endregion
