@@ -89,6 +89,10 @@ namespace Couchbase.Lite
 
         #region Protected Methods
 
+        /// <summary>
+        /// Signal that the keys of this object have changed (not possible for
+        /// this class, but a subclass might)
+        /// </summary>
         protected void KeysChanged()
         {
             _keys = null;

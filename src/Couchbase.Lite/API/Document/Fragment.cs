@@ -32,14 +32,28 @@ namespace Couchbase.Lite
     {
         #region Constants
 
+        /// <summary>
+        /// A "null" fragment object (i.e. one that represents "no value")
+        /// </summary>
         public static readonly Fragment Null = new Fragment(null, null);
 
         #endregion
 
         #region Variables
 
+        /// <summary>
+        /// The index into the parent for this fragment, if applicable
+        /// </summary>
         protected int _index;
+
+        /// <summary>
+        /// The string key into the parent for this fragment, if applicable
+        /// </summary>
         protected string _key;
+
+        /// <summary>
+        /// The parent object of this fragment
+        /// </summary>
         protected object _parent;
 
         #endregion

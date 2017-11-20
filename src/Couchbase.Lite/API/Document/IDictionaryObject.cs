@@ -47,7 +47,7 @@ namespace Couchbase.Lite
         bool Contains(string key);
 
         /// <summary>
-        /// Gets the value of a given key as an <see cref="IReadOnlyArray"/>
+        /// Gets the value of a given key as an <see cref="IArray"/>
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>

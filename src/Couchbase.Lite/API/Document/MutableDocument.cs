@@ -1,34 +1,33 @@
 // 
-// Document.cs
+//  MutableDocument.cs
 // 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
+//  Author:
+//   Jim Borden  <jim.borden@couchbase.com>
 // 
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
 // 
-// http://www.apache.org/licenses/LICENSE-2.0
+//  http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
 // 
+
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
-using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
+
 using LiteCore;
 using LiteCore.Interop;
-using LiteCore.Util;
 
 namespace Couchbase.Lite
 {
@@ -48,18 +47,18 @@ namespace Couchbase.Lite
 
         #region Properties
 
-        /// <inheritdoc />
-        public new MutableFragment this[string key] => Dict[key];
-
-        internal static IReadOnlyDictionary<Guid, MutableDocument> NativeCacheMap => _NativeCacheMap;
-
         internal override uint Generation => base.Generation + Convert.ToUInt32(Changed);
-        
+
         internal override bool IsMutable => true;
 
         private bool Changed => (_dict as MutableDictionary)?.HasChanges ?? (_dict as InMemoryDictionary)?.HasChanges ?? false;
 
         private IMutableDictionary Dict => _dict as IMutableDictionary;
+
+        internal static IReadOnlyDictionary<Guid, MutableDocument> NativeCacheMap => _NativeCacheMap;
+
+        /// <inheritdoc />
+        public new MutableFragment this[string key] => Dict[key];
 
         #endregion
 
@@ -126,6 +125,7 @@ namespace Couchbase.Lite
 
         #region Overrides
 
+        /// <inheritdoc />
         public override MutableDocument ToMutable()
         {
             // TODO: Assign _root and _data from original MutableDocument
@@ -167,7 +167,7 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region IDictionaryObject
+        #region IMutableDictionary
 
         /// <inheritdoc />
         public new IMutableArray GetArray(string key)

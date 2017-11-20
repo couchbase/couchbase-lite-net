@@ -62,7 +62,7 @@ namespace Couchbase.Lite
         DateTimeOffset GetDate(int index);
 
         /// <summary>
-        /// Gets the value at the given index as an <see cref="IReadOnlyDictionary"/>
+        /// Gets the value at the given index as an <see cref="IDictionaryObject"/>
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>

@@ -32,6 +32,11 @@ namespace Couchbase.Lite
         #region Constants
 
         //private const string Tag = nameof(Fragment);
+
+        /// <summary>
+        /// A mutable fragment representing a "null" value (i.e. non existing).  Despite
+        /// it being mutable, this special value is not allowed to be changed.
+        /// </summary>
         public new static readonly MutableFragment Null = new MutableFragment(null, null);
 
         #endregion

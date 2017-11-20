@@ -590,6 +590,7 @@ namespace Couchbase.Lite
         /// <param name="document">The document to save</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
         /// other than the one it was previously added to</exception>
+        /// <returns>The document that was created as the new revision</returns>
         public Document Save(MutableDocument document)
         {
             return ThreadSafety.DoLocked(() =>

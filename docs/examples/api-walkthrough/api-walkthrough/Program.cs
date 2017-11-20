@@ -40,7 +40,7 @@ namespace api_walkthrough
             var database = new Database("my-database", config);
 
             // create document
-            var newTask = new Document();
+            var newTask = new MutableDocument();
             newTask.Set("type", "task");
             newTask.Set("owner", "todo");
             newTask.Set("createdAt", DateTimeOffset.UtcNow);
@@ -59,11 +59,13 @@ namespace api_walkthrough
             {
                 for (int i = 0; i < 10; i++)
                 {
-                    var doc = new Document();
-                    doc.Set("type", "user");
-                    doc.Set("name", $"user {i}");
-                    database.Save(doc);
-                    Console.WriteLine($"saved user document {doc.GetString("name")}");
+                    using (var doc = new MutableDocument()) {
+                        doc.Set("type", "user");
+                        doc.Set("name", $"user {i}");
+                        using (var saved = database.Save(doc)) {
+                            Console.WriteLine($"saved user document {saved.GetString("name")}");
+                        }
+                    }
                 }
             });
 
@@ -74,6 +76,7 @@ namespace api_walkthrough
             database.Save(newTask);
             var taskBlob = newTask.GetBlob("avatar");
             var data = taskBlob.Content;
+            newTask.Dispose();
 
             // query
             var query = Query.Select(SelectResult.Expression(Expression.Meta().ID))
@@ -93,17 +96,18 @@ namespace api_walkthrough
                 Console.WriteLine($"Number of rows :: {e.Rows.Count}");
             };
             liveQuery.Run();
-            var newDoc = new Document();
-            newDoc.Set("type", "user");
-            newDoc.Set("admin", false);
-            database.Save(newDoc);
+            using (var newDoc = new MutableDocument()) {
+                newDoc.Set("type", "user");
+                newDoc.Set("admin", false);
+                database.Save(newDoc);
+            }
 
             // fts example
             // insert documents
             var tasks = new[] { "buy groceries", "play chess", "book travels", "buy museum tickets" };
             foreach (string task in tasks)
             {
-                using (var doc = new Document()) {
+                using (var doc = new MutableDocument()) {
                     doc.Set("type", "task").Set("name", task); // Chaining is possible
                     database.Save(doc);
                 }
@@ -131,13 +135,14 @@ namespace api_walkthrough
 			 * 3. Read the document after the second save operation and verify its property is as expected.
 			 * The conflict resolver will have deleted the obsolete revision.
 			 */
-            var theirs = new Document("buzz");
-            theirs.Set("status", "theirs");
-            var mine = new Document("buzz");
-            mine.Set("status", "mine");
-            database.Save(theirs);
-            database.Save(mine);
-
+            using (var theirs = new MutableDocument("buzz"))
+            using (var mine = new MutableDocument("buzz")) {
+                theirs.Set("status", "theirs");
+                mine.Set("status", "mine");
+                database.Save(theirs);
+                database.Save(mine);
+            }
+            
             var conflictResolverResult = database.GetDocument("buzz");
             Console.WriteLine($"conflictResolverResult doc.status ::: {conflictResolverResult.GetString("status")}");
 

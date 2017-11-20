@@ -26,7 +26,7 @@ public class ExampleConflictResolver : IConflictResolver
             
     }
 
-    public ReadOnlyDocument Resolve(Conflict conflict)
+    public Document Resolve(Conflict conflict)
     {
         var baseProperties = conflict.Base;
         var mine = conflict.Mine;

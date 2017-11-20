@@ -24,6 +24,13 @@ using System.Threading;
 
 namespace Couchbase.Lite.Util
 {
+    /// <summary>
+    /// A utility base class that implements a referenced counted disposable
+    /// object.  This object can be retained by calls to <see cref="Retain"/>
+    /// and must be Disposed an equal number of times, plus once more to balance
+    /// the creation.  Each call to dispose will decrement the reference count and
+    /// the final call will perform the disposal
+    /// </summary>
     public abstract class RefCountedDisposable : IDisposable
     {
         #region Variables
@@ -34,11 +41,17 @@ namespace Couchbase.Lite.Util
 
         #region Constructors
 
-        public RefCountedDisposable()
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        protected RefCountedDisposable()
         {
             _refCount = 1;
         }
 
+        /// <summary>
+        /// Destructor
+        /// </summary>
         ~RefCountedDisposable()
         {
             Dispose(false);
@@ -46,11 +59,21 @@ namespace Couchbase.Lite.Util
 
         #endregion
 
+        /// <summary>
+        /// Adds one to the reference count of the object, meaning that
+        /// another call to <see cref="Dispose"/> is needed to actually
+        /// dispose of this object
+        /// </summary>
         public void Retain()
         {
             Interlocked.Increment(ref _refCount);
         }
 
+        /// <summary>
+        /// Retains the object and returns it as a downcasted object
+        /// </summary>
+        /// <typeparam name="T">The type of object being returned</typeparam>
+        /// <returns>The object that was retained</returns>
         public T Retain<T>() where T : RefCountedDisposable
         {
             Interlocked.Increment(ref _refCount);
@@ -59,12 +82,18 @@ namespace Couchbase.Lite.Util
 
         #region Protected Methods
 
+        /// <summary>
+        /// Performs the actual disposale
+        /// </summary>
+        /// <param name="disposing">Whether or not this method is being called from
+        /// inside <see cref="Dispose"/> (vs the finalizer)</param>
         protected abstract void Dispose(bool disposing);
 
         #endregion
 
         #region IDisposable
 
+        /// <inheritdoc />
         public void Dispose()
         {
             var refCount = Interlocked.Decrement(ref _refCount);

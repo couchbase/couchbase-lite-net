@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Couchbase.Lite" Version="2.0.0-db017" />
+    <PackageReference Include="Couchbase.Lite" Version="2.0.0-db020" />
   </ItemGroup>
 
   <ItemGroup>
