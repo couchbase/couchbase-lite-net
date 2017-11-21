@@ -19,8 +19,8 @@
     <language>en-US</language>
     <dependencies>
         <dependency id="Microsoft.NETCore.UniversalWindowsPlatform" version="5.3.3" />
-        <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="1.1.1" />
-        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="1.1.2" />
+        <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="[1.1.1,2.0)" />
+        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="[1.1.2,2.0)" />
     </dependencies>
   </metadata>
   <files>
