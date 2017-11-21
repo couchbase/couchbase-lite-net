@@ -250,7 +250,7 @@ namespace Test
         public void TestAuthenticatedPull()
         {
             var config = CreateConfig(false, true, false, new Uri("blip://localhost:4984/seekrit"));
-            config.Authenticator = new SessionAuthenticator("78376efd8cc74dadfc395f4049a115b7cd0ef5e3", null,
+            config.Authenticator = new SessionAuthenticator("78376efd8cc74dadfc395f4049a115b7cd0ef5e3", default(string),
                 "SyncGatewaySession");
             RunReplication(config, 0, 0);
         }

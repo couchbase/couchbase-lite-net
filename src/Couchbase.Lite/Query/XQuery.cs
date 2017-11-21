@@ -249,7 +249,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IQuery
 
-        public IResultSet Run()
+        public IResultSet Execute()
         {
             if (Database == null) {
                 throw new InvalidOperationException("Invalid query, Database == null");

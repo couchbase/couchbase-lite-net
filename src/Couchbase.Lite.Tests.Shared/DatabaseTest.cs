@@ -960,7 +960,7 @@ namespace Test
                 var DOCID = Expression.Meta().ID;
                 var S_DOCID = SelectResult.Expression(DOCID);
                 using (var q = Query.Select(S_DOCID).From(DataSource.Database(nudb))) {
-                    using (var rs = q.Run()) {
+                    using (var rs = q.Execute()) {
                         foreach (var r in rs) {
                             var docID = r.GetString(0);
                             docID.Should().NotBeNull();

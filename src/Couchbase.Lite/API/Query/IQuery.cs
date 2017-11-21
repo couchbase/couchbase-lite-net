@@ -44,7 +44,7 @@ namespace Couchbase.Lite.Query
         /// Runs the query
         /// </summary>
         /// <returns>The results of running the query</returns>
-        IResultSet Run();
+        IResultSet Execute();
 
         /// <summary>
         /// Converts a query to a <see cref="ILiveQuery"/> for realtime monitoring.

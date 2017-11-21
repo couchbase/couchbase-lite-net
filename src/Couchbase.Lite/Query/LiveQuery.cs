@@ -92,7 +92,7 @@ namespace Couchbase.Lite.Internal.Query
             Exception error = null;
             if (oldEnum == null) {
                 try {
-                    newEnum = (QueryResultSet) _query.Run();
+                    newEnum = (QueryResultSet) _query.Execute();
                 } catch (Exception e) {
                     error = e;
                 }

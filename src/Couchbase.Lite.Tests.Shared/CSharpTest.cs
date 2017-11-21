@@ -319,5 +319,34 @@ Transfer-Encoding: chunked";
             var dataString = Encoding.ASCII.GetString(logic.HTTPRequestData());
             dataString.IndexOf("\r\n\r\n").Should().Be(dataString.Length - 4);
         }
+
+        [Fact]
+        public void TestDocumentEquality()
+        {
+            var doc1 = new MutableDocument("doc");
+            var doc2 = new MutableDocument("doc");
+            doc1.As<object>().Should().Be(doc2);
+            doc2.Dispose();
+            doc2 = new MutableDocument("otherDoc");
+            doc1.As<object>().Should().NotBe(doc2);
+            doc2.Dispose();
+
+            doc2 = new MutableDocument("doc");
+            doc2.Set("value", "value");
+            doc1.As<object>().Should().NotBe(doc2);
+            var savedDoc2 = Db.Save(doc2);
+            doc2.Dispose();
+
+            doc1.As<object>().Should().NotBe(savedDoc2);
+            var retrievedDoc2 = Db.GetDocument("doc");
+            retrievedDoc2.As<object>().Should().Be(savedDoc2);
+            doc2 = retrievedDoc2.ToMutable();
+            doc2.As<object>().Should().Be(savedDoc2);
+            doc2.Set("value", "nextValue");
+            doc2.As<object>().Should().NotBe(retrievedDoc2);
+            doc2.Dispose();
+            retrievedDoc2.Dispose();
+            savedDoc2.Dispose();
+        }
     }
 }

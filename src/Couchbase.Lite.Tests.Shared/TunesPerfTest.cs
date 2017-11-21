@@ -143,7 +143,7 @@ namespace Test
                 using (var q = Query.Select(SelectResult.Expression(Expression.Meta().ID),
                         SelectResult.Expression(Expression.Property("Artist")))
                     .From(DataSource.Database(Db))) {
-                    using (var results = q.Run()) {
+                    using (var results = q.Execute()) {
                         foreach (var result in results) {
                             var artist = result.GetString(1);
                             if (artist.StartsWith("The ")) {
@@ -230,7 +230,7 @@ namespace Test
                 .Where(NAME.Match("'Rock'"))
                 .OrderBy(Ordering.Property("Artist"), Ordering.Property("Album"))) {
                 _queryFTSBench.Start();
-                using (var rows = q.Run()) {
+                using (var rows = q.Execute()) {
                     foreach (var row in rows) {
                         results.Add(row.GetString(2));
                     }
@@ -245,7 +245,7 @@ namespace Test
         private IList<string> CollectQueryResults(IQuery query)
         {
             var results = new List<string>();
-            using (var rows = query.Run()) {
+            using (var rows = query.Execute()) {
                 foreach (var row in rows) {
                     results.Add(row.GetString(0));
                 }

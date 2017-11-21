@@ -655,9 +655,9 @@ namespace Couchbase.Lite
                         Document resolved;
                         var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
                         if (otherDoc.IsDeleted) {
-                            resolved = doc;
-                        } else if (doc.IsDeleted) {
                             resolved = otherDoc;
+                        } else if (doc.IsDeleted) {
+                            resolved = doc;
                         } else {
                             var effectiveResolver = resolver ?? EffectiveConflictResolver;
                             var conflict = new Conflict(doc, otherDoc, baseDoc);

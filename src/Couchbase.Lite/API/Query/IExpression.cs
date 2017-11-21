@@ -187,14 +187,6 @@ namespace Couchbase.Lite.Query
         IExpression Like(object expression);
 
         /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// expression full text matches the current one
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression Match(object expression);
-
-        /// <summary>
         /// Returns an modulo math expression using the current and given expressions
         /// as operands
         /// </summary>

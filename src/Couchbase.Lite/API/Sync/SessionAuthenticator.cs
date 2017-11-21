@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 using System;
+using System.Globalization;
 using System.Net;
 
 namespace Couchbase.Lite.Sync
@@ -61,6 +62,22 @@ namespace Couchbase.Lite.Sync
         {
             SessionID = sessionID;
             Expires = expires;
+            CookieName = cookieName;
+        }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="sessionID"><see cref="SessionID"/></param>
+        /// <param name="expires">An ISO-8601 string representing a date for <see cref="Expires"/></param>
+        /// <param name="cookieName"><see cref="CookieName"/></param>
+        public SessionAuthenticator(string sessionID, string expires, string cookieName)
+        {
+            if (DateTimeOffset.TryParseExact(expires, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var expiresDate)) {
+                Expires = expiresDate;
+            }
+
+            SessionID = sessionID;
             CookieName = cookieName;
         }
 

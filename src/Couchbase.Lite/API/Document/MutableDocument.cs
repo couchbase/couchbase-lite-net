@@ -20,7 +20,9 @@
 // 
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
@@ -112,7 +114,7 @@ namespace Couchbase.Lite
         internal MutableDocument(Document doc)
             : this(doc?.Database, doc?.Id, doc?.c4Doc?.Retain<C4DocumentWrapper>())
         {
-            doc?.Dispose();
+
         }
 
         private MutableDocument(Database database, string documentID, C4DocumentWrapper c4Doc)

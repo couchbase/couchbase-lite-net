@@ -359,10 +359,10 @@ namespace Test
             var sentence = Expression.Property("sentence");
             var s_sentence = SelectResult.Expression(sentence);
 
-            var w = sentence.Match("'Dummie woman'");
-            var o = Ordering.Expression(Function.Rank(sentence)).Descending();
+            var w = FullTextExpression.Index("sentence").Match("'Dummie woman'");
+            var o = Ordering.Expression(FullTextFunction.Rank("sentence")).Descending();
 
-            var index = Index.FTSIndex().On(FTSIndexItem.Expression(Expression.Property("sentence")));
+            var index = Index.FTSIndex().On(FTSIndexItem.Expression(sentence));
             Db.CreateIndex("sentence", index);
             using (var q = Query.Select(DocID, s_sentence)
                 .From(DataSource.Database(Db))
@@ -502,7 +502,7 @@ namespace Test
                 .Joins(Join.DefaultJoin(DataSource.Database(Db).As("secondary"))
                     .On(Expression.Property("number1").From("main")
                         .EqualTo(Expression.Property("theone").From("secondary"))))) {
-                using (var results = q.Run()) {
+                using (var results = q.Execute()) {
                     results.Count.Should().Be(1, "because only one document should match 42");
                     results.First().GetInt(0).Should().Be(58,
                         "because that was the number stored in 'number2' of the matching doc");
@@ -514,7 +514,7 @@ namespace Test
                 .Joins(Join.DefaultJoin(DataSource.Database(Db).As("secondary"))
                     .On(Expression.Property("number1").From("main")
                         .EqualTo(Expression.Property("theone").From("secondary"))))) {
-                using (var results = q.Run()) {
+                using (var results = q.Execute()) {
                     results.Count.Should().Be(1, "because only one document should match 42");
                     results.First().Keys.FirstOrDefault().Should().Be("main");
                 }
@@ -760,7 +760,7 @@ namespace Test
                 Db.Save(doc);
             }
 
-            using (var q = Query.Select(SelectResult.Expression(Function.ArrayLength(Expression.Property("array"))))
+            using (var q = Query.Select(SelectResult.Expression(ArrayFunction.Length(Expression.Property("array"))))
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
@@ -770,8 +770,8 @@ namespace Test
                 numRows.Should().Be(1);
             }
 
-            using (var q = Query.Select(SelectResult.Expression(Function.ArrayContains(Expression.Property("array"), "650-123-0001")),
-                    SelectResult.Expression(Function.ArrayContains(Expression.Property("array"), "650-123-0003")))
+            using (var q = Query.Select(SelectResult.Expression(ArrayFunction.Contains(Expression.Property("array"), "650-123-0001")),
+                    SelectResult.Expression(ArrayFunction.Contains(Expression.Property("array"), "650-123-0003")))
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
@@ -952,7 +952,7 @@ namespace Test
                 .Where(Expression.Any("like").In(Expression.Property("likes"))
                     .Satisfies(Expression.Variable("like").EqualTo("climbing")))) {
                 var expected = new[] {"doc-017", "doc-021", "doc-023", "doc-045", "doc-060"};
-                using (var results = q.Run()) {
+                using (var results = q.Execute()) {
                     var received = results.Select(x => x.GetString("id"));
                     received.ShouldBeEquivalentTo(expected);
                 }
@@ -962,7 +962,7 @@ namespace Test
                 .From(DataSource.Database(Db))
                 .Where(Expression.Every("like").In(Expression.Property("likes"))
                     .Satisfies(Expression.Variable("like").EqualTo("taxes")))) {
-                using (var results = q.Run()) {
+                using (var results = q.Execute()) {
                     var received = results.Select(x => x.GetString("id")).ToList();
                     received.Count.Should().Be(42, "because empty array results are included");
                     received[0].Should().Be("doc-007");
@@ -973,7 +973,7 @@ namespace Test
                 .From(DataSource.Database(Db))
                 .Where(Expression.AnyAndEvery("like").In(Expression.Property("likes"))
                     .Satisfies(Expression.Variable("like").EqualTo("taxes")))) {
-                using (var results = q.Run()) {
+                using (var results = q.Execute()) {
                     var received = results.Select(x => x.GetString("id")).ToList();
                     received.Count.Should().Be(0, "because nobody likes taxes...");
                 }
@@ -1085,7 +1085,7 @@ namespace Test
             using (var q = Query.Select(SelectResult.Expression(Expression.Property("string")))
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(stringProp.Collate(Collation.Unicode())))) {
-                using (var results = q.Run()) {
+                using (var results = q.Execute()) {
                     results.Select(x => x.GetString(0)).ShouldBeEquivalentTo(new[] {"A", "Å", "B", "Z"},
                         "because by default Å comes between A and B");
                 }
@@ -1094,7 +1094,7 @@ namespace Test
             using (var q = Query.Select(SelectResult.Expression(Expression.Property("string")))
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(stringProp.Collate(Collation.Unicode().Locale("se"))))) {
-                using (var results = q.Run()) {
+                using (var results = q.Execute()) {
                     results.Select(x => x.GetString(0)).ShouldBeEquivalentTo(new[] { "A", "B", "Z", "Å" },
                         "because in Swedish Å comes after Z");
                 }
@@ -1186,7 +1186,7 @@ namespace Test
                     using (var q = Query.Select(SelectResult.All())
                         .From(DataSource.Database(Db))
                         .Where(comparison)) {
-                        using (var result = q.Run()) {
+                        using (var result = q.Execute()) {
                             result.Count.Should().Be(1,
                                 $"because otherwise the comparison failed for {data.Item1} and {data.Item2} (position {i})");
                         }
@@ -1233,7 +1233,7 @@ namespace Test
                 using (var q = Query.Select(SelectResult.Expression(Expression.Property("hey")))
                     .From(DataSource.Database(Db))
                     .OrderBy(Ordering.Expression(property.Collate(data.Item2)))) {
-                    using (var results = q.Run()) {
+                    using (var results = q.Execute()) {
                         results.Select(x => x.GetString(0)).ShouldBeEquivalentTo(data.Item3);
                     }
                 }
@@ -1319,7 +1319,7 @@ namespace Test
 
         private int VerifyQuery(IQuery query, Action<int, IResult> block)
         {
-            using (var result = query.Run()) {
+            using (var result = query.Execute()) {
                 using (var e = result.GetEnumerator()) {
                     var n = 0;
                     while (e.MoveNext()) {
