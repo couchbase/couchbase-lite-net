@@ -41,6 +41,17 @@ namespace Couchbase.Lite.Query
         }
 
         /// <summary>
+        /// Creates an instanced based on a given property path
+        /// </summary>
+        /// <param name="property">The property path to select</param>
+        /// <returns>The instantiated instance</returns>
+        /// <remarks>Equivalent to <c>SelectResult.Expression(Expression.Property(property))</c></remarks>
+        public static ISelectResultAs Property(string property)
+        {
+            return new QuerySelectResult(Lite.Query.Expression.Property(property));
+        }
+
+        /// <summary>
         /// Creates a select result instance that will return all of the
         /// data in the retrieved document
         /// </summary>

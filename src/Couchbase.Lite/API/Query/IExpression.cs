@@ -22,37 +22,7 @@
 
 namespace Couchbase.Lite.Query
 {
-    /// <summary>
-    /// An interface that represents a portion of a query that chooses
-    /// a collection to be used in a query of each of its elements
-    /// </summary>
-    public interface IExpressionIn
-    {
-        /// <summary>
-        /// Chooses a collection to be used in a query of each of
-        /// its elements
-        /// </summary>
-        /// <param name="expression">An expression that evaluates to a collection type</param>
-        /// <returns>An object that will determine the predicate for the contents
-        /// of the collection</returns>
-        IExpressionSatisfies In(object expression);
-    }
-
-    /// <summary>
-    /// An interface representing an object that can accept a predicate to use
-    /// on each item in a collection
-    /// </summary>
-    public interface IExpressionSatisfies
-    {
-        /// <summary>
-        /// Accepts a predicate to apply to each item of a collection
-        /// received from <see cref="IExpressionIn"/>
-        /// </summary>
-        /// <param name="expression">The predicate expression to apply</param>
-        /// <returns>The overall expression for further processing</returns>
-        IExpression Satisfies(IExpression expression);
-    }
-
+    
     /// <summary>
     /// An interface representing an abstract expression that can act on
     /// a given piece of data
@@ -140,22 +110,6 @@ namespace Couchbase.Lite.Query
         IExpression In(params object[] expressions);
 
         /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// expression is equal to the current one
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression Is(object expression);
-
-        /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// expression is not equal to the current one
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression IsNot(object expression);
-
-        /// <summary>
         /// Gets an expression representing if the current expression is null
         /// or missing (i.e. does not have a value)
         /// </summary>
@@ -203,14 +157,6 @@ namespace Couchbase.Lite.Query
         IExpression Multiply(object expression);
 
         /// <summary>
-        /// Determines if the result is not between the current and given expressions
-        /// </summary>
-        /// <param name="expression1">The expression to use as the first bound</param>
-        /// <param name="expression2">The expression to use as the second bound</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression NotBetween(object expression1, object expression2);
-
-        /// <summary>
         /// Returns an expression that will evaluate whether or not the given
         /// and current expression are not equal
         /// </summary>
@@ -219,75 +165,11 @@ namespace Couchbase.Lite.Query
         IExpression NotEqualTo(object expression);
 
         /// <summary>
-        /// Returns an expression to test whether or not the given expression is NOT contained
-        /// in the given list of expressions
-        /// </summary>
-        /// <param name="expressions">The list of expressions to check</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression NotIn(params object[] expressions);
-
-        /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// expression is not greater than the current one
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression NotGreaterThan(object expression);
-
-        /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// expression is not greater than or equal to the current one
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression NotGreaterThanOrEqualTo(object expression);
-
-        /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// expression is less than the current one
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression NotLessThan(object expression);
-
-        /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// expression is less than or equal to the current one
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression NotLessThanOrEqualTo(object expression);
-
-        /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// expression is "NOT LIKE" the current one
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression NotLike(object expression);
-
-        /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// expression doesn't full text match the current one
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression NotMatch(object expression);
-
-        /// <summary>
         /// Gets an expression representing if the current expression is neither null
         /// nor missing (i.e. has a value)
         /// </summary>
         /// <returns>The expression representing the new operation</returns>
         IExpression NotNullOrMissing();
-
-        /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
-        /// expression doesn't regex match the current one
-        /// </summary>
-        /// <param name="expression">The expression to compare with the current one</param>
-        /// <returns>The expression representing the new operation</returns>
-        IExpression NotRegex(object expression);
 
         /// <summary>
         /// Logically "ors" the given expression with the current expression

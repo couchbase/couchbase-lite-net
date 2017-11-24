@@ -33,6 +33,7 @@ namespace Couchbase.Lite.Internal.Query
         #region Constants
 
         private const string Tag = nameof(XQuery);
+        private static readonly TimeSpan DefaultLiveQueryUpdateInterval = TimeSpan.FromMilliseconds(200);
 
         #endregion
 

@@ -200,7 +200,7 @@ namespace Test
         {
             var docID = "doc1";
             using(var doc = GenerateDocument(docID).ToMutable()) {
-                doc.Set("key", 2);
+                doc.SetInt("key", 2);
                 Db.Save(doc);
 
                 Db.Count.Should().Be(1, "because a document was updated, not added");
@@ -218,7 +218,7 @@ namespace Test
             using (var otherDB = OpenDB(Db.Name)) {
                 otherDB.Count.Should()
                     .Be(1UL, "because the other database instance should reflect existing data");
-                doc.Set("key", 2);
+                doc.SetInt("key", 2);
                 otherDB.Invoking(d => d.Save(doc))
                     .ShouldThrow<CouchbaseLiteException>()
                     .Which.Status.Should()
@@ -235,7 +235,7 @@ namespace Test
             using (var otherDB = OpenDB("otherDB")) {
                 otherDB.Count.Should()
                     .Be(0UL, "because the other database is empty");
-                doc.Set("key", 2);
+                doc.SetInt("key", 2);
                 otherDB.Invoking(d => d.Save(doc))
                     .ShouldThrow<CouchbaseLiteException>()
                     .Which.Status.Should()
@@ -269,7 +269,7 @@ namespace Test
         {
             Db.Close();
             var doc = new MutableDocument("doc1");
-            doc.Set("key", 1);
+            doc.SetInt("key", 1);
 
             Db.Invoking(d => d.Save(doc))
                 .ShouldThrow<InvalidOperationException>()
@@ -282,7 +282,7 @@ namespace Test
         {
             DeleteDB(Db);
             var doc = new MutableDocument("doc1");
-            doc.Set("key", 1);
+            doc.SetInt("key", 1);
 
             Db.Invoking(d => d.Save(doc))
                 .ShouldThrow<InvalidOperationException>()
@@ -294,7 +294,7 @@ namespace Test
         public void TestDeletePreSaveDoc()
         {
             var doc = new MutableDocument("doc1");
-            doc.Set("key", 1);
+            doc.SetInt("key", 1);
 
             Db.Invoking(d => d.Delete(doc))
                 .ShouldThrow<CouchbaseLiteException>()
@@ -313,10 +313,7 @@ namespace Test
             Db.Count.Should().Be(0UL, "because the only document was deleted");
 
             doc = Db.GetDocument(docID);
-            doc.Id.Should().Be(docID, "because the document ID should never change");
-            doc.IsDeleted.Should().BeTrue("because the document was deleted");
-            doc.Sequence.Should().Be(2UL, "because the deletion is the second revision");
-            doc.GetObject("key").Should().BeNull("because a deleted document has no properties");
+            doc.Should().BeNull("because the document was deleted");
         }
 
         [Fact]
@@ -360,30 +357,6 @@ namespace Test
 
                 otherDB.Delete();
             }
-        }
-
-        [Fact]
-        public void TestDeleteSameDocTwice()
-        {
-            var docID = "doc1";
-            var doc = GenerateDocument(docID);
-
-            Db.Delete(doc);
-            Db.Count.Should().Be(0UL, "because the only document was deleted");
-
-            doc = Db.GetDocument(docID);
-            doc.GetObject("key").Should().BeNull("because a deleted document has no properties");
-            doc.IsDeleted.Should().BeTrue("because the document was deleted");
-            doc.Sequence.Should().Be(2UL, "because the deletion is the second revision");
-
-            // Second deletion
-            Db.Delete(doc);
-            Db.Count.Should().Be(0UL, "because the only document was deleted");
-
-            doc = Db.GetDocument(docID);
-            doc.GetObject("key").Should().BeNull("because a deleted document has no properties");
-            doc.IsDeleted.Should().BeTrue("because the document was deleted");
-            doc.Sequence.Should().Be(3UL, "because the deletion is the third revision");
         }
 
         [Fact]
@@ -431,7 +404,7 @@ namespace Test
         public void TestPurgePreSaveDoc()
         {
             var doc = new MutableDocument("doc1");
-            doc.Set("key", 1);
+            doc.SetInt("key", 1);
 
             Db.Invoking(d => d.Purge(doc))
                 .ShouldThrow<CouchbaseLiteException>()
@@ -576,8 +549,8 @@ namespace Test
 
             // Modification should still succeed
             var updatedDoc = doc.ToMutable();
-            updatedDoc.Set("key", 2);
-            updatedDoc.Set("key1", "value");
+            updatedDoc.SetInt("key", 2);
+            updatedDoc.SetString("key1", "value");
         }
 
         [Fact]
@@ -647,8 +620,8 @@ namespace Test
 
             // Modification should still succeed
             var updatedDoc = doc.ToMutable();
-            updatedDoc.Set("key", 2);
-            updatedDoc.Set("key1", "value");
+            updatedDoc.SetInt("key", 2);
+            updatedDoc.SetString("key1", "value");
         }
 
         [Fact]
@@ -836,7 +809,7 @@ namespace Test
                 foreach (var doc in docs) {
                     for (int i = 0; i < 25; i++) {
                         var mDoc = doc.ToMutable();
-                        mDoc.Set("number", i);
+                        mDoc.SetInt("number", i);
                         Db.Save(mDoc);
                     }
                 }
@@ -846,7 +819,7 @@ namespace Test
                 var content = Encoding.UTF8.GetBytes(doc.Id);
                 var blob = new Blob("text/plain", content);
                 var mDoc = doc.ToMutable();
-                mDoc.Set("blob", blob);
+                mDoc.SetBlob("blob", blob);
                 Db.Save(mDoc);
             }
 
@@ -861,7 +834,7 @@ namespace Test
             foreach (var doc in docs) {
                 var savedDoc = Db.GetDocument(doc.Id);
                 Db.Delete(savedDoc);
-                Db.GetDocument(savedDoc.Id).IsDeleted.Should().BeTrue("because the document was just deleted");
+                Db.GetDocument(savedDoc.Id).Should().BeNull("because the document was just deleted");
             }
 
             Db.Count.Should().Be(0, "because all documents were deleted");
@@ -937,11 +910,11 @@ namespace Test
             for (int i = 0; i < 10; i++) {
                 var docID = $"doc{i}";
                 using (var doc = new MutableDocument(docID)) {
-                    doc.Set("name", docID);
+                    doc.SetString("name", docID);
 
                     var data = Encoding.UTF8.GetBytes(docID);
                     var blob = new Blob("text/plain", data);
-                    doc.Set("data", blob);
+                    doc.SetBlob("data", blob);
 
                     Db.Save(doc);
                 }
@@ -957,7 +930,7 @@ namespace Test
             Database.Exists(dbName, dir).Should().BeTrue();
             using (var nudb = new Database(dbName, config)) {
                 nudb.Count.Should().Be(10, "because it is a copy of another database with 10 items");
-                var DOCID = Expression.Meta().ID;
+                var DOCID = Meta.ID;
                 var S_DOCID = SelectResult.Expression(DOCID);
                 using (var q = Query.Select(S_DOCID).From(DataSource.Database(nudb))) {
                     using (var rs = q.Execute()) {
@@ -1077,7 +1050,7 @@ namespace Test
 
             using (var encryptedDb = new Database("seekrit", config))
             using (var doc = new MutableDocument("company_earnings")) {
-                doc.Set("value", 1000000000);
+                doc.SetInt("value", 1000000000);
                 encryptedDb.Save(doc);
             }
 
@@ -1133,7 +1106,7 @@ namespace Test
         private Document GenerateDocument(string docID)
         {
             using(var doc = new MutableDocument(docID)) {
-                doc.Set("key", 1);
+                doc.SetInt("key", 1);
 
                 var saveDoc = Db.Save(doc);
                 Db.Count.Should().Be(1UL, "because this is the first document");
@@ -1170,7 +1143,7 @@ namespace Test
             var docs = new List<Document>();
             for (int i = 0; i < n; i++) {
                 using(var doc = new MutableDocument($"doc_{i:D3}")) {
-                    doc.Set("key", i);
+                    doc.SetInt("key", i);
                     docs.Add(Db.Save(doc));
                 }
             }
@@ -1206,7 +1179,7 @@ namespace Test
         private Document StoreBlob(Database db, MutableDocument doc, byte[] content)
         {
             var blob = new Blob("text/plain", content);
-            doc.Set("data", blob);
+            doc.SetBlob("data", blob);
             return Db.Save(doc);
         }
 

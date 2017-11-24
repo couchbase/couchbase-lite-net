@@ -56,7 +56,7 @@ namespace Test
         public void TestDatabaseChange()
         {
             var wa = new WaitAssert();
-            Db.Changed += (sender, args) =>
+            Db.AddDatabaseChangedListener(null, (sender, args) =>
             {
                 var docIDs = args.DocumentIDs;
                 wa.RunAssert(() =>
@@ -64,13 +64,13 @@ namespace Test
                     args.Database.Should().Be(Db);
                     docIDs.Should().HaveCount(10, "because that is the number of expected rows");
                 });
-            };
+            });
 
             Db.InBatch(() =>
             {
                 for (uint i = 0; i < 10; i++) {
                     var doc = new MutableDocument($"doc-{i}");
-                    doc.Set("type", "demo");
+                    doc.SetString("type", "demo");
                     Db.Save(doc);
                 }
             });
@@ -82,16 +82,16 @@ namespace Test
         public void TestDocumentChange()
         {
             var doc1 = new MutableDocument("doc1");
-            doc1.Set("name", "Scott");
+            doc1.SetString("name", "Scott");
             doc1 = Db.Save(doc1).ToMutable();
 
             var doc2 = new MutableDocument("doc2");
-            doc2.Set("name", "Daniel");
+            doc2.SetString("name", "Daniel");
             doc2 = Db.Save(doc2).ToMutable();
 
-            Db.AddDocumentChangedListener("doc1", DocumentChanged);
-            Db.AddDocumentChangedListener("doc2", DocumentChanged);
-            Db.AddDocumentChangedListener("doc3", DocumentChanged);
+            Db.AddDocumentChangedListener("doc1", null, DocumentChanged);
+            Db.AddDocumentChangedListener("doc2", null, DocumentChanged);
+            Db.AddDocumentChangedListener("doc3", null, DocumentChanged);
 
             _expectedDocumentChanges = new HashSet<string> {
                 "doc1",
@@ -100,13 +100,13 @@ namespace Test
             };
             _wa = new WaitAssert();
 
-            doc1.Set("name", "Scott Tiger");
+            doc1.SetString("name", "Scott Tiger");
             Db.Save(doc1);
 
             Db.Delete(doc2);
 
             var doc3 = new MutableDocument("doc3");
-            doc3.Set("name", "Jack");
+            doc3.SetString("name", "Jack");
             Db.Save(doc3);
 
             _wa.WaitForResult(TimeSpan.FromSeconds(5));
@@ -116,20 +116,20 @@ namespace Test
         public async Task TestAddSameChangeListeners()
         {
             var doc1 = new MutableDocument("doc1");
-            doc1.Set("name", "Scott");
+            doc1.SetString("name", "Scott");
             Db.Save(doc1);
 
-            Db.AddDocumentChangedListener("doc1", DocumentChanged);
-            Db.AddDocumentChangedListener("doc1", DocumentChanged);
-            Db.AddDocumentChangedListener("doc1", DocumentChanged);
-            Db.AddDocumentChangedListener("doc1", DocumentChanged);
-            Db.AddDocumentChangedListener("doc1", DocumentChanged);
+            Db.AddDocumentChangedListener("doc1", null, DocumentChanged);
+            Db.AddDocumentChangedListener("doc1", null, DocumentChanged);
+            Db.AddDocumentChangedListener("doc1", null, DocumentChanged);
+            Db.AddDocumentChangedListener("doc1", null, DocumentChanged);
+            Db.AddDocumentChangedListener("doc1", null, DocumentChanged);
 
             _wa = new WaitAssert();
             _expectedDocumentChanges = new HashSet<string> {
                 "doc1"
             };
-            doc1.Set("name", "Scott Tiger");
+            doc1.SetString("name", "Scott Tiger");
             Db.Save(doc1);
 
             await Task.Delay(500);
@@ -140,32 +140,32 @@ namespace Test
         public async Task TestRemoveDocumentChangeListener()
         {
             var doc1 = new MutableDocument("doc1");
-            doc1.Set("name", "Scott");
+            doc1.SetString("name", "Scott");
             Db.Save(doc1);
 
-            Db.AddDocumentChangedListener("doc1", DocumentChanged);
+            var token = Db.AddDocumentChangedListener("doc1", null, DocumentChanged);
 
             _wa = new WaitAssert();
             _expectedDocumentChanges = new HashSet<string> {
                 "doc1"
             };
 
-            doc1.Set("name", "Scott Tiger");
+            doc1.SetString("name", "Scott Tiger");
             Db.Save(doc1);
             _wa.WaitForResult(TimeSpan.FromSeconds(5));
 
-            Db.RemoveDocumentChangedListener("doc1", DocumentChanged);
+            Db.RemoveDocumentChangedListener(token);
 
             _wa = new WaitAssert();
             _docCallbackShouldThrow = true;
-            doc1.Set("name", "Scott Pilgrim");
+            doc1.SetString("name", "Scott Pilgrim");
             Db.Save(doc1);
 
             await Task.Delay(500);
             _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
 
             // Remove again
-            Db.RemoveDocumentChangedListener("doc1", DocumentChanged);
+            Db.RemoveDocumentChangedListener(token);
 
             // Remove before add
             Db.RemoveDocumentChangedListener("doc2", DocumentChanged);

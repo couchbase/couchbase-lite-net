@@ -37,7 +37,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="key">The key to check</param>
         /// <returns>The value of the given key, or lack thereof</returns>
-        new MutableFragment this[string key] { get; }
+        new IMutableFragment this[string key] { get; }
 
         #endregion
 
@@ -48,14 +48,14 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        new IMutableArray GetArray(string key);
+        new MutableArray GetArray(string key);
 
         /// <summary>
         /// Gets the value of a given key as a dictionary
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        new IMutableDictionary GetDictionary(string key);
+        new MutableDictionary GetDictionary(string key);
 
         /// <summary>
         /// Removes the given key from this dictionary
@@ -70,7 +70,7 @@ namespace Couchbase.Lite
         /// <param name="key">The key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
-        IMutableDictionary Set(string key, object value);
+        IMutableDictionary SetValue(string key, object value);
 
         /// <summary>
         /// Replaces the contents of this dictionary with the contents of the
@@ -86,7 +86,7 @@ namespace Couchbase.Lite
         /// <param name="key">The key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
-        IMutableDictionary Set(string key, string value);
+        IMutableDictionary SetString(string key, string value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -94,7 +94,7 @@ namespace Couchbase.Lite
         /// <param name="key">The key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
-        IMutableDictionary Set(string key, int value);
+        IMutableDictionary SetInt(string key, int value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -102,7 +102,7 @@ namespace Couchbase.Lite
         /// <param name="key">The key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
-        IMutableDictionary Set(string key, long value);
+        IMutableDictionary SetLong(string key, long value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -110,7 +110,7 @@ namespace Couchbase.Lite
         /// <param name="key">The key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
-        IMutableDictionary Set(string key, float value);
+        IMutableDictionary SetFloat(string key, float value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -118,7 +118,7 @@ namespace Couchbase.Lite
         /// <param name="key">The key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
-        IMutableDictionary Set(string key, double value);
+        IMutableDictionary SetDouble(string key, double value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -126,7 +126,7 @@ namespace Couchbase.Lite
         /// <param name="key">The key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
-        IMutableDictionary Set(string key, bool value);
+        IMutableDictionary SetBoolean(string key, bool value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -134,7 +134,7 @@ namespace Couchbase.Lite
         /// <param name="key">The key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
-        IMutableDictionary Set(string key, Blob value);
+        IMutableDictionary SetBlob(string key, Blob value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -142,7 +142,7 @@ namespace Couchbase.Lite
         /// <param name="key">The key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
-        IMutableDictionary Set(string key, DateTimeOffset value);
+        IMutableDictionary SetDate(string key, DateTimeOffset value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -150,7 +150,7 @@ namespace Couchbase.Lite
         /// <param name="key">The key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
-        IMutableDictionary Set(string key, MutableArray value);
+        IMutableDictionary SetArray(string key, ArrayObject value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -158,7 +158,7 @@ namespace Couchbase.Lite
         /// <param name="key">The key to set</param>
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
-        IMutableDictionary Set(string key, MutableDictionary value);
+        IMutableDictionary SetDictionary(string key, DictionaryObject value);
 
         #endregion
     }

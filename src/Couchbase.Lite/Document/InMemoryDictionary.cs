@@ -61,7 +61,7 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
-        Fragment IDictionaryFragment.this[string key] => new Fragment(this, key);
+        IFragment IDictionaryFragment.this[string key] => new Fragment(this, key);
 
         public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
@@ -82,14 +82,14 @@ namespace Couchbase.Lite.Internal.Doc
             return _dict.ContainsKey(key);
         }
 
-        public IArray GetArray(string key)
+        public ArrayObject GetArray(string key)
         {
-            return GetObject(key) as IArray;
+            return GetValue(key) as ArrayObject;
         }
 
-        public IDictionaryObject GetDictionary(string key)
+        public DictionaryObject GetDictionary(string key)
         {
-            return GetObject(key) as IDictionaryObject;
+            return GetValue(key) as DictionaryObject;
         }
 
         public IMutableDictionary Remove(string key)
@@ -102,7 +102,7 @@ namespace Couchbase.Lite.Internal.Doc
             return this;
         }
 
-        public IMutableDictionary Set(string key, object value)
+        public IMutableDictionary SetValue(string key, object value)
         {
             SetObject(key, value);
             return this;
@@ -115,117 +115,116 @@ namespace Couchbase.Lite.Internal.Doc
             return this;
         }
 
-        public IMutableDictionary Set(string key, string value)
+        public IMutableDictionary SetString(string key, string value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IMutableDictionary Set(string key, int value)
+        public IMutableDictionary SetInt(string key, int value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IMutableDictionary Set(string key, long value)
+        public IMutableDictionary SetLong(string key, long value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IMutableDictionary Set(string key, float value)
+        public IMutableDictionary SetFloat(string key, float value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IMutableDictionary Set(string key, double value)
+        public IMutableDictionary SetDouble(string key, double value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IMutableDictionary Set(string key, bool value)
+        public IMutableDictionary SetBoolean(string key, bool value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IMutableDictionary Set(string key, Blob value)
+        public IMutableDictionary SetBlob(string key, Blob value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IMutableDictionary Set(string key, DateTimeOffset value)
+        public IMutableDictionary SetDate(string key, DateTimeOffset value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IMutableDictionary Set(string key, MutableArray value)
+        public IMutableDictionary SetArray(string key, ArrayObject value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public IMutableDictionary Set(string key, MutableDictionary value)
+        public IMutableDictionary SetDictionary(string key, DictionaryObject value)
         {
             SetObject(key, value);
             return this;
         }
 
-        public MutableFragment this[string key] => new MutableFragment(this, key);
+        public IMutableFragment this[string key] => new Fragment(this, key);
 
-        IMutableArray IMutableDictionary.GetArray(string key)
+        MutableArray IMutableDictionary.GetArray(string key)
         {
-            return GetObject(key) as IMutableArray;
+            return GetValue(key) as MutableArray;
         }
 
         public Blob GetBlob(string key)
         {
-             return GetObject(key) as Blob;
+             return GetValue(key) as Blob;
         }
 
         public bool GetBoolean(string key)
         {
-            return DataOps.ConvertToBoolean(GetObject(key));
+            return DataOps.ConvertToBoolean(GetValue(key));
         }
 
         public DateTimeOffset GetDate(string key)
         {
-            return DataOps.ConvertToDate(GetObject(key));
+            return DataOps.ConvertToDate(GetValue(key));
         }
 
-        IMutableDictionary IMutableDictionary.GetDictionary(string key)
+        MutableDictionary IMutableDictionary.GetDictionary(string key)
         {
-            return GetObject(key) as IMutableDictionary;
+            return GetValue(key) as MutableDictionary;
         }
 
         public double GetDouble(string key)
         {
-            return DataOps.ConvertToDouble(GetObject(key));
+            return DataOps.ConvertToDouble(GetValue(key));
         }
 
         public float GetFloat(string key)
         {
-            return DataOps.ConvertToFloat(GetObject(key));
+            return DataOps.ConvertToFloat(GetValue(key));
         }
 
         public int GetInt(string key)
         {
-            return DataOps.ConvertToInt(GetObject(key));
+            return DataOps.ConvertToInt(GetValue(key));
         }
 
         public long GetLong(string key)
         {
-            return DataOps.ConvertToLong(GetObject(key));
+            return DataOps.ConvertToLong(GetValue(key));
         }
 
-        public object GetObject(string key)
+        public object GetValue(string key)
         {
-            object obj;
-            if (!_dict.TryGetValue(key, out obj)) {
+            if (!_dict.TryGetValue(key, out var obj)) {
                 return null;
             }
 
@@ -239,7 +238,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         public string GetString(string key)
         {
-            return GetObject(key) as string;
+            return GetValue(key) as string;
         }
 
         public Dictionary<string, object> ToDictionary()

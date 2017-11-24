@@ -64,8 +64,8 @@ namespace Test
             ReopenDB();
 
             var doc2 = new MutableDocument("doc2");
-            doc2.Set("type", "profile");
-            doc2.Set("name", "Scott");
+            doc2.SetString("type", "profile");
+            doc2.SetString("name", "Scott");
             var savedDoc2 = Db.Save(doc2);
 
             // Force a conflict again
@@ -77,17 +77,17 @@ namespace Test
 
             // Save and make sure that the correct conflict resolver won
             doc2 = savedDoc2.ToMutable();
-            doc2.Set("type", "bio");
-            doc2.Set("age", 31);
+            doc2.SetString("type", "bio");
+            doc2.SetInt("age", 31);
             
             savedDoc2.Dispose();
             savedDoc2 = Db.Save(doc2);
             doc2.Dispose();
 
-            savedDoc2["age"].ToLong().Should().Be(31L, "because 'age' was changed by 'mine' and not 'theirs'");
-            savedDoc2["type"].ToString().Should().Be("bio", "because 'type' was changed by 'mine' and 'theirs' so 'theirs' should win");
-            savedDoc2["gender"].ToString().Should().Be("male", "because 'gender' was changed by 'theirs' but not 'mine'");
-            savedDoc2["name"].ToString().Should().Be("Scott", "because 'name' was unchanged");
+            savedDoc2["age"].Long.Should().Be(31L, "because 'age' was changed by 'mine' and not 'theirs'");
+            savedDoc2["type"].String.Should().Be("bio", "because 'type' was changed by 'mine' and 'theirs' so 'theirs' should win");
+            savedDoc2["gender"].String.Should().Be("male", "because 'gender' was changed by 'theirs' but not 'mine'");
+            savedDoc2["name"].String.Should().Be("Scott", "because 'name' was unchanged");
             savedDoc2.Dispose();
         }
 
@@ -163,12 +163,12 @@ namespace Test
             Db.Save(doc);
 
             doc = Db.GetDocument(doc.Id).ToMutable();
-            doc.Set("university", 1);
+            doc.SetInt("university", 1);
             Db.Save(doc);
 
             // Create a conflict
             doc = new MutableDocument(doc.Id, props);
-            doc.Set("university", 2);
+            doc.SetInt("university", 2);
 
             Db.Invoking(d => d.Save(doc)).ShouldThrow<LiteCoreException>().Which.Error.Should()
                 .Be(new C4Error(C4ErrorCode.Conflict));
@@ -177,8 +177,8 @@ namespace Test
         private MutableDocument SetupConflict()
         {
             var doc = new MutableDocument("doc1");
-            doc.Set("type", "profile");
-            doc.Set("name", "Scott");
+            doc.SetString("type", "profile");
+            doc.SetString("name", "Scott");
             var savedDoc = Db.Save(doc);
 
             // Force a conflict
@@ -188,7 +188,7 @@ namespace Test
 
             doc.Dispose();
             doc = savedDoc.ToMutable();
-            doc.Set("name", "Scott Pilgrim");
+            doc.SetString("name", "Scott Pilgrim");
             return doc;
         }
 
@@ -252,19 +252,19 @@ namespace Test
             var resolved = new MutableDocument();
             if (conflict.Base != null) {
                 foreach (var pair in conflict.Base) {
-                    resolved.Set(pair.Key, pair.Value);
+                    resolved.SetValue(pair.Key, pair.Value);
                 }
             }
 
             var changed = new HashSet<string>();
             foreach (var pair in conflict.Theirs) {
-                resolved.Set(pair.Key, pair.Value);
+                resolved.SetValue(pair.Key, pair.Value);
                 changed.Add(pair.Key);
             }
 
             foreach (var pair in conflict.Mine) {
                 if (!changed.Contains(pair.Key)) {
-                    resolved.Set(pair.Key, pair.Value);
+                    resolved.SetValue(pair.Key, pair.Value);
                 }
             }
 

@@ -1,26 +1,28 @@
 ﻿// 
-// DictionaryObject.cs
+//  DictionaryObject.cs
 // 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
+//  Author:
+//   Jim Borden  <jim.borden@couchbase.com>
 // 
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
 // 
-// http://www.apache.org/licenses/LICENSE-2.0
+//  http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
 // 
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
+
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Support;
@@ -43,10 +45,7 @@ namespace Couchbase.Lite
         #region Properties
 
         /// <inheritdoc />
-        public int Count => _dict.Count;
-
-        /// <inheritdoc />
-        public Fragment this[string key] => new Fragment(this, key);
+        public IFragment this[string key] => new Fragment(this, key);
 
         /// <inheritdoc />
         public ICollection<string> Keys
@@ -65,6 +64,9 @@ namespace Couchbase.Lite
                 return _keys;
             }
         }
+
+        /// <inheritdoc />
+        public int Count => _dict.Count;
 
         #endregion
 
@@ -107,11 +109,6 @@ namespace Couchbase.Lite
             return _dict;
         }
 
-        internal DictionaryObject ToMutable()
-        {
-            return new DictionaryObject(_dict, true);
-        }
-
         #endregion
 
         #region Private Methods
@@ -119,6 +116,65 @@ namespace Couchbase.Lite
         private static object GetObject(MDict dict, string key, IThreadSafety threadSafety = null) => (threadSafety ?? NullThreadSafety.Instance).DoLocked(() => dict.Get(key).AsObject(dict));
 
         private static T GetObject<T>(MDict dict, string key, IThreadSafety threadSafety = null) where T : class => GetObject(dict, key, threadSafety) as T;
+
+        #endregion
+
+        #region IDictionaryObject
+
+        /// <inheritdoc />
+        public bool Contains(string key) => _threadSafety.DoLocked(() => !_dict.Get(key).IsEmpty);
+
+        /// <inheritdoc />
+        public ArrayObject GetArray(string key) => GetObject<ArrayObject>(_dict, key, _threadSafety);
+
+        /// <inheritdoc />
+        public Blob GetBlob(string key) => GetObject<Blob>(_dict, key, _threadSafety);
+
+        /// <inheritdoc />
+        public bool GetBoolean(string key) => DataOps.ConvertToBoolean(GetObject(_dict, key, _threadSafety));
+
+        /// <inheritdoc />
+        public DateTimeOffset GetDate(string key) => DataOps.ConvertToDate(GetObject(_dict, key, _threadSafety));
+
+        /// <inheritdoc />
+        public DictionaryObject GetDictionary(string key) => GetObject<DictionaryObject>(_dict, key, _threadSafety);
+
+        /// <inheritdoc />
+        public double GetDouble(string key) => DataOps.ConvertToDouble(GetObject(_dict, key, _threadSafety));
+
+        /// <inheritdoc />
+        public float GetFloat(string key) => DataOps.ConvertToFloat(GetObject(_dict, key, _threadSafety));
+
+        /// <inheritdoc />
+        public int GetInt(string key) => DataOps.ConvertToInt(GetObject(_dict, key, _threadSafety));
+
+        /// <inheritdoc />
+        public long GetLong(string key) => DataOps.ConvertToLong(GetObject(_dict, key, _threadSafety));
+
+        /// <inheritdoc />
+        public object GetValue(string key) => GetObject(_dict, key, _threadSafety);
+
+        /// <inheritdoc />
+        public string GetString(string key) => GetObject<string>(_dict, key, _threadSafety);
+
+        /// <inheritdoc />
+        public Dictionary<string, object> ToDictionary()
+        {
+            var result = new Dictionary<string, object>(_dict.Count);
+            _threadSafety.DoLocked(() =>
+            {
+                foreach (var item in _dict.AllItems()) {
+                    result[item.Key] = DataOps.ToNetObject(item.Value.AsObject(_dict));
+                }
+            });
+
+            return result;
+        }
+
+        public MutableDictionary ToMutable()
+        {
+            return new MutableDictionary(_dict, true);
+        }
 
         #endregion
 
@@ -144,60 +200,6 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region IDictionaryObject
-
-        /// <inheritdoc />
-        public bool Contains(string key) => _threadSafety.DoLocked(() => !_dict.Get(key).IsEmpty);
-
-        /// <inheritdoc />
-        public IArray GetArray(string key) => GetObject<IArray>(_dict, key, _threadSafety);
-
-        /// <inheritdoc />
-        public Blob GetBlob(string key) => GetObject<Blob>(_dict, key, _threadSafety);
-
-        /// <inheritdoc />
-        public bool GetBoolean(string key) => DataOps.ConvertToBoolean(GetObject(_dict, key, _threadSafety));
-
-        /// <inheritdoc />
-        public DateTimeOffset GetDate(string key) => DataOps.ConvertToDate(GetObject(_dict, key, _threadSafety));
-
-        /// <inheritdoc />
-        public IDictionaryObject GetDictionary(string key) => GetObject<IDictionaryObject>(_dict, key, _threadSafety);
-
-        /// <inheritdoc />
-        public double GetDouble(string key) => DataOps.ConvertToDouble(GetObject(_dict, key, _threadSafety));
-
-        /// <inheritdoc />
-        public float GetFloat(string key) => DataOps.ConvertToFloat(GetObject(_dict, key, _threadSafety));
-
-        /// <inheritdoc />
-        public int GetInt(string key) => DataOps.ConvertToInt(GetObject(_dict, key, _threadSafety));
-
-        /// <inheritdoc />
-        public long GetLong(string key) => DataOps.ConvertToLong(GetObject(_dict, key, _threadSafety));
-
-        /// <inheritdoc />
-        public object GetObject(string key) => GetObject(_dict, key, _threadSafety);
-
-        /// <inheritdoc />
-        public string GetString(string key) => GetObject<string>(_dict, key, _threadSafety);
-
-        /// <inheritdoc />
-        public Dictionary<string, object> ToDictionary()
-        {
-            var result = new Dictionary<string, object>(_dict.Count);
-            _threadSafety.DoLocked(() =>
-            {
-                foreach (var item in _dict.AllItems()) {
-                    result[item.Key] = DataOps.ToNetObject(item.Value.AsObject(_dict));
-                }
-            });
-
-            return result;
-        }
-
-        #endregion
-
         #region Nested
 
         private class Enumerator : IEnumerator<KeyValuePair<string, object>>
@@ -212,10 +214,10 @@ namespace Couchbase.Lite
 
             #region Properties
 
+            object IEnumerator.Current => Current;
+
             public KeyValuePair<string, object> Current => new KeyValuePair<string, object>(_inner.Current.Key,
                 _inner.Current.Value.AsObject(_parent));
-
-            object IEnumerator.Current => Current;
 
             #endregion
 

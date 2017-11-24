@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public int Count => _rs.ColumnNames.Count;
 
-        public Fragment this[int index]
+        public IFragment this[int index]
         {
             get {
                 if (index >= Count) {
@@ -54,7 +54,7 @@ namespace Couchbase.Lite.Internal.Query
             }
         }
 
-        public Fragment this[string key] => this[IndexForColumnName(key)];
+        public IFragment this[string key] => this[IndexForColumnName(key)];
 
         public ICollection<string> Keys => _rs.ColumnNames.Keys;
 
@@ -126,7 +126,7 @@ namespace Couchbase.Lite.Internal.Query
         IEnumerator<KeyValuePair<string, object>> IEnumerable<KeyValuePair<string, object>>.GetEnumerator()
         {
             foreach (var column in _rs.ColumnNames.Keys) {
-                yield return new KeyValuePair<string, object>(column, GetObject(column));
+                yield return new KeyValuePair<string, object>(column, GetValue(column));
             }
         }
 
@@ -137,7 +137,7 @@ namespace Couchbase.Lite.Internal.Query
         IEnumerator<object> IEnumerable<object>.GetEnumerator()
         {
             for (var i = 0; i < Count; i++) {
-                yield return GetObject(i);
+                yield return GetValue(i);
             }
         }
 
@@ -145,9 +145,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IReadOnlyArray
 
-        public IArray GetArray(int index)
+        public ArrayObject GetArray(int index)
         {
-            return FleeceValueToObject(index) as IArray;
+            return FleeceValueToObject(index) as ArrayObject;
         }
 
         public Blob GetBlob(int index)
@@ -162,12 +162,12 @@ namespace Couchbase.Lite.Internal.Query
 
         public DateTimeOffset GetDate(int index)
         {
-            return DataOps.ConvertToDate(GetObject(index));
+            return DataOps.ConvertToDate(GetValue(index));
         }
 
-        public IDictionaryObject GetDictionary(int index)
+        public DictionaryObject GetDictionary(int index)
         {
-            return FleeceValueToObject(index) as IDictionaryObject;
+            return FleeceValueToObject(index) as DictionaryObject;
         }
 
         public double GetDouble(int index)
@@ -190,7 +190,7 @@ namespace Couchbase.Lite.Internal.Query
             return Native.FLValue_AsInt(FLValueAtIndex(index));
         }
 
-        public object GetObject(int index)
+        public object GetValue(int index)
         {
             return FleeceValueToObject(index);
         }
@@ -219,7 +219,7 @@ namespace Couchbase.Lite.Internal.Query
             return IndexForColumnName(key) >= 0;
         }
 
-        public IArray GetArray(string key)
+        public ArrayObject GetArray(string key)
         {
             var index = IndexForColumnName(key);
             return index >= 0 ? GetArray(index) : null;
@@ -243,7 +243,7 @@ namespace Couchbase.Lite.Internal.Query
             return index >= 0 ? GetDate(index) : DateTimeOffset.MinValue;
         }
 
-        public IDictionaryObject GetDictionary(string key)
+        public DictionaryObject GetDictionary(string key)
         {
             var index = IndexForColumnName(key);
             return index >= 0 ? GetDictionary(index) : null;
@@ -273,10 +273,10 @@ namespace Couchbase.Lite.Internal.Query
             return index >= 0 ? GetLong(index) : 0L;
         }
 
-        public object GetObject(string key)
+        public object GetValue(string key)
         {
             var index = IndexForColumnName(key);
-            return index >= 0 ? GetObject(index) : null;
+            return index >= 0 ? GetValue(index) : null;
         }
 
         public string GetString(string key)
@@ -289,7 +289,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             var dict = new Dictionary<string, object>();
             foreach (var key in Keys) {
-                dict[key] = GetObject(key);
+                dict[key] = GetValue(key);
             }
 
             return dict;

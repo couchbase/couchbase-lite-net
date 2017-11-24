@@ -119,7 +119,7 @@ namespace Test
                     deserializedArray[1].ToString().Should().Be("str");
                     deserializedArray.GetString(2).Should().BeNull();
                     deserializedArray.GetDictionary(4).Should().BeEquivalentTo(nestedDict);
-                    deserializedArray[0].ToDictionary().Should().BeNull();
+                    deserializedArray[0].Dictionary.Should().BeNull();
 
                     var list = deserializedArray.ToList();
                     list[2].Should().BeAssignableTo<IList<object>>();
@@ -138,35 +138,35 @@ namespace Test
             var ao = new MutableArray();
             var blob = new Blob("text/plain", Encoding.UTF8.GetBytes("Winter is coming"));
             var dict = new MutableDictionary(new Dictionary<string, object> {["foo"] = "bar"});
-            ao.Add(1.1f);
-            ao.Add(blob);
-            ao.Add(now);
-            ao.Add(dict);
+            ao.AddFloat(1.1f);
+            ao.AddBlob(blob);
+            ao.AddDate(now);
+            ao.AddDictionary(dict);
 
             var obj = new Object();
             var arr = new MutableArray(new[] {5, 4, 3, 2, 1});
-            ao.Insert(0, obj);
-            ao.Insert(0, 42);
-            ao.Insert(0, Int64.MaxValue);
-            ao.Insert(0, 3.14f);
-            ao.Insert(0, Math.PI);
-            ao.Insert(0, true);
-            ao.Insert(0, blob);
-            ao.Insert(0, now);
-            ao.Insert(0, arr);
-            ao.Insert(0, dict);
+            ao.InsertValue(0, obj);
+            ao.InsertInt(0, 42);
+            ao.InsertLong(0, Int64.MaxValue);
+            ao.InsertFloat(0, 3.14f);
+            ao.InsertDouble(0, Math.PI);
+            ao.InsertBoolean(0, true);
+            ao.InsertBlob(0, blob);
+            ao.InsertDate(0, now);
+            ao.InsertArray(0, arr);
+            ao.InsertDictionary(0, dict);
             ao.Should().Equal(dict, arr, nowStr, blob, true, Math.PI, 3.14f, Int64.MaxValue, 42, obj, 1.1f, blob,
                 nowStr,
                 dict);
 
-            ao.Set(0, Int64.MaxValue);
-            ao.Set(1, 3.14f);
-            ao.Set(2, Math.PI);
-            ao.Set(3, true);
-            ao.Set(4, blob);
-            ao.Set(5, arr);
-            ao.Set(6, dict);
-            ao.Set(7, now);
+            ao.SetLong(0, Int64.MaxValue);
+            ao.SetFloat(1, 3.14f);
+            ao.SetDouble(2, Math.PI);
+            ao.SetBoolean(3, true);
+            ao.SetBlob(4, blob);
+            ao.SetArray(5, arr);
+            ao.SetDictionary(6, dict);
+            ao.SetDate(7, now);
             ao.Should().Equal(Int64.MaxValue, 3.14f, Math.PI, true, blob, arr, dict, nowStr, 42, obj, 1.1f, blob,
                 nowStr,
                 dict);
@@ -199,8 +199,8 @@ namespace Test
                     var mDict = new MDict(new MValue(flValue), mRoot);
                     var deserializedDict = new DictionaryObject(mDict, false);
 
-                    deserializedDict["bogus"].ToBlob().Should().BeNull();
-                    deserializedDict["date"].ToDate().Should().Be(now);
+                    deserializedDict["bogus"].Blob.Should().BeNull();
+                    deserializedDict["date"].Date.Should().Be(now);
                     deserializedDict.GetDate("bogus").Should().Be(DateTimeOffset.MinValue);
                     deserializedDict.GetArray("array").Should().Equal(1L, 2L, 3L);
                     deserializedDict.GetArray("bogus").Should().BeNull();
@@ -332,7 +332,7 @@ Transfer-Encoding: chunked";
             doc2.Dispose();
 
             doc2 = new MutableDocument("doc");
-            doc2.Set("value", "value");
+            doc2.SetString("value", "value");
             doc1.As<object>().Should().NotBe(doc2);
             var savedDoc2 = Db.Save(doc2);
             doc2.Dispose();
@@ -342,7 +342,7 @@ Transfer-Encoding: chunked";
             retrievedDoc2.As<object>().Should().Be(savedDoc2);
             doc2 = retrievedDoc2.ToMutable();
             doc2.As<object>().Should().Be(savedDoc2);
-            doc2.Set("value", "nextValue");
+            doc2.SetString("value", "nextValue");
             doc2.As<object>().Should().NotBe(retrievedDoc2);
             doc2.Dispose();
             retrievedDoc2.Dispose();

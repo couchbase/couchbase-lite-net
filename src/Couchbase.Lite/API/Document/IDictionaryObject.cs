@@ -51,7 +51,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        IArray GetArray(string key);
+        ArrayObject GetArray(string key);
 
         /// <summary>
         /// Gets the value of a given key as a <see cref="Blob"/>
@@ -81,7 +81,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        IDictionaryObject GetDictionary(string key);
+        DictionaryObject GetDictionary(string key);
 
         /// <summary>
         /// Gets the value of a given key as a <see cref="Double"/>
@@ -127,7 +127,7 @@ namespace Couchbase.Lite
         /// <remarks>This method should be avoided for numeric types, whose
         /// underlying representation is subject to change and thus
         /// <see cref="InvalidCastException"/>s </remarks>
-        object GetObject(string key);
+        object GetValue(string key);
 
         /// <summary>
         /// Gets the value of a given key as a <see cref="String"/>

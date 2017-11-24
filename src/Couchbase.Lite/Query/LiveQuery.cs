@@ -156,7 +156,7 @@ namespace Couchbase.Lite.Internal.Query
         public void Run()
         {
             if (!_observing.Set(true)) {
-                _query.Database.Changed += OnDatabaseChanged;
+                _query.Database.AddDatabaseChangedListener(null, OnDatabaseChanged);
                 Update();
             }
         }
@@ -164,7 +164,7 @@ namespace Couchbase.Lite.Internal.Query
         public void Stop()
         {
             if (_observing.Set(false)) {
-                _query.Database.Changed -= OnDatabaseChanged;
+                _query.Database.RemoveDatabaseChangedListener(OnDatabaseChanged);
             }
 
             _willUpdate.Set(false);

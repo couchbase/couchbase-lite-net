@@ -36,7 +36,7 @@ namespace Couchbase.Lite.Query
         /// <param name="element">The element to search for (either an expression or literal)</param>
         /// <returns>A function that will return true if the array contains the element, or false
         /// if it does not</returns>
-        public static IExpression Contains(object array, object element) => new QueryFunction("ARRAY_CONTAINS()", array, element);
+        public static IExpression Contains(object array, object element) => new QueryCompoundExpression("ARRAY_CONTAINS()", array, element);
 
         /// <summary>
         /// Creates a function that will get the length of an array
@@ -45,7 +45,7 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to usem when calculating (must evaluate to an array type)
         /// the result</param>
         /// <returns>A function that will get the length of the array in question</returns>
-        public static IExpression Length(object expression) => new QueryFunction("ARRAY_LENGTH()", expression);
+        public static IExpression Length(object expression) => new QueryCompoundExpression("ARRAY_LENGTH()", expression);
 
         #endregion
     }

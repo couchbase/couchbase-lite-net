@@ -127,13 +127,11 @@ namespace Couchbase.Lite.Internal.Query
 
         public IExpression Between(object expression1, object expression2)
         {
-            var lhs = this as QueryTypeExpression;
-            if (lhs == null) {
+            if (!(this is QueryTypeExpression lhs)) {
                 throw new NotSupportedException();
             }
 
-            var exp1 = expression1 as QueryTypeExpression;
-            if (exp1 == null) {
+            if (!(expression1 is QueryTypeExpression exp1)) {
                 if (expression1 is QueryExpression) {
                     throw new ArgumentException("Invalid expression value");
                 }
@@ -187,23 +185,12 @@ namespace Couchbase.Lite.Internal.Query
 
         public IExpression In(params object[] expressions)
         {
-            var lhs = this as QueryTypeExpression;
-            if (lhs == null) {
+            if (!(this is QueryTypeExpression lhs)) {
                 throw new NotSupportedException();
             }
 
             var rhs = new QueryTypeExpression(expressions);
             return new QueryBinaryExpression(lhs, rhs, BinaryOpType.In);
-        }
-
-        public IExpression Is(object expression)
-        {
-            return EqualTo(expression);
-        }
-
-        public IExpression IsNot(object expression)
-        {
-            return NotEqualTo(expression);
         }
 
         public IExpression IsNullOrMissing()
@@ -242,24 +229,9 @@ namespace Couchbase.Lite.Internal.Query
             return GetOperator(BinaryOpType.Multiply, expression);
         }
 
-        public IExpression NotBetween(object expression1, object expression2)
-        {
-            return Expression.Negated(Between(expression1, expression2));
-        }
-
         public IExpression NotEqualTo(object expression)
         {
             return GetOperator(BinaryOpType.NotEqualTo, expression);
-        }
-
-        public IExpression NotGreaterThan(object expression)
-        {
-            return LessThanOrEqualTo(expression);
-        }
-
-        public IExpression NotGreaterThanOrEqualTo(object expression)
-        {
-            return LessThan(expression);
         }
 
         public IExpression NotIn(params object[] expressions)
@@ -267,34 +239,9 @@ namespace Couchbase.Lite.Internal.Query
             return Expression.Negated(In(expressions));
         }
 
-        public IExpression NotLessThan(object expression)
-        {
-            return GreaterThanOrEqualTo(expression);
-        }
-
-        public IExpression NotLessThanOrEqualTo(object expression)
-        {
-            return GreaterThan(expression);
-        }
-
-        public IExpression NotLike(object expression)
-        {
-            return Expression.Negated(Like(expression));
-        }
-
-        public IExpression NotMatch(object expression)
-        {
-            return Expression.Negated(Match(expression));
-        }
-
         public IExpression NotNullOrMissing()
         {
-            return IsNot(IsNullOrMissing());
-        }
-
-        public IExpression NotRegex(object expression)
-        {
-            return Expression.Negated(Regex(expression));
+            return NotEqualTo(IsNullOrMissing());
         }
 
         public IExpression Or(object expression)

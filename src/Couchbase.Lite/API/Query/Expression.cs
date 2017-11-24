@@ -31,61 +31,6 @@ namespace Couchbase.Lite.Query
         #region Public Methods
 
         /// <summary>
-        /// Returns the start of an expression that will evaluate if any elements
-        /// inside of an array match a given predicate
-        /// 
-        /// Usage:  <code>Expression.Any("x").In(Expression.Property("prop")).Satisfies(Expression.Variable("x").EqualTo(42))</code>
-        /// </summary>
-        /// <param name="variable">The name to assign to the variable that will be used later
-        /// via <see cref="Variable(string)"/></param>
-        /// <returns>The first portion of the completed expression for further modification</returns>
-        public static IExpressionIn Any(string variable)
-        {
-            return new QueryTernaryExpression("ANY", variable);
-        }
-
-        /// <summary>
-        /// Returns the start of an expression that will evaluate the following:
-        /// 1. The array is not empty (has "any" elements)
-        /// 2. Every element in the array matches a given predicate ("every" element matches)
-        /// 
-        /// Usage:  <code>Expression.AnyAndEvery("x").In(Expression.Property("prop")).Satisfies(Expression.Variable("x").EqualTo(42))</code>
-        /// </summary>
-        /// <param name="variable">The name to assign to the variable that will be used later
-        /// via <see cref="Variable(string)"/></param>
-        /// <returns>The first portion of the completed expression for further modification</returns>
-        public static IExpressionIn AnyAndEvery(string variable)
-        {
-            return new QueryTernaryExpression("ANY AND EVERY", variable);
-        }
-
-        /// <summary>
-        /// Returns the start of an expression that will evaluate if every element inside
-        /// of an array matches a given predicate (note: That means that an empty array will
-        /// return <c>true</c> because "all zero" elements match)
-        /// 
-        /// Usage:  <code>Expression.Every("x").In(Expression.Property("prop")).Satisfies(Expression.Variable("x").EqualTo(42))</code>
-        /// </summary>
-        /// <param name="variable">The name to assign to the variable that will be used later
-        /// via <see cref="Variable(string)"/></param>
-        /// <returns>The first portion of the completed expression for further modification</returns>
-        public static IExpressionIn Every(string variable)
-        {
-            return new QueryTernaryExpression("EVERY", variable);
-        }
-
-        /// <summary>
-        /// Creates an object that can generate expressions for retrieving metadata about
-        /// a result
-        /// </summary>
-        /// <returns>An object that can generate expressions for retrieving metadata about
-        /// a result</returns>
-        public static IMeta Meta()
-        {
-            return new QueryMeta();
-        }
-
-        /// <summary>
         /// Returns an expression representing the negated result of an expression
         /// </summary>
         /// <param name="expression">The expression to evaluate</param>
@@ -135,17 +80,6 @@ namespace Couchbase.Lite.Query
         public static IPropertyExpression Property(string property)
         {
             return new QueryTypeExpression(property, ExpressionType.KeyPath);
-        }
-
-        /// <summary>
-        /// Returns an expression representing the value of a named variable
-        /// assigned by earlier calls to <see cref="Any(string)"/> and family.
-        /// </summary>
-        /// <param name="name">The name of the variable</param>
-        /// <returns>An expression representing the value of a named variable</returns>
-        public static IPropertyExpression Variable(string name)
-        {
-            return new QueryTypeExpression(name, ExpressionType.Variable);
         }
 
         #endregion

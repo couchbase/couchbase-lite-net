@@ -117,20 +117,13 @@ namespace Couchbase.Lite
 
         internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
 
-        /// <summary>
-        /// Accesses JSON paths in the document to get their values
-        /// </summary>
-        /// <param name="key">The key to create the fragment from</param>
-        public Fragment this[string key] => _dict[key];
+        /// <inheritdoc />
+        public IFragment this[string key] => _dict[key];
 
-        /// <summary>
-        /// Gets all the keys present in this document
-        /// </summary>
+        /// <inheritdoc />
         public ICollection<string> Keys => _dict.Keys;
 
-        /// <summary>
-        /// Gets the number of top level entries in this document
-        /// </summary>
+        /// <inheritdoc />
         public int Count => _dict?.Count ?? 0;
 
         #endregion
@@ -156,6 +149,12 @@ namespace Couchbase.Lite
             });
         }
 
+        internal Document(Document other)
+        {
+            _root = new MRoot(other._root);
+            Data = other.Data;
+        }
+
         #endregion
 
         #region Public Methods
@@ -172,142 +171,7 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region Private Methods
-
-        private void UpdateDictionary()
-        {
-            if (Data != null) {
-                var rawDoc = c4Doc?.HasValue == true ? c4Doc.RawDoc : null;
-                Misc.SafeSwap(ref _root,
-                    new MRoot(new DocContext(Database, rawDoc), (FLValue*) Data, IsMutable));
-                _dict = (DictionaryObject) _root.AsObject();
-            } else {
-                Misc.SafeSwap(ref _root, null);
-                _dict = IsMutable ? (IDictionaryObject)new InMemoryDictionary() : new DictionaryObject();
-            }
-        }
-
-        #endregion
-
-        #region Overrides
-
-        /// <summary>
-        /// Returns a string that represents the current object.
-        /// </summary>
-        /// <returns>A string that represents the current object.</returns>
-        public override string ToString()
-        {
-            var id = new SecureLogString(Id, LogMessageSensitivity.PotentiallyInsecure);
-            return $"{GetType().Name}[{id}]";
-        }
-
-        public override int GetHashCode()
-        {
-            var h = Hasher.Start;
-            h.Add(Id);
-            if (RevID != null) {
-                h.Add(RevID);
-            }
-
-            return h;
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (!(obj is Document d)) {
-                return false;
-            }
-
-            var baseEqual = Id == d.Id && RevID == d.RevID;
-            if (!baseEqual) {
-                return false;
-            }
-
-            var commonCount = Keys.Intersect(d.Keys).Count();
-            if (commonCount != Keys.Count || commonCount != d.Keys.Count) {
-                return false; // The set of keys is different
-            }
-
-            return !(from key in Keys 
-                let left = GetObject(key) 
-                let right = d.GetObject(key) 
-                where !IsEqual(left, right)
-                select left).Any();
-        }
-
-        #endregion
-
-        #region IDictionaryObject
-
-        /// <inheritdoc />
-        public bool Contains(string key) => _dict.Contains(key);
-
-        /// <inheritdoc />
-        public IArray GetArray(string key) => _dict.GetArray(key);
-
-        /// <inheritdoc />
-        public Blob GetBlob(string key) => _dict.GetBlob(key);
-
-        /// <inheritdoc />
-        public bool GetBoolean(string key) => _dict.GetBoolean(key);
-
-        /// <inheritdoc />
-        public DateTimeOffset GetDate(string key) => _dict.GetDate(key);
-
-        /// <inheritdoc />
-        public IDictionaryObject GetDictionary(string key) => _dict.GetDictionary(key);
-
-        /// <inheritdoc />
-        public double GetDouble(string key) => _dict.GetDouble(key);
-
-        /// <inheritdoc />
-        public float GetFloat(string key) => _dict.GetFloat(key);
-
-        /// <inheritdoc />
-        public int GetInt(string key) => _dict.GetInt(key);
-
-        /// <inheritdoc />
-        public long GetLong(string key) => _dict.GetLong(key);
-
-        /// <inheritdoc />
-        public object GetObject(string key) => _dict.GetObject(key);
-
-        /// <inheritdoc />
-        public string GetString(string key) => _dict.GetString(key);
-
-        /// <inheritdoc />
-        public Dictionary<string, object> ToDictionary() => _dict.ToDictionary();
-
-        #endregion
-
-        #region IDisposable
-
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public void Dispose()
-        {
-            ThreadSafety.DoLocked(() =>
-            {
-                _root?.Dispose();
-                Misc.SafeSwap(ref _c4Doc, null);
-            });
-        }
-
-        #endregion
-
-        #region IEnumerable
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        #endregion
-
-        #region IEnumerable<KeyValuePair<string,object>>
-
-        /// <inheritdoc />
-        public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => _dict.GetEnumerator();
-
-        #endregion
+        #region Internal Methods
 
         internal static bool IsEqual(object left, object right)
         {
@@ -338,8 +202,8 @@ namespace Couchbase.Lite
             }
 
             return !(from key in left.Keys 
-                let leftObj = left.GetObject(key) 
-                let rightObj = dict.GetObject(key) 
+                let leftObj = left.GetValue(key) 
+                let rightObj = dict.GetValue(key) 
                 where !IsEqual(leftObj, rightObj)
                 select leftObj).Any();
         }
@@ -354,7 +218,7 @@ namespace Couchbase.Lite
                 return false;
             }
 
-            return !left.Where((t, i) => !IsEqual(t, arr.GetObject(i))).Any();
+            return !left.Where((t, i) => !IsEqual(t, arr.GetValue(i))).Any();
         }
 
         internal static bool IsEqual(IList left, object right)
@@ -420,5 +284,144 @@ namespace Couchbase.Lite
             ThreadSafety.DoLockedBridge(err => Native.c4doc_selectNextLeafRevision(c4Doc.RawDoc, false, true, err));
             c4Doc = _c4Doc.Retain<C4DocumentWrapper>();
         }
+
+        #endregion
+
+        #region Private Methods
+
+        private void UpdateDictionary()
+        {
+            if (Data != null) {
+                var rawDoc = c4Doc?.HasValue == true ? c4Doc.RawDoc : null;
+                Misc.SafeSwap(ref _root,
+                    new MRoot(new DocContext(Database, rawDoc), (FLValue*) Data, IsMutable));
+                _dict = (DictionaryObject) _root.AsObject();
+            } else {
+                Misc.SafeSwap(ref _root, null);
+                _dict = IsMutable ? (IDictionaryObject)new InMemoryDictionary() : new DictionaryObject();
+            }
+        }
+
+        #endregion
+
+        #region Overrides
+
+        /// <summary>
+        /// Returns a string that represents the current object.
+        /// </summary>
+        /// <returns>A string that represents the current object.</returns>
+        public override string ToString()
+        {
+            var id = new SecureLogString(Id, LogMessageSensitivity.PotentiallyInsecure);
+            return $"{GetType().Name}[{id}]";
+        }
+
+        public override int GetHashCode()
+        {
+            var h = Hasher.Start;
+            h.Add(Id);
+            if (RevID != null) {
+                h.Add(RevID);
+            }
+
+            return h;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is Document d)) {
+                return false;
+            }
+
+            var baseEqual = Id == d.Id && RevID == d.RevID;
+            if (!baseEqual) {
+                return false;
+            }
+
+            var commonCount = Keys.Intersect(d.Keys).Count();
+            if (commonCount != Keys.Count || commonCount != d.Keys.Count) {
+                return false; // The set of keys is different
+            }
+
+            return !(from key in Keys 
+                let left = GetValue(key) 
+                let right = d.GetValue(key) 
+                where !IsEqual(left, right)
+                select left).Any();
+        }
+
+        #endregion
+
+        #region IDictionaryObject
+
+        /// <inheritdoc />
+        public bool Contains(string key) => _dict.Contains(key);
+
+        /// <inheritdoc />
+        public ArrayObject GetArray(string key) => _dict.GetArray(key);
+
+        /// <inheritdoc />
+        public Blob GetBlob(string key) => _dict.GetBlob(key);
+
+        /// <inheritdoc />
+        public bool GetBoolean(string key) => _dict.GetBoolean(key);
+
+        /// <inheritdoc />
+        public DateTimeOffset GetDate(string key) => _dict.GetDate(key);
+
+        /// <inheritdoc />
+        public DictionaryObject GetDictionary(string key) => _dict.GetDictionary(key);
+
+        /// <inheritdoc />
+        public double GetDouble(string key) => _dict.GetDouble(key);
+
+        /// <inheritdoc />
+        public float GetFloat(string key) => _dict.GetFloat(key);
+
+        /// <inheritdoc />
+        public int GetInt(string key) => _dict.GetInt(key);
+
+        /// <inheritdoc />
+        public long GetLong(string key) => _dict.GetLong(key);
+
+        /// <inheritdoc />
+        public object GetValue(string key) => _dict.GetValue(key);
+
+        /// <inheritdoc />
+        public string GetString(string key) => _dict.GetString(key);
+
+        /// <inheritdoc />
+        public Dictionary<string, object> ToDictionary() => _dict.ToDictionary();
+
+        #endregion
+
+        #region IDisposable
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                _root?.Dispose();
+                Misc.SafeSwap(ref _c4Doc, null);
+            });
+        }
+
+        #endregion
+
+        #region IEnumerable
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        #endregion
+
+        #region IEnumerable<KeyValuePair<string,object>>
+
+        /// <inheritdoc />
+        public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => _dict.GetEnumerator();
+
+        #endregion
     }
 }

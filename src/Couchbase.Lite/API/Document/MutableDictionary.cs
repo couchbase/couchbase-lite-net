@@ -30,16 +30,10 @@ namespace Couchbase.Lite
     /// </summary>
     public sealed class MutableDictionary : DictionaryObject, IMutableDictionary
     {
-        #region Constants
-
-        internal static readonly object RemovedValue = new object();
-
-        #endregion
-
         #region Properties
 
         /// <inheritdoc />
-        public new MutableFragment this[string key] => new MutableFragment(this, key);
+        public new IMutableFragment this[string key] => new Fragment(this, key);
 
         internal bool HasChanges => _dict.IsMutated;
 
@@ -78,7 +72,7 @@ namespace Couchbase.Lite
 
         #endregion
 
-        private void SetValue(string key, object value)
+        private void SetValueInternal(string key, object value)
         {
             _threadSafety.DoLocked(() =>
             {
@@ -101,15 +95,15 @@ namespace Couchbase.Lite
         #region IMutableDictionary
 
         /// <inheritdoc />
-        public new IMutableArray GetArray(string key)
+        public new MutableArray GetArray(string key)
         {
-            return base.GetArray(key) as IMutableArray;
+            return base.GetArray(key) as MutableArray;
         }
 
         /// <inheritdoc />
-        public new IMutableDictionary GetDictionary(string key)
+        public new MutableDictionary GetDictionary(string key)
         {
-            return base.GetDictionary(key) as IMutableDictionary;
+            return base.GetDictionary(key) as MutableDictionary;
         }
 
         /// <inheritdoc />
@@ -120,9 +114,9 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableDictionary Set(string key, object value)
+        public IMutableDictionary SetValue(string key, object value)
         {
-            SetValue(key, value);
+            SetValueInternal(key, value);
             return this;
         }
 
@@ -143,72 +137,72 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableDictionary Set(string key, string value)
+        public IMutableDictionary SetString(string key, string value)
         {
-            SetValue(key, value);
+            SetValueInternal(key, value);
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableDictionary Set(string key, int value)
+        public IMutableDictionary SetInt(string key, int value)
         {
-            SetValue(key, value);
+            SetValueInternal(key, value);
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableDictionary Set(string key, long value)
+        public IMutableDictionary SetLong(string key, long value)
         {
-            SetValue(key, value);
+            SetValueInternal(key, value);
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableDictionary Set(string key, float value)
+        public IMutableDictionary SetFloat(string key, float value)
         {
-            SetValue(key, value);
+            SetValueInternal(key, value);
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableDictionary Set(string key, double value)
+        public IMutableDictionary SetDouble(string key, double value)
         {
-            SetValue(key, value);
+            SetValueInternal(key, value);
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableDictionary Set(string key, bool value)
+        public IMutableDictionary SetBoolean(string key, bool value)
         {
-            SetValue(key, value);
+            SetValueInternal(key, value);
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableDictionary Set(string key, Blob value)
+        public IMutableDictionary SetBlob(string key, Blob value)
         {
-            SetValue(key, value);
+            SetValueInternal(key, value);
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableDictionary Set(string key, DateTimeOffset value)
+        public IMutableDictionary SetDate(string key, DateTimeOffset value)
         {
-            SetValue(key, value.ToString("o"));
+            SetValueInternal(key, value.ToString("o"));
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableDictionary Set(string key, MutableArray value)
+        public IMutableDictionary SetArray(string key, ArrayObject value)
         {
-            SetValue(key, value);
+            SetValueInternal(key, value);
             return this;
         }
 
         /// <inheritdoc />
-        public IMutableDictionary Set(string key, MutableDictionary value)
+        public IMutableDictionary SetDictionary(string key, DictionaryObject value)
         {
-            SetValue(key, value);
+            SetValueInternal(key, value);
             return this;
         }
 

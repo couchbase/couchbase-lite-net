@@ -46,8 +46,8 @@ namespace Test
 #endif
     public class QueryTest : TestCase
     {
-        private static readonly ISelectResult DocID = SelectResult.Expression(Expression.Meta().ID);
-        private static readonly ISelectResult Sequence = SelectResult.Expression(Expression.Meta().Sequence);
+        private static readonly ISelectResult DocID = SelectResult.Expression(Meta.ID);
+        private static readonly ISelectResult Sequence = SelectResult.Expression(Meta.Sequence);
 
 #if !WINDOWS_UWP
         public QueryTest(ITestOutputHelper output) : base(output)
@@ -82,13 +82,13 @@ namespace Test
         {
             MutableDocument doc1 = null, doc2 = null;
             doc1 = new MutableDocument("doc1");
-            doc1.Set("name", "Scott");
+            doc1.SetString("name", "Scott");
             Db.Save(doc1);
 
             doc2 = new MutableDocument("doc2");
-            doc2.Set("name", "Tiger");
-            doc2.Set("address", "123 1st ave.");
-            doc2.Set("age", 20);
+            doc2.SetString("name", "Tiger");
+            doc2.SetString("address", "123 1st ave.");
+            doc2.SetInt("age", 20);
             Db.Save(doc2);
 
             var name = Expression.Property("name");
@@ -111,7 +111,7 @@ namespace Test
             foreach (var test in tests) {
                 var exp = test.Item1;
                 var expectedDocs = test.Item2;
-                using (var q = Query.Select(SelectResult.Expression(Expression.Meta().ID)).From(DataSource.Database(Db)).Where(exp)) {
+                using (var q = Query.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(Db)).Where(exp)) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         if (n <= expectedDocs.Length) {
@@ -134,32 +134,20 @@ namespace Test
             var n1 = Expression.Property("number1");
 
             var l3 = new Func<int, bool>(n => n < 3);
-            var nl3 = new Func<int, bool>(n => !(n < 3));
             var le3 = new Func<int, bool>(n => n <= 3);
-            var nle3 = new Func<int, bool>(n => !(n <= 3));
             var g6 = new Func<int, bool>(n => n > 6);
-            var ng6 = new Func<int, bool>(n => !(n > 6));
             var ge6 = new Func<int, bool>(n => n >= 6);
-            var nge6 = new Func<int, bool>(n => !(n >= 6));
             var e7 = new Func<int, bool>(n => n == 7);
             var ne7 = new Func<int, bool>(n => n != 7);
             var cases = new[] {
                 Tuple.Create(n1.LessThan(3),
                     (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)l3),
-                Tuple.Create(n1.NotLessThan(3),
-                    (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)nl3),
                 Tuple.Create(n1.LessThanOrEqualTo(3),
                     (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)le3),
-                Tuple.Create(n1.NotLessThanOrEqualTo(3),
-                    (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)nle3),
                 Tuple.Create(n1.GreaterThan(6),
                     (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)g6),
-                Tuple.Create(n1.NotGreaterThan(6),
-                    (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)ng6),
                 Tuple.Create(n1.GreaterThanOrEqualTo(6),
                     (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)ge6),
-                Tuple.Create(n1.NotGreaterThanOrEqualTo(6),
-                    (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)nge6),
                 Tuple.Create(n1.EqualTo(7),
                     (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)e7),
                 Tuple.Create(n1.NotEqualTo(7),
@@ -167,7 +155,7 @@ namespace Test
             };
 
             LoadNumbers(10);
-            RunTestWithNumbers(new[] {2, 8, 3, 7, 4, 6, 5, 5, 1, 9}, cases);
+            RunTestWithNumbers(new[] {2, 3, 4, 5, 1, 9}, cases);
         }
 
         [Fact]
@@ -232,12 +220,12 @@ namespace Test
         public void TestWhereIs()
         {
             var doc1 = new MutableDocument();
-            doc1.Set("string", "string");
+            doc1.SetString("string", "string");
             Db.Save(doc1);
 
             using (var q = Query.Select(DocID)
                 .From(DataSource.Database(Db))
-                .Where(Expression.Property("string").Is("string"))) {
+                .Where(Expression.Property("string").EqualTo("string"))) {
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
@@ -250,7 +238,7 @@ namespace Test
 
             using (var q = Query.Select(DocID)
                 .From(DataSource.Database(Db))
-                .Where(Expression.Property("string").IsNot("string1"))) {
+                .Where(Expression.Property("string").NotEqualTo("string1"))) {
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
@@ -417,11 +405,11 @@ namespace Test
         public void TestSelectDistinct()
         {
             var doc1 = new MutableDocument();
-            doc1.Set("number", 1);
+            doc1.SetInt("number", 1);
             Db.Save(doc1);
 
             var doc2 = new MutableDocument();
-            doc2.Set("number", 1);
+            doc2.SetInt("number", 1);
             Db.Save(doc2);
 
             using (var q = Query.SelectDistinct(SelectResult.Expression(Expression.Property("number")))
@@ -494,7 +482,7 @@ namespace Test
         {
             LoadNumbers(100);
             var testDoc = new MutableDocument("joinme");
-            testDoc.Set("theone", 42);
+            testDoc.SetInt("theone", 42);
             Db.Save(testDoc);
             var number2Prop = Expression.Property("number2");
             using (var q = Query.Select(SelectResult.Expression(number2Prop.From("main")))
@@ -637,8 +625,8 @@ namespace Test
         {
             LoadNumbers(5);
 
-            var DOC_ID = Expression.Meta().ID;
-            var DOC_SEQ = Expression.Meta().Sequence;
+            var DOC_ID = Meta.ID;
+            var DOC_SEQ = Meta.Sequence;
             var NUMBER1 = Expression.Property("number1");
 
             var RES_DOC_ID = SelectResult.Expression(DOC_ID);
@@ -716,10 +704,10 @@ namespace Test
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
-                    r.GetObject("firstname").Should().Be(r.GetObject(0));
-                    r.GetObject("lastname").Should().Be(r.GetObject(1));
-                    r.GetObject("gender").Should().Be(r.GetObject(2));
-                    r.GetObject("city").Should().Be(r.GetObject(3));
+                    r.GetValue("firstname").Should().Be(r.GetValue(0));
+                    r.GetValue("lastname").Should().Be(r.GetValue(1));
+                    r.GetValue("gender").Should().Be(r.GetValue(2));
+                    r.GetValue("city").Should().Be(r.GetValue(3));
                 });
 
                 numRows.Should().Be(100);
@@ -754,9 +742,9 @@ namespace Test
         {
             using (var doc = new MutableDocument("doc1")) {
                 var array = new MutableArray();
-                array.Add("650-123-0001");
-                array.Add("650-123-0002");
-                doc.Set("array", array);
+                array.AddString("650-123-0001");
+                array.AddString("650-123-0002");
+                doc.SetArray("array", array);
                 Db.Save(doc);
             }
 
@@ -788,7 +776,7 @@ namespace Test
         {
             const double num = 0.6;
             using (var doc = new MutableDocument("doc1")) {
-                doc.Set("number", num);
+                doc.SetDouble("number", num);
                 Db.Save(doc);
             }
 
@@ -842,7 +830,7 @@ namespace Test
         {
             const string str = "  See you l8r  ";
             using (var doc = new MutableDocument("doc1")) {
-                doc.Set("greeting", str);
+                doc.SetString("greeting", str);
                 Db.Save(doc);
             }
 
@@ -892,10 +880,9 @@ namespace Test
         public void TestTypeFunctions()
         {
             using (var doc = new MutableDocument("doc1")) {
-                doc.Set("element", new MutableArray {
-                    "a",
-                    "b"
-                });
+                var content = new MutableArray();
+                content.AddString("a").AddString("b");
+                doc.SetArray("element", content);
                 Db.Save(doc);
             }
 
@@ -905,7 +892,7 @@ namespace Test
             //}
 
             using (var doc = new MutableDocument("doc2")) {
-                doc.Set("element", 3.14);
+                doc.SetDouble("element", 3.14);
                 Db.Save(doc);
             }
 
@@ -914,12 +901,12 @@ namespace Test
                     ["foo"] = "bar"
                 };
 
-                doc.Set("element", dict);
+                doc.SetValue("element", dict);
                 Db.Save(doc);
             }
 
             using (var doc = new MutableDocument("doc4")) {
-                doc.Set("element", "string");
+                doc.SetString("element", "string");
                 Db.Save(doc);
             }
 
@@ -929,7 +916,7 @@ namespace Test
                 Function.IsArray(prop), Function.IsNumber(prop), Function.IsDictionary(prop),
                 Function.IsString(prop)
             }) {
-                using (var q = Query.Select(SelectResult.Expression(Expression.Meta().ID))
+                using (var q = Query.Select(SelectResult.Expression(Meta.ID))
                     .From(DataSource.Database(Db))
                     .Where(condition)) {
                     var numRows = VerifyQuery(q, (n, r) =>
@@ -947,10 +934,10 @@ namespace Test
         {
             LoadJSONResource("names_100");
 
-            using (var q = Query.Select(SelectResult.Expression(Expression.Meta().ID))
+            using (var q = Query.Select(SelectResult.Expression(Meta.ID))
                 .From(DataSource.Database(Db))
-                .Where(Expression.Any("like").In(Expression.Property("likes"))
-                    .Satisfies(Expression.Variable("like").EqualTo("climbing")))) {
+                .Where(ArrayExpression.Any("like").In(Expression.Property("likes"))
+                    .Satisfies(ArrayExpression.Variable("like").EqualTo("climbing")))) {
                 var expected = new[] {"doc-017", "doc-021", "doc-023", "doc-045", "doc-060"};
                 using (var results = q.Execute()) {
                     var received = results.Select(x => x.GetString("id"));
@@ -958,10 +945,10 @@ namespace Test
                 }
             }
 
-            using (var q = Query.Select(SelectResult.Expression(Expression.Meta().ID))
+            using (var q = Query.Select(SelectResult.Expression(Meta.ID))
                 .From(DataSource.Database(Db))
-                .Where(Expression.Every("like").In(Expression.Property("likes"))
-                    .Satisfies(Expression.Variable("like").EqualTo("taxes")))) {
+                .Where(ArrayExpression.Every("like").In(Expression.Property("likes"))
+                    .Satisfies(ArrayExpression.Variable("like").EqualTo("taxes")))) {
                 using (var results = q.Execute()) {
                     var received = results.Select(x => x.GetString("id")).ToList();
                     received.Count.Should().Be(42, "because empty array results are included");
@@ -969,10 +956,10 @@ namespace Test
                 }
             }
 
-            using (var q = Query.Select(SelectResult.Expression(Expression.Meta().ID))
+            using (var q = Query.Select(SelectResult.Expression(Meta.ID))
                 .From(DataSource.Database(Db))
-                .Where(Expression.AnyAndEvery("like").In(Expression.Property("likes"))
-                    .Satisfies(Expression.Variable("like").EqualTo("taxes")))) {
+                .Where(ArrayExpression.AnyAndEvery("like").In(Expression.Property("likes"))
+                    .Satisfies(ArrayExpression.Variable("like").EqualTo("taxes")))) {
                 using (var results = q.Execute()) {
                     var received = results.Select(x => x.GetString("id")).ToList();
                     received.Count.Should().Be(0, "because nobody likes taxes...");
@@ -1075,7 +1062,7 @@ namespace Test
         {
             foreach (var letter in new[] {"B", "A", "Z", "Å"}) {
                 using (var doc = new MutableDocument()) {
-                    doc.Set("string", letter);
+                    doc.SetString("string", letter);
                     Db.Save(doc);
                 }
             }
@@ -1176,7 +1163,7 @@ namespace Test
             int i = 0;
             foreach (var data in testData) {
                 using (var doc = new MutableDocument()) {
-                    doc.Set("value", data.Item1);
+                    doc.SetString("value", data.Item1);
                     var savedDoc = Db.Save(doc);
 
                     var comparison = data.Item3
@@ -1204,7 +1191,7 @@ namespace Test
         {
             foreach (var val in new[] {"Apple", "Aardvark", "Ångström", "Zebra", "äpple"}) {
                 using (var doc = new MutableDocument()) {
-                    doc.Set("hey", val);
+                    doc.SetString("hey", val);
                     Db.Save(doc);
                 }
             }
@@ -1299,8 +1286,8 @@ namespace Test
                 for (int i = 1; i <= num; i++) {
                     var docID = $"doc{i}";
                     var doc = new MutableDocument(docID);
-                    doc.Set("number1", i);
-                    doc.Set("number2", num - i);
+                    doc.SetInt("number1", i);
+                    doc.SetInt("number2", num - i);
                     Db.Save(doc);
                     numbers.Add(doc.ToDictionary());
                 }
@@ -1311,8 +1298,8 @@ namespace Test
         {
             var docID = $"doc{entry}";
             var doc = new MutableDocument(docID);
-            doc.Set("number1", entry);
-            doc.Set("number2", max - entry);
+            doc.SetInt("number1", entry);
+            doc.SetInt("number2", max - entry);
             Db.Save(doc);
             return doc;
         }

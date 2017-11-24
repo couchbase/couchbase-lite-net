@@ -36,7 +36,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
-        IArray GetArray(int index);
+        ArrayObject GetArray(int index);
 
         /// <summary>
         /// Gets the value at the given index as a <see cref="Blob"/>
@@ -66,7 +66,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
-        IDictionaryObject GetDictionary(int index);
+        DictionaryObject GetDictionary(int index);
 
         /// <summary>
         /// Gets the value at the given index as a <see cref="Double"/>
@@ -112,7 +112,7 @@ namespace Couchbase.Lite
         /// <remarks>This method should be avoided for numeric types, whose
         /// underlying representation is subject to change and thus
         /// <see cref="InvalidCastException"/>s </remarks>
-        object GetObject(int index);
+        object GetValue(int index);
 
         /// <summary>
         /// Gets the value at the given index as a <see cref="String"/>

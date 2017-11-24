@@ -96,13 +96,13 @@ namespace Test
         {
             // For https://github.com/couchbase/couchbase-lite-core/issues/156
             using (var doc1 = new MutableDocument("doc1")) {
-                doc1.Set("name", "Tiger");
+                doc1.SetString("name", "Tiger");
                 Db.Save(doc1).Dispose();
                 Db.Count.Should().Be(1, "because only one document was saved so far");
             }
 
             using (var doc2 = new MutableDocument("doc2")) {
-                doc2.Set("name", "Cat");
+                doc2.SetString("name", "Cat");
                 _otherDB.Save(doc2).Dispose();
             }
 
@@ -119,7 +119,7 @@ namespace Test
         public void TestPullConflict()
         {
             var doc1 = new MutableDocument("doc");
-            doc1.Set("species", "Tiger");
+            doc1.SetString("species", "Tiger");
             Db.Save(doc1).Dispose();
 
             var config = CreateConfig(true, false, false);
@@ -127,12 +127,12 @@ namespace Test
 
             doc1.Dispose();
             doc1 = Db.GetDocument("doc").ToMutable();
-            doc1.Set("name", "Hobbes");
+            doc1.SetString("name", "Hobbes");
             Db.Save(doc1).Dispose();
             doc1.Dispose();
 
             var doc2 = _otherDB.GetDocument("doc").ToMutable();
-            doc2.Set("pattern", "striped");
+            doc2.SetString("pattern", "striped");
             _otherDB.Save(doc2).Dispose();
             doc2.Dispose();
 
@@ -158,27 +158,27 @@ namespace Test
         public void TestDocIDFilter()
         {
             var doc1 = new MutableDocument("doc1");
-            doc1.Set("species", "Tiger");
+            doc1.SetString("species", "Tiger");
             Db.Save(doc1);
-            doc1.Set("name", "Hobbes");
+            doc1.SetString("name", "Hobbes");
             Db.Save(doc1);
 
             var doc2 = new MutableDocument("doc2");
-            doc2.Set("species", "Tiger");
+            doc2.SetString("species", "Tiger");
             Db.Save(doc2);
-            doc2.Set("pattern", "striped");
+            doc2.SetString("pattern", "striped");
             Db.Save(doc2);
 
             var doc3 = new MutableDocument("doc3");
-            doc3.Set("species", "Tiger");
+            doc3.SetString("species", "Tiger");
             _otherDB.Save(doc3);
-            doc3.Set("name", "Hobbes");
+            doc3.SetString("name", "Hobbes");
             _otherDB.Save(doc3);
 
             var doc4 = new MutableDocument("doc4");
-            doc4.Set("species", "Tiger");
+            doc4.SetString("species", "Tiger");
             _otherDB.Save(doc4);
-            doc4.Set("pattern", "striped");
+            doc4.SetString("pattern", "striped");
             _otherDB.Save(doc4);
 
             var config = CreateConfig(true, true, false);
@@ -199,15 +199,15 @@ namespace Test
             // revision for the resolver.
 
             var doc1 = new MutableDocument("doc");
-            doc1.Set("species", "tiger");
+            doc1.SetString("species", "tiger");
             Db.Save(doc1);
-            doc1.Set("name", "Hobbes");
+            doc1.SetString("name", "Hobbes");
             Db.Save(doc1);
 
             var doc2 = new MutableDocument("doc");
-            doc2.Set("species", "Tiger");
+            doc2.SetString("species", "Tiger");
             _otherDB.Save(doc2);
-            doc2.Set("pattern", "striped");
+            doc2.SetString("pattern", "striped");
             _otherDB.Save(doc2);
 
             var config = CreateConfig(false, true, false);

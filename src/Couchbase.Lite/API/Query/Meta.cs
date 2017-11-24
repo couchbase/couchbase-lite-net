@@ -1,5 +1,5 @@
 ﻿// 
-//  FullTextFunction.cs
+//  Meta.cs
 // 
 //  Author:
 //   Jim Borden  <jim.borden@couchbase.com>
@@ -23,14 +23,19 @@ using Couchbase.Lite.Internal.Query;
 
 namespace Couchbase.Lite.Query
 {
-    public static class FullTextFunction
+    public static class Meta
     {
-        /// <summary>
-        /// Creates a full-text ranking value function indicating how well the current
-        /// query result matches the full-text query when performing the match comparison.
-        /// </summary>
-        /// <param name="indexName">The FTS index name to use when performing the calculation</param>
-        /// <returns>A function that will perform the ranking</returns>
-        public static IExpression Rank(string indexName) => new QueryCompoundExpression("RANK()", indexName);
+        private const string IDKeyPath = "_id";
+        private const string IDColumnName = "id";
+        private const string SequenceKeyPath = "_sequence";
+        private const string SequenceColumnName = "sequence";
+
+        #region Properties
+
+        public static IMetaExpression ID => new QueryTypeExpression(IDKeyPath, IDColumnName);
+
+        public static IMetaExpression Sequence => new QueryTypeExpression(SequenceKeyPath, SequenceColumnName);
+
+        #endregion
     }
 }

@@ -217,7 +217,7 @@ namespace Test
                 d.GetBoolean("key").Should().BeFalse("because no boolean exists for this key");
                 d.GetBlob("key").Should().BeNull("because no blob exists for this key");
                 d.GetDate("key").Should().Be(DateTimeOffset.MinValue, "because no date exists for this key");
-                d.GetObject("key").Should().BeNull("because no object exists for this key");
+                d.GetValue("key").Should().BeNull("because no object exists for this key");
                 d.GetString("key").Should().BeNull("because no string exists for this key");
                 d.GetDictionary("key").Should().BeNull("because no subdocument exists for this key");
                 d.GetArray("key").Should().BeNull("because no array exists for this key");
@@ -229,7 +229,7 @@ namespace Test
         public void TestSaveThenGetFromAnotherDB()
         {
             var doc = new MutableDocument("doc1");
-            doc.Set("name", "Scott Tiger");
+            doc.SetString("name", "Scott Tiger");
 
             Db.Save(doc);
 
@@ -245,7 +245,7 @@ namespace Test
         public void TestNoCacheNoLive()
         {
             var doc1a = new MutableDocument("doc1");
-            doc1a.Set("name", "Scott Tiger");
+            doc1a.SetString("name", "Scott Tiger");
 
             Db.Save(doc1a);
 
@@ -267,7 +267,7 @@ namespace Test
                 doc1a.ToDictionary().ShouldBeEquivalentTo(doc1d.ToDictionary(), "because the contents should match");
 
                 var updatedDoc1b = doc1b.ToMutable();
-                updatedDoc1b.Set("name", "Daniel Tiger");
+                updatedDoc1b.SetString("name", "Daniel Tiger");
                 doc1b = Db.Save(updatedDoc1b);
 
                 doc1b.Equals(doc1a).Should().BeFalse("because the contents should not match anymore");
@@ -280,8 +280,8 @@ namespace Test
         public void TestSetString()
         {
             var doc = new MutableDocument("doc1");
-            doc.Set("string1", "");
-            doc.Set("string2", "string");
+            doc.SetString("string1", "");
+            doc.SetString("string2", "string");
 
             SaveDocument(doc, d =>
             {
@@ -291,8 +291,8 @@ namespace Test
                     .Be("string", "because that is the value of the first revision of string2");
             });
 
-            doc.Set("string2", "");
-            doc.Set("string1", "string");
+            doc.SetString("string2", "");
+            doc.SetString("string1", "string");
 
             SaveDocument(doc, d =>
             {
@@ -329,10 +329,10 @@ namespace Test
         public void TestSetNumber()
         {
             var doc = new MutableDocument("doc1");
-            doc.Set("number1", 1);
-            doc.Set("number2", 0);
-            doc.Set("number3", -1);
-            doc.Set("number4", 1.1);
+            doc.SetInt("number1", 1);
+            doc.SetInt("number2", 0);
+            doc.SetInt("number3", -1);
+            doc.SetDouble("number4", 1.1);
 
             SaveDocument(doc, d =>
             {
@@ -342,10 +342,10 @@ namespace Test
                 d.GetDouble("number4").Should().Be(1.1, "because that is the value of the first revision of number4");
             });
 
-            doc.Set("number1", 0);
-            doc.Set("number2", 1);
-            doc.Set("number3", 1.1);
-            doc.Set("number4", -1);
+            doc.SetInt("number1", 0);
+            doc.SetInt("number2", 1);
+            doc.SetDouble("number3", 1.1);
+            doc.SetInt("number4", -1);
 
             SaveDocument(doc, d =>
             {
@@ -426,12 +426,12 @@ namespace Test
         public void TestSetGetMinMaxNumbers()
         {
             var doc = new MutableDocument("doc1");
-            doc.Set("min_int", Int64.MinValue);
-            doc.Set("max_int", Int64.MaxValue);
-            doc.Set("min_double", Double.MinValue);
-            doc.Set("max_double", Double.MaxValue);
-            doc.Set("min_float", Single.MinValue);
-            doc.Set("max_float", Single.MaxValue);
+            doc.SetLong("min_int", Int64.MinValue);
+            doc.SetLong("max_int", Int64.MaxValue);
+            doc.SetDouble("min_double", Double.MinValue);
+            doc.SetDouble("max_double", Double.MaxValue);
+            doc.SetFloat("min_float", Single.MinValue);
+            doc.SetFloat("max_float", Single.MaxValue);
 
             SaveDocument(doc, d =>
             {
@@ -448,8 +448,8 @@ namespace Test
         public void TestSetBoolean()
         {
             var doc = new MutableDocument("doc1");
-            doc.Set("boolean1", true);
-            doc.Set("boolean2", false);
+            doc.SetBoolean("boolean1", true);
+            doc.SetBoolean("boolean2", false);
 
             SaveDocument(doc, d =>
             {
@@ -457,8 +457,8 @@ namespace Test
                 d.GetBoolean("boolean2").Should().Be(false, "because that is the value of the first revision of boolean2");
             });
 
-            doc.Set("boolean1", false);
-            doc.Set("boolean2", true);
+            doc.SetBoolean("boolean1", false);
+            doc.SetBoolean("boolean2", true);
 
             SaveDocument(doc, d =>
             {
@@ -495,18 +495,18 @@ namespace Test
             var doc = new MutableDocument("doc1");
             var date = DateTimeOffset.Now;
             var dateStr = date.ToString("o");
-            doc.Set("date", dateStr);
+            doc.SetString("date", dateStr);
 
             SaveDocument(doc, d =>
             {
-                d.GetObject("date").Should().Be(dateStr, "because that is what was stored");
+                d.GetValue("date").Should().Be(dateStr, "because that is what was stored");
                 d.GetString("date").Should().Be(dateStr, "because a string was stored");
                 d.GetDate("date").Should().Be(date, "because the string is convertible to a date");
             });
 
             var nuDate = date + TimeSpan.FromSeconds(60);
             var nuDateStr = nuDate.ToString("o");
-            doc.Set("date", nuDate);
+            doc.SetDate("date", nuDate);
             
             SaveDocument(doc, d =>
             {
@@ -543,11 +543,11 @@ namespace Test
             var doc = new MutableDocument("doc1");
             var content = Encoding.UTF8.GetBytes("12345");
             var blob = new Blob("text/plain", content);
-            doc.Set("blob", blob);
+            doc.SetBlob("blob", blob);
 
             SaveDocument(doc, d =>
             {
-                d.GetObject("blob")
+                d.GetValue("blob")
                     .As<Blob>()
                     .Properties.ShouldBeEquivalentTo(blob.Properties,
                         "because otherwise the blob did not store correctly");
@@ -561,11 +561,11 @@ namespace Test
 
             var nuContent = Encoding.UTF8.GetBytes("1234567890");
             var nuBlob = new Blob("text/plain", nuContent);
-            doc.Set("blob", nuBlob);
+            doc.SetBlob("blob", nuBlob);
 
             SaveDocument(doc, d =>
             {
-                d.GetObject("blob")
+                d.GetValue("blob")
                     .As<Blob>()
                     .Properties.ShouldBeEquivalentTo(nuBlob.Properties,
                         "because otherwise the blob did not update correctly");
@@ -606,15 +606,15 @@ namespace Test
         public void TestSetDictionary()
         {
             var doc = new MutableDocument("doc1");
-            IMutableDictionary dict = new MutableDictionary();
-            dict.Set("street", "1 Main street");
-            doc.Set("dict", dict);
+            var dict = new MutableDictionary();
+            dict.SetString("street", "1 Main street");
+            doc.SetDictionary("dict", dict);
 
-            doc.GetObject("dict").Should().Be(dict, "because that is what was stored");
+            doc.GetValue("dict").Should().Be(dict, "because that is what was stored");
             var savedDoc = Db.Save(doc);
 
-            savedDoc.GetObject("dict").Should().NotBeSameAs(dict, "beacuse a new MutableDocument should return a new object");
-            savedDoc.GetObject("dict")
+            savedDoc.GetValue("dict").Should().NotBeSameAs(dict, "beacuse a new MutableDocument should return a new object");
+            savedDoc.GetValue("dict")
                 .Should()
                 .BeSameAs(savedDoc.GetDictionary("dict"), "because the same document should return the same thing");
             savedDoc.GetDictionary("dict")
@@ -623,8 +623,8 @@ namespace Test
 
             doc = savedDoc.ToMutable();
             dict = doc.GetDictionary("dict");
-            dict.Set("city", "Mountain View");
-            doc.GetObject("dict")
+            dict.SetString("city", "Mountain View");
+            doc.GetValue("dict")
                 .Should()
                 .BeSameAs(doc.GetDictionary("dict"), "because the same document should return the same thing");
             var csharpDict = new Dictionary<string, object> {
@@ -636,8 +636,8 @@ namespace Test
                 .ShouldBeEquivalentTo(csharpDict, "because otherwise the contents are incorrect");
 
             savedDoc = Db.Save(doc);
-            savedDoc.GetObject("dict").Should().NotBeSameAs(dict, "beacuse a new MutableDocument should return a new object");
-            savedDoc.GetObject("dict")
+            savedDoc.GetValue("dict").Should().NotBeSameAs(dict, "beacuse a new MutableDocument should return a new object");
+            savedDoc.GetValue("dict")
                 .Should()
                 .BeSameAs(savedDoc.GetDictionary("dict"), "because the same document should return the same thing");
             savedDoc.GetDictionary("dict")
@@ -681,15 +681,12 @@ namespace Test
         public void TestSetArrayObject()
         {
             var doc = new MutableDocument("doc1");
-            IMutableArray array = new MutableArray {
-                "item1",
-                "item2",
-                "item3"
-            };
+            var array = new MutableArray();
+            array.AddString("item1").AddString("item2").AddString("item3");
 
-            doc.Set("array", array);
+            doc.SetArray("array", array);
 
-            doc.GetObject("array").Should().Be(array, "because that is what was stored");
+            doc.GetValue("array").Should().Be(array, "because that is what was stored");
             doc.GetArray("array").As<object>().Should().Be(array, "because that is what was stored");
             doc.GetArray("array")
                 .Should()
@@ -697,8 +694,8 @@ namespace Test
 
             var savedDoc = Db.Save(doc);
 
-            savedDoc.GetObject("array").Should().NotBeSameAs(array, "because a new MutableDocument should return a new object");
-            savedDoc.GetObject("array")
+            savedDoc.GetValue("array").Should().NotBeSameAs(array, "because a new MutableDocument should return a new object");
+            savedDoc.GetValue("array")
                 .Should()
                 .BeSameAs(savedDoc.GetArray("array"), "because the same doc should return the same object");
             savedDoc.GetArray("array")
@@ -707,12 +704,12 @@ namespace Test
 
             doc = savedDoc.ToMutable();
             array = doc.GetArray("array");
-            array.Add("item4");
-            array.Add("item5");
+            array.AddString("item4");
+            array.AddString("item5");
 
             savedDoc = Db.Save(doc);
-            savedDoc.GetObject("array").Should().NotBeSameAs(array, "because a new MutableDocument should return a new object");
-            savedDoc.GetObject("array")
+            savedDoc.GetValue("array").Should().NotBeSameAs(array, "because a new MutableDocument should return a new object");
+            savedDoc.GetValue("array")
                 .Should()
                 .BeSameAs(savedDoc.GetArray("array"), "because the same doc should return the same object");
             savedDoc.GetArray("array")
@@ -752,10 +749,10 @@ namespace Test
         public void TestSetNull()
         {
             var doc = new MutableDocument("doc1");
-            doc.Set("null", default(object));
+            doc.SetValue("null", null);
             SaveDocument(doc, d =>
             {
-                d.GetObject("null").Should().BeNull("because that is what was stored");
+                d.GetValue("null").Should().BeNull("because that is what was stored");
                 d.Count.Should().Be(1, "because the value is null, not missing");
             });
         }
@@ -770,12 +767,12 @@ namespace Test
             };
 
             var doc = new MutableDocument("doc1");
-            doc.Set("address", dict);
+            doc.SetValue("address", dict);
 
             var address = doc.GetDictionary("address");
             address.As<object>()
                 .Should().NotBeNull().And
-                .BeSameAs(doc.GetObject("address"), "because the same doc should return the same object");
+                .BeSameAs(doc.GetValue("address"), "because the same doc should return the same object");
             address.GetString("street").Should().Be("1 Main street", "because that is the street that was stored");
             address.GetString("city").Should().Be("Mountain View", "because that is the city that was stored");
             address.GetString("state").Should().Be("CA", "because that is the state that was stored");
@@ -786,7 +783,7 @@ namespace Test
                 ["city"] = "Palo Alto",
                 ["state"] = "CA"
             };
-            doc.Set("address", nuDict);
+            doc.SetValue("address", nuDict);
 
             // Make sure the old address dictionary is not affected
             address.Should().NotBeSameAs(doc.GetDictionary("address"), "because address is now detached");
@@ -797,7 +794,7 @@ namespace Test
             var nuAddress = doc.GetDictionary("address");
             nuAddress.Should().NotBeSameAs(address, "beacuse they are two different entities");
 
-            nuAddress.Set("zip", "94302");
+            nuAddress.SetString("zip", "94302");
             nuAddress.GetString("zip").Should().Be("94302", "because that was what was just stored");
             address.GetString("zip").Should().BeNull("because address should not be affected");
 
@@ -815,21 +812,21 @@ namespace Test
         {
             var array = new[] {"a", "b", "c"};
             var doc = new MutableDocument("doc1");
-            doc.Set("members", array);
+            doc.SetValue("members", array);
 
             var members = doc.GetArray("members");
             members.As<object>()
                 .Should()
                 .NotBeNull()
                 .And
-                .BeSameAs(doc.GetObject("members"), "because the same document should return the same object");
+                .BeSameAs(doc.GetValue("members"), "because the same document should return the same object");
 
             members.Count.Should().Be(3, "because there are three elements inside");
             members.Should().ContainInOrder(array, "because otherwise the contents are wrong");
             members.ToArray().Should().ContainInOrder(array, "because otherwise the contents are wrong");
 
             var nuArray = new[] {"d", "e", "f"};
-            doc.Set("members", nuArray);
+            doc.SetValue("members", nuArray);
 
             // Make sure the old members array is not affected
             members.Count.Should().Be(3, "because there are three elements inside");
@@ -838,9 +835,9 @@ namespace Test
 
             var nuMembers = doc.GetArray("members");
             members.Should().NotBeSameAs(nuMembers, "because the new array should have no relation to the old");
-            nuMembers.Add("g");
+            nuMembers.AddString("g");
             nuMembers.Count.Should().Be(4, "because another element was added");
-            nuMembers.GetObject(3).Should().Be("g", "because that is what was added");
+            nuMembers.GetValue(3).Should().Be("g", "because that is what was added");
             members.Count.Should().Be(3, "beacuse members still has three elements");
 
             var savedDoc = Db.Save(doc);
@@ -856,19 +853,19 @@ namespace Test
         {
             var doc = new MutableDocument("doc1");
             var addresses = new MutableDictionary();
-            doc.Set("addresses", addresses);
+            doc.SetDictionary("addresses", addresses);
 
-            IMutableDictionary shipping = new MutableDictionary();
-            shipping.Set("street", "1 Main street")
-                .Set("city", "Mountain View")
-                .Set("state", "CA");
-            addresses.Set("shipping", shipping);
+            var shipping = new MutableDictionary();
+            shipping.SetString("street", "1 Main street")
+                .SetString("city", "Mountain View")
+                .SetString("state", "CA");
+            addresses.SetDictionary("shipping", shipping);
 
             var savedDoc = Db.Save(doc);
             doc = savedDoc.ToMutable();
 
-            shipping = doc.GetDictionary("addresses").GetDictionary("shipping");
-            shipping.Set("zip", "94042");
+            var gotShipping = doc.GetDictionary("addresses").GetDictionary("shipping");
+            gotShipping.SetString("zip", "94042");
 
             savedDoc = Db.Save(doc);
 
@@ -890,29 +887,29 @@ namespace Test
         {
             var doc = new MutableDocument("doc1");
             var addresses = new MutableArray();
-            doc.Set("addresses", addresses);
+            doc.SetArray("addresses", addresses);
 
-            IMutableDictionary address1 = new MutableDictionary();
-            address1.Set("street", "1 Main street")
-                .Set("city", "Mountain View")
-                .Set("state", "CA");
-            addresses.Add(address1);
+            var address1 = new MutableDictionary();
+            address1.SetString("street", "1 Main street")
+                .SetString("city", "Mountain View")
+                .SetString("state", "CA");
+            addresses.AddDictionary(address1);
 
-            IMutableDictionary address2 = new MutableDictionary();
-            address2.Set("street", "1 Second street")
-                .Set("city", "Palo Alto")
-                .Set("state", "CA");
-            addresses.Add(address2);
+            var address2 = new MutableDictionary();
+            address2.SetString("street", "1 Second street")
+                .SetString("city", "Palo Alto")
+                .SetString("state", "CA");
+            addresses.AddDictionary(address2);
 
             doc = Db.Save(doc).ToMutable();
 
             address1 = doc.GetArray("addresses").GetDictionary(0);
-            address1.Set("street", "2 Main street");
-            address1.Set("zip", "94042");
+            address1.SetString("street", "2 Main street");
+            address1.SetString("zip", "94042");
 
             address2 = doc.GetArray("addresses").GetDictionary(1);
-            address2.Set("street", "2 Second street");
-            address2.Set("zip", "94302");
+            address2.SetString("street", "2 Second street");
+            address2.SetString("zip", "94302");
 
             var savedDoc = Db.Save(doc);
             var result = new Dictionary<string, object> {
@@ -939,33 +936,27 @@ namespace Test
         {
             var doc = new MutableDocument("doc1");
             var groups = new MutableArray();
-            doc.Set("groups", groups);
+            doc.SetArray("groups", groups);
 
-            IMutableArray group1 = new MutableArray {
-                "a",
-                "b",
-                "c"
-            };
-            groups.Add(group1);
+            var group1 = new MutableArray();
+            group1.AddString("a").AddString("b").AddString("c");
+            groups.AddArray(group1);
 
-            IMutableArray group2 = new MutableArray {
-                1,
-                2,
-                3
-            };
-            groups.Add(group2);
+            var group2 = new MutableArray();
+            group2.AddInt(1).AddInt(2).AddInt(3);
+            groups.AddArray(group2);
 
             doc = Db.Save(doc).ToMutable();
 
             group1 = doc.GetArray("groups").GetArray(0);
-            group1.Set(0, "d");
-            group1.Set(1, "e");
-            group1.Set(2, "f");
+            group1.SetString(0, "d");
+            group1.SetString(1, "e");
+            group1.SetString(2, "f");
 
             group2 = doc.GetArray("groups").GetArray(1);
-            group2.Set(0, 4);
-            group2.Set(1, 5);
-            group2.Set(2, 6);
+            group2.SetInt(0, 4);
+            group2.SetInt(1, 5);
+            group2.SetInt(2, 6);
 
             var savedDoc = Db.Save(doc);
             var result = new Dictionary<string, object> {
@@ -982,34 +973,28 @@ namespace Test
         {
             var doc = new MutableDocument("doc1");
             var group1 = new MutableDictionary();
-            IMutableArray member1 = new MutableArray {
-                "a",
-                "b",
-                "c"
-            };
-            group1.Set("member", member1);
-            doc.Set("group1", group1);
+            var member1 = new MutableArray();
+            member1.AddString("a").AddString("b").AddString("c");
+            group1.SetArray("member", member1);
+            doc.SetDictionary("group1", group1);
 
             var group2 = new MutableDictionary();
-            IMutableArray member2 = new MutableArray {
-                1,
-                2,
-                3
-            };
-            group2.Set("member", member2);
-            doc.Set("group2", group2);
+            var member2 = new MutableArray();
+            member2.AddInt(1).AddInt(2).AddInt(3);
+            group2.SetArray("member", member2);
+            doc.SetDictionary("group2", group2);
 
             doc = Db.Save(doc).ToMutable();
 
             member1 = doc.GetDictionary("group1").GetArray("member");
-            member1.Set(0, "d");
-            member1.Set(1, "e");
-            member1.Set(2, "f");
+            member1.SetString(0, "d");
+            member1.SetString(1, "e");
+            member1.SetString(2, "f");
 
             member2 = doc.GetDictionary("group2").GetArray("member");
-            member2.Set(0, 4);
-            member2.Set(1, 5);
-            member2.Set(2, 6);
+            member2.SetInt(0, 4);
+            member2.SetInt(1, 5);
+            member2.SetInt(2, 6);
 
             var savedDoc = Db.Save(doc);
 
@@ -1029,16 +1014,16 @@ namespace Test
         {
             var doc = new MutableDocument("doc1");
             var address = new MutableDictionary();
-            address.Set("street", "1 Main street")
-                .Set("city", "Mountain View")
-                .Set("state", "CA");
-            doc.Set("shipping", address);
-            doc.Set("billing", address);
+            address.SetString("street", "1 Main street")
+                .SetString("city", "Mountain View")
+                .SetString("state", "CA");
+            doc.SetDictionary("shipping", address);
+            doc.SetDictionary("billing", address);
 
-            doc.GetObject("shipping").Should().BeSameAs(address, "because that is the object that was stored");
-            doc.GetObject("billing").Should().BeSameAs(address, "because that is the object that was stored");
+            doc.GetValue("shipping").Should().BeSameAs(address, "because that is the object that was stored");
+            doc.GetValue("billing").Should().BeSameAs(address, "because that is the object that was stored");
             
-            address.Set("zip", "94042");
+            address.SetString("zip", "94042");
             doc.GetDictionary("shipping")
                 .GetString("zip")
                 .Should()
@@ -1057,8 +1042,8 @@ namespace Test
             billing.Should().NotBeSameAs(address, "because the dictionaries should now be independent");
             shipping.Should().NotBeSameAs(billing, "because the dictionaries should now be independent");
 
-            shipping.Set("street", "2 Main street");
-            billing.Set("street", "3 Main street");
+            shipping.SetString("street", "2 Main street");
+            billing.SetString("street", "3 Main street");
 
             var savedDoc = Db.Save(doc);
 
@@ -1076,15 +1061,13 @@ namespace Test
         public void TestSetArrayObjectToMultipleKeys()
         {
             var doc = new MutableDocument("doc1");
-            var phones = new MutableArray {
-                "650-000-0001",
-                "650-000-0002"
-            };
+            var phones = new MutableArray();
+            phones.AddString("650-000-0001").AddString("650-000-0002");
 
-            doc.Set("mobile", phones);
-            doc.Set("home", phones);
+            doc.SetArray("mobile", phones);
+            doc.SetArray("home", phones);
 
-            phones.Add("650-000-0003");
+            phones.AddString("650-000-0003");
             doc.GetArray("mobile")
                 .Should()
                 .ContainInOrder(new[] {"650-000-0001", "650-000-0002", "650-000-0003"},
@@ -1102,8 +1085,8 @@ namespace Test
             home.Should().NotBeSameAs(phones, "because after save the arrays should be independent");
             mobile.Should().NotBeSameAs(home, "because after save the arrays should be independent");
 
-            mobile.Add("650-000-1234");
-            home.Add("650-000-5678");
+            mobile.AddString("650-000-1234");
+            home.AddString("650-000-5678");
 
             var savedDoc = Db.Save(doc);
 
@@ -1164,10 +1147,10 @@ namespace Test
             doc.GetLong("age").Should().Be(0L, "because it was removed");
             doc.GetBoolean("active").Should().BeFalse("because it was removed");
 
-            doc.GetObject("name").Should().BeNull("because it was removed");
-            doc.GetObject("weight").Should().BeNull("because it was removed");
-            doc.GetObject("age").Should().BeNull("because it was removed");
-            doc.GetObject("active").Should().BeNull("because it was removed");
+            doc.GetValue("name").Should().BeNull("because it was removed");
+            doc.GetValue("weight").Should().BeNull("because it was removed");
+            doc.GetValue("age").Should().BeNull("because it was removed");
+            doc.GetValue("active").Should().BeNull("because it was removed");
             doc.GetDictionary("address").GetString("city").Should().BeNull("because it was removed");
 
             doc.Contains("name").Should().BeFalse("because that key was removed");
@@ -1192,8 +1175,8 @@ namespace Test
             // Remove the rest:
             doc.Remove("type");
             doc.Remove("address");
-            doc.GetObject("type").Should().BeNull("because it was removed");
-            doc.GetObject("address").Should().BeNull("because it was removed");
+            doc.GetValue("type").Should().BeNull("because it was removed");
+            doc.GetValue("address").Should().BeNull("because it was removed");
             doc.ToDictionary().Should().BeEmpty("because everything was removed");
         }
 
@@ -1242,11 +1225,11 @@ namespace Test
             doc.Contains("weight").Should().BeFalse("because 'weight' does not exist in the document");
         }
 
-        //[Fact] known failure
+        #warning Known failure
         public void TestDeleteNewDocument()
         {
             var doc = new MutableDocument("doc1");
-            doc.Set("name", "Scott Tiger");
+            doc.SetString("name", "Scott Tiger");
             doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
 
             Db.Invoking(d => d.Delete(doc))
@@ -1261,7 +1244,7 @@ namespace Test
         public void TestDelete()
         {
             var doc = new MutableDocument("doc1");
-            doc.Set("name", "Scott Tiger");
+            doc.SetString("name", "Scott Tiger");
             doc.IsDeleted.Should().BeFalse("beacuse the document is not yet deleted");
 
             var savedDoc = Db.Save(doc);
@@ -1269,9 +1252,7 @@ namespace Test
             Db.Delete(savedDoc);
 
             savedDoc = Db.GetDocument(doc.Id);
-            savedDoc.GetObject("name").Should().BeNull("because the document was deleted");
-            savedDoc.ToDictionary().Should().BeEmpty("because the document was deleted");
-            savedDoc.IsDeleted.Should().BeTrue("because the document was deleted");
+            savedDoc.Should().BeNull("because the document was deleted");
         }
 
         [Fact]
@@ -1324,8 +1305,8 @@ namespace Test
         public void TestPurge()
         {
             var doc = new MutableDocument("doc1");
-            doc.Set("type", "profile");
-            doc.Set("name", "Scott");
+            doc.SetString("type", "profile");
+            doc.SetString("name", "Scott");
             doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
 
             // Purge before save:
@@ -1345,7 +1326,7 @@ namespace Test
         public void TestReopenDB()
         {
             var doc = new MutableDocument("doc1");
-            doc.Set("string", "str");
+            doc.SetString("string", "str");
             Db.Save(doc);
 
             ReopenDB();
@@ -1361,8 +1342,8 @@ namespace Test
             var content = Encoding.UTF8.GetBytes("12345");
             var data = new Blob("text/plain", content);
             var doc = new MutableDocument("doc1");
-            doc.Set("data", data);
-            doc.Set("name", "Jim");
+            doc.SetBlob("data", data);
+            doc.SetString("name", "Jim");
             Db.Save(doc);
 
             using(var otherDb = new Database(Db.Name, Db.Config)) {
@@ -1391,7 +1372,7 @@ namespace Test
             var content = new byte[0];
             var data = new Blob("text/plain", content);
             var doc = new MutableDocument("doc1");
-            doc.Set("data", data);
+            doc.SetBlob("data", data);
             Db.Save(doc);
 
             using(var otherDb = new Database(Db.Name, Db.Config)) {
@@ -1416,7 +1397,7 @@ namespace Test
             Stream contentStream = new MemoryStream(content);
             var data = new Blob("text/plain", contentStream);
             var doc = new MutableDocument("doc1");
-            doc.Set("data", data);
+            doc.SetBlob("data", data);
             Db.Save(doc);
 
             using(var otherDb = new Database(Db.Name, Db.Config)) {
@@ -1440,7 +1421,7 @@ namespace Test
             var content = Encoding.UTF8.GetBytes("12345");
             var data = new Blob("text/plain", content);
             var doc = new MutableDocument("doc1");
-            doc.Set("data", data);
+            doc.SetBlob("data", data);
             data = doc.GetBlob("data");
             for (int i = 0; i < 5; i++) {
                 data.Content.Should().Equal(content, "because otherwise incorrect data was read");
@@ -1474,8 +1455,8 @@ namespace Test
             var content = Encoding.UTF8.GetBytes("12345");
             var data = new Blob("text/plain", content);
             var doc = new MutableDocument("doc1");
-            doc.Set("data", data);
-            doc.Set("name", "Jim");
+            doc.SetBlob("data", data);
+            doc.SetString("name", "Jim");
             Db.Save(doc);
 
             ReopenDB();
@@ -1486,7 +1467,7 @@ namespace Test
             ReopenDB();
 
             doc = Db.GetDocument("doc1").ToMutable();
-            doc.Set("foo", "bar");
+            doc.SetString("foo", "bar");
             Db.Save(doc);
             doc.GetBlob("data").Content.Should().Equal(content, "because the data should have been retrieved correctly");
         }
@@ -1497,7 +1478,7 @@ namespace Test
             var doc = new MutableDocument("doc1");
             for (int i = 0; i < 20; i++)
             {
-                doc.Set($"key{i}", i);
+                doc.SetInt($"key{i}", i);
             }
 
             var content = doc.ToDictionary();
@@ -1508,7 +1489,7 @@ namespace Test
             }
 
             result.ShouldBeEquivalentTo(content, "because that is the correct content");
-            content = doc.Remove("key2").Set("key20", 20).Set("key21", 21).ToDictionary();
+            content = doc.Remove("key2").SetInt("key20", 20).SetInt("key21", 21).ToDictionary();
 
             result = new Dictionary<string, object>();
             foreach (var item in doc)
@@ -1533,29 +1514,29 @@ namespace Test
         private void PopulateData(MutableDocument doc)
         {
             var date = DateTimeOffset.Now;
-            doc.Set("true", true)
-                .Set("false", false)
-                .Set("string", "string")
-                .Set("zero", 0)
-                .Set("one", 1)
-                .Set("minus_one", -1)
-                .Set("one_dot_one", 1.1)
-                .Set("date", date);
+            doc.SetBoolean("true", true)
+                .SetBoolean("false", false)
+                .SetString("string", "string")
+                .SetInt("zero", 0)
+                .SetInt("one", 1)
+                .SetInt("minus_one", -1)
+                .SetDouble("one_dot_one", 1.1)
+                .SetDate("date", date);
 
             var dict = new MutableDictionary();
-            dict.Set("street", "1 Main street")
-                .Set("city", "Mountain View")
-                .Set("state", "CA");
-            doc.Set("dict", dict);
+            dict.SetString("street", "1 Main street")
+                .SetString("city", "Mountain View")
+                .SetString("state", "CA");
+            doc.SetDictionary("dict", dict);
 
             var array = new MutableArray();
-            array.Add("650-123-0001");
-            array.Add("650-123-0002");
-            doc.Set("array", array);
+            array.AddString("650-123-0001");
+            array.AddString("650-123-0002");
+            doc.SetArray("array", array);
 
             var content = Encoding.UTF8.GetBytes("12345");
             var blob = new Blob("text/plain", content);
-            doc.Set("blob", blob);
+            doc.SetBlob("blob", blob);
         }
     }
 }

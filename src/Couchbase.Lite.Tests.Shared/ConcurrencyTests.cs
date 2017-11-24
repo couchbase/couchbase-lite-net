@@ -243,13 +243,13 @@ namespace Test
         {
             var exp1 = new WaitAssert();
             var exp2 = new WaitAssert();
-            Db.Changed += (sender, args) =>
+            Db.AddDatabaseChangedListener(null, (sender, args) =>
             {
                 exp2.RunAssert(() =>
                 {
                     exp1.WaitForResult(TimeSpan.FromSeconds(20)); // Test deadlock
                 });
-            };
+            });
 
             exp1.RunAssertAsync(() =>
             {
@@ -264,7 +264,7 @@ namespace Test
         {
             var exp1 = new WaitAssert();
             var exp2 = new WaitAssert();
-            Db.AddDocumentChangedListener("doc1", (sender, args) =>
+            Db.AddDocumentChangedListener("doc1", null, (sender, args) =>
             {
                 WriteLine("Reached document changed callback");
                 exp2.RunAssert(() =>
@@ -303,19 +303,19 @@ namespace Test
             for (uint r = 1; r <= rounds; r++) {
                 foreach (var docID in docIDs) {
                     var doc = Db.GetDocument(docID).ToMutable();
-                    doc.Set("tag", tag);
+                    doc.SetString("tag", tag);
 
                     var address = doc.GetDictionary("address");
                     address.Should().NotBeNull();
                     var street = $"{n} street.";
-                    address.Set("street", street);
+                    address.SetString("street", street);
 
                     var phones = doc.GetArray("phones");
                     phones.Should().NotBeNull().And.HaveCount(2);
                     var phone = $"650-000-{n}";
-                    phones.Set(0, phone);
+                    phones.SetString(0, phone);
 
-                    doc.Set("updated", DateTimeOffset.UtcNow);
+                    doc.SetDate("updated", DateTimeOffset.UtcNow);
 
                     WriteLine($"[{tag}] rounds: {r} updating {doc.Id}");
                     Db.Save(doc);
@@ -326,7 +326,7 @@ namespace Test
         private void VerifyByTagName(string name, Action<ulong, IResult> test)
         {
             var TAG = Expression.Property("tag");
-            var DOCID = SelectResult.Expression(Expression.Meta().ID);
+            var DOCID = SelectResult.Expression(Meta.ID);
             using (var q = Query.Select(DOCID).From(DataSource.Database(Db)).Where(TAG.EqualTo(name))) {
                 WriteLine((q as XQuery).Explain());
 
@@ -354,24 +354,24 @@ namespace Test
         {
             var doc = new MutableDocument();
 
-            doc.Set("tag", tag);
+            doc.SetString("tag", tag);
 
-            doc.Set("firstName", "Daniel");
-            doc.Set("lastName", "Tiger");
+            doc.SetString("firstName", "Daniel");
+            doc.SetString("lastName", "Tiger");
 
             var address = new MutableDictionary();
-            address.Set("street", "1 Main street");
-            address.Set("city", "Mountain View");
-            address.Set("state", "CA");
-            doc.Set("address", address);
+            address.SetString("street", "1 Main street");
+            address.SetString("city", "Mountain View");
+            address.SetString("state", "CA");
+            doc.SetDictionary("address", address);
 
-            var phones = new MutableArray {
-                "650-123-0001",
-                "650-123-0002"
-            };
-            doc.Set("phones", phones);
+            var phones = new MutableArray();
+            phones.AddString("650-123-0001")
+                .AddString("650-123-0001");
 
-            doc.Set("updated", DateTimeOffset.UtcNow);
+            doc.SetArray("phones", phones);
+
+            doc.SetDate("updated", DateTimeOffset.UtcNow);
 
             return doc;
         }

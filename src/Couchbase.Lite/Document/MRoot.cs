@@ -70,6 +70,14 @@ namespace Couchbase.Lite.Internal.Doc
             
         }
 
+        public MRoot(MRoot other)
+            : this(other?.Context?.Data ?? FLSlice.Null, 
+                other?.Context != null ? other.Context.SharedKeys : null, 
+                other?.IsMutable == true)
+        {
+
+        }
+
         #endregion
 
         #region Public Methods

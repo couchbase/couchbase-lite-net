@@ -74,8 +74,8 @@ namespace Test
             var doc = Db.GetDocument("doc").ToMutable();
             Db.InBatch(() =>
             {
-                for (uint i = 0; i < count; i++) {
-                    doc.Set("count", i);
+                for (int i = 0; i < count; i++) {
+                    doc.SetInt("count", i);
                     Db.Save(doc);
                 }
             });

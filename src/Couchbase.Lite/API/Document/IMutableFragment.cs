@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 
+using System;
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -34,7 +36,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="key">The key to lookup the value for</param>
         /// <returns>The value, or lack thereof, wrapped in a <see cref="MutableFragment"/></returns>
-        MutableFragment this[string key] { get; }
+        IMutableFragment this[string key] { get; }
 
         #endregion
     }
@@ -52,8 +54,33 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to lookup the value for</param>
         /// <returns>The value, or lack thereof, wrapped in a <see cref="MutableFragment"/></returns>
-        MutableFragment this[int index] { get; }
+        IMutableFragment this[int index] { get; }
 
         #endregion
+    }
+
+    public interface IMutableFragment : IMutableArrayFragment, IMutableDictionaryFragment
+    {
+        object Value { get; set; }
+
+        MutableArray Array { get; set; }
+
+        Blob Blob { get; set; }
+
+        bool Boolean { get; set; }
+        
+        DateTimeOffset Date { get; set; }
+
+        MutableDictionary Dictionary { get; set; }
+
+        double Double { get; set; }
+
+        float Float { get; set; }
+
+        int Int { get; set; }
+
+        long Long { get; set; }
+
+        string String { get; set; }
     }
 }

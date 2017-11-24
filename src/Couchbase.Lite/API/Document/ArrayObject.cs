@@ -1,26 +1,28 @@
 ﻿// 
-// ReadOnlyArray.cs
+//  ArrayObject.cs
 // 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
+//  Author:
+//   Jim Borden  <jim.borden@couchbase.com>
 // 
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
 // 
-// http://www.apache.org/licenses/LICENSE-2.0
+//  http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
 // 
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
+
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Support;
@@ -42,10 +44,10 @@ namespace Couchbase.Lite
         #region Properties
 
         /// <inheritdoc />
-        public int Count => _array.Count;
+        public IFragment this[int index] => index >= _array.Count ? Fragment.Null : new Fragment(this, index);
 
         /// <inheritdoc />
-        public Fragment this[int index] => index >= _array.Count ? Fragment.Null : new Fragment(this, index);
+        public int Count => _array.Count;
 
         #endregion
 
@@ -73,16 +75,25 @@ namespace Couchbase.Lite
 
         #endregion
 
+        #region Public Methods
+
+        public virtual ArrayObject ToImmutable()
+        {
+            return this;
+        }
+
+        public MutableArray ToMutable()
+        {
+            return new MutableArray(_array, true);
+        }
+
+        #endregion
+
         #region Internal Methods
 
         internal MCollection ToMCollection()
         {
             return _array;
-        }
-
-        internal MutableArray ToMutable()
-        {
-            return new MutableArray(_array, true);
         }
 
         #endregion
@@ -108,29 +119,10 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region IEnumerable
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        #endregion
-
-        #region IEnumerable<object>
-
-        /// <summary>
-        /// Returns an enumerator that iterates through the collection.
-        /// </summary>
-        /// <returns>An enumerator that can be used to iterate through the collection.</returns>
-        public virtual IEnumerator<object> GetEnumerator() => _array.GetEnumerator();
-
-        #endregion
-
-        #region IReadOnlyArray
+        #region IArray
 
         /// <inheritdoc />
-        public IArray GetArray(int index) => GetObject<IArray>(_array, index, _threadSafety);
+        public ArrayObject GetArray(int index) => GetObject<ArrayObject>(_array, index, _threadSafety);
 
         /// <inheritdoc />
         public Blob GetBlob(int index) => GetObject<Blob>(_array, index, _threadSafety);
@@ -142,7 +134,7 @@ namespace Couchbase.Lite
         public DateTimeOffset GetDate(int index) => DataOps.ConvertToDate(GetObject(_array, index, _threadSafety));
 
         /// <inheritdoc />
-        public IDictionaryObject GetDictionary(int index) => GetObject<IDictionaryObject>(_array, index, _threadSafety);
+        public DictionaryObject GetDictionary(int index) => GetObject<DictionaryObject>(_array, index, _threadSafety);
 
         /// <inheritdoc />
         public double GetDouble(int index) => DataOps.ConvertToDouble(GetObject(_array, index, _threadSafety));
@@ -157,7 +149,7 @@ namespace Couchbase.Lite
         public long GetLong(int index) => DataOps.ConvertToLong(GetObject(_array, index, _threadSafety));
 
         /// <inheritdoc />
-        public object GetObject(int index) => GetObject(_array, index, _threadSafety);
+        public object GetValue(int index) => GetObject(_array, index, _threadSafety);
 
         /// <inheritdoc />
         public string GetString(int index) => GetObject<string>(_array, index, _threadSafety);
@@ -176,6 +168,25 @@ namespace Couchbase.Lite
 
             return result;
         }
+
+        #endregion
+
+        #region IEnumerable
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        #endregion
+
+        #region IEnumerable<object>
+
+        /// <summary>
+        /// Returns an enumerator that iterates through the collection.
+        /// </summary>
+        /// <returns>An enumerator that can be used to iterate through the collection.</returns>
+        public virtual IEnumerator<object> GetEnumerator() => _array.GetEnumerator();
 
         #endregion
     }

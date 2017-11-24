@@ -401,7 +401,7 @@ namespace Couchbase.Lite.Sync
             var nonceKey = Convert.ToBase64String(nonceBytes);
             _expectedAcceptHeader = Base64Digest(nonceKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
 
-            foreach (var header in _options.Headers) {
+            foreach (var header in _options.Headers ?? Enumerable.Empty<KeyValuePair<string, string>>()) {
                 _logic[header.Key] = header.Value;
             }
 

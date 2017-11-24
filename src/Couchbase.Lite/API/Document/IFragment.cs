@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 
+using System;
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -36,7 +38,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="key">The key to check</param>
         /// <returns>The value of the given key, or lack thereof</returns>
-        Fragment this[string key] { get; }
+        IFragment this[string key] { get; }
 
         #endregion
     }
@@ -56,8 +58,83 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to check</param>
         /// <returns>The value of the given index, or lack thereof</returns>
-        Fragment this[int index] { get; }
+        IFragment this[int index] { get; }
 
         #endregion
+    }
+
+    public interface IFragment : IArrayFragment, IDictionaryFragment
+    {
+        /// <summary>
+        /// Gets whether or not this object exists in the hierarchy
+        /// </summary>
+        bool Exists { get; }
+
+        /// <summary>
+        /// Gets the value of the fragment as an untyped object
+        /// </summary>
+        object Value { get; }
+
+        /// <summary>
+        /// Gets the contained value as a <see cref="ArrayObject"/>
+        /// </summary>
+        ArrayObject Array { get; }
+
+        /// <summary>
+        /// Gets the contained value as a <see cref="Blob"/>
+        /// </summary>
+        Blob Blob { get; }
+
+        /// <summary>
+        /// Gets the contained value as a <see cref="Boolean" />
+        /// </summary>
+        /// <remarks>The following process is used for evaluation:
+        /// 
+        /// <see cref="Boolean"/> values are evaluated as is
+        /// <c>null</c> is <c>false</c>
+        /// Non-zero number values are <c>true</c>
+        /// Everything else is <c>true</c>
+        /// </remarks>
+        bool Boolean { get; }
+        
+        /// <summary>
+        /// Gets the contained value as a <see cref="DateTimeOffset"/>
+        /// </summary>
+        DateTimeOffset Date { get; }
+
+        /// <summary>
+        /// Gets the contained value as a <see cref="DictionaryObject"/>
+        /// </summary>
+        DictionaryObject Dictionary { get; }
+
+        /// <summary>
+        /// Gets the contained value as a <see cref="Double"/>
+        /// </summary>
+        /// <remarks><c>true</c> will be converted to 1.0, and everything else that
+        /// is non-numeric will be 0.0</remarks>
+        double Double { get; }
+
+        /// <summary>
+        /// Gets the contained value as a <see cref="Single"/>
+        /// </summary>
+        /// <remarks><c>true</c> will be converted to 1.0f, and everything else that
+        /// is non-numeric will be 0.0f</remarks>
+        float Float { get; }
+
+        /// <summary>
+        /// Gets the contained value as an <see cref="Int32"/>
+        /// </summary>
+        /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
+        /// will be rounded, and everything else non-numeric will be 0</remarks>
+        int Int { get; }
+
+        /// <summary>
+        /// Gets the contained value as an <see cref="Int64"/>
+        /// </summary>
+        /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
+        /// will be rounded, and everything else non-numeric will be 0</remarks>
+        long Long { get; }
+
+        string String { get; }
     }
 }

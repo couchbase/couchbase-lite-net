@@ -1,29 +1,29 @@
 ﻿// 
-// Database.cs
+//  Database.cs
 // 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
+//  Author:
+//   Jim Borden  <jim.borden@couchbase.com>
 // 
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
 // 
-// http://www.apache.org/licenses/LICENSE-2.0
+//  http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
 // 
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
@@ -73,14 +73,12 @@ namespace Couchbase.Lite
         private readonly FilteredEvent<string, DocumentChangedEventArgs> _documentChanged =
             new FilteredEvent<string, DocumentChangedEventArgs>();
 
+        private readonly Event<DatabaseChangedEventArgs> _databaseChanged = 
+            new Event<DatabaseChangedEventArgs>();
+
         private readonly SharedStringCache _sharedStrings;
         
         private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
-
-        /// <summary>
-        /// An event fired whenever the database changes
-        /// </summary>
-        public event EventHandler<DatabaseChangedEventArgs> Changed;
 
         #if false
         private IJsonSerializer _jsonSerializer;
@@ -342,23 +340,41 @@ namespace Couchbase.Lite
             return retVal;
         }
 
-        /// <summary>
-        /// Adds a listener for changes on a certain document (by ID).  Similar to <see cref="Database.Changed"/>
-        /// but requires a parameter to add so it is a method instead of an event.
-        /// </summary>
-        /// <param name="documentID">The ID to add the listener for</param>
-        /// <param name="handler">The logic to handle the event</param>
-        public void AddDocumentChangedListener(string documentID, EventHandler<DocumentChangedEventArgs> handler)
+        public ListenerToken AddDatabaseChangedListener(TaskScheduler scheduler,
+            EventHandler<DatabaseChangedEventArgs> handler)
         {
-            ThreadSafety.DoLocked(() =>
+            return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
 
-                var count = _documentChanged.Add(documentID, handler);
+                var cbHandler = new CouchbaseEventHandler<DatabaseChangedEventArgs>(handler, scheduler);
+                _databaseChanged.Add(cbHandler);
+
+                return new ListenerToken(cbHandler);
+            });
+        }
+
+        /// <summary>
+        /// Adds a listener for changes on a certain document (by ID).
+        /// </summary>
+        /// <param name="documentID">The ID to add the listener for</param>
+        /// <param name="handler">The logic to handle the event</param>
+        public ListenerToken AddDocumentChangedListener(string documentID, TaskScheduler scheduler,
+            EventHandler<DocumentChangedEventArgs> handler)
+        {
+            return ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+
+                var cbHandler =
+                    new CouchbaseEventHandler<string, DocumentChangedEventArgs>(handler, documentID, scheduler);
+                var count = _documentChanged.Add(cbHandler);
                 if (count == 0) {
                     var docObs = new DocumentObserver(_c4db, documentID, _DocObserverCallback, this);
                     _docObs[documentID] = docObs;
                 }
+
+                return new ListenerToken(cbHandler);
             });
         }
 
@@ -562,8 +578,60 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Removes a listener for changes on a certain document (by ID).  Similar to <see cref="Database.Changed"/>
-        /// but requires a parameter to add so it is a method instead of an event.
+        /// Removes a database changed listener (using the method that was registered)
+        /// </summary>
+        /// <param name="handler">The previously registered method for listening</param>
+        public void RemoveDatabaseChangedListener(EventHandler<DatabaseChangedEventArgs> handler)
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+
+                _databaseChanged.Remove(handler);
+            });
+        }
+
+        /// <summary>
+        /// Removes a database changed listener by token
+        /// </summary>
+        /// <param name="token">The token received from <see cref="AddDatabaseChangedListener"/></param>
+        public void RemoveDatabaseChangedListener(ListenerToken token)
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+
+                _databaseChanged.Remove(token);
+            });
+        }
+
+        /// <summary>
+        /// Removes a listener for changes on a certain document (by token)
+        /// </summary>
+        /// <param name="token">The token received from <see cref="AddDocumentChangedListener"/></param>
+        public void RemoveDocumentChangedListener(ListenerToken token)
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                var count = _documentChanged.Remove(token);
+                if (count != 0) {
+                    return;
+                }
+
+                if (!(token.EventHandler is CouchbaseEventHandler<string, DocumentChangedEventArgs> handler)) {
+                    return;
+                }
+
+                if (_docObs.TryGetValue(handler.Filter, out var obs)) {
+                    obs.Dispose();
+                    _docObs.Remove(handler.Filter);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Removes a listener for changes on a certain document (by ID).
         /// </summary>
         /// <param name="documentID">The ID to add the listener for</param>
         /// <param name="handler">The logic to handle the event</param>
@@ -776,8 +844,14 @@ namespace Couchbase.Lite
             var doc = new Document(this, docID, mustExist);
 
             if (mustExist && !doc.Exists) {
+                doc.Dispose();
                 Log.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist", 
                     new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+                return null;
+            }
+
+            if (doc.IsDeleted) {
+                doc.Dispose();
                 return null;
             }
 
@@ -882,12 +956,9 @@ namespace Couchbase.Lite
 				} while (nChanges > 0);
 			});
 
-            Task.Factory.StartNew(() =>
-            {
-                foreach (var args in allChanges) {
-                    Changed?.Invoke(this, args);
-                }
-            });
+            foreach (var args in allChanges) {
+                _databaseChanged.Fire(this, args);
+            }
         }
 
         private void PostDocChanged(string documentID)
