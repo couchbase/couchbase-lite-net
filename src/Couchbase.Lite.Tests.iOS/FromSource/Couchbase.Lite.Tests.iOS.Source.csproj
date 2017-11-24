@@ -166,25 +166,15 @@
     </ImageAsset>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Couchbase.Lite.Support.Apple\iOS\Couchbase.Lite.Support.iOS.csproj">
-      <Project>{3d634c07-2603-4474-a8cd-de0cf495307c}</Project>
-      <Name>Couchbase.Lite.Support.iOS</Name>
-      <IsAppExtension>false</IsAppExtension>
-      <IsWatchApp>false</IsWatchApp>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Couchbase.Lite\Couchbase.Lite.csproj">
-      <Project>{c2a99111-bf57-405c-879e-aaff5b50e8b6}</Project>
-      <Name>Couchbase.Lite</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="..\Info.plist">
       <Link>Info.plist</Link>
     </None>
     <None Include="..\Entitlements.plist">
       <Link>Entitlements.plist</Link>
     </None>
-    <None Include="packages.config" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
     <EmbeddedResource Include="..\result_ip">
       <LogicalName>result_ip</LogicalName>
     </EmbeddedResource>
@@ -204,7 +194,16 @@
     <Analyzer Include="..\packages\xunit.analyzers.0.7.0\analyzers\dotnet\cs\xunit.analyzers.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="AppDelegate.cs.txt" />
+    <ProjectReference Include="..\..\Couchbase.Lite.Support.Apple\iOS\Couchbase.Lite.Support.iOS.csproj">
+      <Project>{3d634c07-2603-4474-a8cd-de0cf495307c}</Project>
+      <Name>Couchbase.Lite.Support.iOS</Name>
+      <IsAppExtension>false</IsAppExtension>
+      <IsWatchApp>false</IsWatchApp>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Couchbase.Lite\Couchbase.Lite.csproj">
+      <Project>{c2a99111-bf57-405c-879e-aaff5b50e8b6}</Project>
+      <Name>Couchbase.Lite</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="..\..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />
   <Import Project="..\..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems')" />

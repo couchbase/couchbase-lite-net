@@ -33,6 +33,8 @@ using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Sync;
+using Couchbase.Lite.Util;
+
 using FluentAssertions;
 using LiteCore.Interop;
 using Newtonsoft.Json;
@@ -347,6 +349,35 @@ Transfer-Encoding: chunked";
             doc2.Dispose();
             retrievedDoc2.Dispose();
             savedDoc2.Dispose();
+        }
+
+        [Fact]
+        public void TestFLEncode()
+        {
+            TestRoundTrip(42);
+            TestRoundTrip(Int64.MinValue);
+            TestRoundTrip("Fleece");
+            TestRoundTrip(new Dictionary<string, object>
+            {
+                ["foo"] = "bar"
+            });
+            TestRoundTrip(new List<object> { "foo", "bar" });
+            TestRoundTrip(true);
+            TestRoundTrip(3.14f);
+            TestRoundTrip(Math.PI);
+        }
+
+        private unsafe void TestRoundTrip<T>(T item)
+        {
+            using (var encoded = item.FLEncode()) {
+                var flValue = NativeRaw.FLValue_FromTrustedData((FLSlice) encoded);
+                ((IntPtr) flValue).Should().NotBe(IntPtr.Zero);
+                if (item is IEnumerable enumerable && !(item is string)) {
+                    ((IEnumerable) FLSliceExtensions.ToObject(flValue)).ShouldBeEquivalentTo(enumerable);
+                } else {
+                    Extensions.CastOrDefault<T>(FLSliceExtensions.ToObject(flValue)).Should().Be(item);
+                }
+            }
         }
     }
 }
