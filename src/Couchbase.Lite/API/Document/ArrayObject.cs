@@ -77,11 +77,6 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
-        public virtual ArrayObject ToImmutable()
-        {
-            return this;
-        }
-
         public MutableArray ToMutable()
         {
             return new MutableArray(_array, true);
@@ -90,6 +85,11 @@ namespace Couchbase.Lite
         #endregion
 
         #region Internal Methods
+
+        internal virtual ArrayObject ToImmutable()
+        {
+            return this;
+        }
 
         internal MCollection ToMCollection()
         {

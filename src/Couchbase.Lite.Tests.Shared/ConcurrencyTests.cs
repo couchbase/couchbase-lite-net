@@ -243,7 +243,7 @@ namespace Test
         {
             var exp1 = new WaitAssert();
             var exp2 = new WaitAssert();
-            Db.AddDatabaseChangedListener(null, (sender, args) =>
+            Db.AddChangeListener(null, (sender, args) =>
             {
                 exp2.RunAssert(() =>
                 {

@@ -89,6 +89,15 @@ namespace Couchbase.Lite
 
         #endregion
 
+        #region Public Methods
+
+        public MutableDictionary ToMutable()
+        {
+            return new MutableDictionary(_dict, true);
+        }
+
+        #endregion
+
         #region Protected Methods
 
         /// <summary>
@@ -103,6 +112,11 @@ namespace Couchbase.Lite
         #endregion
 
         #region Internal Methods
+
+        internal virtual DictionaryObject ToImmutable()
+        {
+            return this;
+        }
 
         internal MCollection ToMCollection()
         {
@@ -169,11 +183,6 @@ namespace Couchbase.Lite
             });
 
             return result;
-        }
-
-        public MutableDictionary ToMutable()
-        {
-            return new MutableDictionary(_dict, true);
         }
 
         #endregion

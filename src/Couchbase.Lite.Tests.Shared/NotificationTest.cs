@@ -56,7 +56,7 @@ namespace Test
         public void TestDatabaseChange()
         {
             var wa = new WaitAssert();
-            Db.AddDatabaseChangedListener(null, (sender, args) =>
+            Db.AddChangeListener(null, (sender, args) =>
             {
                 var docIDs = args.DocumentIDs;
                 wa.RunAssert(() =>

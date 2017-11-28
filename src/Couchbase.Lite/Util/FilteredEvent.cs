@@ -145,8 +145,13 @@ namespace Couchbase.Lite.Util
 
         public int Remove(ListenerToken id)
         {
+           
+
             lock (_locker) {
-                _events.Remove(id.EventHandler as CouchbaseEventHandler<TEventType>);
+                if (id != null) {
+                    _events.Remove(id.EventHandler as CouchbaseEventHandler<TEventType>);
+                }
+
                 return _events.Count;
             }
         }

@@ -429,12 +429,11 @@ namespace Test
         {
             LoadNumbers(100);
             using (var q = Query.Select(SelectResult.Expression(Expression.Property("number1"))).From(DataSource.Database(Db))
-                .Where(Expression.Property("number1").LessThan(10)).OrderBy(Ordering.Property("number1"))
-                .ToLive()) {
+                .Where(Expression.Property("number1").LessThan(10)).OrderBy(Ordering.Property("number1"))) {
                 var wa = new WaitAssert();
                 var wa2 = new WaitAssert();
                 var count = 1;
-                q.Changed += (sender, args) =>
+                q.AddChangeListener(null, (sender, args) =>
                 {
                     if (count++ == 1) {
                         wa.RunConditionalAssert(
@@ -444,9 +443,8 @@ namespace Test
                             () => args.Rows.Count == 10 && args.Rows.First().GetInt(0) == -1);
                     }
                     
-                };
-
-                q.Run();
+                });
+                
                 await Task.Delay(500).ConfigureAwait(false);
                 wa.WaitForResult(TimeSpan.FromSeconds(5));
                 CreateDocInSeries(-1, 100);
@@ -459,14 +457,13 @@ namespace Test
         {
             LoadNumbers(100);
             using (var q = Query.Select().From(DataSource.Database(Db))
-                .Where(Expression.Property("number1").LessThan(10)).OrderBy(Ordering.Property("number1"))
-                .ToLive()) {
+                .Where(Expression.Property("number1").LessThan(10)).OrderBy(Ordering.Property("number1"))) {
 
                 var mre = new ManualResetEventSlim();
-                q.Changed += (sender, args) =>
+                q.AddChangeListener(null, (sender, args) =>
                 {
                     mre.Set();
-                };
+                });
 
                 await Task.Delay(500).ConfigureAwait(false);
 
@@ -606,8 +603,8 @@ namespace Test
                 .From(DataSource.Database(Db))
                 .Where(NUMBER1.Between(PARAM_N1, PARAM_N2))
                 .OrderBy(Ordering.Expression(NUMBER1))) {
-                q.Parameters.Set("num1", 2);
-                q.Parameters.Set("num2", 5);
+                q.Parameters.SetInt("num1", 2);
+                q.Parameters.SetInt("num2", 5);
 
                 var expectedNumbers = new[] {2, 3, 4, 5};
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -672,8 +669,8 @@ namespace Test
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(NUMBER))
                 .Limit(LIMIT, OFFSET)) {
-                q.Parameters.Set("limit", 5);
-                q.Parameters.Set("offset", 5);
+                q.Parameters.SetInt("limit", 5);
+                q.Parameters.SetInt("offset", 5);
 
                 var expectedNumbers = new[] {6, 7, 8, 9, 10};
                 var numRows = VerifyQuery(q, (n, row) =>

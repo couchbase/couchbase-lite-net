@@ -90,7 +90,7 @@ namespace Couchbase.Lite
 
         #region Overrides
 
-        public override ArrayObject ToImmutable()
+        internal override ArrayObject ToImmutable()
         {
             return new ArrayObject(_array, false);
         }

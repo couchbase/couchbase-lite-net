@@ -1,5 +1,5 @@
 ﻿// 
-//  QueryParameters.cs
+//  CBDebug.cs
 // 
 //  Author:
 //   Jim Borden  <jim.borden@couchbase.com>
@@ -19,39 +19,30 @@
 //  limitations under the License.
 // 
 
-using System.Collections.Generic;
+using System;
+using System.Diagnostics;
 
-using Couchbase.Lite.Query;
+using Couchbase.Lite.Logging;
 
-using Newtonsoft.Json;
-
-namespace Couchbase.Lite.Internal.Query
+namespace Couchbase.Lite.Util
 {
-    internal sealed class QueryParameters : IParameters
+    internal static class CBDebug
     {
-        #region Variables
-
-        private readonly Dictionary<object, object> _params = new Dictionary<object, object>();
-
-        #endregion
-
-        #region Overrides
-
-        public override string ToString()
+        public static void AssertAndLog(DomainLogger logger, Func<bool> assertion, string tag, string message)
         {
-            return _params != null ? JsonConvert.SerializeObject(_params) : null;
+            Debug.Assert(assertion(), message);
+            logger.W(tag, message);
         }
 
-        #endregion
-
-        #region IParameters
-
-        public IParameters Set(string name, object value)
+        public static void LogAndThrow(DomainLogger logger, Exception e, string tag, string message, bool fatal)
         {
-            _params[name] = value;
-            return this;
-        }
+            if (fatal) {
+                logger.E(tag, message, e);
+            } else {
+                logger.W(tag, message, e);
+            }
 
-        #endregion
+            throw e;
+        }
     }
 }

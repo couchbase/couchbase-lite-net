@@ -118,6 +118,13 @@ namespace Couchbase.Lite.Internal.Doc
                     return ConvertDictionary(jobj.ToObject<IDictionary<string, object>>());
                 case JArray jarr:
                     return ConvertList(jarr.ToObject<IList>());
+                case JToken jToken:
+                    switch (jToken.Type) {
+                        case JTokenType.Date:
+                            return (DateTimeOffset) jToken;
+                        default:
+                            return jToken.ToObject<object>();
+                    }
                 case IDictionary<string, object> dict:
                     return ConvertDictionary(dict);
                 case IList list:

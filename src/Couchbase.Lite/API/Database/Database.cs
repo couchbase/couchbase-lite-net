@@ -123,7 +123,7 @@ namespace Couchbase.Lite
             }
         }
 
-        internal ICollection<LiveQuery> ActiveLiveQueries { get; } = new HashSet<LiveQuery>();
+        internal ICollection<XQuery> ActiveLiveQueries { get; } = new HashSet<XQuery>();
 
         internal ICollection<Replicator> ActiveReplications { get; } = new HashSet<Replicator>();
 
@@ -340,7 +340,7 @@ namespace Couchbase.Lite
             return retVal;
         }
 
-        public ListenerToken AddDatabaseChangedListener(TaskScheduler scheduler,
+        public ListenerToken AddChangeListener(TaskScheduler scheduler,
             EventHandler<DatabaseChangedEventArgs> handler)
         {
             return ThreadSafety.DoLocked(() =>
@@ -581,7 +581,7 @@ namespace Couchbase.Lite
         /// Removes a database changed listener (using the method that was registered)
         /// </summary>
         /// <param name="handler">The previously registered method for listening</param>
-        public void RemoveDatabaseChangedListener(EventHandler<DatabaseChangedEventArgs> handler)
+        public void RemoveChangeListener(EventHandler<DatabaseChangedEventArgs> handler)
         {
             ThreadSafety.DoLocked(() =>
             {
@@ -594,8 +594,8 @@ namespace Couchbase.Lite
         /// <summary>
         /// Removes a database changed listener by token
         /// </summary>
-        /// <param name="token">The token received from <see cref="AddDatabaseChangedListener"/></param>
-        public void RemoveDatabaseChangedListener(ListenerToken token)
+        /// <param name="token">The token received from <see cref="AddChangeListener"/></param>
+        public void RemoveChangeListener(ListenerToken token)
         {
             ThreadSafety.DoLocked(() =>
             {
@@ -1097,11 +1097,11 @@ namespace Couchbase.Lite
         {
             GC.SuppressFinalize(this);
             HashSet<Replicator> activeReplications = null;
-            HashSet<LiveQuery> activeLiveQueries = null;
+            HashSet<XQuery> activeLiveQueries = null;
             ThreadSafety.DoLocked(() =>
             {
                 activeReplications = new HashSet<Replicator>(ActiveReplications);
-                activeLiveQueries = new HashSet<LiveQuery>(ActiveLiveQueries);
+                activeLiveQueries = new HashSet<XQuery>(ActiveLiveQueries);
                 ActiveReplications.Clear();
                 ActiveLiveQueries.Clear();
             });

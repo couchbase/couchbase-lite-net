@@ -21,14 +21,19 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
+
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Util;
+
 using LiteCore.Interop;
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal unsafe class XQuery : IQuery
+    internal class XQuery : IQuery
     {
         #region Constants
 
@@ -39,8 +44,16 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Variables
 
-        private C4Query* _c4Query;
+        private unsafe C4Query* _c4Query;
         private Dictionary<string, int> _columnNames;
+        private QueryParameters _queryParameters = new QueryParameters();
+        private Event<LiveQueryChangedEventArgs> _changed = new Event<LiveQueryChangedEventArgs>();
+        private readonly TimeSpan _updateInterval;
+        private QueryResultSet _enum;
+        private DateTime _lastUpdatedAt;
+        private int _observingCount = 0;
+        private AtomicBool _willUpdate = false;
+        private ListenerToken _databaseChangedToken;
 
         #endregion
 
@@ -48,7 +61,14 @@ namespace Couchbase.Lite.Internal.Query
 
         public Database Database { get; set; }
 
-        public IParameters Parameters { get; } = new QueryParameters();
+        public QueryParameters Parameters
+        {
+            get => _queryParameters;
+            set {
+                _queryParameters = value;
+                Update();
+            }
+        }
 
         protected bool Distinct { get; set; }
 
@@ -74,6 +94,11 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
+        public XQuery()
+        {
+            _updateInterval = DefaultLiveQueryUpdateInterval;
+        }
+
         ~XQuery()
         {
             Dispose(true);
@@ -98,9 +123,11 @@ namespace Couchbase.Lite.Internal.Query
             SkipValue = source.SkipValue;
         }
 
-        protected virtual void Dispose(bool finalizing)
+        protected virtual unsafe void Dispose(bool finalizing)
         {
             if (!finalizing) {
+                Stop();
+                Misc.SafeSwap(ref _enum, null);
                 FromImpl.ThreadSafety.DoLocked(() => Native.c4query_free(_c4Query));
             }
             else {
@@ -116,7 +143,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Internal Methods
 
-        internal string Explain()
+        internal unsafe string Explain()
         {
             // Used for debugging
             if (_c4Query == null) {
@@ -130,7 +157,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Private Methods
 
-        private void Check()
+        private unsafe void Check()
         {
             var jsonData = EncodeAsJSON();
             if (_columnNames == null) {
@@ -237,6 +264,81 @@ namespace Couchbase.Lite.Internal.Query
             return JsonConvert.SerializeObject(parameters);
         }
 
+        private void OnDatabaseChanged(object sender, DatabaseChangedEventArgs e)
+        {
+            if (_willUpdate) {
+                return;
+            }
+
+            // External updates should poll less frequently
+            var updateInterval = _updateInterval;
+            if (e.IsExternal) {
+                updateInterval += updateInterval;
+            }
+
+            var updateDelay = _lastUpdatedAt + updateInterval - DateTime.Now;
+            UpdateAfter(updateDelay);
+        }
+
+        private void Stop()
+        {
+            Database?.ActiveLiveQueries?.Remove(this);
+            Database?.RemoveChangeListener(_databaseChangedToken);
+        }
+
+        private void Update()
+        {
+            Log.To.Query.I(Tag, $"{this}: Querying...");
+            var oldEnum = _enum;
+            QueryResultSet newEnum = null;
+            Exception error = null;
+            if (oldEnum == null) {
+                try {
+                    newEnum = (QueryResultSet) Execute();
+                } catch (Exception e) {
+                    error = e;
+                }
+            } else {
+                newEnum = oldEnum.Refresh();
+            }
+
+            _willUpdate.Set(false);
+            _lastUpdatedAt = DateTime.Now;
+
+            var changed = true;
+            if (newEnum != null) {
+                if (oldEnum != null) {
+                    Log.To.Query.I(Tag, $"{this}: Changed!");
+                }
+
+                Misc.SafeSwap(ref _enum, newEnum);
+            } else if (error != null) {
+                Log.To.Query.E(Tag, $"{this}: Update failed: {error}");
+            } else {
+                changed = false;
+                Log.To.Query.V(Tag, $"{this}: ...no change");
+            }
+
+            if (changed) {
+                _changed.Fire(this, new LiveQueryChangedEventArgs(newEnum, error));
+            }
+        }
+
+        private async void UpdateAfter(TimeSpan updateDelay)
+        {
+            if (_willUpdate.Set(true)) {
+                return;
+            }
+
+            if (updateDelay > TimeSpan.Zero) {
+                await Task.Delay(updateDelay).ConfigureAwait(false);
+            }
+
+            if (_willUpdate) {
+                Update();
+            }
+        }
+
         #endregion
 
         #region IDisposable
@@ -250,7 +352,31 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IQuery
 
-        public IResultSet Execute()
+        public ListenerToken AddChangeListener(TaskScheduler scheduler, EventHandler<LiveQueryChangedEventArgs> handler)
+        {
+            var cbHandler = new CouchbaseEventHandler<LiveQueryChangedEventArgs>(handler, scheduler);
+            _changed.Add(cbHandler);
+
+            if (Interlocked.Increment(ref _observingCount) == 1) {
+                Database?.ActiveLiveQueries?.Add(this);
+                _databaseChangedToken = Database?.AddChangeListener(null, OnDatabaseChanged);
+                Update();
+            }
+
+            return new ListenerToken(cbHandler);
+        }
+
+        public void RemoveChangeListener(ListenerToken token)
+        {
+            _changed.Remove(token);
+            if (Interlocked.Decrement(ref _observingCount) == 0) {
+                Stop();
+            }
+
+            _willUpdate.Set(false);
+        }
+
+        public unsafe IResultSet Execute()
         {
             if (Database == null) {
                 throw new InvalidOperationException("Invalid query, Database == null");
@@ -275,24 +401,6 @@ namespace Couchbase.Lite.Internal.Query
             });
 
             return new QueryResultSet(this, FromImpl.ThreadSafety, e, _columnNames);
-        }
-
-        public ILiveQuery ToLive()
-        {
-            Dispose();
-            return new LiveQuery(new XQuery {
-                Database = Database,
-                SelectImpl = SelectImpl,
-                Distinct = Distinct,
-                FromImpl = FromImpl,
-                WhereImpl = WhereImpl,
-                OrderByImpl = OrderByImpl,
-                JoinImpl = JoinImpl,
-                GroupByImpl = GroupByImpl,
-                HavingImpl = HavingImpl,
-                LimitValue = LimitValue,
-                SkipValue = SkipValue
-            });
         }
 
         #endregion
