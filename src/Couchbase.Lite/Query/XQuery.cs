@@ -308,8 +308,6 @@ namespace Couchbase.Lite.Internal.Query
             if (newEnum != null) {
                 if (oldEnum != null) {
                     Log.To.Query.I(Tag, $"{this}: Changed!");
-                } else {
-                    changed = newEnum.Count > 0;
                 }
 
                 Misc.SafeSwap(ref _enum, newEnum);
@@ -363,6 +361,7 @@ namespace Couchbase.Lite.Internal.Query
             if (Interlocked.Increment(ref _observingCount) == 1) {
                 Database?.ActiveLiveQueries?.Add(this);
                 _databaseChangedToken = Database?.AddChangeListener(null, OnDatabaseChanged);
+                Update();
             }
 
             return new ListenerToken(cbHandler);
