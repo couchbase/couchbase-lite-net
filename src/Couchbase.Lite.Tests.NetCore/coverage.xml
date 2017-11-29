@@ -13,13 +13,19 @@
       <ModuleMask>FluentAssertions*</ModuleMask>
     </FilterEntry>
     <FilterEntry>
-      <ModuleMask>dotnet-xunit</ModuleMask>
-    </FilterEntry>
-    <FilterEntry>
       <ModuleMask>Couchbase.Lite.Support.NetDesktop</ModuleMask>
     </FilterEntry>
     <FilterEntry>
       <ModuleMask>Couchbase.Lite.Tests.NetCore</ModuleMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ModuleMask>LibGit2Sharp</ModuleMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ModuleMask>dotnet*</ModuleMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ModuleMask>SourceLink*</ModuleMask>
     </FilterEntry>
     <FilterEntry>
       <ClassMask>JetBrains.Annotations*</ClassMask>
