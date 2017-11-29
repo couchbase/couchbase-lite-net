@@ -1,26 +1,32 @@
 ﻿// 
-// ReplicatorConfiguration.cs
+//  ReplicatorConfiguration.cs
 // 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
+//  Author:
+//   Jim Borden  <jim.borden@couchbase.com>
 // 
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
 // 
-// http://www.apache.org/licenses/LICENSE-2.0
+//  http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
 // 
+
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
+
+using Couchbase.Lite.Logging;
+using Couchbase.Lite.Util;
+
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Sync
 {
@@ -51,22 +57,33 @@ namespace Couchbase.Lite.Sync
     /// </summary>
     public sealed class ReplicatorConfiguration
     {
-        /// <summary>
-        /// Gets or sets the local database participating in the replication. 
-        /// </summary>
-        public Database Database { get; }
+        private const string Tag = nameof(ReplicatorConfiguration);
+        #region Properties
 
         /// <summary>
-        /// Gets the target to replicate with (either <see cref="Database"/>
-        /// or <see cref="Uri"/>
+        /// Gets or sets the class which will authenticate the replication
         /// </summary>
-        public object Target { get; }
+        [CanBeNull]
+        public Authenticator Authenticator { get; set; }
 
         /// <summary>
-        /// A value indicating the direction of the replication.  The default is
-        /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
+        /// A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
+        /// The default value is null, meaning that all accessible channels will be pulled.
+        /// Note: channels that are not accessible to the user will be ignored by Sync Gateway.
         /// </summary>
-        public ReplicatorType ReplicatorType { get; set; } = ReplicatorType.PushAndPull;
+        [CanBeNull]
+        public IList<string> Channels
+        {
+            get => Options.Channels;
+            set => Options.Channels = value;
+        }
+
+        /// <summary>
+        /// Gets or sets the object to use when resolving incoming conflicts.  The default
+        /// is <c>null</c> which will set up the default algorithm of the most active revision
+        /// </summary>
+        [CanBeNull]
+        public IConflictResolver ConflictResolver { get; set; }
 
         /// <summary>
         /// Gets or sets whether or not the <see cref="Replicator"/> should stay
@@ -75,45 +92,16 @@ namespace Couchbase.Lite.Sync
         public bool Continuous { get; set; }
 
         /// <summary>
-        /// Gets or sets the object to use when resolving incoming conflicts.  The default
-        /// is <c>null</c> which will set up the default algorithm of the most active revision
+        /// Gets or sets the local database participating in the replication. 
         /// </summary>
-        public IConflictResolver ConflictResolver { get; set; }
-
-        /// <summary>
-        /// Gets or sets a certificate to trust.  All other certificates received
-        /// by a <see cref="Replicator"/> with this configuration will be rejected.
-        /// </summary>
-        public X509Certificate2 PinnedServerCertificate
-        {
-            get => Options.PinnedServerCertificate;
-            set => Options.PinnedServerCertificate = value;
-        }
-
-        /// <summary>
-        /// Extra HTTP headers to send in all requests to the remote target
-        /// </summary>
-        public IDictionary<string, string> Headers
-        {
-            get => Options.Headers;
-            set => Options.Headers = value;
-        }
-
-        /// <summary>
-        /// A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
-        /// The default value is null, meaning that all accessible channels will be pulled.
-        /// Note: channels that are not accessible to the user will be ignored by Sync Gateway.
-        /// </summary>
-        public IList<string> Channels
-        {
-            get => Options.Channels;
-            set => Options.Channels = value;
-        }
+        [NotNull]
+        public Database Database { get; }
 
         /// <summary>
         /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
         /// and/or pulled
         /// </summary>
+        [CanBeNull]
         public IList<string> DocumentIDs
         {
             get => Options.DocIDs;
@@ -121,25 +109,61 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// Gets or sets the class which will authenticate the replication
+        /// Extra HTTP headers to send in all requests to the remote target
         /// </summary>
-        public Authenticator Authenticator { get; set; }
+        [CanBeNull]
+        public IDictionary<string, string> Headers
+        {
+            get => Options.Headers;
+            set => Options.Headers = value;
+        }
 
+        [NotNull]
         internal ReplicatorOptionsDictionary Options { get; } = new ReplicatorOptionsDictionary();
 
+        [CanBeNull]
         internal Database OtherDB { get; }
 
+        /// <summary>
+        /// Gets or sets a certificate to trust.  All other certificates received
+        /// by a <see cref="Replicator"/> with this configuration will be rejected.
+        /// </summary>
+        [CanBeNull]
+        public X509Certificate2 PinnedServerCertificate
+        {
+            get => Options.PinnedServerCertificate;
+            set => Options.PinnedServerCertificate = value;
+        }
+        
+        [CanBeNull]
         internal Uri RemoteUrl { get; }
+
+        /// <summary>
+        /// A value indicating the direction of the replication.  The default is
+        /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
+        /// </summary>
+        public ReplicatorType ReplicatorType { get; set; } = ReplicatorType.PushAndPull;
+
+        /// <summary>
+        /// Gets the target to replicate with (either <see cref="Database"/>
+        /// or <see cref="Uri"/>
+        /// </summary>
+        [NotNull]
+        public object Target { get; }
+
+        #endregion
+
+        #region Constructors
 
         /// <summary>
         /// Constructs a configuration between two databases
         /// </summary>
         /// <param name="localDatabase">The local database for replication</param>
         /// <param name="targetDatabase">The target database to use as the endpoint</param>
-        public ReplicatorConfiguration(Database localDatabase, Database targetDatabase)
+        public ReplicatorConfiguration([NotNull]Database localDatabase, [NotNull]Database targetDatabase)
         {
-            Database = localDatabase ?? throw new ArgumentNullException(nameof(localDatabase));
-            Target = OtherDB = targetDatabase ?? throw new ArgumentNullException(nameof(targetDatabase));
+            Database = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(localDatabase), localDatabase);
+            Target = OtherDB = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(targetDatabase), targetDatabase);
         }
 
         /// <summary>
@@ -147,15 +171,21 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="localDatabase">The local database for replication</param>
         /// <param name="endpoint">The URL to replicate with</param>
-        public ReplicatorConfiguration(Database localDatabase, Uri endpoint)
+        public ReplicatorConfiguration([NotNull]Database localDatabase, [NotNull]Uri endpoint)
         {
-            Database = localDatabase ?? throw new ArgumentNullException(nameof(localDatabase));
-            Target = RemoteUrl = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
+            Database = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(localDatabase), localDatabase);
+            Target = RemoteUrl = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(endpoint), endpoint);
         }
+
+        #endregion
+
+        #region Internal Methods
 
         internal static ReplicatorConfiguration Clone(ReplicatorConfiguration source)
         {
-            return (ReplicatorConfiguration) source.MemberwiseClone();
+            return (ReplicatorConfiguration) source?.MemberwiseClone();
         }
+
+        #endregion
     }
 }

@@ -18,6 +18,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -47,6 +50,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="ignoreAccents">Whether or not to ignore accents</param>
         /// <returns>The index for further processing</returns>
+        [NotNull]
         IFTSIndex IgnoreAccents(bool ignoreAccents);
 
         /// <summary>
@@ -55,6 +59,7 @@ namespace Couchbase.Lite.Query
         /// <param name="localeCode">The locale code in the form of ISO-639 language code plus, optionally, 
         /// an underscore and an ISO-3166 country code: "en", "en_US", "fr_CA", etc.</param>
         /// <returns>The index for further processing</returns>
+        [NotNull]
         IFTSIndex SetLocale(string localeCode);
     }
 }

@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -41,6 +43,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to use as the ON clause</param>
         /// <returns>The query for further processing</returns>
+        [NotNull]
         IJoin On(IExpression expression);
 
         #endregion

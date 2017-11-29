@@ -21,6 +21,8 @@
 using System;
 using System.Collections.Generic;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -36,6 +38,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
+        [CanBeNull]
         ArrayObject GetArray(int index);
 
         /// <summary>
@@ -43,6 +46,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
+        [CanBeNull]
         Blob GetBlob(int index);
 
         /// <summary>
@@ -62,10 +66,11 @@ namespace Couchbase.Lite
         DateTimeOffset GetDate(int index);
 
         /// <summary>
-        /// Gets the value at the given index as an <see cref="IDictionaryObject"/>
+        /// Gets the value at the given index as a <see cref="DictionaryObject"/>
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
+        [CanBeNull]
         DictionaryObject GetDictionary(int index);
 
         /// <summary>
@@ -112,6 +117,7 @@ namespace Couchbase.Lite
         /// <remarks>This method should be avoided for numeric types, whose
         /// underlying representation is subject to change and thus
         /// <see cref="InvalidCastException"/>s </remarks>
+        [CanBeNull]
         object GetValue(int index);
 
         /// <summary>
@@ -119,12 +125,14 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
+        [CanBeNull]
         string GetString(int index);
 
         /// <summary>
         /// Converts this object to a standard .NET collection
         /// </summary>
         /// <returns>The contents of this collection as a .NET collection</returns>
+        [NotNull]
         List<object> ToList();
 
         #endregion

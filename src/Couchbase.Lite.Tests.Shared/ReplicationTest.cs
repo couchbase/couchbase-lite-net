@@ -126,12 +126,14 @@ namespace Test
             RunReplication(config, 0, 0);
 
             doc1.Dispose();
-            doc1 = Db.GetDocument("doc").ToMutable();
+            doc1 = Db.GetDocument("doc")?.ToMutable();
+            doc1.Should().NotBeNull();
             doc1.SetString("name", "Hobbes");
             Db.Save(doc1).Dispose();
             doc1.Dispose();
 
-            var doc2 = _otherDB.GetDocument("doc").ToMutable();
+            var doc2 = _otherDB.GetDocument("doc")?.ToMutable();
+            doc2.Should().NotBeNull();
             doc2.SetString("pattern", "striped");
             _otherDB.Save(doc2).Dispose();
             doc2.Dispose();

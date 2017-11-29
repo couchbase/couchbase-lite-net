@@ -20,6 +20,8 @@
 // 
 using Couchbase.Lite.Internal.Query;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -34,6 +36,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="dataSource">The data source to JOIN with</param>
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
+        [NotNull]
         public static IJoinOn CrossJoin(IDataSource dataSource)
         {
             return new QueryJoin("CROSS", dataSource);
@@ -44,6 +47,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="dataSource">The data source to JOIN with</param>
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
+        [NotNull]
         public static IJoinOn InnerJoin(IDataSource dataSource)
         {
             return new QueryJoin(null, dataSource);
@@ -54,6 +58,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="dataSource">The data source to JOIN with</param>
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
+        [NotNull]
         public static IJoinOn DefaultJoin(IDataSource dataSource)
         {
             return InnerJoin(dataSource);
@@ -64,6 +69,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="dataSource">The data source to JOIN with</param>
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
+        [NotNull]
         public static IJoinOn LeftJoin(IDataSource dataSource)
         {
             return LeftOuterJoin(dataSource);
@@ -74,6 +80,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="dataSource">The data source to JOIN with</param>
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
+        [NotNull]
         public static IJoinOn LeftOuterJoin(IDataSource dataSource)
         {
             return new QueryJoin("LEFT OUTER", dataSource);

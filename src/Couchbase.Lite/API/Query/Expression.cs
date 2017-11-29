@@ -21,6 +21,8 @@
 
 using Couchbase.Lite.Internal.Query;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -35,6 +37,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to evaluate</param>
         /// <returns>The negated result of the expression</returns>
+        [NotNull]
         public static IExpression Negated(IExpression expression)
         {
             return new QueryCompoundExpression("NOT", expression);
@@ -45,6 +48,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to evaluate</param>
         /// <returns>The negated result of the expression</returns>
+        [NotNull]
         public static IExpression Not(IExpression expression)
         {
             return Negated(expression);
@@ -56,6 +60,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="index">The position of the parameter in the parameter list</param>
         /// <returns>The expression representing the parameter</returns>
+        [NotNull]
         public static IExpression Parameter(int index)
         {
             return new QueryTypeExpression(index.ToString(), ExpressionType.Parameter);
@@ -67,6 +72,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="name">The name of the parameter in the parameter set</param>
         /// <returns>The expression representing the parameter</returns>
+        [NotNull]
         public static IExpression Parameter(string name)
         {
             return new QueryTypeExpression(name, ExpressionType.Parameter);
@@ -77,6 +83,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="property">The name of the property to fetch</param>
         /// <returns>An expression representing the value of a named property</returns>
+        [NotNull]
         public static IPropertyExpression Property(string property)
         {
             return new QueryTypeExpression(property, ExpressionType.KeyPath);

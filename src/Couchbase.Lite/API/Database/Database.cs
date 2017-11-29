@@ -36,6 +36,8 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
 
+using JetBrains.Annotations;
+
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
@@ -106,16 +108,19 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="id">The ID of the <see cref="DocumentFragment"/> to retrieve</param>
         /// <returns>The instantiated <see cref="DocumentFragment"/></returns>
+        [NotNull]
         public DocumentFragment this[string id] => new DocumentFragment(GetDocument(id));
 
         /// <summary>
         /// Gets the name of the database
         /// </summary>
+        [NotNull]
         public string Name { get; }
 
         /// <summary>
         /// Gets the path on disk where the database exists
         /// </summary>
+        [CanBeNull]
         public string Path
         {
             get {
@@ -123,8 +128,12 @@ namespace Couchbase.Lite
             }
         }
 
+        [NotNull]
+        [ItemNotNull]
         internal ICollection<XQuery> ActiveLiveQueries { get; } = new HashSet<XQuery>();
 
+        [NotNull]
+        [ItemNotNull]
         internal ICollection<Replicator> ActiveReplications { get; } = new HashSet<Replicator>();
 
         internal C4BlobStore* BlobStore
@@ -150,9 +159,11 @@ namespace Couchbase.Lite
             }
         }
 
+        [NotNull]
         private IConflictResolver EffectiveConflictResolver => Config.ConflictResolver ??
                                                                 new DefaultConflictResolver();
 
+        [NotNull]
         internal IDictionary<Uri, Replicator> Replications { get; } = new Dictionary<Uri, Replicator>();
 
         internal FLEncoder* SharedEncoder
@@ -164,8 +175,10 @@ namespace Couchbase.Lite
             }
         }
 
+        [NotNull]
         internal SharedStringCache SharedStrings => ThreadSafety.DoLocked(() => _sharedStrings);
 
+        [NotNull]
         internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
         
         private bool InTransaction => ThreadSafety.DoLocked(() => _c4db != null && Native.c4db_isInTransaction(_c4db));
@@ -186,9 +199,9 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name">The name of the database</param>
         /// <param name="configuration">The configuration to open it with</param>
-        public Database(string name, DatabaseConfiguration configuration = new DatabaseConfiguration()) 
+        public Database(string name, DatabaseConfiguration configuration = new DatabaseConfiguration())
         {
-            Name = name ?? throw new ArgumentNullException(nameof(name));
+            Name = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
             Config = configuration;
             Open();
             var keys = default(FLSharedKeys*);
@@ -229,8 +242,12 @@ namespace Couchbase.Lite
         /// <param name="path">The path (of the .cblite2 folder) to copy</param>
         /// <param name="name">The name of the database to be used when opening</param>
         /// <param name="config">The config to use when copying (for specifying directory, etc)</param>
+        [ContractAnnotation("name:null => halt; path:null => halt")]
         public static void Copy(string path, string name, DatabaseConfiguration config)
         {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(path), path);
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
+
             var destPath = DatabasePath(name, config.Directory);
 			LiteCoreBridge.Check(err =>
 			{
@@ -255,11 +272,10 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name">The name of the database to delete</param>
         /// <param name="directory">The directory to search in</param>
-        public static void Delete(string name, string directory)
+        [ContractAnnotation("name:null => halt")]
+        public static void Delete(string name, [CanBeNull]string directory)
         {
-            if(name == null) {
-                throw new ArgumentNullException(nameof(name));
-            }
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
 
             var path = DatabasePath(name, directory);
             LiteCoreBridge.Check(err => Native.c4db_deleteAtPath(path, err) || err->code == 0);
@@ -272,11 +288,10 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the database to search for</param>
         /// <param name="directory">The directory to search in</param>
         /// <returns><c>true</c> if the database exists in the directory, otherwise <c>false</c></returns>
-        public static bool Exists(string name, string directory)
+        [ContractAnnotation("name:null => halt")]
+        public static bool Exists(string name, [CanBeNull]string directory)
         {
-            if(name == null) {
-                throw new ArgumentNullException(nameof(name));
-            }
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
 
             return Directory.Exists(DatabasePath(name, directory));
         }
@@ -339,10 +354,13 @@ namespace Couchbase.Lite
 
             return retVal;
         }
-
-        public ListenerToken AddChangeListener(TaskScheduler scheduler,
+        
+        [ContractAnnotation("handler:null => halt; scheduler:null => notnull")]
+        public ListenerToken AddChangeListener([CanBeNull]TaskScheduler scheduler,
             EventHandler<DatabaseChangedEventArgs> handler)
         {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(handler), handler);
+
             return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -358,10 +376,16 @@ namespace Couchbase.Lite
         /// Adds a listener for changes on a certain document (by ID).
         /// </summary>
         /// <param name="documentID">The ID to add the listener for</param>
+        /// <param name="scheduler">The scheduler to use when firing the event handler</param>
         /// <param name="handler">The logic to handle the event</param>
-        public ListenerToken AddDocumentChangedListener(string documentID, TaskScheduler scheduler,
+        [ContractAnnotation("documentID:null => halt; handler:null => halt")]
+        [NotNull]
+        public ListenerToken AddDocumentChangedListener(string documentID, [CanBeNull]TaskScheduler scheduler,
             EventHandler<DocumentChangedEventArgs> handler)
         {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(documentID), documentID);
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(handler), handler);
+
             return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -405,8 +429,10 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="docID">The ID of the <see cref="Document"/> to search for</param>
         /// <returns><c>true</c> if the <see cref="Document"/> exists, <c>false</c> otherwise</returns>
+        [ContractAnnotation("null => halt")]
         public bool Contains(string docID)
         {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(docID), docID);
             return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -422,8 +448,12 @@ namespace Couchbase.Lite
         /// <param name="name">The name to give to the index (must be unique, or previous
         /// index with the same name will be overwritten)</param>
         /// <param name="index">The index to creaate</param>
+        [ContractAnnotation("name:null => halt; index:null => halt")]
         public void CreateIndex(string name, IIndex index)
         {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(index), index);
+
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -460,8 +490,11 @@ namespace Couchbase.Lite
         /// <param name="document">The document to delete</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to delete a document from a database
         /// other than the one it was previously added to</exception>
+        [ContractAnnotation("null => halt")]
         public void Delete(Document document)
         {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(document), document);
+
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -473,8 +506,11 @@ namespace Couchbase.Lite
         /// Deletes the index with the given name
         /// </summary>
         /// <param name="name">The name of the index to delete</param>
+        [ContractAnnotation("null => halt")]
         public void DeleteIndex(string name)
         {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
+
             ThreadSafety.DoLockedBridge(err =>
             {
                 CheckOpen();
@@ -487,12 +523,20 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="id">The ID to use when creating or getting the document</param>
         /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
-        public Document GetDocument(string id) => ThreadSafety.DoLocked(() => GetDocument(id, true));
+        [CanBeNull]
+        [ContractAnnotation("null => halt")]
+        public Document GetDocument(string id)
+        {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(id), id);
+            return ThreadSafety.DoLocked(() => GetDocument(id, true));
+        }
 
         /// <summary>
         /// Gets a list of index names that are present in the database
         /// </summary>
         /// <returns>The list of created index names</returns>
+        [NotNull]
+        [ItemNotNull]
         public IList<string> GetIndexes()
         {
             object retVal = null;
@@ -523,8 +567,11 @@ namespace Couchbase.Lite
         /// Runs the given batch of operations as an atomic unit
         /// </summary>
         /// <param name="a">The <see cref="Action"/> containing the operations. </param>
+        [ContractAnnotation("null => halt")]
         public void InBatch(Action a)
         {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(a), a);
+
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -556,8 +603,11 @@ namespace Couchbase.Lite
         /// <returns>Whether or not the document was actually purged.</returns>
         /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a database
         /// other than the one it was previously added to</exception>
+        [ContractAnnotation("null => halt")]
         public void Purge(Document document)
         {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(document), document);
+
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -581,8 +631,11 @@ namespace Couchbase.Lite
         /// Removes a database changed listener (using the method that was registered)
         /// </summary>
         /// <param name="handler">The previously registered method for listening</param>
+        [ContractAnnotation("null => halt")]
         public void RemoveChangeListener(EventHandler<DatabaseChangedEventArgs> handler)
         {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(handler), handler);
+
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -595,8 +648,11 @@ namespace Couchbase.Lite
         /// Removes a database changed listener by token
         /// </summary>
         /// <param name="token">The token received from <see cref="AddChangeListener"/></param>
+        [ContractAnnotation("null => halt")]
         public void RemoveChangeListener(ListenerToken token)
         {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(token), token);
+
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -609,8 +665,11 @@ namespace Couchbase.Lite
         /// Removes a listener for changes on a certain document (by token)
         /// </summary>
         /// <param name="token">The token received from <see cref="AddDocumentChangedListener"/></param>
+        [ContractAnnotation("null => halt")]
         public void RemoveDocumentChangedListener(ListenerToken token)
         {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(token), token);
+
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -635,8 +694,12 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="documentID">The ID to add the listener for</param>
         /// <param name="handler">The logic to handle the event</param>
+        [ContractAnnotation("documentID:null => halt; handler:null => halt")]
         public void RemoveDocumentChangedListener(string documentID, EventHandler<DocumentChangedEventArgs> handler)
         {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(documentID), documentID);
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(handler), handler);
+
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -659,8 +722,11 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
         /// other than the one it was previously added to</exception>
         /// <returns>The document that was created as the new revision</returns>
+        [ContractAnnotation("null => halt; notnull => notnull")]
         public Document Save(MutableDocument document)
         {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(document), document);
+
             return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -674,22 +740,23 @@ namespace Couchbase.Lite
 		/// </summary>
 		/// <param name="key">The new key to encrypt the database with, or <c>null</c>
 		/// to remove encryption</param>
-		public void SetEncryptionKey(EncryptionKey key)
+		public void SetEncryptionKey([CanBeNull]EncryptionKey key)
 		{
 			ThreadSafety.DoLockedBridge(err =>
 			{
 				var newKey = new C4EncryptionKey
 				{
-					algorithm = C4EncryptionAlgorithm.AES256
+					algorithm = key == null ? C4EncryptionAlgorithm.None : C4EncryptionAlgorithm.AES256
 				};
 
-				var i = 0;
-				foreach (var b in key.KeyData)
-				{
-					newKey.bytes[i++] = b;
-				}
+			    if (key != null) {
+			        var i = 0;
+			        foreach (var b in key.KeyData) {
+			            newKey.bytes[i++] = b;
+			        }
+			    }
 
-				return Native.c4db_rekey(c4db, &newKey, err);
+			    return Native.c4db_rekey(c4db, &newKey, err);
 			});
 		}
 
@@ -706,9 +773,11 @@ namespace Couchbase.Lite
         {
             ThreadSafety.DoLockedBridge(err => Native.c4db_endTransaction(_c4db, commit, err));
         }
-
-        internal void ResolveConflict(string docID, IConflictResolver resolver)
+        
+        internal void ResolveConflict([NotNull]string docID, [CanBeNull]IConflictResolver resolver)
         {
+            CBDebug.MustNotBeNullQuick(nameof(docID), docID);;
+
             InBatch(() =>
             {
                 using (var doc = new Document(this, docID, true))
@@ -740,13 +809,13 @@ namespace Couchbase.Lite
                         // Figure out what revision to delete and what if anything to add:
                         string winningRevID, losingRevID;
                         byte[] mergedBody = null;
-                        if (resolved == otherDoc) {
+                        if (Equals(resolved, otherDoc)) {
                             winningRevID = otherDoc.RevID;
                             losingRevID = doc.RevID;
                         } else {
                             winningRevID = doc.RevID;
                             losingRevID = otherDoc.RevID;
-                            if (resolved != doc) {
+                            if (!Equals(resolved, doc)) {
                                 resolved.Database = this;
                                 var encoded = resolved.Encode();
                                 mergedBody = ((C4Slice) encoded).ToArrayFast();
@@ -779,7 +848,8 @@ namespace Couchbase.Lite
         #endregion
 
         #region Private Methods
-
+        
+        [NotNull]
         private static string DatabasePath(string name, string directory)
         {
             if (String.IsNullOrWhiteSpace(name)) {
@@ -838,7 +908,8 @@ namespace Couchbase.Lite
             _c4db = null;
         }
 
-        private Document GetDocument(string docID, bool mustExist)
+        [CanBeNull]
+        private Document GetDocument([NotNull]string docID, bool mustExist)
         {
             CheckOpen();
             var doc = new Document(this, docID, mustExist);
@@ -858,13 +929,14 @@ namespace Couchbase.Lite
             return doc;
         }
 
+        [ContractAnnotation("doc:null => halt; doc:notnull => notnull,outCurrent:notnull")]
         private Document Merge(Document doc, bool deletion, out Document outCurrent)
         {
             var current = new Document(this, doc.Id, true);
             Document resolved;
             if (deletion) {
-                // Deletion always loses a conflict:
-                resolved = current;
+                // Deletion always wins a conflict:
+                resolved = doc;
             } else {
                 // Call the conflict resolver:
                 using (var baseDoc = new Document(this, doc.Id, doc.c4Doc?.Retain<C4DocumentWrapper>())) {
@@ -943,7 +1015,7 @@ namespace Couchbase.Lite
 				    if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
 				        if (docIDs.Count > 0) {
                             // Only notify if there are actually changes to send
-				            var args = new DatabaseChangedEventArgs(this, docIDs, external);
+				            var args = new DatabaseChangedEventArgs(this, docIDs);
 				            allChanges.Add(args);
 				            docIDs = new List<string>();
 				        }
@@ -961,7 +1033,7 @@ namespace Couchbase.Lite
             }
         }
 
-        private void PostDocChanged(string documentID)
+        private void PostDocChanged([NotNull]string documentID)
         {
             DocumentChangedEventArgs change = null;
             ThreadSafety.DoLocked(() =>
@@ -976,7 +1048,8 @@ namespace Couchbase.Lite
             _documentChanged.Fire(documentID, this, change);
         }
 
-        private Document Save(Document doc, bool deletion)
+        [CanBeNull]
+        private Document Save([NotNull]Document doc, bool deletion)
         {
             VerifyDB(doc);
             if (deletion && !doc.Exists) {
@@ -1019,7 +1092,7 @@ namespace Couchbase.Lite
             return retVal ?? new Document(this, doc.Id, new C4DocumentWrapper(retValDoc));
         }
 
-        private void Save(Document doc, C4Document** outDoc, C4Document* baseDoc, bool deletion)
+        private void Save([NotNull]Document doc, C4Document** outDoc, C4Document* baseDoc, bool deletion)
         {
             var revFlags = (C4RevisionFlags) 0;
             if (deletion) {
@@ -1077,7 +1150,7 @@ namespace Couchbase.Lite
             }
         }
 
-        private void VerifyDB(Document document)
+        private void VerifyDB([NotNull]Document document)
         {
             if (document.Database == null) {
                 document.Database = this;

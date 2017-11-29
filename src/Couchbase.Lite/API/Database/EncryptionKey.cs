@@ -22,6 +22,9 @@ using System;
 using System.Security.Cryptography;
 using System.Text;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Util;
+
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite
 {
@@ -64,11 +67,13 @@ namespace Couchbase.Lite
 		/// <summary>
 		/// The key data encoded as hex.
 		/// </summary>
+		[NotNull]
 		public string HexData => BitConverter.ToString(KeyData).Replace("-", String.Empty).ToLower();
 
 		/// <summary>
 		/// The SymmetricKey's key data; can be used to reconstitute it.
 		/// </summary>
+		[NotNull]
 		public byte[] KeyData => _cryptor.Key;
 
         #endregion
@@ -92,17 +97,10 @@ namespace Couchbase.Lite
         /// Should be kept fixed for any particular app, but doesn't need to be secret.</param>
         /// <param name="rounds">The number of rounds of hashing to perform. 
         /// More rounds is more secure but takes longer.</param>
-        public EncryptionKey(string password, byte[] salt, int rounds) 
+        public EncryptionKey(string password, byte[] salt, int rounds)
         {
-            if(password == null) {
-                Log.To.Database.E(Tag, "password cannot be null in ctor, throwing...");
-                throw new ArgumentNullException(nameof(password));
-            }
-
-            if (salt == null) {
-                Log.To.Database.E(Tag, "salt cannot be null in ctor, throwing...");
-                throw new ArgumentNullException(nameof(salt));
-            }
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(password), password);
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(salt), salt);
 
             if(salt.Length <= 4) {
                 Log.To.Database.E(Tag, "salt cannot be less than 4 bytes in ctor, throwing...");

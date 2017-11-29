@@ -27,6 +27,8 @@ using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Support;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -57,12 +59,12 @@ namespace Couchbase.Lite
         {
         }
 
-        internal ArrayObject(MArray array, bool isMutable)
+        internal ArrayObject([NotNull]MArray array, bool isMutable)
         {
             _array.InitAsCopyOf(array, isMutable);
         }
 
-        internal ArrayObject(ArrayObject original, bool mutable)
+        internal ArrayObject([NotNull]ArrayObject original, bool mutable)
             : this(original._array, mutable)
         {
             
@@ -77,6 +79,7 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
+        [NotNull]
         public MutableArray ToMutable()
         {
             return new MutableArray(_array, true);
@@ -86,11 +89,13 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
+        [NotNull]
         internal virtual ArrayObject ToImmutable()
         {
             return this;
         }
-
+        
+        [NotNull]
         internal MCollection ToMCollection()
         {
             return _array;
@@ -100,7 +105,8 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
-        private static MValue Get(MArray array, int index, IThreadSafety threadSafety = null)
+        [NotNull]
+        private static MValue Get([NotNull]MArray array, int index, IThreadSafety threadSafety = null)
         {
             return (threadSafety ?? NullThreadSafety.Instance).DoLocked(() =>
             {
@@ -113,9 +119,9 @@ namespace Couchbase.Lite
             });
         }
 
-        private static object GetObject(MArray array, int index, IThreadSafety threadSafety = null) => Get(array, index, threadSafety).AsObject(array);
+        private static object GetObject([NotNull]MArray array, int index, IThreadSafety threadSafety = null) => Get(array, index, threadSafety).AsObject(array);
 
-        private static T GetObject<T>(MArray array, int index, IThreadSafety threadSafety = null) where T : class => GetObject(array, index, threadSafety) as T;
+        private static T GetObject<T>([NotNull]MArray array, int index, IThreadSafety threadSafety = null) where T : class => GetObject(array, index, threadSafety) as T;
 
         #endregion
 

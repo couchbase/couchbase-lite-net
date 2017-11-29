@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -34,6 +36,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expressions">The clauses to group by</param>
         /// <returns>The query grouped by the given clauses for further processing</returns>
+        [NotNull]
         IGroupBy GroupBy(params IExpression[] expressions);
 
         #endregion

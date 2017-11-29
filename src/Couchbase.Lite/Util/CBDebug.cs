@@ -24,16 +24,22 @@ using System.Diagnostics;
 
 using Couchbase.Lite.Logging;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Util
 {
     internal static class CBDebug
     {
-        public static void AssertAndLog(DomainLogger logger, Func<bool> assertion, string tag, string message)
+        #if DEBUG
+        [ContractAnnotation("assertion:false => halt")]
+        #endif
+        public static void AssertAndLog(DomainLogger logger, bool assertion, string tag, string message)
         {
-            Debug.Assert(assertion(), message);
+            Debug.Assert(assertion, message);
             logger.W(tag, message);
         }
 
+        [ContractAnnotation("=> halt")]
         public static void LogAndThrow(DomainLogger logger, Exception e, string tag, string message, bool fatal)
         {
             if (fatal) {
@@ -43,6 +49,26 @@ namespace Couchbase.Lite.Util
             }
 
             throw e;
+        }
+
+        [NotNull]
+        public static T MustNotBeNull<T>(DomainLogger logger, string tag, string argumentName, T argumentValue) where T : class
+        {
+            MustNotBeNullQuick(argumentName, argumentValue);
+            if (argumentValue == null) {
+                var ex = new ArgumentNullException(argumentName);
+                logger.E(tag, ex.ToString());
+                throw ex;
+            }
+
+            return argumentValue;
+        }
+
+        [NotNull]
+        public static T MustNotBeNullQuick<T>(string argumentName, T argumentValue) where T : class
+        {
+            Debug.Assert(argumentValue != null);
+            return argumentValue;
         }
     }
 }

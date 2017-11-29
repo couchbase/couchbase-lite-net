@@ -30,6 +30,8 @@ using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
+using JetBrains.Annotations;
+
 using LiteCore.Interop;
 using LiteCore.Util;
 
@@ -87,6 +89,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the database that this document belongs to, if any
         /// </summary>
+        [CanBeNull]
         public Database Database { get; internal set; }
 
         internal bool Exists => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true && c4Doc.RawDoc->flags.HasFlag(C4DocumentFlags.DocExists));
@@ -96,6 +99,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets this document's unique ID
         /// </summary>
+        [NotNull]
         public string Id { get; }
 
         /// <summary>
@@ -107,6 +111,7 @@ namespace Couchbase.Lite
 
         internal virtual bool IsMutable => false;
 
+        [CanBeNull]
         internal string RevID => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.revID.CreateString() : null;
 
         /// <summary>
@@ -115,6 +120,7 @@ namespace Couchbase.Lite
         /// </summary>
         public ulong Sequence => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? c4Doc.RawDoc->sequence : 0UL);
 
+        [NotNull]
         internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
 
         /// <inheritdoc />
@@ -130,17 +136,17 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal Document(Database database, string documentID, C4DocumentWrapper c4Doc)
+        internal Document([NotNull]Database database, [NotNull]string documentID, C4DocumentWrapper c4Doc)
         {
             Database = database;
-            Id = documentID ?? throw new ArgumentNullException(nameof(documentID));
+            Id = CBDebug.MustNotBeNullQuick(nameof(documentID), documentID);
             this.c4Doc = c4Doc;
         }
 
-        internal Document(Database database, string documentID, bool mustExist)
+        internal Document([NotNull]Database database, [NotNull]string documentID, bool mustExist)
         {
-            Database = database ?? throw new ArgumentNullException(nameof(database));
-            Id = documentID ?? throw new ArgumentNullException(nameof(documentID));
+            Database = CBDebug.MustNotBeNullQuick(nameof(database), database);
+            Id = CBDebug.MustNotBeNullQuick(nameof(documentID), documentID);
             database.ThreadSafety.DoLocked(() =>
             {
                 var doc = (C4Document*)NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
@@ -149,10 +155,12 @@ namespace Couchbase.Lite
             });
         }
 
-        internal Document(Document other)
+        internal Document([NotNull]Document other)
         {
+            CBDebug.MustNotBeNullQuick(nameof(other), other);
             _root = new MRoot(other._root);
             Data = other.Data;
+            Id = other.Id;
         }
 
         #endregion
@@ -164,6 +172,7 @@ namespace Couchbase.Lite
         /// can be edited)
         /// </summary>
         /// <returns>A mutable version of the document</returns>
+        [NotNull]
         public virtual MutableDocument ToMutable()
         {
             return new MutableDocument(this);
@@ -310,6 +319,7 @@ namespace Couchbase.Lite
         /// Returns a string that represents the current object.
         /// </summary>
         /// <returns>A string that represents the current object.</returns>
+        [NotNull]
         public override string ToString()
         {
             var id = new SecureLogString(Id, LogMessageSensitivity.PotentiallyInsecure);

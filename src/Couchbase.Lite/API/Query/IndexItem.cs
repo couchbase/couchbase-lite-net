@@ -21,6 +21,8 @@
 
 using Couchbase.Lite.Internal.Query;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 { 
     /// <summary>
@@ -33,6 +35,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to base the index item on</param>
         /// <returns>The created index item</returns>
+        [NotNull]
         public static IValueIndexItem Expression(IExpression expression)
         {
             return new QueryIndexItem(expression);
@@ -49,6 +52,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to base the index item on</param>
         /// <returns>The created index item</returns>
+        [NotNull]
         public static IFTSIndexItem Expression(IExpression expression)
         {
             return new QueryIndexItem(expression);

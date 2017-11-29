@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -34,6 +36,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="joins">The join clauses to add</param>
         /// <returns>The query with the join statement, for further processing</returns>
+        [NotNull]
         IJoin Joins(params IJoin[] joins);
 
         #endregion

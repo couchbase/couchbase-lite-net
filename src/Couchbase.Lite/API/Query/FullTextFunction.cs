@@ -21,6 +21,8 @@
 
 using Couchbase.Lite.Internal.Query;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     public static class FullTextFunction
@@ -31,6 +33,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="indexName">The FTS index name to use when performing the calculation</param>
         /// <returns>A function that will perform the ranking</returns>
+        [NotNull]
         public static IExpression Rank(string indexName) => new QueryCompoundExpression("RANK()", indexName);
     }
 }

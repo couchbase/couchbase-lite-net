@@ -20,15 +20,16 @@
 // 
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
+using Couchbase.Lite.Util;
+
+using JetBrains.Annotations;
+
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
@@ -91,6 +92,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets the most recent error associated with this replication
         /// </summary>
+        [CanBeNull]
         public Exception LastError
         {
             get => _lastError;
@@ -116,9 +118,9 @@ namespace Couchbase.Lite.Sync
         /// Constructs a replicator based on the given <see cref="ReplicatorConfiguration"/>
         /// </summary>
         /// <param name="config">The configuration to use to create the replicator</param>
-        public Replicator(ReplicatorConfiguration config)
+        public Replicator([NotNull]ReplicatorConfiguration config)
         {
-            _config = ReplicatorConfiguration.Clone(config);
+            _config = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(config), ReplicatorConfiguration.Clone(config));
             _databaseThreadSafety = _config.Database.ThreadSafety;
         }
 

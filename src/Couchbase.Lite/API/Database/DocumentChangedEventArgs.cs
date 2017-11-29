@@ -21,10 +21,12 @@
 
 using System;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// The arguments for the <see cref="Database.AddDocumentChangedListener(string, EventHandler{DocumentChangedEventArgs})"/> 
+    /// The arguments for the <see cref="Database.AddDocumentChangedListener(string, System.Threading.Tasks.TaskScheduler, EventHandler{DocumentChangedEventArgs})"/> 
     /// event
     /// </summary>
     public sealed class DocumentChangedEventArgs : EventArgs
@@ -34,13 +36,14 @@ namespace Couchbase.Lite
         /// <summary>
         /// The ID of the document that changed
         /// </summary>
+        [NotNull]
         public string DocumentID { get; }
 
         #endregion
 
         #region Constructors
 
-        internal DocumentChangedEventArgs(string documentID)
+        internal DocumentChangedEventArgs([NotNull]string documentID)
         {
             DocumentID = documentID;
         }

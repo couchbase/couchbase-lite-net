@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -35,6 +37,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to evaluate in the WHERE portion</param>
         /// <returns>The next WHERE portion of the query</returns>
+        [NotNull]
         IWhere Where(IExpression expression);
 
         #endregion

@@ -76,12 +76,12 @@ namespace Couchbase.Lite
 
         internal OptionsDictionary()
         {
-            
+            _inner = new Dictionary<string, object>();
         }
 
         internal OptionsDictionary(Dictionary<string, object> raw)
         {
-            _inner = raw;
+            _inner = raw ?? new Dictionary<string, object>();
         }
 
         #endregion

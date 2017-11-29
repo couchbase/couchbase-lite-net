@@ -47,7 +47,7 @@ namespace Couchbase.Lite.Internal.Query
         private unsafe C4Query* _c4Query;
         private Dictionary<string, int> _columnNames;
         private QueryParameters _queryParameters = new QueryParameters();
-        private Event<LiveQueryChangedEventArgs> _changed = new Event<LiveQueryChangedEventArgs>();
+        private Event<QueryChangedEventArgs> _changed = new Event<QueryChangedEventArgs>();
         private readonly TimeSpan _updateInterval;
         private QueryResultSet _enum;
         private DateTime _lastUpdatedAt;
@@ -272,9 +272,6 @@ namespace Couchbase.Lite.Internal.Query
 
             // External updates should poll less frequently
             var updateInterval = _updateInterval;
-            if (e.IsExternal) {
-                updateInterval += updateInterval;
-            }
 
             var updateDelay = _lastUpdatedAt + updateInterval - DateTime.Now;
             UpdateAfter(updateDelay);
@@ -283,7 +280,9 @@ namespace Couchbase.Lite.Internal.Query
         private void Stop()
         {
             Database?.ActiveLiveQueries?.Remove(this);
-            Database?.RemoveChangeListener(_databaseChangedToken);
+            if (_databaseChangedToken != null) {
+                Database?.RemoveChangeListener(_databaseChangedToken);
+            }
         }
 
         private void Update()
@@ -309,6 +308,8 @@ namespace Couchbase.Lite.Internal.Query
             if (newEnum != null) {
                 if (oldEnum != null) {
                     Log.To.Query.I(Tag, $"{this}: Changed!");
+                } else {
+                    changed = newEnum.Count > 0;
                 }
 
                 Misc.SafeSwap(ref _enum, newEnum);
@@ -320,7 +321,7 @@ namespace Couchbase.Lite.Internal.Query
             }
 
             if (changed) {
-                _changed.Fire(this, new LiveQueryChangedEventArgs(newEnum, error));
+                _changed.Fire(this, new QueryChangedEventArgs(newEnum, error));
             }
         }
 
@@ -352,15 +353,16 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IQuery
 
-        public ListenerToken AddChangeListener(TaskScheduler scheduler, EventHandler<LiveQueryChangedEventArgs> handler)
+        public ListenerToken AddChangeListener(TaskScheduler scheduler, EventHandler<QueryChangedEventArgs> handler)
         {
-            var cbHandler = new CouchbaseEventHandler<LiveQueryChangedEventArgs>(handler, scheduler);
+            CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(handler), handler);
+
+            var cbHandler = new CouchbaseEventHandler<QueryChangedEventArgs>(handler, scheduler);
             _changed.Add(cbHandler);
 
             if (Interlocked.Increment(ref _observingCount) == 1) {
                 Database?.ActiveLiveQueries?.Add(this);
                 _databaseChangedToken = Database?.AddChangeListener(null, OnDatabaseChanged);
-                Update();
             }
 
             return new ListenerToken(cbHandler);
@@ -368,6 +370,8 @@ namespace Couchbase.Lite.Internal.Query
 
         public void RemoveChangeListener(ListenerToken token)
         {
+            CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(token), token);
+
             _changed.Remove(token);
             if (Interlocked.Decrement(ref _observingCount) == 0) {
                 Stop();

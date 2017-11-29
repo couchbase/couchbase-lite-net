@@ -21,6 +21,8 @@
 
 using Couchbase.Lite.Internal.Query;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -35,6 +37,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="expression">The expression to use when sorting</param>
         /// <returns>The object that will perform the sort</returns>
+        [NotNull]
         public static ISortOrder Expression(IExpression expression)
         {
             return new SortOrder(expression);
@@ -47,6 +50,7 @@ namespace Couchbase.Lite.Query
         /// <param name="name">The path of the property whose value will be used
         /// to sort the results of the query</param>
         /// <returns>The object that will perform the sort</returns>
+        [NotNull]
         public static ISortOrder Property(string name)
         {
             return Expression(Lite.Query.Expression.Property(name));
@@ -58,6 +62,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="ordering">The child objects to sort based on</param>
         /// <returns>The object that will perform the sort</returns>
+        [NotNull]
         public static IOrdering OrderBy(params IOrdering[] ordering)
         {
             return new QueryOrdering(ordering);

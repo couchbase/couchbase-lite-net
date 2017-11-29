@@ -22,6 +22,8 @@
 using System;
 using System.Collections.Generic;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -34,28 +36,24 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the database in which the change occurred
         /// </summary>
+        [NotNull]
         public Database Database { get; }
 
         /// <summary>
         /// Gets the document that was changed
         /// </summary>
+        [NotNull]
+        [ItemNotNull]
         public IReadOnlyList<string> DocumentIDs { get; }
-
-        /// <summary>
-        /// If <c>true</c> this change was triggered by external factors (i.e.
-        /// pull replication)
-        /// </summary>
-        public bool IsExternal { get; }
 
         #endregion
 
         #region Constructors
 
-        internal DatabaseChangedEventArgs(Database database, IReadOnlyList<string> documentIDs, bool isExternal)
+        internal DatabaseChangedEventArgs([NotNull]Database database, [NotNull][ItemNotNull]IReadOnlyList<string> documentIDs)
         {
             Database = database;
             DocumentIDs = documentIDs;
-            IsExternal = isExternal;
         }
 
         #endregion

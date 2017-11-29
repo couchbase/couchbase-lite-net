@@ -21,6 +21,8 @@
 
 using Couchbase.Lite.Internal.Query;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     public static class ArrayExpression
@@ -34,6 +36,7 @@ namespace Couchbase.Lite.Query
         /// <param name="variable">The name to assign to the variable that will be used later
         /// via <see cref="Variable"/></param>
         /// <returns>The first portion of the completed expression for further modification</returns>
+        [NotNull]
         public static IArrayExpressionIn Any(string variable)
         {
             return new QueryTernaryExpression("ANY", variable);
@@ -49,6 +52,7 @@ namespace Couchbase.Lite.Query
         /// <param name="variable">The name to assign to the variable that will be used later
         /// via <see cref="Variable"/></param>
         /// <returns>The first portion of the completed expression for further modification</returns>
+        [NotNull]
         public static IArrayExpressionIn AnyAndEvery(string variable)
         {
             return new QueryTernaryExpression("ANY AND EVERY", variable);
@@ -64,6 +68,7 @@ namespace Couchbase.Lite.Query
         /// <param name="variable">The name to assign to the variable that will be used later
         /// via <see cref="Variable"/></param>
         /// <returns>The first portion of the completed expression for further modification</returns>
+        [NotNull]
         public static IArrayExpressionIn Every(string variable)
         {
             return new QueryTernaryExpression("EVERY", variable);
@@ -75,6 +80,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="name">The name of the variable</param>
         /// <returns>An expression representing the value of a named variable</returns>
+        [NotNull]
         public static IPropertyExpression Variable(string name)
         {
             return new QueryTypeExpression(name, ExpressionType.Variable);

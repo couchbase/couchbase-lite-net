@@ -18,6 +18,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -39,6 +42,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="ignoreCase">Whether or not to ignore casing</param>
         /// <returns>The collation object for further processing</returns>
+        [NotNull]
         IASCIICollation IgnoreCase(bool ignoreCase);
     }
 
@@ -54,6 +58,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="ignoreCase">Whether or not to ignore casing</param>
         /// <returns>The collation object for further processing</returns>
+        [NotNull]
         IUnicodeCollation IgnoreCase(bool ignoreCase);
 
         /// <summary>
@@ -62,6 +67,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="ignoreAccents">Whether or not to ignore diacritics</param>
         /// <returns>The collation object for further processing</returns>
+        [NotNull]
         IUnicodeCollation IgnoreAccents(bool ignoreAccents);
 
         /// <summary>
@@ -71,6 +77,7 @@ namespace Couchbase.Lite.Query
         /// plus an optional underbar [_] and ISO-3166 country code.  Example: 
         /// 'en', 'en_US', 'fr_CA', etc)</param>
         /// <returns>The collation object for further processing</returns>
+        [NotNull]
         IUnicodeCollation Locale(string localeCode);
     }
 }

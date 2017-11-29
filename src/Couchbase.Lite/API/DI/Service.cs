@@ -24,6 +24,11 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 
+using Couchbase.Lite.Logging;
+using Couchbase.Lite.Util;
+
+using JetBrains.Annotations;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite.DI
@@ -39,6 +44,8 @@ namespace Couchbase.Lite.DI
             typeof(IDefaultDirectoryResolver),
             typeof(ISslStreamFactory)
         };
+
+        private const string Tag = nameof(Service);
 
         #endregion
 
@@ -75,6 +82,7 @@ namespace Couchbase.Lite.DI
         /// <summary>
         /// Gets the service provider that is used to resolve dependencies in the library
         /// </summary>
+        [NotNull]
         public static IServiceProvider Provider
         {
             get {
@@ -99,8 +107,11 @@ namespace Couchbase.Lite.DI
         /// after the provider is created (it is created on the first call to <see cref="Provider"/>
         /// </summary>
         /// <param name="config">The action to configure the service collection</param>
+        [ContractAnnotation("null => halt")]
         public static void RegisterServices(Action<IServiceCollection> config)
         {
+            CBDebug.MustNotBeNull(Log.To.Couchbase, Tag, nameof(config), config);
+
             if (IsFinalized) {
                 throw new InvalidOperationException("Cannot register services after the provider has been created");
             }
@@ -114,8 +125,13 @@ namespace Couchbase.Lite.DI
         /// they must implement an interface and must have a default constructor.
         /// </summary>
         /// <param name="assembly"></param>
+        [ContractAnnotation("null => halt")]
         public static void AutoRegister(Assembly assembly)
         {
+            if (assembly == null) {
+                throw new ArgumentNullException(nameof(assembly));
+            }
+
             foreach (var type in assembly.GetTypes().Where(x => x.GetTypeInfo().IsClass)) {
                 var ti = type.GetTypeInfo();
                 var attribute = ti.GetCustomAttribute<CouchbaseDependencyAttribute>();

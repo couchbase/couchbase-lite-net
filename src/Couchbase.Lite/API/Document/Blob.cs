@@ -25,6 +25,9 @@ using System.IO;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
+
+using JetBrains.Annotations;
+
 using LiteCore;
 using LiteCore.Interop;
 
@@ -58,6 +61,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the contents of the blob as an in-memory array
         /// </summary>
+        [CanBeNull]
         public byte[] Content
         {
             get {
@@ -105,6 +109,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the contents of the blob as a <see cref="Stream"/>
         /// </summary>
+        [CanBeNull]
         public Stream ContentStream
         {
             get {
@@ -116,20 +121,22 @@ namespace Couchbase.Lite
                     }
 
                     return new BlobReadStream(blobStore, key);
-                } else {
-                    return _content != null ? new MemoryStream(_content) : null;
                 }
+
+                return _content != null ? new MemoryStream(_content) : null;
             }
         }
 
         /// <summary>
         /// Gets the content type of the blob
         /// </summary>
+        [CanBeNull]
         public string ContentType { get; }
 
         /// <summary>
         /// Gets the digest of the blob, once it is saved
         /// </summary>
+        [CanBeNull]
         public string Digest { get; private set; }
 
         /// <summary>
@@ -140,8 +147,10 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the metadata of the blob instance
         /// </summary>
+        [NotNull]
         public IReadOnlyDictionary<string, object> Properties => new ReadOnlyDictionary<string, object>(MutableProperties);
 
+        [NotNull]
         internal IReadOnlyDictionary<string, object> JsonRepresentation
         {
             get {
@@ -157,6 +166,7 @@ namespace Couchbase.Lite
             }
         }
 
+        [NotNull]
         private IDictionary<string, object> MutableProperties
         {
             get {
@@ -183,10 +193,10 @@ namespace Couchbase.Lite
         /// <param name="content">The content of the blob</param>
         /// <returns>An instantiated <see cref="Blob" /> object</returns>
         /// <exception cref="ArgumentNullException">Thrown if <c>content</c> is <c>null</c></exception>
-        public Blob(string contentType, byte[] content)
+        public Blob(string contentType, [NotNull]byte[] content)
         {
             ContentType = contentType;
-            _content = content ?? throw new ArgumentNullException(nameof(content));
+            _content = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(content), content);
             Length = (ulong)content.Length;
         }
 
@@ -197,10 +207,10 @@ namespace Couchbase.Lite
         /// <param name="stream">The stream containing the blob content</param>
         /// <returns>An instantiated <see cref="Blob" /> object</returns>
         /// <exception cref="ArgumentNullException">Thrown if <c>stream</c> is <c>null</c></exception>
-        public Blob(string contentType, Stream stream)
+        public Blob(string contentType, [NotNull]Stream stream)
         {
             ContentType = contentType;
-            _initialContentStream = stream ?? throw new ArgumentNullException(nameof(stream));
+            _initialContentStream = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(stream), stream);
         }
 
         /// <summary>
@@ -217,11 +227,9 @@ namespace Couchbase.Lite
         /// does not have the required permission.</exception>
         /// <exception cref="FileNotFoundException">The file specified in fileUrl was not found.</exception>
         /// <exception cref="IOException">An I/O error occurred while opening the file.</exception>
-        public Blob(string contentType, Uri fileUrl)
+        public Blob(string contentType, [NotNull]Uri fileUrl)
         {
-            if(fileUrl == null) {
-                throw new ArgumentNullException(nameof(fileUrl));
-            }
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(fileUrl), fileUrl);
 
             if(!fileUrl.IsFile) {
                 throw new ArgumentException($"{fileUrl} must be a file-based URL", nameof(fileUrl));
@@ -230,15 +238,15 @@ namespace Couchbase.Lite
             ContentType = contentType;
             _initialContentStream = File.OpenRead(fileUrl.AbsolutePath);
         }
-
-        internal Blob(Database db, IDictionary<string, object> properties)
+        
+        internal Blob([NotNull]Database db, [NotNull]IDictionary<string, object> properties)
         {
             if(properties == null) {
                 throw new ArgumentNullException(nameof(properties));
             }
 
-            _db = db ?? throw new ArgumentNullException(nameof(db));
-            _properties = new Dictionary<string, object>(properties);
+            _db = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(db), db);
+            _properties = new Dictionary<string, object>(CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(properties), properties));
             _properties.Remove(Constants.ObjectTypeProperty);
 
             Length = properties.GetCast<ulong>("length");
@@ -286,12 +294,10 @@ namespace Couchbase.Lite
                 return false;
             }
         }
-
-        private void Install(Database db)
+        
+        private void Install([NotNull]Database db)
         {
-            if(db == null) {
-                throw new ArgumentNullException(nameof(db));
-            }
+            CBDebug.MustNotBeNullQuick(nameof(db), db);
 
             if(_db != null) {
                 if(db != _db) {
@@ -380,6 +386,7 @@ namespace Couchbase.Lite
         /// Returns a string that represents the current object.
         /// </summary>
         /// <returns>A string that represents the current object.</returns>
+        [NotNull]
         public override string ToString()
         {
             return $"Blob[{ContentType}; {(Length + 512) / 1024} KB]";

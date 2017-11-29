@@ -21,6 +21,8 @@
 
 using Couchbase.Lite.Internal.Query;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -36,6 +38,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="database">The database to operate on</param>
         /// <returns>The source of data for the <see cref="IQuery" /></returns>
+        [NotNull]
         public static IDataSourceAs Database(Database database)
         {
             return new DatabaseSource(database, database.ThreadSafety);

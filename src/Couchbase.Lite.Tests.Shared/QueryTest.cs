@@ -350,7 +350,7 @@ namespace Test
             var w = FullTextExpression.Index("sentence").Match("'Dummie woman'");
             var o = Ordering.Expression(FullTextFunction.Rank("sentence")).Descending();
 
-            var index = Index.FTSIndex().On(FTSIndexItem.Expression(sentence));
+            var index = Index.FTSIndex(FTSIndexItem.Expression(sentence));
             Db.CreateIndex("sentence", index);
             using (var q = Query.Select(DocID, s_sentence)
                 .From(DataSource.Database(Db))
@@ -459,10 +459,10 @@ namespace Test
             using (var q = Query.Select().From(DataSource.Database(Db))
                 .Where(Expression.Property("number1").LessThan(10)).OrderBy(Ordering.Property("number1"))) {
 
-                var mre = new ManualResetEventSlim();
+                var are = new AutoResetEvent(false);
                 q.AddChangeListener(null, (sender, args) =>
                 {
-                    mre.Set();
+                    are.Set();
                 });
 
                 await Task.Delay(500).ConfigureAwait(false);
@@ -470,7 +470,8 @@ namespace Test
                 // This change will not affect the query results because 'number1 < 10' 
                 // is not true
                 CreateDocInSeries(111, 100);
-                mre.Wait(5000).Should().BeFalse("because the Changed event should not fire needlessly");
+                are.WaitOne(5000).Should().BeTrue("because the Changed event should fire once for the initial results");
+                are.WaitOne(5000).Should().BeFalse("because the Changed event should not fire needlessly");
             }
         }
 

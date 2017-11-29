@@ -113,8 +113,7 @@ namespace Test
                 Db.Delete(doc);
 
                 using (var savedDoc = Db.GetDocument(doc.Id)) {
-                    savedDoc.IsDeleted.Should().BeFalse("because there was a conflict in place of the deletion");
-                    savedDoc["name"].ToString().Should().Be("Scotty", "because that was the pre-deletion value");
+                    savedDoc.Should().BeNull("because deletes will win a conflict");
                 }
             }
         }

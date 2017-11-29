@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.DI
 {
     /// <summary>
@@ -29,11 +31,13 @@ namespace Couchbase.Lite.DI
         /// <summary>
         /// Gets the operating system name and version (and possibly other info)
         /// </summary>
+        [NotNull]
 		string OSDescription { get; }
 
         /// <summary>
         /// Gets the name of the device that is running the program, if possible
         /// </summary>
+        [NotNull]
 		string HardwareName { get; }
 	}
 }

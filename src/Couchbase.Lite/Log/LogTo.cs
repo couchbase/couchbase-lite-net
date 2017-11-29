@@ -22,6 +22,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+
+using JetBrains.Annotations;
+
 using LiteCore.Interop;
 using Microsoft.Extensions.Logging;
 
@@ -86,6 +89,7 @@ namespace Couchbase.Lite.Logging
         }
 
         [System.Diagnostics.Conditional("DEBUG")]
+        [StringFormatMethod("format")]
         internal void D(string tag, string format, params object[] args)
         {
             if (ShouldLog(LogLevel.Debug)) {
@@ -107,6 +111,7 @@ namespace Couchbase.Lite.Logging
             }
         }
 
+        [StringFormatMethod("format")]
         internal void E(string tag, string format, params object[] args)
         {
             if (ShouldLog(LogLevel.Error)) {
@@ -128,6 +133,7 @@ namespace Couchbase.Lite.Logging
             }
         }
 
+        [StringFormatMethod("format")]
         internal void I(string tag, string format, params object[] args)
         {
             if (ShouldLog(LogLevel.Info)) {
@@ -173,6 +179,7 @@ namespace Couchbase.Lite.Logging
             }
         }
 
+        [StringFormatMethod("format")]
         internal void V(string tag, string format, params object[] args)
         {
             if (ShouldLog(LogLevel.Verbose)) {
@@ -194,6 +201,7 @@ namespace Couchbase.Lite.Logging
             }
         }
 
+        [StringFormatMethod("format")]
         internal void W(string tag, string format, params object[] args)
         {
             if (ShouldLog(LogLevel.Warning)) {

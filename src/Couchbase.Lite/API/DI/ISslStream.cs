@@ -23,6 +23,8 @@ using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.DI
 {
     /// <summary>
@@ -44,6 +46,8 @@ namespace Couchbase.Lite.DI
         /// </summary>
         /// <param name="inner">The underlying </param>
         /// <returns>The instantiated stream ready for communication</returns>
+        [NotNull]
+        [ContractAnnotation("null => halt")]
         ISslStream Create(Stream inner);
 
         #endregion
@@ -62,6 +66,7 @@ namespace Couchbase.Lite.DI
         /// Gets or sets the certificate to use for server validation.  All other
         /// certificates will be rejected
         /// </summary>
+        [CanBeNull]
         X509Certificate2 PinnedServerCertificate { get; set; }
 
         #endregion
@@ -72,6 +77,7 @@ namespace Couchbase.Lite.DI
         /// Gets this object as a <see cref="Stream"/> for reading and/or writing
         /// </summary>
         /// <returns>The object as a stream</returns>
+        [NotNull]
         Stream AsStream();
 
         /// <summary>
@@ -83,6 +89,8 @@ namespace Couchbase.Lite.DI
         /// <param name="clientCertificates">The client certificates to use, if any (note: still not implemented)</param>
         /// <param name="checkCertificateRevocation">Whether or not to check for certificate revocation (not supported on UWP)</param>
         /// <returns>An awaitable <see cref="Task"/></returns>
+        [NotNull]
+        [ContractAnnotation("targetHost:null => halt")]
         Task ConnectAsync(string targetHost, ushort targetPort, X509CertificateCollection clientCertificates,
             bool checkCertificateRevocation);
 

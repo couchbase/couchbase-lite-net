@@ -28,6 +28,8 @@ using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
+using JetBrains.Annotations;
+
 using LiteCore;
 using LiteCore.Interop;
 

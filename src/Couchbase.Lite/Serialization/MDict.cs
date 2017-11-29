@@ -22,12 +22,19 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+
+using Couchbase.Lite.Logging;
+using Couchbase.Lite.Util;
+
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Serialization
 {
     internal sealed unsafe class MDict : MCollection
     {
+
+        private const string Tag = nameof(MDict);
+
         #region Variables
 
         private FLDict* _dict;
@@ -86,6 +93,8 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public MValue Get(string key)
         {
+            CBDebug.MustNotBeNull(Log.To.Couchbase, Tag, nameof(key), key);
+
             if (_map.ContainsKey(key)) {
                 return _map[key];
             }

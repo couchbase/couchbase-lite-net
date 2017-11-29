@@ -21,6 +21,8 @@
 
 using Couchbase.Lite.Internal.Query;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -32,18 +34,20 @@ namespace Couchbase.Lite.Query
         /// Starts the creation of an index based on a simple property
         /// </summary>
         /// <returns>The beginning of a value based index</returns>
-        public static IValueIndexOn ValueIndex()
+        [NotNull]
+        public static IValueIndex ValueIndex(params IValueIndexItem[] items)
         {
-            return new QueryIndex();
+            return new QueryIndex(items);
         }
 
         /// <summary>
         /// Starts the creation of an index based on a full text search
         /// </summary>
         /// <returns>The beginning of an FTS based index</returns>
-        public static IFTSIndexOn FTSIndex()
+        [NotNull]
+        public static IFTSIndex FTSIndex(params IFTSIndexItem[] items)
         {
-            return new QueryIndex();
+            return new QueryIndex(items);
         }
     }
 }

@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -42,6 +44,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="alias">The alias to attach</param>
         /// <returns>The datasource, for further operations</returns>
+        [NotNull]
         IDataSource As(string alias);
 
         #endregion

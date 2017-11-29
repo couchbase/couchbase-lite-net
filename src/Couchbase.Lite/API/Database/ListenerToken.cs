@@ -21,6 +21,8 @@
 
 using Couchbase.Lite.Util;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite
 {
     public sealed class ListenerToken
@@ -33,7 +35,7 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal ListenerToken(CouchbaseEventHandler handler)
+        internal ListenerToken([NotNull]CouchbaseEventHandler handler)
         {
             EventHandler = handler;
         }

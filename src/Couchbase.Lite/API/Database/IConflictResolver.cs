@@ -18,6 +18,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -33,7 +36,8 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="conflict">The conflict that occurred</param>
         /// <returns>The new version of the document</returns>
-        Document Resolve(Conflict conflict);
+        [CanBeNull]
+        Document Resolve([NotNull]Conflict conflict);
 
         #endregion
     }

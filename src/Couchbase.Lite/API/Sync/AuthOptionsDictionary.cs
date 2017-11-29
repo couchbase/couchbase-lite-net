@@ -21,6 +21,8 @@
 using System;
 using System.Collections.Generic;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
@@ -64,6 +66,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets or sets the password for the credentials (not applicable in all cases)
         /// </summary>
+        [CanBeNull]
         public string Password
         {
             get => this[PasswordKey] as string;
@@ -85,6 +88,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets or sets the username to be used
         /// </summary>
+        [CanBeNull]
         public string Username
         {
             get => this[UsernameKey] as string;

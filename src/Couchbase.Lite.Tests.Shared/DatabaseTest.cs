@@ -966,17 +966,17 @@ namespace Test
             var fNameItem = ValueIndexItem.Expression(fName);
             var lNameItem = ValueIndexItem.Expression(lName);
 
-            var index1 = Index.ValueIndex().On(fNameItem, lNameItem);
+            var index1 = Index.ValueIndex(fNameItem, lNameItem);
             Db.CreateIndex("index1", index1);
 
             var detail = Expression.Property("detail");
             var detailItem = FTSIndexItem.Expression(detail);
-            var index2 = Index.FTSIndex().On(detailItem);
+            var index2 = Index.FTSIndex(detailItem);
             Db.CreateIndex("index2", index2);
 
             var detail2 = Expression.Property("es-detail");
             var detailItem2 = FTSIndexItem.Expression(detail2);
-            var index3 = Index.FTSIndex().On(detailItem2).IgnoreAccents(true).SetLocale("es");
+            var index3 = Index.FTSIndex(detailItem2).IgnoreAccents(true).SetLocale("es");
             Db.CreateIndex("index3", index3);
 
             Db.GetIndexes().ShouldBeEquivalentTo(new[] {"index1", "index2", "index3"});
@@ -986,7 +986,7 @@ namespace Test
         public void TestCreateSameIndexTwice()
         {
             var item = ValueIndexItem.Expression(Expression.Property("firstName"));
-            var index = Index.ValueIndex().On(item);
+            var index = Index.ValueIndex(item);
             Db.CreateIndex("myindex", index);
             Db.CreateIndex("myindex", index);
 
@@ -1001,17 +1001,17 @@ namespace Test
             var detail = Expression.Property("detail");
 
             var fNameItem = ValueIndexItem.Expression(fName);
-            var fNameIndex = Index.ValueIndex().On(fNameItem);
+            var fNameIndex = Index.ValueIndex(fNameItem);
             Db.CreateIndex("myindex", fNameIndex);
 
             var lNameItem = ValueIndexItem.Expression(lName);
-            var lNameIndex = Index.ValueIndex().On(lNameItem);
+            var lNameIndex = Index.ValueIndex(lNameItem);
             Db.CreateIndex("myindex", lNameIndex);
 
             Db.GetIndexes().ShouldBeEquivalentTo(new[] {"myindex"}, "because lNameIndex should overwrite fNameIndex");
 
             var detailItem = FTSIndexItem.Expression(detail);
-            var detailIndex = Index.FTSIndex().On(detailItem);
+            var detailIndex = Index.FTSIndex(detailItem);
             Db.CreateIndex("myindex", detailIndex);
 
             Db.GetIndexes().ShouldBeEquivalentTo(new[] { "myindex" }, "because detailIndex should overwrite lNameIndex");

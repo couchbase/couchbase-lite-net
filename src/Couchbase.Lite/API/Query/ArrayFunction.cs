@@ -21,6 +21,8 @@
 
 using Couchbase.Lite.Internal.Query;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     public static class ArrayFunction
@@ -36,6 +38,7 @@ namespace Couchbase.Lite.Query
         /// <param name="element">The element to search for (either an expression or literal)</param>
         /// <returns>A function that will return true if the array contains the element, or false
         /// if it does not</returns>
+        [NotNull]
         public static IExpression Contains(object array, object element) => new QueryCompoundExpression("ARRAY_CONTAINS()", array, element);
 
         /// <summary>
@@ -45,6 +48,7 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to usem when calculating (must evaluate to an array type)
         /// the result</param>
         /// <returns>A function that will get the length of the array in question</returns>
+        [NotNull]
         public static IExpression Length(object expression) => new QueryCompoundExpression("ARRAY_LENGTH()", expression);
 
         #endregion

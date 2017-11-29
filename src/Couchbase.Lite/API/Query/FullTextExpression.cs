@@ -23,10 +23,13 @@ using System;
 
 using Couchbase.Lite.Internal.Query;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     public static class FullTextExpression
     {
+        [NotNull]
         public static IFullTextExpression Index(string indexName) => new QueryCompoundExpression("MATCH", indexName, String.Empty);
     }
 }

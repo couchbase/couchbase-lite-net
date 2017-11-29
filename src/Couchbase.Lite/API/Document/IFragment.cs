@@ -21,11 +21,13 @@
 
 using System;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite
 {
     /// <summary>
     /// An interface representing a readonly entry in a key path that is
-    /// able to be indexed by <see cref="System.String"/>
+    /// able to be indexed by <see cref="String"/>
     /// (e.g. object["key1"]["key2"])
     /// </summary>
     public interface IDictionaryFragment
@@ -34,10 +36,11 @@ namespace Couchbase.Lite
 
         /// <summary>
         /// Gets the value of the given key, or lack thereof,
-        /// wrapped inside of a <see cref="Fragment"/>
+        /// wrapped inside of a <see cref="IFragment"/>
         /// </summary>
         /// <param name="key">The key to check</param>
         /// <returns>The value of the given key, or lack thereof</returns>
+        [NotNull]
         IFragment this[string key] { get; }
 
         #endregion
@@ -54,10 +57,11 @@ namespace Couchbase.Lite
 
         /// <summary>
         /// Gets the value of the given index, or lack thereof,
-        /// wrapped inside of a <see cref="Fragment"/>
+        /// wrapped inside of a <see cref="IFragment"/>
         /// </summary>
         /// <param name="index">The index to check</param>
         /// <returns>The value of the given index, or lack thereof</returns>
+        [NotNull]
         IFragment this[int index] { get; }
 
         #endregion
@@ -73,16 +77,19 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the value of the fragment as an untyped object
         /// </summary>
+        [CanBeNull]
         object Value { get; }
 
         /// <summary>
         /// Gets the contained value as a <see cref="ArrayObject"/>
         /// </summary>
+        [CanBeNull]
         ArrayObject Array { get; }
 
         /// <summary>
         /// Gets the contained value as a <see cref="Blob"/>
         /// </summary>
+        [CanBeNull]
         Blob Blob { get; }
 
         /// <summary>
@@ -105,6 +112,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the contained value as a <see cref="DictionaryObject"/>
         /// </summary>
+        [CanBeNull]
         DictionaryObject Dictionary { get; }
 
         /// <summary>
@@ -134,7 +142,11 @@ namespace Couchbase.Lite
         /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
         /// will be rounded, and everything else non-numeric will be 0</remarks>
         long Long { get; }
-
+        
+        /// <summary>
+        /// Gets the contained value as a <see cref="String"/>
+        /// </summary>
+        [CanBeNull]
         string String { get; }
     }
 }

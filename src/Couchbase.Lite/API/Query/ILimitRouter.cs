@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -33,6 +35,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="limit">The amount to limit the query to</param>
         /// <returns>The query for further processing</returns>
+        [NotNull]
         ILimit Limit(object limit);
 
         /// <summary>
@@ -42,6 +45,7 @@ namespace Couchbase.Lite.Query
         /// <param name="limit">The amount to limit the query to</param>
         /// <param name="offset">The amount to offset the query by</param>
         /// <returns>The query for further processing</returns>
+        [NotNull]
         ILimit Limit(object limit, object offset);
 
         #endregion

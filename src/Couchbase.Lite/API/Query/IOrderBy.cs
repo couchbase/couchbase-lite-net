@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -39,12 +41,14 @@ namespace Couchbase.Lite.Query
         /// Returns an IExpression that will sort in ascending order
         /// </summary>
         /// <returns>An IExpression that will sort in ascending order</returns>
+        [NotNull]
         IOrdering Ascending();
 
         /// <summary>
         /// Returns an IExpression that will sort in desecending order
         /// </summary>
         /// <returns>An IExpression that will sort in desecending order</returns>
+        [NotNull]
         IOrdering Descending();
 
         #endregion

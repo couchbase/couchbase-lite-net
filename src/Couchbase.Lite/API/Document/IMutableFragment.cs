@@ -21,6 +21,8 @@
 
 using System;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -35,7 +37,8 @@ namespace Couchbase.Lite
         /// Gets the value of an arbitrary <see cref="System.String"/> key
         /// </summary>
         /// <param name="key">The key to lookup the value for</param>
-        /// <returns>The value, or lack thereof, wrapped in a <see cref="MutableFragment"/></returns>
+        /// <returns>The value, or lack thereof, wrapped in a <see cref="IMutableFragment"/></returns>
+        [NotNull]
         IMutableFragment this[string key] { get; }
 
         #endregion
@@ -53,7 +56,8 @@ namespace Couchbase.Lite
         /// Gets the value of an arbitrary index
         /// </summary>
         /// <param name="index">The index to lookup the value for</param>
-        /// <returns>The value, or lack thereof, wrapped in a <see cref="MutableFragment"/></returns>
+        /// <returns>The value, or lack thereof, wrapped in a <see cref="IMutableFragment"/></returns>
+        [NotNull]
         IMutableFragment this[int index] { get; }
 
         #endregion
@@ -61,16 +65,20 @@ namespace Couchbase.Lite
 
     public interface IMutableFragment : IMutableArrayFragment, IMutableDictionaryFragment
     {
+        [CanBeNull]
         object Value { get; set; }
-
+        
+        [CanBeNull]
         MutableArray Array { get; set; }
-
+        
+        [CanBeNull]
         Blob Blob { get; set; }
 
         bool Boolean { get; set; }
         
         DateTimeOffset Date { get; set; }
-
+        
+        [CanBeNull]
         MutableDictionary Dictionary { get; set; }
 
         double Double { get; set; }
@@ -80,7 +88,8 @@ namespace Couchbase.Lite
         int Int { get; set; }
 
         long Long { get; set; }
-
+        
+        [CanBeNull]
         string String { get; set; }
     }
 }

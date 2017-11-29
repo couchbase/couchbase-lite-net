@@ -18,6 +18,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
+
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -32,24 +36,27 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the state of the document before any edits were made
         /// </summary>
+        [CanBeNull]
         public Document Base { get; }
 
         /// <summary>
         /// Gets the version of the document that is already existing
         /// </summary>
+        [NotNull]
         public Document Mine { get; }
 
         /// <summary>
         /// Gets the version of the document that is attempting to be
         /// written but cannot due to an existing version
         /// </summary>
+        [NotNull]
         public Document Theirs { get; }
 
         #endregion
 
         #region Constructors
 
-        internal Conflict(Document mine, Document theirs, Document @base)
+        internal Conflict([NotNull]Document mine, [NotNull]Document theirs, Document @base)
         {
             Mine = mine;
             Theirs = theirs;

@@ -80,12 +80,8 @@ namespace Test
                 key.KeyData.Should().Equal(derivedData);
             }
 
-            Action badAction = (() => new EncryptionKey(null, null, 200));
-            badAction.ShouldThrow<ArgumentNullException>();
-            badAction = (() => new EncryptionKey(new byte[] {1, 2, 3, 4}));
+            Action badAction = (() => new EncryptionKey(new byte[] {1, 2, 3, 4}));
             badAction.ShouldThrow<ArgumentOutOfRangeException>("because the encryption key data must be 32 bytes");
-            badAction = (() => new EncryptionKey("foo", null, 200));
-            badAction.ShouldThrow<ArgumentNullException>();
             badAction = (() => new EncryptionKey("foo", new byte[] {1}, 200));
             badAction.ShouldThrow<ArgumentOutOfRangeException>("because the salt must be at least 4 bytes");
             badAction = (() => new EncryptionKey("foo", new byte[] {1, 2, 3, 4, 5}, 5));

@@ -21,6 +21,8 @@
 
 using Couchbase.Lite.Internal.Query;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -35,6 +37,7 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression describing what to select from the
         /// query (e.g. <see cref="Lite.Query.Expression.Property(string)"/>)</param>
         /// <returns>The instantiated instance</returns>
+        [NotNull]
         public static ISelectResultAs Expression(IExpression expression)
         {
             return new QuerySelectResult(expression);
@@ -46,6 +49,7 @@ namespace Couchbase.Lite.Query
         /// <param name="property">The property path to select</param>
         /// <returns>The instantiated instance</returns>
         /// <remarks>Equivalent to <c>SelectResult.Expression(Expression.Property(property))</c></remarks>
+        [NotNull]
         public static ISelectResultAs Property(string property)
         {
             return new QuerySelectResult(Lite.Query.Expression.Property(property));
@@ -56,6 +60,7 @@ namespace Couchbase.Lite.Query
         /// data in the retrieved document
         /// </summary>
         /// <returns>The instantiated instance</returns>
+        [NotNull]
         public static ISelectResultFrom All()
         {
             var star = new QueryTypeExpression("", ExpressionType.KeyPath);

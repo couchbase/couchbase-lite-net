@@ -21,6 +21,8 @@
 
 using Couchbase.Lite.Internal.Query;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     public static class Meta
@@ -31,9 +33,11 @@ namespace Couchbase.Lite.Query
         private const string SequenceColumnName = "sequence";
 
         #region Properties
-
+        
+        [NotNull]
         public static IMetaExpression ID => new QueryTypeExpression(IDKeyPath, IDColumnName);
-
+        
+        [NotNull]
         public static IMetaExpression Sequence => new QueryTypeExpression(SequenceKeyPath, SequenceColumnName);
 
         #endregion

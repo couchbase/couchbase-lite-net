@@ -21,32 +21,39 @@
 using System;
 using System.Threading.Tasks;
 
+using Couchbase.Lite.Internal.Query;
+
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
-    /// Arguments for the <see cref="ILiveQuery.Changed" /> event
+    /// Arguments for the <see cref="IQuery.AddChangeListener" /> event
     /// </summary>
-    public sealed class LiveQueryChangedEventArgs : EventArgs
+    public sealed class QueryChangedEventArgs : EventArgs
     {
         #region Properties
 
         /// <summary>
         /// Gets the error that occurred, if any
         /// </summary>
+        [CanBeNull]
         public Exception Error { get; }
 
         /// <summary>
         /// Gets the updated rows of the query
         /// </summary>
+        [NotNull]
+        [ItemNotNull]
         public IResultSet Rows { get; }
 
         #endregion
 
         #region Constructors
 
-        internal LiveQueryChangedEventArgs(IResultSet rows, Exception e = null)
+        internal QueryChangedEventArgs(IResultSet rows, Exception e = null)
         {
-            Rows = rows;
+            Rows = rows ?? new NullResultSet();
             Error = e;
         }
 
@@ -69,6 +76,7 @@ namespace Couchbase.Lite.Query
         /// The returned collection is a copy, and must be reset onto the query instance.
         /// Doing so will trigger a re-run and update any listeners.
         /// </remarks>
+        [NotNull]
         QueryParameters Parameters { get; set; }
 
         #endregion
@@ -82,19 +90,23 @@ namespace Couchbase.Lite.Query
         /// <param name="scheduler">The scheduler to use when firing events</param>
         /// <param name="handler">The handler to call when the query result set changes</param>
         /// <returns>A token that can be used to remove the listener later</returns>
-        ListenerToken AddChangeListener(TaskScheduler scheduler, EventHandler<LiveQueryChangedEventArgs> handler);
+        [NotNull]
+        [ContractAnnotation("handler:null => halt")]
+        ListenerToken AddChangeListener(TaskScheduler scheduler, EventHandler<QueryChangedEventArgs> handler);
 
         /// <summary>
         /// Removes a changes listener based on the token that was received from
         /// <see cref="AddChangeListener"/>
         /// </summary>
         /// <param name="token">The received token from adding the change listener</param>
+        [ContractAnnotation("null => halt")]
         void RemoveChangeListener(ListenerToken token);
 
         /// <summary>
         /// Runs the query
         /// </summary>
         /// <returns>The results of running the query</returns>
+        [NotNull]
         IResultSet Execute();
 
         #endregion

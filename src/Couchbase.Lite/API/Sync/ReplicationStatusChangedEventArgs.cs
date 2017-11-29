@@ -20,6 +20,8 @@
 // 
 using System;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
@@ -37,6 +39,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets the last error that occurred, if any
         /// </summary>
+        [CanBeNull]
         public Exception LastError { get; }
 
         #endregion

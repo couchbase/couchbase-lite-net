@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -35,6 +37,7 @@ namespace Couchbase.Lite.Query
         /// <param name="orderings">An array of order by operations to consider in the 
         /// ORDER BY portion of the query</param>
         /// <returns>The next ORDER BY portion of the query</returns>
+        [NotNull]
         IOrdering OrderBy(params IOrdering[] orderings);
 
         #endregion

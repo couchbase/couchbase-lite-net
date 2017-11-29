@@ -27,6 +27,8 @@ using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Support;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -91,6 +93,7 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
+        [NotNull]
         public MutableDictionary ToMutable()
         {
             return new MutableDictionary(_dict, true);
@@ -113,11 +116,13 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
+        [NotNull]
         internal virtual DictionaryObject ToImmutable()
         {
             return this;
         }
-
+        
+        [NotNull]
         internal MCollection ToMCollection()
         {
             return _dict;

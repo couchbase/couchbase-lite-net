@@ -19,6 +19,8 @@
 //  limitations under the License.
 // 
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     public interface IFullTextExpression
@@ -29,6 +31,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="text">The text to use for the match operation</param>
         /// <returns>The expression representing the new operation</returns>
+        [NotNull]
         IExpression Match(string text);
     }
 }

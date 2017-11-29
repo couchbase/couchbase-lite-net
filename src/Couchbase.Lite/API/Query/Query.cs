@@ -21,6 +21,8 @@
 
 using Couchbase.Lite.Internal.Query;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Query
 {
     /// <summary>
@@ -35,6 +37,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="resultsToSelect">The results to select</param>
         /// <returns>The initial SELECT portion of the query</returns>
+        [NotNull]
         public static ISelect Select(params ISelectResult[] resultsToSelect)
         {
             return new Select(resultsToSelect, false);
@@ -46,6 +49,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="resultsToSelect">The results to select</param>
         /// <returns>The initial SELECT portion of the query</returns>
+        [NotNull]
         public static ISelect SelectDistinct(params ISelectResult[] resultsToSelect)
         {
             return new Select(resultsToSelect, true);

@@ -22,6 +22,8 @@
 
 using Couchbase.Lite.DI;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -35,21 +37,25 @@ namespace Couchbase.Lite
         /// Gets or sets the <see cref="IConflictResolver"/> used to handle conflicts by default
         /// in the database to be created
         /// </summary>
+        [CanBeNull]
         public IConflictResolver ConflictResolver { get; set; }
 
         /// <summary>
         /// Gets or sets the directory to use when creating or opening the data
         /// </summary>
+        [NotNull]
         public string Directory
         {
             get => _directory ?? Service.Provider.TryGetRequiredService<IDefaultDirectoryResolver>()
                        .DefaultDirectory();
+            [param:CanBeNull]
             set => _directory = value;
         }
 
         /// <summary>
         /// Gets or sets the encryption key to use on the database
         /// </summary>
+        [CanBeNull]
         public EncryptionKey EncryptionKey { get; set; }
 
         /// <summary>
