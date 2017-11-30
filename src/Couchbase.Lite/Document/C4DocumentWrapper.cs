@@ -19,6 +19,7 @@
 //  limitations under the License.
 // 
 
+using System;
 using System.Diagnostics;
 
 using Couchbase.Lite.Logging;
@@ -53,6 +54,9 @@ namespace Couchbase.Lite.Internal.Doc
         public C4DocumentWrapper(C4Document* doc)
         {
             RawDoc = doc;
+            if (RawDoc == null) {
+                GC.SuppressFinalize(this);
+            }
         }
 
         #endregion

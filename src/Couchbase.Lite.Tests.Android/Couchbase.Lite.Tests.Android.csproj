@@ -191,7 +191,6 @@
   <ItemGroup>
     <AndroidAsset Include="Assets\C\tests\data\*.*" />
     <AndroidAsset Include="Assets\replacedb\*.*" />
-    <None Include="app.config" />
     <None Include="packages.config" />
     <None Include="Resources\AboutResources.txt" />
   </ItemGroup>
@@ -213,9 +212,6 @@
     <EmbeddedResource Include="result_ip">
       <LogicalName>result_ip</LogicalName>
     </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="MainActivity.cs.txt" />
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" />
   <Import Project="..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems" Label="Shared" />
