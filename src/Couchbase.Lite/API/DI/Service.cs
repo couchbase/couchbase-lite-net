@@ -116,7 +116,7 @@ namespace Couchbase.Lite.DI
                 throw new InvalidOperationException("Cannot register services after the provider has been created");
             }
 
-            config?.Invoke(_Collection);
+            config.Invoke(_Collection);
         }
 
         /// <summary>

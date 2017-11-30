@@ -54,7 +54,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public MValue(object o)
         {
-            NativeObject = o;
+            NativeObject = DataOps.ToCouchbaseObject(o);
         }
 
         public MValue(FLValue* v)

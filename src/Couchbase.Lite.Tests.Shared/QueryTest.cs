@@ -378,7 +378,7 @@ namespace Test
                 }
 
                 using (var q = Query.Select(SelectResult.Expression(Expression.Property("name.first")))
-                    .From(DataSource.Database(Db)).Where(null).OrderBy(order))  {
+                    .From(DataSource.Database(Db)).OrderBy(order))  {
                     var firstNames = new List<object>();
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
