@@ -19,6 +19,8 @@
 //  limitations under the License.
 // 
 
+using System.Diagnostics;
+
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
@@ -71,9 +73,9 @@ namespace Couchbase.Lite.Sync
 
         #region Overrides
 
-        internal override void Authenticate(ReplicatorOptionsDictionary options)
+        internal override void Authenticate([NotNull]ReplicatorOptionsDictionary options)
         {
-            CBDebug.MustNotBeNullQuick(nameof(options), options);
+            Debug.Assert(options != null);
 
             var authDict = new AuthOptionsDictionary
             {

@@ -139,7 +139,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
-        [NotNull]
+        [CanBeNull]
         new MutableArray GetArray(int index);
 
         /// <summary>
@@ -147,7 +147,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
-        [NotNull]
+        [CanBeNull]
         new MutableDictionary GetDictionary(int index);
 
         /// <summary>

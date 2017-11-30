@@ -18,7 +18,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
+using System.Diagnostics;
+
 using Couchbase.Lite.Query;
+
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -32,8 +37,10 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal Having(XQuery source, IExpression expression)
+        internal Having([NotNull]XQuery source, IExpression expression)
         {
+            Debug.Assert(source != null);
+
             Copy(source);
 
             _expression = expression;
@@ -55,6 +62,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IOrdering OrderBy(params IOrdering[] ordering)
         {
+            ValidateParams(ordering);
             return new QueryOrdering(this, ordering);
         }
 

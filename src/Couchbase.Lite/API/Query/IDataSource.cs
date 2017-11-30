@@ -45,6 +45,7 @@ namespace Couchbase.Lite.Query
         /// <param name="alias">The alias to attach</param>
         /// <returns>The datasource, for further operations</returns>
         [NotNull]
+        [ContractAnnotation("null => halt")]
         IDataSource As(string alias);
 
         #endregion

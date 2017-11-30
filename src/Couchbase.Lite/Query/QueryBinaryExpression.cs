@@ -19,6 +19,7 @@
 // limitations under the License.
 // 
 using System.Collections.Generic;
+using System.Diagnostics;
 
 using Newtonsoft.Json;
 
@@ -134,8 +135,9 @@ namespace Couchbase.Lite.Internal.Query
             obj.Add(_lhs.ConvertToJSON());
             if ((_rhs as QueryTypeExpression)?.ExpressionType == ExpressionType.Aggregate) {
                 var collection = _rhs.ConvertToJSON() as IList<object>;
+                Debug.Assert(collection != null);
                 if (useArrayOp) {
-                    collection.Insert(0, "[]");
+                    collection?.Insert(0, "[]");
                     obj.Add(collection);
                 } else {
                     obj.AddRange(collection);

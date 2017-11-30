@@ -22,6 +22,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 using Couchbase.Lite.Internal.Doc;
@@ -45,6 +46,7 @@ namespace Couchbase.Lite
 
         //private const string Tag = nameof(Document);
 
+        [NotNull]
         private static readonly Dictionary<Guid, MutableDocument> _NativeCacheMap = new Dictionary<Guid, MutableDocument>();
 
         #endregion
@@ -62,7 +64,7 @@ namespace Couchbase.Lite
         internal static IReadOnlyDictionary<Guid, MutableDocument> NativeCacheMap => _NativeCacheMap;
 
         /// <inheritdoc />
-        public new IMutableFragment this[string key] => Dict[key];
+        public new IMutableFragment this[string key] => Dict?[key] ?? Fragment.Null;
 
         #endregion
 
@@ -107,7 +109,7 @@ namespace Couchbase.Lite
             Set(dictionary);
         }
 
-        internal MutableDocument(Database database, string documentID, bool mustExist)
+        internal MutableDocument([NotNull]Database database, [NotNull]string documentID, bool mustExist)
             : base(database, documentID, mustExist)
         {
 
@@ -119,18 +121,20 @@ namespace Couchbase.Lite
 
         }
 
-        private MutableDocument(Database database, string documentID, C4DocumentWrapper c4Doc)
+        private MutableDocument([NotNull]Database database, [NotNull]string documentID, C4DocumentWrapper c4Doc)
             : base(database, documentID, c4Doc)
         {
             
         }
 
-        private MutableDocument(MutableDocument other)
+        private MutableDocument([NotNull]MutableDocument other)
             : base(other)
         {
             var dict = new MutableDictionary();
-            foreach (var item in other._dict) {
-                dict.SetValue(item.Key, MutableCopy(item.Value));
+            if (other._dict != null) {
+                foreach (var item in other._dict) {
+                    dict.SetValue(item.Key, MutableCopy(item.Value));
+                }
             }
 
             _dict = dict;
@@ -168,6 +172,8 @@ namespace Couchbase.Lite
 
         internal override FLSlice Encode()
         {
+            Debug.Assert(Database != null);
+
             var encoder = Database.SharedEncoder;
             var guid = Guid.NewGuid();
             _NativeCacheMap[guid] = this;
@@ -205,103 +211,103 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public new MutableArray GetArray(string key)
         {
-            return Dict.GetArray(key);
+            return Dict?.GetArray(key);
         }
 
         /// <inheritdoc />
         public new MutableDictionary GetDictionary(string key)
         {
-            return Dict.GetDictionary(key);
+            return Dict?.GetDictionary(key);
         }
 
         /// <inheritdoc />
         public IMutableDictionary Remove(string key)
         {
-            Dict.Remove(key);
+            Dict?.Remove(key);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableDictionary SetValue(string key, object value)
         {
-            Dict.SetValue(key, value);
+            Dict?.SetValue(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableDictionary Set(IDictionary<string, object> dictionary)
         {
-            Dict.Set(dictionary);
+            Dict?.Set(dictionary);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableDictionary SetString(string key, string value)
         {
-            Dict.SetString(key, value);
+            Dict?.SetString(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableDictionary SetInt(string key, int value)
         {
-            Dict.SetInt(key, value);
+            Dict?.SetInt(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableDictionary SetLong(string key, long value)
         {
-            Dict.SetLong(key, value);
+            Dict?.SetLong(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableDictionary SetFloat(string key, float value)
         {
-            Dict.SetFloat(key, value);
+            Dict?.SetFloat(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableDictionary SetDouble(string key, double value)
         {
-            Dict.SetDouble(key, value);
+            Dict?.SetDouble(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableDictionary SetBoolean(string key, bool value)
         {
-            Dict.SetBoolean(key, value);
+            Dict?.SetBoolean(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableDictionary SetBlob(string key, Blob value)
         {
-            Dict.SetBlob(key, value);
+            Dict?.SetBlob(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableDictionary SetDate(string key, DateTimeOffset value)
         {
-            Dict.SetDate(key, value);
+            Dict?.SetDate(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableDictionary SetArray(string key, ArrayObject value)
         {
-            Dict.SetArray(key, value);
+            Dict?.SetArray(key, value);
             return this;
         }
 
         /// <inheritdoc />
         public IMutableDictionary SetDictionary(string key, DictionaryObject value)
         {
-            Dict.SetDictionary(key, value);
+            Dict?.SetDictionary(key, value);
             return this;
         }
 

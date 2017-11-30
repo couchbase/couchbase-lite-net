@@ -21,6 +21,7 @@
 
 using System;
 using System.Collections;
+using System.Linq;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
@@ -102,111 +103,78 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IMutableArray AddValue(object value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(DataOps.ToCouchbaseObject(value));
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Add(value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddString(string value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Add(value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddInt(int value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Add(value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddLong(long value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Add(value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddFloat(float value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Add(value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddDouble(double value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Add(value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddBoolean(bool value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Add(value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddBlob(Blob value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Add(value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddDate(DateTimeOffset value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value.ToString("o"));
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Add(value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddArray(ArrayObject value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Add(value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray AddDictionary(DictionaryObject value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Add(value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Add(value));
+            return this;
         }
 
         /// <inheritdoc />
@@ -224,245 +192,179 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IMutableArray InsertValue(int index, object value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, DataOps.ToCouchbaseObject(value));
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertString(int index, string value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertInt(int index, int value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertLong(int index, long value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertFloat(int index, float value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertDouble(int index, double value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertBoolean(int index, bool value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertBlob(int index, Blob value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertDate(int index, DateTimeOffset value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value.ToString("o"));
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertArray(int index, ArrayObject value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray InsertDictionary(int index, DictionaryObject value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.Insert(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.Insert(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray RemoveAt(int index)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                _array.RemoveAt(index);
-                return this;
-            });
+            _threadSafety.DoLocked(() => _array.RemoveAt(index));
+            
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray Set(IList array)
         {
-            return _threadSafety.DoLocked(() =>
+            _threadSafety.DoLocked(() =>
             {
                 _array.Clear();
-                foreach (var item in array) {
-                    _array.Add(DataOps.ToCouchbaseObject(item));
+                if (array != null) {
+                    foreach (var item in array) {
+                        _array.Add(DataOps.ToCouchbaseObject(item));
+                    }
                 }
-
-                return this;
             });
+
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetValue(int index, object value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValueInternal(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetString(int index, string value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValueInternal(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetInt(int index, int value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValueInternal(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetLong(int index, long value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValueInternal(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetFloat(int index, float value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValueInternal(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetDouble(int index, double value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValueInternal(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetBoolean(int index, bool value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValueInternal(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetBlob(int index, Blob value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValueInternal(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetDate(int index, DateTimeOffset value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValueInternal(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetArray(int index, ArrayObject value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValueInternal(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            return this;
         }
 
         /// <inheritdoc />
         public IMutableArray SetDictionary(int index, DictionaryObject value)
         {
-            return _threadSafety.DoLocked(() =>
-            {
-                SetValueInternal(index, value);
-                return this;
-            });
+            _threadSafety.DoLocked(() => SetValueInternal(index, value));
+            return this;
         }
 
         #endregion

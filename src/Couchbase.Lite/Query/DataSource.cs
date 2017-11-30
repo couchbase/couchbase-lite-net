@@ -18,8 +18,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
+using System.Diagnostics;
+
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
+
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -35,8 +40,10 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        protected QueryDataSource(object source, ThreadSafety threadSafety)
+        protected QueryDataSource(object source, [NotNull]ThreadSafety threadSafety)
         {
+            Debug.Assert(threadSafety != null);
+
             Source = source;
             ThreadSafety = threadSafety;
         }

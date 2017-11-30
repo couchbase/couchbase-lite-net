@@ -30,9 +30,8 @@ namespace Couchbase.Lite.Sync
     public abstract class Authenticator
     {
         #region Internal Methods
-
-        [ContractAnnotation("null => halt")]
-        internal abstract void Authenticate(ReplicatorOptionsDictionary options);
+        
+        internal abstract void Authenticate([NotNull]ReplicatorOptionsDictionary options);
 
         #endregion
     }

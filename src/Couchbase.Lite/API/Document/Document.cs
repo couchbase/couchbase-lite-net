@@ -138,15 +138,20 @@ namespace Couchbase.Lite
 
         internal Document([NotNull]Database database, [NotNull]string documentID, C4DocumentWrapper c4Doc)
         {
+            Debug.Assert(documentID != null);
+
             Database = database;
-            Id = CBDebug.MustNotBeNullQuick(nameof(documentID), documentID);
+            Id = documentID;
             this.c4Doc = c4Doc;
         }
 
         internal Document([NotNull]Database database, [NotNull]string documentID, bool mustExist)
         {
-            Database = CBDebug.MustNotBeNullQuick(nameof(database), database);
-            Id = CBDebug.MustNotBeNullQuick(nameof(documentID), documentID);
+            Debug.Assert(database != null);
+            Debug.Assert(documentID != null);
+
+            Database = database;
+            Id = documentID;
             database.ThreadSafety.DoLocked(() =>
             {
                 var doc = (C4Document*)NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
@@ -157,7 +162,8 @@ namespace Couchbase.Lite
 
         internal Document([NotNull]Document other)
         {
-            CBDebug.MustNotBeNullQuick(nameof(other), other);
+            Debug.Assert(other != null);
+
             _root = new MRoot(other._root);
             Data = other.Data;
             Id = other.Id;
@@ -365,43 +371,43 @@ namespace Couchbase.Lite
         #region IDictionaryObject
 
         /// <inheritdoc />
-        public bool Contains(string key) => _dict.Contains(key);
+        public bool Contains(string key) => _dict?.Contains(key) == true;
 
         /// <inheritdoc />
-        public ArrayObject GetArray(string key) => _dict.GetArray(key);
+        public ArrayObject GetArray(string key) => _dict?.GetArray(key);
 
         /// <inheritdoc />
-        public Blob GetBlob(string key) => _dict.GetBlob(key);
+        public Blob GetBlob(string key) => _dict?.GetBlob(key);
 
         /// <inheritdoc />
-        public bool GetBoolean(string key) => _dict.GetBoolean(key);
+        public bool GetBoolean(string key) => _dict?.GetBoolean(key) ?? false;
 
         /// <inheritdoc />
-        public DateTimeOffset GetDate(string key) => _dict.GetDate(key);
+        public DateTimeOffset GetDate(string key) => _dict?.GetDate(key) ?? DateTimeOffset.MinValue;
 
         /// <inheritdoc />
-        public DictionaryObject GetDictionary(string key) => _dict.GetDictionary(key);
+        public DictionaryObject GetDictionary(string key) => _dict?.GetDictionary(key);
 
         /// <inheritdoc />
-        public double GetDouble(string key) => _dict.GetDouble(key);
+        public double GetDouble(string key) => _dict?.GetDouble(key) ?? 0.0;
 
         /// <inheritdoc />
-        public float GetFloat(string key) => _dict.GetFloat(key);
+        public float GetFloat(string key) => _dict?.GetFloat(key) ?? 0.0f;
 
         /// <inheritdoc />
-        public int GetInt(string key) => _dict.GetInt(key);
+        public int GetInt(string key) => _dict?.GetInt(key) ?? 0;
 
         /// <inheritdoc />
-        public long GetLong(string key) => _dict.GetLong(key);
+        public long GetLong(string key) => _dict?.GetLong(key) ?? 0L;
 
         /// <inheritdoc />
-        public object GetValue(string key) => _dict.GetValue(key);
+        public object GetValue(string key) => _dict?.GetValue(key);
 
         /// <inheritdoc />
-        public string GetString(string key) => _dict.GetString(key);
+        public string GetString(string key) => _dict?.GetString(key);
 
         /// <inheritdoc />
-        public Dictionary<string, object> ToDictionary() => _dict.ToDictionary();
+        public Dictionary<string, object> ToDictionary() => _dict?.ToDictionary() ?? new Dictionary<string, object>();
 
         #endregion
 
@@ -430,7 +436,7 @@ namespace Couchbase.Lite
         #region IEnumerable<KeyValuePair<string,object>>
 
         /// <inheritdoc />
-        public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => _dict.GetEnumerator();
+        public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => _dict?.GetEnumerator() ?? new InMemoryDictionary().GetEnumerator();
 
         #endregion
     }

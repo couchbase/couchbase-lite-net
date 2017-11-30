@@ -22,6 +22,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -34,6 +36,7 @@ namespace Couchbase.Lite
     {
         #region Variables
 
+        [NotNull]
         private readonly Dictionary<string, object> _inner = new Dictionary<string, object>();
         private bool _readonly;
 
@@ -76,12 +79,14 @@ namespace Couchbase.Lite
 
         internal OptionsDictionary()
         {
-            _inner = new Dictionary<string, object>();
+
         }
 
         internal OptionsDictionary(Dictionary<string, object> raw)
         {
-            _inner = raw ?? new Dictionary<string, object>();
+            if(raw != null) {
+                _inner = raw;
+            }
         }
 
         #endregion

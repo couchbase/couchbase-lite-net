@@ -38,7 +38,10 @@ namespace Couchbase.Lite
     {
         #region Variables
 
+        [NotNull]
         internal readonly MArray _array = new MArray();
+
+        [NotNull]
         internal readonly ThreadSafety _threadSafety = new ThreadSafety();
 
         #endregion

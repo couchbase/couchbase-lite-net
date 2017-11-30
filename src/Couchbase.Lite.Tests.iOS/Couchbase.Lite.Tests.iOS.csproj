@@ -242,7 +242,6 @@
   <Import Project="..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <Import Project="packages\xunit.runner.devices.2.1.0\build\Xamarin.iOS\xunit.runner.devices.targets" Condition="Exists('packages\xunit.runner.devices.2.1.0\build\Xamarin.iOS\xunit.runner.devices.targets')" />
-  <Import Project="packages\Couchbase.Lite.2.0.0-b0060\build\Couchbase.Lite.targets" Condition="Exists('packages\Couchbase.Lite.2.0.0-b0060\build\Couchbase.Lite.targets')" />
   <Import Project="packages\Couchbase.Lite.Support.iOS.2.0.0-b0182\build\xamarinios\Couchbase.Lite.Support.iOS.targets" Condition="Exists('packages\Couchbase.Lite.Support.iOS.2.0.0-b0182\build\xamarinios\Couchbase.Lite.Support.iOS.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

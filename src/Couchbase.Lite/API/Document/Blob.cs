@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
@@ -297,7 +298,7 @@ namespace Couchbase.Lite
         
         private void Install([NotNull]Database db)
         {
-            CBDebug.MustNotBeNullQuick(nameof(db), db);
+            Debug.Assert(db != null);
 
             if(_db != null) {
                 if(db != _db) {

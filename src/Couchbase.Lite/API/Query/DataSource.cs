@@ -1,25 +1,27 @@
 ﻿// 
-// DataSource.cs
+//  DataSource.cs
 // 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
+//  Author:
+//   Jim Borden  <jim.borden@couchbase.com>
 // 
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
 // 
-// http://www.apache.org/licenses/LICENSE-2.0
+//  http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
 // 
 
 using Couchbase.Lite.Internal.Query;
+using Couchbase.Lite.Logging;
+using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
 
@@ -30,6 +32,12 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public static class DataSource
     {
+        #region Constants
+
+        private const string Tag = nameof(DataSource);
+
+        #endregion
+
         #region Public Methods
 
         /// <summary>
@@ -39,12 +47,14 @@ namespace Couchbase.Lite.Query
         /// <param name="database">The database to operate on</param>
         /// <returns>The source of data for the <see cref="IQuery" /></returns>
         [NotNull]
+        [ContractAnnotation("null => halt")]
         public static IDataSourceAs Database(Database database)
         {
-            return new DatabaseSource(database, database.ThreadSafety);
+            var db = CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(database), database);
+
+            return new DatabaseSource(database, db.ThreadSafety);
         }
 
         #endregion
-
     }
 }

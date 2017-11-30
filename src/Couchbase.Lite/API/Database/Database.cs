@@ -70,16 +70,21 @@ namespace Couchbase.Lite
 
         #region Variables
 
+        [NotNull]
         private readonly Dictionary<string, DocumentObserver> _docObs = new Dictionary<string, DocumentObserver>();
 
+        [NotNull]
         private readonly FilteredEvent<string, DocumentChangedEventArgs> _documentChanged =
             new FilteredEvent<string, DocumentChangedEventArgs>();
 
+        [NotNull]
         private readonly Event<DatabaseChangedEventArgs> _databaseChanged = 
             new Event<DatabaseChangedEventArgs>();
 
+        [NotNull]
         private readonly SharedStringCache _sharedStrings;
         
+        [NotNull]
         private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
 
         #if false
@@ -774,9 +779,9 @@ namespace Couchbase.Lite
             ThreadSafety.DoLockedBridge(err => Native.c4db_endTransaction(_c4db, commit, err));
         }
         
-        internal void ResolveConflict([NotNull]string docID, [CanBeNull]IConflictResolver resolver)
+        internal void ResolveConflict([NotNull]string docID, IConflictResolver resolver)
         {
-            CBDebug.MustNotBeNullQuick(nameof(docID), docID);;
+            Debug.Assert(docID != null);
 
             InBatch(() =>
             {

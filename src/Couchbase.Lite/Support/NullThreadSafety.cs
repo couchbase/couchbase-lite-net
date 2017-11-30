@@ -20,12 +20,15 @@
 // 
 using System;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Support
 {
     internal sealed class NullThreadSafety : IThreadSafety
     {
         #region Constants
 
+        [NotNull]
         public static readonly NullThreadSafety Instance = new NullThreadSafety();
 
         #endregion

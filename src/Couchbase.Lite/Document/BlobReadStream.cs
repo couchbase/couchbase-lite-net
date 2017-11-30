@@ -20,7 +20,13 @@
 //
 
 using System;
+using System.Diagnostics;
 using System.IO;
+
+using Couchbase.Lite.Support;
+using Couchbase.Lite.Util;
+
+using JetBrains.Annotations;
 
 using LiteCore;
 using LiteCore.Interop;
@@ -76,8 +82,10 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Constructors
 
-        public BlobReadStream(C4BlobStore *store, C4BlobKey key)
+        public BlobReadStream([NotNull]C4BlobStore *store, C4BlobKey key)
         {
+            Debug.Assert(store != null);
+
             _readStream = (C4ReadStream*)LiteCoreBridge.Check(err => Native.c4blob_openReadStream(store, key, err));
         }
 

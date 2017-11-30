@@ -65,30 +65,63 @@ namespace Couchbase.Lite
 
     public interface IMutableFragment : IMutableArrayFragment, IMutableDictionaryFragment
     {
+        /// <summary>
+        /// Gets or sets the value of the fragment as an untyped object
+        /// </summary>
         [CanBeNull]
         object Value { get; set; }
         
+        /// <summary>
+        /// Gets the contained value as a <see cref="MutableArray"/>
+        /// </summary>
         [CanBeNull]
         MutableArray Array { get; set; }
         
+        /// <summary>
+        /// Gets the contained value as a <see cref="Blob"/>
+        /// </summary>
         [CanBeNull]
         Blob Blob { get; set; }
 
+        /// <summary>
+        /// Gets the contained value as a <see cref="Boolean"/>
+        /// </summary>
         bool Boolean { get; set; }
         
+        /// <summary>
+        /// Gets the contained value as a <see cref="DateTimeOffset"/>
+        /// </summary>
         DateTimeOffset Date { get; set; }
         
+        /// <summary>
+        /// Gets the contained value as a <see cref="MutableDictionary"/>
+        /// </summary>
         [CanBeNull]
         MutableDictionary Dictionary { get; set; }
 
+        /// <summary>
+        /// Gets the contained value as a <see cref="Double"/>
+        /// </summary>
         double Double { get; set; }
 
+        /// <summary>
+        /// Gets the contained value as a <see cref="Single"/>
+        /// </summary>
         float Float { get; set; }
 
+        /// <summary>
+        /// Gets the contained value as an <see cref="Int32"/>
+        /// </summary>
         int Int { get; set; }
 
+        /// <summary>
+        /// Gets the contained value as an <see cref="Int64"/>
+        /// </summary>
         long Long { get; set; }
         
+        /// <summary>
+        /// Gets the contained value as a <see cref="String"/>
+        /// </summary>
         [CanBeNull]
         string String { get; set; }
     }

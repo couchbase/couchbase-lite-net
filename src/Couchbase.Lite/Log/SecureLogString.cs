@@ -19,9 +19,13 @@
 // limitations under the License.
 //
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Couchbase.Lite.Util;
+
+using JetBrains.Annotations;
+
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Logging
@@ -144,6 +148,7 @@ namespace Couchbase.Lite.Logging
 
         #region Overrides
 
+        [NotNull]
         public override string ToString()
         {
             return ShouldLog ? String : Redacted;
@@ -190,6 +195,7 @@ namespace Couchbase.Lite.Logging
 
         #region Overrides
 
+        [NotNull]
         public override string ToString()
         {
             return ShouldLog ? String : Redacted;
@@ -202,6 +208,7 @@ namespace Couchbase.Lite.Logging
     {
         #region Variables
 
+        [NotNull]
         private readonly Uri _uri;
         private string _str;
 
@@ -216,8 +223,10 @@ namespace Couchbase.Lite.Logging
         #region Constructors
 
         // Only used for stripping credentials, so always insecure
-        public SecureLogUri(Uri uri) : base(LogMessageSensitivity.Insecure)
+        public SecureLogUri([NotNull]Uri uri) : base(LogMessageSensitivity.Insecure)
         {
+            Debug.Assert(uri != null);
+
             _uri = uri;
         }
 

@@ -21,6 +21,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -137,6 +139,19 @@ namespace Couchbase.Lite.Internal.Query
             }
 
             _c4Query = null;
+        }
+
+        protected void ValidateParams<T>(T[] param, [CallerMemberName]string tag = null)
+        {
+            if (param.Length == 0) {
+                var message = $"{tag} expressions must contain at least one element";
+                CBDebug.LogAndThrow(Log.To.Query, new InvalidOperationException(message), Tag, message, true);
+            }
+
+            if (param.Any(x => x == null)) {
+                var message = $"{tag} expressions may not contain null elements";
+                CBDebug.LogAndThrow(Log.To.Query, new InvalidOperationException(message), Tag, message, true);
+            }
         }
 
         #endregion

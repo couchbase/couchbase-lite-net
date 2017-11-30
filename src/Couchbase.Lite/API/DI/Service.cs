@@ -24,9 +24,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 
-using Couchbase.Lite.Logging;
-using Couchbase.Lite.Util;
-
 using JetBrains.Annotations;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -40,6 +37,7 @@ namespace Couchbase.Lite.DI
     {
         #region Constants
 
+        [NotNull]
         private static readonly Type[] _RequiredTypes = new[] {
             typeof(IDefaultDirectoryResolver),
             typeof(ISslStreamFactory)
@@ -64,7 +62,7 @@ namespace Couchbase.Lite.DI
                 }
 
                 foreach(var type in _RequiredTypes) {
-                    if(_Provider.GetService(type) == null) {
+                    if(_Provider?.GetService(type) == null) {
                         return false;
                     }
                 }
@@ -110,7 +108,9 @@ namespace Couchbase.Lite.DI
         [ContractAnnotation("null => halt")]
         public static void RegisterServices(Action<IServiceCollection> config)
         {
-            CBDebug.MustNotBeNull(Log.To.Couchbase, Tag, nameof(config), config);
+            if (config == null) {
+                throw new ArgumentNullException(nameof(config));
+            }
 
             if (IsFinalized) {
                 throw new InvalidOperationException("Cannot register services after the provider has been created");
@@ -132,19 +132,20 @@ namespace Couchbase.Lite.DI
                 throw new ArgumentNullException(nameof(assembly));
             }
 
-            foreach (var type in assembly.GetTypes().Where(x => x.GetTypeInfo().IsClass)) {
+            foreach (var type in assembly.GetTypes()?.Where(x => x.GetTypeInfo().IsClass)) {
                 var ti = type.GetTypeInfo();
-                var attribute = ti.GetCustomAttribute<CouchbaseDependencyAttribute>();
+
+                var attribute = ti?.GetCustomAttribute<CouchbaseDependencyAttribute>();
                 if (attribute == null) {
                     continue;
                 }
 
-                var interfaceType = ti.ImplementedInterfaces.FirstOrDefault();
+                var interfaceType = ti?.ImplementedInterfaces?.FirstOrDefault();
                 if (interfaceType == null) {
                     throw new InvalidOperationException($"{type.Name} does not implement any interfaces!");
                 }
 
-                if(ti.DeclaredConstructors.All(x => x.GetParameters().Length != 0)) {
+                if(ti?.DeclaredConstructors?.All(x => x?.GetParameters()?.Length != 0) == true) {
                     throw new InvalidOperationException($"{type.Name} does not contain a default constructor");
                 }
 
@@ -161,7 +162,7 @@ namespace Couchbase.Lite.DI
         }
 
         #endregion
-
+        
         private static IServiceCollection _Collection = new ServiceCollection();
         private static IServiceProvider _Provider;
     }

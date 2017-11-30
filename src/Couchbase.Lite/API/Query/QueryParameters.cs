@@ -41,6 +41,7 @@ namespace Couchbase.Lite.Query
 
         #region Variables
 
+        [NotNull]
         private readonly Dictionary<string, object> _params = new Dictionary<string, object>();
 
         #endregion

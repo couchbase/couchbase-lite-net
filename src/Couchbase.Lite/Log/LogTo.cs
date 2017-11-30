@@ -19,9 +19,11 @@
 // limitations under the License.
 //
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
+
+using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
 
@@ -73,7 +75,7 @@ namespace Couchbase.Lite.Logging
         #region Internal Methods
 
         [System.Diagnostics.Conditional("DEBUG")]
-        internal void D(string tag, string msg)
+        internal void D([NotNull]string tag, [NotNull]string msg)
         {
             if (ShouldLog(LogLevel.Debug)) {
 				LogToLiteCore(C4LogLevel.Debug, FormatMessage(tag, msg));
@@ -81,7 +83,7 @@ namespace Couchbase.Lite.Logging
         }
 
         [System.Diagnostics.Conditional("DEBUG")]
-        internal void D(string tag, string msg, Exception tr)
+        internal void D([NotNull]string tag, [NotNull]string msg, [NotNull]Exception tr)
         {
             if (ShouldLog(LogLevel.Debug)) {
                 LogToLiteCore(C4LogLevel.Debug, FormatMessage(tag, msg, tr));
@@ -90,21 +92,21 @@ namespace Couchbase.Lite.Logging
 
         [System.Diagnostics.Conditional("DEBUG")]
         [StringFormatMethod("format")]
-        internal void D(string tag, string format, params object[] args)
+        internal void D([NotNull]string tag, [NotNull]string format, params object[] args)
         {
             if (ShouldLog(LogLevel.Debug)) {
                 LogToLiteCore(C4LogLevel.Debug, String.Format(FormatMessage(tag, format), args));
             }
         }
 
-        internal void E(string tag, string msg)
+        internal void E([NotNull]string tag, [NotNull]string msg)
         {
             if (ShouldLog(LogLevel.Error)) {
                 LogToLiteCore(C4LogLevel.Error, FormatMessage(tag, msg));
             }
         }
 
-        internal void E(string tag, string msg, Exception tr)
+        internal void E([NotNull]string tag, [NotNull]string msg, [NotNull]Exception tr)
         {
             if (ShouldLog(LogLevel.Error)) {
                 LogToLiteCore(C4LogLevel.Error, FormatMessage(tag, msg, tr));
@@ -112,21 +114,21 @@ namespace Couchbase.Lite.Logging
         }
 
         [StringFormatMethod("format")]
-        internal void E(string tag, string format, params object[] args)
+        internal void E([NotNull]string tag, [NotNull]string format, params object[] args)
         {
             if (ShouldLog(LogLevel.Error)) {
                 LogToLiteCore(C4LogLevel.Error, String.Format(FormatMessage(tag, format), args));
             }
         }
 
-        internal void I(string tag, string msg)
+        internal void I([NotNull]string tag, [NotNull]string msg)
         {
             if (ShouldLog(LogLevel.Info)) {
                 LogToLiteCore(C4LogLevel.Info, FormatMessage(tag, msg));
             }
         }
 
-        internal void I(string tag, string msg, Exception tr)
+        internal void I([NotNull]string tag, [NotNull]string msg, [NotNull]Exception tr)
         {
             if (ShouldLog(LogLevel.Info)) {
                 LogToLiteCore(C4LogLevel.Info, FormatMessage(tag, msg, tr));
@@ -134,14 +136,14 @@ namespace Couchbase.Lite.Logging
         }
 
         [StringFormatMethod("format")]
-        internal void I(string tag, string format, params object[] args)
+        internal void I([NotNull]string tag, [NotNull]string format, params object[] args)
         {
             if (ShouldLog(LogLevel.Info)) {
 				LogToLiteCore(C4LogLevel.Info, String.Format(FormatMessage(tag, format), args));
             }
         }
 
-		internal void QuickWrite(C4LogLevel level, string msg)
+		internal void QuickWrite(C4LogLevel level, [NotNull]string msg)
 		{
 			var cblLevel = (LogLevel)level;
 			if(ShouldLog(cblLevel)) {
@@ -165,14 +167,14 @@ namespace Couchbase.Lite.Logging
 			}
 		}
 
-        internal void V(string tag, string msg)
+        internal void V([NotNull]string tag, [NotNull]string msg)
         {
             if (ShouldLog(LogLevel.Verbose)) {
                LogToLiteCore(C4LogLevel.Debug, FormatMessage(tag, msg));
             }
         }
 
-        internal void V(string tag, string msg, Exception tr)
+        internal void V([NotNull]string tag, [NotNull]string msg, [NotNull]Exception tr)
         {
             if (ShouldLog(LogLevel.Verbose)) {
                 LogToLiteCore(C4LogLevel.Debug, FormatMessage(tag, msg, tr));
@@ -180,21 +182,21 @@ namespace Couchbase.Lite.Logging
         }
 
         [StringFormatMethod("format")]
-        internal void V(string tag, string format, params object[] args)
+        internal void V([NotNull]string tag, [NotNull]string format, params object[] args)
         {
             if (ShouldLog(LogLevel.Verbose)) {
                 LogToLiteCore(C4LogLevel.Verbose, String.Format(FormatMessage(tag, format), args));
             }
         }
 
-        internal void W(string tag, string msg)
+        internal void W([NotNull]string tag, [NotNull]string msg)
         {
             if (ShouldLog(LogLevel.Warning)) {
                 LogToLiteCore(C4LogLevel.Warning, FormatMessage(tag, msg));
             }
         }
 
-        internal void W(string tag, string msg, Exception tr)
+        internal void W([NotNull]string tag, [NotNull]string msg, [NotNull]Exception tr)
         {
             if (ShouldLog(LogLevel.Warning)) {
                 LogToLiteCore(C4LogLevel.Warning, FormatMessage(tag, msg, tr));
@@ -202,7 +204,7 @@ namespace Couchbase.Lite.Logging
         }
 
         [StringFormatMethod("format")]
-        internal void W(string tag, string format, params object[] args)
+        internal void W([NotNull]string tag, [NotNull]string format, params object[] args)
         {
             if (ShouldLog(LogLevel.Warning)) {
                 LogToLiteCore(C4LogLevel.Warning, String.Format(FormatMessage(tag, format), args));
@@ -213,17 +215,23 @@ namespace Couchbase.Lite.Logging
 
         #region Private Methods
 
-        private string FormatMessage(string tag, string message)
+        [NotNull]
+        private string FormatMessage([NotNull]string tag, [NotNull]string message)
         {
+            Debug.Assert(tag != null && message != null);
+
             return $"({tag}) [{Environment.CurrentManagedThreadId}] {DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture)} {message}";
         }
 
-        private string FormatMessage(string tag, string message, Exception e)
+        [NotNull]
+        private string FormatMessage([NotNull]string tag, [NotNull]string message, [NotNull]Exception e)
         {
+            Debug.Assert(tag != null && message != null && e != null);
+
             return $"({tag}) [{Environment.CurrentManagedThreadId}] {DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture)} {message}: {e}";
         }
 
-		private void LogToLiteCore(C4LogLevel level, string msg)
+		private void LogToLiteCore(C4LogLevel level, [NotNull]string msg)
 		{
 			Native.c4slog(_domainObj, level, msg);
 		}
@@ -269,16 +277,22 @@ namespace Couchbase.Lite.Logging
 
 		#region Properties
 
+        [NotNull]
         internal DomainLogger Couchbase => _allLoggers[3];
-
+        
+        [NotNull]
         internal DomainLogger Database => _allLoggers[0];
-
+        
+        [NotNull]
         internal DomainLogger LiteCore => _allLoggers[4];
-
+        
+        [NotNull]
         internal DomainLogger Query => _allLoggers[1];
-
+        
+        [NotNull]
         internal DomainLogger Sync => _allLoggers[2];
-
+        
+        [NotNull]
         internal IEnumerable<DomainLogger> All => _allLoggers;
 
         #endregion
@@ -301,6 +315,7 @@ namespace Couchbase.Lite.Logging
 
         #region Private Methods
 
+        [ContractAnnotation("domain:null => halt")]
         private void CreateAndAddLogger(string domain, int index)
         {
             var logger = new DomainLogger(domain) { Level = LogLevel.Warning };

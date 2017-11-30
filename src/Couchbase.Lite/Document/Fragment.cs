@@ -23,6 +23,9 @@ using System;
 using System.Diagnostics;
 
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Util;
+
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Doc
 {
@@ -30,6 +33,7 @@ namespace Couchbase.Lite.Internal.Doc
     {
         #region Constants
 
+        [NotNull]
         public static readonly Fragment Null = new Fragment(null, null);
 
         private const string Tag = nameof(Fragment);
@@ -105,9 +109,6 @@ namespace Couchbase.Lite.Internal.Doc
             set => Value = value;
         }
 
-        /// <summary>
-        /// Gets the value of the fragment as an untyped object (set will throw)
-        /// </summary>
         public object Value
         {
             get {
@@ -174,6 +175,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Private Methods
 
+        [NotNull]
         private Fragment GetForIndex(int index)
         {
             var value = Value;
@@ -191,7 +193,8 @@ namespace Couchbase.Lite.Internal.Doc
             return this;
         }
 
-        private Fragment GetForKey(string key)
+        [NotNull]
+        private Fragment GetForKey([NotNull]string key)
         {
             Debug.Assert(key != null);
             var value = Value;
@@ -208,7 +211,8 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Overrides
 
-        public override string ToString() => Value.ToString();
+        [CanBeNull]
+        public override string ToString() => Value?.ToString();
 
         #endregion
     }

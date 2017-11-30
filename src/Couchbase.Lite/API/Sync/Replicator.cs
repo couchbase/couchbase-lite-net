@@ -20,6 +20,7 @@
 // 
 
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -51,6 +52,7 @@ namespace Couchbase.Lite.Sync
         private const int MaxOneShotRetryCount = 2;
         private static readonly TimeSpan MaxRetryDelay = TimeSpan.FromMinutes(10);
 
+        [NotNull]
         private static readonly C4ReplicatorMode[] Modes = {
             C4ReplicatorMode.Disabled, C4ReplicatorMode.Disabled, C4ReplicatorMode.OneShot, C4ReplicatorMode.Continuous
         };
@@ -61,8 +63,13 @@ namespace Couchbase.Lite.Sync
 
         #region Variables
 
+        [NotNull]
         private readonly ReplicatorConfiguration _config;
+
+        [NotNull]
         private readonly SerialQueue _threadSafetyQueue = new SerialQueue();
+
+        [NotNull]
         private readonly ThreadSafety _databaseThreadSafety;
         private bool _disposed;
         
@@ -87,6 +94,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets the configuration that was used to create this Replicator
         /// </summary>
+        [NotNull]
         public ReplicatorConfiguration Config => ReplicatorConfiguration.Clone(_config);
 
         /// <summary>
@@ -251,7 +259,7 @@ namespace Couchbase.Lite.Sync
         }
 
         // Must be called from within the SerialQueue
-        private void OnDocError(C4Error error, bool pushing, string docID, bool transient)
+        private void OnDocError(C4Error error, bool pushing, [NotNull]string docID, bool transient)
         {
             var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
             if (!pushing && error.domain == C4ErrorDomain.LiteCoreDomain && error.code == (int) C4ErrorCode.Conflict) {
@@ -314,6 +322,8 @@ namespace Couchbase.Lite.Sync
 
         private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)
         {
+            Debug.Assert(e != null);
+
             _threadSafetyQueue.DispatchAsync(() =>
             {
                 if (_repl == null && e.Status == NetworkReachabilityStatus.Reachable) {
@@ -362,7 +372,7 @@ namespace Couchbase.Lite.Sync
                 otherDB = _config.OtherDB;
             }
 
-            var options = _config.Options ?? new ReplicatorOptionsDictionary();
+            var options = _config.Options;
             var userInfo = remoteUrl?.UserInfo?.Split(':');
             if (userInfo?.Length == 2 && options.Auth == null) {
                 _config.Authenticator = new BasicAuthenticator(userInfo[0], userInfo[1]);

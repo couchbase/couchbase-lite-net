@@ -1,34 +1,46 @@
 ﻿// 
-// QueryJoin.cs
+//  Join.cs
 // 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
+//  Author:
+//   Jim Borden  <jim.borden@couchbase.com>
 // 
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
 // 
-// http://www.apache.org/licenses/LICENSE-2.0
+//  http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
 // 
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Util;
+
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
     internal sealed class QueryJoin : LimitedQuery, IJoinOn
     {
-        #region Properties
+        #region Constants
+
+        private const string Tag = nameof(QueryJoin);
+
+        #endregion
+
+        #region Variables
 
         private readonly IList<IJoin> _joins;
         private readonly string _joinType;
@@ -45,8 +57,10 @@ namespace Couchbase.Lite.Internal.Query
             JoinImpl = this;
         }
 
-        internal QueryJoin(XQuery source, IList<IJoin> joins)
+        internal QueryJoin([NotNull]XQuery source, IList<IJoin> joins)
         {
+            Debug.Assert(source != null);
+
             Copy(source);
             _joins = joins; 
             JoinImpl = this;
@@ -60,19 +74,15 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
+        #region Public Methods
+
         public object ToJSON()
         {
             if (_joins != null) {
-                var obj = new List<object>();
-                foreach (var o in _joins.OfType<QueryJoin>()) {
-                    obj.Add(o.ToJSON());
-                }
-
-                return obj;
+                return _joins.OfType<QueryJoin>().Select(o => o.ToJSON()).ToList();
             }
 
-            var asObj = (_source as QueryDataSource)?.ToJSON() as Dictionary<string, object>;
-            if (asObj == null) {
+            if (!((_source as QueryDataSource)?.ToJSON() is Dictionary<string, object> asObj)) {
                 throw new InvalidOperationException("Missing AS clause for JOIN");
             }
 
@@ -85,10 +95,14 @@ namespace Couchbase.Lite.Internal.Query
             return asObj;
         }
 
+        #endregion
+
         #region IJoinOn
 
         public IJoin On(IExpression expression)
         {
+            CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(expression), expression);
+
             _on = expression;
             return this;
         }
@@ -99,6 +113,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IOrdering OrderBy(params IOrdering[] ordering)
         {
+            ValidateParams(ordering);
             return new QueryOrdering(this, ordering);
         }
 
@@ -108,6 +123,8 @@ namespace Couchbase.Lite.Internal.Query
 
         public IWhere Where(IExpression expression)
         {
+            CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(expression), expression);
+
             return new Where(this, expression);
         }
 

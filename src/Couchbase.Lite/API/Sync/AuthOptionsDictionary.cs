@@ -45,6 +45,7 @@ namespace Couchbase.Lite.Sync
     {
         #region Constants
 
+        [NotNull]
         private static readonly string[] AuthTypes = {
             "Basic", "Session", "OpenID Connect", "Facebook", "Client Cert"
         };

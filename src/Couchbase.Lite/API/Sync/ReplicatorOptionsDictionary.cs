@@ -22,6 +22,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
+
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
@@ -44,6 +46,7 @@ namespace Couchbase.Lite.Sync
         private const string FilterParamsKey = "filterParams";
         private const string HeadersKey = "headers";
         private const string PinnedCertKey = "pinnedCert";
+        private const string Tag = nameof(ReplicatorOptionsDictionary);
 
         #endregion
 
@@ -123,7 +126,7 @@ namespace Couchbase.Lite.Sync
         [NotNull]
         public IDictionary<string, string> Headers
         {
-            get => this.GetCast<IDictionary<string, string>>(HeadersKey);
+            get => this.GetCast<IDictionary<string, string>>(HeadersKey) ?? new Dictionary<string, string>();
             set => this[HeadersKey] = value;
         }
 
@@ -177,10 +180,15 @@ namespace Couchbase.Lite.Sync
             }
 
             if (ContainsKey(CookiesKey)) {
-                var split = ((string) this[CookiesKey]).Split(';');
+                var split = ((string) this[CookiesKey])?.Split(';') ?? Enumerable.Empty<string>();
                 foreach (var entry in split) {
-                    var pieces = entry.Split('=');
-                    Cookies.Add(new Cookie(pieces[0].Trim(), pieces[1].Trim()));
+                    var pieces = entry?.Split('=');
+                    if (pieces?.Length != 2) {
+                        Log.To.Sync.W(Tag, "Garbage cookie value, ignoring:  {0}", new SecureLogString(entry, LogMessageSensitivity.Insecure));
+                        continue;
+                    }
+
+                    Cookies.Add(new Cookie(pieces[0]?.Trim(), pieces[1]?.Trim()));
                 }
             }
         }

@@ -54,7 +54,7 @@ namespace Couchbase.Lite.Util
         [NotNull]
         public static T MustNotBeNull<T>(DomainLogger logger, string tag, string argumentName, T argumentValue) where T : class
         {
-            MustNotBeNullQuick(argumentName, argumentValue);
+            Debug.Assert(argumentValue != null);
             if (argumentValue == null) {
                 var ex = new ArgumentNullException(argumentName);
                 logger.E(tag, ex.ToString());
@@ -65,9 +65,15 @@ namespace Couchbase.Lite.Util
         }
 
         [NotNull]
-        public static T MustNotBeNullQuick<T>(string argumentName, T argumentValue) where T : class
+        public static unsafe void* MustNotBeNullPointer(DomainLogger logger, string tag, string argumentName, void* argumentValue)
         {
             Debug.Assert(argumentValue != null);
+            if (argumentValue == null) {
+                var ex = new ArgumentNullException(argumentName);
+                logger.E(tag, ex.ToString());
+                throw ex;
+            }
+
             return argumentValue;
         }
     }

@@ -19,8 +19,13 @@
 // limitations under the License.
 // 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
+
+using Couchbase.Lite.Util;
+
+using JetBrains.Annotations;
 
 using Newtonsoft.Json;
 
@@ -37,8 +42,9 @@ namespace Couchbase.Lite.Logging
 
         #region Constructors
 
-        public LogString(IEnumerable<byte> utf8Bytes)
+        public LogString([NotNull]IEnumerable<byte> utf8Bytes)
         {
+            Debug.Assert(utf8Bytes != null);
             _unserialized = utf8Bytes.ToArray();
         }
 
@@ -46,6 +52,7 @@ namespace Couchbase.Lite.Logging
 
         #region Overrides
 
+        [NotNull]
         public override string ToString()
         {
             return _serialized ?? (_serialized = Encoding.UTF8.GetString(_unserialized));

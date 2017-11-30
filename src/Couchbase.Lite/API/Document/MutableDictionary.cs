@@ -25,6 +25,8 @@ using System.Collections.Generic;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -76,7 +78,7 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
-        private void SetValueInternal(string key, object value)
+        private void SetValueInternal([NotNull]string key, object value)
         {
             _threadSafety.DoLocked(() =>
             {
@@ -141,8 +143,10 @@ namespace Couchbase.Lite
             _threadSafety.DoLocked(() =>
             {
                 _dict.Clear();
-                foreach (var item in dictionary) {
-                    _dict.Set(item.Key, new MValue(DataOps.ToCouchbaseObject(item.Value)));
+                if (dictionary != null) {
+                    foreach (var item in dictionary) {
+                        _dict.Set(item.Key, new MValue(DataOps.ToCouchbaseObject(item.Value)));
+                    }
                 }
 
                 KeysChanged();

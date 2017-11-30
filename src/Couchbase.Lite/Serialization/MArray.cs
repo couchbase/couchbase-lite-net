@@ -23,6 +23,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+
+using JetBrains.Annotations;
+
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Serialization
@@ -31,6 +34,8 @@ namespace Couchbase.Lite.Internal.Serialization
     {
         #region Variables
 
+        [NotNull]
+        [ItemNotNull]
         private List<MValue> _vec = new List<MValue>();
 
         #endregion
@@ -67,6 +72,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Public Methods
 
+        [NotNull]
         public MValue Get(int index)
         {
             if (index < 0 || index >= _vec.Count) {
@@ -173,7 +179,7 @@ namespace Couchbase.Lite.Internal.Serialization
             var a = original as MArray;
             base.InitAsCopyOf(original, isMutable);
             BaseArray = a != null ? a.BaseArray : null;
-            _vec = a?._vec;
+            _vec = a?._vec ?? new List<MValue>();
         }
 
         protected override void InitInSlot(MValue slot, MCollection parent, bool isMutable)

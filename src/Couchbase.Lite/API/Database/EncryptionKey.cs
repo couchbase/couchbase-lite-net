@@ -58,7 +58,8 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        private Aes _cryptor;
+        [NotNull]
+        private readonly Aes _cryptor = Aes.Create() ?? throw new CryptographicException("Unable to create AES object");
 
 		#endregion
 
@@ -70,11 +71,11 @@ namespace Couchbase.Lite
 		[NotNull]
 		public string HexData => BitConverter.ToString(KeyData).Replace("-", String.Empty).ToLower();
 
-		/// <summary>
-		/// The SymmetricKey's key data; can be used to reconstitute it.
-		/// </summary>
-		[NotNull]
-		public byte[] KeyData => _cryptor.Key;
+        /// <summary>
+        /// The SymmetricKey's key data; can be used to reconstitute it.
+        /// </summary>
+        [NotNull]
+        public byte[] KeyData => _cryptor.Key;
 
         #endregion
 
@@ -146,7 +147,6 @@ namespace Couchbase.Lite
 
         private void InitCryptor()
         {
-            _cryptor = Aes.Create();
             _cryptor.KeySize = KeySize * 8;
             _cryptor.BlockSize = BlockSize * 8;
             _cryptor.Padding = PaddingMode.PKCS7;

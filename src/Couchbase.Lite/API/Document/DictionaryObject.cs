@@ -38,7 +38,10 @@ namespace Couchbase.Lite
     {
         #region Variables
 
+        [NotNull]
         internal readonly MDict _dict = new MDict();
+
+        [NotNull]
         internal readonly ThreadSafety _threadSafety = new ThreadSafety();
         private List<string> _keys;
 
@@ -132,9 +135,9 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
-        private static object GetObject(MDict dict, string key, IThreadSafety threadSafety = null) => (threadSafety ?? NullThreadSafety.Instance).DoLocked(() => dict.Get(key).AsObject(dict));
+        private static object GetObject([NotNull]MDict dict, [NotNull]string key, IThreadSafety threadSafety = null) => (threadSafety ?? NullThreadSafety.Instance).DoLocked(() => dict.Get(key).AsObject(dict));
 
-        private static T GetObject<T>(MDict dict, string key, IThreadSafety threadSafety = null) where T : class => GetObject(dict, key, threadSafety) as T;
+        private static T GetObject<T>([NotNull]MDict dict, [NotNull]string key, IThreadSafety threadSafety = null) where T : class => GetObject(dict, key, threadSafety) as T;
 
         #endregion
 
@@ -183,7 +186,7 @@ namespace Couchbase.Lite
             _threadSafety.DoLocked(() =>
             {
                 foreach (var item in _dict.AllItems()) {
-                    result[item.Key] = DataOps.ToNetObject(item.Value.AsObject(_dict));
+                    result[item.Key] = DataOps.ToNetObject(item.Value?.AsObject(_dict));
                 }
             });
 
@@ -220,8 +223,10 @@ namespace Couchbase.Lite
         {
             #region Variables
 
+            [NotNull]
             private readonly IEnumerator<KeyValuePair<string, MValue>> _inner;
 
+            [NotNull]
             private readonly MDict _parent;
 
             #endregion
@@ -231,13 +236,13 @@ namespace Couchbase.Lite
             object IEnumerator.Current => Current;
 
             public KeyValuePair<string, object> Current => new KeyValuePair<string, object>(_inner.Current.Key,
-                _inner.Current.Value.AsObject(_parent));
+                _inner.Current.Value?.AsObject(_parent));
 
             #endregion
 
             #region Constructors
 
-            public Enumerator(MDict parent)
+            public Enumerator([NotNull]MDict parent)
             {
                 _parent = parent;
                 _inner = parent.AllItems().GetEnumerator();

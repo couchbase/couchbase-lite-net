@@ -26,6 +26,8 @@ using System.Text;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
+using JetBrains.Annotations;
+
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Serialization
@@ -91,7 +93,8 @@ namespace Couchbase.Lite.Internal.Serialization
             return _map.ContainsKey(key) || Native.FLDict_GetSharedKey(_dict, Encoding.UTF8.GetBytes(key), SharedKeys) != null;
         }
 
-        public MValue Get(string key)
+        [NotNull]
+        public MValue Get([NotNull]string key)
         {
             CBDebug.MustNotBeNull(Log.To.Couchbase, Tag, nameof(key), key);
 
@@ -156,6 +159,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Internal Methods
 
+        [NotNull]
         internal IEnumerable<KeyValuePair<string, MValue>> AllItems()
         {
             foreach (var item in _map) {
@@ -204,6 +208,7 @@ namespace Couchbase.Lite.Internal.Serialization
             return new KeyValuePair<string, MValue>(key, new MValue(value));
         }
 
+        [NotNull]
         private IEnumerable<KeyValuePair<string, MValue>> IterateDict()
         {
             // I hate this dance...but it's necessary to convince the commpiler to let
