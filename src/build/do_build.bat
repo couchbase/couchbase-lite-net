@@ -19,9 +19,6 @@ echo.
 dotnet restore
 
 cd ..\Couchbase.Lite.Support.UWP
-if not exist ..\..\nuget.exe (
-    powershell -Command "Invoke-WebRequest https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile ..\..\nuget.exe"
-)
 echo.
 echo *** UWP ***
 echo.
@@ -31,13 +28,13 @@ echo.
 echo *** IOS ***
 echo.
 cd ..\Couchbase.Lite.Support.Apple\iOS
-..\..\..\nuget.exe restore -SolutionDirectory ..\..
+C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" /t:     Restore
 
 echo.
 echo *** ANDROID ***
 echo.
 cd ..\..\Couchbase.Lite.Support.Android
-..\..\nuget.exe restore -SolutionDirectory ..
+C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" /t:     Restore
 
 echo.
 echo *** COPYING NATIVE RESOURCES ***

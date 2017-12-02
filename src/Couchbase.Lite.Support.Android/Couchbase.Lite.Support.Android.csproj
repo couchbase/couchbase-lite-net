@@ -71,7 +71,6 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
     </Compile>
-    <Compile Include="Resources\Resource.designer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Support\AndroidDefaultLogger.cs" />
     <Compile Include="Support\DefaultDirectoryResolver.cs" />
@@ -82,9 +81,6 @@
     <None Include="..\Couchbase.Lite\Properties\version">
       <Link>Properties\version</Link>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <AndroidResource Include="Resources\values\Strings.xml" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\x86\libLiteCore.so">
