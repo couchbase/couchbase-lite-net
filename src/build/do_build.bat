@@ -28,13 +28,13 @@ echo.
 echo *** IOS ***
 echo.
 cd ..\Couchbase.Lite.Support.Apple\iOS
-C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" /t:     Restore
+"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" /t:Restore
 
 echo.
 echo *** ANDROID ***
 echo.
 cd ..\..\Couchbase.Lite.Support.Android
-C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" /t:     Restore
+"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" /t:Restore
 
 echo.
 echo *** COPYING NATIVE RESOURCES ***
