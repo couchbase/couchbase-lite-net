@@ -82,15 +82,11 @@
   <ItemGroup>
     <AndroidAsset Include="Assets\C\tests\data\*.*" />
     <AndroidAsset Include="Assets\replacedb\*.*" />
-    <None Include="Resources\AboutResources.txt" />
   </ItemGroup>
   <ItemGroup>
     <AndroidResource Include="Resources\layout\Main.axml">
       <SubType>Designer</SubType>
     </AndroidResource>
-  </ItemGroup>
-  <ItemGroup>
-    <AndroidResource Include="Resources\values\Strings.xml" />
   </ItemGroup>
   <ItemGroup>
     <AndroidResource Include="Resources\drawable\Icon.png" />
