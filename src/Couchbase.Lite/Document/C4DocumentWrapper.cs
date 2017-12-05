@@ -20,9 +20,6 @@
 // 
 
 using System;
-using System.Diagnostics;
-
-using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
 using LiteCore.Interop;
@@ -65,11 +62,6 @@ namespace Couchbase.Lite.Internal.Doc
 
         protected override void Dispose(bool disposing)
         {
-            if (!disposing) {
-                Debug.WriteLine($"{this} was not disposed, and so is being finalized");
-                Log.To.Couchbase.D(Tag, $"{this} was not disposed, and so is being finalized");
-            }
-
             Native.c4doc_free(RawDoc);
         }
 

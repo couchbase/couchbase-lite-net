@@ -222,7 +222,7 @@ namespace Couchbase.Lite.Util
 
             try {
                 //Take the slow route for things like boxed value types
-                value = (T)Convert.ChangeType(value, typeof(T));
+                value = (T)Convert.ChangeType(obj, typeof(T));
                 return true;
             } catch(Exception) {
                 return false;

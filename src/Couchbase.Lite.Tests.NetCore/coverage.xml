@@ -49,7 +49,7 @@
       <ClassMask>Couchbase.Lite.Logging*</ClassMask>
     </FilterEntry>
      <FilterEntry>
-      <ClassMask>Couchbase.Lite.Extensions</ClassMask>
+      <ClassMask>Couchbase.Lite.Util.NonNullDictionary*</ClassMask>
     </FilterEntry>
     <FilterEntry>
       <FunctionMask>Equals</FunctionMask>

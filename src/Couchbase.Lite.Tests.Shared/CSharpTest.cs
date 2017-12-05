@@ -359,6 +359,45 @@ Transfer-Encoding: chunked";
             TestRoundTrip(Math.PI);
         }
 
+        [Fact]
+        public void TestTryGetValue()
+        {
+            var dict = new Dictionary<string, object>
+            {
+                ["value"] = 1
+            };
+
+            IDictionary<string, object> idict = dict;
+            IReadOnlyDictionary<string, object> roDict = dict;
+
+            idict.TryGetValue("value", out int tmpInt).Should().BeTrue();
+            tmpInt.Should().Be(1);
+            idict.TryGetValue("bogus", out tmpInt).Should().BeFalse();
+
+            tmpInt = 0;
+            roDict.TryGetValue("value", out tmpInt).Should().BeTrue();
+            tmpInt.Should().Be(1);
+            roDict.TryGetValue("bogus", out tmpInt).Should().BeFalse();
+
+            idict.TryGetValue("value", out DateTimeOffset date).Should().BeFalse();
+            roDict.TryGetValue("value", out date).Should().BeFalse();
+
+            idict.TryGetValue("value", out long tmpLong).Should().BeTrue();
+            tmpLong.Should().Be(1L);
+
+            tmpLong = 0L;
+            idict.TryGetValue("value", out tmpLong).Should().BeTrue();
+            tmpLong.Should().Be(1L);
+        }
+
+        [Fact]
+        public void TestReplaceAll()
+        {
+            var s = "The quick brown fox jumps over the lazy dog";
+            s.ReplaceAll("\\s.o.", " squaunch").Should().Be("The quick brown squaunch jumps over the lazy squaunch");
+            s.ReplaceAll("bogus", "").Should().Be(s);
+        }
+
         private unsafe void TestRoundTrip<T>(T item)
         {
             using (var encoded = item.FLEncode()) {
