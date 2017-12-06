@@ -23,7 +23,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Text;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
@@ -296,11 +299,34 @@ Transfer-Encoding: chunked";
                 Username = "user"
             };
 
+            dict["type"].Should().Be("Basic");
+
             dict.Validate("type", "Basic").Should().BeTrue();
             dict.Validate("type", "Bogus").Should().BeFalse();
+            dict.Invoking(d => d.Add("type", "Bogus"))
+                .ShouldThrow<InvalidOperationException>("because the type is invalid");
+            dict.Invoking(d => d.Add(new KeyValuePair<string, object>("type", "Bogus")))
+                .ShouldThrow<InvalidOperationException>("because the type is invalid");
+            dict.Invoking(d => d["type"] = "Bogus")
+                .ShouldThrow<InvalidOperationException>("because the type is invalid");
+            dict.Invoking(d => d.Remove("type"))
+                .ShouldThrow<InvalidOperationException>("because the type key is required");
+            dict.Invoking(d => d.Remove(new KeyValuePair<string, object>("type", "Basic")))
+                .ShouldThrow<InvalidOperationException>("because the type key is required");
+
             dict.Freeze();
 
             dict.Invoking(d => d["foo"] = "bar")
+                .ShouldThrow<InvalidOperationException>("because the dictionary was frozen");
+            dict.Invoking(d => d.Add("foo", "bar"))
+                .ShouldThrow<InvalidOperationException>("because the dictionary was frozen");
+            dict.Invoking(d => d.Add(new KeyValuePair<string, object>("foo", "bar")))
+                .ShouldThrow<InvalidOperationException>("because the dictionary was frozen");
+            dict.Invoking(d => d.Remove("foo"))
+                .ShouldThrow<InvalidOperationException>("because the dictionary was frozen");
+            dict.Invoking(d => d.Remove(new KeyValuePair<string, object>("foo", "bar")))
+                .ShouldThrow<InvalidOperationException>("because the dictionary was frozen");
+            dict.Invoking(d => d.Clear())
                 .ShouldThrow<InvalidOperationException>("because the dictionary was frozen");
         }
         
@@ -312,35 +338,6 @@ Transfer-Encoding: chunked";
             logic["Cookie"] = null;
             var dataString = Encoding.ASCII.GetString(logic.HTTPRequestData());
             dataString.IndexOf("\r\n\r\n").Should().Be(dataString.Length - 4);
-        }
-
-        [Fact]
-        public void TestDocumentEquality()
-        {
-            var doc1 = new MutableDocument("doc");
-            var doc2 = new MutableDocument("doc");
-            doc1.As<object>().Should().Be(doc2);
-            doc2.Dispose();
-            doc2 = new MutableDocument("otherDoc");
-            doc1.As<object>().Should().NotBe(doc2);
-            doc2.Dispose();
-
-            doc2 = new MutableDocument("doc");
-            doc2.SetString("value", "value");
-            doc1.As<object>().Should().NotBe(doc2);
-            var savedDoc2 = Db.Save(doc2);
-            doc2.Dispose();
-
-            doc1.As<object>().Should().NotBe(savedDoc2);
-            var retrievedDoc2 = Db.GetDocument("doc");
-            retrievedDoc2.As<object>().Should().Be(savedDoc2);
-            doc2 = retrievedDoc2.ToMutable();
-            doc2.As<object>().Should().Be(savedDoc2);
-            doc2.SetString("value", "nextValue");
-            doc2.As<object>().Should().NotBe(retrievedDoc2);
-            doc2.Dispose();
-            retrievedDoc2.Dispose();
-            savedDoc2.Dispose();
         }
 
         [Fact]
@@ -396,6 +393,38 @@ Transfer-Encoding: chunked";
             var s = "The quick brown fox jumps over the lazy dog";
             s.ReplaceAll("\\s.o.", " squaunch").Should().Be("The quick brown squaunch jumps over the lazy squaunch");
             s.ReplaceAll("bogus", "").Should().Be(s);
+        }
+
+        [Fact]
+        public unsafe void TestConvertError()
+        {
+            var exceptions = new Exception[]
+            {
+                new SocketException((int) SocketError.HostNotFound),
+                new SocketException((int) SocketError.HostUnreachable),
+                new SocketException((int) SocketError.TimedOut),
+                new SocketException((int) SocketError.ConnectionAborted),
+                new SocketException((int) SocketError.ConnectionRefused),
+                new AuthenticationException("The remote certificate is invalid according to the validation procedure."),
+                new InvalidOperationException("Test message")
+            };
+
+            var errors = new[]
+            {
+                new C4Error(C4NetworkErrorCode.UnknownHost),
+                new C4Error(C4NetworkErrorCode.DNSFailure),
+                new C4Error(C4NetworkErrorCode.Timeout),
+                new C4Error(PosixStatus.CONNRESET),
+                new C4Error(PosixStatus.CONNREFUSED),
+                new C4Error(C4NetworkErrorCode.TLSCertUntrusted),
+                new C4Error(C4ErrorCode.RemoteError) 
+            };
+
+            foreach (var pair in exceptions.Zip(errors, (a, b) => new { a, b })) {
+                C4Error tmp;
+                Status.ConvertError(pair.a, &tmp);
+                tmp.Should().Be(pair.b);
+            }
         }
 
         private unsafe void TestRoundTrip<T>(T item)

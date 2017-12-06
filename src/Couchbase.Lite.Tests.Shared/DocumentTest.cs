@@ -24,7 +24,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using FluentAssertions;
@@ -1509,6 +1508,64 @@ namespace Test
 
                 result.ShouldBeEquivalentTo(content, "because that is the correct content");
             });
+        }
+
+        [Fact]
+        public void TestDocumentEquality()
+        {
+            using (var md = new MutableDocument("doc1")) {
+                md.SetInt("answer", 42);
+                Db.Save(md);
+                using (var doc = Db.GetDocument("doc1")) {
+                    md.As<object>().Should().Be(doc); // MD <-> doc ==
+                }
+            }
+
+            using (var md = new MutableDocument("doc2")) {
+                md.SetInt("answer", 42);
+                Db.Save(md);
+            }
+
+            using (var md = new MutableDocument("doc3")) {
+                md.SetInt("answer", 41);
+                Db.Save(md);
+            }
+
+            using (var doc = Db.GetDocument("doc1"))
+            using (var md = doc.ToMutable()) {
+                doc.As<object>().Should().Be(md, "because md was not altered"); // doc <-> MD ==
+                md.SetInt("answer", 41);
+                doc.As<object>().Should().NotBe(md); // doc <-> MD !=
+                using (var md2 = doc.ToMutable()) {
+                    md2.As<object>().Should().NotBe(md, "because md was altered and md2 was not"); // MD <-> MD !=
+                    md2.SetInt("answer", 41);
+                    md2.As<object>().Should().NotBe(doc, "because md2 was altered"); // MD <-> doc !=
+                    md2.As<object>().Should().Be(md, "because md2 and md were altered in the same way"); // MD <-> MD ==
+                }
+
+                using (var doc2 = Db.GetDocument("doc1")) {
+                    doc.As<object>().Should().Be(doc2, "because the ID and contents match"); // doc <-> doc ==
+                }
+            }
+
+            using (var doc1 = Db.GetDocument("doc1"))
+            using (var doc2 = Db.GetDocument("doc2"))
+            using (var doc3 = Db.GetDocument("doc3")) {
+                doc1.As<object>().Should().NotBe(doc2, "because the IDs differ");
+                doc1.As<object>().Should().NotBe(doc3, "because the contents differ");
+            }
+
+            using (var otherDb = new Database("other", Db.Config)) {
+                using (var md = new MutableDocument("doc1")) {
+                    md.SetInt("answer", 42);
+                    otherDb.Save(md);
+                }
+
+                using (var doc1a = Db.GetDocument("doc1"))
+                using (var doc1b = otherDb.GetDocument("doc1")) {
+                    doc1a.As<object>().Should().NotBe(doc1b, "because the documents are in different databases");
+                }
+            }
         }
 
         private void PopulateData(MutableDocument doc)

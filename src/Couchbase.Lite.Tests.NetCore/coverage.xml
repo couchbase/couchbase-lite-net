@@ -60,6 +60,41 @@
      <FilterEntry>
       <FunctionMask>ToString</FunctionMask>
     </FilterEntry>
+    <FilterEntry>
+      <FunctionMask>Reset</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.OptionsDictionary</ClassMask>
+      <FunctionMask>Contains*</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.OptionsDictionary</ClassMask>
+      <FunctionMask>CopyTo</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.OptionsDictionary</ClassMask>
+      <FunctionMask>TryGetValue</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.OptionsDictionary</ClassMask>
+      <FunctionMask>GetEnumerator</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.OptionsDictionary</ClassMask>
+      <FunctionMask>IsReadOnly</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.OptionsDictionary</ClassMask>
+      <FunctionMask>KeyIsRequired</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.OptionsDictionary</ClassMask>
+      <FunctionMask>Validate</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.Document</ClassMask>
+      <FunctionMask>GetEnumerator</FunctionMask>
+    </FilterEntry>
   </ExcludeFilters>
   </Filters>
 </AnalyzeParams>

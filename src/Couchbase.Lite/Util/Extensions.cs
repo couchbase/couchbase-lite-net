@@ -19,12 +19,23 @@
 //  limitations under the License.
 //  
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Couchbase.Lite.Util
 {
+    public enum NumericType
+    {
+        None,
+        FloatingPoint,
+        Integer,
+        UInteger
+    }
+
     /// <summary>
     /// A collection of helpful extensions
     /// </summary>
@@ -106,6 +117,73 @@ namespace Couchbase.Lite.Util
         {
             var value = Get(collection, key);
             return CastOrDefault(value, defaultVal);
+        }
+
+        public static NumericType GetNumericType(object obj)
+        {
+            if (obj is ulong || obj is uint || obj is ushort || obj is byte) {
+                return NumericType.UInteger;
+            } 
+            
+            if (obj is long || obj is int || obj is short || obj is sbyte) {
+                return NumericType.Integer;
+            }
+
+            if (obj is float || obj is double || obj is decimal) {
+                return NumericType.FloatingPoint;
+            }
+
+            return NumericType.None;
+        }
+
+        public static bool RecursiveEqual(this object left, object right)
+        {
+            switch (left) {
+                case null:
+                    return right == null;
+                case string s:
+                    return s.Equals(right as string, StringComparison.Ordinal);
+                case IDictionaryObject dictObj:
+                    return IsEqual(dictObj, right);
+                case IArray arrayObj:
+                    return IsEqual(arrayObj, right);
+                case IList list:
+                    return IsEqual(list, right);
+                case IDictionary<string, object> dict:
+                    return IsEqual(dict, right);
+            }
+            
+            switch (GetNumericType(left)) {
+                case NumericType.FloatingPoint:
+                {
+                    if (!(right is IConvertible c)) {
+                        return false;
+                    }
+
+                    return ((IConvertible) left).ToDecimal(CultureInfo.InvariantCulture)
+                        .Equals(c.ToDecimal(CultureInfo.InvariantCulture));
+                }
+                case NumericType.Integer:
+                {
+                    if (!(right is IConvertible c)) {
+                        return false;
+                    }
+
+                    return ((IConvertible) left).ToInt64(CultureInfo.InvariantCulture)
+                        .Equals(c.ToInt64(CultureInfo.InvariantCulture));
+                }
+                case NumericType.UInteger:
+                {
+                    if (!(right is IConvertible c)) {
+                        return false;
+                    }
+
+                    return ((IConvertible) left).ToUInt64(CultureInfo.InvariantCulture)
+                        .Equals(c.ToUInt64(CultureInfo.InvariantCulture));
+                }
+            }
+
+            return left.Equals(right);
         }
 
         /// <summary>
@@ -230,5 +308,65 @@ namespace Couchbase.Lite.Util
         }
 
         #endregion
+
+        private static bool IsEqual(IDictionaryObject left, object right)
+        {
+            if (right == null || !(right is IDictionaryObject dict)) {
+                return false;
+            }
+
+            if (left.Keys.Intersect(dict.Keys).Count() != left.Keys.Count) {
+                return false;
+            }
+
+            return !(from key in left.Keys 
+                let leftObj = left.GetValue(key) 
+                let rightObj = dict.GetValue(key) 
+                where !leftObj.RecursiveEqual(rightObj)
+                select leftObj).Any();
+        }
+
+        private static bool IsEqual(IArray left, object right)
+        {
+            if (right == null || !(right is IArray arr)) {
+                return false;
+            }
+
+            if (left.Count != arr.Count) {
+                return false;
+            }
+
+            return !left.Where((t, i) => !t.RecursiveEqual(arr.GetValue(i))).Any();
+        }
+
+        private static bool IsEqual(IList left, object right)
+        {
+            if (right == null || !(right is IList list)) {
+                return false;
+            }
+
+            if (left.Count != list.Count) {
+                return false;
+            }
+
+            return !left.Cast<object>().Where((t, i) => !t.RecursiveEqual(list[i])).Any();
+        }
+
+        private static bool IsEqual(IDictionary<string, object> left, object right)
+        {
+            if (right == null || !(right is IDictionary<string, object> dict)) {
+                return false;
+            }
+
+            if (left.Keys.Intersect(dict.Keys).Count() != left.Keys.Count) {
+                return false;
+            }
+
+            return !(from key in left.Keys 
+                let leftObj = left[key] 
+                let rightObj = dict[key]
+                where !leftObj.RecursiveEqual(rightObj)
+                select leftObj).Any();
+        }
     }
 }

@@ -187,85 +187,7 @@ namespace Couchbase.Lite
         #endregion
 
         #region Internal Methods
-
-        internal static bool IsEqual(object left, object right)
-        {
-            switch (left) {
-                case null:
-                    return right == null;
-                case IDictionaryObject dictObj:
-                    return IsEqual(dictObj, right);
-                case IArray arrayObj:
-                    return IsEqual(arrayObj, right);
-                case IList list:
-                    return IsEqual(list, right);
-                case IDictionary<string, object> dict:
-                    return IsEqual(dict, right);
-            }
-
-            return left.Equals(right);
-        }
-
-        internal static bool IsEqual(IDictionaryObject left, object right)
-        {
-            if (right == null || !(right is IDictionaryObject dict)) {
-                return false;
-            }
-
-            if (left.Keys.Intersect(dict.Keys).Count() != left.Keys.Count) {
-                return false;
-            }
-
-            return !(from key in left.Keys 
-                let leftObj = left.GetValue(key) 
-                let rightObj = dict.GetValue(key) 
-                where !IsEqual(leftObj, rightObj)
-                select leftObj).Any();
-        }
-
-        internal static bool IsEqual(IArray left, object right)
-        {
-            if (right == null || !(right is IArray arr)) {
-                return false;
-            }
-
-            if (left.Count != arr.Count) {
-                return false;
-            }
-
-            return !left.Where((t, i) => !IsEqual(t, arr.GetValue(i))).Any();
-        }
-
-        internal static bool IsEqual(IList left, object right)
-        {
-            if (right == null || !(right is IList list)) {
-                return false;
-            }
-
-            if (left.Count != list.Count) {
-                return false;
-            }
-
-            return !left.Cast<object>().Where((t, i) => !IsEqual(t, list[i])).Any();
-        }
-
-        internal static bool IsEqual(IDictionary<string, object> left, object right)
-        {
-            if (right == null || !(right is IDictionary<string, object> dict)) {
-                return false;
-            }
-
-            if (left.Keys.Intersect(dict.Keys).Count() != left.Keys.Count) {
-                return false;
-            }
-
-            return !(from key in left.Keys 
-                let leftObj = left[key] 
-                let rightObj = dict[key]
-                where !IsEqual(leftObj, rightObj)
-                select leftObj).Any();
-        }
-
+        
         internal virtual FLSlice Encode()
         {
             return c4Doc?.HasValue == true ? (FLSlice)c4Doc.RawDoc->selectedRev.body : new FLSlice();
@@ -348,9 +270,8 @@ namespace Couchbase.Lite
             if (!(obj is Document d)) {
                 return false;
             }
-
-            var baseEqual = Id == d.Id && RevID == d.RevID;
-            if (!baseEqual) {
+            
+            if (Id != d.Id || Database != d.Database) {
                 return false;
             }
 
@@ -362,7 +283,7 @@ namespace Couchbase.Lite
             return !(from key in Keys 
                 let left = GetValue(key) 
                 let right = d.GetValue(key) 
-                where !IsEqual(left, right)
+                where !left.RecursiveEqual(right)
                 select left).Any();
         }
 
