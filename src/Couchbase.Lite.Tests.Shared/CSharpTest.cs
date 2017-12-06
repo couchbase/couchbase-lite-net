@@ -427,6 +427,38 @@ Transfer-Encoding: chunked";
             }
         }
 
+        [Fact]
+        public void TestRecursiveEqual()
+        {
+            var numbers = new object[]
+            {
+                SByte.MinValue, Byte.MaxValue, Int16.MinValue, UInt16.MaxValue,
+                Int32.MinValue, UInt32.MaxValue, Int64.MinValue, UInt64.MaxValue,
+                Single.MaxValue, Double.MaxValue
+            };
+
+            var dict = new Dictionary<string, object>
+            {
+                ["string_val"] = "string",
+                ["numbers"] = numbers,
+                ["dict"] = new MutableDictionary().SetString("foo", "bar"),
+                ["array"] = new MutableArray().AddInt(42)
+            };
+
+            dict.RecursiveEqual(dict).Should().BeTrue();
+            foreach (var num in new object[] { (sbyte) 42, (short) 42, 42L }) {
+                42.RecursiveEqual(num).Should().BeTrue();
+            }
+
+            foreach (var num in new object[] { (byte) 42, (ushort) 42, 42UL }) {
+                42U.RecursiveEqual(num).Should().BeTrue();
+            }
+
+            foreach (var num in new object[] { 3.14f, 3.14 }) {
+                3.14m.RecursiveEqual(num).Should().BeTrue();
+            }
+        }
+
         private unsafe void TestRoundTrip<T>(T item)
         {
             using (var encoded = item.FLEncode()) {

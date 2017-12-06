@@ -28,14 +28,6 @@ using System.Text.RegularExpressions;
 
 namespace Couchbase.Lite.Util
 {
-    public enum NumericType
-    {
-        None,
-        FloatingPoint,
-        Integer,
-        UInteger
-    }
-
     /// <summary>
     /// A collection of helpful extensions
     /// </summary>
@@ -119,21 +111,29 @@ namespace Couchbase.Lite.Util
             return CastOrDefault(value, defaultVal);
         }
 
-        public static NumericType GetNumericType(object obj)
+        public static TypeCode GetNumericType(object left, object right)
         {
-            if (obj is ulong || obj is uint || obj is ushort || obj is byte) {
-                return NumericType.UInteger;
+            if (right == null || !(left is IConvertible) || !(right is IConvertible)) {
+                return TypeCode.Object;
+            }
+
+            if (left is ulong || left is uint || left is ushort || left is byte) {
+                return TypeCode.UInt64;
             } 
             
-            if (obj is long || obj is int || obj is short || obj is sbyte) {
-                return NumericType.Integer;
+            if (left is long || left is int || left is short || left is sbyte) {
+                return TypeCode.Int64;
             }
 
-            if (obj is float || obj is double || obj is decimal) {
-                return NumericType.FloatingPoint;
+            if (left is float || right is float) {
+                return TypeCode.Single;
             }
 
-            return NumericType.None;
+            if (left is double || left is decimal) {
+                return TypeCode.Double;
+            }
+
+            return TypeCode.Object;
         }
 
         public static bool RecursiveEqual(this object left, object right)
@@ -152,34 +152,31 @@ namespace Couchbase.Lite.Util
                 case IDictionary<string, object> dict:
                     return IsEqual(dict, right);
             }
+
+            if (right == null) {
+                return false;
+            }
             
-            switch (GetNumericType(left)) {
-                case NumericType.FloatingPoint:
+            switch (GetNumericType(left, right)) {
+                case TypeCode.Single:
                 {
-                    if (!(right is IConvertible c)) {
-                        return false;
-                    }
-
-                    return ((IConvertible) left).ToDecimal(CultureInfo.InvariantCulture)
-                        .Equals(c.ToDecimal(CultureInfo.InvariantCulture));
+                    return ((IConvertible) left).ToSingle(CultureInfo.InvariantCulture)
+                         - ((IConvertible) right).ToSingle(CultureInfo.InvariantCulture) <= Single.Epsilon;
                 }
-                case NumericType.Integer:
+                case TypeCode.Double:
                 {
-                    if (!(right is IConvertible c)) {
-                        return false;
-                    }
-
+                    return ((IConvertible) left).ToDouble(CultureInfo.InvariantCulture)
+                           - ((IConvertible) right).ToDouble(CultureInfo.InvariantCulture) <= Double.Epsilon;
+                }
+                case TypeCode.Int64:
+                {
                     return ((IConvertible) left).ToInt64(CultureInfo.InvariantCulture)
-                        .Equals(c.ToInt64(CultureInfo.InvariantCulture));
+                        .Equals(((IConvertible) right).ToInt64(CultureInfo.InvariantCulture));
                 }
-                case NumericType.UInteger:
+                case TypeCode.UInt64:
                 {
-                    if (!(right is IConvertible c)) {
-                        return false;
-                    }
-
                     return ((IConvertible) left).ToUInt64(CultureInfo.InvariantCulture)
-                        .Equals(c.ToUInt64(CultureInfo.InvariantCulture));
+                        .Equals(((IConvertible) right).ToUInt64(CultureInfo.InvariantCulture));
                 }
             }
 
