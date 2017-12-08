@@ -144,7 +144,7 @@ namespace Couchbase.Lite
         internal C4BlobStore* BlobStore
         {
             get {
-                var retVal = default(C4BlobStore*);
+                C4BlobStore* retVal = null;
                 ThreadSafety.DoLocked(() =>
                 {
                     CheckOpen();
@@ -158,7 +158,7 @@ namespace Couchbase.Lite
         internal C4Database* c4db
         {
             get {
-                var retVal = default(C4Database*);
+                C4Database* retVal = null;
                 ThreadSafety.DoLocked(() => retVal = _c4db);
                 return retVal;
             }
@@ -209,7 +209,7 @@ namespace Couchbase.Lite
             Name = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
             Config = configuration;
             Open();
-            var keys = default(FLSharedKeys*);
+            FLSharedKeys* keys = null;
             ThreadSafety.DoLocked(() => keys = Native.c4db_getFLSharedKeys(_c4db));
             _sharedStrings = new SharedStringCache(keys);
         }
@@ -1109,7 +1109,7 @@ namespace Couchbase.Lite
                 });
                 
             } else if (doc.IsEmpty) {
-                var encoder = default(FLEncoder*);
+                FLEncoder* encoder = null;
                 ThreadSafety.DoLocked(() => encoder = Native.c4db_getSharedFleeceEncoder(_c4db));
                 Native.FLEncoder_BeginDict(encoder, 0);
                 Native.FLEncoder_EndDict(encoder);

@@ -309,10 +309,11 @@ namespace Couchbase.Lite
             }
 
             var store = db.BlobStore;
-            var key = default(C4BlobKey);
+            C4BlobKey key;
             if(_content != null) {
-                LiteCoreBridge.Check(err => {
-                    var tmpKey = default(C4BlobKey);
+                LiteCoreBridge.Check(err =>
+                {
+                    C4BlobKey tmpKey;
                     var s = Native.c4blob_create(store, _content, null, &tmpKey, err);
                     key = tmpKey;
                     return s;
