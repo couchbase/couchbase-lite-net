@@ -768,16 +768,6 @@ namespace Couchbase.Lite
         #endregion
 
         #region Internal Methods
-
-        internal void BeginTransaction()
-        {
-            ThreadSafety.DoLockedBridge(err => Native.c4db_beginTransaction(_c4db, err));
-        }
-
-        internal void EndTransaction(bool commit)
-        {
-            ThreadSafety.DoLockedBridge(err => Native.c4db_endTransaction(_c4db, commit, err));
-        }
         
         internal void ResolveConflict([NotNull]string docID, IConflictResolver resolver)
         {

@@ -28,9 +28,12 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Text;
+using System.Threading.Tasks;
+
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
 
@@ -459,6 +462,35 @@ Transfer-Encoding: chunked";
             foreach (var num in new object[] { 3.14f, 3.14 }) {
                 3.14m.RecursiveEqual(num).Should().BeTrue();
             }
+        }
+
+        [Fact]
+        public async Task TestSerialQueue()
+        {
+            var queue = new SerialQueue();
+            var now = DateTime.Now;
+            var then = now;
+            queue.DispatchAfter(() => then = DateTime.Now, TimeSpan.FromSeconds(1));
+            await Task.Delay(250);
+            then.Should().Be(now);
+            await Task.Delay(800);
+            then.Should().NotBe(now);
+
+            var testBool = false;
+            queue.DispatchSync(() => testBool).Should().BeFalse();
+            testBool = true;
+            var t = queue.DispatchAsync(() =>
+            {
+                testBool = false;
+                return testBool;
+            });
+            testBool.Should().BeTrue();
+            (await t).Should().BeFalse();
+            testBool.Should().BeFalse();
+
+            t = queue.DispatchAfter(() => testBool, TimeSpan.FromMilliseconds(500));
+            testBool = true;
+            (await t).Should().BeTrue();
         }
 
         private unsafe void TestRoundTrip<T>(T item)

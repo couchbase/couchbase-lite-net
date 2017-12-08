@@ -22,6 +22,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Couchbase.Lite.Logging;
+
+using JetBrains.Annotations;
+
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Sync
@@ -31,6 +34,8 @@ namespace Couchbase.Lite.Sync
         #region Constants
 
         private const string Tag = nameof(WebSocketTransport);
+
+        [NotNull]
         private static readonly Dictionary<int, WebSocketWrapper> Sockets = new Dictionary<int, WebSocketWrapper>();
 
         #endregion
@@ -69,7 +74,9 @@ namespace Couchbase.Lite.Sync
         {
             var id = (int)socket->nativeHandle;
             if (id == 0) {
-                Log.To.Sync.E(Tag, "DoCompletedReceive reached after close");
+                // This one is not an error, it happens normally during connection close
+                // but log it anyway just in case
+                Log.To.Sync.V(Tag, "DoCompletedReceive reached after close, ignoring...");
                 return;
             }
 

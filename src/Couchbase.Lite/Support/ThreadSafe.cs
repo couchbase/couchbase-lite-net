@@ -78,17 +78,6 @@ namespace Couchbase.Lite.Support
 #endif
         }
 
-        public unsafe void DoLockedBridge(C4TryLogicDelegate3 a)
-        {
-#if !NO_THREADSAFE
-            lock (_lock) {
-#endif
-                LiteCoreBridge.Check(a);
-#if !NO_THREADSAFE
-            }
-#endif
-        }
-
         #endregion
     }
 }

@@ -52,6 +52,9 @@
       <ClassMask>Couchbase.Lite.Util.NonNullDictionary*</ClassMask>
     </FilterEntry>
     <FilterEntry>
+      <ClassMask>Couchbase.Lite.Support.NullThreadSafety</ClassMask>
+    </FilterEntry>
+    <FilterEntry>
       <FunctionMask>Equals</FunctionMask>
     </FilterEntry>
      <FilterEntry>
@@ -62,6 +65,17 @@
     </FilterEntry>
     <FilterEntry>
       <FunctionMask>Reset</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <FunctionMask>Finalize</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.Database</ClassMask>
+      <FunctionMask>SetLogLevel</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.Database</ClassMask>
+      <FunctionMask>GetLogLevels</FunctionMask>
     </FilterEntry>
     <FilterEntry>
       <ClassMask>Couchbase.Lite.OptionsDictionary</ClassMask>
@@ -81,7 +95,11 @@
     </FilterEntry>
     <FilterEntry>
       <ClassMask>Couchbase.Lite.OptionsDictionary</ClassMask>
-      <FunctionMask>IsReadOnly</FunctionMask>
+      <FunctionMask>get_*</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.OptionsDictionary</ClassMask>
+      <FunctionMask>set_*</FunctionMask>
     </FilterEntry>
     <FilterEntry>
       <ClassMask>Couchbase.Lite.OptionsDictionary</ClassMask>
