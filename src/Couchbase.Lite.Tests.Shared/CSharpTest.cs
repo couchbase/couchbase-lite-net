@@ -37,6 +37,8 @@ using Couchbase.Lite.Util;
 using FluentAssertions;
 using LiteCore.Interop;
 using Newtonsoft.Json;
+
+using Extensions = Couchbase.Lite.Util.Extensions;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
