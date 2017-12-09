@@ -61,7 +61,7 @@ namespace Couchbase.Lite.Util
 
         /// <summary>
         /// Adds one to the reference count of the object, meaning that
-        /// another call to <see cref="Dispose"/> is needed to actually
+        /// another call to <see cref="IDisposable.Dispose"/> is needed to actually
         /// dispose of this object
         /// </summary>
         public void Retain()

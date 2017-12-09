@@ -76,6 +76,7 @@
     <Compile Include="Support\DefaultDirectoryResolver.cs" />
     <Compile Include="Activate.cs" />
     <Compile Include="Support\AndroidRuntimePlatform.cs" />
+    <Compile Include="Support\MainThreadTaskScheduler.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Couchbase.Lite\Properties\version">

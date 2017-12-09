@@ -31,6 +31,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
+using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Support;
@@ -40,6 +41,7 @@ using Couchbase.Lite.Util;
 using FluentAssertions;
 using LiteCore.Interop;
 using Newtonsoft.Json;
+using Microsoft.Extensions.DependencyInjection;
 
 using Extensions = Couchbase.Lite.Util.Extensions;
 #if !WINDOWS_UWP
@@ -410,7 +412,9 @@ Transfer-Encoding: chunked";
                 new SocketException((int) SocketError.TimedOut),
                 new SocketException((int) SocketError.ConnectionAborted),
                 new SocketException((int) SocketError.ConnectionRefused),
+                #if !WINDOWS_UWP
                 new AuthenticationException("The remote certificate is invalid according to the validation procedure."),
+                #endif
                 new InvalidOperationException("Test message")
             };
 
@@ -421,7 +425,9 @@ Transfer-Encoding: chunked";
                 new C4Error(C4NetworkErrorCode.Timeout),
                 new C4Error(PosixStatus.CONNRESET),
                 new C4Error(PosixStatus.CONNREFUSED),
+                #if !WINDOWS_UWP
                 new C4Error(C4NetworkErrorCode.TLSCertUntrusted),
+                #endif
                 new C4Error(C4ErrorCode.RemoteError) 
             };
 
@@ -492,6 +498,23 @@ Transfer-Encoding: chunked";
             testBool = true;
             (await t).Should().BeTrue();
         }
+
+        #if !NETCOREAPP1_0
+
+        [Fact]
+        public async Task TestMainThreadScheduler()
+        {
+            var scheduler = Service.Provider.GetService<IMainThreadTaskScheduler>();
+            var onMainThread = await Task.Factory.StartNew(() => scheduler.IsMainThread);
+            onMainThread.Should().BeFalse();
+
+            var t = new Task<bool>(() => scheduler.IsMainThread);
+            t.Start(scheduler.AsTaskScheduler());
+            onMainThread = await t;
+            onMainThread.Should().BeTrue();
+        }
+
+        #endif
 
         private unsafe void TestRoundTrip<T>(T item)
         {

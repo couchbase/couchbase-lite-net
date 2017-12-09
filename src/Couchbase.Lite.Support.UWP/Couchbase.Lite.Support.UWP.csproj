@@ -116,6 +116,7 @@
     <Compile Include="Activate.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Support\DefaultDirectoryResolver.cs" />
+    <Compile Include="Support\MainThreadTaskScheduler.cs" />
     <Compile Include="Support\Reachability.cs" />
     <Compile Include="Support\SslStreamFactory.cs" />
     <Compile Include="Support\UwpDefaultLogger.cs" />

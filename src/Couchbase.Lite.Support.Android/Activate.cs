@@ -25,6 +25,8 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
+using JetBrains.Annotations;
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite.Support
@@ -46,7 +48,7 @@ namespace Couchbase.Lite.Support
         /// Activates the support classes for Android
         /// </summary>
         /// <param name="context">The main context of the Android application</param>
-        public static void Activate(Context context)
+        public static void Activate([NotNull]Context context)
         {
 			if(_Activated.Set(true)) {
 				return;
@@ -56,6 +58,7 @@ namespace Couchbase.Lite.Support
             Service.RegisterServices(container =>
             {
                 container.AddSingleton<IDefaultDirectoryResolver>(p => new DefaultDirectoryResolver(context));
+                container.AddTransient<IMainThreadTaskScheduler>(p => new MainThreadTaskScheduler(context));
             });
         }
 
