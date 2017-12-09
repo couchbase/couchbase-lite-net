@@ -243,10 +243,7 @@ namespace Couchbase.Lite
 
         #region Overrides
 
-        /// <summary>
-        /// Returns a string that represents the current object.
-        /// </summary>
-        /// <returns>A string that represents the current object.</returns>
+        /// <inheritdoc />
         [NotNull]
         public override string ToString()
         {
@@ -254,6 +251,7 @@ namespace Couchbase.Lite
             return $"{GetType().Name}[{id}]";
         }
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             var h = Hasher.Start;
@@ -265,6 +263,7 @@ namespace Couchbase.Lite
             return h;
         }
 
+        /// <inheritdoc />
         public override bool Equals(object obj)
         {
             if (!(obj is Document d)) {

@@ -63,6 +63,11 @@ namespace Couchbase.Lite
         #endregion
     }
 
+    /// <summary>
+    /// An interface describing a mutable entry in a key-value path
+    /// on an object.  Note that if the key-value path does not exist,
+    /// then setting the value will throw an exception.
+    /// </summary>
     public interface IMutableFragment : IMutableArrayFragment, IMutableDictionaryFragment
     {
         /// <summary>

@@ -25,18 +25,34 @@ using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
 {
+    /// <summary>
+    /// A class that generates expressions for retrieving metadata
+    /// during a query
+    /// </summary>
     public static class Meta
     {
-        private const string IDKeyPath = "_id";
+        #region Constants
+
         private const string IDColumnName = "id";
-        private const string SequenceKeyPath = "_sequence";
+        private const string IDKeyPath = "_id";
         private const string SequenceColumnName = "sequence";
+        private const string SequenceKeyPath = "_sequence";
+
+        #endregion
 
         #region Properties
-        
+
+        /// <summary>
+        /// A query expression that retrieves the document ID from 
+        /// an entry in the database
+        /// </summary>
         [NotNull]
         public static IMetaExpression ID => new QueryTypeExpression(IDKeyPath, IDColumnName);
-        
+
+        /// <summary>
+        /// A query expression that retrieves the document sequence from
+        /// an entry in the database
+        /// </summary>
         [NotNull]
         public static IMetaExpression Sequence => new QueryTypeExpression(SequenceKeyPath, SequenceColumnName);
 

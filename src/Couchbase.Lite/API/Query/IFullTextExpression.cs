@@ -23,6 +23,10 @@ using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
 {
+    /// <summary>
+    /// An interface that represents an expression that is eligible to receive
+    /// full-text related query clauses
+    /// </summary>
     public interface IFullTextExpression
     {
         /// <summary>

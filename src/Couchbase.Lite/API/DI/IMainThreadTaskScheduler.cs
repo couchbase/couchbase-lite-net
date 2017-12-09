@@ -25,16 +25,31 @@ using JetBrains.Annotations;
 
 namespace Couchbase.Lite.DI
 {
+    /// <summary>
+    /// An interface for an object that can behave as a <see cref="TaskScheduler"/>
+    /// that invokes its tasks on the UI (main) thread of an application.  Not applicable
+    /// for all platforms, as some do not have main threads set up in a way that is usable
+    /// (e.g. .NET Core)
+    /// </summary>
     public interface IMainThreadTaskScheduler
     {
         #region Properties
 
+        /// <summary>
+        /// Gets if the currently executing thread is the main thread
+        /// of the application
+        /// </summary>
         bool IsMainThread { get; }
 
         #endregion
 
         #region Public Methods
 
+        /// <summary>
+        /// Returns the object as a <see cref="TaskScheduler"/> so that
+        /// it can be used for various .NET framework methods
+        /// </summary>
+        /// <returns></returns>
         [NotNull]
         TaskScheduler AsTaskScheduler();
 

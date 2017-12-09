@@ -96,6 +96,10 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
+        /// <summary>
+        /// Creates a copy of this object that can be mutated
+        /// </summary>
+        /// <returns>A mutable copy of the dictionary</returns>
         [NotNull]
         public MutableDictionary ToMutable()
         {

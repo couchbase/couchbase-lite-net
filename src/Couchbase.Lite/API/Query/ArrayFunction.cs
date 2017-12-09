@@ -25,6 +25,10 @@ using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
 {
+    /// <summary>
+    /// A class for generating query functions that operate on
+    /// array types
+    /// </summary>
     public static class ArrayFunction
     {
         #region Public Methods

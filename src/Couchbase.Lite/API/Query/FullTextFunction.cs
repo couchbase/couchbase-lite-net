@@ -25,6 +25,9 @@ using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
 {
+    /// <summary>
+    /// A class that generates functions for use on the results of a full-text search
+    /// </summary>
     public static class FullTextFunction
     {
         /// <summary>

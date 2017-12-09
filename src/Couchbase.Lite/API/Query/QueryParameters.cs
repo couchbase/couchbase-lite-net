@@ -31,6 +31,9 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Query
 {
+    /// <summary>
+    /// A class which contains parameters for an <see cref="IQuery"/>
+    /// </summary>
     public sealed class QueryParameters
     {
         #region Constants
@@ -48,6 +51,12 @@ namespace Couchbase.Lite.Query
 
         #region Public Methods
 
+        /// <summary>
+        /// Sets a <see cref="Boolean"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
         public QueryParameters SetBoolean(string name, bool value)
@@ -56,6 +65,12 @@ namespace Couchbase.Lite.Query
             return this;
         }
 
+        /// <summary>
+        /// Sets a <see cref="DateTimeOffset"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
         public QueryParameters SetDate(string name, DateTimeOffset value)
@@ -64,6 +79,12 @@ namespace Couchbase.Lite.Query
             return this;
         }
 
+        /// <summary>
+        /// Sets a <see cref="Double"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
         public QueryParameters SetDouble(string name, double value)
@@ -72,6 +93,12 @@ namespace Couchbase.Lite.Query
             return this;
         }
 
+        /// <summary>
+        /// Sets a <see cref="Single"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
         public QueryParameters SetFloat(string name, float value)
@@ -80,6 +107,12 @@ namespace Couchbase.Lite.Query
             return this;
         }
 
+        /// <summary>
+        /// Sets an <see cref="Int32"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
         public QueryParameters SetInt(string name, int value)
@@ -88,6 +121,12 @@ namespace Couchbase.Lite.Query
             return this;
         }
 
+        /// <summary>
+        /// Sets an <see cref="Int64"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
         public QueryParameters SetLong(string name, long value)
@@ -96,6 +135,12 @@ namespace Couchbase.Lite.Query
             return this;
         }
 
+        /// <summary>
+        /// Sets a <see cref="String"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
         public QueryParameters SetString(string name, string value)
@@ -104,6 +149,12 @@ namespace Couchbase.Lite.Query
             return this;
         }
 
+        /// <summary>
+        /// Sets an untyped value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
         public QueryParameters SetValue(string name, object value)
@@ -118,10 +169,11 @@ namespace Couchbase.Lite.Query
 
         #region Overrides
 
-        [CanBeNull]
+        /// <inheritdoc />
+        [NotNull]
         public override string ToString()
         {
-            return _params != null ? JsonConvert.SerializeObject(_params) : null;
+            return JsonConvert.SerializeObject(_params) ?? "(null)";
         }
 
         #endregion

@@ -67,6 +67,10 @@ namespace Couchbase.Lite
         #endregion
     }
 
+    /// <summary>
+    /// An interface representing a readonly entry in a key-value path on
+    /// an object.  
+    /// </summary>
     public interface IFragment : IArrayFragment, IDictionaryFragment
     {
         /// <summary>

@@ -111,6 +111,15 @@ namespace Couchbase.Lite.Util
             return CastOrDefault(value, defaultVal);
         }
 
+        /// <summary>
+        /// Gets the appropriate numeric type for comparing two untyped objects
+        /// </summary>
+        /// <param name="left">The lefthand object to compare</param>
+        /// <param name="right">The righthand object to compare</param>
+        /// <returns>The <see cref="TypeCode"/> of the type that best suits comparing
+        /// the two object.  It can be either <see cref="TypeCode.UInt64"/>,
+        /// <see cref="TypeCode.Int64"/>, <see cref="TypeCode.Single"/>,
+        /// <see cref="TypeCode.Double"/> or <see cref="TypeCode.Object"/></returns>
         public static TypeCode GetNumericType(object left, object right)
         {
             if (right == null || !(left is IConvertible) || !(right is IConvertible)) {
@@ -136,6 +145,13 @@ namespace Couchbase.Lite.Util
             return TypeCode.Object;
         }
 
+        /// <summary>
+        /// Tests for equality between two untyped objects, and if they are collections
+        /// recursively checks for equality on each entry.
+        /// </summary>
+        /// <param name="left">The lefthand object to compare</param>
+        /// <param name="right">The righthand object to compare</param>
+        /// <returns>Whether or not the two objects are equal</returns>
         public static bool RecursiveEqual(this object left, object right)
         {
             switch (left) {

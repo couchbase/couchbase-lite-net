@@ -27,9 +27,23 @@ using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
 {
+    /// <summary>
+    /// A class that generates expressions that operate on the results of full-text searching
+    /// </summary>
     public static class FullTextExpression
     {
+        #region Public Methods
+
+        /// <summary>
+        /// Generates a query expression that will check for matches against a
+        /// given full text index name
+        /// </summary>
+        /// <param name="indexName">The name of the full-text index to perform the
+        /// check against</param>
+        /// <returns>The generated query expression</returns>
         [NotNull]
         public static IFullTextExpression Index(string indexName) => new QueryCompoundExpression("MATCH", indexName, String.Empty);
+
+        #endregion
     }
 }

@@ -25,6 +25,11 @@ using JetBrains.Annotations;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// A token that stores information about an event handler that
+    /// is registered on a Couchbase Lite object (for example
+    /// <see cref="Database.AddChangeListener"/>)
+    /// </summary>
     public sealed class ListenerToken
     {
         #region Variables

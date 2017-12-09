@@ -86,7 +86,7 @@ namespace Couchbase.Lite.Util
         /// Performs the actual disposale
         /// </summary>
         /// <param name="disposing">Whether or not this method is being called from
-        /// inside <see cref="Dispose"/> (vs the finalizer)</param>
+        /// inside <see cref="IDisposable.Dispose"/> (vs the finalizer)</param>
         protected abstract void Dispose(bool disposing);
 
         #endregion

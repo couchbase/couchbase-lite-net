@@ -82,6 +82,10 @@ namespace Couchbase.Lite
 
         #region Public Methods
 
+        /// <summary>
+        /// Creates a copy of this object that can be mutated
+        /// </summary>
+        /// <returns>A mutable copy of the array</returns>
         [NotNull]
         public MutableArray ToMutable()
         {

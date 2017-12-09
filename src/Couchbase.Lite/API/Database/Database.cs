@@ -360,6 +360,14 @@ namespace Couchbase.Lite
             return retVal;
         }
         
+        /// <summary>
+        /// Adds a change listener for the changes that occur in this database.  Signatures
+        /// are the same as += style event handlers, but this signature allows the use of
+        /// a custom task scheduler, if desired.
+        /// </summary>
+        /// <param name="scheduler">The scheduler to use when firing the change handler</param>
+        /// <param name="handler">The handler to invoke</param>
+        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
         [ContractAnnotation("handler:null => halt; scheduler:null => notnull")]
         public ListenerToken AddChangeListener([CanBeNull]TaskScheduler scheduler,
             EventHandler<DatabaseChangedEventArgs> handler)
