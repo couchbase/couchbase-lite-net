@@ -376,7 +376,7 @@ namespace Couchbase.Lite.Internal.Query
             if (Interlocked.Increment(ref _observingCount) == 1) {
                 Database?.ActiveLiveQueries?.Add(this);
                 _databaseChangedToken = Database?.AddChangeListener(null, OnDatabaseChanged);
-                Update();
+                Task.Factory.StartNew(Update);
             }
 
             return new ListenerToken(cbHandler);
