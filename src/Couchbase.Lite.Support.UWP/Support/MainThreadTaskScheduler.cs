@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+using Windows.ApplicationModel.Core;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
 
@@ -45,7 +46,7 @@ namespace Couchbase.Lite.Support
         #region Variables
 
         [NotNull]
-        private readonly CoreDispatcher _dispatcher = Window.Current.Dispatcher;
+        private readonly CoreDispatcher _dispatcher = CoreApplication.MainView.CoreWindow.Dispatcher;
 
         #endregion
 
