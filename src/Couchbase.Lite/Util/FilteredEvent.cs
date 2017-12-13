@@ -24,10 +24,35 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+using Couchbase.Lite.Support;
+
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Util
 {
+    internal sealed class QueueTaskScheduler : TaskScheduler
+    {
+        #region Variables
+
+        [NotNull]
+        private readonly SerialQueue _queue = new SerialQueue();
+
+        #endregion
+
+        #region Overrides
+
+        protected override IEnumerable<Task> GetScheduledTasks() => throw new NotSupportedException();
+
+        protected override void QueueTask(Task task)
+        {
+            _queue.DispatchAsync(() => TryExecuteTask(task));
+        }
+
+        protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued) => false;
+
+        #endregion
+    }
+
     internal abstract class CouchbaseEventHandler
     {
         #region Variables
@@ -59,16 +84,16 @@ namespace Couchbase.Lite.Util
     {
         #region Variables
 
-        private readonly EventHandler<TEventType> _handler;
-        private readonly TaskFactory _taskFactory;
+        [NotNull]private readonly EventHandler<TEventType> _handler;
+        [NotNull]private readonly TaskFactory _taskFactory;
 
         #endregion
 
         #region Constructors
 
-        public CouchbaseEventHandler(EventHandler<TEventType> handler, TaskScheduler scheduler)
+        public CouchbaseEventHandler([NotNull]EventHandler<TEventType> handler, TaskScheduler scheduler)
         {
-            _taskFactory = new TaskFactory(scheduler ?? TaskScheduler.Current ?? TaskScheduler.Default);
+            _taskFactory = new TaskFactory(scheduler ?? new QueueTaskScheduler());
             _handler = handler;
         }
 
@@ -111,13 +136,13 @@ namespace Couchbase.Lite.Util
     {
         #region Variables
 
-        public readonly TFilterType Filter;
+        [NotNull]public readonly TFilterType Filter;
 
         #endregion
 
         #region Constructors
 
-        public CouchbaseEventHandler(EventHandler<TEventType> handler, TFilterType filter, TaskScheduler scheduler)
+        public CouchbaseEventHandler([NotNull]EventHandler<TEventType> handler, [NotNull]TFilterType filter, TaskScheduler scheduler)
             : base(handler, scheduler)
         {
             Filter = filter;
@@ -130,8 +155,12 @@ namespace Couchbase.Lite.Util
     {
         #region Variables
 
-        [NotNull]private readonly List<CouchbaseEventHandler<TEventType>> _events = new List<CouchbaseEventHandler<TEventType>>();
-        [NotNull]private readonly object _locker = new object();
+        [NotNull]
+        [ItemNotNull]
+        private readonly List<CouchbaseEventHandler<TEventType>> _events = new List<CouchbaseEventHandler<TEventType>>();
+
+        [NotNull]
+        private readonly object _locker = new object();
 
         #endregion
 

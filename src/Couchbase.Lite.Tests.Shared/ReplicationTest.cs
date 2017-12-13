@@ -45,16 +45,16 @@ namespace Test
 #if WINDOWS_UWP
     [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
 #endif
-    public sealed class ReplicationTest : TestCase
+    public sealed class ReplicatorTest : TestCase
     {
         private Database _otherDB;
         private Replicator _repl;
         private WaitAssert _waitAssert;
 
 #if !WINDOWS_UWP
-        public ReplicationTest(ITestOutputHelper output) : base(output)
+        public ReplicatorTest(ITestOutputHelper output) : base(output)
 #else
-        public ReplicationTest()
+        public ReplicatorTest()
 #endif
         {
             ConflictResolver = new MergeThenTheirsWins();
@@ -63,7 +63,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestBadUrl()
+        public void TestBadURL()
         {
             var config = CreateConfig(false, true, false, new Uri("blxp://localhost/db"));
             RunReplication(config, 15, C4ErrorDomain.LiteCoreDomain);

@@ -496,7 +496,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestDicionaryFragmentSetArray()
+        public void TestDictionaryFragmentSetArray()
         {
             var doc = new MutableDocument("doc1");
             var array = new MutableArray();

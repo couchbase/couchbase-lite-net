@@ -286,9 +286,11 @@ namespace Couchbase.Lite.Sync
                 if (!finalizing) {
                     _reachability?.Stop();
                     _nativeParams?.Dispose();
-                    var newStatus = new ReplicationStatus(ReplicatorActivityLevel.Stopped, Status.Progress);
-                    _statusChanged.Fire(this, new ReplicationStatusChangedEventArgs(newStatus, LastError));
-                    Status = newStatus;
+                    if (Status.Activity != ReplicatorActivityLevel.Stopped) {
+                        var newStatus = new ReplicationStatus(ReplicatorActivityLevel.Stopped, Status.Progress);
+                        _statusChanged.Fire(this, new ReplicationStatusChangedEventArgs(newStatus, LastError));
+                        Status = newStatus;
+                    }
                 }
 
                 Native.c4repl_free(_repl);

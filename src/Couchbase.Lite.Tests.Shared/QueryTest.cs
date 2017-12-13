@@ -78,7 +78,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestWhereCheckNullOrMissing()
+        public void TestWhereNullOrMissing()
         {
             MutableDocument doc1 = null, doc2 = null;
             doc1 = new MutableDocument("doc1");
@@ -159,7 +159,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestWhereWithArithmetic()
+        public void TestWhereArithmetic()
         {
             var n1 = Expression.Property("number1");
             var n2 = Expression.Property("number2");
@@ -508,7 +508,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestAggregateFunction()
+        public void TestAggregateFunctions()
         {
             LoadNumbers(100);
 
@@ -997,7 +997,7 @@ namespace Test
         }
         
         [Fact]
-        public void TestCollateGeneration()
+        public void TestGenerateJSONCollation ()
         {
             var bothSensitive = (QueryCollation)(Collation.Unicode());
             var accentSensitive = (QueryCollation)(Collation.Unicode().IgnoreCase(true));
