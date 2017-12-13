@@ -26,7 +26,7 @@ using JetBrains.Annotations;
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// The arguments for the <see cref="Database.AddDocumentChangedListener(string, System.Threading.Tasks.TaskScheduler, EventHandler{DocumentChangedEventArgs})"/> 
+    /// The arguments for the <see cref="Database.AddDocumentChangeListener(string, EventHandler{DocumentChangedEventArgs})"/> 
     /// event
     /// </summary>
     public sealed class DocumentChangedEventArgs : EventArgs

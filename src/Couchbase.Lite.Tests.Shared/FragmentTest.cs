@@ -759,7 +759,7 @@ namespace Test
         public void TestGetFragmentValues()
         {
             var doc = new MutableDocument("doc1");
-            doc.Set(new Dictionary<string, object> {
+            doc.SetData(new Dictionary<string, object> {
                 ["name"] = "Jason",
                 ["address"] = new Dictionary<string, object> {
                     ["street"] = "1 Main Street",

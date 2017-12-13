@@ -90,7 +90,7 @@ namespace Test
         {
             var data = new[] { "1", "2", "3" };
             var array = new MutableArray();
-            array.Set(data);
+            array.SetData(data);
 
             array.Count.Should().Be(data.Length, "because the two objects should have the same length");
             array.ToList().Should().ContainInOrder(data, "because the contents should match");
@@ -102,7 +102,7 @@ namespace Test
 
             var gotArray = doc.GetArray("array");
             data = new[] {"4", "5", "6"};
-            gotArray.Set(data);
+            gotArray.SetData(data);
 
             gotArray.Count.Should().Be(data.Length, "because the two objects should have the same length");
             gotArray.ToList().Should().ContainInOrder(data, "because the contents should match");

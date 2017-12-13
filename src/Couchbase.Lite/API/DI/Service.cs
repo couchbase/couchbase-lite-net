@@ -37,13 +37,20 @@ namespace Couchbase.Lite.DI
     {
         #region Constants
 
+        private const string Tag = nameof(Service);
+
         [NotNull]
         private static readonly Type[] _RequiredTypes = new[] {
             typeof(IDefaultDirectoryResolver),
             typeof(ISslStreamFactory)
         };
 
-        private const string Tag = nameof(Service);
+        #endregion
+
+        #region Variables
+
+        private static IServiceCollection _Collection = new ServiceCollection();
+        private static IServiceProvider _Provider;
 
         #endregion
 
@@ -87,7 +94,11 @@ namespace Couchbase.Lite.DI
                 if (_Provider == null) {
                     var collection = Interlocked.Exchange(ref _Collection, null);
                     if (collection != null) {
-                        _Provider = collection.BuildServiceProvider();
+                        _Provider = collection.BuildServiceProvider() ??
+                                    throw new CouchbaseLiteException(StatusCode.Unknown,
+                                        "Failed to build DI service provider");
+                    } else {
+                        throw new InvalidOperationException("Both collection and provider are null, this should not happen...");
                     }
                 }
 
@@ -98,26 +109,6 @@ namespace Couchbase.Lite.DI
         #endregion
 
         #region Public Methods
-
-        /// <summary>
-        /// Calls an action to add services to the service collection.  This needs to be done
-        /// before the library is used.  An exception will be thrown if this method is called
-        /// after the provider is created (it is created on the first call to <see cref="Provider"/>
-        /// </summary>
-        /// <param name="config">The action to configure the service collection</param>
-        [ContractAnnotation("null => halt")]
-        public static void RegisterServices(Action<IServiceCollection> config)
-        {
-            if (config == null) {
-                throw new ArgumentNullException(nameof(config));
-            }
-
-            if (IsFinalized) {
-                throw new InvalidOperationException("Cannot register services after the provider has been created");
-            }
-
-            config.Invoke(_Collection);
-        }
 
         /// <summary>
         /// Automatically register all the dependency types declared
@@ -161,16 +152,34 @@ namespace Couchbase.Lite.DI
             }
         }
 
+        /// <summary>
+        /// Calls an action to add services to the service collection.  This needs to be done
+        /// before the library is used.  An exception will be thrown if this method is called
+        /// after the provider is created (it is created on the first call to <see cref="Provider"/>
+        /// </summary>
+        /// <param name="config">The action to configure the service collection</param>
+        [ContractAnnotation("null => halt")]
+        public static void RegisterServices(Action<IServiceCollection> config)
+        {
+            if (config == null) {
+                throw new ArgumentNullException(nameof(config));
+            }
+
+            if (IsFinalized) {
+                throw new InvalidOperationException("Cannot register services after the provider has been created");
+            }
+
+            config.Invoke(_Collection);
+        }
+
         #endregion
-        
-        private static IServiceCollection _Collection = new ServiceCollection();
-        private static IServiceProvider _Provider;
     }
 
     internal static class ServiceProviderExtensions
     {
         #region Public Methods
 
+        [NotNull]
         public static T TryGetRequiredService<T>(this IServiceProvider provider)
         {
             try {

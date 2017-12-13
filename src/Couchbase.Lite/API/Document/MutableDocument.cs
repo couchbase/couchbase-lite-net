@@ -95,7 +95,7 @@ namespace Couchbase.Lite
         public MutableDocument(IDictionary<string, object> dictionary)
             : this()
         {
-            Set(dictionary);
+            SetData(dictionary);
         }
 
         /// <summary>
@@ -106,7 +106,7 @@ namespace Couchbase.Lite
         public MutableDocument(string documentID, IDictionary<string, object> dictionary)
             : this(documentID)
         {
-            Set(dictionary);
+            SetData(dictionary);
         }
 
         internal MutableDocument([NotNull]Database database, [NotNull]string documentID, bool mustExist)
@@ -235,9 +235,9 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableDictionary Set(IDictionary<string, object> dictionary)
+        public IMutableDictionary SetData(IDictionary<string, object> dictionary)
         {
-            Dict?.Set(dictionary);
+            Dict?.SetData(dictionary);
             return this;
         }
 

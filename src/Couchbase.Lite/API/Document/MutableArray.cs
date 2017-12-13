@@ -59,7 +59,7 @@ namespace Couchbase.Lite
         public MutableArray(IList array)
             : this()
         {
-            Set(array);
+            SetData(array);
         }
 
         internal MutableArray(MArray array, bool isMutable)
@@ -275,7 +275,7 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableArray Set(IList array)
+        public IMutableArray SetData(IList array)
         {
             _threadSafety.DoLocked(() =>
             {

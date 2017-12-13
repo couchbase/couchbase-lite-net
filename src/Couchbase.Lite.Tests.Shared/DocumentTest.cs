@@ -179,7 +179,7 @@ namespace Test
             };
 
             var doc = new MutableDocument("doc1");
-            doc.Set(dict);
+            doc.SetData(dict);
             doc.ToDictionary().ShouldBeEquivalentTo(dict, "because that is what was just set");
 
             var savedDoc = Db.Save(doc);
@@ -197,7 +197,7 @@ namespace Test
             };
 
             doc = savedDoc.ToMutable();
-            doc.Set(nuDict);
+            doc.SetData(nuDict);
             doc.ToDictionary().ShouldBeEquivalentTo(nuDict, "because that is what was just set");
 
             savedDoc = Db.Save(doc);
@@ -1122,7 +1122,7 @@ namespace Test
         public void TestRemoveKeys()
         {
             var doc = new MutableDocument("doc1");
-            doc.Set(new Dictionary<string, object> {
+            doc.SetData(new Dictionary<string, object> {
                 ["type"] = "profile",
                 ["name"] = "Jason",
                 ["weight"] = 130.5,
@@ -1196,7 +1196,7 @@ namespace Test
             };
 
             var existingDoc = Db.GetDocument("docName").ToMutable();
-            existingDoc.Set(newProps);
+            existingDoc.SetData(newProps);
             Db.Save(existingDoc);
 
             existingDoc.ToDictionary().ShouldBeEquivalentTo(new Dictionary<string, object> {
@@ -1209,7 +1209,7 @@ namespace Test
         public void TestContainsKey()
         {
             var doc = new MutableDocument("doc1");
-            doc.Set(new Dictionary<string, object> {
+            doc.SetData(new Dictionary<string, object> {
                 ["type"] = "profile",
                 ["name"] = "Jason",
                 ["age"] = 30,

@@ -60,7 +60,7 @@ namespace Couchbase.Lite
         /// <param name="dict">The dictionary to copy the keys and values from</param>
         public MutableDictionary(IDictionary<string, object> dict)
         {
-            Set(dict);
+            SetData(dict);
         }
 
         internal MutableDictionary(MDict dict, bool isMutable)
@@ -138,7 +138,7 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public IMutableDictionary Set(IDictionary<string, object> dictionary)
+        public IMutableDictionary SetData(IDictionary<string, object> dictionary)
         {
             _threadSafety.DoLocked(() =>
             {

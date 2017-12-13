@@ -151,7 +151,7 @@ namespace Test
                     var json = JsonConvert.DeserializeObject<IDictionary<string, object>>(line);
                     json.Should().NotBeNull("because otherwise the line failed to parse");
                     var doc = new MutableDocument(docID);
-                    doc.Set(json);
+                    doc.SetData(json);
                     Db.Save(doc);
 
                     return true;

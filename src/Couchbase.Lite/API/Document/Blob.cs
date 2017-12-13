@@ -102,7 +102,7 @@ namespace Couchbase.Lite
                 _initialContentStream.Dispose();
                 _initialContentStream = null;
                 _content = result.ToArray();
-                Length = (ulong)_content.Length;
+                Length = _content.Length;
                 return _content;
             }
         }
@@ -143,7 +143,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the length of the data that the blob contains
         /// </summary>
-        public ulong Length { get; private set; }
+        public int Length { get; private set; }
 
         /// <summary>
         /// Gets the metadata of the blob instance
@@ -198,7 +198,7 @@ namespace Couchbase.Lite
         {
             ContentType = contentType;
             _content = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(content), content);
-            Length = (ulong)content.Length;
+            Length = content.Length;
         }
 
         /// <summary>
@@ -250,7 +250,7 @@ namespace Couchbase.Lite
             _properties = new Dictionary<string, object>(CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(properties), properties));
             _properties.Remove(Constants.ObjectTypeProperty);
 
-            Length = properties.GetCast<ulong>("length");
+            Length = properties.GetCast<int>("length");
             Digest = properties.GetCast<string>("digest");
             if(Digest == null) {
                 Log.To.Database.W(Tag, "Blob read from database has missing digest");

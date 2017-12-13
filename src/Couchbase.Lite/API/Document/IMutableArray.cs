@@ -263,7 +263,7 @@ namespace Couchbase.Lite
         /// <param name="array">The contents to replace the current contents</param>
         /// <returns>The array for further processing</returns>
         [NotNull]
-        IMutableArray Set(IList array);
+        IMutableArray SetData(IList array);
 
         /// <summary>
         /// Overwrites the value at the given index with the given value

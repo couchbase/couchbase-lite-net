@@ -28,21 +28,26 @@ namespace Couchbase.Lite
     /// <summary>
     /// A token that stores information about an event handler that
     /// is registered on a Couchbase Lite object (for example
-    /// <see cref="Database.AddChangeListener"/>)
+    /// <see cref="Database.AddChangeListener(System.EventHandler{DatabaseChangedEventArgs})"/>)
     /// </summary>
-    public sealed class ListenerToken
+    public struct ListenerToken
     {
         #region Variables
 
+        [NotNull]
         internal readonly CouchbaseEventHandler EventHandler;
+
+        [NotNull]
+        internal readonly string Type;
 
         #endregion
 
         #region Constructors
 
-        internal ListenerToken([NotNull]CouchbaseEventHandler handler)
+        internal ListenerToken([NotNull]CouchbaseEventHandler handler,  [NotNull]string type)
         {
             EventHandler = handler;
+            Type = type;
         }
 
         #endregion

@@ -19,13 +19,10 @@
 //  limitations under the License.
 // 
 
+using Couchbase.Lite.Logging;
+using JetBrains.Annotations;
 using System;
 using System.Diagnostics;
-
-using Couchbase.Lite.Logging;
-using Couchbase.Lite.Util;
-
-using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Doc
 {

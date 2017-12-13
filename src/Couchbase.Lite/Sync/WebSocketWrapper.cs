@@ -32,6 +32,9 @@ using System.Threading.Tasks;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
+
+using JetBrains.Annotations;
+
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Sync
@@ -49,16 +52,17 @@ namespace Couchbase.Lite.Sync
 
         #region Variables
 
-        private readonly byte[] _buffer = new byte[MaxReceivedBytesPending];
-        private readonly SerialQueue _c4Queue = new SerialQueue();
-        private readonly ManualResetEventSlim _connected = new ManualResetEventSlim();
-        private readonly HTTPLogic _logic;
-        private readonly ReplicatorOptionsDictionary _options;
-        private readonly SerialQueue _queue = new SerialQueue();
-        private readonly AutoResetEvent _readMutex = new AutoResetEvent(true);
+        [NotNull]private readonly byte[] _buffer = new byte[MaxReceivedBytesPending];
+        [NotNull]private readonly SerialQueue _c4Queue = new SerialQueue();
+        [NotNull]private readonly ManualResetEventSlim _connected = new ManualResetEventSlim();
+        [NotNull]private readonly HTTPLogic _logic;
+        [NotNull]private readonly ReplicatorOptionsDictionary _options;
+
+        [NotNull]private readonly SerialQueue _queue = new SerialQueue();
+        [NotNull]private readonly AutoResetEvent _readMutex = new AutoResetEvent(true);
 
         private readonly unsafe C4Socket* _socket;
-        private readonly AutoResetEvent _writeMutex = new AutoResetEvent(true);
+        [NotNull]private readonly AutoResetEvent _writeMutex = new AutoResetEvent(true);
         private TcpClient _client;
         private string _expectedAcceptHeader;
         private uint _receivedBytesPending;
@@ -74,7 +78,7 @@ namespace Couchbase.Lite.Sync
 
         #region Constructors
 
-        public unsafe WebSocketWrapper(Uri url, C4Socket* socket, ReplicatorOptionsDictionary options)
+        public unsafe WebSocketWrapper(Uri url, C4Socket* socket, [NotNull]ReplicatorOptionsDictionary options)
         {
             _socket = socket;
             _logic = new HTTPLogic(url);
@@ -141,7 +145,7 @@ namespace Couchbase.Lite.Sync
                             Native.c4socket_closed(_socket, new C4Error(C4NetworkErrorCode.Timeout));
                         } else {
                             C4Error err;
-                            Status.ConvertError(t.Exception.Flatten().InnerException, &err);
+                            Status.ConvertError(t.Exception?.Flatten()?.InnerException, &err);
                             Native.c4socket_closed(_socket, err);
                         }
                         return;
@@ -159,6 +163,12 @@ namespace Couchbase.Lite.Sync
                 _writeMutex.WaitOne();
                 var cts = new CancellationTokenSource();
                 cts.CancelAfter(IdleTimeout);
+                if (NetworkStream == null) {
+                    Log.To.Sync.E(Tag, "Lost network stream, closing socket...");
+                    DidClose(C4WebSocketCloseCode.WebSocketCloseAbnormal, "Unexpected error in client logic");
+                    return;
+                }
+
                 NetworkStream.WriteAsync(data, 0, data.Length, cts.Token)
                     .ContinueWith(t =>
                     {
@@ -182,15 +192,15 @@ namespace Couchbase.Lite.Sync
         private static string Base64Digest(string input)
         {
             var data = Encoding.ASCII.GetBytes(input);
-            var engine = SHA1.Create();
+            var engine = SHA1.Create() ?? throw new CouchbaseLiteException(StatusCode.Unknown, "Failed to create SHA1 instance");
             var hashed = engine.ComputeHash(data);
             return Convert.ToBase64String(hashed);
         }
 
-        private static bool CheckHeader(HttpMessageParser parser, string key, string expectedValue, bool caseSens)
+        private static bool CheckHeader([NotNull]HttpMessageParser parser, [NotNull]string key, string expectedValue, bool caseSens)
         {
-            string value;
-            if (!parser.Headers.TryGetValue(key.ToLowerInvariant(), out value)) {
+            string value = null;
+            if (parser.Headers?.TryGetValue(key.ToLowerInvariant(), out value) != true) {
                 return false;
             }
 
@@ -276,7 +286,7 @@ namespace Couchbase.Lite.Sync
             }
 
             if (t.Exception != null) {
-                DidClose(t.Exception.Flatten().InnerException);
+                DidClose(t.Exception?.Flatten()?.InnerException);
                 return false;
             }
 
@@ -288,6 +298,12 @@ namespace Couchbase.Lite.Sync
             var httpData = _logic.HTTPRequestData();
             var cts = new CancellationTokenSource();
             cts.CancelAfter(IdleTimeout);
+            if (NetworkStream == null) {
+                Log.To.Sync.E(Tag, "Socket reported ready, but no network stream available!");
+                DidClose(C4WebSocketCloseCode.WebSocketCloseAbnormal, "Unexpected error in client logic");
+                return;
+            }
+
             NetworkStream.WriteAsync(httpData, 0, httpData.Length, cts.Token).ContinueWith(t =>
             {
                 if (!NetworkTaskSuccessful(t)) {
@@ -332,7 +348,7 @@ namespace Couchbase.Lite.Sync
             });
         }
 
-        private unsafe void ReceivedHttpResponse(HttpMessageParser parser)
+        private unsafe void ReceivedHttpResponse([NotNull]HttpMessageParser parser)
         {
             _logic.ReceivedResponse(parser);
             var httpStatus = _logic.HttpStatus;
@@ -346,7 +362,7 @@ namespace Couchbase.Lite.Sync
             var socket = _socket;
             _c4Queue.DispatchAsync(() =>
             {
-                Dictionary<string, object> dict = parser.Headers.ToDictionary(x => x.Key, x => (object) x.Value);
+                var dict = parser.Headers?.ToDictionary(x => x.Key, x => (object) x.Value) ?? new Dictionary<string, object>();
                 Native.c4socket_gotHTTPResponse(socket, httpStatus, dict);
             });
 
@@ -394,14 +410,14 @@ namespace Couchbase.Lite.Sync
 
         private void StartInternal()
         {
-            Log.To.Sync.I(Tag, $"WebSocket connecting to {_logic.UrlRequest.Host}:{_logic.UrlRequest.Port}");
-            var rng = RandomNumberGenerator.Create();
+            Log.To.Sync.I(Tag, $"WebSocket connecting to {_logic.UrlRequest?.Host}:{_logic.UrlRequest?.Port}");
+            var rng = RandomNumberGenerator.Create() ?? throw new CouchbaseLiteException(StatusCode.Unknown, "Failed to create RandomNumberGenerator");
             var nonceBytes = new byte[16];
             rng.GetBytes(nonceBytes);
             var nonceKey = Convert.ToBase64String(nonceBytes);
             _expectedAcceptHeader = Base64Digest(nonceKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
 
-            foreach (var header in _options.Headers ?? Enumerable.Empty<KeyValuePair<string, string>>()) {
+            foreach (var header in _options.Headers) {
                 _logic[header.Key] = header.Value;
             }
 
@@ -410,16 +426,28 @@ namespace Couchbase.Lite.Sync
             _logic["Upgrade"] = "websocket";
             _logic["Sec-WebSocket-Version"] = "13";
             _logic["Sec-WebSocket-Key"] = nonceKey;
+            var protocols = _options.Protocols;
+            if (protocols != null) {
+                _logic["Sec-WS-Protocols"] = protocols;
+            }
 
             if (_logic.UseTls) {
-                var stream = Service.Provider.TryGetRequiredService<ISslStreamFactory>().Create(_client.GetStream());
+                var baseStream = _client?.GetStream();
+                if (baseStream == null) {
+                    Log.To.Sync.W(Tag, "Failed to get network stream (already closed?).  Aborting start...");
+                    DidClose(C4WebSocketCloseCode.WebSocketCloseAbnormal, "Unexpected error in client logic");
+                    return;
+                }
+
+                var stream = Service.Provider.TryGetRequiredService<ISslStreamFactory>().Create(baseStream);
                 stream.PinnedServerCertificate = _options.PinnedServerCertificate;
                 X509CertificateCollection clientCerts = null;
                 if (_options.ClientCert != null) {
                     clientCerts = new X509CertificateCollection(new[] {_options.ClientCert as X509Certificate});
                 }
 
-                stream.ConnectAsync(_logic.UrlRequest.Host, (ushort)_logic.UrlRequest.Port, clientCerts, false).ContinueWith(
+                var port = _logic.UrlRequest?.Port ?? 0;
+                stream.ConnectAsync(_logic.UrlRequest?.Host, (ushort)port, clientCerts, false).ContinueWith(
                     t =>
                     {
                         if (!NetworkTaskSuccessful(t)) {
@@ -431,7 +459,7 @@ namespace Couchbase.Lite.Sync
                 NetworkStream = stream.AsStream();
             }
             else {
-                NetworkStream = _client.GetStream();
+                NetworkStream = _client?.GetStream();
                 OnSocketReady();
             }
         }

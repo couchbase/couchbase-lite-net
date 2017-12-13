@@ -182,7 +182,7 @@ namespace Test
                 }
             };
 
-            doc.Set(new Dictionary<string, object> {
+            doc.SetData(new Dictionary<string, object> {
                 ["dicts"] = data
             });
 

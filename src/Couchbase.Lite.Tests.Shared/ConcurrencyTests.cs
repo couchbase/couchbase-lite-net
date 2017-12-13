@@ -264,7 +264,7 @@ namespace Test
         {
             var exp1 = new WaitAssert();
             var exp2 = new WaitAssert();
-            Db.AddDocumentChangedListener("doc1", null, (sender, args) =>
+            Db.AddDocumentChangeListener("doc1", (sender, args) =>
             {
                 WriteLine("Reached document changed callback");
                 exp2.RunAssert(() =>

@@ -166,7 +166,7 @@ namespace Couchbase.Lite
 
         [NotNull]
         private IConflictResolver EffectiveConflictResolver => Config.ConflictResolver ??
-                                                                new DefaultConflictResolver();
+                                                                new MostActiveWinsConflictResolver();
 
         [NotNull]
         internal IDictionary<Uri, Replicator> Replications { get; } = new Dictionary<Uri, Replicator>();
@@ -381,8 +381,20 @@ namespace Couchbase.Lite
                 var cbHandler = new CouchbaseEventHandler<DatabaseChangedEventArgs>(handler, scheduler);
                 _databaseChanged.Add(cbHandler);
 
-                return new ListenerToken(cbHandler);
+                return new ListenerToken(cbHandler, "db");
             });
+        }
+
+        /// <summary>
+        /// Adds a change listener for the changes that occur in this database.  Signatures
+        /// are the same as += style event handlers.
+        /// </summary>
+        /// <param name="handler">The handler to invoke</param>
+        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
+        [ContractAnnotation("null => halt")]
+        public ListenerToken AddChangeListener(EventHandler<DatabaseChangedEventArgs> handler)
+        {
+            return AddChangeListener(null, handler);
         }
 
         /// <summary>
@@ -393,7 +405,7 @@ namespace Couchbase.Lite
         /// <param name="handler">The logic to handle the event</param>
         [ContractAnnotation("documentID:null => halt; handler:null => halt")]
         [NotNull]
-        public ListenerToken AddDocumentChangedListener(string documentID, [CanBeNull]TaskScheduler scheduler,
+        public ListenerToken AddDocumentChangeListener(string documentID, [CanBeNull]TaskScheduler scheduler,
             EventHandler<DocumentChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(documentID), documentID);
@@ -410,9 +422,21 @@ namespace Couchbase.Lite
                     var docObs = new DocumentObserver(_c4db, documentID, _DocObserverCallback, this);
                     _docObs[documentID] = docObs;
                 }
-
-                return new ListenerToken(cbHandler);
+                
+                return new ListenerToken(cbHandler, "doc");
             });
+        }
+
+        /// <summary>
+        /// Adds a listener for changes on a certain document (by ID).
+        /// </summary>
+        /// <param name="documentID">The ID to add the listener for</param>
+        /// <param name="handler">The logic to handle the event</param>
+        [ContractAnnotation("documentID:null => halt; handler:null => halt")]
+        [NotNull]
+        public ListenerToken AddDocumentChangeListener(string documentID, EventHandler<DocumentChangedEventArgs> handler)
+        {
+            return AddDocumentChangeListener(documentID, null, handler);
         }
 
         /// <summary>
@@ -641,89 +665,20 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Removes a database changed listener (using the method that was registered)
-        /// </summary>
-        /// <param name="handler">The previously registered method for listening</param>
-        [ContractAnnotation("null => halt")]
-        public void RemoveChangeListener(EventHandler<DatabaseChangedEventArgs> handler)
-        {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(handler), handler);
-
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-
-                _databaseChanged.Remove(handler);
-            });
-        }
-
-        /// <summary>
         /// Removes a database changed listener by token
         /// </summary>
-        /// <param name="token">The token received from <see cref="AddChangeListener"/></param>
-        [ContractAnnotation("null => halt")]
+        /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{DatabaseChangedEventArgs})"/>
+        /// and family</param>
         public void RemoveChangeListener(ListenerToken token)
         {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(token), token);
-
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
 
-                _databaseChanged.Remove(token);
-            });
-        }
-
-        /// <summary>
-        /// Removes a listener for changes on a certain document (by token)
-        /// </summary>
-        /// <param name="token">The token received from <see cref="AddDocumentChangedListener"/></param>
-        [ContractAnnotation("null => halt")]
-        public void RemoveDocumentChangedListener(ListenerToken token)
-        {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(token), token);
-
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                var count = _documentChanged.Remove(token);
-                if (count != 0) {
-                    return;
-                }
-
-                if (!(token.EventHandler is CouchbaseEventHandler<string, DocumentChangedEventArgs> handler)) {
-                    return;
-                }
-
-                if (_docObs.TryGetValue(handler.Filter, out var obs)) {
-                    obs.Dispose();
-                    _docObs.Remove(handler.Filter);
-                }
-            });
-        }
-
-        /// <summary>
-        /// Removes a listener for changes on a certain document (by ID).
-        /// </summary>
-        /// <param name="documentID">The ID to add the listener for</param>
-        /// <param name="handler">The logic to handle the event</param>
-        [ContractAnnotation("documentID:null => halt; handler:null => halt")]
-        public void RemoveDocumentChangedListener(string documentID, EventHandler<DocumentChangedEventArgs> handler)
-        {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(documentID), documentID);
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(handler), handler);
-
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                var count = _documentChanged.Remove(documentID, handler);
-                if (count != 0) {
-                    return;
-                }
-
-                if (_docObs.TryGetValue(documentID, out var obs)) {
-                    obs.Dispose();
-                    _docObs.Remove(documentID);
+                if (token.Type == "db") {
+                    _databaseChanged.Remove(token);
+                } else {
+                    _documentChanged.Remove(token);
                 }
             });
         }

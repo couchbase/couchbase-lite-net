@@ -42,7 +42,12 @@ namespace Couchbase.Lite
         #endregion
     }
 
-    internal sealed class DefaultConflictResolver : IConflictResolver
+    /// <summary>
+    /// The default conflict resolver in Couchbase Lite.  It resolves a conflict by taking
+    /// the document with the "longer" revision history (or <see cref="Conflict.Mine"/>
+    /// if they are equal)
+    /// </summary>
+    public sealed class MostActiveWinsConflictResolver : IConflictResolver
     {
         #region IConflictResolver
 

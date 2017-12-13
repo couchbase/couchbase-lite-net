@@ -49,13 +49,14 @@ namespace Couchbase.Lite.Internal.Query
         private unsafe C4Query* _c4Query;
         private Dictionary<string, int> _columnNames;
         private QueryParameters _queryParameters = new QueryParameters();
-        private Event<QueryChangedEventArgs> _changed = new Event<QueryChangedEventArgs>();
+        private readonly Event<QueryChangedEventArgs> _changed = new Event<QueryChangedEventArgs>();
         private readonly TimeSpan _updateInterval;
         private QueryResultSet _enum;
         private DateTime _lastUpdatedAt;
         private int _observingCount = 0;
         private AtomicBool _willUpdate = false;
         private ListenerToken _databaseChangedToken;
+        private bool _disposed;
 
         #endregion
 
@@ -129,16 +130,22 @@ namespace Couchbase.Lite.Internal.Query
         {
             if (!finalizing) {
                 Stop();
-                Misc.SafeSwap(ref _enum, null);
-                FromImpl.ThreadSafety.DoLocked(() => Native.c4query_free(_c4Query));
+                FromImpl.ThreadSafety.DoLocked(() =>
+                {
+                    _enum?.Dispose();
+                    _enum = null;
+                    Native.c4query_free(_c4Query);
+                    _c4Query = null;
+                    _disposed = true;
+                });
             }
             else {
                 // Database is not valid inside finalizer, but thread safety
                 // is guaranteed
                 Native.c4query_free(_c4Query);
+                _c4Query = null;
+                _disposed = true;
             }
-
-            _c4Query = null;
         }
 
         protected void ValidateParams<T>(T[] param, [CallerMemberName]string tag = null)
@@ -160,6 +167,10 @@ namespace Couchbase.Lite.Internal.Query
 
         internal unsafe string Explain()
         {
+            if (_disposed) {
+                throw new ObjectDisposedException(Tag);
+            }
+
             // Used for debugging
             if (_c4Query == null) {
                 Check();
@@ -183,6 +194,10 @@ namespace Couchbase.Lite.Internal.Query
 
             FromImpl.ThreadSafety.DoLockedBridge(err =>
             {
+                if (_disposed) {
+                    return true;
+                }
+
                 var query = Native.c4query_new(Database.c4db, jsonData, err);
                 if(query == null) {
                     return false;
@@ -295,9 +310,7 @@ namespace Couchbase.Lite.Internal.Query
         private void Stop()
         {
             Database?.ActiveLiveQueries?.Remove(this);
-            if (_databaseChangedToken != null) {
-                Database?.RemoveChangeListener(_databaseChangedToken);
-            }
+            Database?.RemoveChangeListener(_databaseChangedToken);
         }
 
         private void Update()
@@ -308,7 +321,12 @@ namespace Couchbase.Lite.Internal.Query
             Exception error = null;
             if (oldEnum == null) {
                 try {
-                    newEnum = (QueryResultSet) Execute();
+                    var result = Execute();
+                    if (result is NullResultSet nrs) {
+                        return;
+                    }
+
+                    newEnum = (QueryResultSet) result;
                 } catch (Exception e) {
                     error = e;
                 }
@@ -375,17 +393,26 @@ namespace Couchbase.Lite.Internal.Query
 
             if (Interlocked.Increment(ref _observingCount) == 1) {
                 Database?.ActiveLiveQueries?.Add(this);
-                _databaseChangedToken = Database?.AddChangeListener(null, OnDatabaseChanged);
+                if (Database != null) {
+                    _databaseChangedToken = Database.AddChangeListener(OnDatabaseChanged);
+                } else {
+                    Log.To.Query.W(Tag, "Attempting to add a change listener onto a query with a null Database.  " +
+                                        "Changed events will not continue to fire");
+                }
+
                 Task.Factory.StartNew(Update);
             }
 
-            return new ListenerToken(cbHandler);
+            return new ListenerToken(cbHandler, "query");
+        }
+
+        public ListenerToken AddChangeListener(EventHandler<QueryChangedEventArgs> handler)
+        {
+            return AddChangeListener(null, handler);
         }
 
         public void RemoveChangeListener(ListenerToken token)
         {
-            CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(token), token);
-
             _changed.Remove(token);
             if (Interlocked.Decrement(ref _observingCount) == 0) {
                 Stop();
@@ -403,20 +430,27 @@ namespace Couchbase.Lite.Internal.Query
             if (SelectImpl == null || FromImpl == null) {
                 throw new InvalidOperationException("Invalid query, missing Select or From");
             }
-
-
-            if (_c4Query == null) {
-                Check();
-            }
-
+            
             var options = C4QueryOptions.Default;
             var paramJson = ((QueryParameters) Parameters).ToString();
 
             var e = (C4QueryEnumerator*) FromImpl.ThreadSafety.DoLockedBridge(err =>
             {
+                if (_disposed) {
+                    return null;
+                }
+
+                if (_c4Query == null) {
+                    Check();
+                }
+
                 var localOpts = options;
                 return Native.c4query_run(_c4Query, &localOpts, paramJson, err);
             });
+
+            if (e == null) {
+                return new NullResultSet();
+            }
 
             return new QueryResultSet(this, FromImpl.ThreadSafety, e, _columnNames);
         }

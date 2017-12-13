@@ -24,6 +24,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Util
 {
     internal abstract class CouchbaseEventHandler
@@ -128,8 +130,8 @@ namespace Couchbase.Lite.Util
     {
         #region Variables
 
-        private readonly List<CouchbaseEventHandler<TEventType>> _events = new List<CouchbaseEventHandler<TEventType>>();
-        private readonly object _locker = new object();
+        [NotNull]private readonly List<CouchbaseEventHandler<TEventType>> _events = new List<CouchbaseEventHandler<TEventType>>();
+        [NotNull]private readonly object _locker = new object();
 
         #endregion
 
@@ -148,10 +150,7 @@ namespace Couchbase.Lite.Util
            
 
             lock (_locker) {
-                if (id != null) {
-                    _events.Remove(id.EventHandler as CouchbaseEventHandler<TEventType>);
-                }
-
+                _events.Remove(id.EventHandler as CouchbaseEventHandler<TEventType>);
                 return _events.Count;
             }
         }
@@ -188,10 +187,10 @@ namespace Couchbase.Lite.Util
     {
         #region Variables
 
-        private readonly ConcurrentDictionary<TFilterType, HashSet<CouchbaseEventHandler<TEventType>>> _eventMap =
+        [NotNull]private readonly ConcurrentDictionary<TFilterType, HashSet<CouchbaseEventHandler<TEventType>>> _eventMap =
             new ConcurrentDictionary<TFilterType, HashSet<CouchbaseEventHandler<TEventType>>>();
 
-        private readonly object _locker = new object();
+        [NotNull]private readonly object _locker = new object();
 
         #endregion
 

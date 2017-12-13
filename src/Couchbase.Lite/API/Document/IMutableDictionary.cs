@@ -90,7 +90,7 @@ namespace Couchbase.Lite
         /// <param name="dictionary">The dictionary to replace the current contents with</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        IMutableDictionary Set(IDictionary<string, object> dictionary);
+        IMutableDictionary SetData(IDictionary<string, object> dictionary);
 
         /// <summary>
         /// Sets the given key to the given value

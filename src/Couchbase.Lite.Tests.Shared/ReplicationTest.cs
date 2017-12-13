@@ -225,6 +225,28 @@ namespace Test
             });
         }
 
+        [Fact]
+        public async Task TestReplicatorStopWhenClosed()
+        {
+            var config = CreateConfig(true, true, true);
+            var repl = new Replicator(config);
+            repl.Start();
+            while (repl.Status.Activity != ReplicatorActivityLevel.Idle) {
+                WriteLine($"Replication status still {repl.Status.Activity}, waiting for idle...");
+                await Task.Delay(500);
+            }
+
+            ReopenDB();
+
+            var attemptCount = 0;
+            while (attemptCount++ < 10 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped (remaining attempts {10 - attemptCount})...");
+                await Task.Delay(500);
+            }
+
+            attemptCount.Should().BeLessOrEqualTo(10);
+        }
+
         // The below tests are disabled because they require orchestration and should be moved
         // to the functional test suite
 #if HAVE_SG
@@ -355,7 +377,7 @@ namespace Test
         {
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
-            _repl.StatusChanged += (sender, args) =>
+            _repl.AddChangeListener((sender, args) =>
             {
                 if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
                     _waitAssert.RunAssert(() =>
@@ -372,7 +394,7 @@ namespace Test
                         }
                     });
                 }
-            };
+            });
             
             _repl.Start();
             try {

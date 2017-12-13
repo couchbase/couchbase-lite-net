@@ -1,22 +1,22 @@
 ﻿// 
-// Replicator.cs
+//  Replicator.cs
 // 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
+//  Author:
+//   Jim Borden  <jim.borden@couchbase.com>
 // 
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
 // 
-// http://www.apache.org/licenses/LICENSE-2.0
+//  http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
 // 
 
 using System;
@@ -24,6 +24,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
+
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
@@ -50,14 +52,14 @@ namespace Couchbase.Lite.Sync
         #region Constants
 
         private const int MaxOneShotRetryCount = 2;
+
+        private const string Tag = nameof(Replicator);
         private static readonly TimeSpan MaxRetryDelay = TimeSpan.FromMinutes(10);
 
         [NotNull]
         private static readonly C4ReplicatorMode[] Modes = {
             C4ReplicatorMode.Disabled, C4ReplicatorMode.Disabled, C4ReplicatorMode.OneShot, C4ReplicatorMode.Continuous
         };
-
-        private const string Tag = nameof(Replicator);
 
         #endregion
 
@@ -67,25 +69,24 @@ namespace Couchbase.Lite.Sync
         private readonly ReplicatorConfiguration _config;
 
         [NotNull]
-        private readonly SerialQueue _threadSafetyQueue = new SerialQueue();
+        private readonly ThreadSafety _databaseThreadSafety;
 
         [NotNull]
-        private readonly ThreadSafety _databaseThreadSafety;
+        private readonly Event<ReplicationStatusChangedEventArgs> _statusChanged =
+            new Event<ReplicationStatusChangedEventArgs>();
+
+        [NotNull]
+        private readonly SerialQueue _threadSafetyQueue = new SerialQueue();
+
+        private string _desc;
         private bool _disposed;
-        
-        /// <summary>
-        /// An event that is fired when the replicator changes its status for reasons like
-        /// processing more data or changing its condition
-        /// </summary>
-        public event EventHandler<ReplicationStatusChangedEventArgs> StatusChanged;
+        private Exception _lastError;
 
         private ReplicatorParameters _nativeParams;
-        private string _desc;
-        private Exception _lastError;
         private C4ReplicatorStatus _rawStatus;
+        private IReachability _reachability;
         private C4Replicator* _repl;
         private int _retryCount;
-        private IReachability _reachability;
 
         #endregion
 
@@ -144,11 +145,46 @@ namespace Couchbase.Lite.Sync
 
         #region Public Methods
 
-        /// <inheritdoc />
-        public void Dispose()
+        /// <summary>
+        /// Adds a change listener on this replication object (similar to a C# event)
+        /// </summary>
+        /// <param name="handler">The logic to run during the callback</param>
+        /// <returns>A token to remove the handler later</returns>
+        [ContractAnnotation("null => halt")]
+        public ListenerToken AddChangeListener(EventHandler<ReplicationStatusChangedEventArgs> handler)
         {
-            Dispose(false);
-            GC.SuppressFinalize(this);
+            CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(handler), handler);
+
+            return AddChangeListener(null, handler);
+        }
+
+        /// <summary>
+        /// Adds a change listener on this replication object (similar to a C# event, but
+        /// with the ability to specify a <see cref="TaskScheduler"/> to schedule the 
+        /// handler to run on)
+        /// </summary>
+        /// <param name="scheduler">The <see cref="TaskScheduler"/> to run the <c>handler</c> on
+        /// (<c>null</c> for default)</param>
+        /// <param name="handler">The logic to run during the callback</param>
+        /// <returns>A token to remove the handler later</returns>
+        [ContractAnnotation("handler:null => halt")]
+        public ListenerToken AddChangeListener([CanBeNull]TaskScheduler scheduler,
+            EventHandler<ReplicationStatusChangedEventArgs> handler)
+        {
+            CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(handler), handler);
+
+            var cbHandler = new CouchbaseEventHandler<ReplicationStatusChangedEventArgs>(handler, scheduler);
+            _statusChanged.Add(cbHandler);
+            return new ListenerToken(cbHandler, "repl");
+        }
+
+        /// <summary>
+        /// Removes a previously added change listener via its <see cref="ListenerToken"/>
+        /// </summary>
+        /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{ReplicationStatusChangedEventArgs})"/></param>
+        public void RemoveChangeListener(ListenerToken token)
+        {
+            _statusChanged.Remove(token);
         }
 
         /// <summary>
@@ -195,12 +231,6 @@ namespace Couchbase.Lite.Sync
             return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
         }
 
-        private static TimeSpan RetryDelay(int retryCount)
-        {
-            var delaySecs = 1 << Math.Min(retryCount, 30);
-            return TimeSpan.FromSeconds(Math.Min(delaySecs, MaxRetryDelay.TotalSeconds));
-        }
-
         private static void OnDocError(bool pushing, string docID, C4Error error, bool transient, object context)
         {
             var replicator = context as Replicator;
@@ -208,6 +238,12 @@ namespace Couchbase.Lite.Sync
             {
                 replicator.OnDocError(error, pushing, docID, transient);
             });
+        }
+
+        private static TimeSpan RetryDelay(int retryCount)
+        {
+            var delaySecs = 1 << Math.Min(retryCount, 30);
+            return TimeSpan.FromSeconds(Math.Min(delaySecs, MaxRetryDelay.TotalSeconds));
         }
 
         private static void StatusChangedCallback(C4ReplicatorStatus status, object context)
@@ -250,33 +286,15 @@ namespace Couchbase.Lite.Sync
                 if (!finalizing) {
                     _reachability?.Stop();
                     _nativeParams?.Dispose();
+                    var newStatus = new ReplicationStatus(ReplicatorActivityLevel.Stopped, Status.Progress);
+                    _statusChanged.Fire(this, new ReplicationStatusChangedEventArgs(newStatus, LastError));
+                    Status = newStatus;
                 }
 
                 Native.c4repl_free(_repl);
                 _repl = null;
                 _disposed = true;
             });
-        }
-
-        // Must be called from within the SerialQueue
-        private void OnDocError(C4Error error, bool pushing, [NotNull]string docID, bool transient)
-        {
-            var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
-            if (!pushing && error.domain == C4ErrorDomain.LiteCoreDomain && error.code == (int) C4ErrorCode.Conflict) {
-                // Conflict pulling a document -- the revision was added but app needs to resolve it:
-                var safeDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
-                Log.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
-                try {
-                    _config.Database.ResolveConflict(docID, Config.ConflictResolver);
-                } catch (Exception e) {
-                    Log.To.Sync.W(Tag, $"Conflict resolution of '{logDocID}' failed", e);
-                }
-            } else {
-                var transientStr = transient ? "transient " : String.Empty;
-                var dirStr = pushing ? "pushing" : "pulling";
-                Log.To.Sync.I(Tag,
-                    $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
-            }
         }
 
         private bool HandleError(C4Error error)
@@ -309,15 +327,25 @@ namespace Couchbase.Lite.Sync
             return true;
         }
 
-        private void StartReachabilityObserver()
+        // Must be called from within the SerialQueue
+        private void OnDocError(C4Error error, bool pushing, [NotNull]string docID, bool transient)
         {
-            if (_reachability != null) {
-                return;   
+            var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
+            if (!pushing && error.domain == C4ErrorDomain.LiteCoreDomain && error.code == (int) C4ErrorCode.Conflict) {
+                // Conflict pulling a document -- the revision was added but app needs to resolve it:
+                var safeDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
+                Log.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
+                try {
+                    _config.Database.ResolveConflict(docID, Config.ConflictResolver);
+                } catch (Exception e) {
+                    Log.To.Sync.W(Tag, $"Conflict resolution of '{logDocID}' failed", e);
+                }
+            } else {
+                var transientStr = transient ? "transient " : String.Empty;
+                var dirStr = pushing ? "pushing" : "pulling";
+                Log.To.Sync.I(Tag,
+                    $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
             }
-
-            _reachability = Service.Provider.GetService<IReachability>() ?? new Reachability();
-            _reachability.StatusChanged += ReachabilityChanged;
-            _reachability.Start();
         }
 
         private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)
@@ -419,6 +447,17 @@ namespace Couchbase.Lite.Sync
 
         }
 
+        private void StartReachabilityObserver()
+        {
+            if (_reachability != null) {
+                return;   
+            }
+
+            _reachability = Service.Provider.GetService<IReachability>() ?? new Reachability();
+            _reachability.StatusChanged += ReachabilityChanged;
+            _reachability.Start();
+        }
+
         // Must be called from within the SerialQueue
         private void StatusChangedCallback(C4ReplicatorStatus status)
         {
@@ -439,7 +478,7 @@ namespace Couchbase.Lite.Sync
             }
 
             try {
-                StatusChanged?.Invoke(this, new ReplicationStatusChangedEventArgs(Status, LastError));
+                _statusChanged.Fire(this, new ReplicationStatusChangedEventArgs(Status, LastError));
             } catch (Exception e) {
                 Log.To.Sync.W(Tag, "Exception during StatusChanged callback", e);
             }
@@ -489,6 +528,17 @@ namespace Couchbase.Lite.Sync
             }
 
             return $"{GetType().Name}[{sb} {_config.Target}]";
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            Dispose(false);
+            GC.SuppressFinalize(this);
         }
 
         #endregion

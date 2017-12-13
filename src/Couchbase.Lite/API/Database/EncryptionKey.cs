@@ -35,20 +35,9 @@ namespace Couchbase.Lite
     {
         #region Constants
 
-        /// <summary>
-        /// Number of bytes in a 256-bit key
-        /// </summary>
-        public static readonly int DataSize = 32;
-
-        /// <summary>
-        /// The data type associated with encrypted content
-        /// </summary>
-        public static readonly string EncryptedContentType = "application/x-beanbag-aes-256";
-
         private const int BlockSize = 16;
         private const int DefaultPbkdfRounds = 64000;
         private const string DefaultSalt = "Salty McNaCl";
-        private const int IvSize = BlockSize;
 
         private const int KeySize = 32;
 
@@ -65,11 +54,8 @@ namespace Couchbase.Lite
 
 		#region Properties
 
-		/// <summary>
-		/// The key data encoded as hex.
-		/// </summary>
 		[NotNull]
-		public string HexData => BitConverter.ToString(KeyData).Replace("-", String.Empty).ToLower();
+		public string HexData => BitConverter.ToString(KeyData)?.Replace("-", String.Empty)?.ToLower() ?? "(null)";
 
         /// <summary>
         /// The SymmetricKey's key data; can be used to reconstitute it.

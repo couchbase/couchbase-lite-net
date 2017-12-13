@@ -226,7 +226,7 @@ namespace Couchbase.Lite.Internal.Doc
             return this;
         }
 
-        public IMutableDictionary Set(IDictionary<string, object> dictionary)
+        public IMutableDictionary SetData(IDictionary<string, object> dictionary)
         {
             _dict = dictionary.ToDictionary(x => x.Key, x => DataOps.ToCouchbaseObject(x.Value));
             HasChanges = true;

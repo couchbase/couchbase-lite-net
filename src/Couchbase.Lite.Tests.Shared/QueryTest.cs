@@ -1225,6 +1225,41 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestLiveQueryStopWhenClosed()
+        {
+            var doc2Listener = new WaitAssert();
+
+            using (var otherDb = new Database(Db.Name, Db.Config)) {
+                var query = Query.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
+                var doc1Listener = new WaitAssert();
+                query.AddChangeListener(null, (sender, args) =>
+                {
+                    foreach (var row in args.Rows) {
+                        if (row.GetString("id") == "doc1") {
+                            doc1Listener.Fulfill();
+                        } else if (row.GetString("id") == "doc2") {
+                            doc2Listener.Fulfill();
+                        }
+                    }
+                });
+
+                using (var doc = new MutableDocument("doc1")) {
+                    doc.SetString("value", "string");
+                    Db.Save(doc); // Should still trigger since it is pointing to the same DB
+                }
+
+                doc1Listener.WaitForResult(TimeSpan.FromSeconds(2));
+            }
+
+            using (var doc = new MutableDocument("doc2")) {
+                doc.SetString("value", "string");
+                Db.Save(doc);
+            }
+
+            doc2Listener.Invoking(t => t.WaitForResult(TimeSpan.FromSeconds(2))).ShouldThrow<TimeoutException>();
+        }
+
         private bool TestWhereCompareValidator(IDictionary<string, object> properties, object context)
         {
             var ctx = (Func<int, bool>)context;

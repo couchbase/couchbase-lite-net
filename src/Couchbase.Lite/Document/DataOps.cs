@@ -176,14 +176,14 @@ namespace Couchbase.Lite.Internal.Doc
         private static MutableDictionary ConvertDictionary(IDictionary<string, object> dictionary)
         {
             var subdocument = new MutableDictionary();
-            subdocument.Set(dictionary);
+            subdocument.SetData(dictionary);
             return subdocument;
         }
 
         private static MutableArray ConvertList(IList list)
         {
             var array = new MutableArray();
-            array.Set(list);
+            array.SetData(list);
             return array;
         }
 
