@@ -18,6 +18,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -39,6 +41,7 @@ namespace Couchbase.Lite.Sync
 
         private const string AuthOption = "auth";
         private const string ChannelsKey = "channels";
+        private const string CheckpointIntervalKey = "checkpointInterval";
         private const string ClientCertKey = "clientCert";
         private const string CookiesKey = "cookies";
         private const string DocIDsKey = "docIDs";
@@ -72,6 +75,18 @@ namespace Couchbase.Lite.Sync
         {
             get => this.GetCast<IList<string>>(ChannelsKey);
             set => this[ChannelsKey] = value;
+        }
+
+        public TimeSpan CheckpointInterval
+        {
+            get => TimeSpan.FromSeconds(this.GetCast<double>(CheckpointIntervalKey));
+            set {
+                if (value > TimeSpan.Zero) {
+                    this[CheckpointIntervalKey] = value.TotalSeconds;
+                } else {
+                    Remove(CheckpointIntervalKey);
+                }
+            }
         }
 
         /// <summary>

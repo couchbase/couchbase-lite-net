@@ -270,7 +270,7 @@ namespace Couchbase.Lite
                 return false;
             }
             
-            if (Id != d.Id || Database != d.Database) {
+            if (Id != d.Id || !Equals(Database, d.Database)) {
                 return false;
             }
 

@@ -660,26 +660,78 @@ namespace Test
         [Fact]
         public void TestLimit()
         {
-            LoadNumbers(50);
+            LoadNumbers(10);
 
             var LIMIT = Expression.Parameter("limit");
-            var OFFSET = Expression.Parameter("offset");
             var NUMBER = Expression.Property("number1");
 
-            using (var q = Query.Select(SelectResult.Expression(NUMBER))
+            using (var q = Query.Select(SelectResult.Property("number1"))
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(NUMBER))
-                .Limit(LIMIT, OFFSET)) {
-                q.Parameters.SetInt("limit", 5);
-                q.Parameters.SetInt("offset", 5);
+                .Limit(5)) {
 
-                var expectedNumbers = new[] {6, 7, 8, 9, 10};
+                var expectedNumbers = new[] {1, 2, 3, 4, 5};
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     row.GetInt(0).Should().Be(expectedNumbers[n - 1]);
                 });
 
                 numRows.Should().Be(5);
+            }
+
+            using (var q = Query.Select(SelectResult.Property("number1"))
+                .From(DataSource.Database(Db))
+                .OrderBy(Ordering.Expression(NUMBER))
+                .Limit(LIMIT)) {
+                q.Parameters.SetInt("limit", 3);
+
+                var expectedNumbers = new[] {1, 2, 3};
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    row.GetInt(0).Should().Be(expectedNumbers[n - 1]);
+                });
+
+                numRows.Should().Be(3);
+            }
+        }
+
+        [Fact]
+        public void TestLimitOffset()
+        {
+            LoadNumbers(10);
+
+            var LIMIT = Expression.Parameter("limit");
+            var OFFSET = Expression.Parameter("offset");
+            var NUMBER = Expression.Property("number1");
+
+            using (var q = Query.Select(SelectResult.Property("number1"))
+                .From(DataSource.Database(Db))
+                .OrderBy(Ordering.Expression(NUMBER))
+                .Limit(5, 3)) {
+
+                var expectedNumbers = new[] {4, 5, 6, 7, 8};
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    row.GetInt(0).Should().Be(expectedNumbers[n - 1]);
+                });
+
+                numRows.Should().Be(5);
+            }
+
+            using (var q = Query.Select(SelectResult.Property("number1"))
+                .From(DataSource.Database(Db))
+                .OrderBy(Ordering.Expression(NUMBER))
+                .Limit(LIMIT, OFFSET)) {
+                q.Parameters.SetInt("limit", 3);
+                q.Parameters.SetInt("offset", 5);
+
+                var expectedNumbers = new[] {6, 7, 8};
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    row.GetInt(0).Should().Be(expectedNumbers[n - 1]);
+                });
+
+                numRows.Should().Be(3);
             }
         }
 
@@ -928,7 +980,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestCollectionFunctions()
+        public void TestQuantifiedOperators()
         {
             LoadJSONResource("names_100");
 
@@ -962,6 +1014,58 @@ namespace Test
                     var received = results.Select(x => x.GetString("id")).ToList();
                     received.Count.Should().Be(0, "because nobody likes taxes...");
                 }
+            }
+        }
+
+        [Fact]
+        public void TestQuantifiedOperatorVariableKeyPath()
+        {
+            var data = new[]
+            {
+                new[]
+                {
+                    new Dictionary<string, object> { ["city"] = "San Francisco" },
+                    new Dictionary<string, object> { ["city"] = "Palo Alto" },
+                    new Dictionary<string, object> { ["city"] = "San Jose" }
+                },
+                new[]
+                {
+                    new Dictionary<string, object> { ["city"] = "Mountain View" },
+                    new Dictionary<string, object> { ["city"] = "Palo Alto" },
+                    new Dictionary<string, object> { ["city"] = "Belmont" }
+                },
+                new[]
+                {
+                    new Dictionary<string, object> { ["city"] = "San Francisco" },
+                    new Dictionary<string, object> { ["city"] = "Redwood City" },
+                    new Dictionary<string, object> { ["city"] = "San Mateo" }
+                }
+            };
+
+            var i = 0;
+            foreach (var cities in data) {
+                var docID = $"doc-{i++}";
+                using (var doc = new MutableDocument(docID)) {
+                    doc.SetValue("paths", cities);
+                    var d = JsonConvert.SerializeObject(doc.ToDictionary());
+                    WriteLine(d);
+                    Db.Save(doc);
+                }
+            }
+
+            var DOC_ID = Meta.ID;
+            var S_DOC_ID = SelectResult.Expression(DOC_ID);
+
+            var PATHS = Expression.Property("paths");
+            var VAR_PATH = ArrayExpression.Variable("path.city");
+            var where = ArrayExpression.Any("path").In(PATHS).Satisfies(VAR_PATH.EqualTo("San Francisco"));
+
+            using (var q = Query.Select(S_DOC_ID)
+                .From(DataSource.Database(Db))
+                .Where(where)) {
+                var expected = new[] { "doc-0", "doc-2" };
+                var numRows = VerifyQuery(q, (n, row) => { row.GetString(0).Should().Be(expected[n - 1]); });
+                numRows.Should().Be(expected.Length);
             }
         }
 
@@ -1056,7 +1160,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestLocale()
+        public void TestUnicodeCollationWithLocale()
         {
             foreach (var letter in new[] {"B", "A", "Z", "Å"}) {
                 using (var doc = new MutableDocument()) {
@@ -1087,7 +1191,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestUnicodeComparison()
+        public void TestCompareWithUnicodeCollation()
         {
             var bothSensitive = Collation.Unicode();
             var accentSensitive = Collation.Unicode().IgnoreCase(true);

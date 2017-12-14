@@ -43,6 +43,8 @@ namespace Test
 #endif
     public class DocumentTest : TestCase
     {
+        private const string Blob = "i'm blob";
+
 #if !WINDOWS_UWP
         public DocumentTest(ITestOutputHelper output) : base(output)
         {
@@ -444,6 +446,41 @@ namespace Test
         }
 
         [Fact]
+        public void TestSetGetFloatNumbers()
+        {
+            using (var doc = new MutableDocument("doc1")) {
+                doc.SetFloat("number1", 1.00f)
+                    .SetFloat("number2", 1.49f)
+                    .SetFloat("number3", 1.50f)
+                    .SetFloat("number4", 1.51f)
+                    .SetDouble("number5", 1.99);
+
+                SaveDocument(doc, d =>
+                {
+                    d.GetInt("number1").Should().Be(1);
+                    d.GetFloat("number1").Should().Be(1.00f);
+                    d.GetDouble("number1").Should().Be(1.00);
+
+                    d.GetInt("number2").Should().Be(1);
+                    d.GetFloat("number2").Should().Be(1.49f);
+                    d.GetDouble("number2").Should().BeApproximately(1.49, 0.00001);
+
+                    d.GetInt("number3").Should().Be(1);
+                    d.GetFloat("number3").Should().Be(1.50f);
+                    d.GetDouble("number3").Should().BeApproximately(1.50, 0.00001);
+
+                    d.GetInt("number4").Should().Be(1);
+                    d.GetFloat("number4").Should().Be(1.51f);
+                    d.GetDouble("number4").Should().BeApproximately(1.51, 0.00001);
+
+                    d.GetInt("number5").Should().Be(1);
+                    d.GetFloat("number5").Should().Be(1.99f);
+                    d.GetDouble("number5").Should().BeApproximately(1.99, 0.00001);
+                });
+            }
+        }
+
+        [Fact]
         public void TestSetBoolean()
         {
             var doc = new MutableDocument("doc1");
@@ -677,7 +714,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestSetArrayObject()
+        public void TestSetArray()
         {
             var doc = new MutableDocument("doc1");
             var array = new MutableArray();
@@ -1057,7 +1094,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestSetArrayObjectToMultipleKeys()
+        public void TestSetArrayToMultipleKeys()
         {
             var doc = new MutableDocument("doc1");
             var phones = new MutableArray();
@@ -1240,7 +1277,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestDelete()
+        public void TestDeleteDocument()
         {
             var doc = new MutableDocument("doc1");
             doc.SetString("name", "Scott Tiger");
@@ -1301,7 +1338,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestPurge()
+        public void TestPurgeDocument()
         {
             var doc = new MutableDocument("doc1");
             doc.SetString("type", "profile");
@@ -1511,61 +1548,129 @@ namespace Test
         }
 
         [Fact]
-        public void TestDocumentEquality()
+        public void TestToMutable()
         {
-            using (var md = new MutableDocument("doc1")) {
-                md.SetInt("answer", 42);
-                Db.Save(md);
-                using (var doc = Db.GetDocument("doc1")) {
-                    md.As<object>().Should().Be(doc); // MD <-> doc ==
+            var content = Encoding.UTF8.GetBytes(Blob);
+            var data = new Blob("text/plain", content);
+            using (var mDoc1 = new MutableDocument("doc1")) {
+                mDoc1.SetBlob("data", data);
+                mDoc1.SetString("name", "Jim");
+                mDoc1.SetInt("score", 10);
+                using (var mDoc2 = mDoc1.ToMutable()) {
+                    mDoc2.Should().NotBeSameAs(mDoc1);
+                    mDoc2.GetBlob("data").Should().Be(mDoc1.GetBlob("data"));
+                    mDoc2.GetString("name").Should().Be(mDoc1.GetString("name"));
+                    mDoc2.GetInt("score").Should().Be(mDoc1.GetInt("score"));
+                }
+
+                using (var doc1 = Db.Save(mDoc1)) 
+                using (var mDoc3 = doc1.ToMutable()) {
+                    doc1.GetBlob("data").Should().Be(mDoc3.GetBlob("data"));
+                    doc1.GetString("name").Should().Be(mDoc3.GetString("name"));
+                    doc1.GetInt("score").Should().Be(mDoc3.GetInt("score"));
+                }
+            }
+        }
+
+        [Fact]
+        public void TestEquality()
+        {
+            var data1 = Encoding.UTF8.GetBytes("data1");
+            var data2 = Encoding.UTF8.GetBytes("data2");
+
+            using (var doc1a = new MutableDocument("doc1"))
+            using (var doc1b = new MutableDocument("doc1"))
+            using (var doc1c = new MutableDocument("doc1")) {
+                doc1a.SetInt("answer", 42);
+                doc1a.SetValue("options", new[] { 1, 2, 3 });
+                doc1a.SetBlob("attachment", new Blob("text/plain", data1));
+
+                doc1b.SetInt("answer", 42);
+                doc1b.SetValue("options", new[] { 1, 2, 3 });
+                doc1b.SetBlob("attachment", new Blob("text/plain", data1));
+
+                doc1c.SetInt("answer", 41);
+                doc1c.SetValue("options", new[] { 1, 2 });
+                doc1c.SetBlob("attachment", new Blob("text/plain", data2));
+                doc1c.SetString("comment", "This is a comment");
+
+                doc1a.As<object>().Should().Be(doc1a);
+                doc1a.As<object>().Should().Be(doc1b);
+                doc1a.As<object>().Should().NotBe(doc1c);
+
+                doc1b.As<object>().Should().Be(doc1a);
+                doc1b.As<object>().Should().Be(doc1b);
+                doc1b.As<object>().Should().NotBe(doc1c);
+
+                doc1c.As<object>().Should().NotBe(doc1a);
+                doc1c.As<object>().Should().NotBe(doc1b);
+                doc1c.As<object>().Should().Be(doc1c);
+
+                using(var savedDoc = Db.Save(doc1c))
+                using (var mDoc = savedDoc.ToMutable()) {
+                    mDoc.As<object>().Should().Be(savedDoc);
+                    mDoc.SetInt("answer", 50);
+                    mDoc.As<object>().Should().NotBe(savedDoc);
+                }
+            }
+        }
+
+        [Fact]
+        public void TestEqualityDifferentDocID()
+        {
+            using(var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetInt("answer", 42);
+                doc2.SetInt("answer", 42);
+                using (var sDoc1 = Db.Save(doc1))
+                using (var sDoc2 = Db.Save(doc2)) {
+                    sDoc1.As<object>().Should().Be(doc1);
+                    sDoc2.As<object>().Should().Be(doc2);
+
+                    doc1.As<object>().Should().Be(doc1);
+                    doc1.As<object>().Should().NotBe(doc2);
+
+                    doc2.As<object>().Should().NotBe(doc1);
+                    doc2.As<object>().Should().Be(doc2);
+
+                    sDoc1.As<object>().Should().NotBe(sDoc2);
+                    sDoc2.As<object>().Should().NotBe(sDoc1);
+                }
+                
+            }
+        }
+
+        [Fact]
+        public void TestEqualityDifferentDB()
+        {
+            using (var otherDB = OpenDB("other")) {
+                using (var doc1a = new MutableDocument("doc1"))
+                using (var doc1b = new MutableDocument("doc1")) {
+                    doc1a.SetInt("answer", 42);
+                    doc1b.SetInt("answer", 42);
+                    doc1a.As<object>().Should().Be(doc1b);
+
+                    using(var sdoc1a = Db.Save(doc1a))
+                    using (var sdoc1b = otherDB.Save(doc1b)) {
+                        sdoc1a.As<object>().Should().Be(doc1a);
+                        sdoc1b.As<object>().Should().Be(doc1b);
+                        doc1a.As<object>().Should().NotBe(doc1b);
+                        sdoc1a.As<object>().Should().NotBe(sdoc1b);
+                    }
+                }
+
+                using(var sdoc1a = Db.GetDocument("doc1"))
+                using (var sdoc1b = otherDB.GetDocument("doc1")) {
+                    sdoc1a.As<object>().Should().NotBe(sdoc1b);
+
+                    using (var sameDB = new Database(Db))
+                    using(var anotherDoc1a = sameDB.GetDocument("doc1")) {
+                        sdoc1a.As<object>().Should().Be(anotherDoc1a);
+                    }
                 }
             }
 
-            using (var md = new MutableDocument("doc2")) {
-                md.SetInt("answer", 42);
-                Db.Save(md);
-            }
-
-            using (var md = new MutableDocument("doc3")) {
-                md.SetInt("answer", 41);
-                Db.Save(md);
-            }
-
-            using (var doc = Db.GetDocument("doc1"))
-            using (var md = doc.ToMutable()) {
-                doc.As<object>().Should().Be(md, "because md was not altered"); // doc <-> MD ==
-                md.SetInt("answer", 41);
-                doc.As<object>().Should().NotBe(md); // doc <-> MD !=
-                using (var md2 = doc.ToMutable()) {
-                    md2.As<object>().Should().NotBe(md, "because md was altered and md2 was not"); // MD <-> MD !=
-                    md2.SetInt("answer", 41);
-                    md2.As<object>().Should().NotBe(doc, "because md2 was altered"); // MD <-> doc !=
-                    md2.As<object>().Should().Be(md, "because md2 and md were altered in the same way"); // MD <-> MD ==
-                }
-
-                using (var doc2 = Db.GetDocument("doc1")) {
-                    doc.As<object>().Should().Be(doc2, "because the ID and contents match"); // doc <-> doc ==
-                }
-            }
-
-            using (var doc1 = Db.GetDocument("doc1"))
-            using (var doc2 = Db.GetDocument("doc2"))
-            using (var doc3 = Db.GetDocument("doc3")) {
-                doc1.As<object>().Should().NotBe(doc2, "because the IDs differ");
-                doc1.As<object>().Should().NotBe(doc3, "because the contents differ");
-            }
-
-            using (var otherDb = new Database("other", Db.Config)) {
-                using (var md = new MutableDocument("doc1")) {
-                    md.SetInt("answer", 42);
-                    otherDb.Save(md);
-                }
-
-                using (var doc1a = Db.GetDocument("doc1"))
-                using (var doc1b = otherDb.GetDocument("doc1")) {
-                    doc1a.As<object>().Should().NotBe(doc1b, "because the documents are in different databases");
-                }
-            }
+            
         }
 
         private void PopulateData(MutableDocument doc)

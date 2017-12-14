@@ -104,7 +104,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestDeletionConflict()
+        public void TestConflictDeletion()
         {
             ConflictResolver = new DoNotResolve();
             ReopenDB();
@@ -171,6 +171,31 @@ namespace Test
 
             Db.Invoking(d => d.Save(doc)).ShouldThrow<LiteCoreException>().Which.Error.Should()
                 .Be(new C4Error(C4ErrorCode.Conflict));
+        }
+
+        [Fact]
+        public void TestNoBase()
+        {
+            ConflictResolver = new ActionResolver(conflict =>
+            {
+                conflict.Mine.GetString("name").Should().Be("Tiger");
+                conflict.Theirs.GetString("name").Should().Be("Daniel");
+                conflict.Base.Should().BeNull();
+                return conflict.Mine;
+            });
+
+            ReopenDB();
+
+            using (var doc1a = new MutableDocument("doc1")) {
+                doc1a.SetString("name", "Daniel");
+                Db.Save(doc1a);
+            }
+
+            using (var doc1b = new MutableDocument("doc1")) {
+                doc1b.SetString("name", "Tiger");
+                Db.Save(doc1b);
+                doc1b.GetString("name").Should().Be("Tiger");
+            }
         }
 
         private MutableDocument SetupConflict()
@@ -285,5 +310,17 @@ namespace Test
         {
             throw new NotImplementedException();
         }
+    }
+
+    internal class ActionResolver : IConflictResolver
+    {
+        private readonly Func<Conflict, Document> _action;
+
+        public ActionResolver(Func<Conflict, Document> action)
+        {
+            _action = action;
+        }
+
+        public Document Resolve(Conflict conflict) => _action(conflict);
     }
 }

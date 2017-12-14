@@ -25,7 +25,7 @@ using JetBrains.Annotations;
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
-    /// Event arguments for the <see cref="Replicator.StatusChanged" /> event
+    /// Event arguments for the <see cref="Replicator.AddChangeListener(EventHandler{ReplicationStatusChangedEventArgs}" /> event
     /// </summary>
     public sealed class ReplicationStatusChangedEventArgs : EventArgs
     {
@@ -36,20 +36,13 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public ReplicationStatus Status { get; }
 
-        /// <summary>
-        /// Gets the last error that occurred, if any
-        /// </summary>
-        [CanBeNull]
-        public Exception LastError { get; }
-
         #endregion
 
         #region Constructors
 
-        internal ReplicationStatusChangedEventArgs(ReplicationStatus status, Exception lastError)
+        internal ReplicationStatusChangedEventArgs(ReplicationStatus status)
         {
             Status = status;
-            LastError = lastError;
         }
 
         #endregion

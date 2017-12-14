@@ -80,7 +80,6 @@ namespace Couchbase.Lite.Sync
 
         private string _desc;
         private bool _disposed;
-        private Exception _lastError;
 
         private ReplicatorParameters _nativeParams;
         private C4ReplicatorStatus _rawStatus;
@@ -97,17 +96,6 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         [NotNull]
         public ReplicatorConfiguration Config => ReplicatorConfiguration.Clone(_config);
-
-        /// <summary>
-        /// Gets the most recent error associated with this replication
-        /// </summary>
-        [CanBeNull]
-        public Exception LastError
-        {
-            get => _lastError;
-            set => Interlocked.Exchange(ref _lastError, value);
-        }
-
 
         /// <summary>
         /// Gets the current status of the <see cref="Replicator"/>
@@ -216,6 +204,8 @@ namespace Couchbase.Lite.Sync
         {
             _threadSafetyQueue.DispatchSync(() =>
             {
+                _reachability?.Stop();
+                _reachability = null;
                 if (_repl != null) {
                     Native.c4repl_stop(_repl);
                 }
@@ -284,11 +274,10 @@ namespace Couchbase.Lite.Sync
                 }
 
                 if (!finalizing) {
-                    _reachability?.Stop();
                     _nativeParams?.Dispose();
                     if (Status.Activity != ReplicatorActivityLevel.Stopped) {
-                        var newStatus = new ReplicationStatus(ReplicatorActivityLevel.Stopped, Status.Progress);
-                        _statusChanged.Fire(this, new ReplicationStatusChangedEventArgs(newStatus, LastError));
+                        var newStatus = new ReplicationStatus(ReplicatorActivityLevel.Stopped, Status.Progress, null);
+                        _statusChanged.Fire(this, new ReplicationStatusChangedEventArgs(newStatus));
                         Status = newStatus;
                     }
                 }
@@ -480,7 +469,7 @@ namespace Couchbase.Lite.Sync
             }
 
             try {
-                _statusChanged.Fire(this, new ReplicationStatusChangedEventArgs(Status, LastError));
+                _statusChanged.Fire(this, new ReplicationStatusChangedEventArgs(Status));
             } catch (Exception e) {
                 Log.To.Sync.W(Tag, "Exception during StatusChanged callback", e);
             }
@@ -493,15 +482,11 @@ namespace Couchbase.Lite.Sync
                 error = new LiteCoreException(state.error);
             }
 
-            if (LastError != error) {
-                LastError = error;
-            }
-
             _rawStatus = state;
 
             var level = (ReplicatorActivityLevel) state.level;
             var progress = new ReplicationProgress(state.progress.unitsCompleted, state.progress.unitsTotal);
-            Status = new ReplicationStatus(level, progress);
+            Status = new ReplicationStatus(level, progress, error);
             Log.To.Sync.I(Tag, $"{this} is {state.level}, progress {state.progress.unitsCompleted}/{state.progress.unitsTotal}");
         }
 

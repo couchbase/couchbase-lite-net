@@ -241,7 +241,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IExpression NotNullOrMissing()
         {
-            return NotEqualTo(IsNullOrMissing());
+            return Expression.Not(IsNullOrMissing());
         }
 
         public IExpression Or(object expression)

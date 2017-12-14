@@ -180,7 +180,7 @@ namespace Test
                     .ShouldThrow<InvalidOperationException>()
                     .WithMessage("Attempt to perform an operation on a closed database",
                         "because this operation is invalid");
-            };
+            }
         }
 
         [Fact]
@@ -483,7 +483,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestPurgeInBatch()
+        public void TestPurgeDocInBatch()
         {
             CreateDocs(10);
             Db.InBatch(() =>
@@ -1038,60 +1038,16 @@ namespace Test
         }
 
         [Fact]
-        public void TestEncryption()
+        public void TestGetDocFromDeletedDB()
         {
-            Database.Delete("seekrit", Directory);
-            var key = new EncryptionKey("letmein");
-            var wrongKey = new EncryptionKey("dontletmein");
-            var config = new DatabaseConfiguration {
-                Directory = Directory,
-                EncryptionKey = key
-            };
+            using(var doc = GenerateDocument("doc1")) {
 
-            using (var encryptedDb = new Database("seekrit", config))
-            using (var doc = new MutableDocument("company_earnings")) {
-                doc.SetInt("value", 1000000000);
-                encryptedDb.Save(doc);
-            }
+                Db.Delete();
 
-            Action badAction = () =>
-            {
-                config.EncryptionKey = wrongKey;
-                var badDb = new Database("seekrit", config);
-            };
-            badAction.ShouldThrow<CouchbaseLiteException>().Which.Status.Should()
-                .Be(StatusCode.Unauthorized);
-
-            badAction = () =>
-            {
-                config.EncryptionKey = null;
-                var badDb = new Database("seekrit", config);
-            };
-            badAction.ShouldThrow<CouchbaseLiteException>().Which.Status.Should()
-                .Be(StatusCode.Unauthorized);
-
-            config.EncryptionKey = key;
-            using (var encryptedDb = new Database("seekrit", config)) {
-                encryptedDb.Count.Should().Be(1);
-                encryptedDb.SetEncryptionKey(wrongKey);
-            }
-
-            badAction = () =>
-            {
-                var badDb = new Database("seekrit", config);
-            };
-            badAction.ShouldThrow<CouchbaseLiteException>().Which.Status.Should()
-                .Be(StatusCode.Unauthorized);
-
-            config.EncryptionKey = wrongKey;
-            using (var encryptedDb = new Database("seekrit", config)) {
-                encryptedDb.Count.Should().Be(1);
-                encryptedDb.SetEncryptionKey(wrongKey);
-                Database.Delete("seekrit2", config.Directory);
-                Database.Copy(encryptedDb.Path, "seekrit2", config);
-                using(var encryptedDb2 = new Database("seekrit2", config)) {
-                    encryptedDb2.Count.Should().Be(1);
-                }
+                Db.Invoking(d => d.GetDocument("doc1"))
+                    .ShouldThrow<InvalidOperationException>()
+                    .WithMessage("Attempt to perform an operation on a closed database",
+                        "because this operation is invalid");
             }
         }
 

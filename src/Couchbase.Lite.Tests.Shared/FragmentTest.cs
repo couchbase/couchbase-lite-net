@@ -565,7 +565,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestNonDictionaryFragmentSetObject()
+        public void TestNonDictionaryFragmentSetValue()
         {
             var doc = new MutableDocument("doc1");
             doc.SetString("string1", "value1").SetString("string2", "value2");
@@ -756,7 +756,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestGetFragmentValues()
+        public void TestBasicGetFragmentValues()
         {
             var doc = new MutableDocument("doc1");
             doc.SetData(new Dictionary<string, object> {
@@ -789,7 +789,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestSetFragmentValues()
+        public void TestBasicSetFragmentValues()
         {
             var doc = new MutableDocument("doc1");
             doc["name"].Value = "Jason";

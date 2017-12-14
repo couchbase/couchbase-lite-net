@@ -19,6 +19,10 @@
 // limitations under the License.
 // 
 
+using System;
+
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
@@ -37,10 +41,17 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public ReplicationProgress Progress { get; }
 
-        internal ReplicationStatus(ReplicatorActivityLevel activity, ReplicationProgress progress)
+        /// <summary>
+        /// Gets the last error that occurred, if any
+        /// </summary>
+        [CanBeNull]
+        public Exception Error { get; }
+
+        internal ReplicationStatus(ReplicatorActivityLevel activity, ReplicationProgress progress, Exception error)
         {
             Activity = activity;
             Progress = progress;
+            Error = error;
         }
     }
 }

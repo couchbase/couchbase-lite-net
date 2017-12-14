@@ -433,7 +433,6 @@ namespace Couchbase.Lite
         /// <param name="documentID">The ID to add the listener for</param>
         /// <param name="handler">The logic to handle the event</param>
         [ContractAnnotation("documentID:null => halt; handler:null => halt")]
-        [NotNull]
         public ListenerToken AddDocumentChangeListener(string documentID, EventHandler<DocumentChangedEventArgs> handler)
         {
             return AddDocumentChangeListener(documentID, null, handler);
@@ -1118,6 +1117,20 @@ namespace Couchbase.Lite
         }
 
         #endregion
+
+        public override int GetHashCode()
+        {
+            return Path?.GetHashCode() ?? 0;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is Database other)) {
+                return false;
+            }
+
+            return String.Equals(Path, other.Path, StringComparison.OrdinalIgnoreCase);
+        }
 
         #region IDisposable
 

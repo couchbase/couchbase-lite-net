@@ -108,7 +108,7 @@ namespace Couchbase.Lite.Util
 
         public void Fire(object sender, TEventType args)
         {
-            _taskFactory.StartNew(() => _handler?.Invoke(sender, args));
+            _taskFactory.StartNew(() => _handler.Invoke(sender, args));
         }
 
         #endregion

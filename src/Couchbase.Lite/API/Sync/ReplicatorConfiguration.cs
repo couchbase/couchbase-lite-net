@@ -57,7 +57,12 @@ namespace Couchbase.Lite.Sync
     /// </summary>
     public sealed class ReplicatorConfiguration
     {
+        #region Constants
+
         private const string Tag = nameof(ReplicatorConfiguration);
+
+        #endregion
+
         #region Properties
 
         /// <summary>
@@ -111,11 +116,17 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Extra HTTP headers to send in all requests to the remote target
         /// </summary>
-        [CanBeNull]
+        [NotNull]
         public IDictionary<string, string> Headers
         {
             get => Options.Headers;
             set => Options.Headers = value;
+        }
+
+        internal TimeSpan CheckpointInterval
+        {
+            get => Options.CheckpointInterval;
+            set => Options.CheckpointInterval = value;
         }
 
         [NotNull]
@@ -134,7 +145,7 @@ namespace Couchbase.Lite.Sync
             get => Options.PinnedServerCertificate;
             set => Options.PinnedServerCertificate = value;
         }
-        
+
         [CanBeNull]
         internal Uri RemoteUrl { get; }
 

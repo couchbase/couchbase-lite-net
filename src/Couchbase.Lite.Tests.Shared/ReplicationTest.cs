@@ -77,18 +77,48 @@ namespace Test
         }
 
         [Fact]
-        public void TestLocalPush()
+        public void TestPushDoc()
         {
-            Db.InBatch(() =>
-            {
-                for (int i = 0; i < 100; i++) {
-                    var doc = new MutableDocument();
-                    Db.Save(doc);
-                }
-            });
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1).Dispose();
+                Db.Count.Should().Be(1UL);
+
+                doc2.SetString("name", "Cat");
+                _otherDB.Save(doc2).Dispose();
+            }
 
             var config = CreateConfig(true, false, false);
             RunReplication(config, 0, 0);
+
+            _otherDB.Count.Should().Be(2UL);
+            using (var savedDoc1 = _otherDB.GetDocument("doc1")) {
+                savedDoc1.GetString("name").Should().Be("Tiger");
+            }
+        }
+
+        [Fact]
+        public void TestPushDocContinuous()
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1).Dispose();
+                Db.Count.Should().Be(1UL);
+
+                doc2.SetString("name", "Cat");
+                _otherDB.Save(doc2).Dispose();
+            }
+
+            var config = CreateConfig(true, false, true);
+            config.CheckpointInterval = TimeSpan.FromSeconds(1);
+            RunReplication(config, 0, 0);
+
+            _otherDB.Count.Should().Be(2UL);
+            using (var savedDoc1 = _otherDB.GetDocument("doc1")) {
+                savedDoc1.GetString("name").Should().Be("Tiger");
+            }
         }
 
         [Fact]
@@ -107,6 +137,31 @@ namespace Test
             }
 
             var config = CreateConfig(false, true, false);
+            RunReplication(config, 0, 0);
+
+            Db.Count.Should().Be(2, "because the replicator should have pulled doc2 from the other DB");
+            using (var doc2 = Db.GetDocument("doc2")) {
+                doc2.GetString("name").Should().Be("Cat");
+            }
+        }
+
+        [Fact]
+        public void TestPullDocContinuous()
+        {
+            // For https://github.com/couchbase/couchbase-lite-core/issues/156
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1).Dispose();
+                Db.Count.Should().Be(1, "because only one document was saved so far");
+            }
+
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("name", "Cat");
+                _otherDB.Save(doc2).Dispose();
+            }
+
+            var config = CreateConfig(false, true, true);
+            config.CheckpointInterval = TimeSpan.FromSeconds(1);
             RunReplication(config, 0, 0);
 
             Db.Count.Should().Be(2, "because the replicator should have pulled doc2 from the other DB");
@@ -247,6 +302,50 @@ namespace Test
             attemptCount.Should().BeLessOrEqualTo(10);
         }
 
+        #warning Failure
+        //[Fact]
+        public async Task TestStopContinuousReplicator()
+        {
+            var config = CreateConfig(true, true, true);
+            var r = new Replicator(config);
+            var stopWhen = new[]
+            {
+                ReplicatorActivityLevel.Connecting, ReplicatorActivityLevel.Busy,
+                ReplicatorActivityLevel.Idle, ReplicatorActivityLevel.Idle
+            };
+
+            foreach (var when in stopWhen) {
+                var waitAssert = new WaitAssert();
+                var token = r.AddChangeListener((sender, args) =>
+                {
+                    waitAssert.RunConditionalAssert(() =>
+                    {
+                        VerifyChange(args, 0, 0);
+                        if (args.Status.Activity == when) {
+                            WriteLine("***** Stop Replicator *****");
+                            ((Replicator) sender).Stop();
+                        }
+
+                        if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                            WriteLine("Stopped!");
+                        }
+
+                        return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                    });
+                });
+
+                WriteLine("***** Start Replicator *****");
+                r.Start();
+                try {
+                    waitAssert.WaitForResult(TimeSpan.FromSeconds(5));
+                } finally {
+                    r.RemoveChangeListener(token);
+                }
+
+                await Task.Delay(100).ConfigureAwait(false);
+            }
+        }
+
         // The below tests are disabled because they require orchestration and should be moved
         // to the functional test suite
 #if HAVE_SG
@@ -373,27 +472,40 @@ namespace Test
             return config;
         }
 
+        private void VerifyChange(ReplicationStatusChangedEventArgs change, int errorCode, C4ErrorDomain domain)
+        {
+            var s = change.Status;
+            WriteLine($"---Status: {s.Activity} ({s.Progress.Completed} / {s.Progress.Total}), lastError = {s.Error}");
+            if (s.Activity == ReplicatorActivityLevel.Stopped) {
+                if (errorCode != 0) {
+                    s.Error.Should().BeAssignableTo<LiteCoreException>();
+                    var error = s.Error.As<LiteCoreException>().Error;
+                    error.code.Should().Be(errorCode);
+                    if ((int) domain != 0) {
+                        error.domain.As<C4ErrorDomain>().Should().Be(domain);
+                    }
+                } else {
+                    s.Error.Should().BeNull("because otherwise an unexpected error occurred");
+                }
+            }
+        }
+
         private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, C4ErrorDomain expectedErrDomain)
         {
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
-            _repl.AddChangeListener((sender, args) =>
+            var token = _repl.AddChangeListener((sender, args) =>
             {
-                if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                    _waitAssert.RunAssert(() =>
-                    {
-                        if (expectedErrCode != 0) {
-                            args.LastError.Should().BeAssignableTo<LiteCoreException>();
-                            var error = args.LastError.As<LiteCoreException>().Error;
-                            error.code.Should().Be(expectedErrCode);
-                            if ((int) expectedErrDomain != 0) {
-                                error.domain.As<C4ErrorDomain>().Should().Be(expectedErrDomain);
-                            }
-                        } else {
-                            args.LastError.Should().BeNull("because otherwise an unexpected error occurred");
-                        }
-                    });
-                }
+                _waitAssert.RunConditionalAssert(() =>
+                {
+                    VerifyChange(args, expectedErrCode, expectedErrDomain);
+                    if (config.Continuous && args.Status.Activity == ReplicatorActivityLevel.Idle
+                                          && args.Status.Progress.Completed == args.Status.Progress.Total) {
+                        ((Replicator) sender).Stop();
+                    }
+
+                    return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                });
             });
             
             _repl.Start();
@@ -402,6 +514,8 @@ namespace Test
             } catch {
                 _repl.Stop();
                 throw;
+            } finally {
+                _repl.RemoveChangeListener(token);
             }
         }
 
