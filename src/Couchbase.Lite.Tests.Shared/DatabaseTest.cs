@@ -141,6 +141,21 @@ namespace Test
         }
 
         [Fact]
+        public void TestSaveAndGetMultipleDocs()
+        {
+            const int NumDocs = 10;
+            for (var i = 0; i < NumDocs; i++) {
+                using (var doc = new MutableDocument($"doc_{i:D3}")) {
+                    doc.SetInt("key", i);
+                    Db.Save(doc).Dispose();
+                }
+            }
+
+            Db.Count.Should().Be(NumDocs);
+            ValidateDocs(NumDocs);
+        }
+
+        [Fact]
         public void TestGetExistingDocWithIDFromDifferentDBInstance()
         {
             var docID = "doc1";
@@ -578,6 +593,13 @@ namespace Test
         {
             Db.Close();
             Db.Path.Should().BeNull("because a non-open database has no path");
+        }
+
+        [Fact]
+        public void TestCloseThenDeleteDatabase()
+        {
+            Db.Dispose();
+            Db.Invoking(DeleteDB).ShouldThrow<InvalidOperationException>();
         }
 
         [Fact]
@@ -1051,12 +1073,74 @@ namespace Test
             }
         }
 
+        [ForIssue("https://github.com/couchbase/couchbase-lite-android/issues/1231")]
+        [Fact]
+        public void TestOverwriteDocWithNewDocInstance()
+        {
+            using (var mDoc1 = new MutableDocument("abc"))
+            using (var mDoc2 = new MutableDocument("abc")) {
+                mDoc1.SetString("somekey", "someVar");
+                mDoc2.SetString("somekey", "newVar");
+
+                // This causes a conflict, the default conflict resolver should be applied
+                using (var doc1 = Db.Save(mDoc1))
+                using (var doc2 = Db.Save(mDoc2)) {
+                    // NOTE: Both doc1 and doc2 are generation 1.  Higher revision should win.
+                    Db.Count.Should().Be(1UL);
+                    using (var doc = Db.GetDocument("abc")) {
+                        doc.Should().NotBeNull();
+                        if (String.Compare(doc1.RevID, doc2.RevID, StringComparison.Ordinal) > 0) {
+                            doc.GetString("somekey").Should().Be("someVar");
+                        } else {
+                            doc.GetString("somekey").Should().Be("newVar");
+                        }
+                    }  
+                }
+            }
+        }
+
+        [ForIssue("https://github.com/couchbase/couchbase-lite-android/issues/1416")]
+        [Fact]
+        public void TestDeleteAndOpenDB()
+        {
+            var config = new DatabaseConfiguration
+            {
+                Directory = Directory
+            };
+
+            using (var database1 = new Database("application")) {
+                database1.Delete();
+
+                using (var database2 = new Database("application")) {
+                    database2.InBatch(() =>
+                    {
+                        for (var i = 0; i < 100; i++) {
+                            using (var doc = new MutableDocument()) {
+                                doc.SetInt("index", i);
+                                for (var j = 0; j < 10; j++) {
+                                    doc.SetInt($"item_{j}", j);
+                                }
+
+                                database2.Save(doc).Dispose();
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
         private void DeleteDB(Database db)
         {
             var path = db.Path;
-            System.IO.Directory.Exists(path).Should().BeTrue("because the database should exist if it is going to be deleted");
+            if (path != null) {
+                System.IO.Directory.Exists(path).Should()
+                    .BeTrue("because the database should exist if it is going to be deleted");
+            }
+
             db.Delete();
-            System.IO.Directory.Exists(path).Should().BeFalse("because the database should not exist anymore");
+            if (path != null) {
+                System.IO.Directory.Exists(path).Should().BeFalse("because the database should not exist anymore");
+            }
         }
 
         private Document GenerateDocument(string docID)

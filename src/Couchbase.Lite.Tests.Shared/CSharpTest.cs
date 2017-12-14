@@ -28,6 +28,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
@@ -483,19 +484,10 @@ Transfer-Encoding: chunked";
             then.Should().NotBe(now);
 
             var testBool = false;
-            queue.DispatchSync(() => testBool).Should().BeFalse();
-            testBool = true;
-            var t = queue.DispatchAsync(() =>
-            {
-                testBool = false;
-                return testBool;
-            });
-            testBool.Should().BeTrue();
-            (await t).Should().BeFalse();
-            testBool.Should().BeFalse();
+            queue.DispatchSync(() => Volatile.Read(ref testBool)).Should().BeFalse();
 
-            t = queue.DispatchAfter(() => testBool, TimeSpan.FromMilliseconds(500));
-            testBool = true;
+            var t = queue.DispatchAfter(() => Volatile.Read(ref testBool), TimeSpan.FromMilliseconds(500));
+            Volatile.Write(ref testBool, true);
             (await t).Should().BeTrue();
         }
 

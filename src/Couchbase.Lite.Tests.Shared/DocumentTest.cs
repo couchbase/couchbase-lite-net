@@ -380,6 +380,28 @@ namespace Test
         }
 
         [Fact]
+        public void TestGetLong()
+        {
+            var doc = new MutableDocument("doc1");
+            PopulateData(doc);
+            SaveDocument(doc, d =>
+            {
+                d.GetLong("true").Should().Be(1L, "because a true bool value will be coalesced to 1L");
+                d.GetLong("false").Should().Be(0L, "because a false bool value will be coalesced to 0L");
+                d.GetLong("string").Should().Be(0L, "because that is the default value");
+                d.GetLong("zero").Should().Be(0L, "because zero was stored in this key");
+                d.GetLong("one").Should().Be(1L, "because one was stored in this key");
+                d.GetLong("minus_one").Should().Be(-1L, "because -1L was stored in this key");
+                d.GetLong("one_dot_one").Should().Be(1L, "because 1L.1L gets truncated to 1L");
+                d.GetLong("date").Should().Be(0L, "because that is the default value");
+                d.GetLong("dict").Should().Be(0L, "because that is the default value");
+                d.GetLong("array").Should().Be(0L, "because that is the default value");
+                d.GetLong("blob").Should().Be(0L, "because that is the default value");
+                d.GetLong("non_existing_key").Should().Be(0L, "because that key has no value");
+            });
+        }
+
+        [Fact]
         public void TestGetDouble()
         {
             var doc = new MutableDocument("doc1");
