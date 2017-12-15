@@ -1,5 +1,5 @@
 ﻿// 
-// Joins.cs
+// Join.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>

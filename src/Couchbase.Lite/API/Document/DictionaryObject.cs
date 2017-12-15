@@ -22,6 +22,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
@@ -29,8 +30,42 @@ using Couchbase.Lite.Support;
 
 using JetBrains.Annotations;
 
+using Newtonsoft.Json;
+
 namespace Couchbase.Lite
 {
+    internal sealed class IDictionaryObjectConverter : JsonConverter
+    {
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            var dict = value as IDictionaryObject;
+            writer.WriteStartObject();
+            foreach (var pair in dict) {
+                writer.WritePropertyName(pair.Key);
+                writer.WriteValue(pair.Value);
+            }
+            writer.WriteEndObject();
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            var dict = new MutableDictionary();
+            while (reader.Read()) {
+                var key = reader.Value as string;
+                reader.Read();
+                var value = reader.Value;
+                dict.SetValue(key, value);
+            }
+
+            return dict;
+        }
+
+        public override bool CanConvert(Type objectType)
+        {
+            return typeof(IDictionaryObject).IsAssignableFrom(objectType);
+        }
+    }
+
     /// <summary>
     /// A class representing a key-value collection that is read only
     /// </summary>

@@ -46,8 +46,18 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Properties
 
-        [CanBeNull]
         internal Database Database => Source as Database;
+
+        internal override string ColumnName
+        {
+            get {
+                if (_as != null) {
+                    return _as;
+                }
+
+                return Database?.Name;
+            }
+        }
 
         #endregion
 

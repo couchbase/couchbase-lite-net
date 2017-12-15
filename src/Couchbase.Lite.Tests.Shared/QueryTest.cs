@@ -30,6 +30,7 @@ using System.Threading.Tasks;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Query;
+
 using FluentAssertions;
 using Newtonsoft.Json;
 #if !WINDOWS_UWP
@@ -453,27 +454,10 @@ namespace Test
         }
 
         [Fact]
-        public async Task TestLiveQueryNoUpdate()
-        {
-            LoadNumbers(100);
-            using (var q = Query.Select().From(DataSource.Database(Db))
-                .Where(Expression.Property("number1").LessThan(10)).OrderBy(Ordering.Property("number1"))) {
+        public async Task TestLiveQueryNoUpdate() => TestLiveQueryNoUpdateInternal(false);
 
-                var are = new AutoResetEvent(false);
-                q.AddChangeListener(null, (sender, args) =>
-                {
-                    are.Set();
-                });
-
-                await Task.Delay(500).ConfigureAwait(false);
-
-                // This change will not affect the query results because 'number1 < 10' 
-                // is not true
-                CreateDocInSeries(111, 100);
-                are.WaitOne(5000).Should().BeTrue("because the Changed event should fire once for the initial results");
-                are.WaitOne(5000).Should().BeFalse("because the Changed event should not fire needlessly");
-            }
-        }
+        [Fact]
+        public async Task TestLiveQueryNoUpdateConsumeAll() => TestLiveQueryNoUpdateInternal(true);
 
         [Fact]
         public void TestJoin()
@@ -485,7 +469,7 @@ namespace Test
             var number2Prop = Expression.Property("number2");
             using (var q = Query.Select(SelectResult.Expression(number2Prop.From("main")))
                 .From(DataSource.Database(Db).As("main"))
-                .Joins(Join.DefaultJoin(DataSource.Database(Db).As("secondary"))
+                .Join(Join.DefaultJoin(DataSource.Database(Db).As("secondary"))
                     .On(Expression.Property("number1").From("main")
                         .EqualTo(Expression.Property("theone").From("secondary"))))) {
                 using (var results = q.Execute()) {
@@ -497,7 +481,7 @@ namespace Test
 
             using (var q = Query.Select(SelectResult.All().From("main"))
                 .From(DataSource.Database(Db).As("main"))
-                .Joins(Join.DefaultJoin(DataSource.Database(Db).As("secondary"))
+                .Join(Join.DefaultJoin(DataSource.Database(Db).As("secondary"))
                     .On(Expression.Property("number1").From("main")
                         .EqualTo(Expression.Property("theone").From("secondary"))))) {
                 using (var results = q.Execute()) {
@@ -1362,6 +1346,315 @@ namespace Test
             }
 
             doc2Listener.Invoking(t => t.WaitForResult(TimeSpan.FromSeconds(2))).ShouldThrow<TimeoutException>();
+        }
+
+        [ForIssue("couchbase-lite-android/1356")]
+        [Fact]
+        public void TestCountFunctions()
+        {
+            LoadNumbers(100);
+
+            var ds = DataSource.Database(Db);
+            var cnt = Function.Count(Expression.Property("number1"));
+            var rsCnt = SelectResult.Expression(cnt);
+            using (var q = Query.Select(rsCnt).From(ds)) {
+                var numRows = VerifyQuery(q, (n, row) => { row.GetInt(0).Should().Be(100); });
+                numRows.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public void TestJoinWithArrayContains()
+        {
+            using (var hotel1 = new MutableDocument("hotel1"))
+            using (var hotel2 = new MutableDocument("hotel2"))
+            using (var hotel3 = new MutableDocument("hotel3"))
+            using (var bookmark1 = new MutableDocument("bookmark1"))
+            using (var bookmark2 = new MutableDocument("bookmark2")) {
+                hotel1.SetString("type", "hotel");
+                hotel1.SetString("name", "Hilton");
+                Db.Save(hotel1).Dispose();
+
+                hotel2.SetString("type", "hotel");
+                hotel2.SetString("name", "Sheraton");
+                Db.Save(hotel2).Dispose();
+
+                hotel3.SetString("type", "hotel");
+                hotel3.SetString("name", "Marriot");
+                Db.Save(hotel3).Dispose();
+
+                bookmark1.SetString("type", "bookmark");
+                bookmark1.SetString("title", "Bookmark for Hawaii");
+                var hotels1 = new MutableArray();
+                hotels1.AddString("hotel1").AddString("hotel2");
+                bookmark1.SetArray("hotels", hotels1);
+                Db.Save(bookmark1);
+
+                bookmark2.SetString("type", "bookmark");
+                bookmark2.SetString("title", "Bookmark for New York");
+                var hotels2 = new MutableArray();
+                hotels2.AddString("hotel3");
+                bookmark2.SetArray("hotels", hotels2);
+                Db.Save(bookmark2);
+            }
+
+            var mainDS = DataSource.Database(Db).As("main");
+            var secondaryDS = DataSource.Database(Db).As("secondary");
+
+            var typeExpr = Expression.Property("type").From("main");
+            var hotelsExpr = Expression.Property("hotels").From("main");
+            var hotelIdExpr = Meta.ID.From("secondary");
+            var joinExpr = ArrayFunction.Contains(hotelsExpr, hotelIdExpr);
+            var join = Join.DefaultJoin(secondaryDS).On(joinExpr);
+
+            var srMainAll = SelectResult.All().From("main");
+            var srSecondaryAll = SelectResult.All().From("secondary");
+            using (var q = Query.Select(srMainAll, srSecondaryAll)
+                .From(mainDS)
+                .Join(join)
+                .Where(typeExpr.EqualTo("bookmark"))) {
+                using (var rs = q.Execute()) {
+                    foreach (var r in rs) {
+                        WriteLine(JsonConvert.SerializeObject(r.ToDictionary()));
+                    }
+                }
+            }
+        }
+
+        [ForIssue("couchbase-lite-android/1385")]
+        [Fact]
+        public void TestQueryDeletedDocument()
+        {
+            using (var task1 = CreateTaskDocument("Task 1", false))
+            using (var task2 = CreateTaskDocument("Task 2", false)) {
+                using (var q = Query.Select(SelectResult.Expression(Meta.ID), SelectResult.All())
+                .From(DataSource.Database(Db))
+                .Where(Expression.Property("type").EqualTo("task"))) {
+                    using (var rs = q.Execute()) {
+                        var counter = 0;
+                        foreach (var r in rs) {
+                            WriteLine($"Round 1: Result -> {JsonConvert.SerializeObject(r.ToDictionary())}");
+                            counter++;
+                        }
+
+                        counter.Should().Be(2);
+                    }
+
+                    task1.IsDeleted.Should().BeFalse();
+                    Db.Delete(task1);
+                    Db.Count.Should().Be(1);
+                    Db.GetDocument(task1.Id).Should().BeNull();
+
+                    using (var rs = q.Execute()) {
+                        var counter = 0;
+                        foreach (var r in rs) {
+                            r.GetString(0).Should().Be(task2.Id);
+                            WriteLine($"Round 2: Result -> {JsonConvert.SerializeObject(r.ToDictionary())}");
+                            counter++;
+                        }
+
+                        counter.Should().Be(1);
+                    }
+                }
+            }
+        }
+
+        [ForIssue("couchbase-lite-android/1389")]
+        [Fact]
+        public void TestQueryWhereBooleanExpression()
+        {
+            using (var task1 = CreateTaskDocument("Task 1", false))
+            using (var task2 = CreateTaskDocument("Task 2", true))
+            using (var task3 = CreateTaskDocument("Task 3", true)) {
+                Db.Count.Should().Be(3);
+
+                var exprType = Expression.Property("type");
+                var exprComplete = Expression.Property("complete");
+                var srCount = SelectResult.Expression(Function.Count(1));
+
+                using (var q = Query.Select(SelectResult.All())
+                    .From(DataSource.Database(Db))
+                    .Where(exprType.EqualTo("task").And(exprComplete.EqualTo(true)))) {
+                    var numRows = VerifyQuery(q, (n, row) =>
+                    {
+                        WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
+                        var dict = row.GetDictionary(Db.Name);
+                        dict.GetBoolean("complete").Should().BeTrue();
+                        dict.GetString("type").Should().Be("task");
+                        dict.GetString("title").Should().StartWith("Task ");
+                    });
+
+                    numRows.Should().Be(2);
+                }
+
+                using (var q = Query.Select(SelectResult.All())
+                    .From(DataSource.Database(Db))
+                    .Where(exprType.EqualTo("task").And(exprComplete.EqualTo(false)))) {
+                    var numRows = VerifyQuery(q, (n, row) =>
+                    {
+                        WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
+                        var dict = row.GetDictionary(Db.Name);
+                        dict.GetBoolean("complete").Should().BeFalse();
+                        dict.GetString("type").Should().Be("task");
+                        dict.GetString("title").Should().StartWith("Task ");
+                    });
+
+                    numRows.Should().Be(1);
+                }
+
+                using (var q = Query.Select(srCount)
+                    .From(DataSource.Database(Db))
+                    .Where(exprType.EqualTo("task").And(exprComplete.EqualTo(true)))) {
+                    var numRows = VerifyQuery(q, (n, row) =>
+                    {
+                        WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
+                        row.GetInt(0).Should().Be(2);
+                    });
+
+                    numRows.Should().Be(1);
+                }
+
+                using (var q = Query.Select(srCount)
+                    .From(DataSource.Database(Db))
+                    .Where(exprType.EqualTo("task").And(exprComplete.EqualTo(false)))) {
+                    var numRows = VerifyQuery(q, (n, row) =>
+                    {
+                        WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
+                        row.GetInt(0).Should().Be(1);
+                    });
+
+                    numRows.Should().Be(1);
+                }
+            }
+        }
+
+        [ForIssue("couchbase-lite-android/1413")]
+        [Fact]
+        public void TestJoinAll()
+        {
+            LoadNumbers(100);
+
+            using (var doc1 = new MutableDocument("joinme")) {
+                doc1.SetInt("theone", 42);
+                Db.Save(doc1).Dispose();
+            }
+
+            var mainDS = DataSource.Database(Db).As("main");
+            var secondaryDS = DataSource.Database(Db).As("secondary");
+
+            var mainPropExpr = Expression.Property("number1").From("main");
+            var secondaryExpr = Expression.Property("theone").From("secondary");
+            var joinExpr = mainPropExpr.EqualTo(secondaryExpr);
+            var join = Join.DefaultJoin(secondaryDS).On(joinExpr);
+
+            var mainAll = SelectResult.All().From("main");
+            var secondaryAll = SelectResult.All().From("secondary");
+
+            using (var q = Query.Select(mainAll, secondaryAll)
+                .From(mainDS)
+                .Join(join)) {
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    var mainAll1 = row.GetDictionary(0);
+                    var mainAll2 = row.GetDictionary("main");
+                    var secondAll1 = row.GetDictionary(1);
+                    var secondAll2 = row.GetDictionary("secondary");
+                    WriteLine($"mainAll1 -> {JsonConvert.SerializeObject(mainAll1)}");
+                    WriteLine($"mainAll2 -> {JsonConvert.SerializeObject(mainAll2)}");
+                    WriteLine($"secondAll1 -> {JsonConvert.SerializeObject(secondAll1)}");
+                    WriteLine($"secondAll2 -> {JsonConvert.SerializeObject(secondAll2)}");
+
+                    mainAll1.GetInt("number1").Should().Be(42);
+                    mainAll2.GetInt("number1").Should().Be(42);
+                    mainAll1.GetInt("number2").Should().Be(58);
+                    mainAll1.GetInt("number2").Should().Be(58);
+                    secondAll1.GetInt("theone").Should().Be(42);
+                    secondAll2.GetInt("theone").Should().Be(42);
+                });
+
+                numRows.Should().Be(1);
+            }
+        }
+
+        [ForIssue("couchbase-lite-android/1413")]
+        [Fact]
+        public void TestJoinByDocID()
+        {
+            LoadNumbers(100);
+
+            using (var doc1 = new MutableDocument("joinme")) {
+                doc1.SetInt("theone", 42);
+                doc1.SetString("numberID", "doc1");
+                Db.Save(doc1).Dispose();
+            }
+
+            var mainDS = DataSource.Database(Db).As("main");
+            var secondaryDS = DataSource.Database(Db).As("secondary");
+
+            var mainPropExpr = Meta.ID.From("main");
+            var secondaryExpr = Expression.Property("numberID").From("secondary");
+            var joinExpr = mainPropExpr.EqualTo(secondaryExpr);
+            var join = Join.DefaultJoin(secondaryDS).On(joinExpr);
+
+            var mainDocID = SelectResult.Expression(mainPropExpr).As("mainDocID");
+            var secondaryDocID = SelectResult.Expression(Meta.ID.From("secondary")).As("secondaryDocID");
+            var secondaryTheOne = SelectResult.Expression(Expression.Property("theone").From("secondary"));
+
+            using (var q = Query.Select(mainDocID, secondaryDocID, secondaryTheOne)
+                .From(mainDS)
+                .Join(join)) {
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    n.Should().Be(1);
+                    var docID = row.GetString("mainDocID");
+                    using (var doc = Db.GetDocument(docID)) {
+                        doc.GetInt("number1").Should().Be(1);
+                        doc.GetInt("number2").Should().Be(99);
+
+                        row.GetString("secondaryDocID").Should().Be("joinme");
+                        row.GetInt("theone").Should().Be(42);
+                    }
+                });
+
+                numRows.Should().Be(1);
+            }
+        }
+
+        private Document CreateTaskDocument(string title, bool complete)
+        {
+            using (var doc = new MutableDocument()) {
+                doc.SetString("type", "task");
+                doc.SetString("title", title);
+                doc.SetBoolean("complete", complete);
+                return Db.Save(doc);
+            }
+        }
+
+        private async Task TestLiveQueryNoUpdateInternal(bool consumeAll)
+        {
+            LoadNumbers(100);
+            using (var q = Query.Select().From(DataSource.Database(Db))
+                .Where(Expression.Property("number1").LessThan(10)).OrderBy(Ordering.Property("number1"))) {
+
+                var are = new AutoResetEvent(false);
+                q.AddChangeListener(null, (sender, args) =>
+                {
+                    if (consumeAll) {
+                        var rs = args.Rows;
+                        rs.ToArray().Should().NotBeNull(); // No-op
+                    }
+
+                    are.Set();
+                });
+
+                await Task.Delay(500).ConfigureAwait(false);
+
+                // This change will not affect the query results because 'number1 < 10' 
+                // is not true
+                CreateDocInSeries(111, 100);
+                are.WaitOne(5000).Should().BeTrue("because the Changed event should fire once for the initial results");
+                are.WaitOne(5000).Should().BeFalse("because the Changed event should not fire needlessly");
+            }
         }
 
         private bool TestWhereCompareValidator(IDictionary<string, object> properties, object context)

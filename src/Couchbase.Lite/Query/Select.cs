@@ -69,7 +69,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IJoinRouter
 
-        public IJoin Joins(params IJoin[] joins)
+        public IJoin Join(params IJoin[] joins)
         {
             return new QueryJoin(this, joins);
         }

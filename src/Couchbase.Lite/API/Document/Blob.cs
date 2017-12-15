@@ -252,6 +252,7 @@ namespace Couchbase.Lite
 
             Length = properties.GetCast<int>("length");
             Digest = properties.GetCast<string>("digest");
+            ContentType = properties.GetCast<string>("content-type");
             if(Digest == null) {
                 Log.To.Database.W(Tag, "Blob read from database has missing digest");
             }

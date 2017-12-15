@@ -216,6 +216,10 @@ namespace Couchbase.Lite.Internal.Query
             var provisionKeyIndex = 0;
             foreach (var select in SelectImpl.SelectResults) {
                 var name = select.ColumnName ?? $"${++provisionKeyIndex}";
+                if (name == String.Empty) {
+                    name = FromImpl.ColumnName;
+                }
+                
                 if (map.ContainsKey(name)) {
                     throw new CouchbaseLiteException(StatusCode.InvalidQuery, $"Duplicate select result named {name}");
                 }

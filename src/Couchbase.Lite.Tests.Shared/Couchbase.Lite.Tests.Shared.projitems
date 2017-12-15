@@ -10,7 +10,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)ArrayTest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)ConcurrencyTests.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)BlobTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ConcurrencyTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ConflictTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CSharpTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DatabaseEncryptionTest.cs" />
@@ -36,5 +37,11 @@
     <Content Include="$(MSBuildThisFileDirectory)C\tests\data\sentences.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\C\tests\data\iTunesMusicLibrary.json">
+      <LogicalName>iTunesMusicLibrary.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)C\tests\data\attachment.png">
+      <LogicalName>attachment.png</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>

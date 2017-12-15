@@ -1073,7 +1073,7 @@ namespace Test
             }
         }
 
-        [ForIssue("https://github.com/couchbase/couchbase-lite-android/issues/1231")]
+        [ForIssue("couchbase-lite-android/1231")]
         [Fact]
         public void TestOverwriteDocWithNewDocInstance()
         {
@@ -1099,7 +1099,7 @@ namespace Test
             }
         }
 
-        [ForIssue("https://github.com/couchbase/couchbase-lite-android/issues/1416")]
+        [ForIssue("couchbase-lite-android/1416")]
         [Fact]
         public void TestDeleteAndOpenDB()
         {

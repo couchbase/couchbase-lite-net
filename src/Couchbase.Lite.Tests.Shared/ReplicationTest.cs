@@ -121,10 +121,10 @@ namespace Test
             }
         }
 
+        [ForIssue("couchbase-lite-core/156")]
         [Fact]
         public void TestPullDoc()
         {
-            // For https://github.com/couchbase/couchbase-lite-core/issues/156
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Tiger");
                 Db.Save(doc1).Dispose();
@@ -145,10 +145,10 @@ namespace Test
             }
         }
 
+        [ForIssue("couchbase-lite-core/156")]
         [Fact]
         public void TestPullDocContinuous()
         {
-            // For https://github.com/couchbase/couchbase-lite-core/issues/156
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Tiger");
                 Db.Save(doc1).Dispose();
@@ -301,12 +301,11 @@ namespace Test
 
             attemptCount.Should().BeLessOrEqualTo(10);
         }
-
-        #warning Failure
-        //[Fact]
+        
+        [Fact]
         public async Task TestStopContinuousReplicator()
         {
-            var config = CreateConfig(true, true, true);
+            var config = CreateConfig(true, false, true);
             var r = new Replicator(config);
             var stopWhen = new[]
             {
@@ -321,7 +320,9 @@ namespace Test
                     waitAssert.RunConditionalAssert(() =>
                     {
                         VerifyChange(args, 0, 0);
-                        if (args.Status.Activity == when) {
+
+                        // On Windows, at least, sometimes the connection is so fast that Connecting never gets called
+                        if (args.Status.Activity == when || (when == ReplicatorActivityLevel.Connecting && args.Status.Activity > when)) {
                             WriteLine("***** Stop Replicator *****");
                             ((Replicator) sender).Stop();
                         }

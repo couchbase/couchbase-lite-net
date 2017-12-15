@@ -408,30 +408,28 @@ namespace Couchbase.Lite.Sync
 
 
             var err = new C4Error();
+            var status = default(C4ReplicatorStatus);
             _databaseThreadSafety.DoLocked(() =>
             {
                 C4Error localErr;
                 _repl = Native.c4repl_new(_config.Database.c4db, addr, dbNameStr, otherDB != null ? otherDB.c4db : null,
                     _nativeParams.C4Params, &localErr);
                 err = localErr;
+                if (_repl != null) {
+                    status = Native.c4repl_getStatus(_repl);
+                    _config.Database.ActiveReplications.Add(this);
+                } else {
+                    status = new C4ReplicatorStatus {
+                        error = err,
+                        level = C4ReplicatorActivityLevel.Stopped,
+                        progress = new C4Progress()
+                    };
+                }
             });
 
             scheme.Dispose();
             path.Dispose();
             host.Dispose();
-
-
-            C4ReplicatorStatus status;
-            if (_repl != null) {
-                status = Native.c4repl_getStatus(_repl);
-                _config.Database.ActiveReplications.Add(this);
-            } else {
-                status = new C4ReplicatorStatus {
-                    error = err,
-                    level = C4ReplicatorActivityLevel.Stopped,
-                    progress = new C4Progress()
-                };
-            }
 
             UpdateStateProperties(status);
             StatusChangedCallback(status, this);

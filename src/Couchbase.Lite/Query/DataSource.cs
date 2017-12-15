@@ -32,6 +32,8 @@ namespace Couchbase.Lite.Internal.Query
     {
         #region Properties
 
+        internal virtual string ColumnName => null;
+
         internal object Source { get; }
 
         internal ThreadSafety ThreadSafety { get; }

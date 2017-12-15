@@ -38,10 +38,10 @@ namespace Test
 #if WINDOWS_UWP
     [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
 #endif
-    public sealed class ConcurrencyTests : TestCase
+    public sealed class ConcurrencyTest : TestCase
     {
 #if !WINDOWS_UWP
-        public ConcurrencyTests(ITestOutputHelper output) : base(output)
+        public ConcurrencyTest(ITestOutputHelper output) : base(output)
         {
 
         }

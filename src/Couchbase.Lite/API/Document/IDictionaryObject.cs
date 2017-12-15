@@ -23,11 +23,14 @@ using System.Collections.Generic;
 
 using JetBrains.Annotations;
 
+using Newtonsoft.Json;
+
 namespace Couchbase.Lite
 {
     /// <summary>
     /// An interface representing a readonly key-value collection with type-safe accessors
     /// </summary>
+    [JsonConverter(typeof(IDictionaryObjectConverter))]
     public interface IDictionaryObject : IDictionaryFragment, IReadOnlyCollection<KeyValuePair<string, object>>
     {
         #region Properties
