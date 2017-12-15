@@ -119,7 +119,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public void Remove(string key)
         {
-            Set(key, new MValue());
+            Set(key, MValue.Empty);
         }
 
         public void Set(string key, MValue val)
@@ -143,10 +143,6 @@ namespace Couchbase.Lite.Internal.Serialization
                         Count--;
                     }
                 } else {
-                    if (val.IsEmpty) {
-                        return;
-                    }
-
                     Count++;
                 }
 
@@ -273,8 +269,10 @@ namespace Couchbase.Lite.Internal.Serialization
                     Native.FLEncoder_WriteKey(enc, item.Key);
                     if (item.Value.HasNative) {
                         item.Value.NativeObject.FLEncode(enc);
-                    } else {
+                    } else if (item.Value.Value != null) {
                         Native.FLEncoder_WriteValue(enc, item.Value.Value);
+                    } else {
+                        Native.FLEncoder_WriteNull(enc);
                     }
                 }
 

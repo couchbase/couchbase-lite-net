@@ -164,6 +164,35 @@ namespace Test
         }
 
         [Fact]
+        public void TestSetNull()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mDict = new MutableDictionary();
+                mDict.SetValue("obj-null", null);
+                mDict.SetString("string-null", null);
+                mDict.SetArray("array-null", null);
+                mDict.SetDictionary("dict-null", null);
+                mDoc.SetDictionary("dict", mDict);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("dict").Should().BeTrue();
+                    var d = doc.GetDictionary("dict");
+                    d.Should().NotBeNull();
+                    d.Count.Should().Be(4);
+                    d.Contains("obj-null").Should().BeTrue();
+                    d.Contains("string-null").Should().BeTrue();
+                    d.Contains("array-null").Should().BeTrue();
+                    d.Contains("dict-null").Should().BeTrue();
+                    d.GetValue("obj-null").Should().BeNull();;
+                    d.GetValue("string-null").Should().BeNull();;
+                    d.GetValue("array-null").Should().BeNull();;
+                    d.GetValue("dict-null").Should().BeNull();
+                });
+            }
+        }
+
+        [Fact]
         public void TestDictionaryArray()
         {
             var doc = new MutableDocument("doc1");
@@ -332,6 +361,103 @@ namespace Test
 
                 result.ShouldBeEquivalentTo(content, "because that is the correct content");
             });
+        }
+
+        [ForIssue("couchbase-lite-core/230")]
+        [Fact]
+        public void TestLargeLongValue()
+        {
+            using (var doc = new MutableDocument("test")) {
+                var num1 = 1234567L;
+                var num2 = 12345678L;
+                var num3 = 123456789L;
+                doc.SetLong("num1", num1);
+                doc.SetLong("num2", num2);
+                doc.SetLong("num3", num3);
+                using (var saved = Db.Save(doc)) 
+                using (var newDoc = saved.ToMutable()) {
+                    newDoc.GetLong("num1").Should().Be(num1);
+                    newDoc.GetLong("num2").Should().Be(num2);
+                    newDoc.GetLong("num3").Should().Be(num3);
+                }
+            }
+        }
+
+        [Fact]
+        public void TestLargeLongValue2()
+        {
+            // https://forums.couchbase.com/t/long-value-on-document-changed-after-saved-to-db/14259
+            using (var doc = new MutableDocument("test")) {
+                var num1 = 11989091L;
+                var num2 = 231548688L;
+                doc.SetLong("num1", num1);
+                doc.SetLong("num2", num2);
+                using (var saved = Db.Save(doc)) 
+                using (var newDoc = saved.ToMutable()) {
+                    newDoc.GetLong("num1").Should().Be(num1);
+                    newDoc.GetLong("num2").Should().Be(num2);
+                }
+            }
+        }
+
+        [Fact]
+        public void TestGetDictionary()
+        {
+            var mNestedDict = new MutableDictionary();
+            mNestedDict.SetLong("key1", 1L);
+            mNestedDict.SetString("key2", "Hello");
+            mNestedDict.SetValue("key3", null);
+
+            var mDict = new MutableDictionary();
+            mDict.SetLong("key1", 1L);
+            mDict.SetString("key2", "Hello");
+            mDict.SetValue("key3", null);
+            mDict.SetDictionary("nestedDict", mNestedDict);
+
+            using (var mDoc = new MutableDocument("test")) {
+                mDoc.SetDictionary("dict", mDict);
+
+                using (var doc = Db.Save(mDoc)) {
+                    var dict = doc.GetDictionary("dict");
+                    dict.Should().NotBeNull();
+                    dict.GetDictionary("not-exists").Should().BeNull();
+                    var nestedDict = dict.GetDictionary("nestedDict");
+                    nestedDict.Should().NotBeNull();
+                    nestedDict.ToDictionary().ShouldBeEquivalentTo(mNestedDict.ToDictionary());
+                }
+            }
+        }
+
+        [Fact]
+        public void TestGetArray()
+        {
+            var mNestedArray = new MutableArray();
+            mNestedArray.AddLong(1L);
+            mNestedArray.AddString("Hello");
+            mNestedArray.AddValue(null);
+
+            var mArray = new MutableArray();
+            mArray.AddLong(1L);
+            mArray.AddString("Hello");
+            mArray.AddValue(null);
+            mArray.AddArray(mNestedArray);
+
+            using (var mDoc = new MutableDocument("test")) {
+                mDoc.SetArray("array", mArray);
+
+                using (var doc = Db.Save(mDoc)) {
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.GetArray(0).Should().BeNull();
+                    array.GetArray(1).Should().BeNull();
+                    array.GetArray(2).Should().BeNull();
+                    array.GetArray(3).Should().NotBeNull();
+
+                    var nestedArray = array.GetArray(3);
+                    nestedArray.ShouldBeEquivalentTo(mNestedArray);
+                    array.ShouldBeEquivalentTo(mArray);
+                }
+            }
         }
     }
 }

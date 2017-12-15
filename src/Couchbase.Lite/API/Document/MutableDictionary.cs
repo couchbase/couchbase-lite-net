@@ -83,17 +83,10 @@ namespace Couchbase.Lite
             _threadSafety.DoLocked(() =>
             {
                 var oldValue = _dict.Get(key);
-                if (value != null) {
-                    value = DataOps.ToCouchbaseObject(value);
-                    if (DataOps.ValueWouldChange(value, oldValue, _dict)) {
-                        _dict.Set(key, new MValue(value));
-                        KeysChanged();
-                    }
-                } else {
-                    if (!oldValue.IsEmpty) {
-                        _dict.Remove(key);
-                        KeysChanged();
-                    }
+                value = DataOps.ToCouchbaseObject(value);
+                if (DataOps.ValueWouldChange(value, oldValue, _dict)) {
+                    _dict.Set(key, new MValue(value));
+                    KeysChanged();
                 }
             });
         }

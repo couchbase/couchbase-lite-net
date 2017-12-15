@@ -22,12 +22,15 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Support;
 
 using JetBrains.Annotations;
+
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
@@ -202,5 +205,31 @@ namespace Couchbase.Lite
         public virtual IEnumerator<object> GetEnumerator() => _array.GetEnumerator();
 
         #endregion
+    }
+
+    internal sealed class IArrayConverter : JsonConverter
+    {
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            var arr = value as IArray;
+            writer.WriteStartArray();
+            foreach (var item in arr) {
+                serializer.Serialize(writer, item);
+            }
+
+            writer.WriteEndArray();
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            var arr = new MutableArray();
+            while (reader.Read()) {
+                arr.AddValue(serializer.Deserialize(reader));
+            }
+
+            return arr;
+        }
+
+        public override bool CanConvert(Type objectType) => typeof(IArray).IsAssignableFrom(objectType);
     }
 }

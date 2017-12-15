@@ -42,7 +42,7 @@ namespace Couchbase.Lite
             writer.WriteStartObject();
             foreach (var pair in dict) {
                 writer.WritePropertyName(pair.Key);
-                writer.WriteValue(pair.Value);
+                serializer.Serialize(writer, pair.Value);
             }
             writer.WriteEndObject();
         }

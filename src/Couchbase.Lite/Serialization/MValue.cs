@@ -1,28 +1,32 @@
 ﻿// 
-// MValue.cs
+//  MValue.cs
 // 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
+//  Author:
+//   Jim Borden  <jim.borden@couchbase.com>
 // 
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
 // 
-// http://www.apache.org/licenses/LICENSE-2.0
+//  http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
 // 
+
 using System;
 using System.Diagnostics;
 using System.Text;
+
 using Couchbase.Lite.Internal.Doc;
+
 using LiteCore.Interop;
+
 using static LiteCore.Constants;
 
 namespace Couchbase.Lite.Internal.Serialization
@@ -31,25 +35,34 @@ namespace Couchbase.Lite.Internal.Serialization
     {
         #region Constants
 
-        public static readonly MValue Empty = new MValue();
+        public static readonly MValue Empty = new MValue(true);
 
         #endregion
 
+        #region Properties
+
         public bool HasNative => NativeObject != null;
 
-        public FLValue* Value { get; private set; }
-
-        public object NativeObject { get; private set; }
-
-        public bool IsEmpty => Value == null && NativeObject == null;
+        public bool IsEmpty { get; }
 
         public bool IsMutated => Value == null;
 
+        public object NativeObject { get; private set; }
+
+        public FLValue* Value { get; private set; }
+
+        #endregion
+
         #region Constructors
 
-        public MValue()
+        public MValue() : this(false)
         {
             
+        }
+
+        public MValue(bool empty)
+        {
+            IsEmpty = empty;
         }
 
         public MValue(object o)
@@ -63,6 +76,8 @@ namespace Couchbase.Lite.Internal.Serialization
         }
 
         #endregion
+
+        #region Public Methods
 
         public object AsObject(MCollection parent)
         {
@@ -79,41 +94,34 @@ namespace Couchbase.Lite.Internal.Serialization
             return obj;
         }
 
-        public void FLEncode(FLEncoder* enc)
-        {
-            Debug.Assert(!IsEmpty);
-            if (Value != null) {
-                Native.FLEncoder_WriteValue(enc, Value);
-            } else {
-                NativeObject.FLEncode(enc);
-            }
-        }
-
         public void Mutate()
         {
             Debug.Assert(NativeObject != null);
             Value = null;
         }
 
-        private void NativeChangeSlot(MValue newSlot)
+        #endregion
+
+        #region Private Methods
+
+        private static MCollection CollectionFromObject(object obj)
         {
-            var collection = CollectionFromObject(NativeObject);
-            collection?.SetSlot(newSlot, this);
+            switch (obj) {
+                case ArrayObject arr:
+                    return arr.ToMCollection();
+                case DictionaryObject dict:
+                    return dict.ToMCollection();
+                default:
+                    return null;
+            }
         }
 
-        private void SetObject(object obj)
+        private static object CreateSpecialObject(string type, FLDict* properties, DocContext context)
         {
-            if (NativeObject != obj) {
-                if (NativeObject != null) {
-                    NativeChangeSlot(null);
-                }
-
-                NativeObject = obj;
-
-                if (NativeObject != null) {
-                    NativeChangeSlot(this);
-                }
-            }
+            Debug.Assert(context != null);
+            return type == ObjectTypeBlob || FLValueConverter.IsOldAttachment(context.Db, properties)
+                ? context.ToObject((FLValue*) properties, true)
+                : null;
         }
 
         private static object ToObject(MValue mv, MCollection parent, ref bool cache)
@@ -143,25 +151,28 @@ namespace Couchbase.Lite.Internal.Serialization
             }
         }
 
-        private static object CreateSpecialObject(string type, FLDict* properties, DocContext context)
+        private void NativeChangeSlot(MValue newSlot)
         {
-            Debug.Assert(context != null);
-            return type == ObjectTypeBlob || FLValueConverter.IsOldAttachment(context.Db, properties)
-                ? context.ToObject((FLValue*) properties, true)
-                : null;
+            var collection = CollectionFromObject(NativeObject);
+            collection?.SetSlot(newSlot, this);
         }
 
-        private static MCollection CollectionFromObject(object obj)
+        private void SetObject(object obj)
         {
-            switch (obj) {
-                case ArrayObject arr:
-                    return arr.ToMCollection();
-                case DictionaryObject dict:
-                    return dict.ToMCollection();
-                default:
-                    return null;
+            if (NativeObject != obj) {
+                if (NativeObject != null) {
+                    NativeChangeSlot(null);
+                }
+
+                NativeObject = obj;
+
+                if (NativeObject != null) {
+                    NativeChangeSlot(this);
+                }
             }
         }
+
+        #endregion
 
         #region IDisposable
 
@@ -169,6 +180,20 @@ namespace Couchbase.Lite.Internal.Serialization
         {
             if (NativeObject != null) {
                 NativeChangeSlot(null);
+            }
+        }
+
+        #endregion
+
+        #region IFLEncodable
+
+        public void FLEncode(FLEncoder* enc)
+        {
+            Debug.Assert(!IsEmpty);
+            if (Value != null) {
+                Native.FLEncoder_WriteValue(enc, Value);
+            } else {
+                NativeObject.FLEncode(enc);
             }
         }
 

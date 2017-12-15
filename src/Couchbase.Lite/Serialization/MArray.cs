@@ -295,10 +295,6 @@ namespace Couchbase.Lite.Internal.Serialization
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            if (val == null) {
-                throw new ArgumentNullException(nameof(val));
-            }
-
             if (index < Count) {
                 PopulateVec();
             }

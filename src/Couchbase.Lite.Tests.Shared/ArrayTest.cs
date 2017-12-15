@@ -472,6 +472,30 @@ namespace Test
         }
 
         [Fact]
+        public void TestGetLong()
+        {
+            var array = new MutableArray();
+            PopulateData(array);
+            array.Count.Should().Be(11, "because that is how many elements were inserted");
+
+            var doc = new MutableDocument("doc1");
+            SaveArray(array, doc, "array", a =>
+            {
+                a.GetLong(0).Should().Be(1L, "because a boolean true becomes 1L");
+                a.GetLong(1).Should().Be(0L, "because a boolean false becomes 0");
+                a.GetLong(2).Should().Be(0L, "because that is the default value");
+                a.GetLong(3).Should().Be(0L, "because that is the stored value");
+                a.GetLong(4).Should().Be(1L, "because that is the stored value");
+                a.GetLong(5).Should().Be(-1L, "because that is the stored value");
+                a.GetLong(6).Should().Be(1L, "because that is the truncated value of 1L.1L");
+                a.GetLong(7).Should().Be(0L, "because that is the default value");
+                a.GetLong(8).Should().Be(0L, "because that is the default value");
+                a.GetLong(9).Should().Be(0L, "because that is the default value");
+                a.GetLong(10).Should().Be(0L, "because that is the default value");
+            });
+        }
+
+        [Fact]
         public void TestGetDouble()
         {
             var array = new MutableArray();
@@ -676,6 +700,32 @@ namespace Test
         }
 
         [Fact]
+        public void TestGetArray2()
+        {
+            var mNestedArray = new MutableArray();
+            mNestedArray.AddLong(1L).AddString("Hello").AddValue(null);
+            var mArray = new MutableArray();
+            mArray.AddLong(1L).AddString("Hello").AddValue(null).AddArray(mNestedArray);
+
+            using (var mDoc = new MutableDocument("test")) {
+                mDoc.SetArray("array", mArray);
+
+                using (var doc = Db.Save(mDoc)) {
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.GetArray(0).Should().BeNull();
+                    array.GetArray(1).Should().BeNull();
+                    array.GetArray(2).Should().BeNull();
+                    array.GetArray(3).Should().NotBeNull();
+
+                    var nestedArray = array.GetArray(3);
+                    nestedArray.ShouldBeEquivalentTo(mNestedArray);
+                    array.ShouldBeEquivalentTo(mArray);
+                }
+            }
+        }
+
+        [Fact]
         public void TestSetNestedArray()
         {
             var array1 = new MutableArray();
@@ -697,6 +747,27 @@ namespace Test
                 a3.Count.Should().Be(3, "because this array has three elements");
                 a3.Should().ContainInOrder(new[] {"a", "b", "c"}, "because otherwise the contents are incorrect");
             });
+        }
+
+        [Fact]
+        public void TestSetNull()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddValue(null).AddString(null).AddArray(null).AddDictionary(null);
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(4);
+                    array.GetValue(0).Should().BeNull();
+                    array.GetValue(1).Should().BeNull();
+                    array.GetValue(2).Should().BeNull();
+                    array.GetValue(3).Should().BeNull();
+                });
+            }
         }
 
         [Fact]
@@ -795,6 +866,477 @@ namespace Test
                         $"because that is the correct entry for index {i}");
                 }
             });
+        }
+
+        [Fact]
+        public void TestNull()
+        {
+            var array = new MutableArray();
+            array.AddValue(null);
+            using (var doc = new MutableDocument("doc1")) {
+                SaveArray(array, doc, "array", a =>
+                {
+                    a.Count.Should().Be(1);
+                    a.GetValue(0).Should().BeNull();
+                });
+            }
+        }
+
+        [Fact]
+        public void TestAddInt()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddInt(0);
+                mArray.AddInt(Int32.MaxValue);
+                mArray.AddInt(Int32.MinValue);
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(3);
+                    array.GetInt(0).Should().Be(0);
+                    array.GetInt(1).Should().Be(Int32.MaxValue);
+                    array.GetInt(2).Should().Be(Int32.MinValue);
+                });
+            }
+        }
+
+        [Fact]
+        public void TestSetInt()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddInt(0);
+                mArray.AddInt(Int32.MaxValue);
+                mArray.AddInt(Int32.MinValue);
+
+                mArray.SetInt(0, Int32.MaxValue);
+                mArray.SetInt(1, Int32.MinValue);
+                mArray.SetInt(2, 0);
+
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(3);
+                    array.GetInt(2).Should().Be(0);
+                    array.GetInt(0).Should().Be(Int32.MaxValue);
+                    array.GetInt(1).Should().Be(Int32.MinValue);
+                });
+            }
+        }
+
+        [Fact]
+        public void TestInsertInt()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddInt(10);
+                mArray.InsertInt(0, 0);
+                mArray.InsertInt(1, Int32.MaxValue);
+                mArray.InsertInt(2, Int32.MinValue);
+
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(4);
+                    array.GetInt(0).Should().Be(0);
+                    array.GetInt(1).Should().Be(Int32.MaxValue);
+                    array.GetInt(2).Should().Be(Int32.MinValue);
+                    array.GetInt(3).Should().Be(10);
+                });
+            }
+        }
+
+        [Fact]
+        public void TestAddLong()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddLong(0);
+                mArray.AddLong(Int64.MaxValue);
+                mArray.AddLong(Int64.MinValue);
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(3);
+                    array.GetLong(0).Should().Be(0);
+                    array.GetLong(1).Should().Be(Int64.MaxValue);
+                    array.GetLong(2).Should().Be(Int64.MinValue);
+                });
+            }
+        }
+
+        [Fact]
+        public void TestSetLong()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddLong(0);
+                mArray.AddLong(Int64.MaxValue);
+                mArray.AddLong(Int64.MinValue);
+
+                mArray.SetLong(0, Int64.MaxValue);
+                mArray.SetLong(1, Int64.MinValue);
+                mArray.SetLong(2, 0);
+
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(3);
+                    array.GetLong(2).Should().Be(0);
+                    array.GetLong(0).Should().Be(Int64.MaxValue);
+                    array.GetLong(1).Should().Be(Int64.MinValue);
+                });
+            }
+        }
+
+        [Fact]
+        public void TestInsertLong()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddLong(10);
+                mArray.InsertLong(0, 0);
+                mArray.InsertLong(1, Int64.MaxValue);
+                mArray.InsertLong(2, Int64.MinValue);
+
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(4);
+                    array.GetLong(0).Should().Be(0);
+                    array.GetLong(1).Should().Be(Int64.MaxValue);
+                    array.GetLong(2).Should().Be(Int64.MinValue);
+                    array.GetLong(3).Should().Be(10);
+                });
+            }
+        }
+
+        [Fact]
+        public void TestAddFloat()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddFloat(0);
+                mArray.AddFloat(Single.MaxValue);
+                mArray.AddFloat(Single.MinValue);
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(3);
+                    array.GetFloat(0).Should().Be(0);
+                    array.GetFloat(1).Should().Be(Single.MaxValue);
+                    array.GetFloat(2).Should().Be(Single.MinValue);
+                });
+            }
+        }
+
+        [Fact]
+        public void TestSetFloat()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddFloat(0);
+                mArray.AddFloat(Single.MaxValue);
+                mArray.AddFloat(Single.MinValue);
+
+                mArray.SetFloat(0, Single.MaxValue);
+                mArray.SetFloat(1, Single.MinValue);
+                mArray.SetFloat(2, 0);
+
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(3);
+                    array.GetFloat(2).Should().Be(0);
+                    array.GetFloat(0).Should().Be(Single.MaxValue);
+                    array.GetFloat(1).Should().Be(Single.MinValue);
+                });
+            }
+        }
+
+        [Fact]
+        public void TestInsertFloat()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddFloat(10);
+                mArray.InsertFloat(0, 0);
+                mArray.InsertFloat(1, Single.MaxValue);
+                mArray.InsertFloat(2, Single.MinValue);
+
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(4);
+                    array.GetFloat(0).Should().Be(0);
+                    array.GetFloat(1).Should().Be(Single.MaxValue);
+                    array.GetFloat(2).Should().Be(Single.MinValue);
+                    array.GetFloat(3).Should().Be(10);
+                });
+            }
+        }
+
+        [Fact]
+        public void TestAddDouble()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddDouble(0);
+                mArray.AddDouble(Double.MaxValue);
+                mArray.AddDouble(Double.MinValue);
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(3);
+                    array.GetDouble(0).Should().Be(0);
+                    array.GetDouble(1).Should().Be(Double.MaxValue);
+                    array.GetDouble(2).Should().Be(Double.MinValue);
+                });
+            }
+        }
+
+        [Fact]
+        public void TestSetDouble()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddDouble(0);
+                mArray.AddDouble(Double.MaxValue);
+                mArray.AddDouble(Double.MinValue);
+
+                mArray.SetDouble(0, Double.MaxValue);
+                mArray.SetDouble(1, Double.MinValue);
+                mArray.SetDouble(2, 0);
+
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(3);
+                    array.GetDouble(2).Should().Be(0);
+                    array.GetDouble(0).Should().Be(Double.MaxValue);
+                    array.GetDouble(1).Should().Be(Double.MinValue);
+                });
+            }
+        }
+
+        [Fact]
+        public void TestInsertDouble()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddDouble(10);
+                mArray.InsertDouble(0, 0);
+                mArray.InsertDouble(1, Double.MaxValue);
+                mArray.InsertDouble(2, Double.MinValue);
+
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(4);
+                    array.GetDouble(0).Should().Be(0);
+                    array.GetDouble(1).Should().Be(Double.MaxValue);
+                    array.GetDouble(2).Should().Be(Double.MinValue);
+                    array.GetDouble(3).Should().Be(10);
+                });
+            }
+        }
+
+         [Fact]
+        public void TestAddString()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddString("");
+                mArray.AddString("Hello");
+                mArray.AddString("World");
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(3);
+                    array.GetString(0).Should().Be("");
+                    array.GetString(1).Should().Be("Hello");
+                    array.GetString(2).Should().Be("World");
+                });
+            }
+        }
+
+        [Fact]
+        public void TestSetString()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddString("");
+                mArray.AddString("Hello");
+                mArray.AddString("World");
+
+                mArray.SetString(0, "Hello");
+                mArray.SetString(1, "World");
+                mArray.SetString(2, "");
+
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(3);
+                    array.GetString(2).Should().Be("");
+                    array.GetString(0).Should().Be("Hello");
+                    array.GetString(1).Should().Be("World");
+                });
+            }
+        }
+
+        [Fact]
+        public void TestInsertString()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddString("");
+                mArray.InsertString(0, "Hello");
+                mArray.InsertString(1, "World");
+                mArray.InsertString(2, "!");
+
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(4);
+                    array.GetString(0).Should().Be("Hello");
+                    array.GetString(1).Should().Be("World");
+                    array.GetString(2).Should().Be("!");
+                    array.GetString(3).Should().Be("");
+                });
+            }
+        }
+
+        [Fact]
+        public void TestAddBoolean()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddBoolean(true);
+                mArray.AddBoolean(false);
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(2);
+                    array.GetBoolean(0).Should().BeTrue();
+                    array.GetBoolean(1).Should().BeFalse();
+                });
+            }
+        }
+
+        [Fact]
+        public void TestSetBoolean()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddBoolean(true);
+                mArray.AddBoolean(false);
+
+                mArray.SetBoolean(0, false);
+                mArray.SetBoolean(1, true);
+
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(2);
+                    array.GetBoolean(1).Should().BeTrue();
+                    array.GetBoolean(0).Should().BeFalse();
+                });
+            }
+        }
+
+        [Fact]
+        public void TestInsertBoolean()
+        {
+            using (var mDoc = new MutableDocument("test")) {
+                var mArray = new MutableArray();
+                mArray.AddBoolean(false);
+                mArray.AddBoolean(true);
+                mArray.InsertBoolean(0, true);
+                mArray.InsertBoolean(1, false);
+
+                mDoc.SetArray("array", mArray);
+                SaveDocument(mDoc, doc =>
+                {
+                    doc.Count.Should().Be(1);
+                    doc.Contains("array").Should().BeTrue();
+                    var array = doc.GetArray("array");
+                    array.Should().NotBeNull();
+                    array.Count.Should().Be(4);
+                    array.GetBoolean(0).Should().BeTrue();
+                    array.GetBoolean(1).Should().BeFalse();
+                    array.GetBoolean(2).Should().BeFalse();
+                    array.GetBoolean(3).Should().BeTrue();
+                });
+            }
         }
 
         private IList<object> CreateArrayOfAllTypes()

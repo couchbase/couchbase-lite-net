@@ -168,6 +168,47 @@ namespace Test
             Db.RemoveChangeListener(token);
         }
 
+        [Fact]
+        public void TestExternalChanges()
+        {
+            using (var db2 = new Database(Db)) {
+                var countdownDB = new CountdownEvent(1);
+                db2.AddChangeListener((sender, args) =>
+                {
+                    args.Should().NotBeNull();
+                    args.DocumentIDs.Count.Should().Be(10);
+                    countdownDB.CurrentCount.Should().Be(1);
+                    countdownDB.Signal();
+                });
+
+                
+                var countdownDoc = new CountdownEvent(1);
+                db2.AddDocumentChangeListener("doc-6", (sender, args) =>
+                {
+                    args.Should().NotBeNull();
+                    args.DocumentID.Should().Be("doc-6");
+                    using (var doc = Db.GetDocument(args.DocumentID)) {
+                        doc.GetString("type").Should().Be("demo");
+                        countdownDoc.CurrentCount.Should().Be(1);
+                        countdownDoc.Signal();
+                    }
+                });
+
+                Db.InBatch(() =>
+                {
+                    for (var i = 0; i < 10; i++) {
+                        using (var doc = new MutableDocument($"doc-{i}")) {
+                            doc.SetString("type", "demo");
+                            Db.Save(doc);
+                        }
+                    }
+                });
+
+                countdownDB.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
+                countdownDoc.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
+            }
+        }
+
         private void DocumentChanged(object sender, DocumentChangedEventArgs args)
         {
             if (_docCallbackShouldThrow) {
