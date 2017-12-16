@@ -62,7 +62,7 @@ namespace Couchbase.Lite.Logging
         private static AtomicBool _Initialized = new AtomicBool(false);
 
         // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
-        private static C4LogCallback _LogCallback;
+        private static readonly C4LogCallback _LogCallback = LiteCoreLog;
         // ReSharper restore PrivateFieldCanBeConvertedToLocalVariable
 
         private static LogScrubSensitivity _ScrubSensitivity;
@@ -156,10 +156,7 @@ namespace Couchbase.Lite.Logging
         public static void AddLoggerProvider(ILoggerProvider provider)
         {
             Factory.AddProvider(provider ?? throw new ArgumentNullException(nameof(provider)));
-			if(_LogCallback == null) {
-				_LogCallback = LiteCoreLog;
-				Native.c4log_writeToCallback(C4LogLevel.Debug, _LogCallback, true);
-			}
+	        Native.c4log_writeToCallback(C4LogLevel.Debug, _LogCallback, true);
         }
 
         #endregion
@@ -168,9 +165,8 @@ namespace Couchbase.Lite.Logging
 
         internal static void ClearLoggerProviders()
         {
-			_LogCallback = null;
-			Native.c4log_writeToCallback(C4LogLevel.Debug, null, true);
-            var oldFactory = Factory;
+            Native.c4log_writeToCallback(C4LogLevel.Debug, null, true);
+			var oldFactory = Factory;
             Factory = new LoggerFactory();
             oldFactory.Dispose();
         }
