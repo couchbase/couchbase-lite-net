@@ -284,66 +284,71 @@ namespace Test
         public async Task TestReplicatorStopWhenClosed()
         {
             var config = CreateConfig(true, true, true);
-            var repl = new Replicator(config);
-            repl.Start();
-            while (repl.Status.Activity != ReplicatorActivityLevel.Idle) {
-                WriteLine($"Replication status still {repl.Status.Activity}, waiting for idle...");
-                await Task.Delay(500);
+            using (var repl = new Replicator(config)) {
+                repl.Start();
+                while (repl.Status.Activity != ReplicatorActivityLevel.Idle) {
+                    WriteLine($"Replication status still {repl.Status.Activity}, waiting for idle...");
+                    await Task.Delay(500);
+                }
+
+                ReopenDB();
+
+                var attemptCount = 0;
+                while (attemptCount++ < 10 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                    WriteLine(
+                        $"Replication status still {repl.Status.Activity}, waiting for stopped (remaining attempts {10 - attemptCount})...");
+                    await Task.Delay(500);
+                }
+
+                attemptCount.Should().BeLessOrEqualTo(10);
             }
-
-            ReopenDB();
-
-            var attemptCount = 0;
-            while (attemptCount++ < 10 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
-                WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped (remaining attempts {10 - attemptCount})...");
-                await Task.Delay(500);
-            }
-
-            attemptCount.Should().BeLessOrEqualTo(10);
         }
         
         [Fact]
         public async Task TestStopContinuousReplicator()
         {
             var config = CreateConfig(true, false, true);
-            var r = new Replicator(config);
-            var stopWhen = new[]
-            {
-                ReplicatorActivityLevel.Connecting, ReplicatorActivityLevel.Busy,
-                ReplicatorActivityLevel.Idle, ReplicatorActivityLevel.Idle
-            };
-
-            foreach (var when in stopWhen) {
-                var waitAssert = new WaitAssert();
-                var token = r.AddChangeListener((sender, args) =>
+            using (var r = new Replicator(config)) {
+                var stopWhen = new[]
                 {
-                    waitAssert.RunConditionalAssert(() =>
+                    ReplicatorActivityLevel.Connecting, ReplicatorActivityLevel.Busy,
+                    ReplicatorActivityLevel.Idle, ReplicatorActivityLevel.Idle
+                };
+
+                foreach (var when in stopWhen) {
+                    var stopped = false;
+                    var waitAssert = new WaitAssert();
+                    var token = r.AddChangeListener((sender, args) =>
                     {
-                        VerifyChange(args, 0, 0);
+                        waitAssert.RunConditionalAssert(() =>
+                        {
+                            VerifyChange(args, 0, 0);
 
-                        // On Windows, at least, sometimes the connection is so fast that Connecting never gets called
-                        if (args.Status.Activity == when || (when == ReplicatorActivityLevel.Connecting && args.Status.Activity > when)) {
-                            WriteLine("***** Stop Replicator *****");
-                            ((Replicator) sender).Stop();
-                        }
+                            // On Windows, at least, sometimes the connection is so fast that Connecting never gets called
+                            if (args.Status.Activity == when ||
+                                (when == ReplicatorActivityLevel.Connecting && args.Status.Activity > when)) {
+                                WriteLine("***** Stop Replicator *****");
+                                ((Replicator) sender).Stop();
+                            }
 
-                        if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                            WriteLine("Stopped!");
-                        }
+                            if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                                WriteLine("Stopped!");
+                            }
 
-                        return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                            return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                        });
                     });
-                });
 
-                WriteLine("***** Start Replicator *****");
-                r.Start();
-                try {
-                    waitAssert.WaitForResult(TimeSpan.FromSeconds(5));
-                } finally {
-                    r.RemoveChangeListener(token);
+                    WriteLine("***** Start Replicator *****");
+                    r.Start();
+                    try {
+                        waitAssert.WaitForResult(TimeSpan.FromSeconds(5));
+                    } finally {
+                        r.RemoveChangeListener(token);
+                    }
+
+                    await Task.Delay(100).ConfigureAwait(false);
                 }
-
-                await Task.Delay(100).ConfigureAwait(false);
             }
         }
 

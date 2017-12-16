@@ -71,6 +71,8 @@ namespace Couchbase.Lite.Sync
         [NotNull]private readonly Event<ReplicationStatusChangedEventArgs> _statusChanged =
             new Event<ReplicationStatusChangedEventArgs>();
 
+        [NotNull]private readonly ManualResetEventSlim _onDocError = new ManualResetEventSlim(true);
+
         private string _desc;
         private bool _disposed;
 
@@ -217,13 +219,18 @@ namespace Couchbase.Lite.Sync
         private static void OnDocError(bool pushing, string docID, C4Error error, bool transient, object context)
         {
             var replicator = context as Replicator;
+            replicator?._onDocError.Reset();
             Task.Factory.StartNew(() =>
             {
-                replicator?._selfThreadSafety.DoLocked(() =>
-                {
-                    replicator.OnDocError(error, pushing, docID, transient);
-                });
+                try {
+                    replicator?._selfThreadSafety.DoLocked(() =>
+                        replicator.OnDocError(error, pushing, docID, transient));
+
+                } finally {
+                    replicator?._onDocError.Set();
+                }
             });
+
         }
 
         private static TimeSpan RetryDelay(int retryCount)
@@ -235,10 +242,8 @@ namespace Couchbase.Lite.Sync
         private static void StatusChangedCallback(C4ReplicatorStatus status, object context)
         {
             var repl = context as Replicator;
-            Task.Factory.StartNew(() =>
-            {
-                repl?._selfThreadSafety.DoLocked(() => { repl.StatusChangedCallback(status); });
-            });
+            repl?._onDocError?.Wait();
+            repl._selfThreadSafety.DoLocked(() => repl.StatusChangedCallback(status));
         }
 
         private static bool ValidateCallback(string docID, IntPtr body, object context)
@@ -248,6 +253,7 @@ namespace Couchbase.Lite.Sync
 
         private void ClearRepl()
         {
+            _onDocError.Wait();
             _selfThreadSafety.DoLocked(() =>
             {
                 if (_disposed) {
@@ -262,6 +268,7 @@ namespace Couchbase.Lite.Sync
 
         private void Dispose(bool finalizing)
         {
+            _onDocError.Wait();
             _selfThreadSafety.DoLocked(() =>
             {
                 if (_disposed) {
@@ -312,8 +319,7 @@ namespace Couchbase.Lite.Sync
             StartReachabilityObserver();
             return true;
         }
-
-        // Must be called from within the ThreadSafety
+        
         private void OnDocError(C4Error error, bool pushing, [NotNull]string docID, bool transient)
         {
             var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
