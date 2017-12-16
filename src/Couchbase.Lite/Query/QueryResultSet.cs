@@ -86,16 +86,20 @@ namespace Couchbase.Lite.Internal.Query
 
         public QueryResultSet Refresh()
         {
-            if (_disposed) {
-                throw new ObjectDisposedException(nameof(QueryResultSet));
-            }
-
             var query = _query;
             if (query == null) {
                 return null;
             }
 
-            var newEnum = (C4QueryEnumerator*)_threadSafety.DoLockedBridge(err => Native.c4queryenum_refresh(_c4Enum, err));
+            var newEnum = (C4QueryEnumerator*)_threadSafety.DoLockedBridge(err =>
+            {
+                if (_disposed) {
+                    return null;
+                }
+
+                return Native.c4queryenum_refresh(_c4Enum, err);
+            });
+
             return newEnum != null ? new QueryResultSet(query, _threadSafety, newEnum, ColumnNames) : null;
         }
 
@@ -163,11 +167,15 @@ namespace Couchbase.Lite.Internal.Query
         internal IResult this[int index]
         {
             get {
-                if (_disposed) {
-                    throw new ObjectDisposedException(nameof(QueryResultSet));
-                }
+                _threadSafety.DoLockedBridge(err =>
+                {
+                    if (_disposed) {
+                        throw new ObjectDisposedException(nameof(QueryResultSet));
+                    }
 
-                _threadSafety.DoLockedBridge(err => Native.c4queryenum_seek(_c4Enum, (ulong)index, err));
+                    return Native.c4queryenum_seek(_c4Enum, (ulong) index, err);
+                });
+
                 return new QueryResult(this, _c4Enum, _context);
             }
         }

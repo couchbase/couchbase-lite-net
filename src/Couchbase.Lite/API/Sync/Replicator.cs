@@ -67,11 +67,9 @@ namespace Couchbase.Lite.Sync
 
         [NotNull]private readonly ReplicatorConfiguration _config;
         [NotNull]private readonly ThreadSafety _databaseThreadSafety;
-        [NotNull]private readonly ThreadSafety _selfThreadSafety = new ThreadSafety();
+        [NotNull]private readonly SerialQueue _threadSafetyQueue = new SerialQueue();
         [NotNull]private readonly Event<ReplicationStatusChangedEventArgs> _statusChanged =
             new Event<ReplicationStatusChangedEventArgs>();
-
-        [NotNull]private readonly TaskFactory _internalFactory = new TaskFactory(new QueueTaskScheduler());
 
         private string _desc;
         private bool _disposed;
@@ -175,7 +173,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public void Start()
         {
-            _selfThreadSafety.DoLocked(() =>
+            _threadSafetyQueue.DispatchSync(() =>
             {
                 if (_disposed) {
                     throw new ObjectDisposedException("Replication cannot be started after disposal");
@@ -197,7 +195,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public void Stop()
         {
-            _selfThreadSafety.DoLocked(() =>
+            _threadSafetyQueue.DispatchSync(() =>
             {
                 _reachability?.Stop();
                 _reachability = null;
@@ -219,10 +217,9 @@ namespace Couchbase.Lite.Sync
         private static void OnDocError(bool pushing, string docID, C4Error error, bool transient, object context)
         {
             var replicator = context as Replicator;
-            replicator?._internalFactory.StartNew(() =>
+            replicator?._threadSafetyQueue.DispatchAsync(() =>
             {
-                replicator._selfThreadSafety.DoLocked(() =>
-                    replicator.OnDocError(error, pushing, docID, transient));
+                replicator.OnDocError(error, pushing, docID, transient);
             });
 
         }
@@ -236,9 +233,9 @@ namespace Couchbase.Lite.Sync
         private static void StatusChangedCallback(C4ReplicatorStatus status, object context)
         {
             var repl = context as Replicator;
-            repl?._internalFactory.StartNew(() =>
+            repl?._threadSafetyQueue.DispatchSync(() =>
             {
-                repl._selfThreadSafety.DoLocked(() => repl.StatusChangedCallback(status));
+                repl.StatusChangedCallback(status);
             });
         }
 
@@ -249,7 +246,7 @@ namespace Couchbase.Lite.Sync
 
         private void ClearRepl()
         {
-            _selfThreadSafety.DoLocked(() =>
+            _threadSafetyQueue.DispatchSync(() =>
             {
                 Native.c4repl_free(_repl);
                 _repl = null;
@@ -259,7 +256,7 @@ namespace Couchbase.Lite.Sync
 
         private void Dispose(bool finalizing)
         {
-            _selfThreadSafety.DoLocked(() =>
+            _threadSafetyQueue.DispatchSync(() =>
             {
                 if (_disposed) {
                     return;
@@ -300,7 +297,7 @@ namespace Couchbase.Lite.Sync
                 var delay = RetryDelay(++_retryCount);
                 Log.To.Sync.I(Tag,
                     $"{this}: Transient error ({Native.c4error_getMessage(error)}); will retry in {delay}...");
-                Task.Delay(delay).ContinueWith(t => _selfThreadSafety.DoLocked(Retry));
+                _threadSafetyQueue.DispatchAfter(Retry, delay);
             } else {
                 Log.To.Sync.I(Tag,
                     $"{this}: Network error ({Native.c4error_getMessage(error)}); will retry when network changes...");
@@ -339,7 +336,7 @@ namespace Couchbase.Lite.Sync
         {
             Debug.Assert(e != null);
 
-            _selfThreadSafety.DoLocked(() =>
+            _threadSafetyQueue.DispatchAsync(() =>
             {
                 if (_repl == null && e.Status == NetworkReachabilityStatus.Reachable) {
                     Log.To.Sync.I(Tag, $"{this}: Server may now be reachable; retrying...");
