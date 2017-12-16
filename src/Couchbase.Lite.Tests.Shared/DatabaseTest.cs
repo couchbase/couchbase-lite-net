@@ -584,8 +584,9 @@ namespace Test
         [Fact]
         public void TestCloseThenGetDatabaseName()
         {
+            var name = Db.Name;
             Db.Close();
-            Db.Name.Should().Be("testdb", "because the name of the database should still be accessible");
+            Db.Name.Should().Be(name, "because the name of the database should still be accessible");
         }
 
         [Fact]
@@ -662,8 +663,9 @@ namespace Test
         [Fact]
         public void TestDeleteThenGetDatabaseName()
         {
+            var name = Db.Name;
             DeleteDB(Db);
-            Db.Name.Should().Be("testdb", "because the name of the database should still be accessible");
+            Db.Name.Should().Be(name, "because the name of the database should still be accessible");
         }
 
         [Fact]

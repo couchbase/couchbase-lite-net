@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Sync
         [NotNull]private readonly Event<ReplicationStatusChangedEventArgs> _statusChanged =
             new Event<ReplicationStatusChangedEventArgs>();
 
-        [NotNull]private readonly ManualResetEventSlim _onDocError = new ManualResetEventSlim(true);
+        [NotNull]private readonly TaskFactory _internalFactory = new TaskFactory(new QueueTaskScheduler());
 
         private string _desc;
         private bool _disposed;
@@ -219,16 +219,10 @@ namespace Couchbase.Lite.Sync
         private static void OnDocError(bool pushing, string docID, C4Error error, bool transient, object context)
         {
             var replicator = context as Replicator;
-            replicator?._onDocError.Reset();
-            Task.Factory.StartNew(() =>
+            replicator?._internalFactory.StartNew(() =>
             {
-                try {
-                    replicator?._selfThreadSafety.DoLocked(() =>
-                        replicator.OnDocError(error, pushing, docID, transient));
-
-                } finally {
-                    replicator?._onDocError.Set();
-                }
+                replicator._selfThreadSafety.DoLocked(() =>
+                    replicator.OnDocError(error, pushing, docID, transient));
             });
 
         }
@@ -242,8 +236,10 @@ namespace Couchbase.Lite.Sync
         private static void StatusChangedCallback(C4ReplicatorStatus status, object context)
         {
             var repl = context as Replicator;
-            repl?._onDocError?.Wait();
-            repl._selfThreadSafety.DoLocked(() => repl.StatusChangedCallback(status));
+            repl?._internalFactory.StartNew(() =>
+            {
+                repl._selfThreadSafety.DoLocked(() => repl.StatusChangedCallback(status));
+            });
         }
 
         private static bool ValidateCallback(string docID, IntPtr body, object context)
@@ -253,13 +249,8 @@ namespace Couchbase.Lite.Sync
 
         private void ClearRepl()
         {
-            _onDocError.Wait();
             _selfThreadSafety.DoLocked(() =>
             {
-                if (_disposed) {
-                    return;
-                }
-
                 Native.c4repl_free(_repl);
                 _repl = null;
                 _desc = null;
@@ -268,7 +259,6 @@ namespace Couchbase.Lite.Sync
 
         private void Dispose(bool finalizing)
         {
-            _onDocError.Wait();
             _selfThreadSafety.DoLocked(() =>
             {
                 if (_disposed) {
@@ -284,6 +274,7 @@ namespace Couchbase.Lite.Sync
                     }
                 }
 
+                Stop();
                 Native.c4repl_free(_repl);
                 _repl = null;
                 _disposed = true;
@@ -322,6 +313,10 @@ namespace Couchbase.Lite.Sync
         
         private void OnDocError(C4Error error, bool pushing, [NotNull]string docID, bool transient)
         {
+            if (_disposed) {
+                return;
+            }
+
             var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
             if (!pushing && error.domain == C4ErrorDomain.LiteCoreDomain && error.code == (int) C4ErrorCode.Conflict) {
                 // Conflict pulling a document -- the revision was added but app needs to resolve it:
@@ -451,6 +446,10 @@ namespace Couchbase.Lite.Sync
         // Must be called from within the ThreadSafety
         private void StatusChangedCallback(C4ReplicatorStatus status)
         {
+            if (_disposed) {
+                return;
+            }
+
             if (status.level == C4ReplicatorActivityLevel.Stopped) {
                 if (HandleError(status.error)) {
                     status.level = C4ReplicatorActivityLevel.Offline;

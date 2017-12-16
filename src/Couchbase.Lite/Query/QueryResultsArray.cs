@@ -22,13 +22,15 @@ using System.Collections;
 using System.Collections.Generic;
 using Couchbase.Lite.Query;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Internal.Query
 {
     internal sealed class QueryResultsArray : IReadOnlyList<IResult>
     {
         #region Variables
 
-        private readonly QueryResultSet _rs;
+        [NotNull]private readonly QueryResultSet _rs;
 
         #endregion
 
@@ -42,7 +44,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        public QueryResultsArray(QueryResultSet resultSet, int count)
+        public QueryResultsArray([NotNull]QueryResultSet resultSet, int count)
         {
             _rs = resultSet;
             Count = count;
@@ -85,7 +87,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             #region Variables
 
-            private readonly QueryResultSet _parent;
+            [NotNull]private readonly QueryResultSet _parent;
             private int _pos = -1;
 
             #endregion
@@ -100,7 +102,7 @@ namespace Couchbase.Lite.Internal.Query
 
             #region Constructors
 
-            public Enumerator(QueryResultSet parent)
+            public Enumerator([NotNull]QueryResultSet parent)
             {
                 _parent = parent;
             }

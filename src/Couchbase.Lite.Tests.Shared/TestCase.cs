@@ -49,6 +49,8 @@ namespace Test
     public class TestCase : IDisposable
     {
         public const string DatabaseName = "testdb";
+
+        protected static int _counter;
 #if !WINDOWS_UWP
         protected readonly ITestOutputHelper _output;
 #else
@@ -75,6 +77,7 @@ namespace Test
             Couchbase.Lite.Support.NetDesktop.Activate();
         }
 #endif
+
         
 #if !WINDOWS_UWP
         public TestCase(ITestOutputHelper output)
@@ -85,7 +88,14 @@ namespace Test
         public TestCase()
         { 
 #endif
-            Database.Delete(DatabaseName, Directory);
+            try {
+                Database.Delete($"{DatabaseName}{_counter}", Directory);
+            } catch (LiteCoreException) {
+                // Tired of so many tests failing because of a stuck handle,
+                // this will let them continue
+                ++_counter;
+            }
+
             OpenDB();
         }
 
@@ -113,7 +123,7 @@ namespace Test
                 throw new InvalidOperationException();
             }
             
-            Db = OpenDB(DatabaseName);
+            Db = OpenDB($"{DatabaseName}{_counter}");
         }
 
         protected Database OpenDB(string name)

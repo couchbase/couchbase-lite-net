@@ -25,6 +25,9 @@ using System.Linq;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
+
+using JetBrains.Annotations;
+
 using LiteCore;
 using LiteCore.Interop;
 
@@ -41,10 +44,11 @@ namespace Couchbase.Lite.Internal.Query
         #region Variables
 
         private readonly C4QueryEnumerator* _c4Enum;
-        private readonly QueryResultContext _context;
+        [NotNull]private readonly QueryResultContext _context;
         private readonly XQuery _query;
-        private readonly ThreadSafety _threadSafety;
+        [NotNull]private readonly ThreadSafety _threadSafety;
         private bool _randomAccess;
+        private bool _disposed;
 
         #endregion
 
@@ -60,7 +64,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal QueryResultSet(XQuery query, ThreadSafety threadSafety, C4QueryEnumerator* e,
+        internal QueryResultSet(XQuery query, [NotNull]ThreadSafety threadSafety, C4QueryEnumerator* e,
             IDictionary<string, int> columnNames)
         {
             _query = query;
@@ -82,6 +86,10 @@ namespace Couchbase.Lite.Internal.Query
 
         public QueryResultSet Refresh()
         {
+            if (_disposed) {
+                throw new ObjectDisposedException(nameof(QueryResultSet));
+            }
+
             var query = _query;
             if (query == null) {
                 return null;
@@ -97,7 +105,11 @@ namespace Couchbase.Lite.Internal.Query
 
         public void Dispose()
         {
-            _context?.Dispose();
+            _threadSafety.DoLocked(() =>
+            {
+                _disposed = true;
+                _context?.Dispose();
+            });
         }
 
         #endregion
@@ -115,6 +127,13 @@ namespace Couchbase.Lite.Internal.Query
 
         public IEnumerator<IResult> GetEnumerator()
         {
+            _threadSafety.DoLocked(() =>
+            {
+                if (_disposed) {
+                    throw new ObjectDisposedException(nameof(QueryResultSet));
+                }
+            });
+
             return new Enumerator(this);
         }
 
@@ -122,17 +141,32 @@ namespace Couchbase.Lite.Internal.Query
 
         public IReadOnlyList<IResult> ToArray()
         {
-            if (Count >= 0) {
-                _randomAccess = true;
-                return new QueryResultsArray(this, Count);
-            }
+            IReadOnlyList<IResult> retVal = null;
+            _threadSafety.DoLocked(() =>
+            {
+                if (_disposed) {
+                    throw new ObjectDisposedException(nameof(QueryResultSet));
+                }
 
-            return Enumerable.Empty<IResult>().ToArray();
+                if (Count >= 0) {
+                    _randomAccess = true;
+                    retVal = new QueryResultsArray(this, Count);
+                    return;
+                }
+
+                retVal = Enumerable.Empty<IResult>().ToArray();
+            });
+
+            return retVal;
         }
 
         internal IResult this[int index]
         {
             get {
+                if (_disposed) {
+                    throw new ObjectDisposedException(nameof(QueryResultSet));
+                }
+
                 _threadSafety.DoLockedBridge(err => Native.c4queryenum_seek(_c4Enum, (ulong)index, err));
                 return new QueryResult(this, _c4Enum, _context);
             }
@@ -140,10 +174,10 @@ namespace Couchbase.Lite.Internal.Query
 
         private sealed class Enumerator : IEnumerator<IResult>
         {
-            private readonly QueryResultSet _parent;
+            [NotNull]private readonly QueryResultSet _parent;
             private readonly C4QueryEnumerator* _enum;
 
-            public Enumerator(QueryResultSet parent)
+            public Enumerator([NotNull]QueryResultSet parent)
             {
                 _parent = parent;
                 _enum = _parent._c4Enum;
@@ -158,6 +192,10 @@ namespace Couchbase.Lite.Internal.Query
 
                 return _parent._threadSafety.DoLocked(() =>
                 {
+                    if (_parent._disposed) {
+                        return false;
+                    }
+
                     C4Error err;
                     var moved = Native.c4queryenum_next(_enum, &err);
                     if (moved) {
@@ -182,7 +220,7 @@ namespace Couchbase.Lite.Internal.Query
                         throw new InvalidOperationException("Cannot reset QueryResultSet and also access randomly");
                     }
 
-                    if (_parent.Count == 0) {
+                    if (_parent._disposed || _parent.Count == 0) {
                         return;
                     }
 
@@ -190,7 +228,16 @@ namespace Couchbase.Lite.Internal.Query
                 });
             }
 
-            public IResult Current => new QueryResult(_parent, _enum, _parent._context);
+            public IResult Current
+            {
+                get {
+                    if (_parent._disposed) {
+                        throw new ObjectDisposedException(nameof(QueryResultSet));
+                    }
+
+                    return new QueryResult(_parent, _enum, _parent._context);
+                }
+            }
 
             object IEnumerator.Current => Current;
 
@@ -198,6 +245,10 @@ namespace Couchbase.Lite.Internal.Query
             {
                 _parent._threadSafety.DoLocked(() =>
                 {
+                    if (_parent._disposed) {
+                        return;
+                    }
+
                     if (!_parent._randomAccess) {
                         Reset();
                     }
