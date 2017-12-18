@@ -49,7 +49,7 @@ namespace Couchbase.Lite.DI
         /// Returns the object as a <see cref="TaskScheduler"/> so that
         /// it can be used for various .NET framework methods
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The main thread scheduler cast to a <see cref="TaskScheduler"/></returns>
         [NotNull]
         TaskScheduler AsTaskScheduler();
 

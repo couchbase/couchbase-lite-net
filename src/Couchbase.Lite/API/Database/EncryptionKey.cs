@@ -54,6 +54,9 @@ namespace Couchbase.Lite
 
 		#region Properties
 
+        /// <summary>
+        /// The SymmetrisKey's key data represented as a hex string
+        /// </summary>
 		[NotNull]
 		public string HexData => BitConverter.ToString(KeyData)?.Replace("-", String.Empty)?.ToLower() ?? "(null)";
 

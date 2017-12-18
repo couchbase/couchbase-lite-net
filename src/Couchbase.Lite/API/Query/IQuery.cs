@@ -28,7 +28,7 @@ using JetBrains.Annotations;
 namespace Couchbase.Lite.Query
 {
     /// <summary>
-    /// Arguments for the <see cref="IQuery.AddChangeListener" /> event
+    /// Arguments for the <see cref="IQuery.AddChangeListener(TaskScheduler, EventHandler{QueryChangedEventArgs})" /> event
     /// </summary>
     public sealed class QueryChangedEventArgs : EventArgs
     {

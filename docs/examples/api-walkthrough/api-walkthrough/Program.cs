@@ -41,17 +41,17 @@ namespace api_walkthrough
 
             // create document
             var newTask = new MutableDocument();
-            newTask.Set("type", "task");
-            newTask.Set("owner", "todo");
-            newTask.Set("createdAt", DateTimeOffset.UtcNow);
+            newTask.SetString("type", "task");
+            newTask.SetString("owner", "todo");
+            newTask.SetDate("createdAt", DateTimeOffset.UtcNow);
             database.Save(newTask);
 
             // mutate document
-            newTask.Set("name", "Apples");
+            newTask.SetString("name", "Apples");
             database.Save(newTask);
 
             // typed accessors
-            newTask.Set("createdAt", DateTimeOffset.UtcNow);
+            newTask.SetDate("createdAt", DateTimeOffset.UtcNow);
             var date = newTask.GetDate("createdAt");
 
             // database transaction
@@ -60,8 +60,8 @@ namespace api_walkthrough
                 for (int i = 0; i < 10; i++)
                 {
                     using (var doc = new MutableDocument()) {
-                        doc.Set("type", "user");
-                        doc.Set("name", $"user {i}");
+                        doc.SetString("type", "user");
+                        doc.SetString("name", $"user {i}");
                         using (var saved = database.Save(doc)) {
                             Console.WriteLine($"saved user document {saved.GetString("name")}");
                         }
@@ -72,33 +72,32 @@ namespace api_walkthrough
             // blob
             var bytes = File.ReadAllBytes("avatar.jpg");
             var blob = new Blob("image/jpg", bytes);
-            newTask.Set("avatar", blob);
+            newTask.SetBlob("avatar", blob);
             database.Save(newTask);
             var taskBlob = newTask.GetBlob("avatar");
             var data = taskBlob.Content;
             newTask.Dispose();
 
             // query
-            var query = Query.Select(SelectResult.Expression(Expression.Meta().ID))
+            var query = Query.Select(SelectResult.Expression(Meta.ID))
             .From(DataSource.Database(database))
             .Where(Expression.Property("type").EqualTo("user")
 		   .And(Expression.Property("admin").EqualTo(false)));
 
-            var rows = query.Run();
-            foreach (var row in rows)
-            {
-                Console.WriteLine($"doc ID :: ${row.GetString(0)}");
+            using (var rows = query.Execute()) {
+                foreach (var row in rows) {
+                    Console.WriteLine($"doc ID :: ${row.GetString(0)}");
+                }
             }
 
             // live query
-            var liveQuery = query.ToLive();
-            liveQuery.Changed += (sender, e) => {
+            query.AddChangeListener((sender, e) => {
                 Console.WriteLine($"Number of rows :: {e.Rows.Count}");
-            };
-            liveQuery.Run();
+            });
+
             using (var newDoc = new MutableDocument()) {
-                newDoc.Set("type", "user");
-                newDoc.Set("admin", false);
+                newDoc.SetString("type", "user");
+                newDoc.SetBoolean("admin", false);
                 database.Save(newDoc);
             }
 
@@ -108,23 +107,26 @@ namespace api_walkthrough
             foreach (string task in tasks)
             {
                 using (var doc = new MutableDocument()) {
-                    doc.Set("type", "task").Set("name", task); // Chaining is possible
+                    doc.SetString("type", "task").SetString("name", task); // Chaining is possible
                     database.Save(doc);
                 }
             }
 
             // create Index
-            var index = Index.FTSIndex().On(FTSIndexItem.Expression(Expression.Property("name")));
+            var index = Index.FTSIndex(FTSIndexItem.Expression(Expression.Property("name")));
             database.CreateIndex("byName", index);
 
-            var ftsQuery = Query.Select(SelectResult.Expression(Expression.Meta().ID).As("id"))
-		    .From(DataSource.Database(database))
-		    .Where(Expression.Property("name").Match("'buy'"));
+            using (var ftsQuery = Query.Select(SelectResult.Expression(Meta.ID).As("id"))
+                .From(DataSource.Database(database))
+                .Where(FullTextExpression.Index("byName").Match("'buy'"))) {
 
-            var ftsRows = ftsQuery.Run();
-            foreach (var row in ftsRows) {
-                var doc = database.GetDocument(row.GetString("id")); // Use alias instead of index
-                Console.WriteLine($"document properties {JsonConvert.SerializeObject(doc.ToDictionary(), Formatting.Indented)}");
+                using (var ftsRows = ftsQuery.Execute()) {
+                    foreach (var row in ftsRows) {
+                        var doc = database.GetDocument(row.GetString("id")); // Use alias instead of index
+                        Console.WriteLine(
+                            $"document properties {JsonConvert.SerializeObject(doc.ToDictionary(), Formatting.Indented)}");
+                    }
+                }
             }
 
             // create conflict
@@ -137,8 +139,8 @@ namespace api_walkthrough
 			 */
             using (var theirs = new MutableDocument("buzz"))
             using (var mine = new MutableDocument("buzz")) {
-                theirs.Set("status", "theirs");
-                mine.Set("status", "mine");
+                theirs.SetString("status", "theirs");
+                mine.SetString("status", "mine");
                 database.Save(theirs);
                 database.Save(mine);
             }
@@ -171,16 +173,17 @@ namespace api_walkthrough
             replication.Start();
 
             // replication change listener
-            replication.StatusChanged += (sender, e) => {
+            replication.AddChangeListener((sender, e) => {
                 if (e.Status.Activity == ReplicatorActivityLevel.Stopped) {
                     Console.WriteLine("Replication has completed.");
                 }
-            };
+            });
 
             Console.ReadLine();
 
             // This is important to do because otherwise the native connection
             // won't be released until the next garbage collection
+            query.Dispose();
             database.Dispose();
         }
 

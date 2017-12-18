@@ -25,7 +25,7 @@ using JetBrains.Annotations;
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
-    /// Event arguments for the <see cref="Replicator.AddChangeListener(EventHandler{ReplicationStatusChangedEventArgs}" /> event
+    /// Event arguments for the <see cref="Replicator.AddChangeListener(EventHandler{ReplicationStatusChangedEventArgs})" /> event
     /// </summary>
     public sealed class ReplicationStatusChangedEventArgs : EventArgs
     {

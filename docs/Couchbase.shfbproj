@@ -20,9 +20,9 @@
     <DocumentationSources>
       <DocumentationSource sourceFile="..\src\Couchbase.Lite\bin\Packaging\netstandard1.4\Couchbase.Lite.dll" />
 <DocumentationSource sourceFile="..\src\Couchbase.Lite\bin\Packaging\netstandard1.4\Couchbase.Lite.xml" />
-<DocumentationSource sourceFile="C:\Users\borrrden\.nuget\packages\system.runtime\4.3.0\ref\netstandard1.3\System.Runtime.xml" />
-<DocumentationSource sourceFile="C:\Users\borrrden\.nuget\packages\microsoft.extensions.dependencyinjection.abstractions\1.1.1\lib\netstandard1.0\Microsoft.Extensions.DependencyInjection.Abstractions.xml" />
-<DocumentationSource sourceFile="C:\Users\borrrden\.nuget\packages\microsoft.extensions.logging.abstractions\1.1.2\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.xml" /></DocumentationSources>
+<DocumentationSource sourceFile="C:\Users\borrr\.nuget\packages\system.runtime\4.3.0\ref\netstandard1.3\System.Runtime.xml" />
+<DocumentationSource sourceFile="C:\Users\borrr\.nuget\packages\microsoft.extensions.dependencyinjection.abstractions\1.1.1\lib\netstandard1.0\Microsoft.Extensions.DependencyInjection.Abstractions.xml" />
+<DocumentationSource sourceFile="C:\Users\borrr\.nuget\packages\microsoft.extensions.logging.abstractions\1.1.2\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.xml" /></DocumentationSources>
     <HelpFileVersion>2.0.0.0</HelpFileVersion>
     <MaximumGroupParts>2</MaximumGroupParts>
     <NamespaceGrouping>False</NamespaceGrouping>
@@ -74,43 +74,43 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Extensions.DependencyInjection">
-      <HintPath>C:\Users\borrrden\.nuget\packages\microsoft.extensions.dependencyinjection\1.1.1\lib\netstandard1.1\Microsoft.Extensions.DependencyInjection.dll</HintPath>
+      <HintPath>C:\Users\borrr\.nuget\packages\microsoft.extensions.dependencyinjection\1.1.1\lib\netstandard1.1\Microsoft.Extensions.DependencyInjection.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions">
-      <HintPath>C:\Users\borrrden\.nuget\packages\microsoft.extensions.dependencyinjection.abstractions\1.1.1\lib\netstandard1.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+      <HintPath>C:\Users\borrr\.nuget\packages\microsoft.extensions.dependencyinjection.abstractions\1.1.1\lib\netstandard1.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Extensions.Logging">
-      <HintPath>C:\Users\borrrden\.nuget\packages\microsoft.extensions.logging\1.1.2\lib\netstandard1.1\Microsoft.Extensions.Logging.dll</HintPath>
+      <HintPath>C:\Users\borrr\.nuget\packages\microsoft.extensions.logging\1.1.2\lib\netstandard1.1\Microsoft.Extensions.Logging.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Extensions.Logging.Abstractions">
-      <HintPath>C:\Users\borrrden\.nuget\packages\microsoft.extensions.logging.abstractions\1.1.2\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+      <HintPath>C:\Users\borrr\.nuget\packages\microsoft.extensions.logging.abstractions\1.1.2\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>C:\Users\borrrden\.nuget\packages\Newtonsoft.Json\9.0.1\lib\netstandard1.0\Newtonsoft.Json.dll</HintPath>
+      <HintPath>C:\Users\borrr\.nuget\packages\Newtonsoft.Json\9.0.1\lib\netstandard1.0\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Remotion.Linq">
-      <HintPath>C:\Users\borrrden\.nuget\packages\Remotion.Linq\2.1.1\lib\netstandard1.0\Remotion.Linq.dll</HintPath>
+      <HintPath>C:\Users\borrr\.nuget\packages\Remotion.Linq\2.1.1\lib\netstandard1.0\Remotion.Linq.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.NetworkInformation">
-      <HintPath>C:\Users\borrrden\.nuget\packages\system.net.networkinformation\4.3.0\ref\netstandard1.3\System.Net.NetworkInformation.dll</HintPath>
+      <HintPath>C:\Users\borrr\.nuget\packages\system.net.networkinformation\4.3.0\ref\netstandard1.3\System.Net.NetworkInformation.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.Sockets">
-      <HintPath>C:\Users\borrrden\.nuget\packages\system.net.sockets\4.3.0\ref\netstandard1.3\System.Net.Sockets.dll</HintPath>
+      <HintPath>C:\Users\borrr\.nuget\packages\system.net.sockets\4.3.0\ref\netstandard1.3\System.Net.Sockets.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.WebSockets">
-      <HintPath>C:\Users\borrrden\.nuget\packages\system.net.websockets\4.3.0\ref\netstandard1.3\System.Net.WebSockets.dll</HintPath>
+      <HintPath>C:\Users\borrr\.nuget\packages\system.net.websockets\4.3.0\ref\netstandard1.3\System.Net.WebSockets.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.WebSockets.Client">
-      <HintPath>C:\Users\borrrden\.nuget\packages\system.net.websockets.client\4.3.0\ref\netstandard1.3\System.Net.WebSockets.Client.dll</HintPath>
+      <HintPath>C:\Users\borrr\.nuget\packages\system.net.websockets.client\4.3.0\ref\netstandard1.3\System.Net.WebSockets.Client.dll</HintPath>
     </Reference>
     <Reference Include="System.Security.Cryptography.Algorithms">
-      <HintPath>C:\Users\borrrden\.nuget\packages\System.Security.Cryptography.Algorithms\4.3.0\ref\netstandard1.4\System.Security.Cryptography.Algorithms.dll</HintPath>
+      <HintPath>C:\Users\borrr\.nuget\packages\System.Security.Cryptography.Algorithms\4.3.0\ref\netstandard1.4\System.Security.Cryptography.Algorithms.dll</HintPath>
     </Reference>
     <Reference Include="System.Security.Cryptography.Primitives">
-      <HintPath>C:\Users\borrrden\.nuget\packages\System.Security.Cryptography.Primitives\4.3.0\ref\netstandard1.3\System.Security.Cryptography.Primitives.dll</HintPath>
+      <HintPath>C:\Users\borrr\.nuget\packages\System.Security.Cryptography.Primitives\4.3.0\ref\netstandard1.3\System.Security.Cryptography.Primitives.dll</HintPath>
     </Reference>
     <Reference Include="System.Security.Cryptography.X509Certificates">
-      <HintPath>C:\Users\borrrden\.nuget\packages\system.security.cryptography.x509certificates\4.3.0\ref\netstandard1.4\System.Security.Cryptography.X509Certificates.dll</HintPath>
+      <HintPath>C:\Users\borrr\.nuget\packages\system.security.cryptography.x509certificates\4.3.0\ref\netstandard1.4\System.Security.Cryptography.X509Certificates.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>

@@ -403,6 +403,7 @@ namespace Couchbase.Lite
         /// <param name="documentID">The ID to add the listener for</param>
         /// <param name="scheduler">The scheduler to use when firing the event handler</param>
         /// <param name="handler">The logic to handle the event</param>
+        /// <returns>A token that can be used to remove the listener later</returns>
         [ContractAnnotation("documentID:null => halt; handler:null => halt")]
         [NotNull]
         public ListenerToken AddDocumentChangeListener(string documentID, [CanBeNull]TaskScheduler scheduler,
@@ -432,6 +433,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="documentID">The ID to add the listener for</param>
         /// <param name="handler">The logic to handle the event</param>
+        /// <returns>A token that can be used to remove the listener later</returns>
         [ContractAnnotation("documentID:null => halt; handler:null => halt")]
         public ListenerToken AddDocumentChangeListener(string documentID, EventHandler<DocumentChangedEventArgs> handler)
         {
@@ -1118,11 +1120,13 @@ namespace Couchbase.Lite
 
         #endregion
 
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             return Path?.GetHashCode() ?? 0;
         }
 
+        /// <inheritdoc />
         public override bool Equals(object obj)
         {
             if (!(obj is Database other)) {
