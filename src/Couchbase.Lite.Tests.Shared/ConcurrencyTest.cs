@@ -22,6 +22,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Query;
@@ -57,6 +59,24 @@ namespace Test
             {
                 var tag = $"Create{index}";
                 CreateDocs(nDocs, tag).Should().HaveCount(nDocs);
+            });
+
+            for (uint i = 0; i < nConcurrent; i++) {
+                var tag = $"Create{i}";
+                VerifyByTagName(tag, nDocs);
+            }
+        }
+
+        [Fact]
+        public void TestConcurrentCreateInBatch()
+        {
+            const int nDocs = 1000;
+            const uint nConcurrent = 10;
+
+            ConcurrentRuns(nConcurrent, (index) =>
+            {
+                var tag = $"Create{index}";
+                Db.InBatch(() => { CreateDocs(nDocs, tag).Should().HaveCount(nDocs); });
             });
 
             for (uint i = 0; i < nConcurrent; i++) {
@@ -106,8 +126,41 @@ namespace Test
 
             ConcurrentRuns(nConcurrent, (index) =>
             {
-                ReadDocIDs(docIDs, nRounds);
+                ReadDocs(docIDs, nRounds);
             });
+        }
+
+        [Fact]
+        public void TestConcurrentReadInBatch()
+        {
+            const uint nDocs = 10;
+            const uint nRounds = 100;
+            const uint nConcurrent = 10;
+
+            var docs = CreateDocs(nDocs, "Create");
+            var docIDs = docs.Select(x => x.Id).ToList();
+
+            ConcurrentRuns(nConcurrent, (index) =>
+            {
+                Db.InBatch(() => { ReadDocs(docIDs, nRounds); });
+            });
+        }
+
+        [Fact]
+        public void TestConcurrentReadNUpdate()
+        {
+            const uint nDocs = 10;
+            const uint nRounds = 100;
+            const string tag = "Update";
+
+            var locker = new object();
+
+            var docIDs = CreateDocs(nDocs, "Create").Select(x => x.Id).ToList();
+
+            var t1 = Task.Factory.StartNew(() => ReadDocs(docIDs, nRounds));
+            var t2 = Task.Factory.StartNew(() => UpdateDocs(docIDs, nRounds, tag));
+
+            Task.WaitAll(new[] { t1, t2 }, TimeSpan.FromSeconds(60)).Should().BeTrue();
         }
 
         [Fact]
@@ -239,6 +292,38 @@ namespace Test
         }
 
         [Fact]
+        public void TestConcurrentCreateNCompactDB()
+        {
+            const int nDocs = 1000;
+
+            var tag1 = "Create";
+            var exp1 = new WaitAssert();
+            exp1.RunAssertAsync(() =>
+            {
+                CreateDocs(nDocs, "Create").ToList();
+            });
+
+            Db.Compact();
+            exp1.WaitForResult(TimeSpan.FromSeconds(60));
+        }
+
+        [Fact]
+        public void TestConcurrentCreateNCreateIndexDB()
+        {
+            const int nDocs = 1000;
+
+            var tag1 = "Create";
+            var exp1 = new WaitAssert();
+            exp1.RunAssertAsync(() =>
+            {
+                CreateDocs(nDocs, "Create").ToList();
+            });
+
+            Db.CreateIndex("sentence", Index.FTSIndex(FTSIndexItem.Expression(Expression.Property("sentence"))));
+            exp1.WaitForResult(TimeSpan.FromSeconds(60));
+        }
+
+        [Fact]
         public void TestDatabaseChange()
         {
             var exp1 = new WaitAssert();
@@ -286,7 +371,9 @@ namespace Test
             exp1.WaitForResult(TimeSpan.FromSeconds(10));
         }
 
-        private void ReadDocIDs(IEnumerable<string> docIDs, uint rounds)
+         
+
+        private void ReadDocs(IEnumerable<string> docIDs, uint rounds)
         {
             for (uint r = 1; r <= rounds; r++) {
                 foreach (var docID in docIDs) {

@@ -1283,7 +1283,7 @@ namespace Test
             doc.Contains("weight").Should().BeFalse("because 'weight' does not exist in the document");
         }
 
-        #warning Known failure
+        [Fact]
         public void TestDeleteNewDocument()
         {
             var doc = new MutableDocument("doc1");
@@ -1691,8 +1691,30 @@ namespace Test
                     }
                 }
             }
+        }
 
-            
+        [ForIssue("couchbase-lite-android/1449")]
+        [Fact]
+        public void TestDeleteDocAndGetDoc()
+        {
+            const string docID = "doc-1";
+            Db.GetDocument(docID).Should().BeNull();
+            using (var mDoc = new MutableDocument(docID)) {
+                mDoc.SetString("key", "value");
+                using (var doc = Db.Save(mDoc)) {
+                    doc.Should().NotBeNull();
+                    Db.Count.Should().Be(1);
+                }
+
+                using (var doc = Db.GetDocument(docID)) {
+                    doc.Should().NotBeNull();
+                    doc.GetString("key").Should().Be("value");
+                    Db.Delete(doc);
+                    Db.Count.Should().Be(0);
+                }
+
+                Db.GetDocument(docID).Should().BeNull();
+            }
         }
 
         private void PopulateData(MutableDocument doc)
