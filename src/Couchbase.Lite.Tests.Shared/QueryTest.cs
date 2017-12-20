@@ -351,7 +351,7 @@ namespace Test
             var w = FullTextExpression.Index("sentence").Match("'Dummie woman'");
             var o = Ordering.Expression(FullTextFunction.Rank("sentence")).Descending();
 
-            var index = Index.FTSIndex(FTSIndexItem.Expression(sentence));
+            var index = Index.FullTextIndex(FullTextIndexItem.Property("sentence"));
             Db.CreateIndex("sentence", index);
             using (var q = Query.Select(DocID, s_sentence)
                 .From(DataSource.Database(Db))
@@ -1297,7 +1297,7 @@ namespace Test
                     new[] {"Aardvark", "Ångström", "äpple", "Apple", "Zebra"}),
                 Tuple.Create("Unicode case-INsensitive, diacritic-INsensitive collation",
                     (ICollation) Collation.Unicode().IgnoreAccents(true).IgnoreCase(true),
-                    new[] {"Aardvark", "Ångström", "äpple", "Apple", "Zebra"})
+                    new[] {"Aardvark", "Ångström", "Apple", "äpple", "Zebra"})
             };
 
             var property = Expression.Property("hey");
@@ -1307,7 +1307,7 @@ namespace Test
                     .From(DataSource.Database(Db))
                     .OrderBy(Ordering.Expression(property.Collate(data.Item2)))) {
                     using (var results = q.Execute()) {
-                        results.Select(x => x.GetString(0)).ShouldBeEquivalentTo(data.Item3);
+                        results.Select(x => x.GetString(0)).Should().ContainInOrder(data.Item3);
                     }
                 }
             }

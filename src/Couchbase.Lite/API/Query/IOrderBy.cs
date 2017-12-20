@@ -1,5 +1,5 @@
 ﻿// 
-// IOrdering.cs
+// IOrderBy.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -26,11 +26,18 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// An interface representing the ORDER BY portion of an <see cref="IQuery"/>
     /// </summary>
-    public interface IOrdering : IQuery, ILimitRouter
+    public interface IOrderBy : IQuery, ILimitRouter
     {}
 
     /// <summary>
-    /// An interface representing the way that an <see cref="IOrdering"/> should be
+    /// An interface representing an arbitrary sorting for an <see cref="IOrderBy"/>
+    /// </summary>
+    public interface IOrdering
+    {
+    }
+
+    /// <summary>
+    /// An interface representing the way that an <see cref="IOrderBy"/> should be
     /// sorted
     /// </summary>
     public interface ISortOrder : IOrdering

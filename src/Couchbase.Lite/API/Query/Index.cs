@@ -47,7 +47,7 @@ namespace Couchbase.Lite.Query
         /// <param name="items">The items to use to create the index</param>
         /// <returns>The beginning of an FTS based index</returns>
         [NotNull]
-        public static IFTSIndex FTSIndex(params IFTSIndexItem[] items)
+        public static IFullTextIndex FullTextIndex(params IFullTextIndexItem[] items)
         {
             return new QueryIndex(items);
         }

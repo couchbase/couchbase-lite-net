@@ -1,23 +1,24 @@
 ﻿// 
-// XQuery.cs
+//  XQuery.cs
 // 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
+//  Author:
+//   Jim Borden  <jim.borden@couchbase.com>
 // 
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
 // 
-// http://www.apache.org/licenses/LICENSE-2.0
+//  http://www.apache.org/licenses/LICENSE-2.0
 // 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
 // 
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -28,9 +29,13 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
+using JetBrains.Annotations;
+
 using LiteCore.Interop;
+
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
@@ -46,32 +51,24 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Variables
 
+        [NotNull]private readonly Event<QueryChangedEventArgs> _changed = new Event<QueryChangedEventArgs>();
+        private readonly TimeSpan _updateInterval;
+
         private unsafe C4Query* _c4Query;
         private Dictionary<string, int> _columnNames;
-        private QueryParameters _queryParameters = new QueryParameters();
-        private readonly Event<QueryChangedEventArgs> _changed = new Event<QueryChangedEventArgs>();
-        private readonly TimeSpan _updateInterval;
+        private ListenerToken _databaseChangedToken;
+        private bool _disposed;
         private QueryResultSet _enum;
         private DateTime _lastUpdatedAt;
         private int _observingCount = 0;
+        [NotNull]private QueryParameters _queryParameters = new QueryParameters();
         private AtomicBool _willUpdate = false;
-        private ListenerToken _databaseChangedToken;
-        private bool _disposed;
 
         #endregion
 
         #region Properties
 
         public Database Database { get; set; }
-
-        public QueryParameters Parameters
-        {
-            get => _queryParameters;
-            set {
-                _queryParameters = value;
-                Update();
-            }
-        }
 
         protected bool Distinct { get; set; }
 
@@ -85,13 +82,22 @@ namespace Couchbase.Lite.Internal.Query
 
         protected object LimitValue { get; set; }
 
-        protected QueryOrdering OrderByImpl { get; set; }
+        protected QueryOrderBy OrderByImpl { get; set; }
 
         protected Select SelectImpl { get; set; }
 
         protected object SkipValue { get; set; }
 
         protected QueryExpression WhereImpl { get; set; }
+
+        public QueryParameters Parameters
+        {
+            get => _queryParameters;
+            set {
+                _queryParameters = value;
+                Update();
+            }
+        }
 
         #endregion
 
@@ -163,28 +169,13 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
-        #region Internal Methods
-
-        internal unsafe string Explain()
-        {
-            if (_disposed) {
-                throw new ObjectDisposedException(Tag);
-            }
-
-            // Used for debugging
-            if (_c4Query == null) {
-                Check();
-            }
-
-            return FromImpl.ThreadSafety.DoLocked(() => Native.c4query_explain(_c4Query));
-        }
-
-        #endregion
-
         #region Private Methods
 
         private unsafe void Check()
         {
+            var from = FromImpl;
+            Debug.Assert(from != null, "Reached Check() without receiving a FROM clause!");
+
             var jsonData = EncodeAsJSON();
             if (_columnNames == null) {
                 _columnNames = CreateColumnNames();
@@ -192,7 +183,7 @@ namespace Couchbase.Lite.Internal.Query
 
             Log.To.Query.I(Tag, $"Query encoded as {jsonData}");
 
-            FromImpl.ThreadSafety.DoLockedBridge(err =>
+            from.ThreadSafety.DoLockedBridge(err =>
             {
                 if (_disposed) {
                     return true;
@@ -211,13 +202,18 @@ namespace Couchbase.Lite.Internal.Query
 
         private Dictionary<string, int> CreateColumnNames()
         {
+            var selectImpl = SelectImpl;
+            var fromImpl = FromImpl;
+            Debug.Assert(selectImpl != null, "CreateColumnNames reached without a SELECT clause received");
+            Debug.Assert(fromImpl != null, "CreateColumnNames reached without a FROM clause received");
+
             var map = new Dictionary<string, int>();
             var index = 0;
             var provisionKeyIndex = 0;
-            foreach (var select in SelectImpl.SelectResults) {
-                var name = select.ColumnName ?? $"${++provisionKeyIndex}";
+            foreach (var select in selectImpl?.SelectResults ?? Enumerable.Empty<QuerySelectResult>()) {
+                var name = select?.ColumnName ?? $"${++provisionKeyIndex}";
                 if (name == String.Empty) {
-                    name = FromImpl.ColumnName;
+                    name = fromImpl?.ColumnName ?? $"${++provisionKeyIndex}";;
                 }
                 
                 if (map.ContainsKey(name)) {
@@ -388,6 +384,20 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IQuery
 
+        public unsafe string Explain()
+        {
+            if (_disposed) {
+                throw new ObjectDisposedException(Tag);
+            }
+
+            // Used for debugging
+            if (_c4Query == null) {
+                Check();
+            }
+
+            return FromImpl?.ThreadSafety?.DoLocked(() => Native.c4query_explain(_c4Query)) ?? "(Unable to explain)";
+        }
+
         public ListenerToken AddChangeListener(TaskScheduler scheduler, EventHandler<QueryChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(handler), handler);
@@ -431,14 +441,15 @@ namespace Couchbase.Lite.Internal.Query
                 throw new InvalidOperationException("Invalid query, Database == null");
             }
 
-            if (SelectImpl == null || FromImpl == null) {
+            var fromImpl = FromImpl;
+            if (SelectImpl == null || fromImpl == null) {
                 throw new InvalidOperationException("Invalid query, missing Select or From");
             }
             
             var options = C4QueryOptions.Default;
-            var paramJson = ((QueryParameters) Parameters).ToString();
+            var paramJson = Parameters.ToString();
 
-            var e = (C4QueryEnumerator*) FromImpl.ThreadSafety.DoLockedBridge(err =>
+            var e = (C4QueryEnumerator*) fromImpl.ThreadSafety.DoLockedBridge(err =>
             {
                 if (_disposed) {
                     return null;
@@ -456,7 +467,7 @@ namespace Couchbase.Lite.Internal.Query
                 return new NullResultSet();
             }
 
-            return new QueryResultSet(this, FromImpl.ThreadSafety, e, _columnNames);
+            return new QueryResultSet(this, fromImpl.ThreadSafety, e, _columnNames);
         }
 
         #endregion

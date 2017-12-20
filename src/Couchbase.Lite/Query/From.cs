@@ -72,7 +72,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IJoinRouter
 
-        public IJoin Join(params IJoin[] joins)
+        public IJoins Join(params IJoin[] joins)
         {
             ValidateParams(joins);
             return new QueryJoin(this, joins);
@@ -82,10 +82,10 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        public IOrdering OrderBy(params IOrdering[] ordering)
+        public IOrderBy OrderBy(params IOrdering[] orderBy)
         {
-            ValidateParams(ordering);
-            return new QueryOrdering(this, ordering);
+            ValidateParams(orderBy);
+            return new QueryOrderBy(this, orderBy);
         }
 
         #endregion

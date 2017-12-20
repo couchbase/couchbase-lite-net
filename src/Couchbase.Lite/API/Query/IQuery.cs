@@ -90,7 +90,6 @@ namespace Couchbase.Lite.Query
         /// <param name="scheduler">The scheduler to use when firing events</param>
         /// <param name="handler">The handler to call when the query result set changes</param>
         /// <returns>A token that can be used to remove the listener later</returns>
-        [NotNull]
         [ContractAnnotation("handler:null => halt")]
         ListenerToken AddChangeListener([CanBeNull]TaskScheduler scheduler, EventHandler<QueryChangedEventArgs> handler);
 
@@ -100,7 +99,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="handler">The handler to call when the query result set changes</param>
         /// <returns>A token that can be used to remove the listener later</returns>
-        [NotNull]
         [ContractAnnotation("null => halt")]
         ListenerToken AddChangeListener(EventHandler<QueryChangedEventArgs> handler);
 
@@ -118,6 +116,13 @@ namespace Couchbase.Lite.Query
         /// <returns>The results of running the query</returns>
         [NotNull]
         IResultSet Execute();
+
+        /// <summary>
+        /// Gets an explanation of what the query will do
+        /// </summary>
+        /// <returns>The explanation of the query</returns>
+        [NotNull]
+        string Explain();
 
         #endregion
     }

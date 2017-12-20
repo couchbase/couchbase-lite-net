@@ -32,28 +32,22 @@ namespace Couchbase.Lite.Query
     public static class Collation
     {
         /// <summary>
-        /// The default locale for the current program, for use with Unicode collation
+        /// The default locale for the current program,  for use with Unicode collation
         /// </summary>
-		public static readonly string DefaultLocale = CultureInfo.CurrentCulture.Name == "" ?
+		internal static readonly string DefaultLocale = CultureInfo.CurrentCulture.Name == "" ?
 																 "en" : CultureInfo.CurrentCulture.Name.Replace('-', '_');
         /// <summary>
         /// Creates an ASCII based collation instance
         /// </summary>
         /// <returns>An ASCII based collation instance</returns>
         [NotNull]
-        public static IASCIICollation ASCII()
-        {
-            return new QueryCollation(false);
-        }
+        public static IASCIICollation ASCII() => new QueryCollation(false);
 
         /// <summary>
         /// Creates a Unicode based collation instance (http://unicode.org/reports/tr10/)
         /// </summary>
         /// <returns>A Unicode based collation instance</returns>
         [NotNull]
-        public static IUnicodeCollation Unicode()
-        {
-            return new QueryCollation(true);
-        }
+        public static IUnicodeCollation Unicode() => new QueryCollation(true);
     }
 }

@@ -22,6 +22,8 @@
 using System.Linq;
 using Couchbase.Lite.Query;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Internal.Query
 {
     internal sealed class Select : XQuery, ISelect
@@ -32,13 +34,15 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
+        [NotNull]
+        [ItemNotNull]
         internal QuerySelectResult[] SelectResults { get; }
 
         #region Constructors
 
         public Select(ISelectResult[] selects, bool distinct)
         {
-            SelectResults = selects?.OfType<QuerySelectResult>()?.ToArray();
+            SelectResults = selects?.OfType<QuerySelectResult>()?.ToArray() ?? new QuerySelectResult[0];
             if (selects?.Length > 0) {
                 _select = new QueryTypeExpression(SelectResults.Select(x => x.Expression).ToList());
             }

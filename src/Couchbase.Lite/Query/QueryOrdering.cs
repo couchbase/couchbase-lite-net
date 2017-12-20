@@ -25,7 +25,7 @@ using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal class QueryOrdering : LimitedQuery, IOrdering
+    internal class QueryOrderBy : LimitedQuery, IOrderBy
     {
         #region Properties
 
@@ -35,13 +35,13 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal QueryOrdering(IList<IOrdering> orderBy)
+        internal QueryOrderBy(IList<IOrdering> orderBy)
         {
             Orders = orderBy;
             OrderByImpl = this;
         }
 
-        internal QueryOrdering(XQuery query, IList<IOrdering> orderBy)
+        internal QueryOrderBy(XQuery query, IList<IOrdering> orderBy)
             : this(orderBy)
         {
             Copy(query);
@@ -53,7 +53,7 @@ namespace Couchbase.Lite.Internal.Query
         public virtual object ToJSON()
         {
             var obj = new List<object>();
-            foreach (var o in Orders.OfType<QueryOrdering>()) {
+            foreach (var o in Orders.OfType<QueryOrderBy>()) {
                 obj.Add(o.ToJSON());
             }
 
@@ -61,7 +61,7 @@ namespace Couchbase.Lite.Internal.Query
         }
     }
 
-    internal sealed class SortOrder : QueryOrdering, ISortOrder
+    internal sealed class SortOrder : QueryOrderBy, ISortOrder
     {
         #region Properties
 
@@ -84,8 +84,7 @@ namespace Couchbase.Lite.Internal.Query
         public override object ToJSON()
         {
             var obj = new List<object>();
-            var exp = Expression as QueryExpression;
-            if (exp != null) {
+            if (Expression is QueryExpression exp) {
                 if (!IsAscending) {
                     obj.Add("DESC");
                 } else {

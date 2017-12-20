@@ -32,7 +32,7 @@ using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class QueryJoin : LimitedQuery, IJoinOn
+    internal sealed class QueryJoin : LimitedQuery, IJoins, IJoinOn
     {
         #region Constants
 
@@ -111,10 +111,10 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        public IOrdering OrderBy(params IOrdering[] ordering)
+        public IOrderBy OrderBy(params IOrdering[] orderBy)
         {
-            ValidateParams(ordering);
-            return new QueryOrdering(this, ordering);
+            ValidateParams(orderBy);
+            return new QueryOrderBy(this, orderBy);
         }
 
         #endregion

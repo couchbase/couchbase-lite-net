@@ -85,7 +85,7 @@ namespace Couchbase.Lite.Query
         /// <param name="name">The name of the variable</param>
         /// <returns>An expression representing the value of a named variable</returns>
         [NotNull]
-        public static IPropertyExpression Variable(string name)
+        public static IExpression Variable(string name)
         {
             return new QueryTypeExpression(name, ExpressionType.Variable);
         }

@@ -42,7 +42,7 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// An interface for an index based on full text searching
     /// </summary>
-    public interface IFTSIndex : IIndex
+    public interface IFullTextIndex : IIndex
     {
         /// <summary>
         /// Sets whether or not to ignore accents when performing 
@@ -51,7 +51,7 @@ namespace Couchbase.Lite.Query
         /// <param name="ignoreAccents">Whether or not to ignore accents</param>
         /// <returns>The index for further processing</returns>
         [NotNull]
-        IFTSIndex IgnoreAccents(bool ignoreAccents);
+        IFullTextIndex IgnoreAccents(bool ignoreAccents);
 
         /// <summary>
         /// Sets the locale to use when performing full text searching
@@ -60,6 +60,6 @@ namespace Couchbase.Lite.Query
         /// an underscore and an ISO-3166 country code: "en", "en_US", "fr_CA", etc.</param>
         /// <returns>The index for further processing</returns>
         [NotNull]
-        IFTSIndex SetLocale(string localeCode);
+        IFullTextIndex SetLocale(string localeCode);
     }
 }

@@ -992,15 +992,13 @@ namespace Test
 
             var index1 = Index.ValueIndex(fNameItem, lNameItem);
             Db.CreateIndex("index1", index1);
-
-            var detail = Expression.Property("detail");
-            var detailItem = FTSIndexItem.Expression(detail);
-            var index2 = Index.FTSIndex(detailItem);
+            
+            var detailItem = FullTextIndexItem.Property("detail");
+            var index2 = Index.FullTextIndex(detailItem);
             Db.CreateIndex("index2", index2);
-
-            var detail2 = Expression.Property("es-detail");
-            var detailItem2 = FTSIndexItem.Expression(detail2);
-            var index3 = Index.FTSIndex(detailItem2).IgnoreAccents(true).SetLocale("es");
+            
+            var detailItem2 = FullTextIndexItem.Property("es-detail");
+            var index3 = Index.FullTextIndex(detailItem2).IgnoreAccents(true).SetLocale("es");
             Db.CreateIndex("index3", index3);
 
             Db.GetIndexes().ShouldBeEquivalentTo(new[] {"index1", "index2", "index3"});
@@ -1022,7 +1020,6 @@ namespace Test
         {
             var fName = Expression.Property("firstName");
             var lName = Expression.Property("lastName");
-            var detail = Expression.Property("detail");
 
             var fNameItem = ValueIndexItem.Expression(fName);
             var fNameIndex = Index.ValueIndex(fNameItem);
@@ -1034,8 +1031,8 @@ namespace Test
 
             Db.GetIndexes().ShouldBeEquivalentTo(new[] {"myindex"}, "because lNameIndex should overwrite fNameIndex");
 
-            var detailItem = FTSIndexItem.Expression(detail);
-            var detailIndex = Index.FTSIndex(detailItem);
+            var detailItem = FullTextIndexItem.Property("detail");
+            var detailIndex = Index.FullTextIndex(detailItem);
             Db.CreateIndex("myindex", detailIndex);
 
             Db.GetIndexes().ShouldBeEquivalentTo(new[] { "myindex" }, "because detailIndex should overwrite lNameIndex");

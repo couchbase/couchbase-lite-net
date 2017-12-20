@@ -30,32 +30,36 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public static class ValueIndexItem
     {
+
+        /// <summary>
+        /// Creates a value index item based on a given property path
+        /// </summary>
+        /// <param name="property">The property path to base the index item on</param>
+        /// <returns>The created index item</returns>
+        [NotNull]
+        public static IValueIndexItem Property(string property) =>
+            Expression(Lite.Query.Expression.Property(property));
+
         /// <summary>
         /// Creates a value index item based on a given <see cref="IExpression"/>
         /// </summary>
         /// <param name="expression">The expression to base the index item on</param>
         /// <returns>The created index item</returns>
         [NotNull]
-        public static IValueIndexItem Expression(IExpression expression)
-        {
-            return new QueryIndexItem(expression);
-        }
+        public static IValueIndexItem Expression(IExpression expression) => new QueryIndexItem(expression);
     }
 
     /// <summary>
-    /// A factory class for creating <see cref="IFTSIndexItem"/> instances
+    /// A factory class for creating <see cref="IFullTextIndexItem"/> instances
     /// </summary>
-    public static class FTSIndexItem
+    public static class FullTextIndexItem
     {
         /// <summary>
         /// Creates an FTS index item based on a given <see cref="IExpression"/>
         /// </summary>
-        /// <param name="expression">The expression to base the index item on</param>
+        /// <param name="property">The property name to base the index item on</param>
         /// <returns>The created index item</returns>
         [NotNull]
-        public static IFTSIndexItem Expression(IExpression expression)
-        {
-            return new QueryIndexItem(expression);
-        }
+        public static IFullTextIndexItem Property(string property) => new QueryIndexItem(Expression.Property(property));
     }
 }

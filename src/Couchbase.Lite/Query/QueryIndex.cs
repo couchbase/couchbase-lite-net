@@ -24,11 +24,11 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class QueryIndex : IValueIndex, IFTSIndex
+    internal sealed class QueryIndex : IValueIndex, IFullTextIndex
     {
         #region Variables
 
-        private readonly IFTSIndexItem[] _ftsItems;
+        private readonly IFullTextIndexItem[] _ftsItems;
         private bool _ignoreAccents;
         private string _locale;
         private readonly IValueIndexItem[] _valueItems;
@@ -73,7 +73,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
-        public QueryIndex(params IFTSIndexItem[] items)
+        public QueryIndex(params IFullTextIndexItem[] items)
         {
             _ftsItems = items;
         }
@@ -83,15 +83,15 @@ namespace Couchbase.Lite.Internal.Query
             _valueItems = items;
         }
 
-        #region IFTSIndex
+        #region IFullTextIndex
 
-        public IFTSIndex IgnoreAccents(bool ignoreAccents)
+        public IFullTextIndex IgnoreAccents(bool ignoreAccents)
         {
             _ignoreAccents = ignoreAccents;
             return this;
         }
 
-        public IFTSIndex SetLocale(string localeCode)
+        public IFullTextIndex SetLocale(string localeCode)
         {
             _locale = localeCode;
             return this;

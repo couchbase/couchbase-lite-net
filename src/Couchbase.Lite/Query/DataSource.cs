@@ -36,6 +36,7 @@ namespace Couchbase.Lite.Internal.Query
 
         internal object Source { get; }
 
+        [NotNull]
         internal ThreadSafety ThreadSafety { get; }
 
         #endregion

@@ -319,7 +319,7 @@ namespace Test
                 CreateDocs(nDocs, "Create").ToList();
             });
 
-            Db.CreateIndex("sentence", Index.FTSIndex(FTSIndexItem.Expression(Expression.Property("sentence"))));
+            Db.CreateIndex("sentence", Index.FullTextIndex(FullTextIndexItem.Property("sentence")));
             exp1.WaitForResult(TimeSpan.FromSeconds(60));
         }
 

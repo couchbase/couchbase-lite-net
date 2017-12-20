@@ -56,18 +56,6 @@ namespace Couchbase.Lite.Query
             return Expression(Lite.Query.Expression.Property(name));
         }
 
-        /// <summary>
-        /// Creates an aggregate object that will sort based on the
-        /// passed child objects in order
-        /// </summary>
-        /// <param name="ordering">The child objects to sort based on</param>
-        /// <returns>The object that will perform the sort</returns>
-        [NotNull]
-        public static IOrdering OrderBy(params IOrdering[] ordering)
-        {
-            return new QueryOrdering(ordering);
-        }
-
         #endregion
     }
 }

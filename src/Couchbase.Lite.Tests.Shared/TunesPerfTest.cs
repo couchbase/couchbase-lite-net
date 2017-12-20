@@ -216,7 +216,7 @@ namespace Test
         {
             _indexFTSBench.Start();
             var nameExpr = Expression.Property("Name");
-            var index = Index.FTSIndex().On(FTSIndexItem.Expression(nameExpr));
+            var index = Index.FullTextIndex().On(FullTextIndexItem.Expression(nameExpr));
             Db.CreateIndex("nameFTS", index);
             _indexFTSBench.Stop();
 

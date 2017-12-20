@@ -24,7 +24,7 @@ using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class QueryIndexItem : IValueIndexItem, IFTSIndexItem
+    internal sealed class QueryIndexItem : IValueIndexItem, IFullTextIndexItem
     {
         public readonly QueryExpression Expression;
 
