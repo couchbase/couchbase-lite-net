@@ -26,6 +26,13 @@
     <Compile Include="$(MSBuildThisFileDirectory)RevTreeTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)RevisionsTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SequenceMapTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\ConvertionHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\CouchBaseLite\ReplicationHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\CouchBaseLite\ReplicationHelperException.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\CouchDb\Auth\BasicAuth.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\CouchDb\CouchDbException.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\CouchDb\Database.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\CouchDb\Auth\IAuth.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ValidationsTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewsTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\AlwaysFailingClientFactory.cs" />
@@ -59,5 +66,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Performance\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Util\CouchDb\Auth\" />
   </ItemGroup>
 </Project>

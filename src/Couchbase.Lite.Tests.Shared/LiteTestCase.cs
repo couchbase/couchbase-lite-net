@@ -292,6 +292,31 @@ namespace Couchbase.Lite
             return _runtimeTestProperties["replicationDatabase"] as string;
         }
 
+        protected string GetCouchdbServer()
+        {
+            return _runtimeTestProperties["couchdbServer"] as string;
+        }
+
+        protected string GetCouchdbPort()
+        {
+            return _runtimeTestProperties["couchdbPort"] as string;
+        }
+
+        protected string GetCouchdbDatabase()
+        {
+            return _runtimeTestProperties["couchdbDatabase"] as string;
+        }
+
+        protected string GetCouchdbAdminUser()
+        {
+            return _runtimeTestProperties["couchdbAdminUser"] as string;
+        }
+
+        protected string GetCouchdbAdminPassword()
+        {
+            return _runtimeTestProperties["couchdbAdminPassword"] as string;
+        }
+
         protected Uri GetReplicationURL()
         {
             String path = null;

@@ -60,6 +60,11 @@ using NUnit.Framework;
 using Couchbase.Lite.Storage.SQLCipher;
 using Couchbase.Lite.Revisions;
 using FluentAssertions;
+using Newtonsoft.Json;
+using System.Threading.Tasks;
+using Couchbase.Lite.Tests.Shared.Util.CouchBaseLite;
+using Couchbase.Lite.Tests.Shared.Util.CouchDb.Auth;
+using Couchbase.Lite.Tests.Shared.Util;
 
 namespace Couchbase.Lite
 {
@@ -541,6 +546,187 @@ namespace Couchbase.Lite
                 response = client.SendAsync(deleteRequest).Result;
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
             }
+        }
+
+        //Bug : When a document that contains attachments was created on a device
+        //than sync on couchdb and after one property was modified more that once
+        //the replication pull has thrown an exception in relation with LoadRevisionBody
+        //Scenario
+        //create doc on cbLite with attachment
+        //sync to couchdb
+        //update a property of the document twice 
+        //sync
+        [Test]
+        public async Task TestAttachmentShouldBeSyncAfterUpdatePropertyOnCouchDb()
+        {
+            var couchDbServerName = GetCouchdbServer();
+            var couchdbPort = GetCouchdbPort();
+            var couchDbUser = GetCouchdbAdminUser();
+            var couchdbUserPassword = GetCouchdbAdminPassword();
+
+            const string testAttachmentName = "test_update_attachment";
+            var attachments = database.Attachments;
+            Assert.AreEqual(0, attachments.Count());
+            Assert.AreEqual(0, attachments.AllKeys().Count());
+
+            var attach1 = Encoding.UTF8.GetBytes("This is the body of attach1");
+            var props = new Dictionary<string, object> {
+                { "foo", 1 },
+                { "bar", false },
+                { "_attachments", CreateAttachmentsDict(attach1, testAttachmentName, "text/plain", false) }
+            };
+
+            RevisionInternal rev1 = database.PutRevision(new RevisionInternal(props), null, false);
+            var docId = rev1.DocID;
+
+            //create the db
+            Uri couchDbDatabaseUri;
+            var auth = new BasicAuth(couchDbUser, couchdbUserPassword);
+            var couchDbUri = new Uri(String.Format("http://{0}:{1}/", couchDbServerName, couchdbPort));
+            var dbName = "a" + Guid.NewGuid();
+            using (var couchDatabase = new Tests.Shared.Util.CouchDb.Database(couchDbUri, dbName, auth))
+            {
+                await couchDatabase.CreateDatabaseAsync();
+                couchDbDatabaseUri = couchDatabase.DatabaseUri;
+            }
+
+            //sync
+            var replicationHelper = new ReplicationHelper()
+            {
+                StartSleep = 1000,
+                PeriodSleep = 500
+            };
+            var push = database.CreatePushReplication(couchDbDatabaseUri);
+            push.Continuous = false;
+            replicationHelper.StartAndWaitForReplication(push);
+
+            //couchdb
+            string lastCouchDbRev;
+            using (var couchDatabase = new Tests.Shared.Util.CouchDb.Database(couchDbUri, dbName, auth))
+            {
+                //update the document
+                var doc = ConvertionHelper.StringToDictionary(await couchDatabase.GetCouchDbDocAsStringAsync(docId));
+                doc["a"] = "b";
+                await couchDatabase.UpdateCouchDbDocAsync(docId, JsonConvert.SerializeObject(doc));
+
+                //update the document once again
+                doc = ConvertionHelper.StringToDictionary(await couchDatabase.GetCouchDbDocAsStringAsync(docId));
+                Assert.AreEqual("b", doc["a"]);
+                doc["a"] = "c";
+                lastCouchDbRev = await couchDatabase.UpdateCouchDbDocAsync(docId, JsonConvert.SerializeObject(doc));
+            }
+
+            //sync back
+            var pull = database.CreatePullReplication(couchDbDatabaseUri);
+            pull.Continuous = false;
+            replicationHelper.StartAndWaitForReplication(pull);
+
+            var cbLiteDoc = database.GetDocument(rev1.DocID);
+
+            Assert.AreEqual(lastCouchDbRev, cbLiteDoc.CurrentRevision.Id);
+            Assert.AreEqual("c", cbLiteDoc.Properties["a"]);
+        }
+
+        //Bug : When a document that contains attachments was created on a device
+        //than sync on couchdb and after one property was modified more that once
+        //the replication pull has thrown an exception in relation with LoadRevisionBody
+        //this test is the extension of TestAttachmentShouldBeSyncAfterUpdatePropertyOnCouchDb
+        //we need to be sure that when we update a field after updating the attachment on couchdb
+        //the right attachment is sync in cblite
+        //Scenario
+        //create doc on cbLite with attachment
+        //sync to couchdb
+        //update a property of the document twice 
+        //update the attachment
+        //update the document once
+        //sync
+        [Test]
+        public async Task TestAttachmentShouldBeSyncAfterUpdateDataOnCouchDb()
+        {
+            var couchDbServerName = GetCouchdbServer();
+            var couchdbPort = GetCouchdbPort();
+            var couchDbUser = GetCouchdbAdminUser();
+            var couchdbUserPassword = GetCouchdbAdminPassword();
+
+            const string testAttachmentName = "test_update_attachment";
+            var attachments = database.Attachments;
+            Assert.AreEqual(0, attachments.Count());
+            Assert.AreEqual(0, attachments.AllKeys().Count());
+
+            var attach1 = Encoding.UTF8.GetBytes("This is the body of attach1");
+            var props = new Dictionary<string, object> {
+                { "foo", 1 },
+                { "bar", false },
+                { "_attachments", CreateAttachmentsDict(attach1, testAttachmentName, "text/plain", false) }
+            };
+
+            RevisionInternal rev1 = database.PutRevision(new RevisionInternal(props), null, false);
+            var docId = rev1.DocID;
+
+            //create the db
+            Uri couchDbDatabaseUri;
+            var auth = new BasicAuth(couchDbUser, couchdbUserPassword);
+            var couchDbUri = new Uri(String.Format("http://{0}:{1}/", couchDbServerName, couchdbPort));
+            var dbName = "a" + Guid.NewGuid();
+            using (var couchDatabase = new Tests.Shared.Util.CouchDb.Database(couchDbUri, dbName, auth))
+            {
+                await couchDatabase.CreateDatabaseAsync();
+                couchDbDatabaseUri = couchDatabase.DatabaseUri;
+            }
+
+            //sync
+            var replicationHelper = new ReplicationHelper()
+            {
+                StartSleep = 1000,
+                PeriodSleep = 500
+            };
+            var push = database.CreatePushReplication(couchDbDatabaseUri);
+            push.Continuous = false;
+            replicationHelper.StartAndWaitForReplication(push);
+
+            //couchdb
+            string lastCouchDbRev;
+            var newAttachmentValue = "The attachment changed";
+            using (var couchDatabase = new Tests.Shared.Util.CouchDb.Database(couchDbUri, dbName, auth))
+            {
+                //update the document
+                var doc = ConvertionHelper.StringToDictionary(await couchDatabase.GetCouchDbDocAsStringAsync(docId));
+                doc["a"] = "b";
+                await couchDatabase.UpdateCouchDbDocAsync(docId, JsonConvert.SerializeObject(doc));
+
+                //update the document once again
+                doc = ConvertionHelper.StringToDictionary(await couchDatabase.GetCouchDbDocAsStringAsync(docId));
+                Assert.AreEqual("b", doc["a"]);
+                doc["a"] = "c";
+                var rev = await couchDatabase.UpdateCouchDbDocAsync(docId, JsonConvert.SerializeObject(doc));
+
+                //change image
+                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(newAttachmentValue)))
+                {
+                    await couchDatabase.UpdateCouchDbDocAttachmentAsync(docId, rev, testAttachmentName, stream);
+                }
+
+                //update docu 
+                //the reason is that we want to be sure that the last rev
+                //has a stub attachment but the attachment is not the same that the last 
+                //attachment in couchbase lite
+                doc = ConvertionHelper.StringToDictionary(await couchDatabase.GetCouchDbDocAsStringAsync(docId));
+                Assert.AreEqual("c", doc["a"]);
+                doc["a"] = "d";
+                lastCouchDbRev = await couchDatabase.UpdateCouchDbDocAsync(docId, JsonConvert.SerializeObject(doc));
+            }
+
+            //sync back
+            var pull = database.CreatePullReplication(couchDbDatabaseUri);
+            pull.Continuous = false;
+            replicationHelper.StartAndWaitForReplication(pull);
+
+            var cbLiteDoc = database.GetDocument(rev1.DocID);
+            var attachmentBytes = ConvertionHelper.ReadFully(cbLiteDoc.CurrentRevision.GetAttachment(testAttachmentName).ContentStream);
+
+            Assert.AreEqual(lastCouchDbRev, cbLiteDoc.CurrentRevision.Id);
+            Assert.AreEqual(newAttachmentValue, Encoding.UTF8.GetString(attachmentBytes));
+            Assert.AreEqual("d", cbLiteDoc.Properties["a"]);
         }
 
         /// <exception cref="System.Exception"></exception>
