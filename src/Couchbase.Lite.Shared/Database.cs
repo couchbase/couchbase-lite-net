@@ -1739,7 +1739,14 @@ namespace Couchbase.Lite
                 } else if(attachInfo.GetCast<bool>("stub")) {
                     // "stub" on an incoming revision means the attachment is the same as in the parent.
                     if(parentAttachments == null && prevRevId != null) {
-                        parentAttachments = GetAttachmentsFromDoc(rev.DocID, prevRevId);
+                        //Use GetAttachmentsFromDocOrDefault instead of GetAttachmentsFromDoc because
+                        //it can be that the prevRev is not in the database (it happens when more that one
+                        //change appears on the document (that contains a attachment)
+                        //in this case the previous revision already is not in the database 
+                        //the method to insert the missions revisions come afterwards
+                        //and so the GetAttachmentsFromDoc will return an exception instead of null
+                        parentAttachments = GetAttachmentsFromDocOrDefault(rev.DocID, prevRevId);
+
                         if(parentAttachments == null) {
                             if(Attachments.HasBlobForKey(attachment.BlobKey)) {
                                 // Parent revision's body isn't known (we are probably pulling a rev along
@@ -1781,6 +1788,18 @@ namespace Couchbase.Lite
                 Debug.Assert(attachment.IsValid);
                 return attachment.AsStubDictionary();
             });
+        }
+
+        internal IDictionary<string, object> GetAttachmentsFromDocOrDefault(string docId, RevisionID prevRevId)
+        {
+            try
+            {
+                return GetAttachmentsFromDoc(docId, prevRevId);
+            }
+            catch (Exception efsd)
+            {
+                return null;
+            }
         }
 
         internal IDictionary<string, object> FindAttachment(string name, int revPos, string docId, IList<RevisionID> ancestry)

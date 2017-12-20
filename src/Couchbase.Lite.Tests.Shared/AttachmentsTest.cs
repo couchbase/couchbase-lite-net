@@ -60,6 +60,8 @@ using NUnit.Framework;
 using Couchbase.Lite.Storage.SQLCipher;
 using Couchbase.Lite.Revisions;
 using FluentAssertions;
+using Newtonsoft.Json;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
@@ -540,6 +542,283 @@ namespace Couchbase.Lite
                 deleteRequest.Headers.Authorization = authorizationHeader;
                 response = client.SendAsync(deleteRequest).Result;
                 Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            }
+        }
+
+        //Bug : When a document that contains attachments was created on a device
+        //than sync on couchdb and after one property was modified more that once
+        //the replication pull has thrown an exception in relation with LoadRevisionBody
+        //Scenario
+        //create doc on cbLite with attachment
+        //sync to couchdb
+        //update a property of the document twice 
+        //sync
+        [Test]
+        public async Task TestAttachmentShouldBeSyncAfterUpdatePropertyOnCouchDb()
+        {
+            var couchDbServerName = GetCouchdbServer();
+            var couchdbPort = GetCouchdbPort();
+            var couchDbUser = GetCouchdbAdminUser();
+            var couchdbUserPassword = GetCouchdbAdminPassword();
+
+            const string testAttachmentName = "test_update_attachment";
+            var attachments = database.Attachments;
+            Assert.AreEqual(0, attachments.Count());
+            Assert.AreEqual(0, attachments.AllKeys().Count());
+
+            var attach1 = Encoding.UTF8.GetBytes("This is the body of attach1");
+            var props = new Dictionary<string, object> {
+                { "foo", 1 },
+                { "bar", false },
+                { "_attachments", CreateAttachmentsDict(attach1, testAttachmentName, "text/plain", false) }
+            };
+
+            RevisionInternal rev1 = database.PutRevision(new RevisionInternal(props), null, false);
+
+            var authorizationHeader = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{couchDbUser}:{couchdbUserPassword}")));
+            HttpResponseMessage response;
+            using (var client = new HttpClient())
+            {
+
+                var couchDbUri = String.Format("http://{0}:{1}/", couchDbServerName, couchdbPort);
+                var dbName = "a" + Guid.NewGuid();
+                var dbUri = new Uri(couchDbUri + dbName);
+
+                //create the db
+                var createDbRequest = new HttpRequestMessage(HttpMethod.Put, dbUri);
+                createDbRequest.Headers.Authorization = authorizationHeader;
+                response = client.SendAsync(createDbRequest).Result;
+                Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+                //sync
+                var push = database.CreatePushReplication(dbUri);
+                push.Continuous = false;
+                push.Start();
+                Sleep(1000);
+                while (push.Status == ReplicationStatus.Active)
+                {
+                    Sleep(500);
+                }
+
+                //couchdb
+
+                var docName = rev1.DocID;
+                var baseEndpoint = String.Format("http://{0}:{1}/{2}/{3}", couchDbServerName, couchdbPort, dbName, docName);
+                var endpoint = baseEndpoint;
+
+
+                //update the document
+                response = await GetCouchDbDoc(client, baseEndpoint, authorizationHeader);
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+                var doc = await ContentToDictionary(response);
+
+                doc["a"] = "b";
+
+                response = await UpdateCouchDbDoc(client, baseEndpoint, authorizationHeader, JsonConvert.SerializeObject(doc));
+                Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+                //update the document once again
+                response = await GetCouchDbDoc(client, baseEndpoint, authorizationHeader);
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+                var doc2 = await ContentToDictionary(response);
+                Assert.AreEqual("b", doc2["a"]);
+
+                doc2["a"] = "c";
+
+                response = await UpdateCouchDbDoc(client, baseEndpoint, authorizationHeader, JsonConvert.SerializeObject(doc2));
+                Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+                //sync back
+                var pull = database.CreatePullReplication(dbUri);
+                pull.Continuous = false;
+                pull.Start();
+                Sleep(1000);
+                while (pull.Status == ReplicationStatus.Active)
+                {
+                    Sleep(500);
+                }
+
+                var exception = pull.LastError;
+
+
+                var cbLiteDoc = database.GetDocument(rev1.DocID);
+
+                Assert.AreEqual("c", cbLiteDoc.Properties["a"]);
+            }
+        }
+
+        //Bug : When a document that contains attachments was created on a device
+        //than sync on couchdb and after one property was modified more that once
+        //the replication pull has thrown an exception in relation with LoadRevisionBody
+        //this test is the extension of TestAttachmentShouldBeSyncAfterUpdatePropertyOnCouchDb
+        //we need to be sure that when we update a field after updating the attachment on couchdb
+        //the right attachment is sync in cblite
+        //Scenario
+        //create doc on cbLite with attachment
+        //sync to couchdb
+        //update a property of the document twice 
+        //update the attachment
+        //update the document once
+        //sync
+        [Test]
+        public async Task TestAttachmentShouldBeSyncAfterUpdateDataOnCouchDb()
+        {
+            var couchDbServerName = GetCouchdbServer();
+            var couchdbPort = GetCouchdbPort();
+            var couchDbUser = GetCouchdbAdminUser();
+            var couchdbUserPassword = GetCouchdbAdminPassword();
+
+            const string testAttachmentName = "test_update_attachment";
+            var attachments = database.Attachments;
+            Assert.AreEqual(0, attachments.Count());
+            Assert.AreEqual(0, attachments.AllKeys().Count());
+
+            var attach1 = Encoding.UTF8.GetBytes("This is the body of attach1");
+            var props = new Dictionary<string, object> {
+                { "foo", 1 },
+                { "bar", false },
+                { "_attachments", CreateAttachmentsDict(attach1, testAttachmentName, "text/plain", false) }
+            };
+
+            RevisionInternal rev1 = database.PutRevision(new RevisionInternal(props), null, false);
+
+            var authorizationHeader = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{couchDbUser}:{couchdbUserPassword}")));
+            HttpResponseMessage response;
+            using (var client = new HttpClient())
+            {
+
+                var couchDbUri = String.Format("http://{0}:{1}/", couchDbServerName, couchdbPort);
+                var dbName = "a" + Guid.NewGuid();
+                var dbUri = new Uri(couchDbUri + dbName);
+
+                //create the db
+                var createDbRequest = new HttpRequestMessage(HttpMethod.Put, dbUri);
+                createDbRequest.Headers.Authorization = authorizationHeader;
+                response = client.SendAsync(createDbRequest).Result;
+                Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+                //sync
+                var push = database.CreatePushReplication(dbUri);
+                push.Continuous = false;
+                push.Start();
+                Sleep(1000);
+                while (push.Status == ReplicationStatus.Active)
+                {
+                    Sleep(500);
+                }
+
+                //couchdb
+                var docName = rev1.DocID;
+                var baseEndpoint = String.Format("http://{0}:{1}/{2}/{3}", couchDbServerName, couchdbPort, dbName, docName);
+                var endpoint = baseEndpoint;
+
+
+                //update the document
+                response = await GetCouchDbDoc(client, baseEndpoint, authorizationHeader);
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+                var doc = await ContentToDictionary(response);
+
+                doc["a"] = "b";
+
+                response = await UpdateCouchDbDoc(client, baseEndpoint, authorizationHeader, JsonConvert.SerializeObject(doc));
+                Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+                //update the document once again
+                response = await GetCouchDbDoc(client, baseEndpoint, authorizationHeader);
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+                var doc2 = await ContentToDictionary(response);
+                Assert.AreEqual("b", doc2["a"]);
+
+                doc2["a"] = "c";
+
+                response = await UpdateCouchDbDoc(client, baseEndpoint, authorizationHeader, JsonConvert.SerializeObject(doc2));
+                Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+                //change image
+                response = await GetCouchDbDoc(client, baseEndpoint, authorizationHeader);
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+                doc = await ContentToDictionary(response);
+
+                var newAttachmentValue = "The attachment changed";
+                var newBytesArray = Encoding.UTF8.GetBytes(newAttachmentValue);
+                using (var streamContent = new MemoryStream(newBytesArray))
+                {
+                    var updateAttachmentRequest = new HttpRequestMessage(HttpMethod.Put, $"{baseEndpoint}/{testAttachmentName}?rev={doc["_rev"]}");
+                    updateAttachmentRequest.Headers.Authorization = authorizationHeader;
+                    updateAttachmentRequest.Content = new StreamContent(streamContent);
+                    response = await client.SendAsync(updateAttachmentRequest);
+                    Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+                }
+
+                //update docu
+                response = await GetCouchDbDoc(client, baseEndpoint, authorizationHeader);
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+                var doc3 = await ContentToDictionary(response);
+
+                Assert.AreEqual("c", doc3["a"]);
+                doc3["a"] = "d";
+
+                response = await UpdateCouchDbDoc(client, baseEndpoint, authorizationHeader, JsonConvert.SerializeObject(doc3));
+                Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+                //sync back
+                var pull = database.CreatePullReplication(dbUri);
+                pull.Continuous = false;
+                pull.Start();
+                Sleep(1000);
+                while (pull.Status == ReplicationStatus.Active)
+                {
+                    Sleep(500);
+                }
+
+                var exception = pull.LastError;
+
+
+                var cbLiteDoc = database.GetDocument(rev1.DocID);
+                var attachmentBytes = ReadFully(cbLiteDoc.CurrentRevision.GetAttachment(testAttachmentName).ContentStream);
+                Assert.AreEqual(newAttachmentValue, Encoding.UTF8.GetString(attachmentBytes));
+                Assert.AreEqual("d", cbLiteDoc.Properties["a"]);
+            }
+        }
+
+        private Task<HttpResponseMessage> GetCouchDbDoc(HttpClient client, string baseEndpoint, AuthenticationHeaderValue authorizationHeader)
+        {
+            var getRequest = new HttpRequestMessage(HttpMethod.Get, baseEndpoint);
+            getRequest.Headers.Authorization = authorizationHeader;
+            return client.SendAsync(getRequest);
+        }
+
+        private Task<HttpResponseMessage> UpdateCouchDbDoc(HttpClient client, string baseEndpoint, AuthenticationHeaderValue authorizationHeader, string docAsString)
+        {
+            var updateDocRequest = new HttpRequestMessage(HttpMethod.Put, baseEndpoint);
+            updateDocRequest.Headers.Authorization = authorizationHeader;
+            updateDocRequest.Content = new StringContent(docAsString);
+            return client.SendAsync(updateDocRequest);
+        }
+
+        private async Task<IDictionary<string, object>> ContentToDictionary(HttpResponseMessage response)
+        {
+            var docAsString2 = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<IDictionary<string, object>>(docAsString2);
+        }
+
+        private static byte[] ReadFully(Stream input)
+        {
+            byte[] buffer = new byte[16 * 1024];
+            using (MemoryStream ms = new MemoryStream())
+            {
+                int read;
+                while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    ms.Write(buffer, 0, read);
+                }
+                return ms.ToArray();
             }
         }
 
