@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Lite;
 using Couchbase.Lite.Logging;
@@ -316,7 +317,7 @@ namespace Test
                 };
 
                 foreach (var when in stopWhen) {
-                    var stopped = false;
+                    var stopped = 0;
                     var waitAssert = new WaitAssert();
                     var token = r.AddChangeListener((sender, args) =>
                     {
@@ -325,8 +326,9 @@ namespace Test
                             VerifyChange(args, 0, 0);
 
                             // On Windows, at least, sometimes the connection is so fast that Connecting never gets called
-                            if (args.Status.Activity == when ||
-                                (when == ReplicatorActivityLevel.Connecting && args.Status.Activity > when)) {
+                            if ((args.Status.Activity == when ||
+                                (when == ReplicatorActivityLevel.Connecting && args.Status.Activity > when))
+                                && Interlocked.Exchange(ref stopped, 1) == 0) {
                                 WriteLine("***** Stop Replicator *****");
                                 ((Replicator) sender).Stop();
                             }

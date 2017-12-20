@@ -75,7 +75,7 @@ namespace Couchbase.Lite.Sync
         internal void InvokeNetworkChangeEvent(NetworkReachabilityStatus status)
         {
             var eventArgs = new NetworkReachabilityChangeEventArgs(status);
-            Task.Factory.StartNew(() => StatusChanged?.Invoke(this, eventArgs));
+            StatusChanged?.Invoke(this, eventArgs);
         }
 
         #endregion

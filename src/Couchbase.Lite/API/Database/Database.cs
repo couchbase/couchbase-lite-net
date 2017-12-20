@@ -87,6 +87,9 @@ namespace Couchbase.Lite
         [NotNull]
         private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
 
+        [NotNull]
+        private readonly TaskFactory _callbackFactory = new TaskFactory(new QueueTaskScheduler());
+
         #if false
         private IJsonSerializer _jsonSerializer;
         #endif
@@ -823,18 +826,21 @@ namespace Couchbase.Lite
 
         private static void DbObserverCallback(C4DatabaseObserver* db, object context)
         {
-            Task.Factory.StartNew(() => {
-              var dbObj = (Database)context;
-              dbObj?.PostDatabaseChanged();
+            var dbObj = (Database)context;
+            dbObj?._callbackFactory.StartNew(() => {
+              dbObj.PostDatabaseChanged();
             });
         }
 
         private static void DocObserverCallback(C4DocumentObserver* obs, string docID, ulong sequence, object context)
         {
-            Task.Factory.StartNew(() =>
-            {
-                var dbObj = (Database)context;
-                dbObj?.PostDocChanged(docID);
+            if (docID == null) {
+                return;
+            }
+
+            var dbObj = (Database)context;
+            dbObj?._callbackFactory.StartNew(() => {
+                dbObj.PostDocChanged(docID);
             });
         }
 
