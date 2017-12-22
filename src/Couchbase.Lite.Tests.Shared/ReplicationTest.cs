@@ -221,7 +221,7 @@ namespace Test
             doc1.SetString("name", "Hobbes");
             Db.Save(doc1);
 
-            var doc2 = new MutableDocument("doc2");
+             var doc2 = new MutableDocument("doc2");
             doc2.SetString("species", "Tiger");
             Db.Save(doc2);
             doc2.SetString("pattern", "striped");

@@ -55,6 +55,12 @@
       <ClassMask>Couchbase.Lite.Support.NullThreadSafety</ClassMask>
     </FilterEntry>
     <FilterEntry>
+      <ClassMask>Couchbase.Lite.IArrayConverter</ClassMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.IDictionaryConverter</ClassMask>
+    </FilterEntry>
+    <FilterEntry>
       <FunctionMask>Equals</FunctionMask>
     </FilterEntry>
      <FilterEntry>
@@ -90,7 +96,7 @@
       <FunctionMask>TryGetValue</FunctionMask>
     </FilterEntry>
     <FilterEntry>
-      <ClassMask>Couchbase.Lite.OptionsDictionary</ClassMask>
+      <ClassMask>System.Collections.IEnumerator</ClassMask>
       <FunctionMask>GetEnumerator</FunctionMask>
     </FilterEntry>
     <FilterEntry>

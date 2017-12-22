@@ -193,6 +193,22 @@ namespace Test
         }
 
         [Fact]
+        public void TestSetOthers()
+        {
+            // Uncovered by other tests
+            var dict = new MutableDictionary();
+            dict.SetFloat("pi", 3.14f);
+            dict.SetDouble("better_pi", 3.14159);
+            dict.SetBoolean("use_better", true);
+
+            dict.GetFloat("pi").Should().Be(3.14f);
+            dict.GetDouble("better_pi").Should().Be(3.14159);
+            dict.GetDouble("pi").Should().BeApproximately(3.14, 0.00001);
+            dict.GetFloat("better_pi").Should().BeApproximately(3.14159f, 0.0000000001f);
+            dict.GetBoolean("use_better").Should().BeTrue();
+        }
+
+        [Fact]
         public void TestDictionaryArray()
         {
             var doc = new MutableDocument("doc1");

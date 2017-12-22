@@ -869,7 +869,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestNull()
+        public void TestAddNull()
         {
             var array = new MutableArray();
             array.AddValue(null);
