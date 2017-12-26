@@ -19,7 +19,11 @@
 //  limitations under the License.
 //
 //  
+#if CBL_LINQ
+using System.Collections;
 using System.Collections.Generic;
+
+using Couchbase.Lite.Linq;
 
 using LiteCore.Interop;
 using Newtonsoft.Json;
@@ -35,6 +39,8 @@ namespace Couchbase.Lite.Internal.Linq
         private readonly IDictionary<string, object> _query = new Dictionary<string, object>();
 
         #endregion
+
+        public ISelectResultContainer SelectResult { get; private set; }
 
         #region Public Methods
 
@@ -78,6 +84,21 @@ namespace Couchbase.Lite.Internal.Linq
             base.VisitWhereClause(whereClause, queryModel, index);
         }
 
+        public override void VisitOrdering(Ordering ordering, QueryModel queryModel, OrderByClause orderByClause, int index)
+        {
+            base.VisitOrdering(ordering, queryModel, orderByClause, index);
+        }
+
+        public override void VisitSelectClause(SelectClause selectClause, QueryModel queryModel)
+        {
+            var visitor = new LiteCoreSelectExpressionVisitor();
+            visitor.Visit(selectClause.Selector);
+            _query["WHAT"] = visitor.GetJsonExpression();
+            SelectResult = visitor.SelectResult;
+            base.VisitSelectClause(selectClause, queryModel);
+        }
+
         #endregion
     }
 }
+#endif

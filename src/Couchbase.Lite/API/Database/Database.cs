@@ -706,6 +706,33 @@ namespace Couchbase.Lite
             });
         }
 
+        #if CBL_LINQ
+        public void Save(IDocumentModel model)
+        {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(model), model);
+
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                Document doc = null;
+                if (model.Document is MutableDocument md) {
+                    md.SetFromModel(model);
+                    doc = md;
+                } else {
+                    doc = model.Document?.ToMutable() ?? new MutableDocument();
+                    model.Document?.Dispose();
+                }
+
+                try {
+                    var retVal = Save(doc, false);
+                    model.Document = retVal;
+                } finally {
+                    doc.Dispose();
+                }
+            });
+        }
+        #endif
+
 		/// <summary>
 		/// Sets the encryption key for the database.  If null, encryption is
 		/// removed.

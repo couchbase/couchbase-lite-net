@@ -34,6 +34,8 @@ using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 
+using Newtonsoft.Json;
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -142,7 +144,26 @@ namespace Couchbase.Lite
 
         #endregion
 
+        #if CBL_LINQ
+        internal void SetFromModel(IDocumentModel model)
+        {
+            _model = model;
+        }
+        #endif
+
         #region Private Methods
+
+        #if CBL_LINQ
+        private FLSliceResult EncodeModel(FLEncoder* encoder)
+        {
+            var serializer = JsonSerializer.CreateDefault();
+            using (var writer = new JsonFLValueWriter(c4Db)) {
+                serializer.Serialize(writer, _model);
+                writer.Flush();
+                return writer.Result;
+            }
+        }
+        #endif
 
         private static object MutableCopy(object original)
         {
@@ -173,8 +194,15 @@ namespace Couchbase.Lite
         internal override FLSlice Encode()
         {
             Debug.Assert(Database != null);
-
+            
             var encoder = Database.SharedEncoder;
+
+            #if CBL_LINQ
+            if (_model != null) {
+                return (FLSlice)EncodeModel(encoder);
+            }
+            #endif
+
             var guid = Guid.NewGuid();
             _NativeCacheMap[guid] = this;
             Native.FLEncoder_SetExtraInfo(encoder, &guid);

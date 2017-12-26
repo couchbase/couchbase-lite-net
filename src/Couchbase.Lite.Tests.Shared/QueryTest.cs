@@ -1708,22 +1708,6 @@ namespace Test
             }
         }
 
-        private void LoadNumbers(int num)
-        {
-            var numbers = new List<IDictionary<string, object>>();
-            Db.InBatch(() =>
-            {
-                for (int i = 1; i <= num; i++) {
-                    var docID = $"doc{i}";
-                    var doc = new MutableDocument(docID);
-                    doc.SetInt("number1", i);
-                    doc.SetInt("number2", num - i);
-                    Db.Save(doc);
-                    numbers.Add(doc.ToDictionary());
-                }
-            });
-        }
-
         private Document CreateDocInSeries(int entry, int max)
         {
             var docID = $"doc{entry}";

@@ -22,6 +22,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 
 using Couchbase.Lite.Internal.Doc;
@@ -50,8 +51,16 @@ namespace Couchbase.Lite
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             var dict = new MutableDictionary();
-            while (reader.Read()) {
+            if (reader.TokenType == JsonToken.StartObject) {
+                reader.Read();
+            }
+
+            while (reader.TokenType != JsonToken.EndObject && reader.Read()) {
                 var key = reader.Value as string;
+                if (key == null) {
+                    throw new InvalidDataException("Non-string or null key in data to be deserialized");
+                }
+
                 reader.Read();
                 var value = reader.Value;
                 dict.SetValue(key, value);

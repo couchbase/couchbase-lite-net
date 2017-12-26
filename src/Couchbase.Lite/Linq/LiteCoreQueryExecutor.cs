@@ -18,85 +18,121 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+#if CBL_LINQ
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
-//using System.Collections.Generic;
-//using System.Linq;
+using Couchbase.Lite.Internal.Query;
+using Couchbase.Lite.Internal.Serialization;
+using Couchbase.Lite.Linq;
 
-//using Couchbase.Lite.Internal.Query;
-//using LiteCore;
-//using LiteCore.Interop;
-//using Remotion.Linq;
+using LiteCore;
+using LiteCore.Interop;
 
-//namespace Couchbase.Lite.Internal.Linq
-//{
-//    internal unsafe class LiteCoreQueryExecutor : IQueryExecutor
-//    {
-//        #region Variables
+using Newtonsoft.Json;
 
-//        private readonly Database _db;
-//        private readonly bool _prefetch;
+using Remotion.Linq;
 
-//        #endregion
+namespace Couchbase.Lite.Internal.Linq
+{
+    internal class LiteCoreQueryExecutor : IQueryExecutor
+    {
+        #region Variables
 
-//        #region Constructors
+        private readonly Database _db;
+        private unsafe C4Query* _query;
+        private unsafe C4QueryEnumerator* _queryEnum;
 
-//        internal LiteCoreQueryExecutor(Database db, bool prefetch)
-//        {
-//            _db = db;
-//            _prefetch = prefetch;
-//        }
+        #endregion
 
-//        #endregion
+        #region Constructors
 
-//        #region IQueryExecutor
+        internal LiteCoreQueryExecutor(Database db)
+        {
+            _db = db;
+        }
 
-//        public IEnumerable<T> ExecuteCollection<T>(QueryModel queryModel)
-//        {
-//            var visitor = new LiteCoreQueryModelVisitor();
-//            visitor.VisitQueryModel(queryModel);
-//            var query = visitor.GetJsonQuery();
-//            var queryObj = (C4Query*)LiteCoreBridge.Check(err => Native.c4query_new(_db.c4db, query, err));
-//            return new LinqQueryEnumerable<T>(_db, queryObj, C4QueryOptions.Default, null, _prefetch);
-//        }
+        #endregion
 
-//        public T ExecuteScalar<T>(QueryModel queryModel)
-//        {
-//            return ExecuteCollection<T>(queryModel).Single();
-//        }
+        #region IQueryExecutor
 
-//        public T ExecuteSingle<T>(QueryModel queryModel, bool returnDefaultWhenEmpty)
-//        {
-//            var sequence = ExecuteCollection<T>(queryModel);
+        public IEnumerable<T> ExecuteCollection<T>(QueryModel queryModel)
+        {
+            var visitor = new LiteCoreQueryModelVisitor();
+            visitor.VisitQueryModel(queryModel);
+            var query = visitor.GetJsonQuery();
+            CreateQuery(query);
+            while (MoveNext()) {
+                yield return GetCurrent<T>(visitor.SelectResult);
+            }
+        }
 
-//            return returnDefaultWhenEmpty ? sequence.SingleOrDefault() : sequence.Single();
-//        }
+        public T ExecuteScalar<T>(QueryModel queryModel)
+        {
+            return ExecuteCollection<T>(queryModel).Single();
+        }
 
-//        #endregion
-//    }
+        public T ExecuteSingle<T>(QueryModel queryModel, bool returnDefaultWhenEmpty)
+        {
+            var sequence = ExecuteCollection<T>(queryModel);
 
-//    internal sealed class LiteCoreDebugExecutor : IQueryExecutor
-//    {
-//        #region IQueryExecutor
+            return returnDefaultWhenEmpty ? sequence.SingleOrDefault() : sequence.Single();
+        }
 
-//        public IEnumerable<T> ExecuteCollection<T>(QueryModel queryModel)
-//        {
-//            var visitor = new LiteCoreQueryModelVisitor();
-//            visitor.VisitQueryModel(queryModel);
-//            return new[] { visitor.GetJsonQuery() } as IEnumerable<T>;
-//        }
+        #endregion
 
-//        public T ExecuteScalar<T>(QueryModel queryModel)
-//        {
-//            return ExecuteCollection<T>(queryModel).Single();
-//        }
+        private unsafe void CreateQuery(string queryStr)
+        {
+            _query = (C4Query*)LiteCoreBridge.Check(err => Native.c4query_new(_db.c4db, queryStr, err));
+            _queryEnum = (C4QueryEnumerator*) LiteCoreBridge.Check(err =>
+            {
+                var opts = C4QueryOptions.Default;
+                return Native.c4query_run(_query, &opts, null, err);
+            });
+        }
 
-//        public T ExecuteSingle<T>(QueryModel queryModel, bool returnDefaultWhenEmpty)
-//        {
-//            var sequence = ExecuteCollection<T>(queryModel);
+        private unsafe bool MoveNext() => Native.c4queryenum_next(_queryEnum, null);
 
-//            return returnDefaultWhenEmpty ? sequence.SingleOrDefault() : sequence.Single();
-//        }
+        private unsafe T GetCurrent<T>(ISelectResultContainer resultContainer)
+        {
+            if (resultContainer != null) {
+                resultContainer.Populate(_queryEnum->columns, _db.SharedStrings);
+                return (T)resultContainer.Results;
+            } else {
+                var val = Native.FLArrayIterator_GetValueAt(&_queryEnum->columns, 0);
+                using (var reader = new JsonFLValueReader(val, _db.SharedStrings)) {
+                    var serializer = JsonSerializer.CreateDefault();
+                    return serializer.Deserialize<T>(reader);
+                }
+            }
+        }
+    }
 
-//        #endregion
-//    }
-//}
+    internal sealed class LiteCoreDebugExecutor : IQueryExecutor
+    {
+        #region IQueryExecutor
+
+        public IEnumerable<T> ExecuteCollection<T>(QueryModel queryModel)
+        {
+            var visitor = new LiteCoreQueryModelVisitor();
+            visitor.VisitQueryModel(queryModel);
+            return new[] { visitor.GetJsonQuery() } as IEnumerable<T>;
+        }
+
+        public T ExecuteScalar<T>(QueryModel queryModel)
+        {
+            return ExecuteCollection<T>(queryModel).Single();
+        }
+
+        public T ExecuteSingle<T>(QueryModel queryModel, bool returnDefaultWhenEmpty)
+        {
+            var sequence = ExecuteCollection<T>(queryModel);
+
+            return returnDefaultWhenEmpty ? sequence.SingleOrDefault() : sequence.Single();
+        }
+
+        #endregion
+    }
+}
+#endif

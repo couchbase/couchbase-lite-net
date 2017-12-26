@@ -18,7 +18,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-
+#if CBL_LINQ
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -157,6 +157,17 @@ namespace Couchbase.Lite.Linq
             return regex.IsMatch(item);
         }
 
+        public static string Id(this object obj)
+        {
+            return String.Empty;
+        }
+
+        public static ulong Sequence(this object obj)
+        {
+            return 0UL;
+        }
+
         #endregion
     }
 }
+#endif

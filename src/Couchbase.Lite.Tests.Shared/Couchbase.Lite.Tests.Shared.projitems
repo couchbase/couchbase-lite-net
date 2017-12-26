@@ -20,6 +20,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)DocPerfTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DocumentTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)FragmentTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LinqTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)LoadTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MigrationTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)NotificationTest.cs" />

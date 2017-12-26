@@ -306,7 +306,7 @@ namespace Test
         }
         
         [Fact]
-        public async Task TestStopContinuousReplicator()
+        public void TestStopContinuousReplicator()
         {
             var config = CreateConfig(true, false, true);
             using (var r = new Replicator(config)) {
@@ -349,7 +349,7 @@ namespace Test
                         r.RemoveChangeListener(token);
                     }
 
-                    await Task.Delay(100).ConfigureAwait(false);
+                    Task.Delay(100).Wait();
                 }
             }
         }

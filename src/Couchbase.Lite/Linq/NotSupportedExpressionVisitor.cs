@@ -18,7 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-
+#if CBL_LINQ
 using System;
 using System.Linq.Expressions;
 
@@ -367,3 +367,4 @@ namespace Couchbase.Lite.Internal.Linq
         #endregion
     }
 }
+#endif

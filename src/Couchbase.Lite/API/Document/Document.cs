@@ -184,6 +184,19 @@ namespace Couchbase.Lite
             return new MutableDocument(this);
         }
 
+        #if CBL_LINQ
+        public T ToModel<T>() where T : class, IDocumentModel, new()
+        {
+            var serializer = JsonSerializer.CreateDefault();
+            var flValue = NativeRaw.FLValue_FromTrustedData((FLSlice) c4Doc.RawDoc->selectedRev.body);
+            using (var reader = new JsonFLValueReader(flValue, Database.SharedStrings)) {
+                var retVal = serializer.Deserialize<T>(reader);
+                retVal.Document = this;
+                return retVal;
+            }
+        }
+        #endif
+
         #endregion
 
         #region Internal Methods

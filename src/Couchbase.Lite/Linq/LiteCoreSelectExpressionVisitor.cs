@@ -1,63 +1,76 @@
-﻿//
-//  LiteCoreExpressionTreeVisitor.cs
-//
+﻿// 
+//  LiteCoreSelectExpressionVisitor.cs
+// 
 //  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
-//
+//   Jim Borden  <jim.borden@couchbase.com>
+// 
 //  Copyright (c) 2017 Couchbase, Inc All rights reserved.
-//
+// 
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
-//
+// 
 //  http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 //  Unless required by applicable law or agreed to in writing, software
 //  distributed under the License is distributed on an "AS IS" BASIS,
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
-//
+// 
 #if CBL_LINQ
 using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
 
-using Remotion.Linq.Clauses;
+using Couchbase.Lite.Internal.Linq;
+
+using JetBrains.Annotations;
+
 using Remotion.Linq.Clauses.Expressions;
-using Remotion.Linq.Clauses.ResultOperators;
 
-namespace Couchbase.Lite.Internal.Linq
+namespace Couchbase.Lite.Linq
 {
-    internal sealed class LiteCoreWhereExpressionVisitor : LiteCoreExpressionVisitor
+    internal sealed class LiteCoreSelectExpressionVisitor : LiteCoreExpressionVisitor
     {
-
-
         #region Public Methods
 
         public static IList<object> GetJsonExpression(Expression expression)
         {
-            var visitor = new LiteCoreWhereExpressionVisitor();
+            var visitor = new LiteCoreSelectExpressionVisitor();
             visitor.Visit(expression);
             return visitor.GetJsonExpression();
         }
 
         public IList<object> GetJsonExpression()
         {
-            if(_query.Count > 1) {
-                _query.Insert(0, "AND");
-            }
-            
-            return _query.First() as IList<object>;
+            return _query;
         }
 
         #endregion
 
+        public ISelectResultContainer SelectResult { get; private set; }
 
-  
+        protected override Expression VisitExtension(Expression node)
+        {
+            if (node is QuerySourceReferenceExpression exp) {
+                _query.Add(new[] { "." });
+                return node;
+            }
+
+            return base.VisitExtension(node);
+        }
+
+        protected override Expression VisitNewArray(NewArrayExpression node)
+        {
+            SelectResult = new SelectResultListContainer(node.Type.GetElementType());
+            foreach (var expr in node.Expressions) {
+                Visit(expr);
+            }
+
+            return node;
+        }
     }
 }
 #endif

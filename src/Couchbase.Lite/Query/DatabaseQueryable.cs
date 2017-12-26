@@ -18,53 +18,58 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-//using System.Linq;
-//using System.Linq.Expressions;
-//using Couchbase.Lite.Internal.Linq;
-//using Remotion.Linq;
-//using Remotion.Linq.Parsing.Structure;
 
-//namespace Couchbase.Lite.Internal.Query
-//{
-//    internal sealed class DatabaseQueryable<TElement> : QueryableBase<TElement> where TElement : class, IDocumentModel, new()
-//    {
-//        #region Constructors
+#if CBL_LINQ
+using System.Linq;
+using System.Linq.Expressions;
+using Couchbase.Lite.Internal.Linq;
+using Couchbase.Lite.Linq;
 
-//        public DatabaseQueryable(Database db, bool prefetch)
-//            : base(QueryParser.CreateDefault(), new LiteCoreQueryExecutor(db, prefetch))
-//        {
-            
-//        }
+using Remotion.Linq;
+using Remotion.Linq.Parsing.Structure;
 
-//        public DatabaseQueryable(IQueryProvider provider, Expression expression)
-//            : base(provider, expression)
-//        {
-//        }
+namespace Couchbase.Lite.Internal.Query
+{
+    internal sealed class DatabaseQueryable<TElement> : QueryableBase<TElement>
+    {
+        #region Constructors
 
-//        #endregion
-//    }
+        public DatabaseQueryable(Database db)
+            : base(QueryParser.CreateDefault(), new LiteCoreQueryExecutor(db))
+        {
 
-//    internal sealed class DatabaseDebugQueryable : QueryableBase<string>
-//    {
-//        #region Constructors
+        }
 
-//        public DatabaseDebugQueryable()
-//            : this(QueryParser.CreateDefault(), new LiteCoreDebugExecutor())
-//        {
+        public DatabaseQueryable(IQueryProvider provider, Expression expression)
+            : base(provider, expression)
+        {
+        }
 
-//        }
+        #endregion
+    }
 
-//        public DatabaseDebugQueryable(IQueryParser queryParser, IQueryExecutor executor)
-//            : base(new DefaultQueryProvider(typeof(DatabaseQueryable<>), queryParser, executor))
-//        {
+    internal sealed class DatabaseDebugQueryable : QueryableBase<string>
+    {
+        #region Constructors
 
-//        }
+        public DatabaseDebugQueryable()
+            : this(QueryParser.CreateDefault(), new LiteCoreDebugExecutor())
+        {
 
-//        public DatabaseDebugQueryable(IQueryProvider provider, Expression expression)
-//            : base(provider, expression)
-//        {
-//        }
+        }
 
-//        #endregion
-//    }
-//}
+        public DatabaseDebugQueryable(IQueryParser queryParser, IQueryExecutor executor)
+            : base(new DefaultQueryProvider(typeof(DatabaseQueryable<>), queryParser, executor))
+        {
+
+        }
+
+        public DatabaseDebugQueryable(IQueryProvider provider, Expression expression)
+            : base(provider, expression)
+        {
+        }
+
+        #endregion
+    }
+}
+#endif
