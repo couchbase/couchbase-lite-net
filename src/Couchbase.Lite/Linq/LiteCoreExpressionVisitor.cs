@@ -20,11 +20,16 @@
 // 
 #if CBL_LINQ
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
+
+using Newtonsoft.Json;
 
 using Remotion.Linq.Clauses;
 using Remotion.Linq.Clauses.Expressions;
@@ -44,7 +49,14 @@ namespace Couchbase.Lite.Internal.Linq
                 [ExpressionType.GreaterThan] = ">",
                 [ExpressionType.GreaterThanOrEqual] = ">=",
                 [ExpressionType.Equal] = "=",
-                [ExpressionType.NotEqual] = "!="
+                [ExpressionType.NotEqual] = "!=",
+                [ExpressionType.Multiply] = "*",
+                [ExpressionType.Add] = "+",
+                [ExpressionType.Subtract] = "-",
+                [ExpressionType.Divide] = "/",
+                [ExpressionType.Modulo] = "%",
+                [ExpressionType.AndAlso] = "AND",
+                [ExpressionType.OrElse] = "OR"
             };
 
         #endregion
@@ -59,6 +71,20 @@ namespace Couchbase.Lite.Internal.Linq
 
         #endregion
 
+        private IList<object> CurrentExpression
+        {
+            get {
+                if (_currentExpression == null) {
+                    _currentExpression = new List<object>();
+                    _query.Add(_currentExpression);
+                }
+
+                return _currentExpression;
+            }
+        }
+
+        protected bool IncludeDbNames { get; set; }
+
         #region Constructors
 
         protected LiteCoreExpressionVisitor()
@@ -66,11 +92,19 @@ namespace Couchbase.Lite.Internal.Linq
             _methodMap = new Dictionary<string, Action<MethodCallExpression>>
             {
                 ["AnyAndEvery"] = HandleAnyAndEvery,
-                ["IsRegexMatch"] = HandleIsRegexMatch,
+                ["IsMatch"] = HandleIsMatch,
                 ["Contains"] = HandleContains,
                 ["Between"] = HandleBetween,
                 ["Id"] = HandleId,
                 ["Sequence"] = HandleSequence,
+                ["Like"] = HandleLike,
+                ["FullTextMatches"] = HandleFullTextMatches,
+                ["FullTextRank"] = HandleFullTextRank,
+                ["Abs"] = HandleMath,
+                ["Acos"] = HandleMath,
+                ["Asin"] = HandleMath,
+                ["Atan"] = HandleMath,
+                ["Ceiling"] = HandleMath
             };
         }
 
@@ -84,19 +118,17 @@ namespace Couchbase.Lite.Internal.Linq
                 if (_currentExpression == null) {
                     _currentExpression = new List<object>();
                     _query.Add(_currentExpression);
+                } else {
+                    var next = new List<object>();
+                    _currentExpression.Add(next);
+                    _currentExpression = next;
                 }
 
                 _currentExpression.Add(_ExpressionTypeMap[expression.NodeType]);
                 return;
             }
 
-            switch (expression.NodeType) {
-                case ExpressionType.AndAlso:
-                    break;
-                default:
-                    base.VisitBinary(expression);
-                    break;
-            }
+            base.VisitBinary(expression);
         }
 
         private void HandleAllAnyEvery(string keyword, Expression part1, Expression part2)
@@ -140,12 +172,42 @@ namespace Couchbase.Lite.Internal.Linq
 
         private void HandleId(MethodCallExpression expression)
         {
-            _query.Add("._id");
+            CurrentExpression.Add(new[] { "._id" });
         }
 
-        private void HandleIsRegexMatch(MethodCallExpression expression)
+        private void HandleIsMatch(MethodCallExpression expression)
+        {
+            _currentExpression = new List<object> { "MATCH" };
+            
+            Visit(expression.Arguments[0]);
+            Visit(expression.Arguments[1]);
+            _query.Add(_currentExpression);
+        }
+
+        private void HandleFullTextRank(MethodCallExpression expression)
+        {
+            _currentExpression = new List<object> { "RANK()" };
+            
+            Visit(expression.Arguments[0]);
+            Visit(expression.Arguments[1]);
+            _query.Add(_currentExpression);
+        }
+
+        private void HandleMath(MethodCallExpression expression)
+        {
+            _currentExpression = new List<object> { $"{expression.Method.Name.ToUpperInvariant()}()" };
+            Visit(expression.Arguments[0]);
+            _query.Add(_currentExpression);
+        }
+
+        private void HandleFullTextMatches(MethodCallExpression expression)
         {
             _currentExpression = new List<object> { "REGEXP_LIKE()" };
+        }
+
+        private void HandleLike(MethodCallExpression expression)
+        {
+            _currentExpression = new List<object> { "LIKE" };
             Visit(expression.Arguments[0]);
             Visit(expression.Arguments[1]);
             _query.Add(_currentExpression);
@@ -153,69 +215,89 @@ namespace Couchbase.Lite.Internal.Linq
 
         private void HandleSequence(MethodCallExpression expression)
         {
-            _query.Add("._sequence");
+            CurrentExpression.Add(new[] { "._sequence" });
         }
 
-        private bool TryHandleAllAny(SubQueryExpression subquery)
+        private bool TryHandleAll(SubQueryExpression subquery, AllResultOperator ro) => TryHandleAllAny(subquery, ro.Predicate, "EVERY");
+
+        private bool TryHandleAny(SubQueryExpression subquery, AnyResultOperator ro) => TryHandleAllAny(subquery, (subquery.QueryModel.BodyClauses.FirstOrDefault() as WhereClause)?.Predicate, "ANY");
+
+        private bool TryHandleAllAny(SubQueryExpression subquery, Expression predicate, string keyword)
         {
-            var resultOperator = subquery.QueryModel.ResultOperators[0];
-            var allOperator = resultOperator as AllResultOperator;
-            var anyOperator = resultOperator as AnyResultOperator;
-            if (allOperator != null || anyOperator != null) {
-                var last = _currentMode;
-                var keyword = allOperator != null ? "EVERY" : "ANY";
-                var part1 = subquery.QueryModel.MainFromClause.FromExpression;
-                var part2 = allOperator?.Predicate ??
-                            (subquery.QueryModel.BodyClauses.FirstOrDefault() as WhereClause)?.Predicate;
-                if (part2 == null) {
-                    return false;
-                }
-
-                HandleAllAnyEvery(keyword, part1, part2);
-                _currentMode = last;
-                return true;
-            }
-
-            return false;
-        }
-
-        [SuppressMessage("ReSharper", "PossibleNullReferenceException", Justification =
-            "These types are all defined by the type of it they enter")]
-        private bool TryHandleFirstLast(SubQueryExpression subquery)
-        {
-            var resultOperator = subquery.QueryModel.ResultOperators.FirstOrDefault();
-            var firstOperator = resultOperator as FirstResultOperator;
-            var lastOperator = resultOperator as LastResultOperator;
-            if (firstOperator == null && lastOperator == null) {
+            var last = _currentMode;
+            var part1 = subquery.QueryModel.MainFromClause.FromExpression;
+            if (predicate == null) {
                 return false;
             }
 
+
+            HandleAllAnyEvery(keyword, part1, predicate);
+            _currentMode = last;
+            return true;
+        }
+
+        private void HandleFirst(SubQueryExpression subquery, FirstResultOperator ro) =>
+            HandleFirstLast(subquery, "[0]");
+
+        private void HandleLast(SubQueryExpression subquery, LastResultOperator ro) =>
+            HandleFirstLast(subquery, "[-1]");
+
+        [SuppressMessage("ReSharper", "PossibleNullReferenceException", Justification =
+            "These types are all defined by the type of it they enter")]
+        private void HandleFirstLast(SubQueryExpression subquery, string expressionAddition)
+        {
             var from = subquery.QueryModel.MainFromClause.FromExpression;
             _currentExpression = _query.Last() as IList<object>;
             Visit(from);
             var overallExpression = new StringBuilder((_currentExpression.Last() as IList<string>)[0]);
-            overallExpression.Append(firstOperator != null ? "[0]" : "[-1]");
+            overallExpression.Append(expressionAddition);
             _currentExpression.RemoveAt(_currentExpression.Count - 1);
             _currentExpression.Add(new[] { overallExpression.ToString() });
-
-            return true;
         }
 
-        private bool TryHandleSumOrCount(SubQueryExpression subquery)
+        private void HandleSum(SubQueryExpression subquery, SumResultOperator ro) =>
+            HandleArrayFunc(subquery, "ARRAY_SUM()");
+
+        private void HandleCount(SubQueryExpression subquery, CountResultOperator ro) =>
+            HandleArrayFunc(subquery, "ARRAY_COUNT()");
+
+        private void HandleMax(SubQueryExpression subquery, MaxResultOperator ro) =>
+            HandleArrayFunc(subquery, "ARRAY_MAX()");
+
+        private bool TryHandleContains(SubQueryExpression subquery, ContainsResultOperator ro)
         {
-            var resultOperator = subquery.QueryModel.ResultOperators[0];
-            var countOperator = resultOperator as CountResultOperator;
-            if (countOperator != null || resultOperator is SumResultOperator) {
-                var overallExpression = _query.LastOrDefault() as IList<object> ?? _query;
-                _currentExpression = new List<object> { countOperator != null ? "ARRAY_COUNT()" : "ARRAY_SUM()" };
-                var from = subquery.QueryModel.MainFromClause.FromExpression;
-                Visit(from);
-                overallExpression.Add(_currentExpression);
-                _currentExpression = overallExpression;
-                return true;
+            switch (subquery.QueryModel.MainFromClause.FromExpression) {
+                case ConstantExpression expr:
+                    if (!(expr.Value is IList list)) {
+                        return false;
+                    }
+
+                    CurrentExpression.Add("IN");
+                    Visit(ro.Item);
+                    var opList = new List<object> { "[]" };
+                    opList.AddRange(list.Cast<object>());
+                    CurrentExpression.Add(opList);
+                    return true;
+                case MemberExpression expr:
+                    var last = _currentExpression;
+                    CurrentExpression.Add("ARRAY_CONTAINS()");
+                    Visit(expr);
+                    Visit(ro.Item);
+                    _currentExpression = last;
+                    return true;
             }
 
             return false;
+        }
+
+        private void HandleArrayFunc(SubQueryExpression subquery, string function)
+        {
+            var overallExpression = _query.LastOrDefault() as IList<object> ?? _query;
+            _currentExpression = new List<object> { function };
+            var from = subquery.QueryModel.MainFromClause.FromExpression;
+            Visit(from);
+            overallExpression.Add(_currentExpression);
+            _currentExpression = overallExpression;
         }
 
         #endregion
@@ -226,8 +308,11 @@ namespace Couchbase.Lite.Internal.Linq
         protected override Expression VisitBinary(BinaryExpression expression)
         {
             AppendOperand(expression);
+            var last = _currentExpression;
             Visit(expression.Left);
+            _currentExpression = last;
             Visit(expression.Right);
+            _currentExpression = last;
 
             return expression;
         }
@@ -240,24 +325,71 @@ namespace Couchbase.Lite.Internal.Linq
 
         protected override Expression VisitExtension(Expression node)
         {
-            var subquery = node as SubQueryExpression;
-            if (subquery == null) {
+            if (!(node is SubQueryExpression subquery)) {
                 return base.VisitExtension(node);
             }
 
-            if (TryHandleAllAny(subquery)) {
-                return node;
-            }
+            switch (subquery.QueryModel.ResultOperators.FirstOrDefault()) {
+                case null:
+                    return base.VisitExtension(node);
+                case AllResultOperator ro:
+                {
+                    if (TryHandleAll(subquery, ro)) {
+                        return node;
+                    }
 
-            if (TryHandleFirstLast(subquery)) {
-                return node;
-            }
+                    break;
+                }
+                case AnyResultOperator ro:
+                {
+                    if (TryHandleAny(subquery, ro)) {
+                        return node;
+                    }
 
-            if (TryHandleSumOrCount(subquery)) {
-                return node;
+                    break;
+                }
+                case FirstResultOperator ro:
+                {
+                    HandleFirst(subquery, ro);
+                    return node;
+                }
+                case LastResultOperator ro:
+                {
+                    HandleLast(subquery, ro);
+                    return node;
+                }
+                case SumResultOperator ro:
+                {
+                    HandleSum(subquery, ro);
+                    return node;
+                }
+                case CountResultOperator ro:
+                {
+                    HandleCount(subquery, ro);
+                    return node;
+                }
+                case MaxResultOperator ro:
+                {
+                    HandleMax(subquery, ro);
+                    return node;
+                }
+                case ContainsResultOperator ro:
+                {
+                    if (TryHandleContains(subquery, ro)) {
+                        return node;
+                    }
+
+                    break;
+                }
             }
 
             return base.VisitExtension(node);
+        }
+
+        protected override Expression VisitInvocation(InvocationExpression node)
+        {
+            Visit(node.Expression);
+            return node;
         }
 
         protected override Expression VisitLambda<T>(Expression<T> node)
@@ -286,16 +418,23 @@ namespace Couchbase.Lite.Internal.Linq
                     currentNode = me.Expression;
                 } else {
                     var me = (currentNode as MemberExpression);
-                    sb.Insert(0, $".{me.Member.Name}");
+                    var mappingProperty =
+                        me.Member.GetCustomAttribute(typeof(JsonPropertyAttribute)) as JsonPropertyAttribute;
+                    var name = mappingProperty?.PropertyName ?? me.Member.Name;
+                    sb.Insert(0, $".{name}");
                     currentNode = me.Expression;
                 }
             }
 
+            if (IncludeDbNames && currentNode is QuerySourceReferenceExpression sourceRef) {
+                sb.Insert(0, $".{sourceRef.ReferencedQuerySource.ItemName}");
+            }
+
             if (_currentMode == Mode.AllOperator) {
                 sb.Remove(0, 1);
-                _currentExpression.Add(new[] { "?X", sb.ToString() });
+                CurrentExpression.Add(new[] { "?X", sb.ToString() });
             } else {
-                _currentExpression.Add(new[] { sb.ToString() });
+                CurrentExpression.Add(new[] { sb.ToString() });
             }
 
             return node;
@@ -303,8 +442,7 @@ namespace Couchbase.Lite.Internal.Linq
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
-            Action<MethodCallExpression> handler;
-            if (!_methodMap.TryGetValue(node.Method.Name, out handler)) {
+            if (!_methodMap.TryGetValue(node.Method.Name, out var handler)) {
                 return base.VisitMethodCall(node);
             }
 

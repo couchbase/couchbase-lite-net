@@ -707,27 +707,21 @@ namespace Couchbase.Lite
         }
 
         #if CBL_LINQ
-        public void Save(IDocumentModel model)
+        public void Save(Couchbase.Lite.Linq.IDocumentModel model)
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(model), model);
 
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                Document doc = null;
-                if (model.Document is MutableDocument md) {
-                    md.SetFromModel(model);
-                    doc = md;
-                } else {
-                    doc = model.Document?.ToMutable() ?? new MutableDocument();
-                    model.Document?.Dispose();
-                }
+                MutableDocument md = (model.Document as MutableDocument) ?? model.Document?.ToMutable() ?? new MutableDocument();
+                md.SetFromModel(model);
 
                 try {
-                    var retVal = Save(doc, false);
+                    var retVal = Save(md, false);
                     model.Document = retVal;
                 } finally {
-                    doc.Dispose();
+                    md.Dispose();
                 }
             });
         }

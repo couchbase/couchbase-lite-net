@@ -34,11 +34,17 @@ namespace Couchbase.Lite.Linq
 {
     internal sealed class LiteCoreSelectExpressionVisitor : LiteCoreExpressionVisitor
     {
+
+        public LiteCoreSelectExpressionVisitor(bool includeDbNames)
+        {
+            IncludeDbNames = includeDbNames;
+        }
+
         #region Public Methods
 
-        public static IList<object> GetJsonExpression(Expression expression)
+        public static IList<object> GetJsonExpression(Expression expression, bool includeDbNames)
         {
-            var visitor = new LiteCoreSelectExpressionVisitor();
+            var visitor = new LiteCoreSelectExpressionVisitor(includeDbNames);
             visitor.Visit(expression);
             return visitor.GetJsonExpression();
         }
@@ -66,6 +72,16 @@ namespace Couchbase.Lite.Linq
         {
             SelectResult = new SelectResultListContainer(node.Type.GetElementType());
             foreach (var expr in node.Expressions) {
+                Visit(expr);
+            }
+
+            return node;
+        }
+
+        protected override Expression VisitNew(NewExpression node)
+        {
+            SelectResult = new SelectResultAnonymousContainer(node.Constructor);
+            foreach (var expr in node.Arguments) {
                 Visit(expr);
             }
 

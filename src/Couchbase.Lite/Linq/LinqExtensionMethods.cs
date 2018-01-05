@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 namespace Couchbase.Lite.Linq
@@ -145,16 +146,9 @@ namespace Couchbase.Lite.Linq
             return Between((ulong)b, min, max);
         }
 
-        /// <summary>
-        /// Returns whether or not the given <see cref="String"/> matches a given regular expression
-        /// </summary>
-        /// <param name="item">The <see cref="String"/> to test (implicit)</param>
-        /// <param name="pattern">The pattern to test against</param>
-        /// <returns><c>true</c> if the <see cref="String"/> matches, <c>false</c> otherwise</returns>
-        public static bool IsRegexMatch(this string item, string pattern)
+        public static bool Like(this string item, string pattern)
         {
-            var regex = new Regex(pattern);
-            return regex.IsMatch(item);
+            return false;
         }
 
         public static string Id(this object obj)

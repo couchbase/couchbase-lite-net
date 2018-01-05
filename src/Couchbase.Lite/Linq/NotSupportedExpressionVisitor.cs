@@ -271,7 +271,7 @@ namespace Couchbase.Lite.Internal.Linq
                 return base.VisitMethodCall(node);
             }
 
-            throw new NotSupportedException();
+            throw new NotSupportedException($"Method {node.Method.Name} not supported");
         }
 
         protected override Expression VisitNew(NewExpression node)

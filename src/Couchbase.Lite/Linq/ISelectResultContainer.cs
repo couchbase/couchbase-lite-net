@@ -24,6 +24,8 @@ using LiteCore.Interop;
 using Newtonsoft.Json;
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Reflection;
 
 namespace Couchbase.Lite.Linq
 {
@@ -81,6 +83,34 @@ namespace Couchbase.Lite.Linq
         }
 
         #endregion
+    }
+
+    internal sealed class SelectResultAnonymousContainer : ISelectResultContainer
+    {
+        private readonly ConstructorInfo _constructor;
+
+        public object Results { get; private set; }
+
+        public SelectResultAnonymousContainer(ConstructorInfo constructor)
+        {
+            _constructor = constructor;
+
+        }
+
+        public unsafe void Populate(FLArrayIterator iterator, SharedStringCache sharedStrings)
+        {
+            var iter = iterator;
+            var serializer = JsonSerializer.CreateDefault();
+            var parameters = new List<object>();
+            for (var i = 0U; i < Native.FLArrayIterator_GetCount(&iter); i++) {
+                using (var reader = new JsonFLValueReader(Native.FLArrayIterator_GetValueAt(&iter, i), sharedStrings)) {
+                    var nextItem = serializer.Deserialize(reader, _constructor.GetParameters()[(int) i].ParameterType);
+                    parameters.Add(nextItem);
+                }
+            }
+
+            Results = _constructor.Invoke(parameters.ToArray());
+        }
     }
 }
 #endif

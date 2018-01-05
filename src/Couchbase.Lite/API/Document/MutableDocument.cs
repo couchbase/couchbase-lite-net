@@ -48,6 +48,10 @@ namespace Couchbase.Lite
 
         //private const string Tag = nameof(Document);
 
+        #if CBL_LINQ
+        private Linq.IDocumentModel _model;
+        #endif
+
         [NotNull]
         private static readonly Dictionary<Guid, MutableDocument> _NativeCacheMap = new Dictionary<Guid, MutableDocument>();
 
@@ -56,6 +60,10 @@ namespace Couchbase.Lite
         #region Properties
 
         internal override uint Generation => base.Generation + Convert.ToUInt32(Changed);
+
+        #if CBL_LINQ
+        internal override bool IsEmpty => _model == null && base.IsEmpty;
+        #endif
 
         internal override bool IsMutable => true;
 
@@ -145,7 +153,7 @@ namespace Couchbase.Lite
         #endregion
 
         #if CBL_LINQ
-        internal void SetFromModel(IDocumentModel model)
+        internal void SetFromModel(Linq.IDocumentModel model)
         {
             _model = model;
         }
@@ -157,7 +165,7 @@ namespace Couchbase.Lite
         private FLSliceResult EncodeModel(FLEncoder* encoder)
         {
             var serializer = JsonSerializer.CreateDefault();
-            using (var writer = new JsonFLValueWriter(c4Db)) {
+            using (var writer = new Internal.Serialization.JsonFLValueWriter(c4Db)) {
                 serializer.Serialize(writer, _model);
                 writer.Flush();
                 return writer.Result;

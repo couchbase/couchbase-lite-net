@@ -107,7 +107,7 @@ namespace Couchbase.Lite
         /// </summary>
         public bool IsDeleted => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true && c4Doc.RawDoc->flags.HasFlag(C4DocumentFlags.DocDeleted));
 
-        internal bool IsEmpty => _dict.Count == 0;
+        internal virtual bool IsEmpty => _dict.Count == 0;
 
         internal virtual bool IsMutable => false;
 
@@ -185,11 +185,11 @@ namespace Couchbase.Lite
         }
 
         #if CBL_LINQ
-        public T ToModel<T>() where T : class, IDocumentModel, new()
+        public T ToModel<T>() where T : class, Linq.IDocumentModel, new()
         {
-            var serializer = JsonSerializer.CreateDefault();
+            var serializer = Newtonsoft.Json.JsonSerializer.CreateDefault();
             var flValue = NativeRaw.FLValue_FromTrustedData((FLSlice) c4Doc.RawDoc->selectedRev.body);
-            using (var reader = new JsonFLValueReader(flValue, Database.SharedStrings)) {
+            using (var reader = new Internal.Serialization.JsonFLValueReader(flValue, Database.SharedStrings)) {
                 var retVal = serializer.Deserialize<T>(reader);
                 retVal.Document = this;
                 return retVal;
