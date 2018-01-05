@@ -410,7 +410,7 @@ namespace Test
             }
         }
 
-        private void VerifyByTagName(string name, Action<ulong, IResult> test)
+        private void VerifyByTagName(string name, Action<ulong, QueryResult> test)
         {
             var TAG = Expression.Property("tag");
             var DOCID = SelectResult.Expression(Meta.ID);

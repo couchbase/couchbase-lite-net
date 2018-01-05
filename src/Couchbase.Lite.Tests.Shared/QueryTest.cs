@@ -1620,6 +1620,42 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestMissingValues()
+        {
+            using (var doc1 = new MutableDocument("joinme")) {
+                doc1.SetInt("theone", 42);
+                doc1.SetString("numberID", "doc1");
+                doc1.SetString("nullval", null);
+                Db.Save(doc1).Dispose();
+            }
+
+            using (var q = Query.Select(SelectResult.Property("name"), SelectResult.Property("nullval"))
+                .From(DataSource.Database(Db))) {
+                using (var results = q.Execute()) {
+                    foreach (var result in results) {
+                        result.Count.Should().Be(1);
+                        result.Contains("name").Should().BeFalse();
+                        result.GetString("name").Should().BeNull();
+                        result.GetValue("name").Should().BeNull();
+                        result.GetString(0).Should().BeNull();
+                        result.GetValue(0).Should().BeNull();
+                        result.Contains("nullval").Should().BeTrue();
+                        result.GetString("nullval").Should().BeNull();
+                        result.GetValue("nullval").Should().BeNull();
+                        result.GetString(1).Should().BeNull();
+                        result.GetValue(1).Should().BeNull();
+
+                        result.ToList().Should().ContainInOrder(new object[] { null });
+                        result.ToDictionary().ShouldBeEquivalentTo(new Dictionary<string, object>
+                        {
+                            ["nullval"] = null
+                        });
+                    }
+                }
+            }
+        }
+
         private Document CreateTaskDocument(string title, bool complete)
         {
             using (var doc = new MutableDocument()) {
@@ -1718,7 +1754,7 @@ namespace Test
             return doc;
         }
 
-        private int VerifyQuery(IQuery query, Action<int, IResult> block)
+        private int VerifyQuery(IQuery query, Action<int, QueryResult> block)
         {
             using (var result = query.Execute()) {
                 using (var e = result.GetEnumerator()) {

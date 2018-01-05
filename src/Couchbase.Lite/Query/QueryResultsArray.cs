@@ -26,7 +26,7 @@ using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class QueryResultsArray : IReadOnlyList<IResult>
+    internal sealed class QueryResultsArray : IReadOnlyList<QueryResult>
     {
         #region Variables
 
@@ -38,7 +38,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public int Count { get; }
 
-        public IResult this[int index] => _rs[index];
+        public QueryResult this[int index] => _rs[index];
 
         #endregion
 
@@ -72,7 +72,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IEnumerable<IResult>
 
-        public IEnumerator<IResult> GetEnumerator()
+        public IEnumerator<QueryResult> GetEnumerator()
         {
             return new Enumerator(_rs);
         }
@@ -83,7 +83,7 @@ namespace Couchbase.Lite.Internal.Query
 
         // HACK to still be able to iterate (the original enumerator will not work
         // alongside random access)
-        private sealed class Enumerator : IEnumerator<IResult>
+        private sealed class Enumerator : IEnumerator<QueryResult>
         {
             #region Variables
 
@@ -94,7 +94,7 @@ namespace Couchbase.Lite.Internal.Query
 
             #region Properties
 
-            public IResult Current => _parent[_pos];
+            public QueryResult Current => _parent[_pos];
 
             object IEnumerator.Current => Current;
 

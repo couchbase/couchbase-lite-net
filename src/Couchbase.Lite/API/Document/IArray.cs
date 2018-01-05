@@ -31,7 +31,7 @@ namespace Couchbase.Lite
     /// An interface representing a read-only linear collection of objects
     /// </summary>
     //[JsonConverter(typeof(IArrayConverter))]
-    public interface IArray : IArrayFragment, IReadOnlyCollection<object>
+    public interface IArray : IArrayFragment, ICountable, IEnumerable<object>
     {
 
         #region Public Methods

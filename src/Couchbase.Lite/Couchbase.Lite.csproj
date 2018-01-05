@@ -32,7 +32,7 @@
     <DefineConstants>TRACE;PACKAGING;NETSTANDARD1_4;LITECORE_PACKAGED</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>TRACE;DEBUG;NETSTANDARD1_4;LITECORE_PACKAGED</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;LITECORE_PACKAGED</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DefineConstants>TRACE;RELEASE;NETSTANDARD1_4;LITECORE_PACKAGED</DefineConstants>
