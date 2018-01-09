@@ -31,7 +31,7 @@ namespace Couchbase.Lite.Util
     /// the creation.  Each call to dispose will decrement the reference count and
     /// the final call will perform the disposal
     /// </summary>
-    public abstract class RefCountedDisposable : IDisposable
+    internal abstract class RefCountedDisposable : IDisposable
     {
         #region Variables
         

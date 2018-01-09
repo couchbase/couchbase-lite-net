@@ -31,11 +31,15 @@ namespace Couchbase.Lite
     /// <summary>
     /// A class representing an editable collection of objects
     /// </summary>
-    public sealed class MutableArray : ArrayObject, IMutableArray
+    public sealed class MutableArrayObject : ArrayObject, IMutableArray
     {
         #region Properties
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets a fragment style entry from the array by index
+        /// </summary>
+        /// <param name="index">The index to retrieve</param>
+        /// <returns>The fragment of the object at the index</returns>
         public new IMutableFragment this[int index] => index >= _array.Count
             ? Fragment.Null
             : new Fragment(this, index);
@@ -47,7 +51,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Default Constructor
         /// </summary>
-        public MutableArray()
+        public MutableArrayObject()
         {
             
         }
@@ -56,18 +60,18 @@ namespace Couchbase.Lite
         /// Creates an array with the given data
         /// </summary>
         /// <param name="array">The data to populate the array with</param>
-        public MutableArray(IList array)
+        public MutableArrayObject(IList array)
             : this()
         {
             SetData(array);
         }
 
-        internal MutableArray(MArray array, bool isMutable)
+        internal MutableArrayObject(MArray array, bool isMutable)
         {
             _array.InitAsCopyOf(array, isMutable);
         }
 
-        internal MutableArray(MValue mv, MCollection parent)
+        internal MutableArrayObject(MValue mv, MCollection parent)
             : base(mv, parent)
         {
             
@@ -178,15 +182,15 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
-        public new MutableArray GetArray(int index)
+        public new MutableArrayObject GetArray(int index)
         {
-            return base.GetArray(index) as MutableArray;
+            return base.GetArray(index) as MutableArrayObject;
         }
 
         /// <inheritdoc />
-        public new MutableDictionary GetDictionary(int index)
+        public new MutableDictionaryObject GetDictionary(int index)
         {
-            return base.GetDictionary(index) as MutableDictionary;
+            return base.GetDictionary(index) as MutableDictionaryObject;
         }
 
         /// <inheritdoc />

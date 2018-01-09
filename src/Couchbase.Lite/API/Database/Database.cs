@@ -104,6 +104,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the configuration that were used to create the database
         /// </summary>
+        [NotNull]
         public DatabaseConfiguration Config { get; }
 
         /// <summary>
@@ -168,10 +169,6 @@ namespace Couchbase.Lite
         }
 
         [NotNull]
-        private IConflictResolver EffectiveConflictResolver => Config.ConflictResolver ??
-                                                                new MostActiveWinsConflictResolver();
-
-        [NotNull]
         internal IDictionary<Uri, Replicator> Replications { get; } = new Dictionary<Uri, Replicator>();
 
         internal FLEncoder* SharedEncoder
@@ -207,10 +204,10 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name">The name of the database</param>
         /// <param name="configuration">The configuration to open it with</param>
-        public Database(string name, DatabaseConfiguration configuration = new DatabaseConfiguration())
+        public Database(string name, DatabaseConfiguration configuration = null)
         {
             Name = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
-            Config = configuration;
+            Config = configuration ?? new DatabaseConfiguration.Builder().Build();
             Open();
             FLSharedKeys* keys = null;
             ThreadSafety.DoLocked(() => keys = Native.c4db_getFLSharedKeys(_c4db));
@@ -221,7 +218,7 @@ namespace Couchbase.Lite
         /// Copy constructor
         /// </summary>
         /// <param name="other">The database to copy from</param>
-        public Database(Database other)
+        internal Database([NotNull]Database other)
             : this(other.Name, other.Config)
         {
             
@@ -251,16 +248,16 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the database to be used when opening</param>
         /// <param name="config">The config to use when copying (for specifying directory, etc)</param>
         [ContractAnnotation("name:null => halt; path:null => halt")]
-        public static void Copy(string path, string name, DatabaseConfiguration config)
+        public static void Copy(string path, string name, [CanBeNull]DatabaseConfiguration config)
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(path), path);
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
 
-            var destPath = DatabasePath(name, config.Directory);
+            var destPath = DatabasePath(name, config?.Directory);
 			LiteCoreBridge.Check(err =>
 			{
 				var nativeConfig = DBConfig;
-				if (config.EncryptionKey != null) {
+				if (config?.EncryptionKey != null) {
 					var key = config.EncryptionKey;
 					var i = 0;
 					nativeConfig.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
@@ -403,16 +400,15 @@ namespace Couchbase.Lite
         /// <summary>
         /// Adds a listener for changes on a certain document (by ID).
         /// </summary>
-        /// <param name="documentID">The ID to add the listener for</param>
+        /// <param name="id">The ID to add the listener for</param>
         /// <param name="scheduler">The scheduler to use when firing the event handler</param>
         /// <param name="handler">The logic to handle the event</param>
         /// <returns>A token that can be used to remove the listener later</returns>
-        [ContractAnnotation("documentID:null => halt; handler:null => halt")]
-        [NotNull]
-        public ListenerToken AddDocumentChangeListener(string documentID, [CanBeNull]TaskScheduler scheduler,
+        [ContractAnnotation("id:null => halt; handler:null => halt")]
+        public ListenerToken AddDocumentChangeListener(string id, [CanBeNull]TaskScheduler scheduler,
             EventHandler<DocumentChangedEventArgs> handler)
         {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(documentID), documentID);
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(id), id);
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(handler), handler);
 
             return ThreadSafety.DoLocked(() =>
@@ -420,11 +416,11 @@ namespace Couchbase.Lite
                 CheckOpen();
 
                 var cbHandler =
-                    new CouchbaseEventHandler<string, DocumentChangedEventArgs>(handler, documentID, scheduler);
+                    new CouchbaseEventHandler<string, DocumentChangedEventArgs>(handler, id, scheduler);
                 var count = _documentChanged.Add(cbHandler);
                 if (count == 0) {
-                    var docObs = new DocumentObserver(_c4db, documentID, _DocObserverCallback, this);
-                    _docObs[documentID] = docObs;
+                    var docObs = new DocumentObserver(_c4db, id, _DocObserverCallback, this);
+                    _docObs[id] = docObs;
                 }
                 
                 return new ListenerToken(cbHandler, "doc");
@@ -434,13 +430,13 @@ namespace Couchbase.Lite
         /// <summary>
         /// Adds a listener for changes on a certain document (by ID).
         /// </summary>
-        /// <param name="documentID">The ID to add the listener for</param>
+        /// <param name="id">The ID to add the listener for</param>
         /// <param name="handler">The logic to handle the event</param>
         /// <returns>A token that can be used to remove the listener later</returns>
-        [ContractAnnotation("documentID:null => halt; handler:null => halt")]
-        public ListenerToken AddDocumentChangeListener(string documentID, EventHandler<DocumentChangedEventArgs> handler)
+        [ContractAnnotation("id:null => halt; handler:null => halt")]
+        public ListenerToken AddDocumentChangeListener(string id, EventHandler<DocumentChangedEventArgs> handler)
         {
-            return AddDocumentChangeListener(documentID, null, handler);
+            return AddDocumentChangeListener(id, null, handler);
         }
 
         /// <summary>
@@ -461,25 +457,6 @@ namespace Couchbase.Lite
             {
                 CheckOpen();
                 return Native.c4db_compact(_c4db, err);
-            });
-        }
-
-        /// <summary>
-        /// Checks whether or not a given <see cref="Document"/> exists 
-        /// in this database instance by searching for its ID.
-        /// </summary>
-        /// <param name="docID">The ID of the <see cref="Document"/> to search for</param>
-        /// <returns><c>true</c> if the <see cref="Document"/> exists, <c>false</c> otherwise</returns>
-        [ContractAnnotation("null => halt")]
-        public bool Contains(string docID)
-        {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(docID), docID);
-            return ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                using (var doc = GetDocument(docID, true)) {
-                    return doc != null;
-                }
             });
         }
 
@@ -607,11 +584,11 @@ namespace Couchbase.Lite
         /// <summary>
         /// Runs the given batch of operations as an atomic unit
         /// </summary>
-        /// <param name="a">The <see cref="Action"/> containing the operations. </param>
+        /// <param name="action">The <see cref="Action"/> containing the operations. </param>
         [ContractAnnotation("null => halt")]
-        public void InBatch(Action a)
+        public void InBatch(Action action)
         {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(a), a);
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(action), action);
 
             ThreadSafety.DoLocked(() =>
             {
@@ -621,7 +598,7 @@ namespace Couchbase.Lite
                 PerfTimer.StopEvent("InBatch_BeginTransaction");
                 var success = true;
                 try {
-                    a();
+                    action();
                 } catch (Exception e) {
                     Log.To.Database.W(Tag, "Exception during InBatch, rolling back...", e);
                     success = false;
@@ -779,7 +756,7 @@ namespace Couchbase.Lite
                         } else if (doc.IsDeleted) {
                             resolved = doc;
                         } else {
-                            var effectiveResolver = resolver ?? EffectiveConflictResolver;
+                            var effectiveResolver = resolver ?? Config.ConflictResolver;
                             var conflict = new Conflict(doc, otherDoc, baseDoc);
                             Log.To.Database.I(Tag,
                                 $"Resolving doc '{logDocID}' with {effectiveResolver.GetType().Name} (mine={doc.RevID}, theirs={otherDoc.RevID}, base={baseDoc?.RevID}");
@@ -926,7 +903,7 @@ namespace Couchbase.Lite
             } else {
                 // Call the conflict resolver:
                 using (var baseDoc = new Document(this, doc.Id, doc.c4Doc?.Retain<C4DocumentWrapper>())) {
-                    var resolver = EffectiveConflictResolver;
+                    var resolver = Config.ConflictResolver;
                     var conflict = new Conflict(doc, current, doc.c4Doc?.HasValue == true ? baseDoc : null);
                     resolved = resolver.Resolve(conflict);
                     if (resolved == null) {
@@ -1028,7 +1005,7 @@ namespace Couchbase.Lite
                     return;
                 }
 
-                change = new DocumentChangedEventArgs(documentID);
+                change = new DocumentChangedEventArgs(documentID, this);
             });
 
             _documentChanged.Fire(documentID, this, change);
@@ -1162,6 +1139,8 @@ namespace Couchbase.Lite
 
             return String.Equals(Path, other.Path, StringComparison.OrdinalIgnoreCase);
         }
+
+        public override string ToString() => $"DB[{Path}]";
 
         #region IDisposable
 

@@ -45,7 +45,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         [NotNull]
         [ItemNotNull]
-        public IResultSet Rows { get; }
+        public IResultSet Results { get; }
 
         #endregion
 
@@ -53,7 +53,7 @@ namespace Couchbase.Lite.Query
 
         internal QueryChangedEventArgs(IResultSet rows, Exception e = null)
         {
-            Rows = rows ?? new NullResultSet();
+            Results = rows ?? new NullResultSet();
             Error = e;
         }
 
@@ -77,7 +77,7 @@ namespace Couchbase.Lite.Query
         /// Doing so will trigger a re-run and update any listeners.
         /// </remarks>
         [NotNull]
-        QueryParameters Parameters { get; set; }
+        Parameters Parameters { get; set; }
 
         #endregion
 

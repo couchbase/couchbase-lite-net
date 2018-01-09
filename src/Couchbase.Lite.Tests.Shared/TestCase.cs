@@ -145,12 +145,16 @@ namespace Test
 
         protected Database OpenDB(string name)
         {
-            var options = new DatabaseConfiguration {
-                Directory = Directory,
-                ConflictResolver = ConflictResolver
+            var builder = new DatabaseConfiguration.Builder
+            {
+                Directory = Directory
             };
 
-            return new Database(name, options);
+            if (ConflictResolver != null) {
+                builder.ConflictResolver = ConflictResolver;
+            }
+
+            return new Database(name, builder.Build());
         }
 
         protected void ReopenDB()

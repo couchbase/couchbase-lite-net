@@ -58,26 +58,17 @@ namespace Couchbase.Lite
         /// The SymmetrisKey's key data represented as a hex string
         /// </summary>
 		[NotNull]
-		public string HexData => BitConverter.ToString(KeyData)?.Replace("-", String.Empty)?.ToLower() ?? "(null)";
+		internal string HexData => BitConverter.ToString(KeyData)?.Replace("-", String.Empty)?.ToLower() ?? "(null)";
 
         /// <summary>
         /// The SymmetricKey's key data; can be used to reconstitute it.
         /// </summary>
         [NotNull]
-        public byte[] KeyData => _cryptor.Key;
+        internal byte[] KeyData => _cryptor.Key;
 
         #endregion
 
         #region Constructors
-
-        /// <summary>
-        /// Creates an instance with a random key.
-        /// </summary>
-        public EncryptionKey() 
-        {
-            InitCryptor();
-            _cryptor.GenerateKey();
-        }
 
         /// <summary>
         /// Creates an instance with a key derived from a password.
@@ -87,7 +78,7 @@ namespace Couchbase.Lite
         /// Should be kept fixed for any particular app, but doesn't need to be secret.</param>
         /// <param name="rounds">The number of rounds of hashing to perform. 
         /// More rounds is more secure but takes longer.</param>
-        public EncryptionKey(string password, byte[] salt, int rounds)
+        internal EncryptionKey(string password, byte[] salt, int rounds)
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(password), password);
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(salt), salt);

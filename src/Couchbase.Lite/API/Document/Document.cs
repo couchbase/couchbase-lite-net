@@ -90,7 +90,7 @@ namespace Couchbase.Lite
         /// Gets the database that this document belongs to, if any
         /// </summary>
         [CanBeNull]
-        public Database Database { get; internal set; }
+        internal Database Database { get; set; }
 
         internal bool Exists => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true && c4Doc.RawDoc->flags.HasFlag(C4DocumentFlags.DocExists));
 
@@ -136,26 +136,26 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal Document([NotNull]Database database, [NotNull]string documentID, C4DocumentWrapper c4Doc)
+        internal Document([NotNull]Database database, [NotNull]string id, C4DocumentWrapper c4Doc)
         {
-            Debug.Assert(documentID != null);
+            Debug.Assert(id != null);
 
             Database = database;
-            Id = documentID;
+            Id = id;
             this.c4Doc = c4Doc;
         }
 
-        internal Document([NotNull]Database database, [NotNull]string documentID, bool mustExist)
+        internal Document([NotNull]Database database, [NotNull]string id, bool mustExist)
         {
             Debug.Assert(database != null);
-            Debug.Assert(documentID != null);
+            Debug.Assert(id != null);
 
             Database = database;
-            Id = documentID;
+            Id = id;
             database.ThreadSafety.DoLocked(() =>
             {
                 var doc = (C4Document*)NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
-                    err => Native.c4doc_get(database.c4db, documentID, mustExist, err));
+                    err => Native.c4doc_get(database.c4db, id, mustExist, err));
                 c4Doc = new C4DocumentWrapper(doc);
             });
         }

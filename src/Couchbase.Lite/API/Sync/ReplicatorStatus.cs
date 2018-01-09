@@ -1,5 +1,5 @@
 ﻿// 
-// ReplicationStatusChangedEventArgs.cs
+// ReplicationStatus.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -18,6 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
 using System;
 
 using JetBrains.Annotations;
@@ -25,26 +26,32 @@ using JetBrains.Annotations;
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
-    /// Event arguments for the <see cref="Replicator.AddChangeListener(EventHandler{ReplicationStatusChangedEventArgs})" /> event
+    /// A struct describing the current status of a <see cref="Replicator"/>
     /// </summary>
-    public sealed class ReplicationStatusChangedEventArgs : EventArgs
+    public struct ReplicatorStatus
     {
-        #region Properties
+        /// <summary>
+        /// Gets the current state of the replication (i.e. whether or not it is
+        /// actively processing changes)
+        /// </summary>
+        public ReplicatorActivityLevel Activity { get; }
 
         /// <summary>
-        /// The new status for the <see cref="Replicator"/> in question.
+        /// Gets the current progress of the replication
         /// </summary>
-        public ReplicationStatus Status { get; }
+        public ReplicatorProgress Progress { get; }
 
-        #endregion
+        /// <summary>
+        /// Gets the last error that occurred, if any
+        /// </summary>
+        [CanBeNull]
+        public Exception Error { get; }
 
-        #region Constructors
-
-        internal ReplicationStatusChangedEventArgs(ReplicationStatus status)
+        internal ReplicatorStatus(ReplicatorActivityLevel activity, ReplicatorProgress progress, Exception error)
         {
-            Status = status;
+            Activity = activity;
+            Progress = progress;
+            Error = error;
         }
-
-        #endregion
     }
 }

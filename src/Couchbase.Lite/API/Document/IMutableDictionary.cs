@@ -53,7 +53,7 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or <c>null</c></returns>
         [CanBeNull]
         [ContractAnnotation("null => halt")]
-        new MutableArray GetArray(string key);
+        new MutableArrayObject GetArray(string key);
 
         /// <summary>
         /// Gets the value of a given key as a dictionary
@@ -62,7 +62,7 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or <c>null</c></returns>
         [CanBeNull]
         [ContractAnnotation("null => halt")]
-        new MutableDictionary GetDictionary(string key);
+        new MutableDictionaryObject GetDictionary(string key);
 
         /// <summary>
         /// Removes the given key from this dictionary

@@ -44,11 +44,11 @@ namespace Couchbase.Lite.Query
         /// Creates an object that will sort based on the value in the given
         /// property path
         /// </summary>
-        /// <param name="name">The path of the property whose value will be used
+        /// <param name="property">The path of the property whose value will be used
         /// to sort the results of the query</param>
         /// <returns>The object that will perform the sort</returns>
         [NotNull]
-        public static ISortOrder Property(string name) => Expression(Lite.Query.Expression.Property(name));
+        public static ISortOrder Property(string property) => Expression(Lite.Query.Expression.Property(property));
 
         #endregion
     }

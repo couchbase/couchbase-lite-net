@@ -140,7 +140,7 @@ namespace Couchbase.Lite
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
         [CanBeNull]
-        new MutableArray GetArray(int index);
+        new MutableArrayObject GetArray(int index);
 
         /// <summary>
         /// Gets the value at the given index as a dictionary
@@ -148,7 +148,7 @@ namespace Couchbase.Lite
         /// <param name="index">The index to lookup</param>
         /// <returns>The value at the index, or <c>null</c></returns>
         [CanBeNull]
-        new MutableDictionary GetDictionary(int index);
+        new MutableDictionaryObject GetDictionary(int index);
 
         /// <summary>
         /// Inserts a given value at the given index

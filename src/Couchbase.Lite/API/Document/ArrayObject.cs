@@ -90,9 +90,9 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>A mutable copy of the array</returns>
         [NotNull]
-        public MutableArray ToMutable()
+        public MutableArrayObject ToMutable()
         {
-            return new MutableArray(_array, true);
+            return new MutableArrayObject(_array, true);
         }
 
         #endregion
@@ -222,7 +222,7 @@ namespace Couchbase.Lite
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            var arr = new MutableArray();
+            var arr = new MutableArrayObject();
             while (reader.Read()) {
                 arr.AddValue(serializer.Deserialize(reader));
             }

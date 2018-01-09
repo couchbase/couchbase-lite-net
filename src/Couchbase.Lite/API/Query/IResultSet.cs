@@ -28,7 +28,7 @@ namespace Couchbase.Lite.Query
     /// An interface representing an enumerable collection of results
     /// from a given <see cref="IQuery"/>
     /// </summary>
-    public interface IResultSet : IEnumerable<QueryResult>, IDisposable
+    public interface IResultSet : IEnumerable<Result>, IDisposable
     {
         #region Properties
 

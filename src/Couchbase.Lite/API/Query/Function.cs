@@ -105,11 +105,11 @@ namespace Couchbase.Lite.Query
         /// Creates a function that will calculate if a given string is inside of another
         /// in question
         /// </summary>
-        /// <param name="str">The string or expression that evaluates to a string to search</param>
-        /// <param name="item">The string or expression that evaluates to a string to search for</param>
+        /// <param name="expression">The string or expression that evaluates to a string to search</param>
+        /// <param name="substring">The string or expression that evaluates to a string to search for</param>
         /// <returns>A function that will return true if the string contains the other, or false if it does not</returns>
         [NotNull]
-        public static IExpression Contains(object str, object item) => new QueryCompoundExpression("CONTAINS()", str, item);
+        public static IExpression Contains(object expression, object substring) => new QueryCompoundExpression("CONTAINS()", expression, substring);
 
         /// <summary>
         /// Creates a function that will get the cosine of the expression

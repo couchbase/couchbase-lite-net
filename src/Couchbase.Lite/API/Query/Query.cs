@@ -35,24 +35,24 @@ namespace Couchbase.Lite.Query
         /// <summary>
         /// Selects the given property path from the query under construction
         /// </summary>
-        /// <param name="resultsToSelect">The results to select</param>
+        /// <param name="results">The results to select</param>
         /// <returns>The initial SELECT portion of the query</returns>
         [NotNull]
-        public static ISelect Select(params ISelectResult[] resultsToSelect)
+        public static ISelect Select(params ISelectResult[] results)
         {
-            return new Select(resultsToSelect, false);
+            return new Select(results, false);
         }
 
 
         /// <summary>
         /// Selects only the distinct results of the query
         /// </summary>
-        /// <param name="resultsToSelect">The results to select</param>
+        /// <param name="results">The results to select</param>
         /// <returns>The initial SELECT portion of the query</returns>
         [NotNull]
-        public static ISelect SelectDistinct(params ISelectResult[] resultsToSelect)
+        public static ISelect SelectDistinct(params ISelectResult[] results)
         {
-            return new Select(resultsToSelect, true);
+            return new Select(results, true);
         }
 
         #endregion

@@ -32,7 +32,7 @@ namespace Couchbase.Lite
     /// safe accessors to get the data without having to know the keys they are stored
     /// under
     /// </summary>
-    public abstract class OptionsDictionary : IDictionary<string, object>
+    internal abstract class OptionsDictionary : IDictionary<string, object>
     {
         #region Variables
 

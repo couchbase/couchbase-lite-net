@@ -58,10 +58,10 @@ namespace Test
             var dir = Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
             Database.Delete("db", dir);
 
-            var options = new DatabaseConfiguration
+            var options = new DatabaseConfiguration.Builder()
             {
                 Directory = dir
-            };
+            }.Build();
 
             try {
                 var db = new Database("db", options);
@@ -74,7 +74,7 @@ namespace Test
         [Fact]
         public void TestCreateWithDefaultConfiguration()
         {
-            using (var db = new Database("db", new DatabaseConfiguration())) {
+            using (var db = new Database("db", new DatabaseConfiguration.Builder().Build())) {
                 db.Count.Should().Be(0);
                 DeleteDB(db);
             }
@@ -114,8 +114,8 @@ namespace Test
             Database.Delete("db", dir);
             Database.Exists("db", dir).Should().BeFalse("because it was just deleted");
 
-            var options = new DatabaseConfiguration();
-            options.Directory = dir;
+            var options = new DatabaseConfiguration.Builder()
+                { Directory = dir }.Build();
             using (var db = new Database("db", options)) {
                 Path.GetDirectoryName(db.Path).Should().EndWith(".cblite2", "because that is the current CBL extension");
                 db.Path.Should().Contain(dir, "because the directory should be present in the custom path");
@@ -164,9 +164,6 @@ namespace Test
             using (var otherDB = OpenDB(Db.Name)) {
                 otherDB.Count.Should()
                     .Be(1UL, "because the other database instance should reflect existing data");
-                otherDB.Contains(docID)
-                    .Should()
-                    .BeTrue("because the other database should know about the document");
 
                 VerifyGetDocument(otherDB, docID);
             }
@@ -219,7 +216,6 @@ namespace Test
                 Db.Save(doc);
 
                 Db.Count.Should().Be(1, "because a document was updated, not added");
-                Db.Contains(docID).Should().BeTrue("because the document still exists");
 
                 VerifyGetDocument(docID, 2);
             }
@@ -731,8 +727,10 @@ namespace Test
         public void TestDeleteByStaticMethod()
         {
             var dir = Directory;
-            var options = new DatabaseConfiguration();
-            options.Directory = dir;
+            var options = new DatabaseConfiguration.Builder()
+            {
+                Directory = dir
+            }.Build();
             string path = null;
             using (var db = new Database("db", options)) {
                 path = db.Path;
@@ -746,8 +744,10 @@ namespace Test
         public void TestDeleteOpeningDBByStaticMethod()
         {
             var dir = Directory;
-            var options = new DatabaseConfiguration();
-            options.Directory = dir;
+            var options = new DatabaseConfiguration.Builder()
+            {
+                Directory = dir
+            }.Build();
             using (var db = new Database("db", options)) {
                 LiteCoreException e = null;
                 try {
@@ -797,8 +797,10 @@ namespace Test
             Database.Delete("db", dir);
             Database.Exists("db", dir).Should().BeFalse("because this database has not been created");
 
-            var options = new DatabaseConfiguration();
-            options.Directory = dir;
+            var options = new DatabaseConfiguration.Builder()
+            {
+                Directory = dir
+            }.Build();
             string path = null;
             using (var db = new Database("db", options)) {
                 path = db.Path;
@@ -871,27 +873,19 @@ namespace Test
         [Fact]
         public void TestCreateConfiguration()
         {
-            var config1 = new DatabaseConfiguration();
+            var builder1 = new DatabaseConfiguration.Builder();
+            var config1 = builder1.Build();
             config1.Directory.Should().NotBeNullOrEmpty("because the directory should have a default value");
-            config1.ConflictResolver.Should().BeNull("because it was not set");
+            config1.ConflictResolver.Should().NotBeNull("because the conflict resolver should have a default value");
             config1.EncryptionKey.Should().BeNull("because it was not set");
 
-            var config1a = new DatabaseConfiguration(config1);
-            config1.Directory.Should().NotBeNullOrEmpty("because the directory should have a default value");
-            config1a.ConflictResolver.Should().BeNull("because it was not set");
-            config1a.EncryptionKey.Should().BeNull("because it was not set");
-
             var resolver = new DummyResolver();
-            var config2 = new DatabaseConfiguration();
+            var builder2 = new DatabaseConfiguration.Builder();
             var key = new EncryptionKey("key");
-            config2.Directory = "/tmp/mydb";
-            config2.ConflictResolver = resolver;
-            config2.EncryptionKey = key;
-            config2.Directory.Should().Be("/tmp/mydb", "because that is what was set");
-            config2.ConflictResolver.Should().Be(resolver, "because that is what was set");
-            config2.EncryptionKey.Should().Be(key, "because that is what was set");
-
-            var config2a = new DatabaseConfiguration(config2);
+            builder2.Directory = "/tmp/mydb";
+            builder2.ConflictResolver = resolver;
+            builder2.EncryptionKey = key;
+            var config2 = builder2.Build();
             config2.Directory.Should().Be("/tmp/mydb", "because that is what was set");
             config2.ConflictResolver.Should().Be(resolver, "because that is what was set");
             config2.EncryptionKey.Should().Be(key, "because that is what was set");
@@ -900,31 +894,15 @@ namespace Test
         [Fact]
         public void TestGetSetConfiguration()
         {
-            var config = new DatabaseConfiguration();
+            var config = new DatabaseConfiguration.Builder().Build();
             using (var db = new Database("db", config))
             {
-                db.Config.Should().NotBeNull("because it was set in the constructor");
-                db.Config.Should().NotBeSameAs(config, "because the configuration should be copied");
+                db.Config.Should().BeSameAs(config, "because the configuration should be copied");
                 db.Config.Directory.Should().Be(config.Directory, "because the directory should be the same");
                 db.Config.ConflictResolver.Should().Be(config.ConflictResolver,
                     "because the conflict resolver should be the same");
                 db.Config.EncryptionKey.Should().Be(config.EncryptionKey,
                     "because the encryption key should be the same");
-            }
-        }
-
-        [Fact]
-        public void TestConfigurationIsCopiedWhenGetSet()
-        {
-            var config = new DatabaseConfiguration();
-            using (var db = new Database("db", config))
-            {
-                config.ConflictResolver = new DummyResolver();
-                db.Config.Should().NotBeNull("because it was set in the constructor");
-                db.Config.Should().NotBeSameAs(config, "because the configuration should be copied");
-                db.Config.Directory.Should().Be(config.Directory, "because the directory should be the same");
-                db.Config.ConflictResolver.Should().NotBe(config.ConflictResolver,
-                    "because the conflict resolver should be different now");
             }
         }
 
@@ -998,7 +976,7 @@ namespace Test
             Db.CreateIndex("index2", index2);
             
             var detailItem2 = FullTextIndexItem.Property("es-detail");
-            var index3 = Index.FullTextIndex(detailItem2).IgnoreAccents(true).SetLocale("es");
+            var index3 = Index.FullTextIndex(detailItem2).IgnoreAccents(true).Locale("es");
             Db.CreateIndex("index3", index3);
 
             Db.GetIndexes().ShouldBeEquivalentTo(new[] {"index1", "index2", "index3"});
@@ -1102,11 +1080,6 @@ namespace Test
         [Fact]
         public void TestDeleteAndOpenDB()
         {
-            var config = new DatabaseConfiguration
-            {
-                Directory = Directory
-            };
-
             using (var database1 = new Database("application")) {
                 database1.Delete();
 
@@ -1203,7 +1176,6 @@ namespace Test
             GenerateDocument(docID);
 
             Db.Count.Should().Be(1UL, "because the database only has one document");
-            Db.Contains(docID).Should().BeTrue("because otherwise the wrong document is in the database");
 
             VerifyGetDocument(docID);
         }

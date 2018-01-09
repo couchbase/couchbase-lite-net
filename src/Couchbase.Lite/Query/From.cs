@@ -82,10 +82,10 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        public IOrderBy OrderBy(params IOrdering[] orderBy)
+        public IOrderBy OrderBy(params IOrdering[] orderings)
         {
-            ValidateParams(orderBy);
-            return new QueryOrderBy(this, orderBy);
+            ValidateParams(orderings);
+            return new QueryOrderBy(this, orderings);
         }
 
         #endregion

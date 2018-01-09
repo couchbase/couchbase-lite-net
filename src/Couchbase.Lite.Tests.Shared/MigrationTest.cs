@@ -53,8 +53,9 @@ namespace Test
             using(var za = new ZipArchive(GetTestAsset("replacedb/android140-sqlite.cblite2.zip"))) {
                 za.ExtractToDirectory(Directory);
             }
-            
-            using(var db = new Database("android-sqlite", new DatabaseConfiguration { Directory = Directory })) {
+
+            var config = new DatabaseConfiguration.Builder { Directory = Directory }.Build();
+            using(var db = new Database("android-sqlite", config)) {
                 db.Count.Should().Be(2);
                 for (int i = 1; i < 2; i++) {
                     var doc = db.GetDocument($"doc{i}");
@@ -82,7 +83,8 @@ namespace Test
                 za.ExtractToDirectory(Directory);
             }
 
-            using (var db = new Database("android-sqlite", new DatabaseConfiguration { Directory = Directory })) {
+            var config = new DatabaseConfiguration.Builder { Directory = Directory }.Build();
+            using (var db = new Database("android-sqlite", config)) {
                 db.Count.Should().Be(2);
                 for (int i = 1; i < 2; i++) {
                     var doc = db.GetDocument($"doc{i}");
@@ -102,7 +104,8 @@ namespace Test
                 za.ExtractToDirectory(Directory);
             }
 
-            using (var db = new Database("android-sqlite", new DatabaseConfiguration { Directory = Directory })) {
+            var config = new DatabaseConfiguration.Builder { Directory = Directory }.Build();
+            using (var db = new Database("android-sqlite", config)) {
                 db.Count.Should().Be(2);
                 for (int i = 1; i < 2; i++) {
                     var doc = db.GetDocument($"doc{i}");

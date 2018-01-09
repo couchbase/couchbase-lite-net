@@ -61,7 +61,7 @@ namespace Couchbase.Lite.Internal.Query
         private QueryResultSet _enum;
         private DateTime _lastUpdatedAt;
         private int _observingCount = 0;
-        [NotNull]private QueryParameters _queryParameters = new QueryParameters();
+        [NotNull]private Parameters _queryParameters = new Parameters(new Dictionary<string, object>());
         private AtomicBool _willUpdate = false;
 
         #endregion
@@ -89,8 +89,8 @@ namespace Couchbase.Lite.Internal.Query
         protected object SkipValue { get; set; }
 
         protected QueryExpression WhereImpl { get; set; }
-
-        public QueryParameters Parameters
+        
+        public Parameters Parameters
         {
             get => _queryParameters;
             set {

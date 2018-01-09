@@ -91,7 +91,7 @@ namespace Couchbase.Lite.Internal.Query
             return this;
         }
 
-        public IFullTextIndex SetLocale(string localeCode)
+        public IFullTextIndex Locale(string localeCode)
         {
             _locale = localeCode;
             return this;

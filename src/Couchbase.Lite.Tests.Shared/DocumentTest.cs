@@ -664,7 +664,7 @@ namespace Test
         public void TestSetDictionary()
         {
             var doc = new MutableDocument("doc1");
-            var dict = new MutableDictionary();
+            var dict = new MutableDictionaryObject();
             dict.SetString("street", "1 Main street");
             doc.SetDictionary("dict", dict);
 
@@ -739,7 +739,7 @@ namespace Test
         public void TestSetArray()
         {
             var doc = new MutableDocument("doc1");
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             array.AddString("item1").AddString("item2").AddString("item3");
 
             doc.SetArray("array", array);
@@ -910,10 +910,10 @@ namespace Test
         public void TestUpdateNestedDictionary()
         {
             var doc = new MutableDocument("doc1");
-            var addresses = new MutableDictionary();
+            var addresses = new MutableDictionaryObject();
             doc.SetDictionary("addresses", addresses);
 
-            var shipping = new MutableDictionary();
+            var shipping = new MutableDictionaryObject();
             shipping.SetString("street", "1 Main street")
                 .SetString("city", "Mountain View")
                 .SetString("state", "CA");
@@ -944,16 +944,16 @@ namespace Test
         public void TestUpdateDictionaryInArray()
         {
             var doc = new MutableDocument("doc1");
-            var addresses = new MutableArray();
+            var addresses = new MutableArrayObject();
             doc.SetArray("addresses", addresses);
 
-            var address1 = new MutableDictionary();
+            var address1 = new MutableDictionaryObject();
             address1.SetString("street", "1 Main street")
                 .SetString("city", "Mountain View")
                 .SetString("state", "CA");
             addresses.AddDictionary(address1);
 
-            var address2 = new MutableDictionary();
+            var address2 = new MutableDictionaryObject();
             address2.SetString("street", "1 Second street")
                 .SetString("city", "Palo Alto")
                 .SetString("state", "CA");
@@ -993,14 +993,14 @@ namespace Test
         public void TestUpdateNestedArray()
         {
             var doc = new MutableDocument("doc1");
-            var groups = new MutableArray();
+            var groups = new MutableArrayObject();
             doc.SetArray("groups", groups);
 
-            var group1 = new MutableArray();
+            var group1 = new MutableArrayObject();
             group1.AddString("a").AddString("b").AddString("c");
             groups.AddArray(group1);
 
-            var group2 = new MutableArray();
+            var group2 = new MutableArrayObject();
             group2.AddInt(1).AddInt(2).AddInt(3);
             groups.AddArray(group2);
 
@@ -1030,14 +1030,14 @@ namespace Test
         public void TestUpdateArrayInDictionary()
         {
             var doc = new MutableDocument("doc1");
-            var group1 = new MutableDictionary();
-            var member1 = new MutableArray();
+            var group1 = new MutableDictionaryObject();
+            var member1 = new MutableArrayObject();
             member1.AddString("a").AddString("b").AddString("c");
             group1.SetArray("member", member1);
             doc.SetDictionary("group1", group1);
 
-            var group2 = new MutableDictionary();
-            var member2 = new MutableArray();
+            var group2 = new MutableDictionaryObject();
+            var member2 = new MutableArrayObject();
             member2.AddInt(1).AddInt(2).AddInt(3);
             group2.SetArray("member", member2);
             doc.SetDictionary("group2", group2);
@@ -1071,7 +1071,7 @@ namespace Test
         public void TestSetDictionaryToMultipleKeys()
         {
             var doc = new MutableDocument("doc1");
-            var address = new MutableDictionary();
+            var address = new MutableDictionaryObject();
             address.SetString("street", "1 Main street")
                 .SetString("city", "Mountain View")
                 .SetString("state", "CA");
@@ -1119,7 +1119,7 @@ namespace Test
         public void TestSetArrayToMultipleKeys()
         {
             var doc = new MutableDocument("doc1");
-            var phones = new MutableArray();
+            var phones = new MutableArrayObject();
             phones.AddString("650-000-0001").AddString("650-000-0002");
 
             doc.SetArray("mobile", phones);
@@ -1746,13 +1746,13 @@ namespace Test
                 .SetDouble("one_dot_one", 1.1)
                 .SetDate("date", date);
 
-            var dict = new MutableDictionary();
+            var dict = new MutableDictionaryObject();
             dict.SetString("street", "1 Main street")
                 .SetString("city", "Mountain View")
                 .SetString("state", "CA");
             doc.SetDictionary("dict", dict);
 
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             array.AddString("650-123-0001");
             array.AddString("650-123-0002");
             doc.SetArray("array", array);

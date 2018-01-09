@@ -77,10 +77,10 @@ namespace Couchbase.Lite
         object Value { get; set; }
         
         /// <summary>
-        /// Gets the contained value as a <see cref="MutableArray"/>
+        /// Gets the contained value as a <see cref="MutableArrayObject"/>
         /// </summary>
         [CanBeNull]
-        MutableArray Array { get; set; }
+        MutableArrayObject Array { get; set; }
         
         /// <summary>
         /// Gets the contained value as a <see cref="Blob"/>
@@ -99,10 +99,10 @@ namespace Couchbase.Lite
         DateTimeOffset Date { get; set; }
         
         /// <summary>
-        /// Gets the contained value as a <see cref="MutableDictionary"/>
+        /// Gets the contained value as a <see cref="MutableDictionaryObject"/>
         /// </summary>
         [CanBeNull]
-        MutableDictionary Dictionary { get; set; }
+        MutableDictionaryObject Dictionary { get; set; }
 
         /// <summary>
         /// Gets the contained value as a <see cref="Double"/>

@@ -54,17 +54,6 @@ namespace Couchbase.Lite.Query
         }
 
         /// <summary>
-        /// Synonym for <see cref="InnerJoin(IDataSource)"/>
-        /// </summary>
-        /// <param name="dataSource">The data source to JOIN with</param>
-        /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
-        [NotNull]
-        public static IJoinOn DefaultJoin(IDataSource dataSource)
-        {
-            return InnerJoin(dataSource);
-        }
-
-        /// <summary>
         /// Synonym for <see cref="LeftOuterJoin(IDataSource)"/>
         /// </summary>
         /// <param name="dataSource">The data source to JOIN with</param>

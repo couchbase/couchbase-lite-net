@@ -26,13 +26,13 @@ using Couchbase.Lite.Query;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class NullResultSet : IResultSet, IEnumerator<QueryResult>
+    internal sealed class NullResultSet : IResultSet, IEnumerator<Result>
     {
         #region Properties
 
         object IEnumerator.Current => Current;
 
-        public QueryResult Current { get; } = null;
+        public Result Current { get; } = null;
 
         public int Count { get; } = 0;
 
@@ -55,7 +55,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IEnumerable<QueryResult>
 
-        public IEnumerator<QueryResult> GetEnumerator() => this;
+        public IEnumerator<Result> GetEnumerator() => this;
 
         #endregion
 

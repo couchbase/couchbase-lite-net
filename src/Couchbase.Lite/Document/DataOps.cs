@@ -110,9 +110,9 @@ namespace Couchbase.Lite.Internal.Doc
                     return null;
                 case DateTimeOffset dto:
                     return dto.ToString("o");
-                case DictionaryObject rodic when !(rodic is MutableDictionary):
+                case DictionaryObject rodic when !(rodic is MutableDictionaryObject):
                     return rodic.ToMutable();
-                case ArrayObject roarr when !(roarr is MutableArray):
+                case ArrayObject roarr when !(roarr is MutableArrayObject):
                     return roarr.ToMutable();
                 case JObject jobj:
                     return ConvertDictionary(jobj.ToObject<IDictionary<string, object>>());
@@ -173,16 +173,16 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Private Methods
 
-        private static MutableDictionary ConvertDictionary(IDictionary<string, object> dictionary)
+        private static MutableDictionaryObject ConvertDictionary(IDictionary<string, object> dictionary)
         {
-            var subdocument = new MutableDictionary();
+            var subdocument = new MutableDictionaryObject();
             subdocument.SetData(dictionary);
             return subdocument;
         }
 
-        private static MutableArray ConvertList(IList list)
+        private static MutableArrayObject ConvertList(IList list)
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             array.SetData(list);
             return array;
         }

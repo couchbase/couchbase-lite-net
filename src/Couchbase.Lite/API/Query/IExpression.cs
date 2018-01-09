@@ -114,6 +114,24 @@ namespace Couchbase.Lite.Query
         IExpression In(params object[] expressions);
 
         /// <summary>
+        /// Returns an expression to test whether or not the given expression is
+        /// the same as the current current expression
+        /// </summary>
+        /// <param name="expression">The expression to compare to</param>
+        /// <returns>The expression representing the new operation</returns>
+        [NotNull]
+        IExpression Is(IExpression expression);
+
+        /// <summary>
+        /// Returns an expression to test whether or not the given expression is
+        /// NOT the same as the current current expression
+        /// </summary>
+        /// <param name="expression">The expression to compare to</param>
+        /// <returns>The expression representing the new operation</returns>
+        [NotNull]
+        IExpression IsNot(IExpression expression);
+
+        /// <summary>
         /// Gets an expression representing if the current expression is null
         /// or missing (i.e. does not have a value)
         /// </summary>

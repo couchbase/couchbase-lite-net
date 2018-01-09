@@ -1,5 +1,5 @@
 ﻿// 
-//  ICountable.cs
+//  IEndpoint.cs
 // 
 //  Author:
 //   Jim Borden  <jim.borden@couchbase.com>
@@ -19,17 +19,13 @@
 //  limitations under the License.
 // 
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.Sync
 {
     /// <summary>
-    /// An interface with a Count property, so that different types that can have
-    /// their items counted don't collide with each other
+    /// Represents an endpoint in a replication
     /// </summary>
-    public interface ICountable
+    public interface IEndpoint
     {
-        /// <summary>
-        /// Gets the number of elements inside the collection
-        /// </summary>
-        int Count { get; }
+        
     }
 }

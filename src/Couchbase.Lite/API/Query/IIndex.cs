@@ -60,6 +60,6 @@ namespace Couchbase.Lite.Query
         /// an underscore and an ISO-3166 country code: "en", "en_US", "fr_CA", etc.</param>
         /// <returns>The index for further processing</returns>
         [NotNull]
-        IFullTextIndex SetLocale(string localeCode);
+        IFullTextIndex Locale(string localeCode);
     }
 }

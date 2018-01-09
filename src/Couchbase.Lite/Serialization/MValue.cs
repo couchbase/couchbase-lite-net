@@ -130,7 +130,7 @@ namespace Couchbase.Lite.Internal.Serialization
             switch (type) {
                 case FLValueType.Array:
                     cache = true;
-                    return parent?.MutableChildren == true ? new MutableArray(mv, parent) : new ArrayObject(mv, parent);
+                    return parent?.MutableChildren == true ? new MutableArrayObject(mv, parent) : new ArrayObject(mv, parent);
                 case FLValueType.Dict:
                     cache = true;
                     var context = parent?.Context as DocContext;
@@ -144,7 +144,7 @@ namespace Couchbase.Lite.Internal.Serialization
                     }
 
                     return parent?.MutableChildren == true
-                        ? new MutableDictionary(mv, parent)
+                        ? new MutableDictionaryObject(mv, parent)
                         : new DictionaryObject(mv, parent);
                 default:
                     return FLSliceExtensions.ToObject(mv.Value);

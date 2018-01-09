@@ -60,7 +60,7 @@ namespace Couchbase.Lite.Internal.Query
 
         internal Database Database => _query?.Database;
 
-        internal QueryResult this[int index]
+        internal Result this[int index]
         {
             get {
                 _threadSafety.DoLockedBridge(err =>
@@ -72,7 +72,7 @@ namespace Couchbase.Lite.Internal.Query
                     return Native.c4queryenum_seek(_c4Enum, (ulong) index, err);
                 });
 
-                return new QueryResult(this, _c4Enum, _context);
+                return new Result(this, _c4Enum, _context);
             }
         }
 
@@ -121,9 +121,9 @@ namespace Couchbase.Lite.Internal.Query
             return newEnum != null ? new QueryResultSet(query, _threadSafety, newEnum, ColumnNames) : null;
         }
 
-        public IReadOnlyList<QueryResult> ToArray()
+        public IReadOnlyList<Result> ToArray()
         {
-            IReadOnlyList<QueryResult> retVal = null;
+            IReadOnlyList<Result> retVal = null;
             _threadSafety.DoLocked(() =>
             {
                 if (_disposed) {
@@ -136,7 +136,7 @@ namespace Couchbase.Lite.Internal.Query
                     return;
                 }
 
-                retVal = Enumerable.Empty<QueryResult>().ToArray();
+                retVal = Enumerable.Empty<Result>().ToArray();
             });
 
             return retVal;
@@ -168,7 +168,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IEnumerable<QueryResult>
 
-        public IEnumerator<QueryResult> GetEnumerator()
+        public IEnumerator<Result> GetEnumerator()
         {
             _threadSafety.DoLocked(() =>
             {
@@ -184,7 +184,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Nested
 
-        private sealed class Enumerator : IEnumerator<QueryResult>
+        private sealed class Enumerator : IEnumerator<Result>
         {
             #region Variables
 
@@ -197,14 +197,14 @@ namespace Couchbase.Lite.Internal.Query
 
             object IEnumerator.Current => Current;
 
-            public QueryResult Current
+            public Result Current
             {
                 get {
                     if (_parent._disposed) {
                         throw new ObjectDisposedException(nameof(QueryResultSet));
                     }
 
-                    return new QueryResult(_parent, _enum, _parent._context);
+                    return new Result(_parent, _enum, _parent._context);
                 }
             }
 

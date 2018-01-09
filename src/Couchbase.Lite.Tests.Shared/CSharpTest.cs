@@ -73,15 +73,11 @@ namespace Test
         public void TestEncryptionKey()
         {
             byte[] derivedData;
-            using (var key = new EncryptionKey()) {
+            using (var key = new EncryptionKey("test")) {
                 key.KeyData.Should().NotBeNullOrEmpty();
-                using (var key2 = new EncryptionKey()) {
-                    key2.KeyData.Should().NotBeNullOrEmpty();
-                    key2.KeyData.Should().NotEqual(key.KeyData);
-                }
-
                 derivedData = key.KeyData;
             }
+
             using (var key = new EncryptionKey(derivedData)) {
                 key.HexData.Should().Be(BitConverter.ToString(derivedData).Replace("-", String.Empty).ToLower());
                 key.KeyData.Should().Equal(derivedData);
@@ -140,16 +136,16 @@ namespace Test
         {
             var now = DateTimeOffset.UtcNow;
             var nowStr = now.ToString("o");
-            var ao = new MutableArray();
+            var ao = new MutableArrayObject();
             var blob = new Blob("text/plain", Encoding.UTF8.GetBytes("Winter is coming"));
-            var dict = new MutableDictionary(new Dictionary<string, object> {["foo"] = "bar"});
+            var dict = new MutableDictionaryObject(new Dictionary<string, object> {["foo"] = "bar"});
             ao.AddFloat(1.1f);
             ao.AddBlob(blob);
             ao.AddDate(now);
             ao.AddDictionary(dict);
 
             var obj = new Object();
-            var arr = new MutableArray(new[] {5, 4, 3, 2, 1});
+            var arr = new MutableArrayObject(new[] {5, 4, 3, 2, 1});
             ao.InsertValue(0, obj);
             ao.InsertInt(0, 42);
             ao.InsertLong(0, Int64.MaxValue);
@@ -453,8 +449,8 @@ Transfer-Encoding: chunked";
             {
                 ["string_val"] = "string",
                 ["numbers"] = numbers,
-                ["dict"] = new MutableDictionary().SetString("foo", "bar"),
-                ["array"] = new MutableArray().AddInt(42)
+                ["dict"] = new MutableDictionaryObject().SetString("foo", "bar"),
+                ["array"] = new MutableArrayObject().AddInt(42)
             };
 
             dict.RecursiveEqual(dict).Should().BeTrue();

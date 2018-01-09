@@ -32,13 +32,17 @@ namespace Couchbase.Lite
     /// <summary>
     /// A class representing a writeable string to object dictionary
     /// </summary>
-    public sealed class MutableDictionary : DictionaryObject, IMutableDictionary
+    public sealed class MutableDictionaryObject : DictionaryObject, IMutableDictionary
     {
         #region Properties
 
         internal bool HasChanges => _dict.IsMutated;
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets the fragment value for the given key in this dictionary
+        /// </summary>
+        /// <param name="key">The key whose value to retrieve</param>
+        /// <returns>The fragment representing the value at the given key</returns>
         public new IMutableFragment this[string key] => new Fragment(this, key);
 
         #endregion
@@ -48,7 +52,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Default Constructor
         /// </summary>
-        public MutableDictionary()
+        public MutableDictionaryObject()
         {
             
         }
@@ -58,17 +62,17 @@ namespace Couchbase.Lite
         /// from an existing dictionary
         /// </summary>
         /// <param name="dict">The dictionary to copy the keys and values from</param>
-        public MutableDictionary(IDictionary<string, object> dict)
+        public MutableDictionaryObject(IDictionary<string, object> dict)
         {
             SetData(dict);
         }
 
-        internal MutableDictionary(MDict dict, bool isMutable)
+        internal MutableDictionaryObject(MDict dict, bool isMutable)
         {
             _dict.InitAsCopyOf(dict, isMutable);
         }
 
-        internal MutableDictionary(MValue mv, MCollection parent)
+        internal MutableDictionaryObject(MValue mv, MCollection parent)
             : base(mv, parent)
         {
             
@@ -105,15 +109,15 @@ namespace Couchbase.Lite
         #region IMutableDictionary
 
         /// <inheritdoc />
-        public new MutableArray GetArray(string key)
+        public new MutableArrayObject GetArray(string key)
         {
-            return base.GetArray(key) as MutableArray;
+            return base.GetArray(key) as MutableArrayObject;
         }
 
         /// <inheritdoc />
-        public new MutableDictionary GetDictionary(string key)
+        public new MutableDictionaryObject GetDictionary(string key)
         {
-            return base.GetDictionary(key) as MutableDictionary;
+            return base.GetDictionary(key) as MutableDictionaryObject;
         }
 
         /// <inheritdoc />

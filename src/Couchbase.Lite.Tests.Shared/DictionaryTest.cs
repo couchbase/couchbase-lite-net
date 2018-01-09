@@ -49,7 +49,7 @@ namespace Test
         [Fact]
         public void TestCreateDictionary()
         {
-            var address = new MutableDictionary();
+            var address = new MutableDictionaryObject();
             address.Count.Should().Be(0, "because the dictionary is empty");
             address.ToDictionary().Should().BeEmpty("because the dictionary is empty");
 
@@ -72,7 +72,7 @@ namespace Test
                 ["city"] = "Mountain View",
                 ["state"] = "CA"
             };
-            var address = new MutableDictionary(dict);
+            var address = new MutableDictionaryObject(dict);
             address.ShouldBeEquivalentTo(dict, "because that is what was stored");
             address.ToDictionary().ShouldBeEquivalentTo(dict, "because that is what was stored");
 
@@ -92,7 +92,7 @@ namespace Test
         [Fact]
         public void TestGetValueFromNewEmptyDictionary()
         {
-            DictionaryObject dict = new MutableDictionary();
+            DictionaryObject dict = new MutableDictionaryObject();
             dict.GetInt("key").Should().Be(0, "because that is the default value");
             dict.GetLong("key").Should().Be(0L, "because that is the default value");
             dict.GetDouble("key").Should().Be(0.0, "because that is the default value");
@@ -128,15 +128,15 @@ namespace Test
         public void TestSetNestedDictionaries()
         {
             var doc = new MutableDocument("doc1");
-            var level1 = new MutableDictionary();
+            var level1 = new MutableDictionaryObject();
             level1.SetString("name", "n1");
             doc.SetDictionary("level1", level1);
 
-            var level2 = new MutableDictionary();
+            var level2 = new MutableDictionaryObject();
             level2.SetString("name", "n2");
             level1.SetDictionary("level2", level2);
 
-            var level3 = new MutableDictionary();
+            var level3 = new MutableDictionaryObject();
             level3.SetString("name", "n3");
             level2.SetDictionary("level3", level3);
 
@@ -167,7 +167,7 @@ namespace Test
         public void TestSetNull()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mDict = new MutableDictionary();
+                var mDict = new MutableDictionaryObject();
                 mDict.SetValue("obj-null", null);
                 mDict.SetString("string-null", null);
                 mDict.SetArray("array-null", null);
@@ -196,7 +196,7 @@ namespace Test
         public void TestSetOthers()
         {
             // Uncovered by other tests
-            var dict = new MutableDictionary();
+            var dict = new MutableDictionaryObject();
             dict.SetFloat("pi", 3.14f);
             dict.SetDouble("better_pi", 3.14159);
             dict.SetBoolean("use_better", true);
@@ -263,12 +263,12 @@ namespace Test
         public void TestReplaceDictionary()
         {
             var doc = new MutableDocument("doc1");
-            var profile1 = new MutableDictionary();
+            var profile1 = new MutableDictionaryObject();
             profile1.SetString("name", "Scott Tiger");
             doc.SetDictionary("profile", profile1);
             doc.GetDictionary("profile").ShouldBeEquivalentTo(profile1, "because that is what was set");
 
-            var profile2 = new MutableDictionary();
+            var profile2 = new MutableDictionaryObject();
             profile2.SetString("name", "Daniel Tiger");
             doc.SetDictionary("profile", profile2);
             doc.GetDictionary("profile").ShouldBeEquivalentTo(profile2, "because that is what was set");
@@ -294,7 +294,7 @@ namespace Test
         public void TestReplaceDictionaryDifferentType()
         {
             var doc = new MutableDocument("doc1");
-            var profile1 = new MutableDictionary();
+            var profile1 = new MutableDictionaryObject();
             profile1.SetString("name", "Scott Tiger");
             doc.SetDictionary("profile", profile1);
             doc.GetDictionary("profile").ShouldBeEquivalentTo(profile1, "because that is what was set");
@@ -317,7 +317,7 @@ namespace Test
         public void TestRemoveDictionary()
         {
             var doc = new MutableDocument("doc1");
-            var profile1 = new MutableDictionary();
+            var profile1 = new MutableDictionaryObject();
             profile1.SetString("name", "Scott Tiger");
             doc.SetDictionary("profile", profile1);
             doc.GetDictionary("profile").ShouldBeEquivalentTo(profile1, "because that was what was inserted");
@@ -343,7 +343,7 @@ namespace Test
         [Fact]
         public void TestEnumeratingDictionary()
         {
-            var dict = new MutableDictionary();
+            var dict = new MutableDictionaryObject();
             for (int i = 0; i < 20; i++) {
                 dict.SetInt($"key{i}", i);
             }
@@ -419,12 +419,12 @@ namespace Test
         [Fact]
         public void TestGetDictionary()
         {
-            var mNestedDict = new MutableDictionary();
+            var mNestedDict = new MutableDictionaryObject();
             mNestedDict.SetLong("key1", 1L);
             mNestedDict.SetString("key2", "Hello");
             mNestedDict.SetValue("key3", null);
 
-            var mDict = new MutableDictionary();
+            var mDict = new MutableDictionaryObject();
             mDict.SetLong("key1", 1L);
             mDict.SetString("key2", "Hello");
             mDict.SetValue("key3", null);
@@ -447,12 +447,12 @@ namespace Test
         [Fact]
         public void TestGetArray()
         {
-            var mNestedArray = new MutableArray();
+            var mNestedArray = new MutableArrayObject();
             mNestedArray.AddLong(1L);
             mNestedArray.AddString("Hello");
             mNestedArray.AddValue(null);
 
-            var mArray = new MutableArray();
+            var mArray = new MutableArrayObject();
             mArray.AddLong(1L);
             mArray.AddString("Hello");
             mArray.AddValue(null);

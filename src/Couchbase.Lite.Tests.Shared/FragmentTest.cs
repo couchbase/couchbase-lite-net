@@ -472,7 +472,7 @@ namespace Test
         public void TestDictionaryFragmentSetDictionary()
         {
             var doc = new MutableDocument("doc1");
-            var dict = new MutableDictionary();
+            var dict = new MutableDictionaryObject();
             dict.SetString("name", "Jason")
                 .SetValue("address", new Dictionary<string, object> {
                     ["street"] = "1 Main Street",
@@ -499,7 +499,7 @@ namespace Test
         public void TestDictionaryFragmentSetArray()
         {
             var doc = new MutableDocument("doc1");
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             array.AddInt(0).AddInt(1).AddInt(2);
 
             doc["array"].Value = array;
@@ -618,7 +618,7 @@ namespace Test
         public void TestArrayFragmentSetDictionary()
         {
             var doc = new MutableDocument("doc1");
-            var dict = new MutableDictionary();
+            var dict = new MutableDictionaryObject();
             dict.SetString("name", "Jason")
                 .SetValue("address", new Dictionary<string, object> {
                     ["street"] = "1 Main Street",
@@ -693,7 +693,7 @@ namespace Test
         {
             var doc = new MutableDocument("doc1");
             doc["array"].Value = new List<object>();
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             array.AddString("Jason").AddDouble(5.5).AddBoolean(true);
 
             doc["array"].Array.AddArray(array);
@@ -794,9 +794,9 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc["name"].Value = "Jason";
 
-            doc["address"].Value = new MutableDictionary();
+            doc["address"].Value = new MutableDictionaryObject();
             doc["address"]["street"].Value = "1 Main Street";
-            doc["address"]["phones"].Value = new MutableDictionary();
+            doc["address"]["phones"].Value = new MutableDictionaryObject();
             doc["address"]["phones"]["mobile"].Value = "650-123-4567";
 
             doc["name"].String.Should().Be("Jason", "because that is what was stored");

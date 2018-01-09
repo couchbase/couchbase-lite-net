@@ -140,15 +140,15 @@ namespace Couchbase.Lite.Internal.Doc
 
         IMutableFragment IMutableDictionaryFragment.this[string key] => GetForKey(key);
 
-        MutableArray IMutableFragment.Array
+        MutableArrayObject IMutableFragment.Array
         {
-            get => Value as MutableArray;
+            get => Value as MutableArrayObject;
             set => Value = value;
         }
 
-        MutableDictionary IMutableFragment.Dictionary
+        MutableDictionaryObject IMutableFragment.Dictionary
         {
-            get => Value as MutableDictionary;
+            get => Value as MutableDictionaryObject;
             set => Value = value;
         }
 

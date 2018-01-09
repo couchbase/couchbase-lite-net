@@ -29,7 +29,7 @@ namespace Couchbase.Lite.Sync
     /// The type of authentication credentials that an <see cref="AuthOptionsDictionary"/>
     /// holds
     /// </summary>
-    public enum AuthType
+    internal enum AuthType
     {
         /// <summary>
         /// HTTP Basic (RFC 2617)
@@ -41,7 +41,7 @@ namespace Couchbase.Lite.Sync
     /// A container that stores login information for authenticating with
     /// a remote endpoint
     /// </summary>
-    public sealed class AuthOptionsDictionary : OptionsDictionary
+    internal sealed class AuthOptionsDictionary : OptionsDictionary
     {
         #region Constants
 

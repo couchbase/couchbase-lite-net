@@ -67,7 +67,7 @@ namespace Couchbase.Lite
 
         internal override bool IsMutable => true;
 
-        private bool Changed => (_dict as MutableDictionary)?.HasChanges ?? (_dict as InMemoryDictionary)?.HasChanges ?? false;
+        private bool Changed => (_dict as MutableDictionaryObject)?.HasChanges ?? (_dict as InMemoryDictionary)?.HasChanges ?? false;
 
         private IMutableDictionary Dict => _dict as IMutableDictionary;
 
@@ -91,9 +91,9 @@ namespace Couchbase.Lite
         /// <summary>
         /// Creates a document given an ID
         /// </summary>
-        /// <param name="documentID">The ID for the document</param>
-        public MutableDocument(string documentID)
-            : this(null, documentID ?? Misc.CreateGuid(), null)
+        /// <param name="id">The ID for the document</param>
+        public MutableDocument(string id)
+            : this(null, id ?? Misc.CreateGuid(), null)
         {
             
         }
@@ -101,26 +101,26 @@ namespace Couchbase.Lite
         /// <summary>
         /// Creates a document with the given properties
         /// </summary>
-        /// <param name="dictionary">The properties of the document</param>
-        public MutableDocument(IDictionary<string, object> dictionary)
+        /// <param name="data">The properties of the document</param>
+        public MutableDocument(IDictionary<string, object> data)
             : this()
         {
-            SetData(dictionary);
+            SetData(data);
         }
 
         /// <summary>
         /// Creates a document with the given ID and properties
         /// </summary>
-        /// <param name="documentID">The ID for the document</param>
-        /// <param name="dictionary">The properties for the document</param>
-        public MutableDocument(string documentID, IDictionary<string, object> dictionary)
-            : this(documentID)
+        /// <param name="id">The ID for the document</param>
+        /// <param name="data">The properties for the document</param>
+        public MutableDocument(string id, IDictionary<string, object> data)
+            : this(id)
         {
-            SetData(dictionary);
+            SetData(data);
         }
 
-        internal MutableDocument([NotNull]Database database, [NotNull]string documentID, bool mustExist)
-            : base(database, documentID, mustExist)
+        internal MutableDocument([NotNull]Database database, [NotNull]string id, bool mustExist)
+            : base(database, id, mustExist)
         {
 
         }
@@ -131,8 +131,8 @@ namespace Couchbase.Lite
 
         }
 
-        private MutableDocument([NotNull]Database database, [NotNull]string documentID, C4DocumentWrapper c4Doc)
-            : base(database, documentID, c4Doc)
+        private MutableDocument([NotNull]Database database, [NotNull]string id, C4DocumentWrapper c4Doc)
+            : base(database, id, c4Doc)
         {
             
         }
@@ -140,7 +140,7 @@ namespace Couchbase.Lite
         private MutableDocument([NotNull]MutableDocument other)
             : base(other)
         {
-            var dict = new MutableDictionary();
+            var dict = new MutableDictionaryObject();
             if (other._dict != null) {
                 foreach (var item in other._dict) {
                     dict.SetValue(item.Key, MutableCopy(item.Value));
@@ -245,13 +245,13 @@ namespace Couchbase.Lite
         #region IMutableDictionary
 
         /// <inheritdoc />
-        public new MutableArray GetArray(string key)
+        public new MutableArrayObject GetArray(string key)
         {
             return Dict?.GetArray(key);
         }
 
         /// <inheritdoc />
-        public new MutableDictionary GetDictionary(string key)
+        public new MutableDictionaryObject GetDictionary(string key)
         {
             return Dict?.GetDictionary(key);
         }

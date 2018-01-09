@@ -36,7 +36,7 @@ namespace Couchbase.Lite.Query
     /// A class representing information about a "row" in the result of an
     /// <see cref="IQuery"/>
     /// </summary>
-    public sealed unsafe class QueryResult : IArray, IDictionaryObject
+    public sealed unsafe class Result : IArray, IDictionaryObject
     {
         #region Variables
 
@@ -50,10 +50,12 @@ namespace Couchbase.Lite.Query
 
         #region Properties
 
-        /// </inheritdoc>
+        /// <summary>
+        /// Gets the number of entries in the result
+        /// </summary>
         public int Count => _columnNames.Count;
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public IFragment this[int index]
         {
             get {
@@ -65,10 +67,10 @@ namespace Couchbase.Lite.Query
             }
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public IFragment this[string key] => this[IndexForColumnName(key)];
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public ICollection<string> Keys => _columnNames.Keys;
 
         private Database Database
@@ -84,7 +86,7 @@ namespace Couchbase.Lite.Query
 
         #region Constructors
 
-        internal QueryResult(QueryResultSet rs, C4QueryEnumerator* e, MContext context)
+        internal Result(QueryResultSet rs, C4QueryEnumerator* e, MContext context)
         {
             _rs = rs;
             _columns = e->columns;
@@ -167,73 +169,73 @@ namespace Couchbase.Lite.Query
 
         #region IReadOnlyArray
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public ArrayObject GetArray(int index)
         {
             return FleeceValueToObject(index) as ArrayObject;
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public Blob GetBlob(int index)
         {
             return FleeceValueToObject(index) as Blob;  
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public bool GetBoolean(int index)
         {
             return Native.FLValue_AsBool(FLValueAtIndex(index));
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public DateTimeOffset GetDate(int index)
         {
             return DataOps.ConvertToDate(GetValue(index));
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public DictionaryObject GetDictionary(int index)
         {
             return FleeceValueToObject(index) as DictionaryObject;
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public double GetDouble(int index)
         {
             return Native.FLValue_AsDouble(FLValueAtIndex(index));
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public float GetFloat(int index)
         {
             return Native.FLValue_AsFloat(FLValueAtIndex(index));
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public int GetInt(int index)
         {
             return (int)Native.FLValue_AsInt(FLValueAtIndex(index));
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public long GetLong(int index)
         {
             return Native.FLValue_AsInt(FLValueAtIndex(index));
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public object GetValue(int index)
         {
             return FleeceValueToObject(index);
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public string GetString(int index)
         {
             return Native.FLValue_AsString(FLValueAtIndex(index));
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public List<object> ToList()
         {
 
@@ -253,90 +255,90 @@ namespace Couchbase.Lite.Query
 
         #region IReadOnlyDictionary
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public bool Contains(string key)
         {
             return IndexForColumnName(key) >= 0;
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public ArrayObject GetArray(string key)
         {
             var index = IndexForColumnName(key);
             return index >= 0 ? GetArray(index) : null;
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public Blob GetBlob(string key)
         {
             var index = IndexForColumnName(key);
             return index >= 0 ? GetBlob(index) : null;
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public bool GetBoolean(string key)
         {
             var index = IndexForColumnName(key);
             return index >= 0 && GetBoolean(index);
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public DateTimeOffset GetDate(string key)
         {
             var index = IndexForColumnName(key);
             return index >= 0 ? GetDate(index) : DateTimeOffset.MinValue;
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public DictionaryObject GetDictionary(string key)
         {
             var index = IndexForColumnName(key);
             return index >= 0 ? GetDictionary(index) : null;
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public double GetDouble(string key)
         {
             var index = IndexForColumnName(key);
             return index >= 0 ? GetDouble(index) : 0.0;
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public float GetFloat(string key)
         {
             var index = IndexForColumnName(key);
             return index >= 0 ? GetFloat(index) : 0.0f;
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public int GetInt(string key)
         {
             var index = IndexForColumnName(key);
             return index >= 0 ? GetInt(index) : 0;
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public long GetLong(string key)
         {
             var index = IndexForColumnName(key);
             return index >= 0 ? GetLong(index) : 0L;
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public object GetValue(string key)
         {
             var index = IndexForColumnName(key);
             return index >= 0 ? GetValue(index) : null;
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public string GetString(string key)
         {
             var index = IndexForColumnName(key);
             return index >= 0 ? GetString(index) : null;
         }
 
-        /// </inheritdoc>
+        /// <inheritdoc />
         public Dictionary<string, object> ToDictionary()
         {
             var dict = new Dictionary<string, object>();

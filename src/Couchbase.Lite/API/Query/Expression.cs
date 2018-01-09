@@ -55,18 +55,6 @@ namespace Couchbase.Lite.Query
         }
 
         /// <summary>
-        /// Gets an expression representing a positional parameter (as set in
-        /// <see cref="IQuery.Parameters"/>) for use in a query
-        /// </summary>
-        /// <param name="index">The position of the parameter in the parameter list</param>
-        /// <returns>The expression representing the parameter</returns>
-        [NotNull]
-        public static IExpression Parameter(int index)
-        {
-            return new QueryTypeExpression(index.ToString(), ExpressionType.Parameter);
-        }
-
-        /// <summary>
         /// Gets an expression representing a named parameter (as set in
         /// <see cref="IQuery.Parameters"/>) for use in a query
         /// </summary>

@@ -410,7 +410,7 @@ namespace Test
             }
         }
 
-        private void VerifyByTagName(string name, Action<ulong, QueryResult> test)
+        private void VerifyByTagName(string name, Action<ulong, Result> test)
         {
             var TAG = Expression.Property("tag");
             var DOCID = SelectResult.Expression(Meta.ID);
@@ -446,13 +446,13 @@ namespace Test
             doc.SetString("firstName", "Daniel");
             doc.SetString("lastName", "Tiger");
 
-            var address = new MutableDictionary();
+            var address = new MutableDictionaryObject();
             address.SetString("street", "1 Main street");
             address.SetString("city", "Mountain View");
             address.SetString("state", "CA");
             doc.SetDictionary("address", address);
 
-            var phones = new MutableArray();
+            var phones = new MutableArrayObject();
             phones.AddString("650-123-0001")
                 .AddString("650-123-0001");
 

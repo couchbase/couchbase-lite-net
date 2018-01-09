@@ -64,13 +64,6 @@ namespace Test
         }
 
         [Fact]
-        public void TestBadURL()
-        {
-            var config = CreateConfig(false, true, false, new Uri("blxp://localhost/db"));
-            RunReplication(config, 15, C4ErrorDomain.LiteCoreDomain);
-        }
-
-        [Fact]
         public void TestEmptyPush()
         {
             var config = CreateConfig(true, false, false);
@@ -285,7 +278,7 @@ namespace Test
         public async Task TestReplicatorStopWhenClosed()
         {
             var config = CreateConfig(true, true, true);
-            using (var repl = new Replicator(config)) {
+            using (var repl = new Replicator(config.Build())) {
                 repl.Start();
                 while (repl.Status.Activity != ReplicatorActivityLevel.Idle) {
                     WriteLine($"Replication status still {repl.Status.Activity}, waiting for idle...");
@@ -309,7 +302,7 @@ namespace Test
         public void TestStopContinuousReplicator()
         {
             var config = CreateConfig(true, false, true);
-            using (var r = new Replicator(config)) {
+            using (var r = new Replicator(config.Build())) {
                 var stopWhen = new[]
                 {
                     ReplicatorActivityLevel.Connecting, ReplicatorActivityLevel.Busy,
@@ -361,18 +354,9 @@ namespace Test
 #endif
         public void TestAuthenticationFailure()
         {
-            var config = CreateConfig(false, true, false, new Uri("blip://localhost:4984/seekrit"));
-            _repl = new Replicator(config);
+            var config = CreateConfig(false, true, false, new URLEndpoint("localhost", "seekrit", false));
+            _repl = new Replicator(config.Build());
             RunReplication(config, 401, C4ErrorDomain.WebSocketDomain);
-        }
-
-#if HAVE_SG
-        [Fact] 
-#endif
-        public void TestAuthenticationPullHardcoded()
-        {
-            var config = CreateConfig(false, true, false, new Uri("blip://pupshaw:frank@localhost:4984/seekrit"));
-            RunReplication(config, 0, 0);
         }
 
 #if HAVE_SG
@@ -380,7 +364,7 @@ namespace Test
 #endif
         public void TestAuthenticatedPull()
         {
-            var config = CreateConfig(false, true, false, new Uri("blip://localhost:4984/seekrit"));
+            var config = CreateConfig(false, true, false, new URLEndpoint("localhost", "seekrit", false));
             config.Authenticator = new SessionAuthenticator("78376efd8cc74dadfc395f4049a115b7cd0ef5e3", default(string),
                 "SyncGatewaySession");
             RunReplication(config, 0, 0);
@@ -391,7 +375,7 @@ namespace Test
 #endif
         public void TestSelfSignedSSLFailure()
         {
-            var config = CreateConfig(false, true, false, new Uri("blips://localhost:4984/db"));
+            var config = CreateConfig(false, true, false, new URLEndpoint("localhost", "db", true));
             RunReplication(config, (int)C4NetworkErrorCode.TLSCertUntrusted, C4ErrorDomain.NetworkDomain);
         }
 
@@ -400,7 +384,7 @@ namespace Test
 #endif
         public async Task TestSelfSignedSSLPinned()
         {
-            var config = CreateConfig(false, true, false, new Uri("blips://localhost:4984/db"));
+            var config = CreateConfig(false, true, false, new URLEndpoint("localhost", "db", true));
 #if WINDOWS_UWP
             var installedLocation = Windows.ApplicationModel.Package.Current.InstalledLocation;
             var file = await installedLocation.GetFileAsync("Assets\\localhost-wrong.cert");
@@ -436,35 +420,35 @@ namespace Test
             });
 
             
-            var config = CreateConfig(true, false, false, new Uri("blip://localhost:4984/db"));
+            var config = CreateConfig(true, false, false, new URLEndpoint("localhost", "db", false));
             RunReplication(config, 0, 0);
 
-            config = new ReplicatorConfiguration(_otherDB, new Uri("blip://localhost:4984/db"));
+            config = new ReplicatorConfiguration.Builder(_otherDB, new URLEndpoint("localhost", "db", false));
             ModifyConfig(config, false, true, false);
             config.Channels = new[] {"my_channel"};
             RunReplication(config, 0, 0);
             _otherDB.Count.Should().Be(10, "because 10 documents should be in the given channel");
         }
 
-        private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous)
+        private ReplicatorConfiguration.Builder CreateConfig(bool push, bool pull, bool continuous)
         {
             var target = _otherDB;
             return CreateConfig(push, pull, continuous, target);
         }
 
-        private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous, Uri url)
+        private ReplicatorConfiguration.Builder CreateConfig(bool push, bool pull, bool continuous, URLEndpoint endpoint)
         {
-            var retVal = new ReplicatorConfiguration(Db, url);
+            var retVal = new ReplicatorConfiguration.Builder(Db, endpoint);
             return ModifyConfig(retVal, push, pull, continuous);
         }
 
-        private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous, Database target)
+        private ReplicatorConfiguration.Builder CreateConfig(bool push, bool pull, bool continuous, Database target)
         {
-            var retVal = new ReplicatorConfiguration(Db, target);
+            var retVal = new ReplicatorConfiguration.Builder(Db, new DatabaseEndpoint(target));
             return ModifyConfig(retVal, push, pull, continuous);
         }
 
-        private ReplicatorConfiguration ModifyConfig(ReplicatorConfiguration config, bool push, bool pull, bool continuous)
+        private ReplicatorConfiguration.Builder ModifyConfig(ReplicatorConfiguration.Builder config, bool push, bool pull, bool continuous)
         {
             var type = (ReplicatorType)0;
             if (push) {
@@ -480,7 +464,7 @@ namespace Test
             return config;
         }
 
-        private void VerifyChange(ReplicationStatusChangedEventArgs change, int errorCode, C4ErrorDomain domain)
+        private void VerifyChange(ReplicatorStatusChangedEventArgs change, int errorCode, C4ErrorDomain domain)
         {
             var s = change.Status;
             WriteLine($"---Status: {s.Activity} ({s.Progress.Completed} / {s.Progress.Total}), lastError = {s.Error}");
@@ -498,9 +482,9 @@ namespace Test
             }
         }
 
-        private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, C4ErrorDomain expectedErrDomain)
+        private void RunReplication(ReplicatorConfiguration.Builder config, int expectedErrCode, C4ErrorDomain expectedErrDomain)
         {
-            Misc.SafeSwap(ref _repl, new Replicator(config));
+            Misc.SafeSwap(ref _repl, new Replicator(config.Build()));
             _waitAssert = new WaitAssert();
             var token = _repl.AddChangeListener((sender, args) =>
             {

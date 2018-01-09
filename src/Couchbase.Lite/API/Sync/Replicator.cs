@@ -64,12 +64,11 @@ namespace Couchbase.Lite.Sync
         #endregion
 
         #region Variables
-
-        [NotNull]private readonly ReplicatorConfiguration _config;
+        
         [NotNull]private readonly ThreadSafety _databaseThreadSafety;
         [NotNull]private readonly SerialQueue _threadSafetyQueue = new SerialQueue();
-        [NotNull]private readonly Event<ReplicationStatusChangedEventArgs> _statusChanged =
-            new Event<ReplicationStatusChangedEventArgs>();
+        [NotNull]private readonly Event<ReplicatorStatusChangedEventArgs> _statusChanged =
+            new Event<ReplicatorStatusChangedEventArgs>();
 
         private string _desc;
         private bool _disposed;
@@ -88,12 +87,12 @@ namespace Couchbase.Lite.Sync
         /// Gets the configuration that was used to create this Replicator
         /// </summary>
         [NotNull]
-        public ReplicatorConfiguration Config => ReplicatorConfiguration.Clone(_config);
+        public ReplicatorConfiguration Config { get; }
 
         /// <summary>
         /// Gets the current status of the <see cref="Replicator"/>
         /// </summary>
-        public ReplicationStatus Status { get; set; }
+        public ReplicatorStatus Status { get; set; }
 
         #endregion
 
@@ -110,8 +109,8 @@ namespace Couchbase.Lite.Sync
         /// <param name="config">The configuration to use to create the replicator</param>
         public Replicator([NotNull]ReplicatorConfiguration config)
         {
-            _config = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(config), ReplicatorConfiguration.Clone(config));
-            _databaseThreadSafety = _config.Database.ThreadSafety;
+            Config = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(config), config);
+            _databaseThreadSafety = Config.Database.ThreadSafety;
         }
 
         /// <summary>
@@ -132,7 +131,7 @@ namespace Couchbase.Lite.Sync
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
         [ContractAnnotation("null => halt")]
-        public ListenerToken AddChangeListener(EventHandler<ReplicationStatusChangedEventArgs> handler)
+        public ListenerToken AddChangeListener(EventHandler<ReplicatorStatusChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(handler), handler);
 
@@ -150,11 +149,11 @@ namespace Couchbase.Lite.Sync
         /// <returns>A token to remove the handler later</returns>
         [ContractAnnotation("handler:null => halt")]
         public ListenerToken AddChangeListener([CanBeNull]TaskScheduler scheduler,
-            EventHandler<ReplicationStatusChangedEventArgs> handler)
+            EventHandler<ReplicatorStatusChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(handler), handler);
 
-            var cbHandler = new CouchbaseEventHandler<ReplicationStatusChangedEventArgs>(handler, scheduler);
+            var cbHandler = new CouchbaseEventHandler<ReplicatorStatusChangedEventArgs>(handler, scheduler);
             _statusChanged.Add(cbHandler);
             return new ListenerToken(cbHandler, "repl");
         }
@@ -162,7 +161,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Removes a previously added change listener via its <see cref="ListenerToken"/>
         /// </summary>
-        /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{ReplicationStatusChangedEventArgs})"/></param>
+        /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{ReplicatorStatusChangedEventArgs})"/></param>
         public void RemoveChangeListener(ListenerToken token)
         {
             _statusChanged.Remove(token);
@@ -265,8 +264,8 @@ namespace Couchbase.Lite.Sync
                 if (!finalizing) {
                     _nativeParams?.Dispose();
                     if (Status.Activity != ReplicatorActivityLevel.Stopped) {
-                        var newStatus = new ReplicationStatus(ReplicatorActivityLevel.Stopped, Status.Progress, null);
-                        _statusChanged.Fire(this, new ReplicationStatusChangedEventArgs(newStatus));
+                        var newStatus = new ReplicatorStatus(ReplicatorActivityLevel.Stopped, Status.Progress, null);
+                        _statusChanged.Fire(this, new ReplicatorStatusChangedEventArgs(newStatus));
                         Status = newStatus;
                     }
                 }
@@ -283,11 +282,11 @@ namespace Couchbase.Lite.Sync
             // If this is a transient error, or if I'm continuous and the error might go away with a change
             // in network (i.e. network down, hostname unknown), then go offline and retry later
             var transient = Native.c4error_mayBeTransient(error);
-            if (!transient && !(_config.Continuous && Native.c4error_mayBeNetworkDependent(error))) {
+            if (!transient && !(Config.Continuous && Native.c4error_mayBeNetworkDependent(error))) {
                 return false; // Nope, this is permanent
             }
 
-            if (!_config.Continuous && _retryCount >= MaxOneShotRetryCount) {
+            if (!Config.Continuous && _retryCount >= MaxOneShotRetryCount) {
                 return false; //Too many retries
             }
 
@@ -320,7 +319,7 @@ namespace Couchbase.Lite.Sync
                 var safeDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
                 Log.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
                 try {
-                    _config.Database.ResolveConflict(docID, Config.ConflictResolver);
+                    Config.Database.ResolveConflict(docID, Config.ConflictResolver);
                 } catch (Exception e) {
                     Log.To.Sync.W(Tag, $"Conflict resolution of '{logDocID}' failed", e);
                 }
@@ -368,7 +367,7 @@ namespace Couchbase.Lite.Sync
             var host = new C4String();
             var path = new C4String();
             Database otherDB = null;
-            var remoteUrl = _config.RemoteUrl;
+            var remoteUrl = Config.RemoteUrl;
             string dbNameStr = null;
             if (remoteUrl != null) {
                 var pathStr = String.Concat(remoteUrl.Segments.Take(remoteUrl.Segments.Length - 1));
@@ -381,21 +380,22 @@ namespace Couchbase.Lite.Sync
                 addr.port = (ushort) remoteUrl.Port;
                 addr.path = path.AsC4Slice();
             } else {
-                otherDB = _config.OtherDB;
+                otherDB = Config.OtherDB;
             }
 
-            var options = _config.Options;
+            var options = Config.Options;
             var userInfo = remoteUrl?.UserInfo?.Split(':');
-            if (userInfo?.Length == 2 && options.Auth == null) {
-                _config.Authenticator = new BasicAuthenticator(userInfo[0], userInfo[1]);
+            if (userInfo?.Length == 2) {
+                throw new ArgumentException(
+                    "Embedded credentials in a URL (username:password@url) are not allowed; use the BasicAuthenticator class instead");
             }
 
-            _config.Authenticator?.Authenticate(_config.Options);
+            Config.Authenticator?.Authenticate(options);
 
             options.Freeze();
-            var push = _config.ReplicatorType.HasFlag(ReplicatorType.Push);
-            var pull = _config.ReplicatorType.HasFlag(ReplicatorType.Pull);
-            var continuous = _config.Continuous;
+            var push = Config.ReplicatorType.HasFlag(ReplicatorType.Push);
+            var pull = Config.ReplicatorType.HasFlag(ReplicatorType.Pull);
+            var continuous = Config.Continuous;
             _nativeParams = new ReplicatorParameters(Mkmode(push, continuous), Mkmode(pull, continuous), options, ValidateCallback, 
                 OnDocError, StatusChangedCallback, this);
 
@@ -405,12 +405,12 @@ namespace Couchbase.Lite.Sync
             _databaseThreadSafety.DoLocked(() =>
             {
                 C4Error localErr;
-                _repl = Native.c4repl_new(_config.Database.c4db, addr, dbNameStr, otherDB != null ? otherDB.c4db : null,
+                _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, otherDB != null ? otherDB.c4db : null,
                     _nativeParams.C4Params, &localErr);
                 err = localErr;
                 if (_repl != null) {
                     status = Native.c4repl_getStatus(_repl);
-                    _config.Database.ActiveReplications.Add(this);
+                    Config.Database.ActiveReplications.Add(this);
                 } else {
                     status = new C4ReplicatorStatus {
                         error = err,
@@ -460,11 +460,11 @@ namespace Couchbase.Lite.Sync
             UpdateStateProperties(status);
             if (status.level == C4ReplicatorActivityLevel.Stopped) {
                 ClearRepl();
-                _config.Database.ActiveReplications.Remove(this);
+                Config.Database.ActiveReplications.Remove(this);
             }
 
             try {
-                _statusChanged.Fire(this, new ReplicationStatusChangedEventArgs(Status));
+                _statusChanged.Fire(this, new ReplicatorStatusChangedEventArgs(Status));
             } catch (Exception e) {
                 Log.To.Sync.W(Tag, "Exception during StatusChanged callback", e);
             }
@@ -480,8 +480,8 @@ namespace Couchbase.Lite.Sync
             _rawStatus = state;
 
             var level = (ReplicatorActivityLevel) state.level;
-            var progress = new ReplicationProgress(state.progress.unitsCompleted, state.progress.unitsTotal);
-            Status = new ReplicationStatus(level, progress, error);
+            var progress = new ReplicatorProgress(state.progress.unitsCompleted, state.progress.unitsTotal);
+            Status = new ReplicatorStatus(level, progress, error);
             Log.To.Sync.I(Tag, $"{this} is {state.level}, progress {state.progress.unitsCompleted}/{state.progress.unitsTotal}");
         }
 
@@ -497,19 +497,19 @@ namespace Couchbase.Lite.Sync
             }
 
             var sb = new StringBuilder(3, 3);
-            if (_config.ReplicatorType.HasFlag(ReplicatorType.Pull)) {
+            if (Config.ReplicatorType.HasFlag(ReplicatorType.Pull)) {
                 sb.Append("<");
             }
 
-            if (_config.Continuous) {
+            if (Config.Continuous) {
                 sb.Append("*");
             }
 
-            if (_config.ReplicatorType.HasFlag(ReplicatorType.Push)) {
+            if (Config.ReplicatorType.HasFlag(ReplicatorType.Push)) {
                 sb.Append(">");
             }
 
-            return $"{GetType().Name}[{sb} {_config.Target}]";
+            return $"{GetType().Name}[{sb} {Config.Target}]";
         }
 
         #endregion

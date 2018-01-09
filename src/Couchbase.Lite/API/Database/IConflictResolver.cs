@@ -47,7 +47,7 @@ namespace Couchbase.Lite
     /// the document with the "longer" revision history (or <see cref="Conflict.Mine"/>
     /// if they are equal)
     /// </summary>
-    public sealed class MostActiveWinsConflictResolver : IConflictResolver
+    internal sealed class MostActiveWinsConflictResolver : IConflictResolver
     {
         #region IConflictResolver
 

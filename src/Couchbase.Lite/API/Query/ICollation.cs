@@ -73,11 +73,11 @@ namespace Couchbase.Lite.Query
         /// <summary>
         /// Sets the locale to use when applying the collation rules
         /// </summary>
-        /// <param name="localeCode">The POSIX locale code (ISO-639 language code 
+        /// <param name="locale">The POSIX locale code (ISO-639 language code 
         /// plus an optional underbar [_] and ISO-3166 country code.  Example: 
         /// 'en', 'en_US', 'fr_CA', etc)</param>
         /// <returns>The collation object for further processing</returns>
         [NotNull]
-        IUnicodeCollation Locale(string localeCode);
+        IUnicodeCollation Locale(string locale);
     }
 }

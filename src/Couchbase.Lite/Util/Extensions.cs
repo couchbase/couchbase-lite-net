@@ -31,7 +31,7 @@ namespace Couchbase.Lite.Util
     /// <summary>
     /// A collection of helpful extensions
     /// </summary>
-    public static class Extensions
+    internal static class Extensions
     {
         #region Public Methods
 

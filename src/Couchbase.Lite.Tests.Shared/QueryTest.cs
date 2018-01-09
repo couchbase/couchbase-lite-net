@@ -438,10 +438,10 @@ namespace Test
                 {
                     if (count++ == 1) {
                         wa.RunConditionalAssert(
-                            () => args.Rows.Count == 9);
+                            () => args.Results.Count == 9);
                     } else {
                         wa2.RunConditionalAssert(
-                            () => args.Rows.Count == 10 && args.Rows.First().GetInt(0) == -1);
+                            () => args.Results.Count == 10 && args.Results.First().GetInt(0) == -1);
                     }
                     
                 });
@@ -469,7 +469,7 @@ namespace Test
             var number2Prop = Expression.Property("number2");
             using (var q = Query.Select(SelectResult.Expression(number2Prop.From("main")))
                 .From(DataSource.Database(Db).As("main"))
-                .Join(Join.DefaultJoin(DataSource.Database(Db).As("secondary"))
+                .Join(Join.InnerJoin(DataSource.Database(Db).As("secondary"))
                     .On(Expression.Property("number1").From("main")
                         .EqualTo(Expression.Property("theone").From("secondary"))))) {
                 using (var results = q.Execute()) {
@@ -481,7 +481,7 @@ namespace Test
 
             using (var q = Query.Select(SelectResult.All().From("main"))
                 .From(DataSource.Database(Db).As("main"))
-                .Join(Join.DefaultJoin(DataSource.Database(Db).As("secondary"))
+                .Join(Join.InnerJoin(DataSource.Database(Db).As("secondary"))
                     .On(Expression.Property("number1").From("main")
                         .EqualTo(Expression.Property("theone").From("secondary"))))) {
                 using (var results = q.Execute()) {
@@ -588,8 +588,8 @@ namespace Test
                 .From(DataSource.Database(Db))
                 .Where(NUMBER1.Between(PARAM_N1, PARAM_N2))
                 .OrderBy(Ordering.Expression(NUMBER1))) {
-                q.Parameters.SetInt("num1", 2);
-                q.Parameters.SetInt("num2", 5);
+                var parameters = new Parameters.Builder().SetInt("num1", 2).SetInt("num2", 5);
+                q.Parameters = parameters.Build();
 
                 var expectedNumbers = new[] {2, 3, 4, 5};
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -667,7 +667,8 @@ namespace Test
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(NUMBER))
                 .Limit(LIMIT)) {
-                q.Parameters.SetInt("limit", 3);
+                var parameters = new Parameters.Builder().SetInt("limit", 3);
+                q.Parameters = parameters.Build();
 
                 var expectedNumbers = new[] {1, 2, 3};
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -706,8 +707,8 @@ namespace Test
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(NUMBER))
                 .Limit(LIMIT, OFFSET)) {
-                q.Parameters.SetInt("limit", 3);
-                q.Parameters.SetInt("offset", 5);
+                var parameters = new Parameters.Builder().SetInt("limit", 3).SetInt("offset", 5);
+                q.Parameters = parameters.Build();
 
                 var expectedNumbers = new[] {6, 7, 8};
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -775,7 +776,7 @@ namespace Test
         public void TestArrayFunctions()
         {
             using (var doc = new MutableDocument("doc1")) {
-                var array = new MutableArray();
+                var array = new MutableArrayObject();
                 array.AddString("650-123-0001");
                 array.AddString("650-123-0002");
                 doc.SetArray("array", array);
@@ -914,7 +915,7 @@ namespace Test
         public void TestTypeFunctions()
         {
             using (var doc = new MutableDocument("doc1")) {
-                var content = new MutableArray();
+                var content = new MutableArrayObject();
                 content.AddString("a").AddString("b");
                 doc.SetArray("element", content);
                 Db.Save(doc);
@@ -1323,7 +1324,7 @@ namespace Test
                 var doc1Listener = new WaitAssert();
                 query.AddChangeListener(null, (sender, args) =>
                 {
-                    foreach (var row in args.Rows) {
+                    foreach (var row in args.Results) {
                         if (row.GetString("id") == "doc1") {
                             doc1Listener.Fulfill();
                         } else if (row.GetString("id") == "doc2") {
@@ -1385,14 +1386,14 @@ namespace Test
 
                 bookmark1.SetString("type", "bookmark");
                 bookmark1.SetString("title", "Bookmark for Hawaii");
-                var hotels1 = new MutableArray();
+                var hotels1 = new MutableArrayObject();
                 hotels1.AddString("hotel1").AddString("hotel2");
                 bookmark1.SetArray("hotels", hotels1);
                 Db.Save(bookmark1);
 
                 bookmark2.SetString("type", "bookmark");
                 bookmark2.SetString("title", "Bookmark for New York");
-                var hotels2 = new MutableArray();
+                var hotels2 = new MutableArrayObject();
                 hotels2.AddString("hotel3");
                 bookmark2.SetArray("hotels", hotels2);
                 Db.Save(bookmark2);
@@ -1405,7 +1406,7 @@ namespace Test
             var hotelsExpr = Expression.Property("hotels").From("main");
             var hotelIdExpr = Meta.ID.From("secondary");
             var joinExpr = ArrayFunction.Contains(hotelsExpr, hotelIdExpr);
-            var join = Join.DefaultJoin(secondaryDS).On(joinExpr);
+            var join = Join.InnerJoin(secondaryDS).On(joinExpr);
 
             var srMainAll = SelectResult.All().From("main");
             var srSecondaryAll = SelectResult.All().From("secondary");
@@ -1545,7 +1546,7 @@ namespace Test
             var mainPropExpr = Expression.Property("number1").From("main");
             var secondaryExpr = Expression.Property("theone").From("secondary");
             var joinExpr = mainPropExpr.EqualTo(secondaryExpr);
-            var join = Join.DefaultJoin(secondaryDS).On(joinExpr);
+            var join = Join.InnerJoin(secondaryDS).On(joinExpr);
 
             var mainAll = SelectResult.All().From("main");
             var secondaryAll = SelectResult.All().From("secondary");
@@ -1594,7 +1595,7 @@ namespace Test
             var mainPropExpr = Meta.ID.From("main");
             var secondaryExpr = Expression.Property("numberID").From("secondary");
             var joinExpr = mainPropExpr.EqualTo(secondaryExpr);
-            var join = Join.DefaultJoin(secondaryDS).On(joinExpr);
+            var join = Join.InnerJoin(secondaryDS).On(joinExpr);
 
             var mainDocID = SelectResult.Expression(mainPropExpr).As("mainDocID");
             var secondaryDocID = SelectResult.Expression(Meta.ID.From("secondary")).As("secondaryDocID");
@@ -1676,7 +1677,7 @@ namespace Test
                 q.AddChangeListener(null, (sender, args) =>
                 {
                     if (consumeAll) {
-                        var rs = args.Rows;
+                        var rs = args.Results;
                         rs.ToArray().Should().NotBeNull(); // No-op
                     }
 
@@ -1754,7 +1755,7 @@ namespace Test
             return doc;
         }
 
-        private int VerifyQuery(IQuery query, Action<int, QueryResult> block)
+        private int VerifyQuery(IQuery query, Action<int, Result> block)
         {
             using (var result = query.Execute()) {
                 using (var e = result.GetEnumerator()) {

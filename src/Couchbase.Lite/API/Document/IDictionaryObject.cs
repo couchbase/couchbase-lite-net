@@ -31,9 +31,14 @@ namespace Couchbase.Lite
     /// An interface representing a readonly key-value collection with type-safe accessors
     /// </summary>
     [JsonConverter(typeof(IDictionaryObjectConverter))]
-    public interface IDictionaryObject : ICountable, IDictionaryFragment, IEnumerable<KeyValuePair<string, object>>
+    public interface IDictionaryObject : IDictionaryFragment, IEnumerable<KeyValuePair<string, object>>
     {
         #region Properties
+
+        /// <summary>
+        /// Gets the number of entries in this dictionary
+        /// </summary>
+        int Count { get; }
 
         /// <summary>
         /// Gets all the keys held by this dictionary

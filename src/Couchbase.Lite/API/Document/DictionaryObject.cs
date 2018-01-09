@@ -50,7 +50,7 @@ namespace Couchbase.Lite
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            var dict = new MutableDictionary();
+            var dict = new MutableDictionaryObject();
             if (reader.TokenType == JsonToken.StartObject) {
                 reader.Read();
             }
@@ -145,9 +145,9 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>A mutable copy of the dictionary</returns>
         [NotNull]
-        public MutableDictionary ToMutable()
+        public MutableDictionaryObject ToMutable()
         {
-            return new MutableDictionary(_dict, true);
+            return new MutableDictionaryObject(_dict, true);
         }
 
         #endregion

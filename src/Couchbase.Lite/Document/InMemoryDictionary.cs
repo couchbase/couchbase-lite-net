@@ -293,14 +293,14 @@ namespace Couchbase.Lite.Internal.Doc
             return this;
         }
 
-        MutableArray IMutableDictionary.GetArray(string key)
+        MutableArrayObject IMutableDictionary.GetArray(string key)
         {
-            return GetValue(key) as MutableArray;
+            return GetValue(key) as MutableArrayObject;
         }
 
-        MutableDictionary IMutableDictionary.GetDictionary(string key)
+        MutableDictionaryObject IMutableDictionary.GetDictionary(string key)
         {
-            return GetValue(key) as MutableDictionary;
+            return GetValue(key) as MutableDictionaryObject;
         }
 
         #endregion

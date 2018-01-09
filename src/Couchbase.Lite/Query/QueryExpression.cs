@@ -25,6 +25,8 @@ using System.Collections.Generic;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Internal.Query
 {
     internal abstract class QueryExpression : IExpression
@@ -101,6 +103,7 @@ namespace Couchbase.Lite.Internal.Query
             return result;
         }
 
+        [NotNull]
         private QueryExpression GetOperator(BinaryOpType type, object expression)
         {
             var lhs = this;
@@ -115,15 +118,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IExpression
 
-        public IExpression Add(object expression)
-        {
-            return GetOperator(BinaryOpType.Add, expression);
-        }
+        public IExpression Add(object expression) => GetOperator(BinaryOpType.Add, expression);
 
-        public IExpression And(object expression)
-        {
-            return new QueryCompoundExpression("AND", this, expression);
-        }
+        public IExpression And(object expression) => new QueryCompoundExpression("AND", this, expression);
 
         public IExpression Between(object expression1, object expression2)
         {
@@ -163,25 +160,13 @@ namespace Couchbase.Lite.Internal.Query
             return col;
         }
 
-        public IExpression Divide(object expression)
-        {
-            return GetOperator(BinaryOpType.Divide, expression);
-        }
+        public IExpression Divide(object expression) => GetOperator(BinaryOpType.Divide, expression);
 
-        public IExpression EqualTo(object expression)
-        {
-            return GetOperator(BinaryOpType.EqualTo, expression);
-        }
+        public IExpression EqualTo(object expression) => GetOperator(BinaryOpType.EqualTo, expression);
 
-        public IExpression GreaterThan(object expression)
-        {
-            return GetOperator(BinaryOpType.GreaterThan, expression);
-        }
+        public IExpression GreaterThan(object expression) => GetOperator(BinaryOpType.GreaterThan, expression);
 
-        public IExpression GreaterThanOrEqualTo(object expression)
-        {
-            return GetOperator(BinaryOpType.GreaterThanOrEqualTo, expression);
-        }
+        public IExpression GreaterThanOrEqualTo(object expression) => GetOperator(BinaryOpType.GreaterThanOrEqualTo, expression);
 
         public IExpression In(params object[] expressions)
         {
@@ -193,71 +178,36 @@ namespace Couchbase.Lite.Internal.Query
             return new QueryBinaryExpression(lhs, rhs, BinaryOpType.In);
         }
 
-        public IExpression IsNullOrMissing()
-        {
-            return new QueryUnaryExpression(this, UnaryOpType.Null)
-                .Or(new QueryUnaryExpression(this, UnaryOpType.Missing));
-        }
+        public IExpression Is(IExpression expression) => GetOperator(BinaryOpType.Is, expression);
 
-        public IExpression LessThan(object expression)
-        {
-            return GetOperator(BinaryOpType.LessThan, expression);
-        }
+        public IExpression IsNot(IExpression expression) => GetOperator(BinaryOpType.IsNot, expression);
 
-        public IExpression LessThanOrEqualTo(object expression)
-        {
-            return GetOperator(BinaryOpType.LessThanOrEqualTo, expression);
-        }
+        public IExpression IsNullOrMissing() => new QueryUnaryExpression(this, UnaryOpType.Null)
+            .Or(new QueryUnaryExpression(this, UnaryOpType.Missing));
 
-        public IExpression Like(object expression)
-        {
-            return GetOperator(BinaryOpType.Like, expression);
-        }
+        public IExpression LessThan(object expression) => GetOperator(BinaryOpType.LessThan, expression);
 
-        public IExpression Match(object expression)
-        {
-            return GetOperator(BinaryOpType.Matches, expression);
-        }
+        public IExpression LessThanOrEqualTo(object expression) => GetOperator(BinaryOpType.LessThanOrEqualTo, expression);
 
-        public IExpression Modulo(object expression)
-        {
-            return GetOperator(BinaryOpType.Modulus, expression);
-        }
+        public IExpression Like(object expression) => GetOperator(BinaryOpType.Like, expression);
 
-        public IExpression Multiply(object expression)
-        {
-            return GetOperator(BinaryOpType.Multiply, expression);
-        }
+        public IExpression Match(object expression) => GetOperator(BinaryOpType.Matches, expression);
 
-        public IExpression NotEqualTo(object expression)
-        {
-            return GetOperator(BinaryOpType.NotEqualTo, expression);
-        }
+        public IExpression Modulo(object expression) => GetOperator(BinaryOpType.Modulus, expression);
 
-        public IExpression NotIn(params object[] expressions)
-        {
-            return Expression.Negated(In(expressions));
-        }
+        public IExpression Multiply(object expression) => GetOperator(BinaryOpType.Multiply, expression);
 
-        public IExpression NotNullOrMissing()
-        {
-            return Expression.Not(IsNullOrMissing());
-        }
+        public IExpression NotEqualTo(object expression) => GetOperator(BinaryOpType.NotEqualTo, expression);
 
-        public IExpression Or(object expression)
-        {
-            return new QueryCompoundExpression("OR", this, expression);
-        }
+        public IExpression NotIn(params object[] expressions) => Expression.Negated(In(expressions));
 
-        public IExpression Regex(object expression)
-        {
-            return GetOperator(BinaryOpType.RegexLike, expression);
-        }
+        public IExpression NotNullOrMissing() => Expression.Not(IsNullOrMissing());
 
-        public IExpression Subtract(object expression)
-        {
-            return GetOperator(BinaryOpType.Subtract, expression);
-        }
+        public IExpression Or(object expression) => new QueryCompoundExpression("OR", this, expression);
+
+        public IExpression Regex(object expression) => GetOperator(BinaryOpType.RegexLike, expression);
+
+        public IExpression Subtract(object expression) => GetOperator(BinaryOpType.Subtract, expression);
 
         #endregion
     }

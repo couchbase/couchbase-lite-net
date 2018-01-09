@@ -37,13 +37,13 @@ namespace Couchbase.Lite.Query
         /// Creates a function that will query if the given array expression contains
         /// the given element
         /// </summary>
-        /// <param name="array">An expression that evaluates to an array (otherwise the query will
+        /// <param name="expression">An expression that evaluates to an array (otherwise the query will
         /// fail)</param>
-        /// <param name="element">The element to search for (either an expression or literal)</param>
+        /// <param name="value">The element to search for (either an expression or literal)</param>
         /// <returns>A function that will return true if the array contains the element, or false
         /// if it does not</returns>
         [NotNull]
-        public static IExpression Contains(object array, object element) => new QueryCompoundExpression("ARRAY_CONTAINS()", array, element);
+        public static IExpression Contains(object expression, object value) => new QueryCompoundExpression("ARRAY_CONTAINS()", expression, value);
 
         /// <summary>
         /// Creates a function that will get the length of an array

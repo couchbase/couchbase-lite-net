@@ -1,5 +1,5 @@
 ﻿// 
-// ReplicationStatus.cs
+// ReplicationProgress.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -19,39 +19,28 @@
 // limitations under the License.
 // 
 
-using System;
-
-using JetBrains.Annotations;
-
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
-    /// A struct describing the current status of a <see cref="Replicator"/>
+    /// A struct describing the current progress of a <see cref="Replicator"/>
     /// </summary>
-    public struct ReplicationStatus
+    public struct ReplicatorProgress
     {
         /// <summary>
-        /// Gets the current state of the replication (i.e. whether or not it is
-        /// actively processing changes)
+        /// Gets the number of changes that have finished processing
         /// </summary>
-        public ReplicatorActivityLevel Activity { get; }
+        public ulong Completed { get; }
 
         /// <summary>
-        /// Gets the current progress of the replication
+        /// Gets the current count of changes that have been received for
+        /// processing
         /// </summary>
-        public ReplicationProgress Progress { get; }
+        public ulong Total { get; }
 
-        /// <summary>
-        /// Gets the last error that occurred, if any
-        /// </summary>
-        [CanBeNull]
-        public Exception Error { get; }
-
-        internal ReplicationStatus(ReplicatorActivityLevel activity, ReplicationProgress progress, Exception error)
+        internal ReplicatorProgress(ulong completed, ulong total)
         {
-            Activity = activity;
-            Progress = progress;
-            Error = error;
+            Completed = completed;
+            Total = total;
         }
     }
 }

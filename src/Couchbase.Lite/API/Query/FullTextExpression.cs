@@ -38,11 +38,11 @@ namespace Couchbase.Lite.Query
         /// Generates a query expression that will check for matches against a
         /// given full text index name
         /// </summary>
-        /// <param name="indexName">The name of the full-text index to perform the
+        /// <param name="name">The name of the full-text index to perform the
         /// check against</param>
         /// <returns>The generated query expression</returns>
         [NotNull]
-        public static IFullTextExpression Index(string indexName) => new QueryCompoundExpression("MATCH", indexName, String.Empty);
+        public static IFullTextExpression Index(string name) => new QueryCompoundExpression("MATCH", name, String.Empty);
 
         #endregion
     }

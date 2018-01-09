@@ -51,14 +51,14 @@ namespace Test
         [Fact]
         public void TestCreate()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             array.Count.Should().Be(0, "because the array is empty");
             array.ToList().Should().BeEmpty("because the array is empty");
 
             var doc = new MutableDocument("doc1");
             doc.SetArray("array", array);
             doc.GetArray("array")
-                .As<MutableArray>()
+                .As<MutableArrayObject>()
                 .Should()
                 .BeSameAs(array, "because the doc should return the same object");
 
@@ -70,7 +70,7 @@ namespace Test
         public void TestCreateWithCSharpList()
         {
             var data = new[] {"1", "2", "3"};
-            var array = new MutableArray(data);
+            var array = new MutableArrayObject(data);
             array.Count.Should().Be(data.Length, "because the two objects should have the same length");
             array.ToList().Should().ContainInOrder(data, "because the contents should match");
 
@@ -89,7 +89,7 @@ namespace Test
         public void TestSetCSharpList()
         {
             var data = new[] { "1", "2", "3" };
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             array.SetData(data);
 
             array.Count.Should().Be(data.Length, "because the two objects should have the same length");
@@ -111,7 +111,7 @@ namespace Test
         [Fact]
         public void TestAddObjects()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             PopulateData(array);
             var doc = new MutableDocument("doc1");
 
@@ -144,7 +144,7 @@ namespace Test
         [Fact]
         public void TestAddObjectsToExistingArray()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             PopulateData(array);
 
             var doc = new MutableDocument("doc1");
@@ -185,7 +185,7 @@ namespace Test
         public void TestSetObject()
         {
             var data = CreateArrayOfAllTypes();
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
 
             // Prepare array with placeholders
             for (int i = 0; i < data.Count; i++) {
@@ -226,7 +226,7 @@ namespace Test
         [Fact]
         public void TestSetObjectToExistingArray()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             PopulateData(array);
 
             var doc = new MutableDocument("doc1");
@@ -271,7 +271,7 @@ namespace Test
         [Fact]
         public void TestSetObjectOutOfBound()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             array.AddString("a");
             foreach (var index in new[] {-1, 1}) {
                 array.Invoking(a => a.SetString(index, "b")).ShouldThrow<ArgumentOutOfRangeException>();
@@ -281,7 +281,7 @@ namespace Test
         [Fact]
         public void TestInsertObject()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             array.InsertString(0, "a");
             array.Count.Should().Be(1, "because one item was inserted");
             array.GetValue(0).Should().Be("a", "because that is what was inserted");
@@ -307,7 +307,7 @@ namespace Test
         public void TestInsertObjectToExistingArray()
         {
             var doc = new MutableDocument("doc1");
-            doc.SetArray("array", new MutableArray());
+            doc.SetArray("array", new MutableArrayObject());
             doc = Db.Save(doc).ToMutable();
 
             var array = doc.GetArray("array");
@@ -352,7 +352,7 @@ namespace Test
         [Fact]
         public void TestInsertObjectOutOfBound()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             array.AddString("a");
 
             foreach (int index in new[] {-1, 2}) {
@@ -363,7 +363,7 @@ namespace Test
         [Fact]
         public void TestRemove()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             PopulateData(array);
 
             for (int i = array.Count - 1; i >= 0; i--) {
@@ -381,7 +381,7 @@ namespace Test
         [Fact]
         public void TestRemoveExistingArray()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             PopulateData(array);
 
             var doc = new MutableDocument("doc1");
@@ -403,7 +403,7 @@ namespace Test
         [Fact]
         public void TestRemoveOutOfBound()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             array.AddString("a");
             foreach (int index in new[] { -1, 1 }) {
                 array.Invoking(a => a.RemoveAt(index)).ShouldThrow<ArgumentOutOfRangeException>();
@@ -413,7 +413,7 @@ namespace Test
         [Fact]
         public void TestCount()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             PopulateData(array);
 
             var doc = new MutableDocument("doc1");
@@ -426,7 +426,7 @@ namespace Test
         [Fact]
         public void TestGetString()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             PopulateData(array);
             array.Count.Should().Be(11, "because that is how many elements were inserted");
 
@@ -450,7 +450,7 @@ namespace Test
         [Fact]
         public void TestGetInteger()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             PopulateData(array);
             array.Count.Should().Be(11, "because that is how many elements were inserted");
 
@@ -474,7 +474,7 @@ namespace Test
         [Fact]
         public void TestGetLong()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             PopulateData(array);
             array.Count.Should().Be(11, "because that is how many elements were inserted");
 
@@ -498,7 +498,7 @@ namespace Test
         [Fact]
         public void TestGetDouble()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             PopulateData(array);
             array.Count.Should().Be(11, "because that is how many elements were inserted");
 
@@ -522,7 +522,7 @@ namespace Test
         [Fact]
         public void TestGetFloat()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             PopulateData(array);
             array.Count.Should().Be(11, "because that is how many elements were inserted");
 
@@ -546,7 +546,7 @@ namespace Test
         [Fact]
         public void TestSetGetMinMaxNumbers()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
 
             array.AddLong(Int64.MaxValue)
                 .AddLong(Int64.MinValue)
@@ -570,7 +570,7 @@ namespace Test
         [Fact]
         public void TestSetGetFloatNumbers()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
 
             array.AddDouble(1.00)
                 .AddDouble(1.49)
@@ -602,7 +602,7 @@ namespace Test
         [Fact]
         public void TestGetBoolean()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             PopulateData(array);
             array.Count.Should().Be(11, "because that is how many elements were inserted");
 
@@ -626,7 +626,7 @@ namespace Test
         [Fact]
         public void TestGetDate()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             PopulateData(array);
             array.Count.Should().Be(11, "because that is how many elements were inserted");
 
@@ -650,7 +650,7 @@ namespace Test
         [Fact]
         public void TestGetDictionary()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             PopulateData(array);
             array.Count.Should().Be(11, "because that is how many elements were inserted");
 
@@ -678,7 +678,7 @@ namespace Test
         [Fact]
         public void TestGetArray()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             PopulateData(array);
             array.Count.Should().Be(11, "because that is how many elements were inserted");
 
@@ -702,9 +702,9 @@ namespace Test
         [Fact]
         public void TestGetArray2()
         {
-            var mNestedArray = new MutableArray();
+            var mNestedArray = new MutableArrayObject();
             mNestedArray.AddLong(1L).AddString("Hello").AddValue(null);
-            var mArray = new MutableArray();
+            var mArray = new MutableArrayObject();
             mArray.AddLong(1L).AddString("Hello").AddValue(null).AddArray(mNestedArray);
 
             using (var mDoc = new MutableDocument("test")) {
@@ -728,9 +728,9 @@ namespace Test
         [Fact]
         public void TestSetNestedArray()
         {
-            var array1 = new MutableArray();
-            var array2 = new MutableArray();
-            var array3 = new MutableArray();
+            var array1 = new MutableArrayObject();
+            var array2 = new MutableArrayObject();
+            var array3 = new MutableArrayObject();
 
             array1.AddArray(array2);
             array2.AddArray(array3);
@@ -753,7 +753,7 @@ namespace Test
         public void TestSetNull()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddValue(null).AddString(null).AddArray(null).AddDictionary(null);
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
@@ -774,7 +774,7 @@ namespace Test
         public void TestReplaceArray()
         {
             var doc = new MutableDocument("doc1");
-            var array1 = new MutableArray();
+            var array1 = new MutableArrayObject();
 
             array1.AddString("a")
                 .AddString("b")
@@ -784,7 +784,7 @@ namespace Test
             array1.Should().ContainInOrder(new[] { "a", "b", "c" }, "because otherwise the contents are incorrect");
             doc.SetArray("array", array1);
 
-            var array2 = new MutableArray();
+            var array2 = new MutableArrayObject();
 
             array2.AddString("x").AddString("y").AddString("z");
 
@@ -814,7 +814,7 @@ namespace Test
         public void TestReplaceArrayDifferentType()
         {
             var doc = new MutableDocument("doc1");
-            var array1 = new MutableArray();
+            var array1 = new MutableArrayObject();
             array1.AddString("a")
                 .AddString("b")
                 .AddString("c");
@@ -837,7 +837,7 @@ namespace Test
         [Fact]
         public void TestEnumeratingArray()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             for (int i = 0; i < 20; i++) {
                 array.AddInt(i);
             }
@@ -871,7 +871,7 @@ namespace Test
         [Fact]
         public void TestAddNull()
         {
-            var array = new MutableArray();
+            var array = new MutableArrayObject();
             array.AddValue(null);
             using (var doc = new MutableDocument("doc1")) {
                 SaveArray(array, doc, "array", a =>
@@ -886,7 +886,7 @@ namespace Test
         public void TestAddInt()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddInt(0);
                 mArray.AddInt(Int32.MaxValue);
                 mArray.AddInt(Int32.MinValue);
@@ -909,7 +909,7 @@ namespace Test
         public void TestSetInt()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddInt(0);
                 mArray.AddInt(Int32.MaxValue);
                 mArray.AddInt(Int32.MinValue);
@@ -937,7 +937,7 @@ namespace Test
         public void TestInsertInt()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddInt(10);
                 mArray.InsertInt(0, 0);
                 mArray.InsertInt(1, Int32.MaxValue);
@@ -963,7 +963,7 @@ namespace Test
         public void TestAddLong()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddLong(0);
                 mArray.AddLong(Int64.MaxValue);
                 mArray.AddLong(Int64.MinValue);
@@ -986,7 +986,7 @@ namespace Test
         public void TestSetLong()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddLong(0);
                 mArray.AddLong(Int64.MaxValue);
                 mArray.AddLong(Int64.MinValue);
@@ -1014,7 +1014,7 @@ namespace Test
         public void TestInsertLong()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddLong(10);
                 mArray.InsertLong(0, 0);
                 mArray.InsertLong(1, Int64.MaxValue);
@@ -1040,7 +1040,7 @@ namespace Test
         public void TestAddFloat()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddFloat(0);
                 mArray.AddFloat(Single.MaxValue);
                 mArray.AddFloat(Single.MinValue);
@@ -1063,7 +1063,7 @@ namespace Test
         public void TestSetFloat()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddFloat(0);
                 mArray.AddFloat(Single.MaxValue);
                 mArray.AddFloat(Single.MinValue);
@@ -1091,7 +1091,7 @@ namespace Test
         public void TestInsertFloat()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddFloat(10);
                 mArray.InsertFloat(0, 0);
                 mArray.InsertFloat(1, Single.MaxValue);
@@ -1117,7 +1117,7 @@ namespace Test
         public void TestAddDouble()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddDouble(0);
                 mArray.AddDouble(Double.MaxValue);
                 mArray.AddDouble(Double.MinValue);
@@ -1140,7 +1140,7 @@ namespace Test
         public void TestSetDouble()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddDouble(0);
                 mArray.AddDouble(Double.MaxValue);
                 mArray.AddDouble(Double.MinValue);
@@ -1168,7 +1168,7 @@ namespace Test
         public void TestInsertDouble()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddDouble(10);
                 mArray.InsertDouble(0, 0);
                 mArray.InsertDouble(1, Double.MaxValue);
@@ -1194,7 +1194,7 @@ namespace Test
         public void TestAddString()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddString("");
                 mArray.AddString("Hello");
                 mArray.AddString("World");
@@ -1217,7 +1217,7 @@ namespace Test
         public void TestSetString()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddString("");
                 mArray.AddString("Hello");
                 mArray.AddString("World");
@@ -1245,7 +1245,7 @@ namespace Test
         public void TestInsertString()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddString("");
                 mArray.InsertString(0, "Hello");
                 mArray.InsertString(1, "World");
@@ -1271,7 +1271,7 @@ namespace Test
         public void TestAddBoolean()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddBoolean(true);
                 mArray.AddBoolean(false);
                 mDoc.SetArray("array", mArray);
@@ -1292,7 +1292,7 @@ namespace Test
         public void TestSetBoolean()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddBoolean(true);
                 mArray.AddBoolean(false);
 
@@ -1317,7 +1317,7 @@ namespace Test
         public void TestInsertBoolean()
         {
             using (var mDoc = new MutableDocument("test")) {
-                var mArray = new MutableArray();
+                var mArray = new MutableArrayObject();
                 mArray.AddBoolean(false);
                 mArray.AddBoolean(true);
                 mArray.InsertBoolean(0, true);
@@ -1352,11 +1352,11 @@ namespace Test
                 ArrayTestDate
             };
 
-            var dict = new MutableDictionary();
+            var dict = new MutableDictionaryObject();
             dict.SetString("name", "Scott Tiger");
             array.Add(dict);
 
-            var subarray = new MutableArray();
+            var subarray = new MutableArrayObject();
             subarray.AddString("a")
                 .AddString("b")
                 .AddString("c");
@@ -1376,7 +1376,7 @@ namespace Test
             }
         }
 
-        private Document SaveArray(MutableArray array, MutableDocument doc, string key, Action<IArray> eval)
+        private Document SaveArray(MutableArrayObject array, MutableDocument doc, string key, Action<IArray> eval)
         {
             eval(array);
 
