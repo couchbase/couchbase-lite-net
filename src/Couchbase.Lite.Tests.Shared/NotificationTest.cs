@@ -117,7 +117,9 @@ namespace Test
         {
             var doc1 = new MutableDocument("doc1");
             doc1.SetString("name", "Scott");
-            Db.Save(doc1);
+            var saved = Db.Save(doc1);
+            doc1.Dispose();
+            doc1 = saved.ToMutable();
 
             Db.AddDocumentChangeListener("doc1", DocumentChanged);
             Db.AddDocumentChangeListener("doc1", DocumentChanged);
@@ -141,7 +143,9 @@ namespace Test
         {
             var doc1 = new MutableDocument("doc1");
             doc1.SetString("name", "Scott");
-            Db.Save(doc1);
+            var saved = Db.Save(doc1);
+            doc1.Dispose();
+            doc1 = saved.ToMutable();
 
             var token = Db.AddDocumentChangeListener("doc1", DocumentChanged);
 
@@ -151,7 +155,9 @@ namespace Test
             };
 
             doc1.SetString("name", "Scott Tiger");
-            Db.Save(doc1);
+            saved = Db.Save(doc1);
+            doc1.Dispose();
+            doc1 = saved.ToMutable();
             _wa.WaitForResult(TimeSpan.FromSeconds(5));
 
             Db.RemoveChangeListener(token);

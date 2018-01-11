@@ -512,11 +512,17 @@ namespace Couchbase.Lite
         public void Delete(Document document)
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(document), document);
+            if ((document as MutableDocument)?.IsFrozen == true) {
+                throw new InvalidOperationException("Attempting to delete MutableDocument that has already been saved once");
+            }
 
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 Save(document, true);
+                if (document is MutableDocument md) {
+                    md.IsFrozen = true;
+                }
             });
         }
 
@@ -632,7 +638,9 @@ namespace Couchbase.Lite
                 VerifyDB(document);
 
                 if (!document.Exists) {
-                    throw new CouchbaseLiteException(StatusCode.NotFound);
+                    var docID = new SecureLogString(document.Id, LogMessageSensitivity.PotentiallyInsecure);
+                    Log.To.Database.V(Tag, $"Ignoring purge of non-existent document {docID}");
+                    return;
                 }
 
                 InBatch(() =>
@@ -675,11 +683,16 @@ namespace Couchbase.Lite
         public Document Save(MutableDocument document)
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(document), document);
+            if (document.IsFrozen) {
+                throw new InvalidOperationException("Attempting to save MutableDocument that has already been saved once");
+            }
 
             return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                return Save(document, false);
+                var saved = Save(document, false);
+                document.IsFrozen = true;
+                return saved;
             });
         }
 
@@ -1015,8 +1028,16 @@ namespace Couchbase.Lite
         private Document Save([NotNull]Document doc, bool deletion)
         {
             VerifyDB(doc);
-            if (deletion && !doc.Exists) {
-                throw new CouchbaseLiteException(StatusCode.NotFound);
+            if (deletion) {
+                if (doc.RevID == null) {
+                    throw new CouchbaseLiteException(StatusCode.Forbidden, "Cannot delete a document that has not yet been saved");
+                }
+
+                if (!doc.Exists) {
+                    var docID = new SecureLogString(doc.Id, LogMessageSensitivity.PotentiallyInsecure);
+                    Log.To.Database.V(Tag, $"Ignoring deletion of non-existent document {docID}");
+                    return null;
+                }
             }
 
             Document retVal = null;

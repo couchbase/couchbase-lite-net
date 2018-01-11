@@ -292,6 +292,8 @@ namespace Test
                     .Be("string", "because that is the value of the first revision of string2");
             });
 
+            doc.Dispose();
+            doc = Db.GetDocument("doc1").ToMutable();
             doc.SetString("string2", "");
             doc.SetString("string1", "string");
 
@@ -343,6 +345,8 @@ namespace Test
                 d.GetDouble("number4").Should().Be(1.1, "because that is the value of the first revision of number4");
             });
 
+            doc.Dispose();
+            doc = Db.GetDocument("doc1").ToMutable();
             doc.SetInt("number1", 0);
             doc.SetInt("number2", 1);
             doc.SetDouble("number3", 1.1);
@@ -515,6 +519,8 @@ namespace Test
                 d.GetBoolean("boolean2").Should().Be(false, "because that is the value of the first revision of boolean2");
             });
 
+            doc.Dispose();
+            doc = Db.GetDocument("doc1").ToMutable();
             doc.SetBoolean("boolean1", false);
             doc.SetBoolean("boolean2", true);
 
@@ -562,6 +568,8 @@ namespace Test
                 d.GetDate("date").Should().Be(date, "because the string is convertible to a date");
             });
 
+            doc.Dispose();
+            doc = Db.GetDocument("doc1").ToMutable();
             var nuDate = date + TimeSpan.FromSeconds(60);
             var nuDateStr = nuDate.ToString("o");
             doc.SetDate("date", nuDate);
@@ -617,6 +625,8 @@ namespace Test
                         "because otherwise the blob did not store correctly");
             });
 
+            doc.Dispose();
+            doc = Db.GetDocument("doc1").ToMutable();
             var nuContent = Encoding.UTF8.GetBytes("1234567890");
             var nuBlob = new Blob("text/plain", nuContent);
             doc.SetBlob("blob", nuBlob);
@@ -1293,7 +1303,7 @@ namespace Test
             Db.Invoking(d => d.Delete(doc))
                 .ShouldThrow<CouchbaseLiteException>()
                 .Which.Status.Should()
-                .Be(StatusCode.NotFound, "because deleting a non-existent document is invalid");
+                .Be(StatusCode.Forbidden, "because deleting a non-existent document is invalid");
             doc.IsDeleted.Should().BeFalse("beacuse the document is still not deleted");
             doc.GetString("name").Should().Be("Scott Tiger", "because the delete was invalid");
         }
@@ -1367,11 +1377,8 @@ namespace Test
             doc.SetString("name", "Scott");
             doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
 
-            // Purge before save:
-            Db.Invoking(d => d.Purge(doc))
-                .ShouldThrow<CouchbaseLiteException>()
-                .Which.Status.Should().Be(StatusCode.NotFound,
-                    "because purging a nonexisting revision is not valid");
+            // No-op should not throw
+            Db.Purge(doc);
 
             // Save:
             var savedDoc = Db.Save(doc);
@@ -1731,6 +1738,23 @@ namespace Test
                 }
 
                 Db.GetDocument(docID).Should().BeNull();
+            }
+        }
+
+        [Fact]
+        public void TestSaveDocumentTwice()
+        {
+            using (var mDoc = new MutableDocument("doc")) {
+                mDoc.SetString("key", "value");
+                Db.Save(mDoc).Dispose();
+                mDoc.SetString("key", "nextValue");
+                Db.Invoking(d => d.Save(mDoc)).ShouldThrow<InvalidOperationException>();
+            }
+
+            using (var mDoc = Db.GetDocument("doc").ToMutable()) {
+                mDoc.GetString("key").Should().Be("value");
+                Db.Delete(mDoc);
+                Db.Invoking(d => d.Save(mDoc)).ShouldThrow<InvalidOperationException>();
             }
         }
 

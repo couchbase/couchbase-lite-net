@@ -22,6 +22,8 @@
 using System;
 using System.Threading;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Util
 {
     /// <summary>
@@ -74,6 +76,7 @@ namespace Couchbase.Lite.Util
         /// </summary>
         /// <typeparam name="T">The type of object being returned</typeparam>
         /// <returns>The object that was retained</returns>
+        [NotNull]
         public T Retain<T>() where T : RefCountedDisposable
         {
             Interlocked.Increment(ref _refCount);

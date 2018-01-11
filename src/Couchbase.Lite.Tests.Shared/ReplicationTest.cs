@@ -210,25 +210,29 @@ namespace Test
         {
             var doc1 = new MutableDocument("doc1");
             doc1.SetString("species", "Tiger");
-            Db.Save(doc1);
+            var saved = Db.Save(doc1);
+            Misc.SafeSwap(ref doc1, saved.ToMutable());
             doc1.SetString("name", "Hobbes");
             Db.Save(doc1);
 
              var doc2 = new MutableDocument("doc2");
             doc2.SetString("species", "Tiger");
-            Db.Save(doc2);
+            saved = Db.Save(doc2);
+            Misc.SafeSwap(ref doc2, saved.ToMutable());
             doc2.SetString("pattern", "striped");
             Db.Save(doc2);
 
             var doc3 = new MutableDocument("doc3");
             doc3.SetString("species", "Tiger");
-            _otherDB.Save(doc3);
+            saved = _otherDB.Save(doc3);
+            Misc.SafeSwap(ref doc3, saved.ToMutable());
             doc3.SetString("name", "Hobbes");
             _otherDB.Save(doc3);
 
             var doc4 = new MutableDocument("doc4");
             doc4.SetString("species", "Tiger");
-            _otherDB.Save(doc4);
+            saved = _otherDB.Save(doc4);
+            Misc.SafeSwap(ref doc4, saved.ToMutable());
             doc4.SetString("pattern", "striped");
             _otherDB.Save(doc4);
 
@@ -251,13 +255,15 @@ namespace Test
 
             var doc1 = new MutableDocument("doc");
             doc1.SetString("species", "tiger");
-            Db.Save(doc1);
+            var saved = Db.Save(doc1);
+            Misc.SafeSwap(ref doc1, saved.ToMutable());
             doc1.SetString("name", "Hobbes");
             Db.Save(doc1);
 
             var doc2 = new MutableDocument("doc");
             doc2.SetString("species", "Tiger");
-            _otherDB.Save(doc2);
+            saved = _otherDB.Save(doc2);
+            Misc.SafeSwap(ref doc2, saved.ToMutable());
             doc2.SetString("pattern", "striped");
             _otherDB.Save(doc2);
 
@@ -365,8 +371,7 @@ namespace Test
         public void TestAuthenticatedPull()
         {
             var config = CreateConfig(false, true, false, new URLEndpoint("localhost", "seekrit", false));
-            config.Authenticator = new SessionAuthenticator("78376efd8cc74dadfc395f4049a115b7cd0ef5e3", default(string),
-                "SyncGatewaySession");
+            config.Authenticator = new SessionAuthenticator("78376efd8cc74dadfc395f4049a115b7cd0ef5e3");
             RunReplication(config, 0, 0);
         }
 

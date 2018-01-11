@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Internal.Query
         private Dictionary<string, int> _columnNames;
         private ListenerToken _databaseChangedToken;
         private bool _disposed;
-        private QueryResultSet _enum;
+        [NotNull]private List<QueryResultSet> _history = new List<QueryResultSet>();
         private DateTime _lastUpdatedAt;
         private int _observingCount = 0;
         [NotNull]private Parameters _queryParameters = new Parameters(new Dictionary<string, object>());
@@ -138,8 +138,11 @@ namespace Couchbase.Lite.Internal.Query
                 Stop();
                 FromImpl.ThreadSafety.DoLocked(() =>
                 {
-                    _enum?.Dispose();
-                    _enum = null;
+                    foreach (var e in _history) {
+                        e.Release();
+                    }
+
+                    _history.Clear();
                     Native.c4query_free(_c4Query);
                     _c4Query = null;
                     _disposed = true;
@@ -316,13 +319,13 @@ namespace Couchbase.Lite.Internal.Query
         private void Update()
         {
             Log.To.Query.I(Tag, $"{this}: Querying...");
-            var oldEnum = _enum;
+            var oldEnum = _history.LastOrDefault();
             QueryResultSet newEnum = null;
             Exception error = null;
             if (oldEnum == null) {
                 try {
                     var result = Execute();
-                    if (result is NullResultSet nrs) {
+                    if (result is NullResultSet) {
                         return;
                     }
 
@@ -332,6 +335,9 @@ namespace Couchbase.Lite.Internal.Query
                 }
             } else {
                 newEnum = oldEnum.Refresh();
+                if (newEnum != null) {
+                    _history.Add(newEnum);
+                }
             }
 
             _willUpdate.Set(false);
@@ -342,8 +348,6 @@ namespace Couchbase.Lite.Internal.Query
                 if (oldEnum != null) {
                     Log.To.Query.I(Tag, $"{this}: Changed!");
                 }
-
-                Misc.SafeSwap(ref _enum, newEnum);
             } else if (error != null) {
                 Log.To.Query.E(Tag, $"{this}: Update failed: {error}");
             } else {
@@ -365,7 +369,7 @@ namespace Couchbase.Lite.Internal.Query
             if (updateDelay > TimeSpan.Zero) {
                 await Task.Delay(updateDelay).ConfigureAwait(false);
             }
-
+            
             if (_willUpdate) {
                 Update();
             }
@@ -467,7 +471,9 @@ namespace Couchbase.Lite.Internal.Query
                 return new NullResultSet();
             }
 
-            return new QueryResultSet(this, fromImpl.ThreadSafety, e, _columnNames);
+            var retVal = new QueryResultSet(this, fromImpl.ThreadSafety, e, _columnNames);
+            _history.Add(retVal);
+            return retVal;
         }
 
         #endregion

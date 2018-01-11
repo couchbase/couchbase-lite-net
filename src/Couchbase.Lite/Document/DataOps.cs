@@ -22,6 +22,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using Couchbase.Lite.Internal.Serialization;
 using LiteCore.Interop;
 using Newtonsoft.Json.Linq;

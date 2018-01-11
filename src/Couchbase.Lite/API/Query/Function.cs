@@ -168,46 +168,6 @@ namespace Couchbase.Lite.Query
         public static IExpression Floor(object expression) => new QueryCompoundExpression("FLOOR()", expression);
 
         /// <summary>
-        /// Creates a function that checks if the given expression is an array type
-        /// in question
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will check if the given expression is an array type</returns>
-        [NotNull]
-        public static IExpression IsArray(object expression) => new QueryCompoundExpression("ISARRAY()", expression);
-
-        /// <summary>
-        /// Creates a function that checks if the given expression is a numeric type
-        /// in question
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will check if the given expression is a numeric type</returns>
-        [NotNull]
-        public static IExpression IsNumber(object expression) => new QueryCompoundExpression("ISNUMBER()", expression);
-
-        /// <summary>
-        /// Creates a function that checks if the given expression is a dictionary (i.e. JSON Object) type
-        /// in question
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will check if the given expression is a dictionary type</returns>
-        [NotNull]
-        public static IExpression IsDictionary(object expression) => new QueryCompoundExpression("ISOBJECT()", expression);
-
-        /// <summary>
-        /// Creates a function that checks if the given expression is a string type
-        /// in question
-        /// </summary>
-        /// <param name="expression">The expression to take data from when calculating
-        /// the result</param>
-        /// <returns>A function that will check if the given expression is a string type</returns>
-        [NotNull]
-        public static IExpression IsString(object expression) => new QueryCompoundExpression("ISSTRING()", expression);
-
-        /// <summary>
         /// Creates a function that gets the length of a string
         /// in question
         /// </summary>

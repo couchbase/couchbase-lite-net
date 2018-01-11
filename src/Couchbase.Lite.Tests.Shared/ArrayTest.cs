@@ -21,6 +21,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Couchbase.Lite;
 using FluentAssertions;
@@ -374,7 +375,7 @@ namespace Test
             SaveArray(array, doc, "array", a =>
             {
                 a.Count.Should().Be(0, "because all elements were removed");
-                a.ToList().Should().BeEmpty("because there are no elements inside");
+                a.Should().BeEmpty("because there are no elements inside");
             });
         }
 
@@ -396,7 +397,7 @@ namespace Test
             SaveArray(gotArray, doc, "array", a =>
             {
                 a.Count.Should().Be(0, "because all elements were removed");
-                a.ToList().Should().BeEmpty("because there are no elements inside");
+                a.Should().BeEmpty("because there are no elements inside");
             });
         }
 

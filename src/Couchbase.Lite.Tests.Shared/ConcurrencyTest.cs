@@ -417,11 +417,10 @@ namespace Test
             using (var q = Query.Select(DOCID).From(DataSource.Database(Db)).Where(TAG.EqualTo(name))) {
                 WriteLine((q as XQuery).Explain());
 
-                using (var e = q.Execute()) {
-                    ulong n = 0;
-                    foreach (var row in e) {
-                        test(++n, row);
-                    }
+                var e = q.Execute();
+                ulong n = 0;
+                foreach (var row in e) {
+                    test(++n, row);
                 }
             }
         }

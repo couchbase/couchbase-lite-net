@@ -65,39 +65,12 @@ namespace Couchbase.Lite.Logging
         private static readonly C4LogCallback _LogCallback = LiteCoreLog;
         // ReSharper restore PrivateFieldCanBeConvertedToLocalVariable
 
-        private static LogScrubSensitivity _ScrubSensitivity;
-
         #endregion
 
         #region Properties
 
-        /// <summary>
-        /// Gets or sets a value indicated if logging is disabled (if so,
-        /// nothing will be logged)
-        /// </summary>
-        public static bool Disabled { get; set; }
-
         [NotNull]
         internal static ILoggerFactory Factory { get; private set; }
-
-        /// <summary>
-        /// Gets or sets the level at which the logger will redacted sensivity
-        /// information from the logs.
-        /// </summary>
-        public static LogScrubSensitivity ScrubSensitivity 
-        {
-            get => _ScrubSensitivity;
-            set { 
-                if (value != _ScrubSensitivity) {
-                    if (value == LogScrubSensitivity.AllOk) {
-                        Factory.CreateLogger("Log")
-                            .LogInformation("SCRUBBING DISABLED, THIS LOG MAY CONTAIN SENSITIVE INFORMATION");
-                    }
-
-                    _ScrubSensitivity = value;
-                }
-            }
-        }
 
         [NotNull]
         internal static LogTo To

@@ -108,14 +108,14 @@ namespace Test
 
         protected virtual void SetUp()
         {
-            Log.Disabled = true;
+            Database.SetLogLevel(LogDomain.All, LogLevel.None);
         }
 
         protected abstract void Test();
 
         protected virtual void TearDown()
         {
-            Log.Disabled = false;
+            Database.SetLogLevel(LogDomain.All, LogLevel.Warning);
             Db?.Dispose();
             Db = null;
             Log.ClearLoggerProviders();

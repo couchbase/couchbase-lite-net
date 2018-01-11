@@ -310,7 +310,7 @@ namespace Test
             Db.Invoking(d => d.Delete(doc))
                 .ShouldThrow<CouchbaseLiteException>()
                 .Which.Status.Should()
-                .Be(StatusCode.NotFound, "because deleting a non-existent document is not allowed");
+                .Be(StatusCode.Forbidden, "because deleting an unsaved document is not allowed");
             Db.Count.Should().Be(0UL, "because the database should still be empty");
         }
 
@@ -417,10 +417,7 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc.SetInt("key", 1);
 
-            Db.Invoking(d => d.Purge(doc))
-                .ShouldThrow<CouchbaseLiteException>()
-                .Which.Status.Should()
-                .Be(StatusCode.NotFound, "because deleting a non-existent document is not allowed");
+            Db.Purge(doc);
             Db.Count.Should().Be(0UL, "because the database should still be empty");
         }
 
@@ -935,21 +932,20 @@ namespace Test
                 var DOCID = Meta.ID;
                 var S_DOCID = SelectResult.Expression(DOCID);
                 using (var q = Query.Select(S_DOCID).From(DataSource.Database(nudb))) {
-                    using (var rs = q.Execute()) {
-                        foreach (var r in rs) {
-                            var docID = r.GetString(0);
-                            docID.Should().NotBeNull();
+                    var rs = q.Execute();
+                    foreach (var r in rs) {
+                        var docID = r.GetString(0);
+                        docID.Should().NotBeNull();
 
-                            var doc = nudb.GetDocument(docID);
-                            doc.Should().NotBeNull();
-                            doc.GetString("name").Should().Be(docID);
+                        var doc = nudb.GetDocument(docID);
+                        doc.Should().NotBeNull();
+                        doc.GetString("name").Should().Be(docID);
 
-                            var blob = doc.GetBlob("data");
-                            blob.Should().NotBeNull();
+                        var blob = doc.GetBlob("data");
+                        blob.Should().NotBeNull();
 
-                            var data = Encoding.UTF8.GetString(blob.Content);
-                            data.Should().Be(docID);
-                        }
+                        var data = Encoding.UTF8.GetString(blob.Content);
+                        data.Should().Be(docID);
                     }
                 }
             }

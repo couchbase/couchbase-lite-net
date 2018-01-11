@@ -30,11 +30,11 @@ namespace Couchbase.Lite.Internal.Query
     {
         #region Properties
 
+        public int Count { get; } = 0;
+
         object IEnumerator.Current => Current;
 
         public Result Current { get; } = null;
-
-        public int Count { get; } = 0;
 
         #endregion
 
@@ -53,7 +53,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
-        #region IEnumerable<QueryResult>
+        #region IEnumerable<Result>
 
         public IEnumerator<Result> GetEnumerator() => this;
 
@@ -67,6 +67,12 @@ namespace Couchbase.Lite.Internal.Query
         {
             
         }
+
+        #endregion
+
+        #region IResultSet
+
+        public IReadOnlyList<object> ToList() => new List<object>();
 
         #endregion
     }

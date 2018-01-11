@@ -19,8 +19,6 @@
 //  limitations under the License.
 // 
 
-using System;
-using System.Globalization;
 using System.Net;
 
 using Couchbase.Lite.Logging;
@@ -52,11 +50,6 @@ namespace Couchbase.Lite.Sync
         public string CookieName { get; }
 
         /// <summary>
-        /// Gets the optional expiration date for this session
-        /// </summary>
-        public DateTimeOffset? Expires { get; }
-
-        /// <summary>
         /// Gets the session ID to set as the cookie value
         /// </summary>
         [NotNull]
@@ -67,32 +60,23 @@ namespace Couchbase.Lite.Sync
         #region Constructors
 
         /// <summary>
-        /// Constructor
+        /// Constructor using the given cookie name
         /// </summary>
         /// <param name="sessionID"><see cref="SessionID"/></param>
-        /// <param name="expires"><see cref="Expires"/></param>
         /// <param name="cookieName"><see cref="CookieName"/></param>
-        public SessionAuthenticator([NotNull]string sessionID, DateTimeOffset? expires, [NotNull]string cookieName)
+        public SessionAuthenticator([NotNull]string sessionID, [NotNull]string cookieName)
         {
             SessionID = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(sessionID), sessionID);
-            Expires = expires;
             CookieName = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(cookieName), cookieName);
         }
 
         /// <summary>
-        /// Constructor
+        /// Constructor using the default cookie name for Sync Gateway ('SyncGatewaySession')
         /// </summary>
         /// <param name="sessionID"><see cref="SessionID"/></param>
-        /// <param name="expires">An ISO-8601 string representing a date for <see cref="Expires"/></param>
-        /// <param name="cookieName"><see cref="CookieName"/></param>
-        public SessionAuthenticator([NotNull]string sessionID, string expires, [NotNull]string cookieName)
+        public SessionAuthenticator([NotNull]string sessionID)
+        : this(sessionID, "SyncGatewaySession")
         {
-            if (DateTimeOffset.TryParseExact(expires, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var expiresDate)) {
-                Expires = expiresDate;
-            }
-
-            SessionID = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(sessionID), sessionID);
-            CookieName = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(cookieName), cookieName);
         }
 
         #endregion
@@ -102,10 +86,6 @@ namespace Couchbase.Lite.Sync
         internal override void Authenticate(ReplicatorOptionsDictionary options)
         {
             var cookie = new Cookie(CookieName, SessionID);
-            if (Expires.HasValue) {
-                cookie.Expires = Expires.Value.DateTime;
-            }
-            
             options.Cookies.Add(cookie);
         }
 

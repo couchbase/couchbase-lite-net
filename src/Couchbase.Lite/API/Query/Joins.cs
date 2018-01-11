@@ -37,7 +37,7 @@ namespace Couchbase.Lite.Query
         /// <param name="dataSource">The data source to JOIN with</param>
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
         [NotNull]
-        public static IJoinOn CrossJoin(IDataSource dataSource)
+        public static IJoin CrossJoin(IDataSource dataSource)
         {
             return new QueryJoin("CROSS", dataSource);
         }

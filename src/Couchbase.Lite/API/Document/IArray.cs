@@ -138,13 +138,6 @@ namespace Couchbase.Lite
         [CanBeNull]
         object GetValue(int index);
 
-        /// <summary>
-        /// Converts this object to a standard .NET collection
-        /// </summary>
-        /// <returns>The contents of this collection as a .NET collection</returns>
-        [NotNull]
-        List<object> ToList();
-
         #endregion
     }
 }

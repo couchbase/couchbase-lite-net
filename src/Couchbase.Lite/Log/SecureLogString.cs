@@ -18,42 +18,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-using System;
-using System.Diagnostics;
+using JetBrains.Annotations;
+using Newtonsoft.Json;
 using System.Linq;
 using System.Text;
-using Couchbase.Lite.Util;
-
-using JetBrains.Annotations;
-
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Logging
 {
-    /// <summary>
-    /// The sensitivity at which the logger should redact
-    /// sensitive information
-    /// </summary>
-    public enum LogScrubSensitivity
-    {
-        /// <summary>
-        /// No potentially insecure information shall be logged
-        /// </summary>
-        NoInsecure = 0,
-
-        /// <summary>
-        /// Information that might be insecure (i.e. user generated)
-        /// may be logger, but access tokens, passwords, etc should still
-        /// be redacted
-        /// </summary>
-        PotentiallyInsecureOk,
-
-        /// <summary>
-        /// All information should be logged
-        /// </summary>
-        AllOk
-    }
-
     internal enum LogMessageSensitivity
     {
         PotentiallyInsecure = 1,
@@ -65,19 +36,12 @@ namespace Couchbase.Lite.Logging
         #region Constants
 
         protected const int CharLimit = 100;
-        protected const string Redacted = "<redacted>";
 
         #endregion
 
         #region Variables
 
         private readonly LogMessageSensitivity _sensitivity;
-
-        #endregion
-
-        #region Properties
-
-        protected bool ShouldLog => (int)_sensitivity <= (int)Log.ScrubSensitivity;
 
         #endregion
 
@@ -103,6 +67,7 @@ namespace Couchbase.Lite.Logging
 
         #region Properties
 
+        [NotNull]
         private string String
         {
             get {
@@ -149,10 +114,7 @@ namespace Couchbase.Lite.Logging
         #region Overrides
 
         [NotNull]
-        public override string ToString()
-        {
-            return ShouldLog ? String : Redacted;
-        }
+        public override string ToString() => String;
 
         #endregion
     }
@@ -166,6 +128,7 @@ namespace Couchbase.Lite.Logging
 
         #endregion
 
+        [NotNull]
         #region Properties
 
         private string String 
@@ -175,7 +138,7 @@ namespace Couchbase.Lite.Logging
                     return _str;
                 }
 
-                var str = JsonConvert.SerializeObject(_object);
+                var str = JsonConvert.SerializeObject(_object) ?? "(null)";
                 _str = str.Length > 100 ? $"{new string(str.Take(100).ToArray())}..." : str;
 
                 return _str;
@@ -196,48 +159,7 @@ namespace Couchbase.Lite.Logging
         #region Overrides
 
         [NotNull]
-        public override string ToString()
-        {
-            return ShouldLog ? String : Redacted;
-        }
-
-        #endregion
-    }
-
-    internal sealed class SecureLogUri : SecureLogItem
-    {
-        #region Variables
-
-        [NotNull]
-        private readonly Uri _uri;
-        private string _str;
-
-        #endregion
-
-        #region Properties
-
-        private string UriString => _str ?? (_str = _uri.ToString().ReplaceAll("://.*:.*@", "://<redacted>:<redacted>@"));
-
-        #endregion
-
-        #region Constructors
-
-        // Only used for stripping credentials, so always insecure
-        public SecureLogUri([NotNull]Uri uri) : base(LogMessageSensitivity.Insecure)
-        {
-            Debug.Assert(uri != null);
-
-            _uri = uri;
-        }
-
-        #endregion
-
-        #region Overrides
-
-        public override string ToString()
-        {
-            return ShouldLog ? UriString : String.Empty;
-        }
+        public override string ToString() => String;
 
         #endregion
     }

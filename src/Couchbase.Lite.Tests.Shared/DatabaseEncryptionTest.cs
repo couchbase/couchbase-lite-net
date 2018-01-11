@@ -125,14 +125,16 @@ namespace Test
 
                 using (var doc = new MutableDocument(new Dictionary<string, object>
                     { ["answer"] = 42 })) {
-                    seekrit.Save(doc);
-                    doc.SetInt("answer", 84);
-                    seekrit.Save(doc);
+                    using (var doc2 = seekrit.Save(doc).ToMutable()) {
+                        doc2.SetInt("answer", 84);
 
-                    seekrit.Compact();
-
-                    doc.SetInt("answer", 85);
-                    seekrit.Save(doc);
+                        seekrit.Compact();
+                    
+                        doc2.SetInt("answer", 85);
+                        using (var doc3 = seekrit.Save(doc2).ToMutable()) {
+                            seekrit.Save(doc3).Dispose();
+                        }
+                    }
                 }
             }
 
@@ -205,13 +207,13 @@ namespace Test
                     .From(DataSource.Database(seekrit))
                     .Where(Expression.Property("seq").NotNullOrMissing())
                     .OrderBy(Ordering.Property("seq"))) {
-                    using (var rs = q.Execute()) {
-                        rs.Count.Should().Be(100);
-                        var i = 0;
-                        foreach (var r in rs) {
-                            r.GetInt(0).Should().Be(i++);
-                        }
+                    var rs = q.Execute();
+                    var i = 0;
+                    foreach (var r in rs) {
+                        r.GetInt(0).Should().Be(i++);
                     }
+
+                    i.Should().Be(100);
                 }
             }
         }

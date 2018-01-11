@@ -65,6 +65,8 @@ namespace Couchbase.Lite
         internal override bool IsEmpty => _model == null && base.IsEmpty;
         #endif
 
+        internal bool IsFrozen { get; set; }
+
         internal override bool IsMutable => true;
 
         private bool Changed => (_dict as MutableDictionaryObject)?.HasChanges ?? (_dict as InMemoryDictionary)?.HasChanges ?? false;

@@ -45,6 +45,8 @@ namespace Couchbase.Lite.Query
         [NotNull]private readonly Dictionary<string, int> _columnNames;
         private readonly QueryResultSet _rs;
         private readonly MContext _context;
+        [NotNull]private readonly object[] _deserialized;
+
 
         #endregion
 
@@ -73,15 +75,6 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public ICollection<string> Keys => _columnNames.Keys;
 
-        private Database Database
-        {
-            get {
-                var database = _rs.Database;
-                Debug.Assert(database != null);
-                return database;
-            }
-        }
-
         #endregion
 
         #region Constructors
@@ -89,13 +82,20 @@ namespace Couchbase.Lite.Query
         internal Result(QueryResultSet rs, C4QueryEnumerator* e, MContext context)
         {
             _rs = rs;
-            _columns = e->columns;
             _context = context;
+            _columns = e->columns;
             _missingColumns = new BitArray(BitConverter.GetBytes(e->missingColumns));
             _columnNames = new Dictionary<string, int>(_rs.ColumnNames);
             foreach (var pair in _rs.ColumnNames) {
                 if (pair.Value < _missingColumns.Length && _missingColumns.Get(pair.Value)) {
                     _columnNames.Remove(pair.Key);
+                }
+            }
+
+            _deserialized = new object[_rs.ColumnNames.Count];
+            for (int i = 0; i < _rs.ColumnNames.Count; i++) {
+                if (!_missingColumns.Get(i)) {
+                    _deserialized[i] = FleeceValueToObject(i);
                 }
             }
         }
@@ -160,8 +160,10 @@ namespace Couchbase.Lite.Query
 
         IEnumerator<object> IEnumerable<object>.GetEnumerator()
         {
-            for (var i = 0; i < Count; i++) {
-                yield return GetValue(i);
+            for (var i = 0; i < _rs.ColumnNames.Count; i++) {
+                if (!_missingColumns.Get(i)) {
+                    yield return GetValue(i);
+                }
             }
         }
 
@@ -172,83 +174,67 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public ArrayObject GetArray(int index)
         {
-            return FleeceValueToObject(index) as ArrayObject;
+            return _deserialized[index] as ArrayObject;
         }
 
         /// <inheritdoc />
         public Blob GetBlob(int index)
         {
-            return FleeceValueToObject(index) as Blob;  
+            return _deserialized[index] as Blob;  
         }
 
         /// <inheritdoc />
         public bool GetBoolean(int index)
         {
-            return Native.FLValue_AsBool(FLValueAtIndex(index));
+            return Convert.ToBoolean(_deserialized[index]);
         }
 
         /// <inheritdoc />
         public DateTimeOffset GetDate(int index)
         {
-            return DataOps.ConvertToDate(GetValue(index));
+            return DataOps.ConvertToDate(_deserialized[index]);
         }
 
         /// <inheritdoc />
         public DictionaryObject GetDictionary(int index)
         {
-            return FleeceValueToObject(index) as DictionaryObject;
+            return _deserialized[index] as DictionaryObject;
         }
 
         /// <inheritdoc />
         public double GetDouble(int index)
         {
-            return Native.FLValue_AsDouble(FLValueAtIndex(index));
+            return Convert.ToDouble(_deserialized[index]);
         }
 
         /// <inheritdoc />
         public float GetFloat(int index)
         {
-            return Native.FLValue_AsFloat(FLValueAtIndex(index));
+            return Convert.ToSingle(_deserialized[index]);
         }
 
         /// <inheritdoc />
         public int GetInt(int index)
         {
-            return (int)Native.FLValue_AsInt(FLValueAtIndex(index));
+            return Convert.ToInt32(_deserialized[index]);
         }
 
         /// <inheritdoc />
         public long GetLong(int index)
         {
-            return Native.FLValue_AsInt(FLValueAtIndex(index));
+            return Convert.ToInt64(_deserialized[index]);
         }
 
         /// <inheritdoc />
         public object GetValue(int index)
         {
-            return FleeceValueToObject(index);
+            return _deserialized[index];
         }
 
         /// <inheritdoc />
         public string GetString(int index)
         {
-            return Native.FLValue_AsString(FLValueAtIndex(index));
-        }
-
-        /// <inheritdoc />
-        public List<object> ToList()
-        {
-
-            var array = new List<object>();
-            for (int i = 0; i < _rs.ColumnNames.Count; i++) {
-                if (_missingColumns.Get(i)) {
-                    continue;
-                }
-
-                array.Add(FLValueConverter.ToCouchbaseObject(FLValueAtIndex(i), Database, true));
-            }
-
-            return array;
+            return _deserialized[index] as string;
         }
 
         #endregion
