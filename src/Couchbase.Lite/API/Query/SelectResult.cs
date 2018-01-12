@@ -38,10 +38,7 @@ namespace Couchbase.Lite.Query
         /// query (e.g. <see cref="Lite.Query.Expression.Property(string)"/>)</param>
         /// <returns>The instantiated instance</returns>
         [NotNull]
-        public static ISelectResultAs Expression(IExpression expression)
-        {
-            return new QuerySelectResult(expression);
-        }
+        public static ISelectResultAs Expression(IExpression expression) => new QuerySelectResult(expression);
 
         /// <summary>
         /// Creates an instanced based on a given property path
@@ -50,10 +47,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The instantiated instance</returns>
         /// <remarks>Equivalent to <c>SelectResult.Expression(Expression.Property(property))</c></remarks>
         [NotNull]
-        public static ISelectResultAs Property(string property)
-        {
-            return new QuerySelectResult(Lite.Query.Expression.Property(property));
-        }
+        public static ISelectResultAs Property(string property) => new QuerySelectResult(Lite.Query.Expression.Property(property));
 
         /// <summary>
         /// Creates a select result instance that will return all of the
@@ -61,10 +55,6 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <returns>The instantiated instance</returns>
         [NotNull]
-        public static ISelectResultFrom All()
-        {
-            var star = new QueryTypeExpression("", ExpressionType.KeyPath);
-            return new QuerySelectResult(star);
-        }
+        public static ISelectResultFrom All() => new QuerySelectResult(Lite.Query.Expression.All());
     }
 }

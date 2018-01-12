@@ -526,7 +526,7 @@ namespace Test
 
             var STATE = Expression.Property("contact.address.state");
             var gender = Expression.Property("gender");
-            var COUNT = Function.Count(Expression.Property(""));
+            var COUNT = Function.Count(Expression.All());
             var zip = Expression.Property("contact.address.zip");
             var MAXZIP = Function.Max(zip);
 
