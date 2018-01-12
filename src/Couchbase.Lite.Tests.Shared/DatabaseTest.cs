@@ -310,7 +310,7 @@ namespace Test
             Db.Invoking(d => d.Delete(doc))
                 .ShouldThrow<CouchbaseLiteException>()
                 .Which.Status.Should()
-                .Be(StatusCode.Forbidden, "because deleting an unsaved document is not allowed");
+                .Be(StatusCode.NotAllowed, "because deleting an unsaved document is not allowed");
             Db.Count.Should().Be(0UL, "because the database should still be empty");
         }
 
@@ -826,24 +826,30 @@ namespace Test
         public void TestCompact()
         {
             var docs = CreateDocs(20);
+            var nextDocs = new List<Document>();
 
             Db.InBatch(() =>
             {
                 foreach (var doc in docs) {
+                    var docToUse = doc;
                     for (int i = 0; i < 25; i++) {
-                        var mDoc = doc.ToMutable();
+                        var mDoc = docToUse.ToMutable();
                         mDoc.SetInt("number", i);
-                        Db.Save(mDoc);
+                        docToUse = Db.Save(mDoc);
                     }
+
+                    nextDocs.Add(docToUse);
                 }
             });
 
+            docs = nextDocs;
+            nextDocs = new List<Document>();
             foreach (var doc in docs) {
                 var content = Encoding.UTF8.GetBytes(doc.Id);
                 var blob = new Blob("text/plain", content);
                 var mDoc = doc.ToMutable();
                 mDoc.SetBlob("blob", blob);
-                Db.Save(mDoc);
+                nextDocs.Add(Db.Save(mDoc));
             }
 
             Db.Count.Should().Be(20, "because that is the number of documents that were added");
@@ -854,6 +860,8 @@ namespace Test
 
             Db.Compact();
 
+            docs = nextDocs;
+            nextDocs = new List<Document>();
             foreach (var doc in docs) {
                 var savedDoc = Db.GetDocument(doc.Id);
                 Db.Delete(savedDoc);
@@ -1062,11 +1070,7 @@ namespace Test
                     Db.Count.Should().Be(1UL);
                     using (var doc = Db.GetDocument("abc")) {
                         doc.Should().NotBeNull();
-                        if (String.Compare(doc1.RevID, doc2.RevID, StringComparison.Ordinal) > 0) {
-                            doc.GetString("somekey").Should().Be("someVar");
-                        } else {
-                            doc.GetString("somekey").Should().Be("newVar");
-                        }
+                        doc.GetString("somekey").Should().Be("someVar", "beacuse the second save should be invalidated by conflict resolution");
                     }  
                 }
             }

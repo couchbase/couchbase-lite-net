@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 
+using System;
+
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite
@@ -47,17 +49,36 @@ namespace Couchbase.Lite
     /// the document with the "longer" revision history (or <see cref="Conflict.Mine"/>
     /// if they are equal)
     /// </summary>
-    internal sealed class MostActiveWinsConflictResolver : IConflictResolver
+    internal sealed class DefaultConflictResolver : IConflictResolver
     {
         #region IConflictResolver
 
         /// <inheritdoc />
         public Document Resolve(Conflict conflict)
         {
-            // Default resolution algorithm is "most active wins", i.e. higher generation number
+            // Default resolution algorithm:
+            // 1. DELETE always wins
+            // 2. Most active wins (Higher generation number)
+            // 3. Higher RevID wins
             var mine = conflict.Mine;
             var theirs = conflict.Theirs;
-            return mine.Generation >= theirs.Generation ? mine : theirs;
+            if (theirs.IsDeleted) {
+                return theirs;
+            }
+
+            if (mine.IsDeleted) {
+                return mine;
+            }
+
+            if (mine.Generation > theirs.Generation) {
+                return mine;
+            }
+
+            if (theirs.Generation > mine.Generation) {
+                return theirs;
+            }
+
+            return String.CompareOrdinal(mine.RevID, theirs.RevID) > 0 ? mine : theirs;
         }
 
         #endregion

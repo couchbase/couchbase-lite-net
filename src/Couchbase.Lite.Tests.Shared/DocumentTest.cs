@@ -1303,7 +1303,7 @@ namespace Test
             Db.Invoking(d => d.Delete(doc))
                 .ShouldThrow<CouchbaseLiteException>()
                 .Which.Status.Should()
-                .Be(StatusCode.Forbidden, "because deleting a non-existent document is invalid");
+                .Be(StatusCode.NotAllowed, "because deleting a non-existent document is invalid");
             doc.IsDeleted.Should().BeFalse("beacuse the document is still not deleted");
             doc.GetString("name").Should().Be("Scott Tiger", "because the delete was invalid");
         }
@@ -1748,13 +1748,13 @@ namespace Test
                 mDoc.SetString("key", "value");
                 Db.Save(mDoc).Dispose();
                 mDoc.SetString("key", "nextValue");
-                Db.Invoking(d => d.Save(mDoc)).ShouldThrow<InvalidOperationException>();
+                Db.Invoking(d => d.Save(mDoc)).ShouldThrow<CouchbaseLiteException>().Which.Status.Should().Be(StatusCode.NotAllowed);
             }
 
             using (var mDoc = Db.GetDocument("doc").ToMutable()) {
                 mDoc.GetString("key").Should().Be("value");
                 Db.Delete(mDoc);
-                Db.Invoking(d => d.Save(mDoc)).ShouldThrow<InvalidOperationException>();
+                Db.Invoking(d => d.Save(mDoc)).ShouldThrow<CouchbaseLiteException>().Which.Status.Should().Be(StatusCode.NotAllowed);
             }
         }
 

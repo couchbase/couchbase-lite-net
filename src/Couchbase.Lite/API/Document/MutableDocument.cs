@@ -34,8 +34,6 @@ using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 
-using Newtonsoft.Json;
-
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -54,6 +52,7 @@ namespace Couchbase.Lite
 
         [NotNull]
         private static readonly Dictionary<Guid, MutableDocument> _NativeCacheMap = new Dictionary<Guid, MutableDocument>();
+        private bool _isDeleted;
 
         #endregion
 
@@ -61,11 +60,11 @@ namespace Couchbase.Lite
 
         internal override uint Generation => base.Generation + Convert.ToUInt32(Changed);
 
-        #if CBL_LINQ
+        public override bool IsDeleted => _isDeleted || base.IsDeleted;
+
+#if CBL_LINQ
         internal override bool IsEmpty => _model == null && base.IsEmpty;
         #endif
-
-        internal bool IsFrozen { get; set; }
 
         internal override bool IsMutable => true;
 
@@ -121,19 +120,19 @@ namespace Couchbase.Lite
             SetData(data);
         }
 
-        internal MutableDocument([NotNull]Database database, [NotNull]string id, bool mustExist)
-            : base(database, id, mustExist)
+        internal MutableDocument([NotNull]Database database, [NotNull]string id)
+            : base(database, id)
         {
 
         }
 
-        internal MutableDocument(Document doc)
-            : this(doc?.Database, doc?.Id, doc?.c4Doc?.Retain<C4DocumentWrapper>())
+        internal MutableDocument([NotNull]Document doc)
+            : this(doc.Database, doc.Id, doc.c4Doc?.Retain<C4DocumentWrapper>())
         {
 
         }
 
-        private MutableDocument([NotNull]Database database, [NotNull]string id, C4DocumentWrapper c4Doc)
+        private MutableDocument([CanBeNull]Database database, [NotNull]string id, [CanBeNull]C4DocumentWrapper c4Doc)
             : base(database, id, c4Doc)
         {
             
@@ -154,12 +153,26 @@ namespace Couchbase.Lite
 
         #endregion
 
+        #region Internal Methods
+
         #if CBL_LINQ
         internal void SetFromModel(Linq.IDocumentModel model)
         {
             _model = model;
         }
         #endif
+
+        internal void MarkAsDeleted()
+        {
+            _isDeleted = true;
+        }
+
+        internal void MarkAsInvalidated()
+        {
+            _isInvalidated = true;
+        }
+
+        #endregion
 
         #region Private Methods
 
@@ -201,7 +214,7 @@ namespace Couchbase.Lite
             return new MutableDocument(this);
         }
 
-        internal override FLSlice Encode()
+        internal override byte[] Encode()
         {
             Debug.Assert(Database != null);
             
@@ -232,7 +245,9 @@ namespace Couchbase.Lite
                 throw new LiteCoreException(new C4Error(err));
             }
 
-            return (FLSlice)body;
+            var retVal = ((C4Slice)body).ToArrayFast();
+            Native.FLSliceResult_Free(body);
+            return retVal;
         }
 
         /// <inheritdoc />

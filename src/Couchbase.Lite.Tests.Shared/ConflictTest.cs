@@ -106,7 +106,7 @@ namespace Test
         [Fact]
         public void TestConflictDeletion()
         {
-            ConflictResolver = new DoNotResolve();
+            ConflictResolver = null;
             ReopenDB();
 
             using (var doc = SetupConflict()) {

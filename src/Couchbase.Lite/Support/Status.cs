@@ -42,11 +42,6 @@ namespace Couchbase.Lite
         MissingDependency = 1,
 
         /// <summary>
-        /// For internal use
-        /// </summary>
-        Reserved = 0,
-
-        /// <summary>
         /// The current user does not have the authorization to perform the current action,
         /// or a given password was incorrect (HTTP compliant)
         /// </summary>
@@ -61,6 +56,11 @@ namespace Couchbase.Lite
         /// The requested item does not appear to exist (HTTP compliant)
         /// </summary>
         NotFound = 404,
+
+        /// <summary>
+        /// The action is not allowed (HTTP compliant)
+        /// </summary>
+        NotAllowed = 405,
 
         /// <summary>
         /// An invalid query was attempted

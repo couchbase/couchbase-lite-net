@@ -144,7 +144,7 @@ namespace Couchbase.Lite.Sync
 
         #region Constructors
 
-        internal ReplicatorConfiguration(Builder builder)
+        internal ReplicatorConfiguration([NotNull]Builder builder)
         {
             Database = builder.Database;
             Target = builder.Target;
@@ -164,7 +164,6 @@ namespace Couchbase.Lite.Sync
         }
 
         #endregion
-
     }
 
     public sealed partial class ReplicatorConfiguration
@@ -173,6 +172,12 @@ namespace Couchbase.Lite.Sync
 
         public sealed class Builder
         {
+            #region Variables
+
+            [NotNull]private IConflictResolver _conflictResolver = new DefaultConflictResolver();
+
+            #endregion
+
             #region Properties
 
             /// <summary>
@@ -204,7 +209,11 @@ namespace Couchbase.Lite.Sync
             /// is <c>null</c> which will set up the default algorithm of the most active revision
             /// </summary>
             [NotNull]
-            public IConflictResolver ConflictResolver { get; set; } = new MostActiveWinsConflictResolver();
+            public IConflictResolver ConflictResolver
+            {
+                get => _conflictResolver;
+                set => _conflictResolver = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(ConflictResolver), value);
+            }
 
             /// <summary>
             /// Gets or sets whether or not the <see cref="Replicator"/> should stay
@@ -236,7 +245,7 @@ namespace Couchbase.Lite.Sync
             public IDictionary<string, string> Headers
             {
                 get => Options.Headers;
-                set => Options.Headers = value;
+                set => Options.Headers = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(Headers), value);
             }
 
             [NotNull]

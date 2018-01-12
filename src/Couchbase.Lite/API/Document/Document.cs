@@ -51,6 +51,11 @@ namespace Couchbase.Lite
         /// </summary>
         protected IDictionaryObject _dict;
 
+        /// <summary>
+        /// Whether or not the current document has been invalidated by a save or delete
+        /// </summary>
+        protected bool _isInvalidated;
+
         private MRoot _root;
 
         #endregion
@@ -105,9 +110,11 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets whether or not this document is deleted
         /// </summary>
-        public bool IsDeleted => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true && c4Doc.RawDoc->flags.HasFlag(C4DocumentFlags.DocDeleted));
+        public virtual bool IsDeleted => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true && c4Doc.RawDoc->flags.HasFlag(C4DocumentFlags.DocDeleted));
 
         internal virtual bool IsEmpty => _dict.Count == 0;
+
+        internal bool IsInvalidated => _isInvalidated;
 
         internal virtual bool IsMutable => false;
 
@@ -136,7 +143,7 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal Document([NotNull]Database database, [NotNull]string id, C4DocumentWrapper c4Doc)
+        internal Document([CanBeNull]Database database, [NotNull]string id, C4DocumentWrapper c4Doc)
         {
             Debug.Assert(id != null);
 
@@ -145,17 +152,14 @@ namespace Couchbase.Lite
             this.c4Doc = c4Doc;
         }
 
-        internal Document([NotNull]Database database, [NotNull]string id, bool mustExist)
+        internal Document([CanBeNull]Database database, [NotNull]string id)
+            : this(database, id, null)
         {
-            Debug.Assert(database != null);
-            Debug.Assert(id != null);
-
-            Database = database;
-            Id = id;
             database.ThreadSafety.DoLocked(() =>
             {
                 var doc = (C4Document*)NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
-                    err => Native.c4doc_get(database.c4db, id, mustExist, err));
+                    err => Native.c4doc_get(database.c4db, id, true, err));
+
                 c4Doc = new C4DocumentWrapper(doc);
             });
         }
@@ -201,9 +205,9 @@ namespace Couchbase.Lite
 
         #region Internal Methods
         
-        internal virtual FLSlice Encode()
+        internal virtual byte[] Encode()
         {
-            return c4Doc?.HasValue == true ? (FLSlice)c4Doc.RawDoc->selectedRev.body : new FLSlice();
+            return c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.body.ToArrayFast() : new byte[0];
         }
 
         internal bool SelectCommonAncestor(Document doc1, Document doc2)
