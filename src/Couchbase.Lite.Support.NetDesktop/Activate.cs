@@ -53,7 +53,7 @@ namespace Couchbase.Lite.Support
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-#if NETCOREAPP1_0
+#if NETCOREAPP2_0
                 var codeBase = Path.GetDirectoryName(typeof(NetDesktop).GetTypeInfo().Assembly.Location);
                 if (codeBase == null) {
                     throw new DllNotFoundException(

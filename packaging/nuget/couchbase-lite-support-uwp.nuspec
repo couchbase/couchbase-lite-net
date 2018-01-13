@@ -14,13 +14,14 @@
     <releaseNotes>
         Couchbase Lite .NET Developer Build
     </releaseNotes>
-    <copyright>Copyright 2017</copyright>
+    <copyright>Copyright 2017-2018</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-        <dependency id="Microsoft.NETCore.UniversalWindowsPlatform" version="5.3.3" />
-        <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="[1.1.1,2.0)" />
-        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="[1.1.2,2.0)" />
+        <dependency id="System.ComponentModel" version="4.3.0" />
+        <dependency id="Microsoft.NETCore.UniversalWindowsPlatform" version="6.0.1" />
+        <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="2.0.0" />
+        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="2.0.0" />
     </dependencies>
   </metadata>
   <files>

@@ -487,7 +487,7 @@ Transfer-Encoding: chunked";
             (await t).Should().BeTrue();
         }
 
-        #if !NETCOREAPP1_0
+        #if !NETCOREAPP2_0
 
         [Fact]
         public async Task TestMainThreadScheduler()
