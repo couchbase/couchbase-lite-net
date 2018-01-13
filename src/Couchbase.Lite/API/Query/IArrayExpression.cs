@@ -37,7 +37,7 @@ namespace Couchbase.Lite.Query
         /// <returns>An object that will determine the predicate for the contents
         /// of the collection</returns>
         [NotNull]
-        IArrayExpressionSatisfies In(object expression);
+        IArrayExpressionSatisfies In(IExpression expression);
     }
 
     /// <summary>

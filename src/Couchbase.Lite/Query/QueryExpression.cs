@@ -104,12 +104,24 @@ namespace Couchbase.Lite.Internal.Query
         }
 
         [NotNull]
-        private QueryExpression GetOperator(BinaryOpType type, object expression)
+        private QueryExpression GetBetweenExpression(IExpression expression)
+        {
+            switch (expression) {
+                case QueryTypeExpression e:
+                    return e;
+                case QueryConstantExpressionBase e:
+                    return e;
+                default:
+                    throw new ArgumentException(
+                        $"Invalid expression value for expression1 of Between ({expression.GetType().Name})");
+            }
+        }
+
+        [NotNull]
+        private QueryExpression GetOperator(BinaryOpType type, IExpression expression)
         {
             var lhs = this;
-            var rhs = expression as QueryExpression ?? new QueryTypeExpression {
-                ConstantValue = expression
-            };
+            var rhs = Misc.TryCast<IExpression, QueryExpression>(expression);
 
             return new QueryBinaryExpression(lhs, rhs, type);
         }
@@ -118,36 +130,18 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IExpression
 
-        public IExpression Add(object expression) => GetOperator(BinaryOpType.Add, expression);
+        public IExpression Add(IExpression expression) => GetOperator(BinaryOpType.Add, expression);
 
-        public IExpression And(object expression) => new QueryCompoundExpression("AND", this, expression);
+        public IExpression And(IExpression expression) => new QueryCompoundExpression("AND", this, expression);
 
-        public IExpression Between(object expression1, object expression2)
+        public IExpression Between(IExpression expression1, IExpression expression2)
         {
             if (!(this is QueryTypeExpression lhs)) {
                 throw new NotSupportedException();
             }
 
-            if (!(expression1 is QueryTypeExpression exp1)) {
-                if (expression1 is QueryExpression) {
-                    throw new ArgumentException("Invalid expression value");
-                }
-
-                exp1 = new QueryTypeExpression {
-                    ConstantValue = expression1
-                };
-            }
-
-            var exp2 = expression2 as QueryTypeExpression;
-            if (exp2 == null) {
-                if (expression2 is QueryExpression) {
-                    throw new ArgumentException("Invalid expression value");
-                }
-
-                exp2 = new QueryTypeExpression {
-                    ConstantValue = expression2
-                };
-            }
+            var exp1 = GetBetweenExpression(expression1);
+            var exp2 = GetBetweenExpression(expression2);
 
             var rhs = new QueryTypeExpression(new[] { exp1, exp2 });
             return new QueryBinaryExpression(lhs, rhs, BinaryOpType.Between);
@@ -160,15 +154,15 @@ namespace Couchbase.Lite.Internal.Query
             return col;
         }
 
-        public IExpression Divide(object expression) => GetOperator(BinaryOpType.Divide, expression);
+        public IExpression Divide(IExpression expression) => GetOperator(BinaryOpType.Divide, expression);
 
-        public IExpression EqualTo(object expression) => GetOperator(BinaryOpType.EqualTo, expression);
+        public IExpression EqualTo(IExpression expression) => GetOperator(BinaryOpType.EqualTo, expression);
 
-        public IExpression GreaterThan(object expression) => GetOperator(BinaryOpType.GreaterThan, expression);
+        public IExpression GreaterThan(IExpression expression) => GetOperator(BinaryOpType.GreaterThan, expression);
 
-        public IExpression GreaterThanOrEqualTo(object expression) => GetOperator(BinaryOpType.GreaterThanOrEqualTo, expression);
+        public IExpression GreaterThanOrEqualTo(IExpression expression) => GetOperator(BinaryOpType.GreaterThanOrEqualTo, expression);
 
-        public IExpression In(params object[] expressions)
+        public IExpression In(params IExpression[] expressions)
         {
             if (!(this is QueryTypeExpression lhs)) {
                 throw new NotSupportedException();
@@ -185,29 +179,29 @@ namespace Couchbase.Lite.Internal.Query
         public IExpression IsNullOrMissing() => new QueryUnaryExpression(this, UnaryOpType.Null)
             .Or(new QueryUnaryExpression(this, UnaryOpType.Missing));
 
-        public IExpression LessThan(object expression) => GetOperator(BinaryOpType.LessThan, expression);
+        public IExpression LessThan(IExpression expression) => GetOperator(BinaryOpType.LessThan, expression);
 
-        public IExpression LessThanOrEqualTo(object expression) => GetOperator(BinaryOpType.LessThanOrEqualTo, expression);
+        public IExpression LessThanOrEqualTo(IExpression expression) => GetOperator(BinaryOpType.LessThanOrEqualTo, expression);
 
-        public IExpression Like(object expression) => GetOperator(BinaryOpType.Like, expression);
+        public IExpression Like(IExpression expression) => GetOperator(BinaryOpType.Like, expression);
 
-        public IExpression Match(object expression) => GetOperator(BinaryOpType.Matches, expression);
+        public IExpression Match(IExpression expression) => GetOperator(BinaryOpType.Matches, expression);
 
-        public IExpression Modulo(object expression) => GetOperator(BinaryOpType.Modulus, expression);
+        public IExpression Modulo(IExpression expression) => GetOperator(BinaryOpType.Modulus, expression);
 
-        public IExpression Multiply(object expression) => GetOperator(BinaryOpType.Multiply, expression);
+        public IExpression Multiply(IExpression expression) => GetOperator(BinaryOpType.Multiply, expression);
 
-        public IExpression NotEqualTo(object expression) => GetOperator(BinaryOpType.NotEqualTo, expression);
+        public IExpression NotEqualTo(IExpression expression) => GetOperator(BinaryOpType.NotEqualTo, expression);
 
-        public IExpression NotIn(params object[] expressions) => Expression.Negated(In(expressions));
+        public IExpression NotIn(params IExpression[] expressions) => Expression.Negated(In(expressions));
 
         public IExpression NotNullOrMissing() => Expression.Not(IsNullOrMissing());
 
-        public IExpression Or(object expression) => new QueryCompoundExpression("OR", this, expression);
+        public IExpression Or(IExpression expression) => new QueryCompoundExpression("OR", this, expression);
 
-        public IExpression Regex(object expression) => GetOperator(BinaryOpType.RegexLike, expression);
+        public IExpression Regex(IExpression expression) => GetOperator(BinaryOpType.RegexLike, expression);
 
-        public IExpression Subtract(object expression) => GetOperator(BinaryOpType.Subtract, expression);
+        public IExpression Subtract(IExpression expression) => GetOperator(BinaryOpType.Subtract, expression);
 
         #endregion
     }

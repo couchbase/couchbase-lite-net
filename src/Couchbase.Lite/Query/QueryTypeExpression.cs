@@ -23,32 +23,32 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Util;
+
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
 {
     internal enum ExpressionType
     {
-        Constant,
         KeyPath,
         Parameter,
         Variable,
         Aggregate
     }
 
-    internal sealed class QueryTypeExpression : QueryExpression, IPropertyExpression, IMetaExpression
+    internal sealed class QueryTypeExpression : QueryExpression, IPropertyExpression, IMetaExpression, IVariableExpression
     {
         #region Variables
 
-        private readonly IList _subpredicates;
+        private readonly IList<IExpression> _subpredicates;
         private string _from;
         private string _columnName;
 
         #endregion
 
         #region Properties
-
-        internal object ConstantValue { get; set; }
+        
         internal ExpressionType ExpressionType { get; }
 
         internal string KeyPath { get; }
@@ -59,12 +59,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        public QueryTypeExpression()
-        {
-            ExpressionType = ExpressionType.Constant;
-        }
-
-        public QueryTypeExpression(IList subpredicates)
+        public QueryTypeExpression(IList<IExpression> subpredicates)
         {
             ExpressionType = ExpressionType.Aggregate;
             _subpredicates = subpredicates;
@@ -111,8 +106,6 @@ namespace Couchbase.Lite.Internal.Query
         protected override object ToJSON()
         {
             switch (ExpressionType) {
-                case ExpressionType.Constant:
-                    return ConstantValue;
                 case ExpressionType.KeyPath:
                 case ExpressionType.Parameter:
                 case ExpressionType.Variable:
@@ -121,8 +114,8 @@ namespace Couchbase.Lite.Internal.Query
                 {
                     var obj = new List<object>();
                     foreach (var entry in _subpredicates) {
-                        var queryExp = entry as QueryExpression;
-                        obj.Add(queryExp == null ? entry.ToString() : queryExp.ConvertToJSON());
+                        var queryExp = Misc.TryCast<IExpression, QueryExpression>(entry);
+                        obj.Add(queryExp.ConvertToJSON());
                     }
 
                     return obj;
@@ -132,10 +125,7 @@ namespace Couchbase.Lite.Internal.Query
             return null;
         }
 
-        public override string ToString()
-        {
-            return JsonConvert.SerializeObject(ConvertToJSON());
-        }
+        public override string ToString() => JsonConvert.SerializeObject(ConvertToJSON());
 
         public IExpression From(string alias)
         {

@@ -41,10 +41,7 @@ namespace Couchbase.Lite.Query
         /// via <see cref="Variable"/></param>
         /// <returns>The first portion of the completed expression for further modification</returns>
         [NotNull]
-        public static IArrayExpressionIn Any(string variable)
-        {
-            return new QueryTernaryExpression("ANY", variable);
-        }
+        public static IArrayExpressionIn Any(IVariableExpression variable) => new QueryTernaryExpression("ANY", variable);
 
         /// <summary>
         /// Returns the start of an expression that will evaluate the following:
@@ -57,10 +54,7 @@ namespace Couchbase.Lite.Query
         /// via <see cref="Variable"/></param>
         /// <returns>The first portion of the completed expression for further modification</returns>
         [NotNull]
-        public static IArrayExpressionIn AnyAndEvery(string variable)
-        {
-            return new QueryTernaryExpression("ANY AND EVERY", variable);
-        }
+        public static IArrayExpressionIn AnyAndEvery(IVariableExpression variable) => new QueryTernaryExpression("ANY AND EVERY", variable);
 
         /// <summary>
         /// Returns the start of an expression that will evaluate if every element inside
@@ -73,10 +67,7 @@ namespace Couchbase.Lite.Query
         /// via <see cref="Variable"/></param>
         /// <returns>The first portion of the completed expression for further modification</returns>
         [NotNull]
-        public static IArrayExpressionIn Every(string variable)
-        {
-            return new QueryTernaryExpression("EVERY", variable);
-        }
+        public static IArrayExpressionIn Every(IVariableExpression variable) => new QueryTernaryExpression("EVERY", variable);
 
         /// <summary>
         /// Returns an expression representing the value of a named variable
@@ -85,9 +76,6 @@ namespace Couchbase.Lite.Query
         /// <param name="name">The name of the variable</param>
         /// <returns>An expression representing the value of a named variable</returns>
         [NotNull]
-        public static IExpression Variable(string name)
-        {
-            return new QueryTypeExpression(name, ExpressionType.Variable);
-        }
+        public static IVariableExpression Variable(string name) => new QueryTypeExpression(name, ExpressionType.Variable);
     }
 }

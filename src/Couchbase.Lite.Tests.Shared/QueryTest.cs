@@ -141,17 +141,17 @@ namespace Test
             var e7 = new Func<int, bool>(n => n == 7);
             var ne7 = new Func<int, bool>(n => n != 7);
             var cases = new[] {
-                Tuple.Create(n1.LessThan(3),
+                Tuple.Create(n1.LessThan(Expression.Int(3)),
                     (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)l3),
-                Tuple.Create(n1.LessThanOrEqualTo(3),
+                Tuple.Create(n1.LessThanOrEqualTo(Expression.Int(3)),
                     (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)le3),
-                Tuple.Create(n1.GreaterThan(6),
+                Tuple.Create(n1.GreaterThan(Expression.Int(6)),
                     (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)g6),
-                Tuple.Create(n1.GreaterThanOrEqualTo(6),
+                Tuple.Create(n1.GreaterThanOrEqualTo(Expression.Int(6)),
                     (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)ge6),
-                Tuple.Create(n1.EqualTo(7),
+                Tuple.Create(n1.EqualTo(Expression.Int(7)),
                     (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)e7),
-                Tuple.Create(n1.NotEqualTo(7),
+                Tuple.Create(n1.NotEqualTo(Expression.Int(7)),
                     (Func<IDictionary<string, object>, object, bool>) TestWhereCompareValidator, (object)ne7)
             };
 
@@ -176,25 +176,25 @@ namespace Test
             var an2e10 = new Func<int, int, bool>((x1, x2) => x1 + x2 == 10);
             var sn2g0 = new Func<int, int, bool>((x1, x2) => x1 - x2 > 0);
             var cases = new[] {
-                Tuple.Create(n1.Multiply(2).GreaterThan(8),
+                Tuple.Create(n1.Multiply(Expression.Int(2)).GreaterThan(Expression.Int(8)),
                     (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)m2g8),
-                Tuple.Create(n1.Divide(2).GreaterThan(3),
+                Tuple.Create(n1.Divide(Expression.Int(2)).GreaterThan(Expression.Int(3)),
                     (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)d2g3),
-                Tuple.Create(n1.Modulo(2).EqualTo(0),
+                Tuple.Create(n1.Modulo(Expression.Int(2)).EqualTo(Expression.Int(0)),
                     (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)m2e0),
-                Tuple.Create(n1.Add(5).GreaterThan(10),
+                Tuple.Create(n1.Add(Expression.Int(5)).GreaterThan(Expression.Int(10)),
                     (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)a5g10),
-                Tuple.Create(n1.Subtract(5).GreaterThan(0),
+                Tuple.Create(n1.Subtract(Expression.Int(5)).GreaterThan(Expression.Int(0)),
                     (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)s5g0),
-                Tuple.Create(n1.Multiply(n2).GreaterThan(10),
+                Tuple.Create(n1.Multiply(n2).GreaterThan(Expression.Int(10)),
                     (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)mn2g10),
-                Tuple.Create(n2.Divide(n1).GreaterThan(3),
+                Tuple.Create(n2.Divide(n1).GreaterThan(Expression.Int(3)),
                     (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)dn1g3),
-                Tuple.Create(n1.Modulo(n2).EqualTo(0),
+                Tuple.Create(n1.Modulo(n2).EqualTo(Expression.Int(0)),
                     (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)mn2e0),
-                Tuple.Create(n1.Add(n2).EqualTo(10),
+                Tuple.Create(n1.Add(n2).EqualTo(Expression.Int(10)),
                     (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)an2e10),
-                Tuple.Create(n1.Subtract(n2).GreaterThan(0),
+                Tuple.Create(n1.Subtract(n2).GreaterThan(Expression.Int(0)),
                     (Func<IDictionary<string, object>, object, bool>)TestWhereMathValidator, (object)sn2g0)
             };
 
@@ -208,9 +208,9 @@ namespace Test
             var n1 = Expression.Property("number1");
             var n2 = Expression.Property("number2");
             var cases = new[] {
-                Tuple.Create(n1.GreaterThan(3).And(n2.GreaterThan(3)),
+                Tuple.Create(n1.GreaterThan(Expression.Int(3)).And(n2.GreaterThan(Expression.Int(3))),
                     (Func<IDictionary<string, object>, object, bool>)TestWhereAndValidator, default(object)),
-                Tuple.Create(n1.LessThan(3).Or(n2.LessThan(3)),
+                Tuple.Create(n1.LessThan(Expression.Int(3)).Or(n2.LessThan(Expression.Int(3))),
                     (Func<IDictionary<string, object>, object, bool>)TestWhereOrValidator, default(object))
             };
             LoadNumbers(10);
@@ -226,7 +226,7 @@ namespace Test
 
             using (var q = Query.Select(DocID)
                 .From(DataSource.Database(Db))
-                .Where(Expression.Property("string").EqualTo("string"))) {
+                .Where(Expression.Property("string").EqualTo(Expression.String("string")))) {
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
@@ -239,7 +239,7 @@ namespace Test
 
             using (var q = Query.Select(DocID)
                 .From(DataSource.Database(Db))
-                .Where(Expression.Property("string").NotEqualTo("string1"))) {
+                .Where(Expression.Property("string").NotEqualTo(Expression.String("string1")))) {
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
@@ -257,7 +257,7 @@ namespace Test
             LoadNumbers(10);
             var n1 = Expression.Property("number1");
             var cases = new[] {
-                Tuple.Create(n1.Between(3, 7), 
+                Tuple.Create(n1.Between(Expression.Int(3), Expression.Int(7)), 
                 (Func<IDictionary<string, object>, object, bool>) TestWhereBetweenValidator, (object)null)
             };
 
@@ -270,10 +270,12 @@ namespace Test
             LoadJSONResource("names_100");
 
             var expected = new[] {"Marcy", "Margaretta", "Margrett", "Marlen", "Maryjo" };
+            var inExpression = expected.Select(Expression.String);
+
             var firstName = Expression.Property("name.first");
             using (var q = Query.Select(SelectResult.Expression(firstName))
                 .From(DataSource.Database(Db))
-                .Where(firstName.In(expected))
+                .Where(firstName.In(inExpression.ToArray()))
                 .OrderBy(Ordering.Property("name.first"))) {
 
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -292,7 +294,7 @@ namespace Test
         {
             LoadJSONResource("names_100");
 
-            var where = Expression.Property("name.first").Like("%Mar%");
+            var where = Expression.Property("name.first").Like(Expression.String("%Mar%"));
             using (var q = Query.Select(SelectResult.Expression(Expression.Property("name.first")))
                 .From(DataSource.Database(Db))
                 .Where(where)
@@ -318,7 +320,7 @@ namespace Test
         {
             LoadJSONResource("names_100");
 
-            var where = Expression.Property("name.first").Regex("^Mar.*");
+            var where = Expression.Property("name.first").Regex(Expression.String("^Mar.*"));
             using (var q = Query.Select(SelectResult.Expression(Expression.Property("name.first")))
                 .From(DataSource.Database(Db))
                 .Where(where)
@@ -430,7 +432,7 @@ namespace Test
         {
             LoadNumbers(100);
             using (var q = Query.Select(SelectResult.Expression(Expression.Property("number1"))).From(DataSource.Database(Db))
-                .Where(Expression.Property("number1").LessThan(10)).OrderBy(Ordering.Property("number1"))) {
+                .Where(Expression.Property("number1").LessThan(Expression.Int(10))).OrderBy(Ordering.Property("number1"))) {
                 var wa = new WaitAssert();
                 var wa2 = new WaitAssert();
                 var count = 1;
@@ -532,7 +534,7 @@ namespace Test
 
             using (var q = Query.Select(SelectResult.Expression(STATE), SelectResult.Expression(COUNT), SelectResult.Expression(MAXZIP))
                 .From(DataSource.Database(Db))
-                .Where(gender.EqualTo("female"))
+                .Where(gender.EqualTo(Expression.String("female")))
                 .GroupBy(STATE)
                 .OrderBy(Ordering.Expression(STATE))) {
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -555,9 +557,9 @@ namespace Test
 
             using (var q = Query.Select(SelectResult.Expression(STATE), SelectResult.Expression(COUNT), SelectResult.Expression(MAXZIP))
                 .From(DataSource.Database(Db))
-                .Where(gender.EqualTo("female"))
+                .Where(gender.EqualTo(Expression.String("female")))
                 .GroupBy(STATE)
-                .Having(COUNT.GreaterThan(1))
+                .Having(COUNT.GreaterThan(Expression.Int(1)))
                 .OrderBy(Ordering.Expression(STATE))) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
@@ -651,7 +653,7 @@ namespace Test
             using (var q = Query.Select(SelectResult.Property("number1"))
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(NUMBER))
-                .Limit(5)) {
+                .Limit(Expression.Int(5))) {
 
                 var expectedNumbers = new[] {1, 2, 3, 4, 5};
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -691,7 +693,7 @@ namespace Test
             using (var q = Query.Select(SelectResult.Property("number1"))
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(NUMBER))
-                .Limit(5, 3)) {
+                .Limit(Expression.Int(5), Expression.Int(3))) {
 
                 var expectedNumbers = new[] {4, 5, 6, 7, 8};
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -792,8 +794,8 @@ namespace Test
                 numRows.Should().Be(1);
             }
 
-            using (var q = Query.Select(SelectResult.Expression(ArrayFunction.Contains(Expression.Property("array"), "650-123-0001")),
-                    SelectResult.Expression(ArrayFunction.Contains(Expression.Property("array"), "650-123-0003")))
+            using (var q = Query.Select(SelectResult.Expression(ArrayFunction.Contains(Expression.Property("array"), Expression.String("650-123-0001"))),
+                    SelectResult.Expression(ArrayFunction.Contains(Expression.Property("array"), Expression.String("650-123-0003"))))
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
@@ -826,14 +828,14 @@ namespace Test
             var prop = Expression.Property("number");
             foreach (var function in new[] {
                 Function.Abs(prop), Function.Acos(prop), Function.Asin(prop), Function.Atan(prop),
-                Function.Atan2(prop, 90), // Note: N1QL function definition is the basis for this call, so (x, y)
+                Function.Atan2(prop, Expression.Int(90)), // Note: N1QL function definition is the basis for this call, so (x, y)
                 Function.Ceil(prop), Function.Cos(prop), Function.Degrees(prop), Function.Exp(prop),
                 Function.Floor(prop),
-                Function.Ln(prop), Function.Log(prop), Function.Power(prop, 2), Function.Radians(prop),
+                Function.Ln(prop), Function.Log(prop), Function.Power(prop, Expression.Int(2)), Function.Radians(prop),
                 Function.Round(prop),
-                Function.Round(prop, 1), Function.Sign(prop), Function.Sin(prop), Function.Sqrt(prop),
+                Function.Round(prop, Expression.Int(1)), Function.Sign(prop), Function.Sin(prop), Function.Sqrt(prop),
                 Function.Tan(prop),
-                Function.Trunc(prop), Function.Trunc(prop, 1)
+                Function.Trunc(prop), Function.Trunc(prop, Expression.Int(1))
             }) {
                 using (var q = Query.Select(SelectResult.Expression(function))
                     .From(DataSource.Database(Db))) {
@@ -846,8 +848,8 @@ namespace Test
                 }
             }
 
-            using (var q = Query.Select(SelectResult.Expression(Function.E().Multiply(2)),
-                    SelectResult.Expression(Function.Pi().Multiply(2)))
+            using (var q = Query.Select(SelectResult.Expression(Function.E().Multiply(Expression.Int(2))),
+                    SelectResult.Expression(Function.Pi().Multiply(Expression.Int(2))))
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
@@ -869,8 +871,8 @@ namespace Test
             }
 
             var prop = Expression.Property("greeting");
-            using (var q = Query.Select(SelectResult.Expression(Function.Contains(prop, "8")),
-                    SelectResult.Expression(Function.Contains(prop, "9")))
+            using (var q = Query.Select(SelectResult.Expression(Function.Contains(prop, Expression.String("8"))),
+                    SelectResult.Expression(Function.Contains(prop, Expression.String("9"))))
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
@@ -917,8 +919,8 @@ namespace Test
 
             using (var q = Query.Select(SelectResult.Expression(Meta.ID))
                 .From(DataSource.Database(Db))
-                .Where(ArrayExpression.Any("like").In(Expression.Property("likes"))
-                    .Satisfies(ArrayExpression.Variable("like").EqualTo("climbing")))) {
+                .Where(ArrayExpression.Any(ArrayExpression.Variable("like")).In(Expression.Property("likes"))
+                    .Satisfies(ArrayExpression.Variable("like").EqualTo(Expression.String("climbing"))))) {
                 var expected = new[] {"doc-017", "doc-021", "doc-023", "doc-045", "doc-060"};
                 var results = q.Execute();
                 var received = results.Select(x => x.GetString("id"));
@@ -927,8 +929,8 @@ namespace Test
 
             using (var q = Query.Select(SelectResult.Expression(Meta.ID))
                 .From(DataSource.Database(Db))
-                .Where(ArrayExpression.Every("like").In(Expression.Property("likes"))
-                    .Satisfies(ArrayExpression.Variable("like").EqualTo("taxes")))) {
+                .Where(ArrayExpression.Every(ArrayExpression.Variable("like")).In(Expression.Property("likes"))
+                    .Satisfies(ArrayExpression.Variable("like").EqualTo(Expression.String("taxes"))))) {
                 var results = q.Execute();
                 var received = results.Select(x => x.GetString("id")).ToList();
                 received.Count.Should().Be(42, "because empty array results are included");
@@ -937,8 +939,8 @@ namespace Test
 
             using (var q = Query.Select(SelectResult.Expression(Meta.ID))
                 .From(DataSource.Database(Db))
-                .Where(ArrayExpression.AnyAndEvery("like").In(Expression.Property("likes"))
-                    .Satisfies(ArrayExpression.Variable("like").EqualTo("taxes")))) {
+                .Where(ArrayExpression.AnyAndEvery(ArrayExpression.Variable("like")).In(Expression.Property("likes"))
+                    .Satisfies(ArrayExpression.Variable("like").EqualTo(Expression.String("taxes"))))) {
                 var results = q.Execute();
                 var received = results.Select(x => x.GetString("id")).ToList();
                 received.Count.Should().Be(0, "because nobody likes taxes...");
@@ -986,7 +988,7 @@ namespace Test
 
             var PATHS = Expression.Property("paths");
             var VAR_PATH = ArrayExpression.Variable("path.city");
-            var where = ArrayExpression.Any("path").In(PATHS).Satisfies(VAR_PATH.EqualTo("San Francisco"));
+            var where = ArrayExpression.Any(ArrayExpression.Variable("path")).In(PATHS).Satisfies(VAR_PATH.EqualTo(Expression.String("San Francisco")));
 
             using (var q = Query.Select(S_DOC_ID)
                 .From(DataSource.Database(Db))
@@ -1195,8 +1197,8 @@ namespace Test
                     var savedDoc = Db.Save(doc);
 
                     var comparison = data.Item3
-                        ? Expression.Property("value").Collate(data.Item4).EqualTo(data.Item2)
-                        : Expression.Property("value").Collate(data.Item4).LessThan(data.Item2);
+                        ? Expression.Property("value").Collate(data.Item4).EqualTo(Expression.String(data.Item2))
+                        : Expression.Property("value").Collate(data.Item4).LessThan(Expression.String(data.Item2));
 
                     using (var q = Query.Select(SelectResult.All())
                         .From(DataSource.Database(Db))
@@ -1352,7 +1354,7 @@ namespace Test
             using (var q = Query.Select(srMainAll, srSecondaryAll)
                 .From(mainDS)
                 .Join(join)
-                .Where(typeExpr.EqualTo("bookmark"))) {
+                .Where(typeExpr.EqualTo(Expression.String("bookmark")))) {
                 var rs = q.Execute();
                 foreach (var r in rs) {
                     WriteLine(JsonConvert.SerializeObject(r.ToDictionary()));
@@ -1368,7 +1370,7 @@ namespace Test
             using (var task2 = CreateTaskDocument("Task 2", false)) {
                 using (var q = Query.Select(SelectResult.Expression(Meta.ID), SelectResult.All())
                     .From(DataSource.Database(Db))
-                    .Where(Expression.Property("type").EqualTo("task"))) {
+                    .Where(Expression.Property("type").EqualTo(Expression.String("task")))) {
                     var rs = q.Execute();
                     var counter = 0;
                     foreach (var r in rs) {
@@ -1407,11 +1409,11 @@ namespace Test
 
                 var exprType = Expression.Property("type");
                 var exprComplete = Expression.Property("complete");
-                var srCount = SelectResult.Expression(Function.Count(1));
+                var srCount = SelectResult.Expression(Function.Count(Expression.All()));
 
                 using (var q = Query.Select(SelectResult.All())
                     .From(DataSource.Database(Db))
-                    .Where(exprType.EqualTo("task").And(exprComplete.EqualTo(true)))) {
+                    .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(true))))) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
@@ -1426,7 +1428,7 @@ namespace Test
 
                 using (var q = Query.Select(SelectResult.All())
                     .From(DataSource.Database(Db))
-                    .Where(exprType.EqualTo("task").And(exprComplete.EqualTo(false)))) {
+                    .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(false))))) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
@@ -1441,7 +1443,7 @@ namespace Test
 
                 using (var q = Query.Select(srCount)
                     .From(DataSource.Database(Db))
-                    .Where(exprType.EqualTo("task").And(exprComplete.EqualTo(true)))) {
+                    .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(true))))) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
@@ -1453,7 +1455,7 @@ namespace Test
 
                 using (var q = Query.Select(srCount)
                     .From(DataSource.Database(Db))
-                    .Where(exprType.EqualTo("task").And(exprComplete.EqualTo(false)))) {
+                    .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(false))))) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
@@ -1606,7 +1608,7 @@ namespace Test
         {
             LoadNumbers(100);
             using (var q = Query.Select().From(DataSource.Database(Db))
-                .Where(Expression.Property("number1").LessThan(10)).OrderBy(Ordering.Property("number1"))) {
+                .Where(Expression.Property("number1").LessThan(Expression.Int(10))).OrderBy(Ordering.Property("number1"))) {
 
                 var are = new AutoResetEvent(false);
                 q.AddChangeListener(null, (sender, args) =>

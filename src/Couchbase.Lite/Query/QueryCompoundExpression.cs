@@ -22,6 +22,7 @@
 using System.Collections.Generic;
 
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Util;
 
 using Newtonsoft.Json;
 
@@ -32,13 +33,13 @@ namespace Couchbase.Lite.Internal.Query
         #region Variables
 
         private readonly string _operation;
-        private readonly object[] _subpredicates;
+        private readonly IExpression[] _subpredicates;
 
         #endregion
 
         #region Constructors
 
-        public QueryCompoundExpression(string op, params object[] subpredicates)
+        public QueryCompoundExpression(string op, params IExpression[] subpredicates)
         {
             _operation = op;
             _subpredicates = subpredicates;
@@ -52,25 +53,22 @@ namespace Couchbase.Lite.Internal.Query
         {
             var obj = new List<object> { _operation };
             foreach (var subp in _subpredicates) {
-                var queryExp = subp as QueryExpression;
-                obj.Add(queryExp?.ConvertToJSON() ?? subp);
+                var queryExp = Misc.TryCast<IExpression, QueryExpression>(subp);
+                obj.Add(queryExp.ConvertToJSON());
             }
 
             return obj;
         }
 
-        public override string ToString()
-        {
-            return JsonConvert.SerializeObject(ConvertToJSON());
-        }
+        public override string ToString() => JsonConvert.SerializeObject(ConvertToJSON());
 
         #endregion
 
         #region IFullTextExpression
 
-        public IExpression Match(string text)
+        public IExpression Match(string query)
         {
-            _subpredicates[_subpredicates.Length - 1] = text;
+            _subpredicates[_subpredicates.Length - 1] = Expression.String(query);
             return this;
         }
 

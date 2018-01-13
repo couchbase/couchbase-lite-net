@@ -19,6 +19,8 @@
 // limitations under the License.
 // 
 
+using System;
+
 using Couchbase.Lite.Internal.Query;
 
 using JetBrains.Annotations;
@@ -36,8 +38,57 @@ namespace Couchbase.Lite.Query
         /// Returns an expression to represent '*' in things like COUNT(*) and
         /// SELECT *
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The expressoin representing '*'</returns>
+        [NotNull]
         public static IPropertyExpression All() => new QueryTypeExpression("", ExpressionType.KeyPath);
+
+        /// <summary>
+        /// Returns an expression to represent a fixed <see cref="bool"/> value
+        /// </summary>
+        /// <param name="value">The value to use</param>
+        /// <returns>An expression representing the fixed value</returns>
+        [NotNull]
+        public static IExpression Boolean(bool value) => new QueryConstantExpression<bool>(value);
+
+        /// <summary>
+        /// Returns an expression to represent a fixed <see cref="DateTimeOffset"/> value
+        /// </summary>
+        /// <param name="value">The value to use</param>
+        /// <returns>An expression representing the fixed value</returns>
+        [NotNull]
+        public static IExpression Date(DateTimeOffset value) => new QueryConstantExpression<DateTimeOffset>(value);
+
+        /// <summary>
+        /// Returns an expression to represent a fixed <see cref="double"/> value
+        /// </summary>
+        /// <param name="value">The value to use</param>
+        /// <returns>An expression representing the fixed value</returns>
+        [NotNull]
+        public static IExpression Double(double value) => new QueryConstantExpression<double>(value);
+
+        /// <summary>
+        /// Returns an expression to represent a fixed <see cref="Single"/> value
+        /// </summary>
+        /// <param name="value">The value to use</param>
+        /// <returns>An expression representing the fixed value</returns>
+        [NotNull]
+        public static IExpression Float(float value) => new QueryConstantExpression<float>(value);
+
+        /// <summary>
+        /// Returns an expression to represent a fixed <see cref="Int32"/> value
+        /// </summary>
+        /// <param name="value">The value to use</param>
+        /// <returns>An expression representing the fixed value</returns>
+        [NotNull]
+        public static IExpression Int(int value) => new QueryConstantExpression<int>(value);
+
+        /// <summary>
+        /// Returns an expression to represent a fixed <see cref="Int64"/> value
+        /// </summary>
+        /// <param name="value">The value to use</param>
+        /// <returns>An expression representing the fixed value</returns>
+        [NotNull]
+        public static IExpression Long(long value) => new QueryConstantExpression<long>(value);
 
         /// <summary>
         /// Returns an expression representing the negated result of an expression
@@ -71,6 +122,23 @@ namespace Couchbase.Lite.Query
         /// <returns>An expression representing the value of a named property</returns>
         [NotNull]
         public static IPropertyExpression Property(string property) => new QueryTypeExpression(property, ExpressionType.KeyPath);
+
+        /// <summary>
+        /// Returns an expression to represent a fixed <see cref="string"/> value
+        /// </summary>
+        /// <param name="value">The value to use</param>
+        /// <returns>An expression representing the fixed value</returns>
+        [NotNull]
+        public static IExpression String(string value) => new QueryConstantExpression<string>(value);
+
+        /// <summary>
+        /// Returns an expression to represent a fixed <see cref="Object"/> value.  It must be one
+        /// of the allowed types (i.e. the ones allowed in other methods such as <see cref="String"/>
+        /// </summary>
+        /// <param name="value">The value to use</param>
+        /// <returns>An expression representing the fixed value</returns>
+        [NotNull]
+        public static IExpression Value(object value) => new QueryConstantExpression<object>(value);
 
         #endregion
     }

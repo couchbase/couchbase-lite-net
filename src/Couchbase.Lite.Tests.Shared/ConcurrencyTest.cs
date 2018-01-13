@@ -414,7 +414,7 @@ namespace Test
         {
             var TAG = Expression.Property("tag");
             var DOCID = SelectResult.Expression(Meta.ID);
-            using (var q = Query.Select(DOCID).From(DataSource.Database(Db)).Where(TAG.EqualTo(name))) {
+            using (var q = Query.Select(DOCID).From(DataSource.Database(Db)).Where(TAG.EqualTo(Expression.String(name)))) {
                 WriteLine((q as XQuery).Explain());
 
                 var e = q.Execute();

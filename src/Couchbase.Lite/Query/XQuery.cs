@@ -80,13 +80,13 @@ namespace Couchbase.Lite.Internal.Query
 
         protected QueryJoin JoinImpl { get; set; }
 
-        protected object LimitValue { get; set; }
+        protected IExpression LimitValue { get; set; }
 
         protected QueryOrderBy OrderByImpl { get; set; }
 
         protected Select SelectImpl { get; set; }
 
-        protected object SkipValue { get; set; }
+        protected IExpression SkipValue { get; set; }
 
         protected QueryExpression WhereImpl { get; set; }
         
@@ -242,20 +242,13 @@ namespace Couchbase.Lite.Internal.Query
             }
 
             if (LimitValue != null) {
-                if (LimitValue is QueryExpression e) {
-                    parameters["LIMIT"] = e.ConvertToJSON();
-                } else {
-                    parameters["LIMIT"] = LimitValue;
-                }
+                var e = Misc.TryCast<IExpression, QueryExpression>(LimitValue);
+                parameters["LIMIT"] = e.ConvertToJSON();
             }
 
             if (SkipValue != null) {
-                if (SkipValue is QueryExpression e) {
-                    parameters["OFFSET"] = e.ConvertToJSON();
-                }
-                else {
-                    parameters["OFFSET"] = SkipValue;
-                }
+                var e = Misc.TryCast<IExpression, QueryExpression>(SkipValue);
+                parameters["OFFSET"] = e.ConvertToJSON();
             }
 
             if (OrderByImpl != null) {

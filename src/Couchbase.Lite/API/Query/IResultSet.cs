@@ -30,9 +30,16 @@ namespace Couchbase.Lite.Query
     /// </summary>
     /// <warning>
     /// Multiple enumerations are not supported.  If you wish to enumerate
-    /// more than once, then use LINQ ToList to materialize the results
+    /// more than once, then use <see cref="AllResults"/> or another LINQ
+    /// method to materialize the results.
     /// </warning>
     public interface IResultSet : IEnumerable<Result>
     {
+        /// <summary>
+        /// Cross platform API entry to get all results in a list.  Same
+        /// as <c>ToList()</c>
+        /// </summary>
+        /// <returns></returns>
+        List<Result> AllResults();
     }
 }

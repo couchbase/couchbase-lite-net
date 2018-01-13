@@ -20,6 +20,9 @@
 // 
 using System.Collections.Generic;
 
+using Couchbase.Lite.Query;
+using Couchbase.Lite.Util;
+
 namespace Couchbase.Lite.Internal.Query
 {
     internal enum UnaryOpType
@@ -34,14 +37,14 @@ namespace Couchbase.Lite.Internal.Query
     {
         #region Variables
 
-        private readonly object _argument;
+        private readonly IExpression _argument;
         private readonly UnaryOpType _type;
 
         #endregion
 
         #region Constructors
 
-        internal QueryUnaryExpression(object argument, UnaryOpType type)
+        internal QueryUnaryExpression(IExpression argument, UnaryOpType type)
         {
             _argument = argument;
             _type = type;
@@ -67,9 +70,7 @@ namespace Couchbase.Lite.Internal.Query
                     break;
             }
 
-            var operand = _argument as QueryExpression ?? new QueryTypeExpression {
-                ConstantValue = _argument
-            };
+            var operand = Misc.TryCast<IExpression, QueryExpression>(_argument);
 
             if ((operand as QueryTypeExpression)?.ExpressionType == ExpressionType.Aggregate) {
                 obj.InsertRange(1, operand.ConvertToJSON() as IList<object>);

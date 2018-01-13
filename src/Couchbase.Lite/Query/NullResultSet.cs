@@ -72,7 +72,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IResultSet
 
-        public IReadOnlyList<object> ToList() => new List<object>();
+        public List<Result> AllResults() => new List<Result>();
 
         #endregion
     }

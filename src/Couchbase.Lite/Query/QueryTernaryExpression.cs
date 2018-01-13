@@ -29,15 +29,15 @@ namespace Couchbase.Lite.Internal.Query
         #region Variables
 
         private readonly string _function;
-        private readonly string _variableName;
-        private object _in;
+        private readonly IVariableExpression _variableName;
+        private IExpression _in;
         private QueryExpression _predicate;
 
         #endregion
 
         #region Constructors
 
-        internal QueryTernaryExpression(string function, string variableName)
+        internal QueryTernaryExpression(string function, IVariableExpression variableName)
         {
             _function = function;
             _variableName = variableName;
@@ -49,15 +49,13 @@ namespace Couchbase.Lite.Internal.Query
 
         protected override object ToJSON()
         {
-            var inObj = _in;
-            if (_in is QueryExpression e) {
-                inObj = e.ConvertToJSON();
-            }
+            var inObj = Misc.TryCast<IExpression, QueryExpression>(_in);
+            var variableName = Misc.TryCast<IVariableExpression, QueryTypeExpression>(_variableName);
 
             return new[] {
                 _function,
-                _variableName,
-                inObj,
+                variableName.KeyPath,
+                inObj.ConvertToJSON(),
                 _predicate?.ConvertToJSON()
             };
         }
@@ -66,7 +64,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IArrayExpressionIn
 
-        public IArrayExpressionSatisfies In(object expression)
+        public IArrayExpressionSatisfies In(IExpression expression)
         {
             _in = expression;
             return this;

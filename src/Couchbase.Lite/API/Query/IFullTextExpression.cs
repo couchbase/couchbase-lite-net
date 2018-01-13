@@ -33,9 +33,9 @@ namespace Couchbase.Lite.Query
         /// Returns an expression that will evaluate whether or not the given
         /// expression full text matches the current one
         /// </summary>
-        /// <param name="text">The text to use for the match operation</param>
+        /// <param name="query">The text to use for the match operation</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression Match(string text);
+        IExpression Match(string query);
     }
 }

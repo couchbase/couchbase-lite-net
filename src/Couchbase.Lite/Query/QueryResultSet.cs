@@ -22,6 +22,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
@@ -155,6 +156,12 @@ namespace Couchbase.Lite.Internal.Query
             
             return new Enumerator(this);
         }
+
+        #endregion
+
+        #region IResultSet
+
+        public List<Result> AllResults() => this.ToList();
 
         #endregion
 

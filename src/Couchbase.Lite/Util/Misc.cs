@@ -22,12 +22,15 @@ using System;
 using System.Text;
 using System.Threading;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Util
 {
     internal static class Misc
     {
         #region Public Methods
 
+        [NotNull]
         public static TClass TryCast<TInterface, TClass>(TInterface iface)
             where TClass : class, TInterface
         {
