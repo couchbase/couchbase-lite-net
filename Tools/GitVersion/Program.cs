@@ -45,6 +45,12 @@ namespace GitVersion
             if(gitFolder != null) {
                 var headPath = Path.Combine(gitFolder.FullName, "logs", "HEAD");
                 var logLine = LastFullLineOfFile(headPath);
+                if(logLine == null) {
+                    headPath = Path.Combine(gitFolder.FullName, "HEAD");
+                    if(File.Exists(headPath)) {
+                        hash = File.ReadAllText(headPath).Substring(0, 7);
+                    }
+                }
                 hash = HashFromLogLine(logLine) ?? "Unknown hash";
             }
             
@@ -66,6 +72,10 @@ namespace GitVersion
         
         private static string LastFullLineOfFile(string path)
         {
+            if(!File.Exists(path)) {
+                return null;
+            }
+            
             using(var fs = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                 int nextByte = 0;
                 bool foundNewline = false;
