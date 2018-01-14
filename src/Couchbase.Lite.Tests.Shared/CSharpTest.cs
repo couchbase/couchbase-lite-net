@@ -42,7 +42,6 @@ using Couchbase.Lite.Util;
 using FluentAssertions;
 using LiteCore.Interop;
 using Newtonsoft.Json;
-using Microsoft.Extensions.DependencyInjection;
 
 using Extensions = Couchbase.Lite.Util.Extensions;
 #if !WINDOWS_UWP
@@ -492,7 +491,7 @@ Transfer-Encoding: chunked";
         [Fact]
         public async Task TestMainThreadScheduler()
         {
-            var scheduler = Service.Provider.GetService<IMainThreadTaskScheduler>();
+            var scheduler = Service.GetInstance<IMainThreadTaskScheduler>();
             var onMainThread = await Task.Factory.StartNew(() => scheduler.IsMainThread);
             onMainThread.Should().BeFalse();
 

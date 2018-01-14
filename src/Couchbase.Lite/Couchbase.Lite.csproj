@@ -44,10 +44,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="1.1.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="1.1.2" />
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
     <DotNetCliToolReference Include="dotnet-sourcelink" Version="2.1.2" />
+    <PackageReference Include="SimpleInjector" Version="4.0.12" />
     <PackageReference Include="SourceLink.Create.GitHub" Version="2.1.2" PrivateAssets="all" />
     <DotNetCliToolReference Include="dotnet-sourcelink-git" Version="2.1.2" />
     <PackageReference Include="System.Net.NetworkInformation" Version="4.3.0" />

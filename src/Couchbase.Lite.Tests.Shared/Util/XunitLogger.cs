@@ -20,60 +20,27 @@
 // 
 #if !WINDOWS_UWP
 using System;
+
+using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
-using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
-using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace Test.Util
 {
-    internal sealed class XunitLoggerProvider : ILoggerProvider
-    {
-        private readonly ITestOutputHelper _output;
-
-        public XunitLoggerProvider(ITestOutputHelper output)
-        {
-            _output = output;
-        }
-
-        public ILogger CreateLogger(string categoryName)
-        {
-            return new XunitLogger(_output, categoryName);
-        }
-
-        public void Dispose()
-        {
-            
-        }
-    }
-
     internal sealed class XunitLogger : ILogger
     {
         private readonly ITestOutputHelper _output;
-        private readonly string _category;
 
-        public XunitLogger(ITestOutputHelper output, string categoryName)
+        public XunitLogger(ITestOutputHelper output)
         {
             _output = output;
-            _category = categoryName;
         }
 
-        public IDisposable BeginScope<TState>(TState state)
+        public void Log(LogLevel level, string category, string msg)
         {
-            throw new NotImplementedException();
-        }
-
-        public bool IsEnabled(LogLevel logLevel)
-        {
-            return true;
-        }
-
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
-        {
-            var finalStr = formatter(state, exception);
             try {
-                _output.WriteLine($"{logLevel.ToString().ToUpperInvariant()}) {_category} {finalStr}");
+                _output.WriteLine($"{level.ToString().ToUpperInvariant()}) {category} {msg}");
             } catch (Exception) {
                 // _output is busted, the test is probably already finished.  Nothing we can do
             }
@@ -82,65 +49,33 @@ namespace Test.Util
 }
 #else
 using System;
-using Couchbase.Lite.Support;
-using Microsoft.Extensions.Logging;
+
+using Couchbase.Lite.DI;
+using Couchbase.Lite.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Util
 {
-    internal sealed class MSTestLoggerProvider : ILoggerProvider
-    {
-        private readonly TestContext _output;
-
-        public MSTestLoggerProvider(TestContext output)
-        {
-            _output = output;
-        }
-
-        public void Dispose()
-        {
-            
-        }
-
-        public ILogger CreateLogger(string categoryName)
-        {
-            return new MSTestLogger(categoryName, _output);
-        }
-    }
-
     internal sealed class MSTestLogger : ILogger
     {
         #region Variables
 
         private readonly TestContext _output;
-        private readonly string _category;
 
         #endregion
 
         #region Constructors
 
-        public MSTestLogger(string categoryName, TestContext output)
+        public MSTestLogger(TestContext output)
         {
-            _category = categoryName;
             _output = output;
         }
 
         #endregion
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+        public void Log(LogLevel logLevel, string category, string message)
         {
-            var finalStr = formatter(state, exception);
-            _output.WriteLine($"{logLevel.ToString().ToUpperInvariant()}) {_category} {finalStr}");
-        }
-
-        public bool IsEnabled(LogLevel logLevel)
-        {
-            return true;
-        }
-
-        public IDisposable BeginScope<TState>(TState state)
-        {
-            throw new NotImplementedException();
+            _output.WriteLine($"{logLevel.ToString().ToUpperInvariant()}) {category} {message}");
         }
     }
 }

@@ -53,7 +53,7 @@ namespace Test
             get => _output;
             set {
                 _output = value;
-                Log.AddLoggerProvider(new MSTestLoggerProvider(_output));
+                Log.EnableTextLogging(new MSTestLogger(_output));
             }
         }
 #endif
@@ -67,7 +67,7 @@ namespace Test
         protected PerfTest(ITestOutputHelper output)
         {
             _output = output;
-            Log.AddLoggerProvider(new XunitLoggerProvider(output));
+            Log.EnableTextLogging(new XunitLogger(output));
         }
 #endif
 
@@ -118,7 +118,7 @@ namespace Test
             Database.SetLogLevel(LogDomain.All, LogLevel.Warning);
             Db?.Dispose();
             Db = null;
-            Log.ClearLoggerProviders();
+            Log.DisableTextLogging();
         }
 
         protected void Run()

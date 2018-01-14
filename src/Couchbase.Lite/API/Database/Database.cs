@@ -824,7 +824,7 @@ namespace Couchbase.Lite
             }
 
             var directoryToUse = String.IsNullOrWhiteSpace(directory)
-                ? Service.Provider.TryGetRequiredService<IDefaultDirectoryResolver>().DefaultDirectory()
+                ? Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory()
                 : directory;
             return System.IO.Path.Combine(directoryToUse, $"{name}.{DBExtension}");
         }

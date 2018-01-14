@@ -19,64 +19,20 @@
 // limitations under the License.
 // 
 using System;
-using Microsoft.Extensions.Logging;
+
+using Couchbase.Lite.DI;
+using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
-    internal sealed class iOSLoggerProvider : ILoggerProvider
-    {
-        #region IDisposable
-
-        public void Dispose()
-        {
-            
-        }
-
-        #endregion
-
-        #region ILoggerProvider
-
-        public ILogger CreateLogger(string categoryName)
-        {
-            return new iOSDefaultLogger(categoryName);
-        }
-
-        #endregion
-    }
-
     internal sealed class iOSDefaultLogger : ILogger
     {
-        #region Variables
-
-        private readonly string _category;
-
-        #endregion
-
-        #region Constructors
-
-        public iOSDefaultLogger(string categoryName)
-		{
-		    _category = categoryName;
-		}
-
-        #endregion
 
         #region ILogger
 
-        public IDisposable BeginScope<TState>(TState state)
+        public void Log(LogLevel logLevel, string category, string message)
         {
-            throw new NotImplementedException();
-        }
-
-        public bool IsEnabled(LogLevel logLevel)
-        {
-            return true;
-        }
-
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
-        {
-            var finalStr = formatter(state, exception);
-            Console.WriteLine($"{_category} {finalStr}"); // Console.WriteLine == NSLog
+            Console.WriteLine($"{category} {message}"); // Console.WriteLine == NSLog
         }
 
         #endregion

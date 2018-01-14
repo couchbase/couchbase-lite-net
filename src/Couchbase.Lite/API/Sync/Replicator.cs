@@ -37,8 +37,6 @@ using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
 
-using Microsoft.Extensions.DependencyInjection;
-
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
@@ -435,7 +433,7 @@ namespace Couchbase.Lite.Sync
                 return;   
             }
 
-            _reachability = Service.Provider.GetService<IReachability>() ?? new Reachability();
+            _reachability = Service.GetInstance<IReachability>() ?? new Reachability();
             _reachability.StatusChanged += ReachabilityChanged;
             _reachability.Start();
         }

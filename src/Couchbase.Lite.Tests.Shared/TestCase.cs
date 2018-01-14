@@ -60,7 +60,7 @@ namespace Test
             get => _testContext;
             set {
                 _testContext = value;
-                Log.AddLoggerProvider(new MSTestLoggerProvider(_testContext));
+                Log.EnableTextLogging(new MSTestLogger(_testContext));
             }
         }
 #endif
@@ -82,7 +82,7 @@ namespace Test
 #if !WINDOWS_UWP
         public TestCase(ITestOutputHelper output)
         {
-            Log.AddLoggerProvider(new XunitLoggerProvider(output));
+            Log.EnableTextLogging(new XunitLogger(output));
             _output = output;
 #else
         public TestCase()
@@ -168,7 +168,7 @@ namespace Test
         {
             Db?.Dispose();
             Db = null;
-            Log.ClearLoggerProviders();
+            Log.DisableTextLogging();
         }
 
         protected void LoadJSONResource(string resourceName)
