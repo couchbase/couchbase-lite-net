@@ -428,7 +428,7 @@ namespace Couchbase.Lite.Sync
             _logic["Sec-WebSocket-Key"] = nonceKey;
             var protocols = _options.Protocols;
             if (protocols != null) {
-                _logic["Sec-WS-Protocols"] = protocols;
+                _logic["Sec-WebSocket-Protocol"] = protocols;
             }
 
             if (_logic.UseTls) {
