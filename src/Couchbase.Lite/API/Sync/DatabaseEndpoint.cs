@@ -63,6 +63,7 @@ namespace Couchbase.Lite.Sync
 
         #region Overrides
 
+        /// <inheritdoc />
         public override string ToString() => Database.ToString();
 
         #endregion

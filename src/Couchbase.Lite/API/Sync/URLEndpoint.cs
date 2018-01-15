@@ -140,6 +140,7 @@ namespace Couchbase.Lite.Sync
 
         #region Overrides
 
+        /// <inheritdoc />
         public override string ToString() => Url.ToString();
 
         #endregion

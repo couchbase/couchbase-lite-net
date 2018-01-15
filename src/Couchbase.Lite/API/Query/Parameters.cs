@@ -69,6 +69,11 @@ namespace Couchbase.Lite.Query
 
         #region Public Methods
 
+        /// <summary>
+        /// Gets the untyped value of the given key in the parameters
+        /// </summary>
+        /// <param name="key">The key to lookup</param>
+        /// <returns>The value of the key, or <c>null</c> if it does not exist</returns>
         public object GetValue(string key) => _params.TryGetValue(key, out var existing) ? existing : null;
 
         #endregion
@@ -89,6 +94,9 @@ namespace Couchbase.Lite.Query
     {
         #region Nested
 
+        /// <summary>
+        /// The class responsible for building <see cref="Parameters"/>
+        /// </summary>
         public sealed class Builder
         {
             #region Variables
@@ -100,6 +108,10 @@ namespace Couchbase.Lite.Query
 
             #region Public Methods
 
+            /// <summary>
+            /// Builds parameters based on the current state of the builder
+            /// </summary>
+            /// <returns>A new parameters object</returns>
             [NotNull]
             public Parameters Build() => new Parameters(_params);
 

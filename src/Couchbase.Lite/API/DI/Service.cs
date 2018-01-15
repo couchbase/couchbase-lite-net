@@ -98,24 +98,49 @@ namespace Couchbase.Lite.DI
             }
         }
 
+        /// <summary>
+        /// Registers an implementation for the given service
+        /// </summary>
+        /// <typeparam name="TService">The service type</typeparam>
+        /// <typeparam name="TImplementation">The implementation type</typeparam>
+        /// <param name="transient">If <c>true</c> each call to <see cref="GetInstance{T}"/> will return
+        /// a new instance, otherwise use a singleton</param>
         public static void Register<TService, TImplementation>(bool transient = false) where TService : class where TImplementation : class, TService
         {
             Lifestyle style = transient ? Lifestyle.Transient : Lifestyle.Singleton;
             _Collection.Register<TService, TImplementation>(style);
         }
 
+        /// <summary>
+        /// Registers a lazy implementation for the given service
+        /// </summary>
+        /// <typeparam name="TService">The service type</typeparam>
+        /// <param name="generator">The function that creates the object to use</param>
+        /// <param name="transient">If <c>true</c> each call to <see cref="GetInstance{T}"/> will return
+        /// a new instance, otherwise use a singleton</param>
         public static void Register<TService>(Func<TService> generator, bool transient = false) where TService : class
         {
             Lifestyle style = transient ? Lifestyle.Transient : Lifestyle.Singleton;
             _Collection.Register(generator, style);
         }
 
+        /// <summary>
+        /// Registers an instantiated object as a singleton implementation for a service
+        /// </summary>
+        /// <typeparam name="TService">The service type</typeparam>
+        /// <param name="instance">The singleton instance to use as the implementation</param>
         public static void Register<TService>(TService instance)
             where TService : class
         {
             _Collection.RegisterSingleton(instance);
         }
 
+        /// <summary>
+        /// Gets the implementation for the given service, or <c>null</c>
+        /// if no implementation is registered
+        /// </summary>
+        /// <typeparam name="T">The type of service to get an implementation for</typeparam>
+        /// <returns>The implementation for the given service</returns>
         [CanBeNull]
         public static T GetInstance<T>() where  T : class
         {

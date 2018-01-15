@@ -39,7 +39,7 @@ namespace Couchbase.Lite.Query
         /// Cross platform API entry to get all results in a list.  Same
         /// as <c>ToList()</c>
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A list of results from the result set</returns>
         List<Result> AllResults();
     }
 }

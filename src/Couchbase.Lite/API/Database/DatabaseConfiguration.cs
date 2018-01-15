@@ -77,6 +77,9 @@ namespace Couchbase.Lite
     {
         #region Nested
 
+        /// <summary>
+        /// The class responsible for building <see cref="DatabaseConfiguration"/>
+        /// </summary>
         public sealed class Builder
         {
             #region Variables
@@ -119,6 +122,10 @@ namespace Couchbase.Lite
 
             #region Public Methods
 
+            /// <summary>
+            /// Builds a configuration based on the builder state
+            /// </summary>
+            /// <returns>A new configuration object</returns>
             [NotNull]
             public DatabaseConfiguration Build() => new DatabaseConfiguration(this);
 

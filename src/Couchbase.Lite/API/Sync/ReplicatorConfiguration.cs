@@ -170,6 +170,9 @@ namespace Couchbase.Lite.Sync
     {
         #region Nested
 
+        /// <summary>
+        /// The class responsible for building <see cref="ReplicatorConfiguration"/>
+        /// </summary>
         public sealed class Builder
         {
             #region Variables
@@ -294,6 +297,10 @@ namespace Couchbase.Lite.Sync
 
             #region Public Methods
 
+            /// <summary>
+            /// Builds a configuration based on the current state of the builder
+            /// </summary>
+            /// <returns>A new configuration object</returns>
             [NotNull]
             public ReplicatorConfiguration Build() => new ReplicatorConfiguration(this);
 

@@ -1224,6 +1224,7 @@ namespace Couchbase.Lite
             return String.Equals(Path, other.Path, StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <inheritdoc />
         public override string ToString() => $"DB[{Path}]";
 
         #region IDisposable

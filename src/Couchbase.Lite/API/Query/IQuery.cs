@@ -69,8 +69,7 @@ namespace Couchbase.Lite.Query
 
         /// <summary>
         /// Gets or sets the parameter collection for this query so that parameters may be
-        /// added for substitution into the query API (via <see cref="Expression.Parameter(int)"/>
-        /// or <see cref="Expression.Parameter(string)"/>)
+        /// added for substitution into the query API (via <see cref="Expression.Parameter(string)"/>)
         /// </summary>
         /// <remarks>
         /// The returned collection is a copy, and must be reset onto the query instance.

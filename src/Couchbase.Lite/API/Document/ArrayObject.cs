@@ -170,7 +170,11 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public string GetString(int index) => GetObject<string>(_array, index, _threadSafety);
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Similar to the LINQ method, but returns all objects converted to standard
+        /// .NET types
+        /// </summary>
+        /// <returns>A list of standard .NET typed objects in the array</returns>
         public List<object> ToList()
         {
             var count = _array.Count;

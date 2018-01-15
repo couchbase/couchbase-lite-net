@@ -60,6 +60,7 @@ namespace Couchbase.Lite
 
         internal override uint Generation => base.Generation + Convert.ToUInt32(Changed);
 
+        /// <inheritdoc />
         public override bool IsDeleted => _isDeleted || base.IsDeleted;
 
 #if CBL_LINQ

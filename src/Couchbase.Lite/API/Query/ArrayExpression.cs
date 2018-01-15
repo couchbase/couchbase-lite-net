@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Query
 
         /// <summary>
         /// Returns an expression representing the value of a named variable
-        /// assigned by earlier calls to <see cref="Any(string)"/> and family.
+        /// assigned by earlier calls to <see cref="Any"/> and family.
         /// </summary>
         /// <param name="name">The name of the variable</param>
         /// <returns>An expression representing the value of a named variable</returns>
