@@ -21,6 +21,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Sync;
@@ -43,15 +44,15 @@ namespace Couchbase.Lite.Logging
 
         private static readonly LogTo _To;
 
-        internal static readonly C4LogDomain* LogDomainActor = Native.c4log_getDomain("Actor", true);
+        internal static readonly C4LogDomain* LogDomainActor = c4log_getDomain("Actor", true);
 
-        internal static readonly C4LogDomain* LogDomainBLIP = Native.c4log_getDomain("BLIP", true);
+        internal static readonly C4LogDomain* LogDomainBLIP = c4log_getDomain("BLIP", true);
 
-        internal static readonly C4LogDomain* LogDomainDB = Native.c4log_getDomain("DB", true);
+        internal static readonly C4LogDomain* LogDomainDB = c4log_getDomain("DB", true);
 
-        internal static readonly C4LogDomain* LogDomainSQL = Native.c4log_getDomain("SQL", true);
+        internal static readonly C4LogDomain* LogDomainSQL = c4log_getDomain("SQL", true);
 
-        internal static readonly C4LogDomain* LogDomainWebSocket = Native.c4log_getDomain("WebSocket", true);
+        internal static readonly C4LogDomain* LogDomainWebSocket = c4log_getDomain("WebSocket", true);
 
         #endregion
 
@@ -133,6 +134,12 @@ namespace Couchbase.Lite.Logging
         #endregion
 
         #region Private Methods
+
+        private static C4LogDomain* c4log_getDomain(string name, bool create)
+        {
+            var bytes = Marshal.StringToHGlobalAnsi(name);
+            return Native.c4log_getDomain((byte*) bytes, create);
+        }
 
         [MonoPInvokeCallback(typeof(C4LogCallback))]
         private static void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, string message, IntPtr ignored)
