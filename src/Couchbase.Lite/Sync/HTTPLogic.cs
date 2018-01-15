@@ -29,7 +29,6 @@ using System.Text.RegularExpressions;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Couchbase.Lite.Sync
 {
@@ -231,7 +230,7 @@ namespace Couchbase.Lite.Sync
 				Log.To.Couchbase.W(Tag, "Error getting commit information", e);
 			}
 
-			var runtimePlatform = Service.Provider.GetService<IRuntimePlatform>();
+			var runtimePlatform = Service.GetInstance<IRuntimePlatform>();
 			var osDescription = runtimePlatform?.OSDescription ?? RuntimeInformation.OSDescription;
 			var hardware = runtimePlatform != null ? $"; {runtimePlatform.HardwareName}" : "";
 			return $"CouchbaseLite/{version} (.NET; {osDescription}{hardware}) Build/{build} Commit/{commit}";

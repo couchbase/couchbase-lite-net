@@ -27,8 +27,6 @@ using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
 
-using Microsoft.Extensions.DependencyInjection;
-
 namespace Couchbase.Lite.Support
 {
     /// <summary>
@@ -55,11 +53,8 @@ namespace Couchbase.Lite.Support
 			}
 
             Service.AutoRegister(typeof(Droid).Assembly);
-            Service.RegisterServices(container =>
-            {
-                container.AddSingleton<IDefaultDirectoryResolver>(p => new DefaultDirectoryResolver(context));
-                container.AddTransient<IMainThreadTaskScheduler>(p => new MainThreadTaskScheduler(context));
-            });
+            Service.Register<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver(context));
+            Service.Register<IMainThreadTaskScheduler>(() => new MainThreadTaskScheduler(context));
         }
 
         /// <summary>
@@ -68,7 +63,7 @@ namespace Couchbase.Lite.Support
 		/// </summary>
 		public static void EnableTextLogging()
 		{
-			Log.AddLoggerProvider(new AndroidLoggerProvider());
+			Log.EnableTextLogging(new AndroidDefaultLogger());
 		}
 
         #endregion

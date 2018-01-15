@@ -21,58 +21,12 @@
 using System;
 using System.IO;
 using System.Threading;
-using Microsoft.Extensions.Logging;
+
+using Couchbase.Lite.DI;
+using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
-    internal sealed class FileLoggerProvider : ILoggerProvider
-    {
-        #region Variables
-
-        private readonly string _logDirectory;
-        private readonly string _filename = $"Log-{GetTimeStamp()}.txt";
-
-        #endregion
-
-        #region Constructors
-
-        public FileLoggerProvider(string logDirectory)
-        {
-            _logDirectory = logDirectory;
-        }
-
-        #endregion
-
-        #region Private Methods
-
-        private static string GetTimeStamp()
-        {
-            var now = DateTime.Now;
-            return $"{now.Year:D4}{now.Month:D2}{now.Day:D2}-{now.Hour:D2}{now.Minute:D2}{now.Second:D2}{now.Millisecond:D3}";
-        }
-
-        #endregion
-
-        #region IDisposable
-
-        public void Dispose()
-        {
-        }
-
-        #endregion
-
-        #region ILoggerProvider
-
-        public ILogger CreateLogger(string categoryName)
-        {
-            var directory = _logDirectory ?? Path.Combine(AppContext.BaseDirectory, "Logs");
-            Directory.CreateDirectory(directory);
-            return new FileLogger(categoryName, Path.Combine(_logDirectory, _filename));
-        }
-
-        #endregion
-    }
-
     /// <summary>
     /// A default logging implementation that has a virtual method for doing the actual
     /// log writing (useful as a base class to get preformatted messages for a custom logger)
@@ -86,21 +40,19 @@ namespace Couchbase.Lite.Support
         #endregion
 
         #region Variables
-
-        private readonly string _category;
+        
         private StreamWriter _writer;
 
         #endregion
 
         #region Constructors
 
-        internal FileLogger(string category, string filePath)
+        internal FileLogger(string filePath)
         {
             _writer = new StreamWriter(File.Open(filePath, FileMode.Create,
                 FileAccess.Write, FileShare.ReadWrite)) {
                 AutoFlush = true
             };
-            _category = category;
         }
 
         #endregion
@@ -118,22 +70,11 @@ namespace Couchbase.Lite.Support
 
         #region ILogger
 
-        public IDisposable BeginScope<TState>(TState state)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool IsEnabled(LogLevel logLevel)
-        {
-            return true;
-        }
-
-        public async void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+        public async void Log(LogLevel logLevel, string category, string message)
         {
             await Semaphore.WaitAsync();
             try {
-                var finalStr = formatter(state, exception);
-                _writer?.WriteLine($"{logLevel.ToString().ToUpperInvariant()}) {_category} {finalStr}");
+                _writer?.WriteLine($"{logLevel.ToString().ToUpperInvariant()}) {category} {message}");
             } finally {
                 Semaphore.Release();
             }

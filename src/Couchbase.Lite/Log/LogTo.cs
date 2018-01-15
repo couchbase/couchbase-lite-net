@@ -22,13 +22,14 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
 
-using Couchbase.Lite.Util;
+using Couchbase.Lite.DI;
 
 using JetBrains.Annotations;
 
+using LiteCore;
 using LiteCore.Interop;
-using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Lite.Logging
 {
@@ -38,7 +39,6 @@ namespace Couchbase.Lite.Logging
 
         private readonly string _domain;
 		private readonly C4LogDomain* _domainObj;
-        private readonly ILogger _logger;
 		private LogLevel _level;
 
         #endregion
@@ -65,9 +65,9 @@ namespace Couchbase.Lite.Logging
         internal DomainLogger(string domain)
         {
             _domain = domain ?? "Default";
-			_domainObj = Native.c4log_getDomain(domain, true);
+            var bytes = Marshal.StringToHGlobalAnsi(_domain);
+            _domainObj = Native.c4log_getDomain((byte*) bytes, true);
             Level = LogLevel.Warning;
-            _logger = Log.Factory.CreateLogger(_domain);
         }
 
         #endregion
@@ -143,27 +143,11 @@ namespace Couchbase.Lite.Logging
             }
         }
 
-		internal void QuickWrite(C4LogLevel level, [NotNull]string msg)
+		internal void QuickWrite(C4LogLevel level, [NotNull]string msg, ILogger textLogger)
 		{
 			var cblLevel = (LogLevel)level;
 			if(ShouldLog(cblLevel)) {
-				switch(cblLevel) {
-					case LogLevel.Debug:
-						_logger.LogDebug(msg);
-						break;
-					case LogLevel.Error:
-						_logger.LogError(msg);
-						break;
-					case LogLevel.Info:
-						_logger.LogInformation(msg);
-						break;
-					case LogLevel.Warning:
-						_logger.LogWarning(msg);
-						break;
-					case LogLevel.Verbose:
-						_logger.LogTrace(msg);
-						break;
-				}
+			    textLogger?.Log(cblLevel, Domain, msg);
 			}
 		}
 

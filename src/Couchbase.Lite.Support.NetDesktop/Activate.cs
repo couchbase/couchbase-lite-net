@@ -53,7 +53,7 @@ namespace Couchbase.Lite.Support
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-#if NETCOREAPP2_0
+#if NETCOREAPP1_0
                 var codeBase = Path.GetDirectoryName(typeof(NetDesktop).GetTypeInfo().Assembly.Location);
                 if (codeBase == null) {
                     throw new DllNotFoundException(
@@ -109,7 +109,7 @@ namespace Couchbase.Lite.Support
         /// </summary>
         public static void EnableTextLogging()
         {
-            Log.AddLoggerProvider(new FileLoggerProvider(Path.Combine(AppContext.BaseDirectory, "Logs")));
+            Log.EnableTextLogging(new FileLogger(Path.Combine(AppContext.BaseDirectory, "Logs")));
         }
 
         #endregion

@@ -22,14 +22,14 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
 
 using JetBrains.Annotations;
 
-using Microsoft.Extensions.DependencyInjection;
+using SimpleInjector;
 
 namespace Couchbase.Lite.DI
 {
+
     /// <summary>
     /// This is the entry point for registering dependency injection implementation in Couchbase Lite .NET
     /// </summary>
@@ -49,62 +49,8 @@ namespace Couchbase.Lite.DI
 
         #region Variables
 
-        private static IServiceCollection _Collection = new ServiceCollection();
-        private static IServiceProvider _Provider;
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// Gets whether or not the services for this program are complete (i.e. all of the required
-        /// interfaces have implementations registered)
-        /// </summary>
-        public static bool IsComplete
-        {
-            get {
-                if(_Collection != null) {
-                    var remaining = _RequiredTypes.Intersect(_Collection.Select(x => x.ServiceType));
-                    return remaining.Count() == _RequiredTypes.Length;
-                }
-
-                foreach(var type in _RequiredTypes) {
-                    if(_Provider?.GetService(type) == null) {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-        }
-
-        /// <summary>
-        /// Gets whether or not the services for this program have been finalized.  Further 
-        /// attemps to add services will throw exceptions
-        /// </summary>
-        public static bool IsFinalized => _Collection == null;
-
-        /// <summary>
-        /// Gets the service provider that is used to resolve dependencies in the library
-        /// </summary>
         [NotNull]
-        public static IServiceProvider Provider
-        {
-            get {
-                if (_Provider == null) {
-                    var collection = Interlocked.Exchange(ref _Collection, null);
-                    if (collection != null) {
-                        _Provider = collection.BuildServiceProvider() ??
-                                    throw new CouchbaseLiteException(StatusCode.Unknown,
-                                        "Failed to build DI service provider");
-                    } else {
-                        throw new InvalidOperationException("Both collection and provider are null, this should not happen...");
-                    }
-                }
-
-                return _Provider;
-            }
-        }
+        private static readonly Container _Collection = new Container();
 
         #endregion
 
@@ -141,57 +87,54 @@ namespace Couchbase.Lite.DI
                 }
 
                 if (attribute.Transient) {
-                    _Collection.AddTransient(interfaceType, type);
+                    _Collection.Register(interfaceType, type, Lifestyle.Transient);
                 } else {
                     if (attribute.Lazy) {
-                        _Collection.AddSingleton(interfaceType, type);
+                        _Collection.Register(interfaceType, type, Lifestyle.Singleton);
                     } else {
-                        _Collection.AddSingleton(interfaceType, Activator.CreateInstance(type));
+                        _Collection.RegisterSingleton(interfaceType, Activator.CreateInstance(type));
                     }
                 }
             }
         }
 
-        /// <summary>
-        /// Calls an action to add services to the service collection.  This needs to be done
-        /// before the library is used.  An exception will be thrown if this method is called
-        /// after the provider is created (it is created on the first call to <see cref="Provider"/>
-        /// </summary>
-        /// <param name="config">The action to configure the service collection</param>
-        [ContractAnnotation("null => halt")]
-        public static void RegisterServices(Action<IServiceCollection> config)
+        public static void Register<TService, TImplementation>(bool transient = false) where TService : class where TImplementation : class, TService
         {
-            if (config == null) {
-                throw new ArgumentNullException(nameof(config));
-            }
-
-            if (IsFinalized) {
-                throw new InvalidOperationException("Cannot register services after the provider has been created");
-            }
-
-            config.Invoke(_Collection);
+            Lifestyle style = transient ? Lifestyle.Transient : Lifestyle.Singleton;
+            _Collection.Register<TService, TImplementation>(style);
         }
 
-        #endregion
-    }
+        public static void Register<TService>(Func<TService> generator, bool transient = false) where TService : class
+        {
+            Lifestyle style = transient ? Lifestyle.Transient : Lifestyle.Singleton;
+            _Collection.Register(generator, style);
+        }
 
-    internal static class ServiceProviderExtensions
-    {
-        #region Public Methods
+        public static void Register<TService>(TService instance)
+            where TService : class
+        {
+            _Collection.RegisterSingleton(instance);
+        }
 
-        [NotNull]
-        public static T TryGetRequiredService<T>(this IServiceProvider provider)
+        [CanBeNull]
+        public static T GetInstance<T>() where  T : class
         {
             try {
-                return provider.GetRequiredService<T>();
-            } catch (InvalidOperationException e) {
-                throw new CouchbaseLiteException(StatusCode.MissingDependency,
-                    "A required dependency injection class is missing." +
-                    "Please ensure that you have called the proper Activate() class in the " +
-                    "support assembly (e.g. Couchbase.Lite.Support.UWP.Activate()) or that you " +
-                    "have manually registered dependencies via the Couchbase.Lite.DI.Service " +
-                    "class.", e);
+                return _Collection.GetInstance<T>();
+            } catch (ActivationException) {
+                return null;
             }
+        }
+
+        [NotNull]
+        internal static T GetRequiredInstance<T>() where T : class
+        {
+            return GetInstance<T>() ??  throw new CouchbaseLiteException(StatusCode.MissingDependency,
+                       "A required dependency injection class is missing." +
+                       "Please ensure that you have called the proper Activate() class in the " +
+                       "support assembly (e.g. Couchbase.Lite.Support.UWP.Activate()) or that you " +
+                       "have manually registered dependencies via the Couchbase.Lite.DI.Service " +
+                       "class.");
         }
 
         #endregion

@@ -30,8 +30,6 @@ using JetBrains.Annotations;
 
 using LiteCore.Interop;
 
-using Microsoft.Extensions.Logging;
-
 using ObjCRuntime;
 
 namespace Couchbase.Lite.Logging
@@ -61,6 +59,8 @@ namespace Couchbase.Lite.Logging
 
         private static AtomicBool _Initialized = new AtomicBool(false);
 
+        private static ILogger TextLogger;
+
         // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
         private static readonly C4LogCallback _LogCallback = LiteCoreLog;
         // ReSharper restore PrivateFieldCanBeConvertedToLocalVariable
@@ -68,9 +68,6 @@ namespace Couchbase.Lite.Logging
         #endregion
 
         #region Properties
-
-        [NotNull]
-        internal static ILoggerFactory Factory { get; private set; }
 
         [NotNull]
         internal static LogTo To
@@ -94,9 +91,8 @@ namespace Couchbase.Lite.Logging
 
         static Log()
         {
-            Factory = new LoggerFactory();
             _To = new LogTo();
-			var dir = Service.Provider.TryGetRequiredService<IDefaultDirectoryResolver>();
+			var dir = Service.GetRequiredInstance<IDefaultDirectoryResolver>();
 			var binaryLogDir = Path.Combine(dir.DefaultDirectory(), "Logs");
 			Directory.CreateDirectory(binaryLogDir);
 			C4Error err;
@@ -118,30 +114,20 @@ namespace Couchbase.Lite.Logging
 
         #endregion
 
-        #region Public Methods
-
-        /// <summary>
-        /// Adds a provider to accept logging messages to the Log implementation (if none are added
-        /// by the time the first log message comes then a default one will be chosen)
-        /// </summary>
-        /// <param name="provider">The provider to add</param>
-        [ContractAnnotation("null => halt")]
-        public static void AddLoggerProvider(ILoggerProvider provider)
-        {
-            Factory.AddProvider(provider ?? throw new ArgumentNullException(nameof(provider)));
-	        Native.c4log_writeToCallback(C4LogLevel.Debug, _LogCallback, true);
-        }
-
-        #endregion
-
         #region Internal Methods
 
-        internal static void ClearLoggerProviders()
+        internal static void EnableTextLogging(ILogger textLogger)
+        {
+            Native.c4log_writeToCallback(C4LogLevel.Debug, _LogCallback, true);
+            TextLogger = textLogger;
+        }
+
+        internal static void DisableTextLogging()
         {
             Native.c4log_writeToCallback(C4LogLevel.Debug, null, true);
-			var oldFactory = Factory;
-            Factory = new LoggerFactory();
-            oldFactory.Dispose();
+            IDisposable loggerOld = TextLogger as IDisposable;
+            TextLogger = null;
+            loggerOld?.Dispose();
         }
 
         #endregion
@@ -154,12 +140,12 @@ namespace Couchbase.Lite.Logging
             var domainName = Native.c4log_getDomainName(domain);
             foreach (var logger in To.All) {
                 if (logger.Domain == domainName) {
-                    logger.QuickWrite(level, message);
+                    logger.QuickWrite(level, message, TextLogger);
                     return;
                 }
             }
 
-            To.LiteCore.QuickWrite(level, message);
+            To.LiteCore.QuickWrite(level, message, TextLogger);
         }
 
         #endregion

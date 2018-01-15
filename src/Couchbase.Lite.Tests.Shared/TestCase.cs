@@ -60,7 +60,7 @@ namespace Test
             get => _testContext;
             set {
                 _testContext = value;
-                Log.AddLoggerProvider(new MSTestLoggerProvider(_testContext));
+                Log.EnableTextLogging(new MSTestLogger(_testContext));
             }
         }
 #endif
@@ -71,7 +71,7 @@ namespace Test
 
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
-#if NETCOREAPP2_0
+#if NETCOREAPP1_0
         static TestCase()
         {
             Couchbase.Lite.Support.NetDesktop.Activate();
@@ -82,7 +82,7 @@ namespace Test
 #if !WINDOWS_UWP
         public TestCase(ITestOutputHelper output)
         {
-            Log.AddLoggerProvider(new XunitLoggerProvider(output));
+            Log.EnableTextLogging(new XunitLogger(output));
             _output = output;
 #else
         public TestCase()
@@ -168,7 +168,7 @@ namespace Test
         {
             Db?.Dispose();
             Db = null;
-            Log.ClearLoggerProviders();
+            Log.DisableTextLogging();
         }
 
         protected void LoadJSONResource(string resourceName)

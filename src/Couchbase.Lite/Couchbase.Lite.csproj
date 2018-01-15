@@ -7,10 +7,11 @@
   </PropertyGroup>
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging</Configurations>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard1.4</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>Couchbase.Lite</AssemblyName>
     <PackageId>Couchbase.Lite</PackageId>
+    <NetStandardImplicitPackageVersion>1.6.1</NetStandardImplicitPackageVersion>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
@@ -27,14 +28,14 @@
   <PropertyGroup Condition="'$(NoGitSha)' == ''"><NoGitSha>false</NoGitSha></PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
     <Optimize>True</Optimize>
-    <DocumentationFile>bin\Packaging\netstandard2.0\Couchbase.Lite.xml</DocumentationFile>
-    <DefineConstants>TRACE;PACKAGING;NETSTANDARD2_0;LITECORE_PACKAGED</DefineConstants>
+    <DocumentationFile>bin\Packaging\netstandard1.4\Couchbase.Lite.xml</DocumentationFile>
+    <DefineConstants>TRACE;PACKAGING;NETSTANDARD1_4;LITECORE_PACKAGED</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>TRACE;DEBUG;NETSTANDARD2_0;LITECORE_PACKAGED</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;LITECORE_PACKAGED</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DefineConstants>TRACE;RELEASE;NETSTANDARD2_0;LITECORE_PACKAGED</DefineConstants>
+    <DefineConstants>TRACE;RELEASE;NETSTANDARD1_4;LITECORE_PACKAGED</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\version">
@@ -43,13 +44,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="2.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
-    <DotNetCliToolReference Include="dotnet-sourcelink" Version="2.7.4" />
-    <PackageReference Include="SourceLink.Create.GitHub" Version="2.7.4" PrivateAssets="all" />
-    <DotNetCliToolReference Include="dotnet-sourcelink-git" Version="2.7.4" />
-    <PackageReference Include="System.ComponentModel" Version="4.3.0" />
+    <DotNetCliToolReference Include="dotnet-sourcelink" Version="2.1.2" />
+    <PackageReference Include="SimpleInjector" Version="4.0.12" />
+    <PackageReference Include="SourceLink.Create.GitHub" Version="2.1.2" PrivateAssets="all" />
+    <DotNetCliToolReference Include="dotnet-sourcelink-git" Version="2.1.2" />
     <PackageReference Include="System.Net.NetworkInformation" Version="4.3.0" />
     <PackageReference Include="System.Security.Cryptography.Algorithms" Version="4.3.0" />
   </ItemGroup>

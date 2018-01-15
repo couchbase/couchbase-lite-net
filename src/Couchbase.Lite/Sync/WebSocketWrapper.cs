@@ -439,7 +439,7 @@ namespace Couchbase.Lite.Sync
                     return;
                 }
 
-                var stream = Service.Provider.TryGetRequiredService<ISslStreamFactory>().Create(baseStream);
+                var stream = Service.GetRequiredInstance<ISslStreamFactory>().Create(baseStream);
                 stream.PinnedServerCertificate = _options.PinnedServerCertificate;
                 X509CertificateCollection clientCerts = null;
                 if (_options.ClientCert != null) {

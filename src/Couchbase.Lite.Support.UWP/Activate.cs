@@ -59,7 +59,7 @@ namespace Couchbase.Lite.Support
         /// </summary>
         public static void EnableTextLogging()
         {
-            Log.AddLoggerProvider(new UwpLoggerProvider());
+            Log.EnableTextLogging(new UwpDefaultLogger());
         }
 
         #endregion

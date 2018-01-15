@@ -14,18 +14,15 @@
     <releaseNotes>
         Couchbase Lite .NET Developer Build
     </releaseNotes>
-    <copyright>Copyright 2017-2018</copyright>
+    <copyright>Copyright 2017</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-        <dependency id="System.ComponentModel" version="4.3.0" />
-        <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="2.0.0" />
-        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="2.0.0" />
     </dependencies>
   </metadata>
   <files>
-    <file target="lib\monoandroid80\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.dll" />
-    <file target="lib\monoandroid80\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.pdb" />
-    <file target="lib\monoandroid80\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.xml" />
+    <file target="lib\monoandroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.dll" />
+    <file target="lib\monoandroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.pdb" />
+    <file target="lib\monoandroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.xml" />
   </files>
 </package>

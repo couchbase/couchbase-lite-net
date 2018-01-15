@@ -14,68 +14,62 @@
     <releaseNotes>
         Couchbase Lite .NET Developer Build
     </releaseNotes>
-    <copyright>Copyright 2014-2018</copyright>
+    <copyright>Copyright 2014-2017</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-      <group targetFramework="netstandard2.0">
+      <group targetFramework="netstandard1.4">
         <dependency id="Newtonsoft.Json" version="9.0.1" />
-        <dependency id="System.ComponentModel" version="4.3.0" />
+        <dependency id="NETStandard.Library" version="1.6.0" />
+        <dependency id="SimpleInjector" version="4.0.12" />
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
-        <dependency id="Microsoft.Extensions.DependencyInjection" version="2.0.0" />
-        <dependency id="Microsoft.Extensions.Logging" version="2.0.0" />
       </group>
-      <group targetFramework="netcoreapp2.0">
+      <group targetFramework="netcoreapp1.0">
         <dependency id="Newtonsoft.Json" version="9.0.1" />
-        <dependency id="System.ComponentModel" version="4.3.0" />
+        <dependency id="NETStandard.Library" version="1.6.0" />
+        <dependency id="SimpleInjector" version="4.0.12" />
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
-        <dependency id="Microsoft.Extensions.DependencyInjection" version="2.0.0" />
-        <dependency id="Microsoft.Extensions.Logging" version="2.0.0" />
         <dependency id="Couchbase.Lite.Support.NetDesktop" version="[$version$]" />
       </group>
       <group targetFramework="net461">
         <dependency id="Newtonsoft.Json" version="9.0.1" />
-        <dependency id="System.ComponentModel" version="4.3.0" />
+        <dependency id="NETStandard.Library" version="1.6.0" />
+        <dependency id="SimpleInjector" version="4.0.12" />
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
-        <dependency id="Microsoft.Extensions.DependencyInjection" version="2.0.0" />
-        <dependency id="Microsoft.Extensions.Logging" version="2.0.0" />
         <dependency id="Couchbase.Lite.Support.NetDesktop" version="[$version$]" />
       </group>
       <group targetFramework="uap10.0">
         <dependency id="Newtonsoft.Json" version="9.0.1" />
-        <dependency id="System.ComponentModel" version="4.3.0" />
+        <dependency id="NETStandard.Library" version="1.6.0" />
+        <dependency id="SimpleInjector" version="4.0.12" />
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
-        <dependency id="Microsoft.Extensions.DependencyInjection" version="2.0.0" />
-        <dependency id="Microsoft.Extensions.Logging" version="2.0.0" />
         <dependency id="Couchbase.Lite.Support.UWP" version="[$version$]" />
       </group>
       <group targetFramework="monoandroid">
         <dependency id="Newtonsoft.Json" version="9.0.1" />
-        <dependency id="System.ComponentModel" version="4.3.0" />
+        <dependency id="NETStandard.Library" version="1.6.0" />
+        <dependency id="SimpleInjector" version="4.0.12" />
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
-        <dependency id="Microsoft.Extensions.DependencyInjection" version="2.0.0" />
-        <dependency id="Microsoft.Extensions.Logging" version="2.0.0" />
         <dependency id="Couchbase.Lite.Support.Android" version="[$version$]" />
       </group>
       <group targetFramework="xamarinios">
         <dependency id="Newtonsoft.Json" version="9.0.1" />
-        <dependency id="System.ComponentModel" version="4.3.0" />
+        <dependency id="NETStandard.Library" version="1.6.0" />
+        <dependency id="SimpleInjector" version="4.0.12" />
         <dependency id="System.Security.Cryptography.Algorithms" version="4.3.0" />
         <dependency id="System.Net.NetworkInformation" version="4.3.0" />
-        <dependency id="Microsoft.Extensions.DependencyInjection" version="2.0.0" />
-        <dependency id="Microsoft.Extensions.Logging" version="2.0.0" />
         <dependency id="Couchbase.Lite.Support.iOS" version="[$version$]" />
       </group>
     </dependencies>
   </metadata>
   <files>
-    <file target="lib\netstandard2.0\" src="src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.dll" />
-    <file target="lib\netstandard2.0\" src="src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.pdb" />
-    <file target="lib\netstandard2.0\" src="src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.xml" />
+    <file target="lib\netstandard1.4\" src="src\Couchbase.Lite\bin\Packaging\netstandard1.4\Couchbase.Lite.dll" />
+    <file target="lib\netstandard1.4\" src="src\Couchbase.Lite\bin\Packaging\netstandard1.4\Couchbase.Lite.pdb" />
+    <file target="lib\netstandard1.4\" src="src\Couchbase.Lite\bin\Packaging\netstandard1.4\Couchbase.Lite.xml" />
   </files>
 </package>

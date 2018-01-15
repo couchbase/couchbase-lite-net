@@ -82,7 +82,7 @@ namespace Couchbase.Lite
             #region Variables
 
             [NotNull]private IConflictResolver _conflictResolver = new DefaultConflictResolver();
-            [NotNull]private string _directory =  Service.Provider.TryGetRequiredService<IDefaultDirectoryResolver>().DefaultDirectory();
+            [NotNull]private string _directory =  Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
 
             #endregion
 

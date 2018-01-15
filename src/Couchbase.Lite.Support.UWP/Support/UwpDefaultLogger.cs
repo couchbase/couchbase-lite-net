@@ -22,48 +22,13 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Windows.Storage;
+
+using Couchbase.Lite.DI;
+using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
-    internal sealed class UwpLoggerProvider : ILoggerProvider
-    {
-        #region Constants
-
-        public static readonly string Filename = $"Log-{GetTimeStamp()}.txt";
-
-        #endregion
-
-        #region Private Methods
-
-        private static string GetTimeStamp()
-        {
-            var now = DateTime.Now;
-            return $"{now.Year:D4}{now.Month:D2}{now.Day:D2}-{now.Hour:D2}{now.Minute:D2}{now.Second:D2}{now.Millisecond:D3}";
-        }
-
-        #endregion
-
-        #region IDisposable
-
-        public void Dispose()
-        {
-            
-        }
-
-        #endregion
-
-        #region ILoggerProvider
-
-        public ILogger CreateLogger(string categoryName)
-        {
-            return new UwpDefaultLogger(categoryName, Filename);
-        }
-
-        #endregion
-    }
-
     internal sealed class UwpDefaultLogger : ILogger, IDisposable
     {
         #region Constants
@@ -92,15 +57,21 @@ namespace Couchbase.Lite.Support
             }
         }
 
-        public UwpDefaultLogger(string categoryName, string filename)
+        public UwpDefaultLogger()
         {
-            _category = categoryName;
-            Open(filename);
+            Open($"Log-{GetTimeStamp()}.txt");
         }
 
         #endregion
 
         #region Private Methods
+
+        private static string GetTimeStamp()
+        {
+            var now = DateTime.Now;
+            return $"{now.Year:D4}{now.Month:D2}{now.Day:D2}-{now.Hour:D2}{now.Minute:D2}{now.Second:D2}{now.Millisecond:D3}";
+        }
+
 
         private void Open(string filename)
         {
@@ -128,17 +99,7 @@ namespace Couchbase.Lite.Support
 
         #region ILogger
 
-        public IDisposable BeginScope<TState>(TState state)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool IsEnabled(LogLevel logLevel)
-        {
-            return true;
-        }
-
-        public async void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+        public async void Log(LogLevel logLevel, string category, string message)
         {
             if (_disposed) {
                 return;
@@ -146,8 +107,7 @@ namespace Couchbase.Lite.Support
             
             await Semaphore.WaitAsync().ConfigureAwait(false);
             try {
-                var finalStr = formatter(state, exception);
-                _writer.WriteLine($"{_category} {finalStr}");
+                _writer.WriteLine($"{category} {message}");
             } finally {
                 Semaphore.Release();
             }
