@@ -94,9 +94,8 @@ namespace Couchbase.Lite.Internal.Serialization
             var flLength = db.SharedStrings.GetDictValue(dict, "length");
             var flStub = db.SharedStrings.GetDictValue(dict, "stub");
             var flRevPos = db.SharedStrings.GetDictValue(dict, "revpos");
-            var flContentType = db.SharedStrings.GetDictValue(dict, "content_type");
 
-            return flDigest != null && flLength != null && flStub != null && flRevPos != null && flContentType != null;
+            return flDigest != null && flLength != null && flStub != null && flRevPos != null;
         }
 
         #endregion
@@ -127,8 +126,7 @@ namespace Couchbase.Lite.Internal.Serialization
             var length = dict.Get("length");
             var stub = dict.Get("stub");
             var revpos = dict.Get("revpos");
-            var contentType = dict.Get("content_type");
-            return digest != null && length != null && stub != null && revpos != null && contentType != null;
+            return digest != null && length != null && stub != null && revpos != null;
         }
 
         private static object ToObject(FLValue* value, SharedStringCache sharedKeys, int level = 0, Type hintType1 = null)
