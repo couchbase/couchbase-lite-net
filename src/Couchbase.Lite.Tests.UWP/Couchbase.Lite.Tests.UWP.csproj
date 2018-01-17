@@ -143,7 +143,7 @@
       <Version>4.19.4</Version>
     </PackageReference>
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
-      <Version>6.0.1</Version>
+      <Version>6.0.6</Version>
     </PackageReference>
     <PackageReference Include="MSTest.TestAdapter">
       <Version>1.2.0</Version>

@@ -14,11 +14,11 @@
     <releaseNotes>
         Couchbase Lite .NET Developer Build
     </releaseNotes>
-    <copyright>Copyright 2017</copyright>
+    <copyright>Copyright 2018</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-        <dependency id="Microsoft.NETCore.UniversalWindowsPlatform" version="5.3.3" />
+        <dependency id="Microsoft.NETCore.UniversalWindowsPlatform" version="6.0.1" />
     </dependencies>
   </metadata>
   <files>
