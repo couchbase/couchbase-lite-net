@@ -218,33 +218,37 @@ namespace Couchbase.Lite
         internal override byte[] Encode()
         {
             Debug.Assert(Database != null);
-            
-            var encoder = Database.SharedEncoder;
 
-            #if CBL_LINQ
-            if (_model != null) {
-                return (FLSlice)EncodeModel(encoder);
-            }
-            #endif
+            var body = new FLSliceResult();
+            Database.ThreadSafety.DoLocked(() =>
+            {
+                var encoder = Database.SharedEncoder;
 
-            var guid = Guid.NewGuid();
-            _NativeCacheMap[guid] = this;
-            Native.FLEncoder_SetExtraInfo(encoder, &guid);
+                #if CBL_LINQ
+                if (_model != null) {
+                    return (FLSlice)EncodeModel(encoder);
+                }
+                #endif
 
-            try {
-                _dict.FLEncode(encoder);
-            } catch (Exception) {
-                Native.FLEncoder_Reset(encoder);
-                throw;
-            } finally {
-                _NativeCacheMap.Remove(guid);
-            }
+                var guid = Guid.NewGuid();
+                _NativeCacheMap[guid] = this;
+                Native.FLEncoder_SetExtraInfo(encoder, &guid);
 
-            FLError err;
-            var body = NativeRaw.FLEncoder_Finish(encoder, &err);
-            if (body.buf == null) {
-                throw new LiteCoreException(new C4Error(err));
-            }
+                try {
+                    _dict.FLEncode(encoder);
+                } catch (Exception) {
+                    Native.FLEncoder_Reset(encoder);
+                    throw;
+                } finally {
+                    _NativeCacheMap.Remove(guid);
+                }
+
+                FLError err;
+                body = NativeRaw.FLEncoder_Finish(encoder, &err);
+                if (body.buf == null) {
+                    throw new LiteCoreException(new C4Error(err));
+                }
+            });
 
             var retVal = ((C4Slice)body).ToArrayFast();
             Native.FLSliceResult_Free(body);
