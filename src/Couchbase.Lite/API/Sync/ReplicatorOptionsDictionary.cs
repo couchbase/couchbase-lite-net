@@ -214,9 +214,9 @@ namespace Couchbase.Lite.Sync
 
         #region Overrides
 
-        internal override void FreezeInternal()
+        internal override void BuildInternal()
         {
-            Auth?.Freeze();
+            Auth?.Build();
             if (Cookies.Count > 0) {
                 this[CookiesKey] = Cookies.Select(x => $"{x.Name}={x.Value}").Aggregate((l, r) => $"{l}; {r}");
             }

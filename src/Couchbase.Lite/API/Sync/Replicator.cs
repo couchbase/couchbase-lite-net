@@ -390,7 +390,7 @@ namespace Couchbase.Lite.Sync
 
             Config.Authenticator?.Authenticate(options);
 
-            options.Freeze();
+            options.Build();
             var push = Config.ReplicatorType.HasFlag(ReplicatorType.Push);
             var pull = Config.ReplicatorType.HasFlag(ReplicatorType.Pull);
             var continuous = Config.Continuous;

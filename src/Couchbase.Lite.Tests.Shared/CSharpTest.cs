@@ -316,21 +316,6 @@ Transfer-Encoding: chunked";
                 .ShouldThrow<InvalidOperationException>("because the type key is required");
             dict.Invoking(d => d.Remove(new KeyValuePair<string, object>("type", "Basic")))
                 .ShouldThrow<InvalidOperationException>("because the type key is required");
-
-            dict.Freeze();
-
-            dict.Invoking(d => d["foo"] = "bar")
-                .ShouldThrow<InvalidOperationException>("because the dictionary was frozen");
-            dict.Invoking(d => d.Add("foo", "bar"))
-                .ShouldThrow<InvalidOperationException>("because the dictionary was frozen");
-            dict.Invoking(d => d.Add(new KeyValuePair<string, object>("foo", "bar")))
-                .ShouldThrow<InvalidOperationException>("because the dictionary was frozen");
-            dict.Invoking(d => d.Remove("foo"))
-                .ShouldThrow<InvalidOperationException>("because the dictionary was frozen");
-            dict.Invoking(d => d.Remove(new KeyValuePair<string, object>("foo", "bar")))
-                .ShouldThrow<InvalidOperationException>("because the dictionary was frozen");
-            dict.Invoking(d => d.Clear())
-                .ShouldThrow<InvalidOperationException>("because the dictionary was frozen");
         }
         
         [Fact]

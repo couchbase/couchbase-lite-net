@@ -85,6 +85,8 @@ namespace Couchbase.Lite.Sync
 
         internal override void Authenticate(ReplicatorOptionsDictionary options)
         {
+            CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(options), options);
+
             var cookie = new Cookie(CookieName, SessionID);
             options.Cookies.Add(cookie);
         }

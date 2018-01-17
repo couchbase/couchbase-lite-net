@@ -38,7 +38,6 @@ namespace Couchbase.Lite
 
         [NotNull]
         private readonly Dictionary<string, object> _inner = new Dictionary<string, object>();
-        private bool _readonly;
 
         #endregion
 
@@ -48,17 +47,13 @@ namespace Couchbase.Lite
         public int Count => _inner.Count;
 
         /// <inheritdoc />
-        public bool IsReadOnly => _readonly;
+        public bool IsReadOnly => false;
 
         /// <inheritdoc />
         public object this[string key]
         {
             get => _inner[key];
             set {
-                if (_readonly) {
-                    throw new InvalidOperationException("Cannot modify this dictionary once it is in use");
-                }
-
                 if (!Validate(key, value)) {
                     throw new InvalidOperationException($"Invalid value {value} for key '{key}'");
                 }
@@ -93,13 +88,12 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        internal void Freeze()
+        internal void Build()
         {
-            FreezeInternal();
-            _readonly = true;
+            BuildInternal();
         }
 
-        internal virtual void FreezeInternal()
+        internal virtual void BuildInternal()
         { }
 
         internal virtual bool KeyIsRequired(string key)
@@ -119,10 +113,6 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public void Add(KeyValuePair<string, object> item)
         {
-            if (_readonly) {
-                throw new InvalidOperationException("Cannot modify this dictionary once it is in use");
-            }
-
             if (!Validate(item.Key, item.Value)) {
                 throw new InvalidOperationException($"Invalid value {item.Value} for key '{item.Key}'");
             }
@@ -133,10 +123,6 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public void Clear()
         {
-            if (_readonly) {
-                throw new InvalidOperationException("Cannot modify this dictionary once it is in use");
-            }
-
             _inner.Clear();
         }
 
@@ -155,10 +141,6 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public bool Remove(KeyValuePair<string, object> item)
         {
-            if (_readonly) {
-                throw new InvalidOperationException("Cannot modify this dictionary once it is in use");
-            }
-
             if (KeyIsRequired(item.Key)) {
                 throw new InvalidOperationException($"Cannot remove the required key '{item.Key}'");
             }
@@ -173,10 +155,6 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public void Add(string key, object value)
         {
-            if (_readonly) {
-                throw new InvalidOperationException("Cannot modify this dictionary once it is in use");
-            }
-
             if (!Validate(key, value)) {
                 throw new InvalidOperationException($"Invalid value {value} for key '{key}'");
             }
@@ -193,10 +171,6 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public bool Remove(string key)
         {
-            if (_readonly) {
-                throw new InvalidOperationException("Cannot modify this dictionary once it is in use");
-            }
-
             if (KeyIsRequired(key)) {
                 throw new InvalidOperationException($"Cannot remove the required key '{key}'");
             }
