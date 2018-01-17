@@ -1127,6 +1127,11 @@ namespace Couchbase.Lite
 
                 body = doc.Encode();
                 var root = Native.FLValue_FromTrustedData(body);
+                if (root == null) {
+                    Log.To.Database.E(Tag, "Failed to encode document body properly.  Aborting save of document!");
+                    return;
+                }
+
                 ThreadSafety.DoLocked(() =>
                 {
                     if (Native.c4doc_dictContainsBlobs((FLDict *)root, SharedStrings.SharedKeys)) {
