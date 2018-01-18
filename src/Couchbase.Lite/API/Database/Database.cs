@@ -1132,9 +1132,15 @@ namespace Couchbase.Lite
                     return;
                 }
 
+                var rootDict = Native.FLValue_AsDict(root);
+                if (rootDict == null) {
+                    Log.To.Database.E(Tag, "Failed to encode document body properly.  Aborting save of document!");
+                    return;
+                }
+
                 ThreadSafety.DoLocked(() =>
                 {
-                    if (Native.c4doc_dictContainsBlobs((FLDict *)root, SharedStrings.SharedKeys)) {
+                    if (Native.c4doc_dictContainsBlobs(rootDict, SharedStrings.SharedKeys)) {
                         revFlags |= C4RevisionFlags.HasAttachments;
                     }
                 });
