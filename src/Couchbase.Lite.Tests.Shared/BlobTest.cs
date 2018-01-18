@@ -27,6 +27,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Lite;
+using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
@@ -97,6 +98,49 @@ namespace Test
                     savedBlob.ContentType.Should().Be("application/json");
                     savedBlob.Content.Should().Equal(bytes);
                 }
+            }
+        }
+
+        [Fact]
+        public unsafe void TestBlobStream()
+        {
+            byte[] bytes = null;
+            using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("iTunesMusicLibrary.json"))
+            using (var sr = new BinaryReader(stream)) {
+                bytes = sr.ReadBytes((int)stream.Length);
+            }
+
+            C4BlobKey key;
+            long tmp;
+            using (var stream = new BlobWriteStream(Db.BlobStore)) {
+                stream.CanSeek.Should().BeFalse();
+                stream.Invoking(s => tmp = s.Length).ShouldThrow<NotSupportedException>();
+                stream.Invoking(s => tmp = s.Position).ShouldThrow<NotSupportedException>();
+                stream.Invoking(s => s.Position = 10).ShouldThrow<NotSupportedException>();
+                stream.Invoking(s => s.Read(bytes, 0, bytes.Length)).ShouldThrow<NotSupportedException>();
+                stream.Invoking(s => s.SetLength(100)).ShouldThrow<NotSupportedException>();
+                stream.Write(bytes, 0, bytes.Length);
+                stream.Flush();
+                key = stream.Key;
+            }
+
+            using (var stream = new BlobReadStream(Db.BlobStore, key)) {
+                stream.Invoking(s => s.SetLength(100)).ShouldThrow<NotSupportedException>();
+                stream.CanRead.Should().BeTrue();
+                stream.CanSeek.Should().BeTrue();
+                stream.CanWrite.Should().BeFalse();
+                stream.Length.Should().Be(bytes.Length);
+                stream.Position.Should().Be(0);
+                stream.Seek(2, SeekOrigin.Begin);
+                stream.Position.Should().Be(2);
+                stream.ReadByte().Should().Be(bytes[2]);
+                stream.Seek(1, SeekOrigin.Current);
+                stream.Position.Should().Be(4); // ReadByte advanced the stream
+                stream.ReadByte().Should().Be(bytes[4]);
+                stream.Position = 0;
+                stream.Seek(-2, SeekOrigin.End);
+                stream.Position.Should().Be(bytes.Length - 2); // ReadByte advanced the stream
+                stream.ReadByte().Should().Be(bytes[bytes.Length - 2]);
             }
         }
     }

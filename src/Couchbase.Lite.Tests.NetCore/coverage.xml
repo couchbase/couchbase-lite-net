@@ -42,6 +42,9 @@
     <FilterEntry>
       <ClassMask>Couchbase.Lite.Util.CollectionDebuggerView*</ClassMask>
     </FilterEntry>
+    <FilterEntry>
+      <ClassMask>MSBuild*</ClassMask>
+    </FilterEntry>
      <FilterEntry>
       <ClassMask>Couchbase.Lite.Util.CBDebug</ClassMask>
     </FilterEntry>

@@ -493,6 +493,62 @@ namespace Test
         }
 
         [Fact]
+        public void TestLeftJoin()
+        {
+            LoadNumbers(100);
+            var testDoc = new MutableDocument("joinme");
+            testDoc.SetInt("theone", 42);
+            Db.Save(testDoc);
+            var number2Prop = Expression.Property("number2");
+            using (var q = Query.Select(SelectResult.Expression(number2Prop.From("main")), SelectResult.Expression(Expression.Property("theone").From("secondary")))
+                .From(DataSource.Database(Db).As("main"))
+                .Join(Join.LeftJoin(DataSource.Database(Db).As("secondary"))
+                    .On(Expression.Property("number1").From("main")
+                        .EqualTo(Expression.Property("theone").From("secondary"))))) {
+                var results = q.Execute().ToList();
+                results.Should().HaveCount(101);
+                results[41].GetInt(0).Should().Be(58);
+                results[41].GetInt(1).Should().Be(42);
+                results[42].GetInt(0).Should().Be(57);
+                results[42].GetValue(1).Should().BeNull();
+            }
+
+            using (var q = Query.Select(SelectResult.Expression(number2Prop.From("main")), SelectResult.Expression(Expression.Property("theone").From("secondary")))
+                .From(DataSource.Database(Db).As("main"))
+                .Join(Join.LeftOuterJoin(DataSource.Database(Db).As("secondary"))
+                    .On(Expression.Property("number1").From("main")
+                        .EqualTo(Expression.Property("theone").From("secondary"))))) {
+                var results = q.Execute().ToList();
+                results.Should().HaveCount(101);
+                results[41].GetInt(0).Should().Be(58);
+                results[41].GetInt(1).Should().Be(42);
+                results[42].GetInt(0).Should().Be(57);
+                results[42].GetValue(1).Should().BeNull();
+            }
+        }
+
+        [Fact]
+        public void TestCrossJoin()
+        {
+            LoadNumbers(10);
+            var num1 = Expression.Property("number1").From("main");
+            var num2 = Expression.Property("number2").From("secondary");
+
+            using (var q = Query.Select(SelectResult.Expression(num1), SelectResult.Expression(num2))
+                .From(DataSource.Database(Db).As("main"))
+                .Join(Join.CrossJoin(DataSource.Database(Db).As("secondary")))
+                .OrderBy(Ordering.Expression(num2))) {
+                var count = VerifyQuery(q, (n, row) =>
+                {
+                    ((row.GetInt(0) - 1) % 10).Should().Be((n - 1) % 10);
+                    row.GetInt(1).Should().Be((n - 1) / 10);
+                });
+
+                count.Should().Be(100);
+            }
+        }
+
+        [Fact]
         public void TestAggregateFunctions()
         {
             LoadNumbers(100);

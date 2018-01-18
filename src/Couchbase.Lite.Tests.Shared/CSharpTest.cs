@@ -26,6 +26,8 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
+using System.Reflection.Emit;
 using System.Security.Authentication;
 using System.Text;
 using System.Threading;
@@ -488,6 +490,8 @@ Transfer-Encoding: chunked";
 
         #endif
 
+        
+
         private unsafe void TestRoundTrip<T>(T item)
         {
             using (var encoded = item.FLEncode()) {
@@ -501,4 +505,85 @@ Transfer-Encoding: chunked";
             }
         }
     }
+
+    #if NETCOREAPP1_0
+
+#if WINDOWS_UWP
+    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
+#endif
+    public sealed class CSharpTest2
+    {
+        [Fact]
+        public void TestDI()
+        {
+            this.Invoking(t => Service.AutoRegister(null)).ShouldThrow<ArgumentNullException>();
+            Service.AutoRegister(GetType().GetTypeInfo().Assembly);
+            Service.Register<IFake2, Valid2>();
+            Service.Register<IFake3>(() => new Valid3());
+            var valid4 = new Valid4();
+            Service.Register<IFake4>(valid4);
+            object fake1 = Service.GetInstance<IFake>();
+            object fake2 = Service.GetInstance<IFake>();
+            fake1.Should().NotBeSameAs(fake2);
+            fake1.Should().BeOfType<Valid>();
+
+            fake1 = Service.GetInstance<IFake2>();
+            fake2 = Service.GetInstance<IFake2>();
+            fake1.Should().BeSameAs(fake2);
+            fake1.Should().BeOfType<Valid2>();
+
+            fake1 = Service.GetInstance<IFake3>();
+            fake2 = Service.GetInstance<IFake3>();
+            fake1.Should().BeSameAs(fake2);
+            fake1.Should().BeOfType<Valid3>();
+
+            fake1 = Service.GetInstance<IFake4>();
+            fake2 = Service.GetInstance<IFake4>();
+            fake1.Should().BeSameAs(valid4);
+            fake2.Should().BeSameAs(valid4);
+        }
+    }
+
+    public interface IFake
+    {
+
+    }
+
+    public interface IFake2
+    {
+
+    }
+
+    public interface IFake3
+    {
+
+    }
+
+    public interface IFake4
+    {
+
+    }
+
+    public sealed class Valid4 : IFake4
+    {
+
+    }
+
+    public sealed class Valid3 : IFake3
+    {
+
+    }
+
+    public sealed class Valid2 : IFake2
+    {
+
+    }
+
+    [CouchbaseDependency(Transient = true)]
+    public sealed class Valid : IFake
+    {
+
+    }
+
+    #endif
 }

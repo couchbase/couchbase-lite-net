@@ -86,8 +86,12 @@ namespace Couchbase.Lite.Internal.Query
                 throw new InvalidOperationException("Missing AS clause for JOIN");
             }
 
-            var onObj = _on as QueryExpression;
-            asObj["ON"] = onObj?.ConvertToJSON() ?? throw new InvalidOperationException("Missing ON statement for JOIN");
+            if (_joinType != "CROSS") {
+                var onObj = _on as QueryExpression;
+                asObj["ON"] = onObj?.ConvertToJSON() ??
+                              throw new InvalidOperationException("Missing ON statement for JOIN");
+            }
+
             if (_joinType != null) {
                 asObj["JOIN"] = _joinType;
             }
