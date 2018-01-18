@@ -28,6 +28,9 @@
       <ModuleMask>SourceLink*</ModuleMask>
     </FilterEntry>
     <FilterEntry>
+      <ModuleMask>MSBuild</ModuleMask>
+    </FilterEntry>
+    <FilterEntry>
       <ClassMask>JetBrains.Annotations*</ClassMask>
     </FilterEntry>
     <FilterEntry>
@@ -41,9 +44,6 @@
     </FilterEntry>
     <FilterEntry>
       <ClassMask>Couchbase.Lite.Util.CollectionDebuggerView*</ClassMask>
-    </FilterEntry>
-    <FilterEntry>
-      <ClassMask>MSBuild*</ClassMask>
     </FilterEntry>
      <FilterEntry>
       <ClassMask>Couchbase.Lite.Util.CBDebug</ClassMask>
