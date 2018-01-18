@@ -45,6 +45,9 @@ namespace Couchbase.Lite
         private const uint MaxCachedContentLength = 8 * 1024;
         private const int ReadBufferSize = 8 * 1024;
         private const string Tag = nameof(Blob);
+        private const string ContentTypeKey = "content_type";
+        private const string LengthKey = "length";
+        private const string DigestKey = "digest";
 
         #endregion
 
@@ -176,9 +179,9 @@ namespace Couchbase.Lite
                 }
 
                 return new NonNullDictionary<string, object> {
-                    ["digest"] = Digest,
-                    ["length"] = Length > 0 ? (object)Length : null,
-                    ["content-type"] = ContentType
+                    [DigestKey] = Digest,
+                    [LengthKey] = Length > 0 ? (object)Length : null,
+                    [ContentTypeKey] = ContentType
                 };
             }
         }
@@ -250,9 +253,9 @@ namespace Couchbase.Lite
             _properties = new Dictionary<string, object>(CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(properties), properties));
             _properties.Remove(Constants.ObjectTypeProperty);
 
-            Length = properties.GetCast<int>("length");
-            Digest = properties.GetCast<string>("digest");
-            ContentType = properties.GetCast<string>("content-type");
+            Length = properties.GetCast<int>(LengthKey);
+            Digest = properties.GetCast<string>(DigestKey);
+            ContentType = properties.GetCast<string>(ContentTypeKey);
             if(Digest == null) {
                 Log.To.Database.W(Tag, "Blob read from database has missing digest");
             }

@@ -1088,7 +1088,7 @@ namespace Couchbase.Lite
                     }
                 } finally {
                     baseDoc?.Dispose();
-                    if (resolved != otherDoc) {
+                    if (!ReferenceEquals(resolved, otherDoc)) {
                         otherDoc?.Dispose();
                     }
                 }
@@ -1180,13 +1180,13 @@ namespace Couchbase.Lite
                 // Figure out what revision to delete and what if anything to add
                 string winningRevID, losingRevID;
                 byte[] mergedBody = null;
-                if (resolved == otherDoc) {
+                if (ReferenceEquals(resolved, otherDoc)) {
                     winningRevID = otherDoc.RevID;
                     losingRevID = doc.RevID;
                 } else {
                     winningRevID = doc.RevID;
                     losingRevID = otherDoc.RevID;
-                    if (resolved != doc) {
+                    if (!ReferenceEquals(resolved, doc)) {
                         resolved.Database = this;
                         mergedBody = resolved.Encode();
                     }
