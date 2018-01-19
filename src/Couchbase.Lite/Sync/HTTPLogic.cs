@@ -89,7 +89,7 @@ namespace Couchbase.Lite.Sync
         {
             get {
                 var scheme = _urlRequest.Scheme.ToLowerInvariant();
-                return "https".Equals(scheme) || "wss".Equals(scheme) || "blips".Equals(scheme);
+                return "https".Equals(scheme) || "wss".Equals(scheme);
             }
         }
 

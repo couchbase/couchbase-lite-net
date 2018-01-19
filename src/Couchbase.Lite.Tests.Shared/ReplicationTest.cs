@@ -360,7 +360,7 @@ namespace Test
 #endif
         public void TestAuthenticationFailure()
         {
-            var config = CreateConfig(false, true, false, new URLEndpoint("localhost", "seekrit", false));
+            var config = CreateConfig(false, true, false, new URLEndpoint(new Uri("ws://localhost/seekrit")));
             _repl = new Replicator(config.Build());
             RunReplication(config, 401, C4ErrorDomain.WebSocketDomain);
         }
@@ -370,7 +370,7 @@ namespace Test
 #endif
         public void TestAuthenticatedPull()
         {
-            var config = CreateConfig(false, true, false, new URLEndpoint("localhost", "seekrit", false));
+            var config = CreateConfig(false, true, false, new URLEndpoint(new Uri("ws://localhost/seekrit")));
             config.Authenticator = new SessionAuthenticator("78376efd8cc74dadfc395f4049a115b7cd0ef5e3");
             RunReplication(config, 0, 0);
         }
@@ -380,7 +380,7 @@ namespace Test
 #endif
         public void TestSelfSignedSSLFailure()
         {
-            var config = CreateConfig(false, true, false, new URLEndpoint("localhost", "db", true));
+            var config = CreateConfig(false, true, false, new URLEndpoint(new Uri("wss://localhost/db")));
             RunReplication(config, (int)C4NetworkErrorCode.TLSCertUntrusted, C4ErrorDomain.NetworkDomain);
         }
 
@@ -389,7 +389,7 @@ namespace Test
 #endif
         public async Task TestSelfSignedSSLPinned()
         {
-            var config = CreateConfig(false, true, false, new URLEndpoint("localhost", "db", true));
+            var config = CreateConfig(false, true, false,  new URLEndpoint(new Uri("wss://localhost/db")));
 #if WINDOWS_UWP
             var installedLocation = Windows.ApplicationModel.Package.Current.InstalledLocation;
             var file = await installedLocation.GetFileAsync("Assets\\localhost-wrong.cert");
@@ -425,10 +425,10 @@ namespace Test
             });
 
             
-            var config = CreateConfig(true, false, false, new URLEndpoint("localhost", "db", false));
+            var config = CreateConfig(true, false, false,  new URLEndpoint(new Uri("ws://localhost/db")));
             RunReplication(config, 0, 0);
 
-            config = new ReplicatorConfiguration.Builder(_otherDB, new URLEndpoint("localhost", "db", false));
+            config = new ReplicatorConfiguration.Builder(_otherDB, new URLEndpoint(new Uri("ws://localhost/db")));
             ModifyConfig(config, false, true, false);
             config.Channels = new[] {"my_channel"};
             RunReplication(config, 0, 0);

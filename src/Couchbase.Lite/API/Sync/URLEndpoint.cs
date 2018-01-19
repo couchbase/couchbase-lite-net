@@ -42,98 +42,28 @@ namespace Couchbase.Lite.Sync
         #region Properties
 
         /// <summary>
-        /// Gets the hostname for this endpoint
+        /// Gets the URL used to populate this endpoint
         /// </summary>
         [NotNull]
-        public string Host { get; }
-
-        /// <summary>
-        /// Gets the path into the hostname used for this endpoint, if any
-        /// </summary>
-        [CanBeNull]
-        public string Path { get; }
-
-        /// <summary>
-        /// Gets the port used for this endpoint
-        /// </summary>
-        public int Port { get; }
-
-        /// <summary>
-        /// Gets whether or not this endpoint uses TLS
-        /// </summary>
-        public bool Secure { get; }
-
-        [NotNull]
-        internal Uri Url { get; }
+        public Uri Url { get; }
 
         #endregion
 
         #region Constructors
 
         /// <summary>
-        /// Constructs an endpoint given a remote host and whether or not to use TLS,
-        /// using the default port 4984
+        /// Constructs an endpoint given a url.  Note that the scheme must be ws or wss
+        /// or an exception will be thrown
         /// </summary>
-        /// <param name="host">The host to connect to</param>
-        /// <param name="secure">Whether or not to use TLS (server must be configured for TLS)</param>
-        public URLEndpoint([NotNull]string host, bool secure)
+        /// <param name="url">The url </param>
+        public URLEndpoint([NotNull]Uri url)
         {
-            var builder = new UriBuilder(secure ? "blips" : "blip", host, 4984);
-            Host = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(host), host);
-            Port = 4984;
-            Secure = secure;
-            Url = builder.Uri;
-        }
+            var urlToUse = CBDebug.MustNotBeNull(Log.To.Sync, Tag, "url", url);
+            if (!urlToUse.Scheme.StartsWith("ws")) {
+                throw new ArgumentException($"Invalid scheme for URLEndpoint url ({urlToUse.Scheme}); must be either ws or wss");
+            }
 
-        /// <summary>
-        /// Constructs an endpoint given a remote host base, whether or not to use TLS,
-        /// and a path into the remote host using the default port 4984
-        /// </summary>
-        /// <param name="host">The host to connect to</param>
-        /// <param name="path">The  path into the remote host</param>
-        /// <param name="secure">Whether or not to use TLS (server must be configured for TLS)</param>
-        public URLEndpoint([NotNull]string host, [CanBeNull]string path, bool secure)
-        {
-            var builder = new UriBuilder(secure ? "blips" : "blip", host, 4984, path);
-            Host = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(host), host);
-            Port = 4984;
-            Path = path;
-            Secure = secure;
-            Url = builder.Uri;
-        }
-
-        /// <summary>
-        /// Constructs an endpoint given a remote host and whether or not to use TLS,
-        /// using the given port
-        /// </summary>
-        /// <param name="host">The host to connect to</param>
-        /// <param name="port">The port to use when connecting</param>
-        /// <param name="secure">Whether or not to use TLS (server must be configured for TLS)</param>
-        public URLEndpoint([NotNull]string host, int port, bool secure)
-        {
-            var builder = new UriBuilder(secure ? "blips" : "blip", host, port);
-            Host = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(host), host);
-            Port = port;
-            Secure = secure;
-            Url = builder.Uri;
-        }
-
-        /// <summary>
-        /// Constructs an endpoint given a remote host base, whether or not to use TLS,
-        /// and a path into the remote host using the given port
-        /// </summary>
-        /// <param name="host">The host to connect to</param>
-        /// <param name="port">The port to use when connecting</param>
-        /// <param name="path">The  path into the remote host</param>
-        /// <param name="secure">Whether or not to use TLS (server must be configured for TLS)</param>
-        public URLEndpoint([NotNull]string host, int port, [CanBeNull]string path, bool secure)
-        {
-            var builder = new UriBuilder(secure ? "blips" : "blip", host, port, path);
-            Host = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(host), host);
-            Port = port;
-            Path = path;
-            Secure = secure;
-            Url = builder.Uri;
+            Url = url;
         }
 
         #endregion
