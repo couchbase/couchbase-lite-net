@@ -44,15 +44,9 @@ namespace Couchbase.Lite.Logging
 
         private static readonly LogTo _To;
 
-        internal static readonly C4LogDomain* LogDomainActor = c4log_getDomain("Actor", true);
+        internal static readonly C4LogDomain* LogDomainBLIP = c4log_getDomain("BLIP", false);
 
-        internal static readonly C4LogDomain* LogDomainBLIP = c4log_getDomain("BLIP", true);
-
-        internal static readonly C4LogDomain* LogDomainDB = c4log_getDomain("DB", true);
-
-        internal static readonly C4LogDomain* LogDomainSQL = c4log_getDomain("SQL", true);
-
-        internal static readonly C4LogDomain* LogDomainWebSocket = c4log_getDomain("WebSocket", true);
+        internal static readonly C4LogDomain* LogDomainWebSocket = c4log_getDomain("WS", false);
 
         #endregion
 

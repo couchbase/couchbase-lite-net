@@ -316,12 +316,10 @@ namespace Couchbase.Lite
 
 			if(domains.HasFlag(LogDomain.Database)) {
 				Log.To.Database.Level = level;
-                Native.c4log_setLevel(Log.LogDomainDB, (C4LogLevel)level);
 			}
 
 			if(domains.HasFlag(LogDomain.Query)) {
 				Log.To.Query.Level = level;
-                Native.c4log_setLevel(Log.LogDomainSQL, (C4LogLevel)level);
 			}
 
 			if(domains.HasFlag(LogDomain.Replicator)) {
@@ -330,7 +328,6 @@ namespace Couchbase.Lite
 
 		    if (domains.HasFlag(LogDomain.Network)) {
 		        Native.c4log_setLevel(Log.LogDomainBLIP, (C4LogLevel)level);
-                Native.c4log_setLevel(Log.LogDomainActor, (C4LogLevel)level);
                 Native.c4log_setLevel(Log.LogDomainWebSocket, (C4LogLevel)level);
 		    }
 		}

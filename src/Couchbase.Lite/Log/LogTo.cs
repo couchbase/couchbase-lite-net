@@ -286,7 +286,7 @@ namespace Couchbase.Lite.Logging
         internal LogTo()
         {
             var domains = new[] {
-                "Database", "Query", "Sync", "Couchbase", "LiteCore"
+                "DB", "Query", "Sync", "Couchbase", "LiteCore"
             };
             _allLoggers = new DomainLogger[domains.Length];
             int i = 0;
