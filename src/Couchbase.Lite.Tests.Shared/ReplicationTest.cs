@@ -353,6 +353,33 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestDocumentIDs()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("species", "Tiger");
+                doc1.SetString("name", "Hobbes");
+                Db.Save(doc1).Dispose();
+            }
+
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("species", "Tiger");
+                doc2.SetString("pattern", "striped");
+                Db.Save(doc2).Dispose();
+            }
+
+            var config = CreateConfig(true, false, false);
+            config.DocumentIDs = new[] { "doc1" };
+            RunReplication(config, 0, 0);
+
+            _otherDB.Count.Should().Be(1UL);
+            using (var doc1 = _otherDB.GetDocument("doc1")) {
+                doc1.Should().NotBeNull();
+                doc1.GetString("species").Should().Be("Tiger");
+                doc1.GetString("name").Should().Be("Hobbes");
+            }
+        }
+
         // The below tests are disabled because they require orchestration and should be moved
         // to the functional test suite
 #if HAVE_SG

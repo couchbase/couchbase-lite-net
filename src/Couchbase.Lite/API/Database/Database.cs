@@ -479,7 +479,13 @@ namespace Couchbase.Lite
                 LiteCoreBridge.Check(err =>
                 {
                     var internalOpts = concreteIndex.Options;
-                    return Native.c4db_createIndex(c4db, name, json, concreteIndex.IndexType, &internalOpts, err);
+
+                    // For some reason a "using" statement here causes a compiler error
+                    try {
+                        return Native.c4db_createIndex(c4db, name, json, concreteIndex.IndexType, &internalOpts, err);
+                    } finally {
+                        internalOpts.Dispose();
+                    }
                 });
             });
         }

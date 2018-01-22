@@ -30,6 +30,8 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
+using LiteCore.Interop;
+
 namespace Couchbase.Lite.Sync
 {
     internal sealed class HTTPLogic
@@ -233,7 +235,7 @@ namespace Couchbase.Lite.Sync
 			var runtimePlatform = Service.GetInstance<IRuntimePlatform>();
 			var osDescription = runtimePlatform?.OSDescription ?? RuntimeInformation.OSDescription;
 			var hardware = runtimePlatform != null ? $"; {runtimePlatform.HardwareName}" : "";
-			return $"CouchbaseLite/{version} (.NET; {osDescription}{hardware}) Build/{build} Commit/{commit}";
+			return $"CouchbaseLite/{version} (.NET; {osDescription}{hardware}) Build/{build} LiteCore/{Native.c4_getVersion()} Commit/{commit}";
 		}
 
         private Dictionary<string, string> ParseAuthHeader(string authResponse)
