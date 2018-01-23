@@ -200,39 +200,6 @@ namespace Couchbase.Lite.Util
         }
 
         /// <summary>
-        /// Replaces all instances of a given regex with the given replacement
-        /// </summary>
-        /// <param name="str">The string to operate on (implicit)</param>
-        /// <param name="regex">The regex string to search for</param>
-        /// <param name="replacement">The replacement value to use</param>
-        /// <returns>A string with all of the given regex expression matches replaced with <c>replacement</c></returns>
-        public static string ReplaceAll(this string str, string regex, string replacement)
-        {
-            var rgx = new Regex(regex);
-
-            if (replacement.IndexOfAny(new[] {'\\', '$'}) == -1) {
-                return rgx.Replace(str, replacement);
-            }
-
-            // Back references not yet supported
-            var sb = new StringBuilder();
-            for(var n = 0; n < replacement.Length; n++) {
-                var c = replacement[n];
-                switch (c) {
-                    case '$':
-                        throw new NotSupportedException("Back references not supported");
-                    case '\\':
-                        c = replacement[++n];
-                        break;
-                }
-                sb.Append(c);
-            }
-            replacement = sb.ToString();
-
-            return rgx.Replace(str, replacement);
-        }
-
-        /// <summary>
         /// Attempts to cast an object to a given type
         /// </summary>
         /// <typeparam name="T">The type to cast to</typeparam>

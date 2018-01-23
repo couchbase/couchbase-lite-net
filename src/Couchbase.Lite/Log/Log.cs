@@ -72,7 +72,6 @@ namespace Couchbase.Lite.Logging
                     var oldLevel = Database.GetLogLevels(LogDomain.Couchbase)[LogDomain.Couchbase];
                     Database.SetLogLevel(LogDomain.Couchbase, LogLevel.Info);
                     To.Couchbase.I("Startup", HTTPLogic.UserAgent);
-                    To.Couchbase.I("Startup", Native.c4_getBuildInfo());
                     Database.SetLogLevel(LogDomain.Couchbase, oldLevel);
                 }
 

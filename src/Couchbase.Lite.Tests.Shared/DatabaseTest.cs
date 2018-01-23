@@ -969,7 +969,7 @@ namespace Test
             var fName = Expression.Property("firstName");
             var lName = Expression.Property("lastName");
 
-            var fNameItem = ValueIndexItem.Expression(fName);
+            var fNameItem = ValueIndexItem.Property("firstName");
             var lNameItem = ValueIndexItem.Expression(lName);
 
             var index1 = Index.ValueIndex(fNameItem, lNameItem);

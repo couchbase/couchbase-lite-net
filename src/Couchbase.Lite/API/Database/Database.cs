@@ -1149,8 +1149,7 @@ namespace Couchbase.Lite
                 });
                 
             } else if (doc.IsEmpty) {
-                FLEncoder* encoder = null;
-                ThreadSafety.DoLocked(() => encoder = Native.c4db_getSharedFleeceEncoder(_c4db));
+                FLEncoder* encoder = SharedEncoder;
                 Native.FLEncoder_BeginDict(encoder, 0);
                 Native.FLEncoder_EndDict(encoder);
                 body = Native.FLEncoder_Finish(encoder, null);

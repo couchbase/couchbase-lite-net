@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -1647,6 +1648,104 @@ namespace Test
                         ["nullval"] = null
                     });
                 }
+            }
+        }
+
+        [Fact]
+        public void TestQueryParameters()
+        {
+            var now = DateTimeOffset.UtcNow;
+            var builder = new Parameters.Builder()
+                .SetBoolean("true", true)
+                .SetDate("now", now)
+                .SetDouble("pi", Math.PI)
+                .SetFloat("simple_pi", 3.14159f)
+                .SetLong("big_num", Int64.MaxValue)
+                .SetString("name", "Jim");
+
+            var parameters = builder.Build();
+            parameters.GetValue("true").As<bool>().Should().BeTrue();
+            parameters.GetValue("now").As<DateTimeOffset>().Should().Be(now);
+            parameters.GetValue("pi").As<double>().Should().Be(Math.PI);
+            parameters.GetValue("simple_pi").As<float>().Should().Be(3.14159f);
+            parameters.GetValue("big_num").As<long>().Should().Be(Int64.MaxValue);
+            parameters.GetValue("name").As<string>().Should().Be("Jim");
+        }
+
+        [Fact]
+        public void TestQueryResultTypes()
+        {
+            var blobContent = Encoding.ASCII.GetBytes("The keys to the kingdom");
+            var array = new MutableArrayObject(new[] { 1, 2, 3 });
+            var now = DateTimeOffset.UtcNow;
+            using (var doc = new MutableDocument("test_doc")) {
+                doc.SetArray("array", array);
+                doc.SetBlob("blob", new Blob("text/plain", blobContent));
+                doc.SetDate("created_at", now);
+                doc.SetFloat("simple_pi", 3.14159f);
+                doc.SetLong("big_num", Int64.MaxValue);
+                Db.Save(doc).Dispose();
+            }
+
+            using (var q = Query.Select(SelectResult.Property("array"),
+                    SelectResult.Property("blob"),
+                    SelectResult.Property("created_at"),
+                    SelectResult.Property("simple_pi"),
+                    SelectResult.Property("big_num"))
+                .From(DataSource.Database(Db))) {
+                VerifyQuery(q, (n, row) =>
+                {
+                    row.GetArray(0).Should().ContainInOrder(1L, 2L, 3L);
+                    row.GetArray("array").Should().ContainInOrder(1L, 2L, 3L);
+                    row.GetBlob(1).Content.Should().ContainInOrder(blobContent);
+                    row.GetBlob("blob").Content.Should().ContainInOrder(blobContent);
+                    row.GetDate(2).Should().Be(now);
+                    row.GetDate("created_at").Should().Be(now);
+                    row.GetFloat(3).Should().Be(3.14159f);
+                    row.GetFloat("simple_pi").Should().Be(3.14159f);
+                    row.GetLong(4).Should().Be(Int64.MaxValue);
+                    row.GetLong("big_num").Should().Be(Int64.MaxValue);
+
+                    row[4].Long.Should().Be(Int64.MaxValue);
+                    row["big_num"].Long.Should().Be(Int64.MaxValue);
+                });
+            }
+        }
+
+        [Fact]
+        public void TestFTSStemming()
+        {
+            Db.CreateIndex("passageIndex", Index.FullTextIndex(FullTextIndexItem.Property("passage")).Locale("en"));
+            Db.CreateIndex("passageIndexStemless", Index.FullTextIndex(FullTextIndexItem.Property("passage")));
+
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("passage", "The boy said to the child, 'Mommy, I want a cat.'");
+                Db.Save(doc1).Dispose();
+            }
+
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("passage", "The mother replied 'No, you already have too many cats.'");
+                Db.Save(doc2).Dispose();
+            }
+
+            using (var q = Query.Select(SelectResult.Expression(Meta.ID))
+                .From(DataSource.Database(Db))
+                .Where(FullTextExpression.Index("passageIndex").Match("cat"))) {
+                var count = VerifyQuery(q, (n, row) =>
+                {
+                    row.GetString(0).Should().Be($"doc{n}");
+                });
+                count.Should().Be(2);
+            }
+
+            using (var q = Query.Select(SelectResult.Expression(Meta.ID))
+                .From(DataSource.Database(Db))
+                .Where(FullTextExpression.Index("passageIndexStemless").Match("cat"))) {
+                var count = VerifyQuery(q, (n, row) =>
+                {
+                    row.GetString(0).Should().Be($"doc{n}");
+                });
+                count.Should().Be(1);
             }
         }
 

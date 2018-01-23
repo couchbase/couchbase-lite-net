@@ -111,6 +111,18 @@
       <FunctionMask>set_*</FunctionMask>
     </FilterEntry>
     <FilterEntry>
+      <ClassMask>LiteCore.Interop.C4DocPutRequest</ClassMask>
+      <FunctionMask>get_*</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>LiteCore.Interop.C4IndexOptions</ClassMask>
+      <FunctionMask>get_*</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>LiteCore.Interop.C4QueryOptions</ClassMask>
+      <FunctionMask>get_*</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
       <ClassMask>Couchbase.Lite.OptionsDictionary</ClassMask>
       <FunctionMask>KeyIsRequired</FunctionMask>
     </FilterEntry>
@@ -121,6 +133,18 @@
     <FilterEntry>
       <ClassMask>Couchbase.Lite.Document</ClassMask>
       <FunctionMask>GetEnumerator</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.DI.Service</ClassMask>
+      <FunctionMask>Register*</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.Util.QueueTaskScheduler</ClassMask>
+      <FunctionMask>GetScheduledTasks</FunctionMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.Util.QueueTaskScheduler</ClassMask>
+      <FunctionMask>TryExecuteTaskInline</FunctionMask>
     </FilterEntry>
   </ExcludeFilters>
   </Filters>

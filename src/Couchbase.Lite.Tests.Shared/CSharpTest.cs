@@ -378,14 +378,6 @@ Transfer-Encoding: chunked";
         }
 
         [Fact]
-        public void TestReplaceAll()
-        {
-            var s = "The quick brown fox jumps over the lazy dog";
-            s.ReplaceAll("\\s.o.", " squaunch").Should().Be("The quick brown squaunch jumps over the lazy squaunch");
-            s.ReplaceAll("bogus", "").Should().Be(s);
-        }
-
-        [Fact]
         public unsafe void TestConvertError()
         {
             var exceptions = new Exception[]
