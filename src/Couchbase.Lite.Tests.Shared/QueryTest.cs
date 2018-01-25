@@ -1715,8 +1715,8 @@ namespace Test
         [Fact]
         public void TestFTSStemming()
         {
-            Db.CreateIndex("passageIndex", Index.FullTextIndex(FullTextIndexItem.Property("passage")).Locale("en"));
-            Db.CreateIndex("passageIndexStemless", Index.FullTextIndex(FullTextIndexItem.Property("passage")));
+            Db.CreateIndex("passageIndex", Index.FullTextIndex(FullTextIndexItem.Property("passage")));
+            Db.CreateIndex("passageIndexStemless", Index.FullTextIndex(FullTextIndexItem.Property("passage")).Locale(null));
 
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("passage", "The boy said to the child, 'Mommy, I want a cat.'");

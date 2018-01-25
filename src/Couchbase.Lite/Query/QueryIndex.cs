@@ -18,6 +18,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
+using System.Globalization;
 using System.Linq;
 using Couchbase.Lite.Query;
 using LiteCore.Interop;
@@ -30,7 +32,7 @@ namespace Couchbase.Lite.Internal.Query
 
         private readonly IFullTextIndexItem[] _ftsItems;
         private bool _ignoreAccents;
-        private string _locale;
+        private string _locale = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
         private readonly IValueIndexItem[] _valueItems;
 
         #endregion
