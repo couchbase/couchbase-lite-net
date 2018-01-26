@@ -1715,7 +1715,8 @@ namespace Test
         [Fact]
         public void TestFTSStemming()
         {
-            Db.CreateIndex("passageIndex", Index.FullTextIndex(FullTextIndexItem.Property("passage")));
+            // Can't rely on the default locale, it could be anything and that would fail the test
+            Db.CreateIndex("passageIndex", Index.FullTextIndex(FullTextIndexItem.Property("passage")).Locale("en"));
             Db.CreateIndex("passageIndexStemless", Index.FullTextIndex(FullTextIndexItem.Property("passage")).Locale(null));
 
             using (var doc1 = new MutableDocument("doc1")) {
