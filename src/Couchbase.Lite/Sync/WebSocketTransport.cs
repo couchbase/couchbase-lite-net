@@ -50,7 +50,7 @@ namespace Couchbase.Lite.Sync
 
         public static void RegisterWithC4()
         {
-            SocketFactory.RegisterFactory(DoOpen, DoClose, DoWrite, DoCompleteReceive);
+            SocketFactory.RegisterFactory(DoOpen, DoClose, DoWrite, DoCompleteReceive, DoDispose);
             SocketFactory.SetErrorHandler(DoError);
         }
 
@@ -82,6 +82,17 @@ namespace Couchbase.Lite.Sync
 
             var socketWrapper = Sockets[id];
             socketWrapper.CompletedReceive(bytecount);
+        }
+
+        private static void DoDispose(C4Socket* socket)
+        {
+            var id = (int) socket->nativeHandle;
+            if (id == 0) {
+                Log.To.Sync.E(Tag, "DoDispose reached after close");
+                return;
+            }
+
+            Sockets.Remove(id);
         }
 
         private static void DoError(C4Socket* socket, Exception e)
