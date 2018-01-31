@@ -1,5 +1,5 @@
 ﻿// 
-// QueryFactory.cs
+// QueryBuilder.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -28,7 +28,7 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// A factory class for generating the initial portion of a query
     /// </summary>
-    public static class Query
+    public static class QueryBuilder
     {
         #region Public Methods
 

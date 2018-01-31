@@ -61,7 +61,7 @@ namespace Test
         [Fact]
         public void TestReadOnlyParameters()
         {
-            using (var q = Query.Select(DocID, Sequence).From(DataSource.Database(Db))) {
+            using (var q = QueryBuilder.Select(DocID, Sequence).From(DataSource.Database(Db))) {
                 var parameters = new Parameters().SetString("foo", "bar");
                 q.Parameters = parameters;
                 q.Parameters.GetValue("foo").Should().Be("bar");
@@ -74,7 +74,7 @@ namespace Test
         public void TestNoWhereQuery()
         {
             LoadJSONResource("names_100");
-            using (var q = Query.Select(DocID, Sequence).From(DataSource.Database(Db))) {
+            using (var q = QueryBuilder.Select(DocID, Sequence).From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var expectedID = $"doc-{n:D3}";
@@ -125,7 +125,7 @@ namespace Test
             foreach (var test in tests) {
                 var exp = test.Item1;
                 var expectedDocs = test.Item2;
-                using (var q = Query.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(Db)).Where(exp)) {
+                using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(Db)).Where(exp)) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         if (n <= expectedDocs.Length) {
@@ -237,7 +237,7 @@ namespace Test
             doc1.SetString("string", "string");
             Db.Save(doc1);
 
-            using (var q = Query.Select(DocID)
+            using (var q = QueryBuilder.Select(DocID)
                 .From(DataSource.Database(Db))
                 .Where(Expression.Property("string").EqualTo(Expression.String("string")))) {
 
@@ -250,7 +250,7 @@ namespace Test
                 numRows.Should().Be(1, "beacuse one row matches the given query");
             }
 
-            using (var q = Query.Select(DocID)
+            using (var q = QueryBuilder.Select(DocID)
                 .From(DataSource.Database(Db))
                 .Where(Expression.Property("string").NotEqualTo(Expression.String("string1")))) {
 
@@ -286,7 +286,7 @@ namespace Test
             var inExpression = expected.Select(Expression.String); // Note, this is LINQ Select, so don't get confused
 
             var firstName = Expression.Property("name.first");
-            using (var q = Query.Select(SelectResult.Expression(firstName))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(firstName))
                 .From(DataSource.Database(Db))
                 .Where(firstName.In(inExpression.ToArray()))
                 .OrderBy(Ordering.Property("name.first"))) {
@@ -308,7 +308,7 @@ namespace Test
             LoadJSONResource("names_100");
 
             var where = Expression.Property("name.first").Like(Expression.String("%Mar%"));
-            using (var q = Query.Select(SelectResult.Expression(Expression.Property("name.first")))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("name.first")))
                 .From(DataSource.Database(Db))
                 .Where(where)
                 .OrderBy(Ordering.Property("name.first").Ascending())) {
@@ -334,7 +334,7 @@ namespace Test
             LoadJSONResource("names_100");
 
             var where = Expression.Property("name.first").Regex(Expression.String("^Mar.*"));
-            using (var q = Query.Select(SelectResult.Expression(Expression.Property("name.first")))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("name.first")))
                 .From(DataSource.Database(Db))
                 .Where(where)
                 .OrderBy(Ordering.Property("name.first").Ascending())) {
@@ -366,9 +366,9 @@ namespace Test
             var w = FullTextExpression.Index("sentence").Match("'Dummie woman'");
             var o = Ordering.Expression(FullTextFunction.Rank("sentence")).Descending();
 
-            var index = Index.FullTextIndex(FullTextIndexItem.Property("sentence"));
+            var index = IndexBuilder.FullTextIndex(FullTextIndexItem.Property("sentence"));
             Db.CreateIndex("sentence", index);
-            using (var q = Query.Select(DocID, s_sentence)
+            using (var q = QueryBuilder.Select(DocID, s_sentence)
                 .From(DataSource.Database(Db))
                 .Where(w)
                 .OrderBy(o)) {
@@ -393,7 +393,7 @@ namespace Test
                     order = Ordering.Property("name.first").Descending();
                 }
 
-                using (var q = Query.Select(SelectResult.Expression(Expression.Property("name.first")))
+                using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("name.first")))
                     .From(DataSource.Database(Db)).OrderBy(order))  {
                     var firstNames = new List<object>();
                     var numRows = VerifyQuery(q, (n, row) =>
@@ -428,7 +428,7 @@ namespace Test
             doc2.SetInt("number", 1);
             Db.Save(doc2);
 
-            using (var q = Query.SelectDistinct(SelectResult.Expression(Expression.Property("number")))
+            using (var q = QueryBuilder.SelectDistinct(SelectResult.Expression(Expression.Property("number")))
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
@@ -444,7 +444,7 @@ namespace Test
         public async Task TestLiveQuery()
         {
             LoadNumbers(100);
-            using (var q = Query.Select(SelectResult.Expression(Expression.Property("number1"))).From(DataSource.Database(Db))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("number1"))).From(DataSource.Database(Db))
                 .Where(Expression.Property("number1").LessThan(Expression.Int(10))).OrderBy(Ordering.Property("number1"))) {
                 var wa = new WaitAssert();
                 var wa2 = new WaitAssert();
@@ -483,7 +483,7 @@ namespace Test
             testDoc.SetInt("theone", 42);
             Db.Save(testDoc);
             var number2Prop = Expression.Property("number2");
-            using (var q = Query.Select(SelectResult.Expression(number2Prop.From("main")))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(number2Prop.From("main")))
                 .From(DataSource.Database(Db).As("main"))
                 .Join(Join.InnerJoin(DataSource.Database(Db).As("secondary"))
                     .On(Expression.Property("number1").From("main")
@@ -494,7 +494,7 @@ namespace Test
                     "because that was the number stored in 'number2' of the matching doc");
             }
 
-            using (var q = Query.Select(SelectResult.All().From("main"))
+            using (var q = QueryBuilder.Select(SelectResult.All().From("main"))
                 .From(DataSource.Database(Db).As("main"))
                 .Join(Join.InnerJoin(DataSource.Database(Db).As("secondary"))
                     .On(Expression.Property("number1").From("main")
@@ -513,7 +513,7 @@ namespace Test
             testDoc.SetInt("theone", 42);
             Db.Save(testDoc);
             var number2Prop = Expression.Property("number2");
-            using (var q = Query.Select(SelectResult.Expression(number2Prop.From("main")), SelectResult.Expression(Expression.Property("theone").From("secondary")))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(number2Prop.From("main")), SelectResult.Expression(Expression.Property("theone").From("secondary")))
                 .From(DataSource.Database(Db).As("main"))
                 .Join(Join.LeftJoin(DataSource.Database(Db).As("secondary"))
                     .On(Expression.Property("number1").From("main")
@@ -526,7 +526,7 @@ namespace Test
                 results[42].GetValue(1).Should().BeNull();
             }
 
-            using (var q = Query.Select(SelectResult.Expression(number2Prop.From("main")), SelectResult.Expression(Expression.Property("theone").From("secondary")))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(number2Prop.From("main")), SelectResult.Expression(Expression.Property("theone").From("secondary")))
                 .From(DataSource.Database(Db).As("main"))
                 .Join(Join.LeftOuterJoin(DataSource.Database(Db).As("secondary"))
                     .On(Expression.Property("number1").From("main")
@@ -547,7 +547,7 @@ namespace Test
             var num1 = Expression.Property("number1").From("main");
             var num2 = Expression.Property("number2").From("secondary");
 
-            using (var q = Query.Select(SelectResult.Expression(num1), SelectResult.Expression(num2))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(num1), SelectResult.Expression(num2))
                 .From(DataSource.Database(Db).As("main"))
                 .Join(Join.CrossJoin(DataSource.Database(Db).As("secondary")))
                 .OrderBy(Ordering.Expression(num2))) {
@@ -571,7 +571,7 @@ namespace Test
             var min = SelectResult.Expression(Function.Min(Expression.Property("number1")));
             var max = SelectResult.Expression(Function.Max(Expression.Property("number1")));
             var sum = SelectResult.Expression(Function.Sum(Expression.Property("number1")));
-            using (var q = Query.Select(avg, cnt, min, max, sum)
+            using (var q = QueryBuilder.Select(avg, cnt, min, max, sum)
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
@@ -601,7 +601,7 @@ namespace Test
             var zip = Expression.Property("contact.address.zip");
             var MAXZIP = Function.Max(zip);
 
-            using (var q = Query.Select(SelectResult.Expression(STATE), SelectResult.Expression(COUNT), SelectResult.Expression(MAXZIP))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(STATE), SelectResult.Expression(COUNT), SelectResult.Expression(MAXZIP))
                 .From(DataSource.Database(Db))
                 .Where(gender.EqualTo(Expression.String("female")))
                 .GroupBy(STATE)
@@ -624,7 +624,7 @@ namespace Test
             expectedCounts = new[] { 6, 3, 2 };
             expectedZips = new[] {"94153", "50801", "47952"};
 
-            using (var q = Query.Select(SelectResult.Expression(STATE), SelectResult.Expression(COUNT), SelectResult.Expression(MAXZIP))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(STATE), SelectResult.Expression(COUNT), SelectResult.Expression(MAXZIP))
                 .From(DataSource.Database(Db))
                 .Where(gender.EqualTo(Expression.String("female")))
                 .GroupBy(STATE)
@@ -654,7 +654,7 @@ namespace Test
             var PARAM_N1 = Expression.Parameter("num1");
             var PARAM_N2 = Expression.Parameter("num2");
 
-            using (var q = Query.Select(SelectResult.Expression(NUMBER1))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(NUMBER1))
                 .From(DataSource.Database(Db))
                 .Where(NUMBER1.Between(PARAM_N1, PARAM_N2))
                 .OrderBy(Ordering.Expression(NUMBER1))) {
@@ -685,7 +685,7 @@ namespace Test
             var RES_DOC_SEQ = SelectResult.Expression(DOC_SEQ);
             var RES_NUMBER1 = SelectResult.Expression(NUMBER1);
 
-            using (var q = Query.Select(RES_DOC_ID, RES_DOC_SEQ, RES_NUMBER1)
+            using (var q = QueryBuilder.Select(RES_DOC_ID, RES_DOC_SEQ, RES_NUMBER1)
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(DOC_SEQ))) {
                 var expectedDocIDs = new[] {"doc1", "doc2", "doc3", "doc4", "doc5"};
@@ -719,7 +719,7 @@ namespace Test
             var LIMIT = Expression.Parameter("limit");
             var NUMBER = Expression.Property("number1");
 
-            using (var q = Query.Select(SelectResult.Property("number1"))
+            using (var q = QueryBuilder.Select(SelectResult.Property("number1"))
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(NUMBER))
                 .Limit(Expression.Int(5))) {
@@ -733,7 +733,7 @@ namespace Test
                 numRows.Should().Be(5);
             }
 
-            using (var q = Query.Select(SelectResult.Property("number1"))
+            using (var q = QueryBuilder.Select(SelectResult.Property("number1"))
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(NUMBER))
                 .Limit(LIMIT)) {
@@ -759,7 +759,7 @@ namespace Test
             var OFFSET = Expression.Parameter("offset");
             var NUMBER = Expression.Property("number1");
 
-            using (var q = Query.Select(SelectResult.Property("number1"))
+            using (var q = QueryBuilder.Select(SelectResult.Property("number1"))
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(NUMBER))
                 .Limit(Expression.Int(5), Expression.Int(3))) {
@@ -773,7 +773,7 @@ namespace Test
                 numRows.Should().Be(5);
             }
 
-            using (var q = Query.Select(SelectResult.Property("number1"))
+            using (var q = QueryBuilder.Select(SelectResult.Property("number1"))
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(NUMBER))
                 .Limit(LIMIT, OFFSET)) {
@@ -805,7 +805,7 @@ namespace Test
             var RES_GENDER = SelectResult.Expression(GENDER);
             var RES_CITY = SelectResult.Expression(CITY);
 
-            using (var q = Query.Select(RES_FNAME, RES_LNAME, RES_GENDER, RES_CITY)
+            using (var q = QueryBuilder.Select(RES_FNAME, RES_LNAME, RES_GENDER, RES_CITY)
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
@@ -829,7 +829,7 @@ namespace Test
             var min = SelectResult.Expression(Function.Min(Expression.Property("number1"))).As("min");
             var max = SelectResult.Expression(Function.Max(Expression.Property("number1")));
             var sum = SelectResult.Expression(Function.Sum(Expression.Property("number1"))).As("sum");
-            using (var q = Query.Select(avg, cnt, min, max, sum)
+            using (var q = QueryBuilder.Select(avg, cnt, min, max, sum)
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
@@ -853,7 +853,7 @@ namespace Test
                 Db.Save(doc);
             }
 
-            using (var q = Query.Select(SelectResult.Expression(ArrayFunction.Length(Expression.Property("array"))))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(ArrayFunction.Length(Expression.Property("array"))))
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
@@ -863,7 +863,7 @@ namespace Test
                 numRows.Should().Be(1);
             }
 
-            using (var q = Query.Select(SelectResult.Expression(ArrayFunction.Contains(Expression.Property("array"), Expression.String("650-123-0001"))),
+            using (var q = QueryBuilder.Select(SelectResult.Expression(ArrayFunction.Contains(Expression.Property("array"), Expression.String("650-123-0001"))),
                     SelectResult.Expression(ArrayFunction.Contains(Expression.Property("array"), Expression.String("650-123-0003"))))
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, r) =>
@@ -906,7 +906,7 @@ namespace Test
                 Function.Tan(prop),
                 Function.Trunc(prop), Function.Trunc(prop, Expression.Int(1))
             }) {
-                using (var q = Query.Select(SelectResult.Expression(function))
+                using (var q = QueryBuilder.Select(SelectResult.Expression(function))
                     .From(DataSource.Database(Db))) {
                     var numRows = VerifyQuery(q, (n, r) =>
                     {
@@ -917,7 +917,7 @@ namespace Test
                 }
             }
 
-            using (var q = Query.Select(SelectResult.Expression(Function.E().Multiply(Expression.Int(2))),
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Function.E().Multiply(Expression.Int(2))),
                     SelectResult.Expression(Function.Pi().Multiply(Expression.Int(2))))
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, r) =>
@@ -940,7 +940,7 @@ namespace Test
             }
 
             var prop = Expression.Property("greeting");
-            using (var q = Query.Select(SelectResult.Expression(Function.Contains(prop, Expression.String("8"))),
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Function.Contains(prop, Expression.String("8"))),
                     SelectResult.Expression(Function.Contains(prop, Expression.String("9"))))
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, r) =>
@@ -952,7 +952,7 @@ namespace Test
                 numRows.Should().Be(1);
             }
 
-            using (var q = Query.Select(SelectResult.Expression(Function.Length(prop)))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Function.Length(prop)))
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
@@ -962,7 +962,7 @@ namespace Test
                 numRows.Should().Be(1);
             }
 
-            using (var q = Query.Select(SelectResult.Expression(Function.Lower(prop)),
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Function.Lower(prop)),
                     SelectResult.Expression(Function.Ltrim(prop)),
                     SelectResult.Expression(Function.Rtrim(prop)),
                     SelectResult.Expression(Function.Trim(prop)),
@@ -986,7 +986,7 @@ namespace Test
         {
             LoadJSONResource("names_100");
 
-            using (var q = Query.Select(SelectResult.Expression(Meta.ID))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
                 .From(DataSource.Database(Db))
                 .Where(ArrayExpression.Any(ArrayExpression.Variable("like")).In(Expression.Property("likes"))
                     .Satisfies(ArrayExpression.Variable("like").EqualTo(Expression.String("climbing"))))) {
@@ -996,7 +996,7 @@ namespace Test
                 received.ShouldBeEquivalentTo(expected);
             }
 
-            using (var q = Query.Select(SelectResult.Expression(Meta.ID))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
                 .From(DataSource.Database(Db))
                 .Where(ArrayExpression.Every(ArrayExpression.Variable("like")).In(Expression.Property("likes"))
                     .Satisfies(ArrayExpression.Variable("like").EqualTo(Expression.String("taxes"))))) {
@@ -1006,7 +1006,7 @@ namespace Test
                 received[0].Should().Be("doc-007");
             }
 
-            using (var q = Query.Select(SelectResult.Expression(Meta.ID))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
                 .From(DataSource.Database(Db))
                 .Where(ArrayExpression.AnyAndEvery(ArrayExpression.Variable("like")).In(Expression.Property("likes"))
                     .Satisfies(ArrayExpression.Variable("like").EqualTo(Expression.String("taxes"))))) {
@@ -1059,7 +1059,7 @@ namespace Test
             var VAR_PATH = ArrayExpression.Variable("path.city");
             var where = ArrayExpression.Any(ArrayExpression.Variable("path")).In(PATHS).Satisfies(VAR_PATH.EqualTo(Expression.String("San Francisco")));
 
-            using (var q = Query.Select(S_DOC_ID)
+            using (var q = QueryBuilder.Select(S_DOC_ID)
                 .From(DataSource.Database(Db))
                 .Where(where)) {
                 var expected = new[] { "doc-0", "doc-2" };
@@ -1072,7 +1072,7 @@ namespace Test
         public void TestSelectAll()
         {
             LoadNumbers(100);
-            using (var q = Query.Select(SelectResult.All(), SelectResult.Expression(Expression.Property("number1")))
+            using (var q = QueryBuilder.Select(SelectResult.All(), SelectResult.Expression(Expression.Property("number1")))
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
@@ -1085,7 +1085,7 @@ namespace Test
                 numRows.Should().Be(100);
             }
 
-            using (var q = Query.Select(SelectResult.All().From("db"), SelectResult.Expression(Expression.Property("number1").From("db")))
+            using (var q = QueryBuilder.Select(SelectResult.All().From("db"), SelectResult.Expression(Expression.Property("number1").From("db")))
                 .From(DataSource.Database(Db).As("db"))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
@@ -1170,7 +1170,7 @@ namespace Test
 
             var stringProp = Expression.Property("string");
 
-            using (var q = Query.Select(SelectResult.Expression(Expression.Property("string")))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("string")))
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(stringProp.Collate(Collation.Unicode())))) {
                 var results = q.Execute();
@@ -1178,7 +1178,7 @@ namespace Test
                     "because by default Å comes between A and B");
             }
 
-            using (var q = Query.Select(SelectResult.Expression(Expression.Property("string")))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("string")))
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(stringProp.Collate(Collation.Unicode().Locale("se"))))) {
                 var results = q.Execute();
@@ -1269,7 +1269,7 @@ namespace Test
                         ? Expression.Property("value").Collate(data.Item4).EqualTo(Expression.String(data.Item2))
                         : Expression.Property("value").Collate(data.Item4).LessThan(Expression.String(data.Item2));
 
-                    using (var q = Query.Select(SelectResult.All())
+                    using (var q = QueryBuilder.Select(SelectResult.All())
                         .From(DataSource.Database(Db))
                         .Where(comparison)) {
                         var result = q.Execute();
@@ -1315,7 +1315,7 @@ namespace Test
             var property = Expression.Property("hey");
             foreach (var data in testData) {
                 WriteLine(data.Item1);
-                using (var q = Query.Select(SelectResult.Expression(Expression.Property("hey")))
+                using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("hey")))
                     .From(DataSource.Database(Db))
                     .OrderBy(Ordering.Expression(property.Collate(data.Item2)))) {
                     var results = q.Execute();
@@ -1330,7 +1330,7 @@ namespace Test
             var doc2Listener = new WaitAssert();
 
             using (var otherDb = new Database(Db.Name, Db.Config)) {
-                var query = Query.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
+                var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
                 var doc1Listener = new WaitAssert();
                 query.AddChangeListener(null, (sender, args) =>
                 {
@@ -1368,7 +1368,7 @@ namespace Test
             var ds = DataSource.Database(Db);
             var cnt = Function.Count(Expression.Property("number1"));
             var rsCnt = SelectResult.Expression(cnt);
-            using (var q = Query.Select(rsCnt).From(ds)) {
+            using (var q = QueryBuilder.Select(rsCnt).From(ds)) {
                 var numRows = VerifyQuery(q, (n, row) => { row.GetInt(0).Should().Be(100); });
                 numRows.Should().Be(1);
             }
@@ -1420,7 +1420,7 @@ namespace Test
 
             var srMainAll = SelectResult.All().From("main");
             var srSecondaryAll = SelectResult.All().From("secondary");
-            using (var q = Query.Select(srMainAll, srSecondaryAll)
+            using (var q = QueryBuilder.Select(srMainAll, srSecondaryAll)
                 .From(mainDS)
                 .Join(join)
                 .Where(typeExpr.EqualTo(Expression.String("bookmark")))) {
@@ -1437,7 +1437,7 @@ namespace Test
         {
             using (var task1 = CreateTaskDocument("Task 1", false))
             using (var task2 = CreateTaskDocument("Task 2", false)) {
-                using (var q = Query.Select(SelectResult.Expression(Meta.ID), SelectResult.All())
+                using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID), SelectResult.All())
                     .From(DataSource.Database(Db))
                     .Where(Expression.Property("type").EqualTo(Expression.String("task")))) {
                     var rs = q.Execute();
@@ -1480,7 +1480,7 @@ namespace Test
                 var exprComplete = Expression.Property("complete");
                 var srCount = SelectResult.Expression(Function.Count(Expression.All()));
 
-                using (var q = Query.Select(SelectResult.All())
+                using (var q = QueryBuilder.Select(SelectResult.All())
                     .From(DataSource.Database(Db))
                     .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(true))))) {
                     var numRows = VerifyQuery(q, (n, row) =>
@@ -1495,7 +1495,7 @@ namespace Test
                     numRows.Should().Be(2);
                 }
 
-                using (var q = Query.Select(SelectResult.All())
+                using (var q = QueryBuilder.Select(SelectResult.All())
                     .From(DataSource.Database(Db))
                     .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(false))))) {
                     var numRows = VerifyQuery(q, (n, row) =>
@@ -1510,7 +1510,7 @@ namespace Test
                     numRows.Should().Be(1);
                 }
 
-                using (var q = Query.Select(srCount)
+                using (var q = QueryBuilder.Select(srCount)
                     .From(DataSource.Database(Db))
                     .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(true))))) {
                     var numRows = VerifyQuery(q, (n, row) =>
@@ -1522,7 +1522,7 @@ namespace Test
                     numRows.Should().Be(1);
                 }
 
-                using (var q = Query.Select(srCount)
+                using (var q = QueryBuilder.Select(srCount)
                     .From(DataSource.Database(Db))
                     .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(false))))) {
                     var numRows = VerifyQuery(q, (n, row) =>
@@ -1558,7 +1558,7 @@ namespace Test
             var mainAll = SelectResult.All().From("main");
             var secondaryAll = SelectResult.All().From("secondary");
 
-            using (var q = Query.Select(mainAll, secondaryAll)
+            using (var q = QueryBuilder.Select(mainAll, secondaryAll)
                 .From(mainDS)
                 .Join(join)) {
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -1608,7 +1608,7 @@ namespace Test
             var secondaryDocID = SelectResult.Expression(Meta.ID.From("secondary")).As("secondaryDocID");
             var secondaryTheOne = SelectResult.Expression(Expression.Property("theone").From("secondary"));
 
-            using (var q = Query.Select(mainDocID, secondaryDocID, secondaryTheOne)
+            using (var q = QueryBuilder.Select(mainDocID, secondaryDocID, secondaryTheOne)
                 .From(mainDS)
                 .Join(join)) {
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -1638,7 +1638,7 @@ namespace Test
                 Db.Save(doc1).Dispose();
             }
 
-            using (var q = Query.Select(SelectResult.Property("name"), SelectResult.Property("nullval"))
+            using (var q = QueryBuilder.Select(SelectResult.Property("name"), SelectResult.Property("nullval"))
                 .From(DataSource.Database(Db))) {
                 var results = q.Execute();
                 foreach (var result in results) {
@@ -1699,7 +1699,7 @@ namespace Test
                 Db.Save(doc).Dispose();
             }
 
-            using (var q = Query.Select(SelectResult.Property("array"),
+            using (var q = QueryBuilder.Select(SelectResult.Property("array"),
                     SelectResult.Property("blob"),
                     SelectResult.Property("created_at"),
                     SelectResult.Property("simple_pi"),
@@ -1728,8 +1728,8 @@ namespace Test
         public void TestFTSStemming()
         {
             // Can't rely on the default locale, it could be anything and that would fail the test
-            Db.CreateIndex("passageIndex", Index.FullTextIndex(FullTextIndexItem.Property("passage")).Locale("en"));
-            Db.CreateIndex("passageIndexStemless", Index.FullTextIndex(FullTextIndexItem.Property("passage")).Locale(null));
+            Db.CreateIndex("passageIndex", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("passage")).SetLanguage("en"));
+            Db.CreateIndex("passageIndexStemless", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("passage")).SetLanguage(null));
 
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("passage", "The boy said to the child, 'Mommy, I want a cat.'");
@@ -1741,7 +1741,7 @@ namespace Test
                 Db.Save(doc2).Dispose();
             }
 
-            using (var q = Query.Select(SelectResult.Expression(Meta.ID))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
                 .From(DataSource.Database(Db))
                 .Where(FullTextExpression.Index("passageIndex").Match("cat"))) {
                 var count = VerifyQuery(q, (n, row) =>
@@ -1751,7 +1751,7 @@ namespace Test
                 count.Should().Be(2);
             }
 
-            using (var q = Query.Select(SelectResult.Expression(Meta.ID))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
                 .From(DataSource.Database(Db))
                 .Where(FullTextExpression.Index("passageIndexStemless").Match("cat"))) {
                 var count = VerifyQuery(q, (n, row) =>
@@ -1775,7 +1775,7 @@ namespace Test
         private async Task TestLiveQueryNoUpdateInternal(bool consumeAll)
         {
             LoadNumbers(100);
-            using (var q = Query.Select().From(DataSource.Database(Db))
+            using (var q = QueryBuilder.Select().From(DataSource.Database(Db))
                 .Where(Expression.Property("number1").LessThan(Expression.Int(10))).OrderBy(Ordering.Property("number1"))) {
 
                 var are = new AutoResetEvent(false);
@@ -1834,7 +1834,7 @@ namespace Test
         {
             int index = 0;
             foreach (var c in validator) {
-                using (var q = Query.Select(DocID).From(DataSource.Database(Db)).Where(c.Item1)) {
+                using (var q = QueryBuilder.Select(DocID).From(DataSource.Database(Db)).Where(c.Item1)) {
                     var lastN = 0;
                     VerifyQuery(q, (n, row) =>
                     {

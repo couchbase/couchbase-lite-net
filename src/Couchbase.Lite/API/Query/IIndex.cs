@@ -56,10 +56,9 @@ namespace Couchbase.Lite.Query
         /// <summary>
         /// Sets the locale to use when performing full text searching
         /// </summary>
-        /// <param name="localeCode">The locale code in the form of ISO-639 language code plus, optionally, 
-        /// an underscore and an ISO-3166 country code: "en", "en_US", "fr_CA", etc.</param>
+        /// <param name="language">The language code in the form of ISO-639 language code</param>
         /// <returns>The index for further processing</returns>
         [NotNull]
-        IFullTextIndex Locale(string localeCode);
+        IFullTextIndex SetLanguage(string language);
     }
 }

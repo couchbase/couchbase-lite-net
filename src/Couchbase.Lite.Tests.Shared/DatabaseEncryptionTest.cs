@@ -203,7 +203,7 @@ namespace Test
                     content.Should().Be("This is a blob!");
                 }
 
-                using (var q = Query.Select(SelectResult.Property("seq"))
+                using (var q = QueryBuilder.Select(SelectResult.Property("seq"))
                     .From(DataSource.Database(seekrit))
                     .Where(Expression.Property("seq").NotNullOrMissing())
                     .OrderBy(Ordering.Property("seq"))) {

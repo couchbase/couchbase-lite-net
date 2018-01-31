@@ -319,7 +319,7 @@ namespace Test
                 CreateDocs(nDocs, "Create").ToList();
             });
 
-            Db.CreateIndex("sentence", Index.FullTextIndex(FullTextIndexItem.Property("sentence")));
+            Db.CreateIndex("sentence", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("sentence")));
             exp1.WaitForResult(TimeSpan.FromSeconds(60));
         }
 
@@ -414,7 +414,7 @@ namespace Test
         {
             var TAG = Expression.Property("tag");
             var DOCID = SelectResult.Expression(Meta.ID);
-            using (var q = Query.Select(DOCID).From(DataSource.Database(Db)).Where(TAG.EqualTo(Expression.String(name)))) {
+            using (var q = QueryBuilder.Select(DOCID).From(DataSource.Database(Db)).Where(TAG.EqualTo(Expression.String(name)))) {
                 WriteLine((q as XQuery).Explain());
 
                 var e = q.Execute();

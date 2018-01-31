@@ -942,7 +942,7 @@ namespace Test
                 nudb.Count.Should().Be(10, "because it is a copy of another database with 10 items");
                 var DOCID = Meta.ID;
                 var S_DOCID = SelectResult.Expression(DOCID);
-                using (var q = Query.Select(S_DOCID).From(DataSource.Database(nudb))) {
+                using (var q = QueryBuilder.Select(S_DOCID).From(DataSource.Database(nudb))) {
                     var rs = q.Execute();
                     foreach (var r in rs) {
                         var docID = r.GetString(0);
@@ -975,15 +975,15 @@ namespace Test
             var fNameItem = ValueIndexItem.Property("firstName");
             var lNameItem = ValueIndexItem.Expression(lName);
 
-            var index1 = Index.ValueIndex(fNameItem, lNameItem);
+            var index1 = IndexBuilder.ValueIndex(fNameItem, lNameItem);
             Db.CreateIndex("index1", index1);
             
             var detailItem = FullTextIndexItem.Property("detail");
-            var index2 = Index.FullTextIndex(detailItem);
+            var index2 = IndexBuilder.FullTextIndex(detailItem);
             Db.CreateIndex("index2", index2);
             
             var detailItem2 = FullTextIndexItem.Property("es-detail");
-            var index3 = Index.FullTextIndex(detailItem2).IgnoreAccents(true).Locale("es");
+            var index3 = IndexBuilder.FullTextIndex(detailItem2).IgnoreAccents(true).SetLanguage("es");
             Db.CreateIndex("index3", index3);
 
             Db.GetIndexes().ShouldBeEquivalentTo(new[] {"index1", "index2", "index3"});
@@ -993,7 +993,7 @@ namespace Test
         public void TestCreateSameIndexTwice()
         {
             var item = ValueIndexItem.Expression(Expression.Property("firstName"));
-            var index = Index.ValueIndex(item);
+            var index = IndexBuilder.ValueIndex(item);
             Db.CreateIndex("myindex", index);
             Db.CreateIndex("myindex", index);
 
@@ -1007,17 +1007,17 @@ namespace Test
             var lName = Expression.Property("lastName");
 
             var fNameItem = ValueIndexItem.Expression(fName);
-            var fNameIndex = Index.ValueIndex(fNameItem);
+            var fNameIndex = IndexBuilder.ValueIndex(fNameItem);
             Db.CreateIndex("myindex", fNameIndex);
 
             var lNameItem = ValueIndexItem.Expression(lName);
-            var lNameIndex = Index.ValueIndex(lNameItem);
+            var lNameIndex = IndexBuilder.ValueIndex(lNameItem);
             Db.CreateIndex("myindex", lNameIndex);
 
             Db.GetIndexes().ShouldBeEquivalentTo(new[] {"myindex"}, "because lNameIndex should overwrite fNameIndex");
 
             var detailItem = FullTextIndexItem.Property("detail");
-            var detailIndex = Index.FullTextIndex(detailItem);
+            var detailIndex = IndexBuilder.FullTextIndex(detailItem);
             Db.CreateIndex("myindex", detailIndex);
 
             Db.GetIndexes().ShouldBeEquivalentTo(new[] { "myindex" }, "because detailIndex should overwrite lNameIndex");

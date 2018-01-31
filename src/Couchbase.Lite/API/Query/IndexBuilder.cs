@@ -1,5 +1,5 @@
 ﻿// 
-// Index.cs
+// IndexBuilder.cs
 // 
 // Author:
 //     Jim Borden  <jim.borden@couchbase.com>
@@ -28,7 +28,7 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// A factory class for creating <see cref="IIndex"/> instances
     /// </summary>
-    public static class Index
+    public static class IndexBuilder
     {
         /// <summary>
         /// Starts the creation of an index based on a simple property
