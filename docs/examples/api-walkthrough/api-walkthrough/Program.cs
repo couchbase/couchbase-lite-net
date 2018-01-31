@@ -17,6 +17,7 @@
 // 
 using System;
 using System.IO;
+using System.Linq;
 using Couchbase.Lite;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Sync;
@@ -44,11 +45,11 @@ namespace api_walkthrough
             newTask.SetString("type", "task");
             newTask.SetString("owner", "todo");
             newTask.SetDate("createdAt", DateTimeOffset.UtcNow);
-            database.Save(newTask);
+            newTask = database.Save(newTask).ToMutable();
 
             // mutate document
             newTask.SetString("name", "Apples");
-            database.Save(newTask);
+            newTask = database.Save(newTask).ToMutable();
 
             // typed accessors
             newTask.SetDate("createdAt", DateTimeOffset.UtcNow);
@@ -73,26 +74,26 @@ namespace api_walkthrough
             var bytes = File.ReadAllBytes("avatar.jpg");
             var blob = new Blob("image/jpg", bytes);
             newTask.SetBlob("avatar", blob);
-            database.Save(newTask);
+            newTask = database.Save(newTask).ToMutable();
             var taskBlob = newTask.GetBlob("avatar");
             var data = taskBlob.Content;
             newTask.Dispose();
 
             // query
-            var query = Query.Select(SelectResult.Expression(Meta.ID))
+            var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
             .From(DataSource.Database(database))
-            .Where(Expression.Property("type").EqualTo("user")
-		   .And(Expression.Property("admin").EqualTo(false)));
+            .Where(Expression.Property("type").EqualTo(Expression.String("user"))
+		   .And(Expression.Property("admin").EqualTo(Expression.Boolean(false))));
 
-            using (var rows = query.Execute()) {
-                foreach (var row in rows) {
-                    Console.WriteLine($"doc ID :: ${row.GetString(0)}");
-                }
+            var rows = query.Execute();
+            foreach (var row in rows) {
+                Console.WriteLine($"doc ID :: ${row.GetString(0)}");
             }
+            
 
             // live query
             query.AddChangeListener((sender, e) => {
-                Console.WriteLine($"Number of rows :: {e.Rows.Count}");
+                Console.WriteLine($"Number of rows :: {e.Results.Count()}");
             });
 
             using (var newDoc = new MutableDocument()) {
@@ -113,19 +114,18 @@ namespace api_walkthrough
             }
 
             // create Index
-            var index = Index.FTSIndex(FTSIndexItem.Expression(Expression.Property("name")));
+            var index = IndexBuilder.FullTextIndex(FullTextIndexItem.Property("name"));
             database.CreateIndex("byName", index);
 
-            using (var ftsQuery = Query.Select(SelectResult.Expression(Meta.ID).As("id"))
+            using (var ftsQuery = QueryBuilder.Select(SelectResult.Expression(Meta.ID).As("id"))
                 .From(DataSource.Database(database))
                 .Where(FullTextExpression.Index("byName").Match("'buy'"))) {
 
-                using (var ftsRows = ftsQuery.Execute()) {
-                    foreach (var row in ftsRows) {
-                        var doc = database.GetDocument(row.GetString("id")); // Use alias instead of index
-                        Console.WriteLine(
-                            $"document properties {JsonConvert.SerializeObject(doc.ToDictionary(), Formatting.Indented)}");
-                    }
+                var ftsRows = ftsQuery.Execute();
+                foreach (var row in ftsRows) {
+                    var doc = database.GetDocument(row.GetString("id")); // Use alias instead of index
+                    Console.WriteLine(
+                        $"document properties {JsonConvert.SerializeObject(doc.ToDictionary(), Formatting.Indented)}");
                 }
             }
 
@@ -167,8 +167,8 @@ namespace api_walkthrough
 				  }
 				}
              */
-            var url = new Uri("blip://localhost:4984/db");
-            var replConfig = new ReplicatorConfiguration(database, url);
+            var url = new Uri("ws://localhost:4984/db");
+            var replConfig = new ReplicatorConfiguration(database, new URLEndpoint(url));
             var replication = new Replicator(replConfig);
             replication.Start();
 
