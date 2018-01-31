@@ -58,23 +58,26 @@ namespace Test
             var dir = Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
             Database.Delete("db", dir);
 
-            var options = new DatabaseConfiguration.Builder()
+            var options = new DatabaseConfiguration
             {
                 Directory = dir
-            }.Build();
+            };
 
             try {
                 var db = new Database("db", options);
+                options = db.Config;
                 db.Dispose();
             } finally {
                 Database.Delete("db", dir);
             }
+
+            options.Invoking(o => o.EncryptionKey = new EncryptionKey("foo")).ShouldThrow<InvalidOperationException>("because the configuration is in use");
         }
 
         [Fact]
         public void TestCreateWithDefaultConfiguration()
         {
-            using (var db = new Database("db", new DatabaseConfiguration.Builder().Build())) {
+            using (var db = new Database("db", new DatabaseConfiguration())) {
                 db.Count.Should().Be(0);
                 DeleteDB(db);
             }
@@ -114,8 +117,8 @@ namespace Test
             Database.Delete("db", dir);
             Database.Exists("db", dir).Should().BeFalse("because it was just deleted");
 
-            var options = new DatabaseConfiguration.Builder()
-                { Directory = dir }.Build();
+            var options = new DatabaseConfiguration
+                { Directory = dir };
             using (var db = new Database("db", options)) {
                 Path.GetDirectoryName(db.Path).Should().EndWith(".cblite2", "because that is the current CBL extension");
                 db.Path.Should().Contain(dir, "because the directory should be present in the custom path");
@@ -724,10 +727,10 @@ namespace Test
         public void TestDeleteByStaticMethod()
         {
             var dir = Directory;
-            var options = new DatabaseConfiguration.Builder()
+            var options = new DatabaseConfiguration
             {
                 Directory = dir
-            }.Build();
+            };
             string path = null;
             using (var db = new Database("db", options)) {
                 path = db.Path;
@@ -741,10 +744,10 @@ namespace Test
         public void TestDeleteOpeningDBByStaticMethod()
         {
             var dir = Directory;
-            var options = new DatabaseConfiguration.Builder()
+            var options = new DatabaseConfiguration
             {
                 Directory = dir
-            }.Build();
+            };
             using (var db = new Database("db", options)) {
                 LiteCoreException e = null;
                 try {
@@ -794,10 +797,10 @@ namespace Test
             Database.Delete("db", dir);
             Database.Exists("db", dir).Should().BeFalse("because this database has not been created");
 
-            var options = new DatabaseConfiguration.Builder()
+            var options = new DatabaseConfiguration
             {
                 Directory = dir
-            }.Build();
+            };
             string path = null;
             using (var db = new Database("db", options)) {
                 path = db.Path;
@@ -878,19 +881,19 @@ namespace Test
         [Fact]
         public void TestCreateConfiguration()
         {
-            var builder1 = new DatabaseConfiguration.Builder();
-            var config1 = builder1.Build();
+            var builder1 = new DatabaseConfiguration();
+            var config1 = builder1;
             config1.Directory.Should().NotBeNullOrEmpty("because the directory should have a default value");
             config1.ConflictResolver.Should().NotBeNull("because the conflict resolver should have a default value");
             config1.EncryptionKey.Should().BeNull("because it was not set");
 
             var resolver = new DummyResolver();
-            var builder2 = new DatabaseConfiguration.Builder();
+            var builder2 = new DatabaseConfiguration();
             var key = new EncryptionKey("key");
             builder2.Directory = "/tmp/mydb";
             builder2.ConflictResolver = resolver;
             builder2.EncryptionKey = key;
-            var config2 = builder2.Build();
+            var config2 = builder2;
             config2.Directory.Should().Be("/tmp/mydb", "because that is what was set");
             config2.ConflictResolver.Should().Be(resolver, "because that is what was set");
             config2.EncryptionKey.Should().Be(key, "because that is what was set");
@@ -899,7 +902,7 @@ namespace Test
         [Fact]
         public void TestGetSetConfiguration()
         {
-            var config = new DatabaseConfiguration.Builder().Build();
+            var config = new DatabaseConfiguration();
             using (var db = new Database("db", config))
             {
                 db.Config.Should().BeSameAs(config, "because the configuration should be copied");

@@ -64,6 +64,17 @@ namespace Test
         }
 
         [Fact]
+        public void TestReadOnlyConfiguration()
+        {
+            var config = CreateConfig(true, false, false);
+            using (var repl = new Replicator(config)) {
+                config = repl.Config;
+                config.Invoking(c => c.ReplicatorType = ReplicatorType.PushAndPull)
+                    .ShouldThrow<InvalidOperationException>("because the configuration from a replicator should be read only");
+            }
+        }
+
+        [Fact]
         public void TestEmptyPush()
         {
             var config = CreateConfig(true, false, false);
@@ -284,7 +295,7 @@ namespace Test
         public async Task TestReplicatorStopWhenClosed()
         {
             var config = CreateConfig(true, true, true);
-            using (var repl = new Replicator(config.Build())) {
+            using (var repl = new Replicator(config)) {
                 repl.Start();
                 while (repl.Status.Activity != ReplicatorActivityLevel.Idle) {
                     WriteLine($"Replication status still {repl.Status.Activity}, waiting for idle...");
@@ -308,7 +319,7 @@ namespace Test
         public void TestStopContinuousReplicator()
         {
             var config = CreateConfig(true, false, true);
-            using (var r = new Replicator(config.Build())) {
+            using (var r = new Replicator(config)) {
                 var stopWhen = new[]
                 {
                     ReplicatorActivityLevel.Connecting, ReplicatorActivityLevel.Busy,
@@ -388,7 +399,7 @@ namespace Test
         public void TestAuthenticationFailure()
         {
             var config = CreateConfig(false, true, false, new URLEndpoint(new Uri("ws://localhost/seekrit")));
-            _repl = new Replicator(config.Build());
+            _repl = new Replicator(config);
             RunReplication(config, 401, C4ErrorDomain.WebSocketDomain);
         }
 
@@ -455,32 +466,32 @@ namespace Test
             var config = CreateConfig(true, false, false,  new URLEndpoint(new Uri("ws://localhost/db")));
             RunReplication(config, 0, 0);
 
-            config = new ReplicatorConfiguration.Builder(_otherDB, new URLEndpoint(new Uri("ws://localhost/db")));
+            config = new ReplicatorConfiguration(_otherDB, new URLEndpoint(new Uri("ws://localhost/db")));
             ModifyConfig(config, false, true, false);
             config.Channels = new[] {"my_channel"};
             RunReplication(config, 0, 0);
             _otherDB.Count.Should().Be(10, "because 10 documents should be in the given channel");
         }
 
-        private ReplicatorConfiguration.Builder CreateConfig(bool push, bool pull, bool continuous)
+        private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous)
         {
             var target = _otherDB;
             return CreateConfig(push, pull, continuous, target);
         }
 
-        private ReplicatorConfiguration.Builder CreateConfig(bool push, bool pull, bool continuous, URLEndpoint endpoint)
+        private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous, URLEndpoint endpoint)
         {
-            var retVal = new ReplicatorConfiguration.Builder(Db, endpoint);
+            var retVal = new ReplicatorConfiguration(Db, endpoint);
             return ModifyConfig(retVal, push, pull, continuous);
         }
 
-        private ReplicatorConfiguration.Builder CreateConfig(bool push, bool pull, bool continuous, Database target)
+        private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous, Database target)
         {
-            var retVal = new ReplicatorConfiguration.Builder(Db, new DatabaseEndpoint(target));
+            var retVal = new ReplicatorConfiguration(Db, new DatabaseEndpoint(target));
             return ModifyConfig(retVal, push, pull, continuous);
         }
 
-        private ReplicatorConfiguration.Builder ModifyConfig(ReplicatorConfiguration.Builder config, bool push, bool pull, bool continuous)
+        private ReplicatorConfiguration ModifyConfig(ReplicatorConfiguration config, bool push, bool pull, bool continuous)
         {
             var type = (ReplicatorType)0;
             if (push) {
@@ -514,9 +525,9 @@ namespace Test
             }
         }
 
-        private void RunReplication(ReplicatorConfiguration.Builder config, int expectedErrCode, C4ErrorDomain expectedErrDomain)
+        private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, C4ErrorDomain expectedErrDomain)
         {
-            Misc.SafeSwap(ref _repl, new Replicator(config.Build()));
+            Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
             var token = _repl.AddChangeListener((sender, args) =>
             {

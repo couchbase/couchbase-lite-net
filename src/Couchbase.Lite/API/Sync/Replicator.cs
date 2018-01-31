@@ -107,7 +107,7 @@ namespace Couchbase.Lite.Sync
         /// <param name="config">The configuration to use to create the replicator</param>
         public Replicator([NotNull]ReplicatorConfiguration config)
         {
-            Config = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(config), config);
+            Config = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(config), config).Freeze();
             _databaseThreadSafety = Config.Database.ThreadSafety;
         }
 

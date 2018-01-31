@@ -253,11 +253,11 @@ namespace Test
 
         private Database OpenSeekrit(string password)
         {
-            var config = new DatabaseConfiguration.Builder
+            var config = new DatabaseConfiguration
             {
                 EncryptionKey = password != null ? new EncryptionKey(password) : null,
                 Directory = Directory
-            }.Build();
+            };
 
             return new Database("seekrit", config);
         }

@@ -4,7 +4,7 @@
 //  Author:
 //   Jim Borden  <jim.borden@couchbase.com>
 // 
-//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
+//  Copyright (c) 2018 Couchbase, Inc All rights reserved.
 // 
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
@@ -34,7 +35,7 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// A class which contains parameters for an <see cref="IQuery"/>
     /// </summary>
-    public sealed partial class Parameters
+    public sealed class Parameters
     {
         #region Constants
 
@@ -44,11 +45,21 @@ namespace Couchbase.Lite.Query
 
         #region Variables
 
+        [NotNull] private readonly Freezer _freezer = new Freezer();
+
         [NotNull] private readonly Dictionary<string, object> _params;
 
         #endregion
 
         #region Constructors
+
+        /// <summary>
+        /// Default Constructor
+        /// </summary>
+        public Parameters()
+        {
+            _params = new Dictionary<string, object>();
+        }
 
         /// <summary>
         /// Copy constructor
@@ -76,6 +87,132 @@ namespace Couchbase.Lite.Query
         /// <returns>The value of the key, or <c>null</c> if it does not exist</returns>
         public object GetValue(string key) => _params.TryGetValue(key, out var existing) ? existing : null;
 
+        /// <summary>
+        /// Sets a <see cref="bool"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
+        [NotNull]
+        [ContractAnnotation("name:null => halt")]
+        public Parameters SetBoolean(string name, bool value)
+        {
+            SetValue(name, value);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets a <see cref="DateTimeOffset"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
+        [NotNull]
+        [ContractAnnotation("name:null => halt")]
+        public Parameters SetDate(string name, DateTimeOffset value)
+        {
+            SetValue(name, value);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets a <see cref="Double"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
+        [NotNull]
+        [ContractAnnotation("name:null => halt")]
+        public Parameters SetDouble(string name, double value)
+        {
+            SetValue(name, value);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets a <see cref="Single"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
+        [NotNull]
+        [ContractAnnotation("name:null => halt")]
+        public Parameters SetFloat(string name, float value)
+        {
+            SetValue(name, value);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets an <see cref="Int32"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
+        [NotNull]
+        [ContractAnnotation("name:null => halt")]
+        public Parameters SetInt(string name, int value)
+        {
+            SetValue(name, value);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets an <see cref="Int64"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
+        [NotNull]
+        [ContractAnnotation("name:null => halt")]
+        public Parameters SetLong(string name, long value)
+        {
+            SetValue(name, value);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets a <see cref="String"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
+        [NotNull]
+        [ContractAnnotation("name:null => halt")]
+        public Parameters SetString(string name, string value)
+        {
+            SetValue(name, value);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets an untyped value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
+        [NotNull]
+        [ContractAnnotation("name:null => halt")]
+        public Parameters SetValue(string name, object value)
+        {
+            CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(name), name);
+
+            _freezer.PerformAction(() => _params[name] = value);
+            return this;
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        [NotNull]
+        internal Parameters Freeze()
+        {
+            var retVal = new Parameters(this);
+            retVal._freezer.Freeze("Cannot modify a Parameters class while it is in use");
+            return retVal;
+        }
+
         #endregion
 
         #region Overrides
@@ -85,151 +222,6 @@ namespace Couchbase.Lite.Query
         public override string ToString()
         {
             return JsonConvert.SerializeObject(_params) ?? "(null)";
-        }
-
-        #endregion
-    }
-
-    public sealed partial class Parameters
-    {
-        #region Nested
-
-        /// <summary>
-        /// The class responsible for building <see cref="Parameters"/>
-        /// </summary>
-        public sealed class Builder
-        {
-            #region Variables
-
-            [NotNull]
-            private readonly Dictionary<string, object> _params = new Dictionary<string, object>();
-
-            #endregion
-
-            #region Public Methods
-
-            /// <summary>
-            /// Builds parameters based on the current state of the builder
-            /// </summary>
-            /// <returns>A new parameters object</returns>
-            [NotNull]
-            public Parameters Build() => new Parameters(_params);
-
-            /// <summary>
-            /// Sets a <see cref="bool"/> value in the parameters
-            /// </summary>
-            /// <param name="name">The name of the key to set</param>
-            /// <param name="value">The value to set</param>
-            /// <returns>The parameters object for further processing</returns>
-            [NotNull]
-            [ContractAnnotation("name:null => halt")]
-            public Builder SetBoolean(string name, bool value)
-            {
-                SetValue(name, value);
-                return this;
-            }
-
-            /// <summary>
-            /// Sets a <see cref="DateTimeOffset"/> value in the parameters
-            /// </summary>
-            /// <param name="name">The name of the key to set</param>
-            /// <param name="value">The value to set</param>
-            /// <returns>The parameters object for further processing</returns>
-            [NotNull]
-            [ContractAnnotation("name:null => halt")]
-            public Builder SetDate(string name, DateTimeOffset value)
-            {
-                SetValue(name, value);
-                return this;
-            }
-
-            /// <summary>
-            /// Sets a <see cref="Double"/> value in the parameters
-            /// </summary>
-            /// <param name="name">The name of the key to set</param>
-            /// <param name="value">The value to set</param>
-            /// <returns>The parameters object for further processing</returns>
-            [NotNull]
-            [ContractAnnotation("name:null => halt")]
-            public Builder SetDouble(string name, double value)
-            {
-                SetValue(name, value);
-                return this;
-            }
-
-            /// <summary>
-            /// Sets a <see cref="Single"/> value in the parameters
-            /// </summary>
-            /// <param name="name">The name of the key to set</param>
-            /// <param name="value">The value to set</param>
-            /// <returns>The parameters object for further processing</returns>
-            [NotNull]
-            [ContractAnnotation("name:null => halt")]
-            public Builder SetFloat(string name, float value)
-            {
-                SetValue(name, value);
-                return this;
-            }
-
-            /// <summary>
-            /// Sets an <see cref="Int32"/> value in the parameters
-            /// </summary>
-            /// <param name="name">The name of the key to set</param>
-            /// <param name="value">The value to set</param>
-            /// <returns>The parameters object for further processing</returns>
-            [NotNull]
-            [ContractAnnotation("name:null => halt")]
-            public Builder SetInt(string name, int value)
-            {
-                SetValue(name, value);
-                return this;
-            }
-
-            /// <summary>
-            /// Sets an <see cref="Int64"/> value in the parameters
-            /// </summary>
-            /// <param name="name">The name of the key to set</param>
-            /// <param name="value">The value to set</param>
-            /// <returns>The parameters object for further processing</returns>
-            [NotNull]
-            [ContractAnnotation("name:null => halt")]
-            public Builder SetLong(string name, long value)
-            {
-                SetValue(name, value);
-                return this;
-            }
-
-            /// <summary>
-            /// Sets a <see cref="String"/> value in the parameters
-            /// </summary>
-            /// <param name="name">The name of the key to set</param>
-            /// <param name="value">The value to set</param>
-            /// <returns>The parameters object for further processing</returns>
-            [NotNull]
-            [ContractAnnotation("name:null => halt")]
-            public Builder SetString(string name, string value)
-            {
-                SetValue(name, value);
-                return this;
-            }
-
-            /// <summary>
-            /// Sets an untyped value in the parameters
-            /// </summary>
-            /// <param name="name">The name of the key to set</param>
-            /// <param name="value">The value to set</param>
-            /// <returns>The parameters object for further processing</returns>
-            [NotNull]
-            [ContractAnnotation("name:null => halt")]
-            public Builder SetValue(string name, object value)
-            {
-                CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(name), name);
-
-                _params[name] = value;
-                return this;
-            }
-
-            #endregion
         }
 
         #endregion

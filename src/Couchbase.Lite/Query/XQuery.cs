@@ -61,7 +61,7 @@ namespace Couchbase.Lite.Internal.Query
         [NotNull]private List<QueryResultSet> _history = new List<QueryResultSet>();
         private DateTime _lastUpdatedAt;
         private int _observingCount = 0;
-        [NotNull]private Parameters _queryParameters = new Parameters(new Dictionary<string, object>());
+        [NotNull]private Parameters _queryParameters = new Parameters();
         private AtomicBool _willUpdate = false;
 
         #endregion
@@ -94,7 +94,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             get => _queryParameters;
             set {
-                _queryParameters = value;
+                _queryParameters = value.Freeze();
                 Update();
             }
         }

@@ -145,7 +145,7 @@ namespace Test
 
         protected Database OpenDB(string name)
         {
-            var builder = new DatabaseConfiguration.Builder
+            var builder = new DatabaseConfiguration
             {
                 Directory = Directory
             };
@@ -154,7 +154,7 @@ namespace Test
                 builder.ConflictResolver = ConflictResolver;
             }
 
-            return new Database(name, builder.Build());
+            return new Database(name, builder);
         }
 
         protected void ReopenDB()

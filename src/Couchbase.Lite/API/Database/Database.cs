@@ -208,7 +208,7 @@ namespace Couchbase.Lite
         public Database(string name, DatabaseConfiguration configuration = null)
         {
             Name = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
-            Config = configuration ?? new DatabaseConfiguration.Builder().Build();
+            Config = configuration?.Freeze() ?? new DatabaseConfiguration(true);
             Open();
             FLSharedKeys* keys = null;
             ThreadSafety.DoLocked(() => keys = Native.c4db_getFLSharedKeys(_c4db));

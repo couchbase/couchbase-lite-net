@@ -59,6 +59,18 @@ namespace Test
 #endif
 
         [Fact]
+        public void TestReadOnlyParameters()
+        {
+            using (var q = Query.Select(DocID, Sequence).From(DataSource.Database(Db))) {
+                var parameters = new Parameters().SetString("foo", "bar");
+                q.Parameters = parameters;
+                q.Parameters.GetValue("foo").Should().Be("bar");
+                q.Invoking(q2 => q2.Parameters.SetValue("foo2", "bar2"))
+                    .ShouldThrow<InvalidOperationException>("because the parameters are read only once in use");
+            }
+        }
+
+        [Fact]
         public void TestNoWhereQuery()
         {
             LoadJSONResource("names_100");
@@ -271,7 +283,7 @@ namespace Test
             LoadJSONResource("names_100");
 
             var expected = new[] {"Marcy", "Margaretta", "Margrett", "Marlen", "Maryjo" };
-            var inExpression = expected.Select(Expression.String);
+            var inExpression = expected.Select(Expression.String); // Note, this is LINQ Select, so don't get confused
 
             var firstName = Expression.Property("name.first");
             using (var q = Query.Select(SelectResult.Expression(firstName))
@@ -646,8 +658,8 @@ namespace Test
                 .From(DataSource.Database(Db))
                 .Where(NUMBER1.Between(PARAM_N1, PARAM_N2))
                 .OrderBy(Ordering.Expression(NUMBER1))) {
-                var parameters = new Parameters.Builder().SetInt("num1", 2).SetInt("num2", 5);
-                q.Parameters = parameters.Build();
+                var parameters = new Parameters().SetInt("num1", 2).SetInt("num2", 5);
+                q.Parameters = parameters;
 
                 var expectedNumbers = new[] {2, 3, 4, 5};
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -725,8 +737,8 @@ namespace Test
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(NUMBER))
                 .Limit(LIMIT)) {
-                var parameters = new Parameters.Builder().SetInt("limit", 3);
-                q.Parameters = parameters.Build();
+                var parameters = new Parameters().SetInt("limit", 3);
+                q.Parameters = parameters;
 
                 var expectedNumbers = new[] {1, 2, 3};
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -765,8 +777,8 @@ namespace Test
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(NUMBER))
                 .Limit(LIMIT, OFFSET)) {
-                var parameters = new Parameters.Builder().SetInt("limit", 3).SetInt("offset", 5);
-                q.Parameters = parameters.Build();
+                var parameters = new Parameters().SetInt("limit", 3).SetInt("offset", 5);
+                q.Parameters = parameters;
 
                 var expectedNumbers = new[] {6, 7, 8};
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -1655,7 +1667,7 @@ namespace Test
         public void TestQueryParameters()
         {
             var now = DateTimeOffset.UtcNow;
-            var builder = new Parameters.Builder()
+            var builder = new Parameters()
                 .SetBoolean("true", true)
                 .SetDate("now", now)
                 .SetDouble("pi", Math.PI)
@@ -1663,7 +1675,7 @@ namespace Test
                 .SetLong("big_num", Int64.MaxValue)
                 .SetString("name", "Jim");
 
-            var parameters = builder.Build();
+            var parameters = builder;
             parameters.GetValue("true").As<bool>().Should().BeTrue();
             parameters.GetValue("now").As<DateTimeOffset>().Should().Be(now);
             parameters.GetValue("pi").As<double>().Should().Be(Math.PI);
