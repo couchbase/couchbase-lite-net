@@ -905,7 +905,7 @@ namespace Test
             var config = new DatabaseConfiguration();
             using (var db = new Database("db", config))
             {
-                db.Config.Should().BeSameAs(config, "because the configuration should be copied");
+                db.Config.Should().NotBeSameAs(config, "because the configuration should be copied and frozen");
                 db.Config.Directory.Should().Be(config.Directory, "because the directory should be the same");
                 db.Config.ConflictResolver.Should().Be(config.ConflictResolver,
                     "because the conflict resolver should be the same");
