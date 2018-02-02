@@ -1,9 +1,6 @@
 ﻿// 
 //  URLEndpoint.cs
 // 
-//  Author:
-//   Jim Borden  <jim.borden@couchbase.com>
-// 
 //  Copyright (c) 2018 Couchbase, Inc All rights reserved.
 // 
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,6 +53,7 @@ namespace Couchbase.Lite.Sync
         /// or an exception will be thrown
         /// </summary>
         /// <param name="url">The url </param>
+        /// <exception cref="ArgumentException">Thrown if the url scheme is not ws or wss</exception>
         public URLEndpoint([NotNull]Uri url)
         {
             var urlToUse = CBDebug.MustNotBeNull(Log.To.Sync, Tag, "url", url);

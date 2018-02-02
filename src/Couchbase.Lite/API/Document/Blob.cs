@@ -1,9 +1,6 @@
 ﻿// 
 // Blob.cs
 // 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
-// 
 // Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -65,6 +62,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the contents of the blob as an in-memory array
         /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown if this blob has no associated data (unusual)</exception>
         [CanBeNull]
         public byte[] Content
         {
@@ -225,12 +223,6 @@ namespace Couchbase.Lite
         /// <returns>An instantiated <see cref="Blob" /> object</returns>
         /// <exception cref="ArgumentNullException">Thrown if <c>fileUrl</c> is <c>null</c></exception>
         /// <exception cref="ArgumentException">Thrown if fileUrl is not a file based URL</exception>
-        /// <exception cref="DirectoryNotFoundException">The specified fileUrl is invalid, 
-        /// (for example, it is on an unmapped drive).</exception>
-        /// <exception cref="UnauthorizedAccessException">fileUrl specified a directory -or- The caller 
-        /// does not have the required permission.</exception>
-        /// <exception cref="FileNotFoundException">The file specified in fileUrl was not found.</exception>
-        /// <exception cref="IOException">An I/O error occurred while opening the file.</exception>
         public Blob(string contentType, [NotNull]Uri fileUrl)
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(fileUrl), fileUrl);

@@ -1,9 +1,6 @@
 ﻿// 
 // EncryptionKey.cs
 // 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
-// 
 // Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -104,17 +101,22 @@ namespace Couchbase.Lite
         /// Creates an instance with a key derived from a password, using default salt and rounds.
         /// </summary>
         /// <param name="password">The password to derive the key from</param>
-        public EncryptionKey(string password) : 
+        /// <exception cref="ArgumentNullException">Thrown if password is null</exception>
+        public EncryptionKey([NotNull]string password) : 
         this(password, Encoding.UTF8.GetBytes(DefaultSalt), DefaultPbkdfRounds) {}
 
         /// <summary>
         /// Creates an instance from existing key data.
         /// </summary>
         /// <param name="keyData">The derived key data to use</param>
-        public EncryptionKey(byte[] keyData) 
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="keyData"/> is <c>null</c></exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if the data doesn't contain the correct number
+        /// of bytes</exception>
+        public EncryptionKey([NotNull]byte[] keyData) 
         {
             InitCryptor();
-            if(keyData == null || keyData.Length != KeySize) {
+            
+            if(CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(keyData), keyData).Length != KeySize) {
                 throw new ArgumentOutOfRangeException(nameof(keyData), "Value is incorrect size");
             }
 

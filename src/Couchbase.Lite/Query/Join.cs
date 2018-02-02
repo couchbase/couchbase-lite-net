@@ -1,8 +1,5 @@
 ﻿// 
-//  Join.cs
-// 
-//  Author:
-//   Jim Borden  <jim.borden@couchbase.com>
+//  QueryJoin.cs
 // 
 //  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 

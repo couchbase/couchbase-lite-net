@@ -1,9 +1,6 @@
 ﻿// 
 //  ReplicatorConfiguration.cs
 // 
-//  Author:
-//   Jim Borden  <jim.borden@couchbase.com>
-// 
 //  Copyright (c) 2018 Couchbase, Inc All rights reserved.
 // 
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -199,6 +196,8 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="database">The database that will serve as the local side of the replication</param>
         /// <param name="target">The endpoint to replicate to, either local or remote</param>
+        /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
+        /// is provided as <paramref name="target"/></exception>
         public ReplicatorConfiguration([NotNull] Database database, [NotNull] IEndpoint target)
         {
             Database = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(database), database);

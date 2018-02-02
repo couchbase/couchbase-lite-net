@@ -1,8 +1,5 @@
 ﻿// 
-// IReadOnlyObjectFragment.cs
-// 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
+// IFragment.cs
 // 
 // Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 

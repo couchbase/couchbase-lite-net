@@ -1,8 +1,5 @@
 ﻿//
-//  CSHarpTest.cs
-//
-//  Author:
-//  	Jim Borden  <jim.borden@couchbase.com>
+//  CSharpTest.cs
 //
 //  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 //

@@ -1,5 +1,5 @@
 ﻿// 
-//  MutableArray.cs
+//  MutableArrayObject.cs
 // 
 //  Author:
 //   Jim Borden  <jim.borden@couchbase.com>

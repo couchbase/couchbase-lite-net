@@ -1,8 +1,5 @@
 ﻿//
-// NotSupportedQueryProvider.cs
-//
-// Author:
-// 	Jim Borden  <jim.borden@couchbase.com>
+// NotSupportedExpressionVisitor.cs
 //
 // Copyright (c) 2016 Couchbase, Inc All rights reserved.
 //

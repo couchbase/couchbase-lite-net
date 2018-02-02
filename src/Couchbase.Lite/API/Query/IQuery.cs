@@ -1,9 +1,6 @@
 ﻿// 
 // IQuery.cs
 // 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
-// 
 // Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -113,6 +110,8 @@ namespace Couchbase.Lite.Query
         /// Runs the query
         /// </summary>
         /// <returns>The results of running the query</returns>
+        /// <exception cref="InvalidOperationException">Thrown if this query has
+        /// no database to operate on, or if it is missing SELECT or FROM statements (unusual)</exception>
         [NotNull]
         IResultSet Execute();
 
@@ -120,6 +119,8 @@ namespace Couchbase.Lite.Query
         /// Gets an explanation of what the query will do
         /// </summary>
         /// <returns>The explanation of the query</returns>
+        /// <exception cref="ObjectDisposedException">Thrown if this method is
+        /// called after disposal</exception>
         [NotNull]
         string Explain();
 

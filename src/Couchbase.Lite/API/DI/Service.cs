@@ -1,9 +1,6 @@
 ﻿// 
 //  Service.cs
 // 
-//  Author:
-//   Jim Borden  <jim.borden@couchbase.com>
-// 
 //  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,6 +59,9 @@ namespace Couchbase.Lite.DI
         /// they must implement an interface and must have a default constructor.
         /// </summary>
         /// <param name="assembly"></param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="assembly"/> is <c>null</c></exception>
+        /// <exception cref="InvalidOperationException">Thrown if an invalid type is found inside of the assembly (i.e.
+        /// one that does not implement any interfaces and/or does not have a parameterless constructor)</exception>
         [ContractAnnotation("null => halt")]
         public static void AutoRegister(Assembly assembly)
         {
@@ -155,11 +155,11 @@ namespace Couchbase.Lite.DI
         internal static T GetRequiredInstance<T>() where T : class
         {
             return GetInstance<T>() ??  throw new CouchbaseLiteException(StatusCode.MissingDependency,
-                       "A required dependency injection class is missing." +
-                       "Please ensure that you have called the proper Activate() class in the " +
-                       "support assembly (e.g. Couchbase.Lite.Support.UWP.Activate()) or that you " +
-                       "have manually registered dependencies via the Couchbase.Lite.DI.Service " +
-                       "class.");
+                       @"A required dependency injection class is missing.
+                       Please ensure that you have called the proper Activate() class in the 
+                       support assembly (e.g. Couchbase.Lite.Support.UWP.Activate()) or that you 
+                       have manually registered dependencies via the Couchbase.Lite.DI.Service 
+                       class.");
         }
 
         #endregion

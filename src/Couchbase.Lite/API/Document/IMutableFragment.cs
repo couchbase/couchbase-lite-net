@@ -1,8 +1,5 @@
 ﻿// 
-// IFragment.cs
-// 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
+// IMutableFragment.cs
 // 
 // Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
@@ -73,6 +70,8 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets or sets the value of the fragment as an untyped object
         /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when a value is attempted to be
+        /// set on a key path that does not exist</exception>
         [CanBeNull]
         object Value { get; set; }
         

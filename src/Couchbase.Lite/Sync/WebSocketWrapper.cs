@@ -1,9 +1,6 @@
 ﻿// 
 // WebSocketWrapper.cs
 // 
-// Author:
-//     Jim Borden  <jim.borden@couchbase.com>
-// 
 // Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -264,9 +261,9 @@ namespace Couchbase.Lite.Sync
             Log.To.Sync.V(Tag, "WebSocket sent HTTP request...");
             
             using (var streamReader = new StreamReader(NetworkStream, Encoding.ASCII, false, 5, true)) {
-                var parser = new HttpMessageParser(await streamReader.ReadLineAsync());
+                var parser = new HttpMessageParser(await streamReader.ReadLineAsync().ConfigureAwait(false));
                 while (true) {
-                    var line = await streamReader.ReadLineAsync();
+                    var line = await streamReader.ReadLineAsync().ConfigureAwait(false);
                     if (String.IsNullOrEmpty(line)) {
                         break;
                     }
@@ -415,7 +412,7 @@ namespace Couchbase.Lite.Sync
             var nonceBytes = new byte[16];
             rng.GetBytes(nonceBytes);
             var nonceKey = Convert.ToBase64String(nonceBytes);
-            _expectedAcceptHeader = Base64Digest(nonceKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+            _expectedAcceptHeader = Base64Digest(String.Concat(nonceKey, "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
 
             foreach (var header in _options.Headers) {
                 _logic[header.Key] = header.Value;

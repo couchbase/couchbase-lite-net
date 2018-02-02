@@ -1,9 +1,6 @@
 ﻿// 
 //  XQuery.cs
 // 
-//  Author:
-//   Jim Borden  <jim.borden@couchbase.com>
-// 
 //  Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -264,8 +261,8 @@ namespace Couchbase.Lite.Internal.Query
                 var fromJson = FromImpl?.ToJSON();
                 if (fromJson == null) {
                     throw new InvalidOperationException(
-                        "The default database must have an alias in order to use a JOIN statement" +
-                        " (Make sure your data source uses the As() function)");
+                        @"The default database must have an alias in order to use a JOIN statement
+                         (Make sure your data source uses the As() function)");
                 }
 
                 var joinJson = JoinImpl.ToJSON() as IList<object>;
@@ -407,8 +404,8 @@ namespace Couchbase.Lite.Internal.Query
                 if (Database != null) {
                     _databaseChangedToken = Database.AddChangeListener(OnDatabaseChanged);
                 } else {
-                    Log.To.Query.W(Tag, "Attempting to add a change listener onto a query with a null Database.  " +
-                                        "Changed events will not continue to fire");
+                    Log.To.Query.W(Tag, @"Attempting to add a change listener onto a query with a null Database.  
+                                        Changed events will not continue to fire");
                 }
 
                 Task.Factory.StartNew(Update);
