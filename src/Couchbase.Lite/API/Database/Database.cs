@@ -21,7 +21,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
@@ -495,6 +494,7 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
+                ThrowIfActiveItems();
                 LiteCoreBridge.Check(err => Native.c4db_delete(_c4db, err));
                 Native.c4db_free(_c4db);
                 _c4db = null;
@@ -1207,6 +1207,19 @@ namespace Couchbase.Lite
             });
         }
 
+        private void ThrowIfActiveItems()
+        {
+            if (ActiveReplications.Any()) {
+                throw new InvalidOperationException(
+                    "Cannot close the database. Please stop all of the replicators before closing the database.");
+            }
+
+            if (ActiveLiveQueries.Any()) {
+                throw new InvalidOperationException(
+                    "Cannot close the database. Please remove all of the query listeners before closing the database");
+            }
+        }
+
         private void VerifyDB([NotNull]Document document)
         {
             if (document.Database == null) {
@@ -1245,26 +1258,10 @@ namespace Couchbase.Lite
         public void Dispose()
         {
             GC.SuppressFinalize(this);
-            HashSet<Replicator> activeReplications = null;
-            HashSet<XQuery> activeLiveQueries = null;
-            ThreadSafety.DoLocked(() =>
-            {
-                activeReplications = new HashSet<Replicator>(ActiveReplications);
-                activeLiveQueries = new HashSet<XQuery>(ActiveLiveQueries);
-                ActiveReplications.Clear();
-                ActiveLiveQueries.Clear();
-            });
-
-            foreach (var repl in activeReplications) {
-                repl.Dispose();
-            }
-
-            foreach (var query in activeLiveQueries) {
-                query.Dispose();
-            }
 
             ThreadSafety.DoLocked(() =>
             {
+                ThrowIfActiveItems();
                 Dispose(true);
             });
         }
