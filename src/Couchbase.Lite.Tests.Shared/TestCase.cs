@@ -68,7 +68,7 @@ namespace Test
 
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
-#if NETCOREAPP1_0
+#if NETCOREAPP2_0
         static TestCase()
         {
             Couchbase.Lite.Support.NetDesktop.Activate();

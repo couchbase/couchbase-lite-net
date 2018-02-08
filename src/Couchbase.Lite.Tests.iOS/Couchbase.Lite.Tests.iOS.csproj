@@ -170,14 +170,11 @@
     <PackageReference Include="FluentAssertions">
       <Version>4.19.4</Version>
     </PackageReference>
-    <PackageReference Include="xunit.abstractions">
-      <Version>2.0.1</Version>
-    </PackageReference>
-    <PackageReference Include="xunit.core">
+    <PackageReference Include="xunit">
       <Version>2.3.1</Version>
     </PackageReference>
     <PackageReference Include="xunit.runner.devices">
-      <Version>2.3.2</Version>
+      <Version>2.3.3</Version>
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
