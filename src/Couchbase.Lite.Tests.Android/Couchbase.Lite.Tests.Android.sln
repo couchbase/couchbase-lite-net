@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26730.3
+VisualStudioVersion = 15.0.27130.2026
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Support.Android", "..\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj", "{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}"
 EndProject
@@ -17,12 +17,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.Androi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.Android.Source", "FromSource\Couchbase.Lite.Tests.Android.Source.csproj", "{0AE748EC-B7AF-42F3-99EA-FE48219F2006}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{9B92B9D6-5DD3-477A-883B-1B40D5DEEF3B}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{0ae748ec-b7af-42f3-99ea-fe48219f2006}*SharedItemsImports = 4
 		..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{0ae748ec-b7af-42f3-99ea-fe48219f2006}*SharedItemsImports = 4
 		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{11f38891-8397-49b4-9146-6daf0a9d7866}*SharedItemsImports = 13
 		..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{6ec40f09-4c86-4f51-9f0e-c4397601a567}*SharedItemsImports = 13
+		..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{9b92b9d6-5dd3-477a-883b-1b40d5deef3b}*SharedItemsImports = 13
 		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{b6083d32-7eeb-4697-8723-8c92ee3a7149}*SharedItemsImports = 4
 		..\..\vendor\couchbase-lite-core\CSharp\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{b6083d32-7eeb-4697-8723-8c92ee3a7149}*SharedItemsImports = 4
 		..\..\vendor\couchbase-lite-core\CSharp\src\LiteCore.Shared\LiteCore.Shared.projitems*{c37dc024-8762-4be4-9034-b2b5970c652c}*SharedItemsImports = 13
