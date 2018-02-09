@@ -20,7 +20,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
@@ -34,6 +33,8 @@ namespace Couchbase.Lite
 {
     internal sealed class IDictionaryObjectConverter : JsonConverter
     {
+        #region Overrides
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             var dict = value as IDictionaryObject;
@@ -70,6 +71,8 @@ namespace Couchbase.Lite
         {
             return typeof(IDictionaryObject).IsAssignableFrom(objectType);
         }
+
+        #endregion
     }
 
     /// <summary>
@@ -82,8 +85,7 @@ namespace Couchbase.Lite
         [NotNull]
         internal readonly MDict _dict = new MDict();
 
-        [NotNull]
-        internal readonly ThreadSafety _threadSafety = new ThreadSafety();
+        [NotNull] internal readonly ThreadSafety _threadSafety;
         private List<string> _keys;
 
         #endregion
@@ -94,15 +96,21 @@ namespace Couchbase.Lite
         public IFragment this[string key] => new Fragment(this, key);
 
         /// <inheritdoc />
+        public int Count => _threadSafety.DoLocked(() => _dict.Count);
+
+        /// <inheritdoc />
         public ICollection<string> Keys
         {
             get {
                 if (_keys == null) {
-                    _keys = new List<string>(_dict.Count);
                     _threadSafety.DoLocked(() =>
                     {
-                        foreach (var item in _dict.AllItems()) {
-                            _keys.Add(item.Key);
+                        // Double check pattern
+                        if (_keys == null) {
+                            _keys = new List<string>(_dict.Count);
+                            foreach (var item in _dict.AllItems()) {
+                                _keys.Add(item.Key);
+                            }
                         }
                     });
                 }
@@ -111,26 +119,25 @@ namespace Couchbase.Lite
             }
         }
 
-        /// <inheritdoc />
-        public int Count => _dict.Count;
-
         #endregion
 
         #region Constructors
 
         internal DictionaryObject()
         {
-            
+            _threadSafety = SetupThreadSafety();
         }
 
         internal DictionaryObject(MValue mv, MCollection parent)
         {
             _dict.InitInSlot(mv, parent);
+            _threadSafety = SetupThreadSafety();
         }
 
         internal DictionaryObject(MDict dict, bool isMutable)
         {
             _dict.InitAsCopyOf(dict, isMutable);
+            _threadSafety = SetupThreadSafety();
         }
 
         #endregion
@@ -144,7 +151,7 @@ namespace Couchbase.Lite
         [NotNull]
         public MutableDictionaryObject ToMutable()
         {
-            return new MutableDictionaryObject(_dict, true);
+            return _threadSafety.DoLocked(() => new MutableDictionaryObject(_dict, true));
         }
 
         #endregion
@@ -157,7 +164,7 @@ namespace Couchbase.Lite
         /// </summary>
         protected void KeysChanged()
         {
-            _keys = null;
+            _threadSafety.DoLocked(() => _keys = null);
         }
 
         #endregion
@@ -169,7 +176,7 @@ namespace Couchbase.Lite
         {
             return this;
         }
-        
+
         [NotNull]
         internal MCollection ToMCollection()
         {
@@ -183,6 +190,17 @@ namespace Couchbase.Lite
         private static object GetObject([NotNull]MDict dict, [NotNull]string key, IThreadSafety threadSafety = null) => (threadSafety ?? NullThreadSafety.Instance).DoLocked(() => dict.Get(key).AsObject(dict));
 
         private static T GetObject<T>([NotNull]MDict dict, [NotNull]string key, IThreadSafety threadSafety = null) where T : class => GetObject(dict, key, threadSafety) as T;
+
+        [NotNull]
+        private ThreadSafety SetupThreadSafety()
+        {
+            Database db = null;
+            if (_dict.Context != null && _dict.Context != MContext.Null) {
+                db = (_dict.Context as DocContext)?.Db;
+            }
+
+            return db?.ThreadSafety ?? new ThreadSafety();
+        }
 
         #endregion
 

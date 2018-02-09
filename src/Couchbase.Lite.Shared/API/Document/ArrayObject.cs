@@ -19,7 +19,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
@@ -41,18 +40,17 @@ namespace Couchbase.Lite
         [NotNull]
         internal readonly MArray _array = new MArray();
 
-        [NotNull]
-        internal readonly ThreadSafety _threadSafety = new ThreadSafety();
+        [NotNull] internal readonly ThreadSafety _threadSafety;
 
         #endregion
 
         #region Properties
 
         /// <inheritdoc />
-        public IFragment this[int index] => index >= _array.Count ? Fragment.Null : new Fragment(this, index);
+        public int Count => _threadSafety.DoLocked(() => _array.Count);
 
         /// <inheritdoc />
-        public int Count => _array.Count;
+        public IFragment this[int index] => index >= Count ? Fragment.Null : new Fragment(this, index);
 
         #endregion
 
@@ -60,27 +58,49 @@ namespace Couchbase.Lite
 
         internal ArrayObject()
         {
+            _threadSafety = SetupThreadSafety();
         }
 
         internal ArrayObject([NotNull]MArray array, bool isMutable)
         {
             _array.InitAsCopyOf(array, isMutable);
+            _threadSafety = SetupThreadSafety();
         }
 
         internal ArrayObject([NotNull]ArrayObject original, bool mutable)
             : this(original._array, mutable)
         {
-            
+            _threadSafety = SetupThreadSafety();
         }
 
         internal ArrayObject(MValue mv, MCollection parent)
         {
             _array.InitInSlot(mv, parent);
+            _threadSafety = SetupThreadSafety();
         }
 
         #endregion
 
         #region Public Methods
+
+        /// <summary>
+        /// Similar to the LINQ method, but returns all objects converted to standard
+        /// .NET types
+        /// </summary>
+        /// <returns>A list of standard .NET typed objects in the array</returns>
+        public List<object> ToList()
+        {
+            var count = _array.Count;
+            var result = new List<object>(count);
+            _threadSafety.DoLocked(() =>
+            {
+                for (var i = 0; i < count; i++) {
+                    result.Add(DataOps.ToNetObject(GetObject(_array, i)));
+                }
+            });
+
+            return result;
+        }
 
         /// <summary>
         /// Creates a copy of this object that can be mutated
@@ -89,7 +109,7 @@ namespace Couchbase.Lite
         [NotNull]
         public MutableArrayObject ToMutable()
         {
-            return new MutableArrayObject(_array, true);
+            return _threadSafety.DoLocked(() => new MutableArrayObject(_array, true));
         }
 
         #endregion
@@ -101,7 +121,7 @@ namespace Couchbase.Lite
         {
             return this;
         }
-        
+
         [NotNull]
         internal MCollection ToMCollection()
         {
@@ -129,6 +149,17 @@ namespace Couchbase.Lite
         private static object GetObject([NotNull]MArray array, int index, IThreadSafety threadSafety = null) => Get(array, index, threadSafety).AsObject(array);
 
         private static T GetObject<T>([NotNull]MArray array, int index, IThreadSafety threadSafety = null) where T : class => GetObject(array, index, threadSafety) as T;
+
+        [NotNull]
+        private ThreadSafety SetupThreadSafety()
+        {
+            Database db = null;
+            if (_array.Context != null && _array.Context != MContext.Null) {
+                db = (_array.Context as DocContext)?.Db;
+            }
+
+            return db?.ThreadSafety ?? new ThreadSafety();
+        }
 
         #endregion
 
@@ -167,25 +198,6 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public string GetString(int index) => GetObject<string>(_array, index, _threadSafety);
 
-        /// <summary>
-        /// Similar to the LINQ method, but returns all objects converted to standard
-        /// .NET types
-        /// </summary>
-        /// <returns>A list of standard .NET typed objects in the array</returns>
-        public List<object> ToList()
-        {
-            var count = _array.Count;
-            var result = new List<object>(count);
-            _threadSafety.DoLocked(() =>
-            {
-                for (var i = 0; i < count; i++) {
-                    result.Add(DataOps.ToNetObject(GetObject(_array, i)));
-                }
-            });
-
-            return result;
-        }
-
         #endregion
 
         #region IEnumerable
@@ -210,6 +222,8 @@ namespace Couchbase.Lite
 
     internal sealed class IArrayConverter : JsonConverter
     {
+        #region Overrides
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             var arr = value as IArray;
@@ -232,5 +246,7 @@ namespace Couchbase.Lite
         }
 
         public override bool CanConvert(Type objectType) => typeof(IArray).IsAssignableFrom(objectType);
+
+        #endregion
     }
 }
