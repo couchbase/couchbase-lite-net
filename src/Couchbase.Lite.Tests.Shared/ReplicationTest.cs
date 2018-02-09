@@ -60,6 +60,7 @@ namespace Test
             _otherDB = OpenDB("otherdb");
         }
 
+        #if COUCHBASE_ENTERPRISE
         [Fact]
         public void TestReadOnlyConfiguration()
         {
@@ -387,6 +388,7 @@ namespace Test
                 doc1.GetString("name").Should().Be("Hobbes");
             }
         }
+    #endif
 
         // The below tests are disabled because they require orchestration and should be moved
         // to the functional test suite
@@ -470,11 +472,13 @@ namespace Test
             _otherDB.Count.Should().Be(10, "because 10 documents should be in the given channel");
         }
 
+        #if COUCHBASE_ENTERPRISE
         private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous)
         {
             var target = _otherDB;
             return CreateConfig(push, pull, continuous, target);
         }
+        #endif
 
         private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous, URLEndpoint endpoint)
         {
@@ -482,11 +486,13 @@ namespace Test
             return ModifyConfig(retVal, push, pull, continuous);
         }
 
+        #if COUCHBASE_ENTERPRISE
         private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous, Database target)
         {
             var retVal = new ReplicatorConfiguration(Db, new DatabaseEndpoint(target));
             return ModifyConfig(retVal, push, pull, continuous);
         }
+        #endif
 
         private ReplicatorConfiguration ModifyConfig(ReplicatorConfiguration config, bool push, bool pull, bool continuous)
         {

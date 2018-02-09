@@ -68,7 +68,9 @@ namespace Test
                 Database.Delete("db", dir);
             }
 
+            #if COUCHBASE_ENTERPRISE
             options.Invoking(o => o.EncryptionKey = new EncryptionKey("foo")).ShouldThrow<InvalidOperationException>("because the configuration is in use");
+            #endif
         }
 
         [Fact]
@@ -882,18 +884,28 @@ namespace Test
             var config1 = builder1;
             config1.Directory.Should().NotBeNullOrEmpty("because the directory should have a default value");
             config1.ConflictResolver.Should().NotBeNull("because the conflict resolver should have a default value");
+
+            #if COUCHBASE_ENTERPRISE
             config1.EncryptionKey.Should().BeNull("because it was not set");
+            #endif
 
             var resolver = new DummyResolver();
             var builder2 = new DatabaseConfiguration();
             var key = new EncryptionKey("key");
             builder2.Directory = "/tmp/mydb";
             builder2.ConflictResolver = resolver;
+
+            #if COUCHBASE_ENTERPRISE
             builder2.EncryptionKey = key;
+            #endif
+
             var config2 = builder2;
             config2.Directory.Should().Be("/tmp/mydb", "because that is what was set");
             config2.ConflictResolver.Should().Be(resolver, "because that is what was set");
+
+            #if COUCHBASE_ENTERPRISE
             config2.EncryptionKey.Should().Be(key, "because that is what was set");
+            #endif
         }
 
         [Fact]
@@ -906,8 +918,11 @@ namespace Test
                 db.Config.Directory.Should().Be(config.Directory, "because the directory should be the same");
                 db.Config.ConflictResolver.Should().Be(config.ConflictResolver,
                     "because the conflict resolver should be the same");
+
+                #if COUCHBASE_ENTERPRISE
                 db.Config.EncryptionKey.Should().Be(config.EncryptionKey,
                     "because the encryption key should be the same");
+                #endif
             }
         }
 
