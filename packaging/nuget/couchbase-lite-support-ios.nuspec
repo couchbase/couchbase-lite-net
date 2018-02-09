@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>Couchbase.Lite.Support.iOS</id>
+    <title>Couchbase Lite iOS Support</title>
+    <version>$version$</version>
+    <authors>Jim Borden</authors>
+    <owners>Couchbase</owners>
+    <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/couchbase/couchbase-lite-net</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/couchbase/couchbase-lite-net/master/packaging/nuget/logo.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
+    <releaseNotes>
+        Couchbase Lite .NET Developer Build
+    </releaseNotes>
+    <copyright>Copyright 2018</copyright>
+    <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
+    <language>en-US</language>
+    <dependencies>
+    </dependencies>
+  </metadata>
+  <files>
+    <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.dll" />
+    <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.pdb" />
+    <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.xml" />
+    <file target="build\xamarinios\Couchbase.Lite.Support.iOS.targets" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\ios.targets" />
+    <file target="build\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Resources\libLiteCore.dylib" />
+  </files>
+</package>

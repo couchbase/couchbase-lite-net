@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>{11F38891-8397-49B4-9146-6DAF0A9D7866}</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Couchbase.Lite.Tests.Shared</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)ArrayTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)BlobTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ConcurrencyTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ConflictTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CSharpTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DatabaseEncryptionTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DatabaseTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DictionaryTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DocPerfTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DocumentTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)FragmentTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LinqTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LoadTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MigrationTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NotificationTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PerfTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)QueryTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ReplicationTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)TestCase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)TunesPerfTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Benchmark.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\ForIssueAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\ZipFileExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\WaitAssert.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\XunitLogger.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)C\tests\data\sentences.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\C\tests\data\iTunesMusicLibrary.json">
+      <LogicalName>iTunesMusicLibrary.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)C\tests\data\attachment.png">
+      <LogicalName>attachment.png</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>Couchbase.Lite.Support.NetDesktop</id>
+    <title>Couchbase Lite .NET Desktop Support</title>
+    <version>$version$</version>
+    <authors>Jim Borden</authors>
+    <owners>Couchbase</owners>
+    <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/couchbase/couchbase-lite-net</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/couchbase/couchbase-lite-net/master/packaging/nuget/logo.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
+    <releaseNotes>
+        Couchbase Lite .NET Developer Build
+    </releaseNotes>
+    <copyright>Copyright 2018</copyright>
+    <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
+    <language>en-US</language>
+  </metadata>
+  <files>
+    <file target="build\Couchbase.Lite.Support.NetDesktop.targets" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\desktop.targets" />
+    <file target="lib\net461\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\Couchbase.Lite.Support.NetDesktop.dll" />
+    <file target="lib\net461\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\Couchbase.Lite.Support.NetDesktop.pdb" />
+    <file target="lib\net461\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\Couchbase.Lite.Support.NetDesktop.xml" />
+	<file target="lib\netcoreapp2.0\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp2.0\Couchbase.Lite.Support.NetDesktop.dll" />
+    <file target="lib\netcoreapp2.0\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp2.0\Couchbase.Lite.Support.NetDesktop.pdb" />
+    <file target="lib\netcoreapp2.0\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp2.0\Couchbase.Lite.Support.NetDesktop.xml" />
+    <file target="runtimes\win7-x86\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\x86\LiteCore.dll" />
+    <file target="runtimes\win7-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\x64\LiteCore.dll" />
+    <file target="runtimes\win7-x86\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\x86\LiteCore.pdb" />
+    <file target="runtimes\win7-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\x64\LiteCore.pdb" />
+    <file target="runtimes\osx-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libLiteCore.dylib" />
+    <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libLiteCore.so" />
+    <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libc++.so.1" />
+    <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libc++abi.so.1" />
+    <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libicudata.so.54" />
+    <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libicui18n.so.54" />
+    <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libicuuc.so.54" />
+  </files>
+</package>

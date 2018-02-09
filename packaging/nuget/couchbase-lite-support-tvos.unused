@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>Couchbase.Lite.Support.tvOS</id>
+    <title>Couchbase Lite tvOS Support</title>
+    <version>$version$</version>
+    <authors>Jim Borden</authors>
+    <owners>Couchbase</owners>
+    <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/couchbase/couchbase-lite-net</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/couchbase/couchbase-lite-net/master/packaging/nuget/logo.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
+    <releaseNotes>
+        Couchbase Lite .NET Developer Build
+    </releaseNotes>
+    <copyright>Copyright 2017</copyright>
+    <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
+    <language>en-US</language>
+    <dependencies>
+        <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="1.1.1" />
+        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="1.1.2" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file target="lib\xamarintvos\" src="src\Couchbase.Lite.Support.Apple\tvOS\bin\Packaging\Couchbase.Lite.Support.tvOS.dll" />
+    <file target="lib\xamarintvos\" src="src\Couchbase.Lite.Support.Apple\tvOS\bin\Packaging\Couchbase.Lite.Support.tvOS.pdb" />
+    <file target="lib\xamarintvos\" src="src\Couchbase.Lite.Support.Apple\tvOS\bin\Packaging\Couchbase.Lite.Support.tvOS.xml" />
+    <file target="build\xamarintvos\Couchbase.Lite.Support.tvOS.targets" src="src\Couchbase.Lite.Support.Apple\tvOS\bin\Packaging\tvos.targets" />
+    <file target="build\xamarintvos\" src="src\Couchbase.Lite.Support.Apple\tvOS\bin\Packaging\Resources\libLiteCore.dylib" />
+    <file target="src" src="src\Couchbase.Lite.Support.Apple\Activate.cs" />
+    <file target="src" src="src\Couchbase.Lite.Support.Apple\tvOS\**\*.cs" />
+  </files>
+</package>
