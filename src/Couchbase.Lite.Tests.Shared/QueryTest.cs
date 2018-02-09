@@ -467,10 +467,10 @@ namespace Test
         }
 
         [Fact]
-        public async Task TestLiveQueryNoUpdate() => TestLiveQueryNoUpdateInternal(false);
+        public async Task TestLiveQueryNoUpdate() => await TestLiveQueryNoUpdateInternal(false);
 
         [Fact]
-        public async Task TestLiveQueryNoUpdateConsumeAll() => TestLiveQueryNoUpdateInternal(true);
+        public async Task TestLiveQueryNoUpdateConsumeAll() => await TestLiveQueryNoUpdateInternal(true);
 
         [Fact]
         public void TestJoin()
@@ -1322,38 +1322,32 @@ namespace Test
         }
 
         [Fact]
-        public void TestLiveQueryStopWhenClosed()
+        public void TestLiveQueryBlocksClose()
         {
-            var doc2Listener = new WaitAssert();
-
-            using (var otherDb = new Database(Db.Name, Db.Config)) {
-                var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
-                var doc1Listener = new WaitAssert();
-                query.AddChangeListener(null, (sender, args) =>
-                {
-                    foreach (var row in args.Results) {
-                        if (row.GetString("id") == "doc1") {
-                            doc1Listener.Fulfill();
-                        } else if (row.GetString("id") == "doc2") {
-                            doc2Listener.Fulfill();
-                        }
+            var otherDb = new Database(Db.Name, Db.Config);
+            var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
+            var doc1Listener = new WaitAssert();
+            var token = query.AddChangeListener(null, (sender, args) =>
+            {
+                foreach (var row in args.Results) {
+                    if (row.GetString("id") == "doc1") {
+                        doc1Listener.Fulfill();
                     }
-                });
+                }
+            });
 
+            try {
                 using (var doc = new MutableDocument("doc1")) {
                     doc.SetString("value", "string");
                     Db.Save(doc); // Should still trigger since it is pointing to the same DB
                 }
 
                 doc1Listener.WaitForResult(TimeSpan.FromSeconds(20));
+                otherDb.Invoking(d => d.Dispose())
+                    .ShouldThrow<InvalidOperationException>("because the live query is still active");
+            } finally {
+                query.RemoveChangeListener(token);
             }
-
-            using (var doc = new MutableDocument("doc2")) {
-                doc.SetString("value", "string");
-                Db.Save(doc);
-            }
-
-            doc2Listener.Invoking(t => t.WaitForResult(TimeSpan.FromSeconds(2))).ShouldThrow<TimeoutException>();
         }
 
         [ForIssue("couchbase-lite-android/1356")]
@@ -1776,7 +1770,7 @@ namespace Test
                 .Where(Expression.Property("number1").LessThan(Expression.Int(10))).OrderBy(Ordering.Property("number1"))) {
 
                 var are = new AutoResetEvent(false);
-                q.AddChangeListener(null, (sender, args) =>
+                var token = q.AddChangeListener(null, (sender, args) =>
                 {
                     if (consumeAll) {
                         var rs = args.Results;
@@ -1788,11 +1782,16 @@ namespace Test
 
                 await Task.Delay(500).ConfigureAwait(false);
 
-                // This change will not affect the query results because 'number1 < 10' 
-                // is not true
-                CreateDocInSeries(111, 100);
-                are.WaitOne(5000).Should().BeTrue("because the Changed event should fire once for the initial results");
-                are.WaitOne(5000).Should().BeFalse("because the Changed event should not fire needlessly");
+                try {
+                    // This change will not affect the query results because 'number1 < 10' 
+                    // is not true
+                    CreateDocInSeries(111, 100);
+                    are.WaitOne(5000).Should()
+                        .BeTrue("because the Changed event should fire once for the initial results");
+                    are.WaitOne(5000).Should().BeFalse("because the Changed event should not fire needlessly");
+                } finally {
+                    q.RemoveChangeListener(token);
+                }
             }
         }
 
