@@ -710,6 +710,7 @@ namespace Couchbase.Lite
         }
         #endif
 
+        #if COUCHBASE_ENTERPRISE
 		/// <summary>
 		/// Sets the encryption key for the database.  If null, encryption is
 		/// removed.
@@ -735,6 +736,7 @@ namespace Couchbase.Lite
 			    return Native.c4db_rekey(c4db, &newKey, err);
 			});
 		}
+    #endif
 
         #endregion
 

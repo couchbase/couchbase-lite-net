@@ -891,11 +891,11 @@ namespace Test
 
             var resolver = new DummyResolver();
             var builder2 = new DatabaseConfiguration();
-            var key = new EncryptionKey("key");
             builder2.Directory = "/tmp/mydb";
             builder2.ConflictResolver = resolver;
 
             #if COUCHBASE_ENTERPRISE
+            var key = new EncryptionKey("key");
             builder2.EncryptionKey = key;
             #endif
 

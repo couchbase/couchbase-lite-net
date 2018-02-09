@@ -108,7 +108,7 @@ namespace Couchbase.Lite.Sync
         /// is <c>null</c> which will set up the default algorithm of the most active revision
         /// </summary>
         [NotNull]
-        public IConflictResolver ConflictResolver
+        internal IConflictResolver ConflictResolver
         {
             get => _conflictResolver;
             set => _freezer.SetValue(ref _conflictResolver,

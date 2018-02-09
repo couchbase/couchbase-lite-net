@@ -44,7 +44,9 @@ namespace Couchbase.Lite
         [NotNull] private string _directory =
             Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
 
+        #if COUCHBASE_ENTERPRISE
         private EncryptionKey _encryptionKey;
+        #endif
 
         #endregion
 

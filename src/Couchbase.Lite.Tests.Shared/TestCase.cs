@@ -64,7 +64,7 @@ namespace Test
 
         protected Database Db { get; private set; }
 
-        protected IConflictResolver ConflictResolver { get; set; }
+        internal IConflictResolver ConflictResolver { get; set; }
 
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 

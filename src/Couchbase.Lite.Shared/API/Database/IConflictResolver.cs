@@ -26,7 +26,7 @@ namespace Couchbase.Lite
     /// An interface for resolving a <see cref="Conflict" /> in a document (i.e. two edits to the same
     /// document at the same time)
     /// </summary>
-    public interface IConflictResolver
+    internal interface IConflictResolver
     {
         #region Public Methods
 
