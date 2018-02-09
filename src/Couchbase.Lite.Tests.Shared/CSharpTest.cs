@@ -67,6 +67,7 @@ namespace Test
         }
 #endif
 
+        #if COUCHBASE_ENTERPRISE
         [Fact]
         public void TestEncryptionKey()
         {
@@ -88,6 +89,7 @@ namespace Test
             badAction = (() => new EncryptionKey("foo", new byte[] {1, 2, 3, 4, 5}, 5));
             badAction.ShouldThrow<ArgumentOutOfRangeException>("because the rounds must be >= 200");
         }
+    #endif
 
         [Fact]
         public unsafe void TestReadOnlyArray()

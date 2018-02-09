@@ -1,6 +1,6 @@
 <AnalyzeParams>
   <TargetExecutable>C:\Program Files\dotnet\dotnet.exe</TargetExecutable>
-  <TargetArguments>xunit -Verbose</TargetArguments>
+  <TargetArguments>xunit -Verbose -Fxversion 2.0.5</TargetArguments>
   <TargetWorkingDir>.</TargetWorkingDir>
   <Output>dotCover.html</Output>
   <ReportType>html</ReportType>
