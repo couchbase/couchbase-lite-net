@@ -2,11 +2,11 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp1.1</TargetFramework>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Couchbase.Lite" Version="2.0.0-db021" />
+    <PackageReference Include="Couchbase.Lite" Version="2.0.0-db022" />
   </ItemGroup>
 
   <ItemGroup>
