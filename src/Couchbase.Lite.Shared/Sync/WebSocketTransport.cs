@@ -63,8 +63,11 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
-            var socketWrapper = Sockets[id];
-            socketWrapper.CloseSocket();
+            if (Sockets.TryGetValue(id, out var socketWrapper)) {
+                socketWrapper.CloseSocket();
+            } else {
+                Log.To.Sync.E(Tag, "Invalid call to DoClose; socket does not exist (or was disposed)");
+            }
         }
 
         private static void DoCompleteReceive(C4Socket* socket, ulong bytecount)
@@ -76,19 +79,22 @@ namespace Couchbase.Lite.Sync
                 Log.To.Sync.V(Tag, "DoCompletedReceive reached after close, ignoring...");
                 return;
             }
-
-            var socketWrapper = Sockets[id];
-            socketWrapper.CompletedReceive(bytecount);
+            
+            if (Sockets.TryGetValue(id, out var socketWrapper)) {
+                socketWrapper.CompletedReceive(bytecount);
+            } else {
+                Log.To.Sync.E(Tag, "Invalid call to DoCompleteReceive; socket does not exist (or was disposed)");
+            }
         }
 
         private static void DoDispose(C4Socket* socket)
         {
             var id = (int) socket->nativeHandle;
             if (id == 0) {
-                Log.To.Sync.E(Tag, "DoDispose reached after close");
                 return;
             }
 
+            DoClose(socket);
             Sockets.Remove(id);
         }
 
@@ -137,9 +143,12 @@ namespace Couchbase.Lite.Sync
                 Log.To.Sync.E(Tag, "DoWrite reached after close");
                 return;
             }
-
-            var socketWrapper = Sockets[id];
-            socketWrapper.Write(data);
+            
+            if (Sockets.TryGetValue(id, out var socketWrapper)) {
+                socketWrapper.Write(data);
+            } else {
+                Log.To.Sync.E(Tag, "Invalid call to DoWrite; socket does not exist (or was disposed)");
+            }
         }
 
         #endregion
