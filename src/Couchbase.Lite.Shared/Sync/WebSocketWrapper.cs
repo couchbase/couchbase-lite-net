@@ -115,12 +115,19 @@ namespace Couchbase.Lite.Sync
                     return;
                 }
 
-                // ReSharper disable once UseObjectOrCollectionInitializer
-                _client = new TcpClient(AddressFamily.InterNetworkV6)
-                {
-                    SendTimeout = (int)IdleTimeout.TotalMilliseconds,
-                    ReceiveTimeout = (int)IdleTimeout.TotalMilliseconds
-                };
+                try {
+                    // ReSharper disable once UseObjectOrCollectionInitializer
+                    _client = new TcpClient(AddressFamily.InterNetworkV6)
+                    {
+                        SendTimeout = (int) IdleTimeout.TotalMilliseconds,
+                        ReceiveTimeout = (int) IdleTimeout.TotalMilliseconds
+                    };
+                } catch (Exception e) {
+                    Native.c4socket_closed(_socket,
+                        Native.c4error_make(C4ErrorDomain.WebSocketDomain, (int)C4WebSocketCloseCode.WebSocketCloseAbnormal,
+                            $"Unable to open socket connection {e}"));
+                    return;
+                }
 
                 try {
                     _client.Client.DualMode = true;
