@@ -55,6 +55,6 @@ Write-Host
 
 Pop-Location
 cd ..
-& $MSBuild Couchbase.Lite.sln /p:Configuration=Release /p:SourceLinkCreate=true
+& $MSBuild Couchbase.Lite.sln /p:Configuration=Packaging /p:SourceLinkCreate=true
 
 Pop-Location
