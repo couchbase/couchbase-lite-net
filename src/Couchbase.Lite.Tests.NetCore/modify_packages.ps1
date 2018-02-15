@@ -7,7 +7,7 @@ Push-Location $scriptpath
 [Environment]::CurrentDirectory = $scriptpath
 
 $content = [System.IO.File]::ReadAllLines("Couchbase.Lite.Tests.NetCore.csproj")
-$regex = New-Object -TypeName "System.Text.RegularExpressions.Regex" ".*?<PackageReference Include=`"Couchbase.Lite.*?`" Version=`"(.*?)`""
+$regex = New-Object -TypeName "System.Text.RegularExpressions.Regex" ".*?<PackageReference Include=`"Couchbase.Lite.Enterprise.*?`" Version=`"(.*?)`""
 for($i = 0; $i -lt $content.Length; $i++) {
     $line = $content[$i]
     $matches = $regex.Matches($line)

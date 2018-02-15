@@ -18,7 +18,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\iPhoneSimulator\Debug</OutputPath>
-    <DefineConstants>DEBUG;__UNIFIED__;__MOBILE__;__IOS__;ENABLE_TEST_CLOUD;LITECORE_PACKAGED;</DefineConstants>
+    <DefineConstants>DEBUG;__UNIFIED__;__MOBILE__;__IOS__;LITECORE_PACKAGED;COUCHBASE_ENTERPRISE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CodesignKey>iPhone Developer</CodesignKey>
@@ -40,7 +40,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\iPhone\Release</OutputPath>
-    <DefineConstants>__UNIFIED__;__MOBILE__;__IOS__;LITECORE_PACKAGED;</DefineConstants>
+    <DefineConstants>__UNIFIED__;__MOBILE__;__IOS__;LITECORE_PACKAGED;COUCHBASE_ENTERPRISE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CodesignKey>iPhone Developer</CodesignKey>
@@ -57,7 +57,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\iPhoneSimulator\Release</OutputPath>
-    <DefineConstants>__UNIFIED__;__MOBILE__;__IOS__;LITECORE_PACKAGED;</DefineConstants>
+    <DefineConstants>__UNIFIED__;__MOBILE__;__IOS__;LITECORE_PACKAGED;COUCHBASE_ENTERPRISE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CodesignKey>iPhone Developer</CodesignKey>
@@ -73,7 +73,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\iPhone\Debug</OutputPath>
-    <DefineConstants>DEBUG;__UNIFIED__;__MOBILE__;__IOS__;ENABLE_TEST_CLOUD;LITECORE_PACKAGED;</DefineConstants>
+    <DefineConstants>DEBUG;__UNIFIED__;__MOBILE__;__IOS__;LITECORE_PACKAGED;COUCHBASE_ENTERPRISE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CodesignKey>iPhone Developer</CodesignKey>
@@ -91,7 +91,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|iPhoneSimulator'">
     <OutputPath>bin\iPhoneSimulator\Packaging\</OutputPath>
-    <DefineConstants>__UNIFIED__;__MOBILE__;__IOS__;LITECORE_PACKAGED;</DefineConstants>
+    <DefineConstants>__UNIFIED__;__MOBILE__;__IOS__;LITECORE_PACKAGED;COUCHBASE_ENTERPRISE</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
@@ -117,7 +117,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|iPhone'">
     <OutputPath>bin\iPhone\Packaging\</OutputPath>
-    <DefineConstants>__UNIFIED__;__MOBILE__;__IOS__;LITECORE_PACKAGED;</DefineConstants>
+    <DefineConstants>__UNIFIED__;__MOBILE__;__IOS__;LITECORE_PACKAGED;COUCHBASE_ENTERPRISE</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
@@ -164,7 +164,7 @@
     </ImageAsset>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Couchbase.Lite">
+    <PackageReference Include="Couchbase.Lite.Enterprise">
       <Version>2.0.0-b0435</Version>
     </PackageReference>
     <PackageReference Include="FluentAssertions">

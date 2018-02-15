@@ -27,7 +27,7 @@
     <DebugType>Full</DebugType>
     <Optimize>False</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;LITECORE_PACKAGED</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;LITECORE_PACKAGED;COUCHBASE_ENTERPRISE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AndroidUseSharedRuntime>True</AndroidUseSharedRuntime>
@@ -46,7 +46,7 @@
     <DebugSymbols>false</DebugSymbols>
     <Optimize>True</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE;LITECORE_PACKAGED</DefineConstants>
+    <DefineConstants>TRACE;LITECORE_PACKAGED;COUCHBASE_ENTERPRISE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AndroidUseSharedRuntime>False</AndroidUseSharedRuntime>
@@ -100,7 +100,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Couchbase.Lite">
+    <PackageReference Include="Couchbase.Lite.Enterprise">
       <Version>2.0.0-b0435</Version>
     </PackageReference>
     <PackageReference Include="FluentAssertions">
