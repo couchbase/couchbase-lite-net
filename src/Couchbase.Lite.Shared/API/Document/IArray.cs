@@ -135,6 +135,8 @@ namespace Couchbase.Lite
         [CanBeNull]
         object GetValue(int index);
 
+        List<object> ToList();
+
         #endregion
     }
 }

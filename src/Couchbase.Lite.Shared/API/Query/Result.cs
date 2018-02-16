@@ -15,10 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Linq;
+
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Internal.Serialization;
@@ -37,13 +39,13 @@ namespace Couchbase.Lite.Query
     {
         #region Variables
 
-        private FLArrayIterator _columns;
-        [NotNull]private readonly BitArray _missingColumns;
         [NotNull]private readonly Dictionary<string, int> _columnNames;
-        private readonly QueryResultSet _rs;
         private readonly MContext _context;
         [NotNull]private readonly object[] _deserialized;
+        [NotNull]private readonly BitArray _missingColumns;
+        private readonly QueryResultSet _rs;
 
+        private FLArrayIterator _columns;
 
         #endregion
 
@@ -130,43 +132,7 @@ namespace Couchbase.Lite.Query
 
         #endregion
 
-        #region IEnumerable
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return ((IEnumerable<object>) this).GetEnumerator();
-        }
-
-        #endregion
-
-        #region IEnumerable<KeyValuePair<string,object>>
-
-        IEnumerator<KeyValuePair<string, object>> IEnumerable<KeyValuePair<string, object>>.GetEnumerator()
-        {
-            int index = 0;
-            foreach (var column in _rs.ColumnNames.Keys) {
-                if (!_missingColumns.Get(index++)) {
-                    yield return new KeyValuePair<string, object>(column, GetValue(column));
-                }
-            }
-        }
-
-        #endregion
-
-        #region IEnumerable<object>
-
-        IEnumerator<object> IEnumerable<object>.GetEnumerator()
-        {
-            for (var i = 0; i < _rs.ColumnNames.Count; i++) {
-                if (!_missingColumns.Get(i)) {
-                    yield return GetValue(i);
-                }
-            }
-        }
-
-        #endregion
-
-        #region IReadOnlyArray
+        #region IArray
 
         /// <inheritdoc />
         public ArrayObject GetArray(int index)
@@ -234,9 +200,14 @@ namespace Couchbase.Lite.Query
             return _deserialized[index] as string;
         }
 
+        public List<object> ToList()
+        {
+            return _deserialized.Select(DataOps.ToNetObject).ToList();
+        }
+
         #endregion
 
-        #region IReadOnlyDictionary
+        #region IDictionaryObject
 
         /// <inheritdoc />
         public bool Contains(string key)
@@ -326,10 +297,46 @@ namespace Couchbase.Lite.Query
         {
             var dict = new Dictionary<string, object>();
             foreach (var key in Keys) {
-                dict[key] = GetValue(key);
+                dict[key] = DataOps.ToNetObject(GetValue(key));
             }
 
             return dict;
+        }
+
+        #endregion
+
+        #region IEnumerable
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((IEnumerable<object>) this).GetEnumerator();
+        }
+
+        #endregion
+
+        #region IEnumerable<KeyValuePair<string,object>>
+
+        IEnumerator<KeyValuePair<string, object>> IEnumerable<KeyValuePair<string, object>>.GetEnumerator()
+        {
+            int index = 0;
+            foreach (var column in _rs.ColumnNames.Keys) {
+                if (!_missingColumns.Get(index++)) {
+                    yield return new KeyValuePair<string, object>(column, GetValue(column));
+                }
+            }
+        }
+
+        #endregion
+
+        #region IEnumerable<object>
+
+        IEnumerator<object> IEnumerable<object>.GetEnumerator()
+        {
+            for (var i = 0; i < _rs.ColumnNames.Count; i++) {
+                if (!_missingColumns.Get(i)) {
+                    yield return GetValue(i);
+                }
+            }
         }
 
         #endregion

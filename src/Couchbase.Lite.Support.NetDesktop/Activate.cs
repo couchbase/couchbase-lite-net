@@ -109,7 +109,7 @@ namespace Couchbase.Lite.Support
         /// </summary>
         public static void EnableTextLogging()
         {
-            Log.EnableTextLogging(new FileLogger(Path.Combine(AppContext.BaseDirectory, "Logs")));
+            Log.EnableTextLogging(new FileLogger(Path.Combine(AppContext.BaseDirectory, "CouchbaseLite", "Logs")));
         }
 
         #endregion

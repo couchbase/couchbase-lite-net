@@ -25,6 +25,8 @@ using System.Threading;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Support
 {
     /// <summary>
@@ -35,7 +37,7 @@ namespace Couchbase.Lite.Support
     {
         #region Constants
 
-        private static readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1, 1);
+        [NotNull]private static readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1, 1);
 
         #endregion
 
@@ -47,9 +49,11 @@ namespace Couchbase.Lite.Support
 
         #region Constructors
 
-        internal FileLogger(string filePath)
+        internal FileLogger([NotNull]string filePath)
         {
-            _writer = new StreamWriter(File.Open(filePath, FileMode.Create,
+            Directory.CreateDirectory(filePath);
+            var logFileName = $"TextLog-${DateTimeOffset.Now.ToUnixTimeSeconds()}";
+            _writer = new StreamWriter(File.Open(Path.Combine(filePath, logFileName), FileMode.Create,
                 FileAccess.Write, FileShare.ReadWrite)) {
                 AutoFlush = true
             };

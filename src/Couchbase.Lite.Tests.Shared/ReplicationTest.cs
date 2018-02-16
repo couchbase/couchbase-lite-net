@@ -174,47 +174,6 @@ namespace Test
         }
 
         [Fact]
-        public void TestPullConflict()
-        {
-            var doc1 = new MutableDocument("doc");
-            doc1.SetString("species", "Tiger");
-            Db.Save(doc1).Dispose();
-
-            var config = CreateConfig(true, false, false);
-            RunReplication(config, 0, 0);
-
-            doc1.Dispose();
-            doc1 = Db.GetDocument("doc")?.ToMutable();
-            doc1.Should().NotBeNull();
-            doc1.SetString("name", "Hobbes");
-            Db.Save(doc1).Dispose();
-            doc1.Dispose();
-
-            var doc2 = _otherDB.GetDocument("doc")?.ToMutable();
-            doc2.Should().NotBeNull();
-            doc2.SetString("pattern", "striped");
-            _otherDB.Save(doc2).Dispose();
-            doc2.Dispose();
-
-            config = CreateConfig(false, true, false);
-            config.ConflictResolver = new MergeThenTheirsWins
-            {
-                RequireBaseRevision = true
-            };
-
-            RunReplication(config, 0, 0);
-            Db.Count.Should().Be(1, "because the document should go through the conflict handler");
-            var gotDoc1 = Db.GetDocument("doc");
-            gotDoc1.ShouldBeEquivalentTo(new Dictionary<string, object>
-            {
-                ["species"] = "Tiger",
-                ["name"] = "Hobbes",
-                ["pattern"] = "striped"
-            });
-            gotDoc1.Dispose();;
-        }
-
-        [Fact]
         public void TestDocIDFilter()
         {
             var doc1 = new MutableDocument("doc1");
@@ -300,16 +259,15 @@ namespace Test
                     await Task.Delay(500);
                 }
 
-                ReopenDB();
+                this.Invoking(x => ReopenDB())
+                    .ShouldThrow<InvalidOperationException>(
+                        "because the database cannot be closed while replication is running");
 
-                var attemptCount = 0;
-                while (attemptCount++ < 10 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
-                    WriteLine(
-                        $"Replication status still {repl.Status.Activity}, waiting for stopped (remaining attempts {10 - attemptCount})...");
+                repl.Stop();
+                while (repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                    WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
                     await Task.Delay(500);
                 }
-
-                attemptCount.Should().BeLessOrEqualTo(10);
             }
         }
         

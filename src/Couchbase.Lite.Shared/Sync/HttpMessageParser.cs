@@ -60,7 +60,7 @@ namespace Couchbase.Lite.Sync
                         continue;
                     }
 
-                    var headerKey = line.Substring(0, colonPos).ToLowerInvariant();
+                    var headerKey = line.Substring(0, colonPos);
                     var headerValue = line.Substring(colonPos + 1).TrimStart();
                     _headers[headerKey] = headerValue;
                 }
@@ -74,7 +74,7 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
-            var headerKey = line.Substring(0, colonPos).ToLowerInvariant();
+            var headerKey = line.Substring(0, colonPos);
             var headerValue = line.Substring(colonPos + 1).TrimStart();
             _headers[headerKey] = headerValue;
         }

@@ -47,7 +47,7 @@ namespace Couchbase.Lite.Sync
 
         public static void RegisterWithC4()
         {
-            SocketFactory.RegisterFactory(DoOpen, DoClose, DoWrite, DoCompleteReceive, DoDispose);
+            SocketFactory.RegisterFactory(DoOpen, DoClose, DoWrite, DoCompleteReceive);
             SocketFactory.SetErrorHandler(DoError);
         }
 
@@ -58,6 +58,7 @@ namespace Couchbase.Lite.Sync
         private static void DoClose(C4Socket* socket)
         {
             var id = (int) socket->nativeHandle;
+            socket->nativeHandle = (void *)0;
             if (id == 0) {
                 Log.To.Sync.E(Tag, "DoClose reached after close");
                 return;
@@ -65,6 +66,7 @@ namespace Couchbase.Lite.Sync
 
             if (Sockets.TryGetValue(id, out var socketWrapper)) {
                 socketWrapper.CloseSocket();
+                Sockets.Remove(id);
             } else {
                 Log.To.Sync.E(Tag, "Invalid call to DoClose; socket does not exist (or was disposed)");
             }
@@ -85,17 +87,6 @@ namespace Couchbase.Lite.Sync
             } else {
                 Log.To.Sync.E(Tag, "Invalid call to DoCompleteReceive; socket does not exist (or was disposed)");
             }
-        }
-
-        private static void DoDispose(C4Socket* socket)
-        {
-            var id = (int) socket->nativeHandle;
-            if (id == 0) {
-                return;
-            }
-
-            DoClose(socket);
-            Sockets.Remove(id);
         }
 
         private static void DoError(C4Socket* socket, Exception e)

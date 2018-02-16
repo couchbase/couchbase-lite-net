@@ -204,7 +204,7 @@ namespace Couchbase.Lite.Sync
         private static bool CheckHeader([NotNull]HttpMessageParser parser, [NotNull]string key, string expectedValue, bool caseSens)
         {
             string value = null;
-            if (parser.Headers?.TryGetValue(key.ToLowerInvariant(), out value) != true) {
+            if (parser.Headers?.TryGetValue(key, out value) != true) {
                 return false;
             }
 
