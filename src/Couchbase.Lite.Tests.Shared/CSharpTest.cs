@@ -239,11 +239,11 @@ Transfer-Encoding: chunked";
             parser.Append("foo: bar");
             parser.StatusCode.Should().Be(HttpStatusCode.OK);
             parser.Reason.Should().Be("OK");
-            parser.Headers["x-xss-protection"].Should().Be("1; mode=block");
-            parser.Headers["x-frame-options"].Should().Be("SAMEORIGIN");
-            parser.Headers["cache-control"].Should().Be("private, max-age=0");
-            parser.Headers["p3p"].Should().Be("CP=\"This is not a P3P policy! See g.co/p3phelp for more info.\"");
-            parser.Headers["set-cookie"].Should().Be(
+            parser.Headers["X-XSS-Protection"].Should().Be("1; mode=block");
+            parser.Headers["X-Frame-Options"].Should().Be("SAMEORIGIN");
+            parser.Headers["Cache-Control"].Should().Be("private, max-age=0");
+            parser.Headers["P3P"].Should().Be("CP=\"This is not a P3P policy! See g.co/p3phelp for more info.\"");
+            parser.Headers["Set-Cookie"].Should().Be(
                 "1P_JAR=2017-10-13-05; expires=Fri, 20-Oct-2017 05:54:52 GMT; path=/; domain=.google.co.jp,NID=114=Vzr79B7ISI0vlP54dhHQ1lyoyqxePhvy_k3w2ofp1oce73oG3m9ltBiUgdQNj4tSMkp-oWtzmhUi3rf314Fcrjy6J2DxtyEdA_suJlgfdN9973V2HO32OG9D3svImEJf; expires=Sat, 14-Apr-2018 05:54:52 GMT; path=/; domain=.google.co.jp; HttpOnly");
             parser.Headers["foo"].Should().Be("bar");
 
