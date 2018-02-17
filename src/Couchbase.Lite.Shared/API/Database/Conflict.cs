@@ -26,7 +26,7 @@ namespace Couchbase.Lite
     /// where two offline nodes modify the same data at the same time.  This class serves to give
     /// information on such situations so that they can be resolved correctly.
     /// </summary>
-    public sealed class Conflict
+    internal sealed class Conflict
     {
         #region Properties
 
