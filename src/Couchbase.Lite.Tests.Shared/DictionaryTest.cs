@@ -81,6 +81,7 @@ namespace Test
 
             Db.Save(doc1);
             var gotDoc = Db.GetDocument("doc1");
+            gotDoc.Should().NotBeNull();
             gotDoc.GetDictionary("address")
                 .ToDictionary()
                 .ShouldBeEquivalentTo(dict, "because the content should not have changed");

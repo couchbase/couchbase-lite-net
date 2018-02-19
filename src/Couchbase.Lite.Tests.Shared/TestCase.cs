@@ -108,8 +108,10 @@ namespace Test
 
         protected void SaveDocument(MutableDocument document, Action<Document> eval)
         {
+            WriteLine("Before Save...");
             eval(document);
             using (var retVal = Db.Save(document)) {
+                WriteLine("After Save...");
                 eval(retVal);
             }
         }
@@ -256,6 +258,7 @@ namespace Test
         public void Dispose()
         {
             Dispose(true);
+            WriteLine("...Disposed");
         }
     }
 }
