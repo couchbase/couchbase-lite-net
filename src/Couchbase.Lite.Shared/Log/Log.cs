@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Logging
     /// <summary>
     /// Centralized logging facility.
     /// </summary>
-    public static unsafe class Log
+    internal static unsafe class Log
     {
         #region Constants
 
@@ -56,6 +56,8 @@ namespace Couchbase.Lite.Logging
         // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
         private static readonly C4LogCallback _LogCallback = LiteCoreLog;
         // ReSharper restore PrivateFieldCanBeConvertedToLocalVariable
+
+        internal static string BinaryLogDirectory { get; set; } = DefaultBinaryLogDirectory();
 
         #endregion
 
@@ -83,9 +85,12 @@ namespace Couchbase.Lite.Logging
         static Log()
         {
             _To = new LogTo();
-			var dir = Service.GetRequiredInstance<IDefaultDirectoryResolver>();
-			var binaryLogDir = Path.Combine(dir.DefaultDirectory(), "Logs");
-			Directory.CreateDirectory(binaryLogDir);
+            try {
+			    Directory.CreateDirectory(BinaryLogDirectory);
+            } catch(Exception) {
+                Console.WriteLine($"COUCHBASE LITE WARNING: FAILED TO CREATE BINARY LOGGING DIRECTORY {BinaryLogDirectory}");
+            }
+
 			C4Error err;
             #if DEBUG
             var defaultLevel = C4LogLevel.Debug;
@@ -93,12 +98,16 @@ namespace Couchbase.Lite.Logging
             var defaultLevel = C4LogLevel.Verbose;
             #endif
 
+            if(!Directory.Exists(BinaryLogDirectory)) {
+                return;
+            }
+
 			var success = Native.c4log_writeToBinaryFile(defaultLevel, 
-			                                             Path.Combine(binaryLogDir, 
+			                                             Path.Combine(BinaryLogDirectory, 
 			                                             $"log-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"), 
 			                                             &err);
 			if(!success) {
-				Console.WriteLine($"COUCHBASE LITE WARNING: FAILED TO INITIALIZE LOGGING FILE IN {binaryLogDir}");
+				Console.WriteLine($"COUCHBASE LITE WARNING: FAILED TO INITIALIZE LOGGING FILE IN {BinaryLogDirectory}");
 				Console.WriteLine($"ERROR {err.domain} / {err.code}");
 			}
         }
@@ -124,6 +133,12 @@ namespace Couchbase.Lite.Logging
         #endregion
 
         #region Private Methods
+
+        private static string DefaultBinaryLogDirectory()
+        {
+            var dir = Service.GetRequiredInstance<IDefaultDirectoryResolver>();
+            return Path.Combine(dir.DefaultDirectory(), "Logs");
+        }
 
         private static C4LogDomain* c4log_getDomain(string name, bool create)
         {

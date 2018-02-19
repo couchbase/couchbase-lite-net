@@ -104,12 +104,18 @@ namespace Couchbase.Lite.Support
         }
 
         /// <summary>
-        /// Turns on text based logging for debugging purposes.  The logs will be written in text
-        /// form to a folder called "Logs" under <c>AppContext.BaseDirectory</c>
+        /// Turns on text based logging for debugging purposes.  The logs will be written 
+        /// to the directory specified in <paramref name="directoryPath"/>
         /// </summary>
-        public static void EnableTextLogging()
+        /// <param name="directoryPath">The directory to write logs to</param>
+        public static void EnableTextLogging(string directoryPath)
         {
-            Log.EnableTextLogging(new FileLogger(Path.Combine(AppContext.BaseDirectory, "CouchbaseLite", "Logs")));
+            Log.EnableTextLogging(new FileLogger(directoryPath));
+        }
+
+        public static void SetBinaryLogDirectory(string directoryPath)
+        {
+            Log.BinaryLogDirectory = directoryPath;
         }
 
         #endregion

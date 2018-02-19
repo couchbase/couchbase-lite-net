@@ -5,7 +5,8 @@
   </PropertyGroup>
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging</Configurations>
-    <TargetFrameworks>net461;netcoreapp2.0</TargetFrameworks>
+    <TargetFramework Condition=" '$(OS)' != 'Windows_NT' ">netcoreapp2.0</TargetFramework>
+    <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">net461;netcoreapp2.0</TargetFrameworks>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
