@@ -1347,6 +1347,8 @@ namespace Test
                     .ShouldThrow<InvalidOperationException>("because the live query is still active");
             } finally {
                 query.RemoveChangeListener(token);
+                query.Dispose();
+                otherDb.Dispose();
             }
         }
 

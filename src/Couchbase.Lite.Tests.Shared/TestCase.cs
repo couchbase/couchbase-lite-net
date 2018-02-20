@@ -68,12 +68,16 @@ namespace Test
 
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
-#if NETCOREAPP2_0
+
         static TestCase()
         {
+#if NETCOREAPP2_0
             Couchbase.Lite.Support.NetDesktop.Activate();
-        }
 #endif
+            // Clean out all files from previous runs
+            System.IO.Directory.Delete(Directory, true);
+        }
+
 
         
 #if !WINDOWS_UWP
@@ -85,14 +89,8 @@ namespace Test
         public TestCase()
         { 
 #endif
-            try {
-                Database.Delete($"{DatabaseName}{_counter}", Directory);
-            } catch (LiteCoreException) {
-                // Tired of so many tests failing because of a stuck handle,
-                // this will let them continue
-                ++_counter;
-            }
-
+                
+            Database.Delete($"{DatabaseName}{_counter}", Directory);
             OpenDB();
         }
 
@@ -168,6 +166,15 @@ namespace Test
             Db?.Dispose();
             Db = null;
             Log.DisableTextLogging();
+
+            try {
+                Database.Delete($"{DatabaseName}{_counter}", Directory);
+            } catch (LiteCoreException) {
+                // Change the DB Name so that not every single test after this fails,
+                // but also fail this test because it didn't clean up properly
+                _counter++;
+                throw;
+            }
         }
 
         protected void LoadJSONResource(string resourceName)
@@ -258,7 +265,6 @@ namespace Test
         public void Dispose()
         {
             Dispose(true);
-            WriteLine("...Disposed");
         }
     }
 }

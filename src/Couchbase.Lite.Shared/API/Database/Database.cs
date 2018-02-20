@@ -259,7 +259,7 @@ namespace Couchbase.Lite
 				if (config?.EncryptionKey != null) {
 					var key = config.EncryptionKey;
 					var i = 0;
-					nativeConfig.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
+					nativeConfig.encryptionKey.algorithm = C4EncryptionAlgorithm.AES128;
 					foreach (var b in key.KeyData) {
 						nativeConfig.encryptionKey.bytes[i++] = b;
 					}
@@ -723,7 +723,7 @@ namespace Couchbase.Lite
 			{
 				var newKey = new C4EncryptionKey
 				{
-					algorithm = key == null ? C4EncryptionAlgorithm.None : C4EncryptionAlgorithm.AES256
+					algorithm = key == null ? C4EncryptionAlgorithm.None : C4EncryptionAlgorithm.AES128
 				};
 
 			    if (key != null) {
@@ -915,7 +915,7 @@ namespace Couchbase.Lite
             if(Config.EncryptionKey != null) {
                 var key = Config.EncryptionKey;
                 var i = 0;
-                config.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
+                config.encryptionKey.algorithm = C4EncryptionAlgorithm.AES128;
                 foreach(var b in key.KeyData) {
                     config.encryptionKey.bytes[i++] = b;
                 }
