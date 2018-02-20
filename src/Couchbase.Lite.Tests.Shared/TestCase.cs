@@ -75,7 +75,9 @@ namespace Test
             Couchbase.Lite.Support.NetDesktop.Activate();
 #endif
             // Clean out all files from previous runs
-            System.IO.Directory.Delete(Directory, true);
+            if (System.IO.Directory.Exists(Directory)) {
+                System.IO.Directory.Delete(Directory, true);
+            }
         }
 
 
