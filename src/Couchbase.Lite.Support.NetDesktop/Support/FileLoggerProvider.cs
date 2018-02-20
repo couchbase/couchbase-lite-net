@@ -52,7 +52,7 @@ namespace Couchbase.Lite.Support
         internal FileLogger([NotNull]string filePath)
         {
             Directory.CreateDirectory(filePath);
-            var logFileName = $"TextLog-${DateTimeOffset.Now.ToUnixTimeSeconds()}";
+            var logFileName = $"TextLog-{DateTimeOffset.Now.ToUnixTimeSeconds()}";
             _writer = new StreamWriter(File.Open(Path.Combine(filePath, logFileName), FileMode.Create,
                 FileAccess.Write, FileShare.ReadWrite)) {
                 AutoFlush = true

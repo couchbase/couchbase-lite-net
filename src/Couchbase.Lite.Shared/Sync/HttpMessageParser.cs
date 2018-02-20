@@ -26,7 +26,7 @@ namespace Couchbase.Lite.Sync
 {
     internal sealed class HttpMessageParser
     {
-        private readonly Dictionary<string, string> _headers = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> _headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         public HttpStatusCode StatusCode { get; }
 

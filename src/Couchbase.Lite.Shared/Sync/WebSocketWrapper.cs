@@ -168,6 +168,7 @@ namespace Couchbase.Lite.Sync
                 var cts = new CancellationTokenSource();
                 cts.CancelAfter(IdleTimeout);
                 if (NetworkStream == null) {
+                    _writeMutex.Set();
                     Log.To.Sync.E(Tag, "Lost network stream, closing socket...");
                     DidClose(C4WebSocketCloseCode.WebSocketCloseAbnormal, "Unexpected error in client logic");
                     return;

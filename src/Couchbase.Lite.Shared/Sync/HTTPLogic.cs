@@ -27,6 +27,7 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
+using LiteCore;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Sync
@@ -155,7 +156,13 @@ namespace Couchbase.Lite.Sync
                     break;
                 case HttpStatusCode.Unauthorized:
                 case HttpStatusCode.ProxyAuthenticationRequired:
-                    var authResponse = parser.Headers.Get("www-authenticate");
+                    var authResponse = parser.Headers.Get("WWW-Authenticate");
+                    if (authResponse == null) {
+                        Log.To.Sync.W(Tag, "HTTP missing WWW-Authenticate response!");
+                        Error = new LiteCoreException(new C4Error(C4ErrorCode.RemoteError));
+                        break;
+                    }
+
                     if (_authorizationHeader == null && Credential != null) {
                         _authorizationHeader = CreateAuthHeader(authResponse);
                         var password = new SecureLogString(Credential.Password, LogMessageSensitivity.Insecure);
@@ -241,7 +248,7 @@ namespace Couchbase.Lite.Sync
                 return null;
             }
 
-            var challenge = new Dictionary<string, string>();
+            var challenge = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var re = new Regex("(\\w+)\\s+(\\w+)=((\\w+)|\"([^\"]+))");
             var groups = re.Match(authResponse).Groups;
             var key = authResponse.Substring(groups[2].Index, groups[2].Length);

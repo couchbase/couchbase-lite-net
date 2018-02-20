@@ -458,8 +458,8 @@ namespace Test
                     }
                     
                 });
-                
-                await Task.Delay(500).ConfigureAwait(false);
+
+                await Task.Delay(500);
                 wa.WaitForResult(TimeSpan.FromSeconds(5));
                 CreateDocInSeries(-1, 100);
                 wa2.WaitForResult(TimeSpan.FromSeconds(5));
@@ -1780,7 +1780,7 @@ namespace Test
                     are.Set();
                 });
 
-                await Task.Delay(500).ConfigureAwait(false);
+                await Task.Delay(500);
 
                 try {
                     // This change will not affect the query results because 'number1 < 10' 
