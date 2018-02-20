@@ -69,16 +69,12 @@ namespace Test
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
 
+#if NETCOREAPP2_0
         static TestCase()
         {
-#if NETCOREAPP2_0
             Couchbase.Lite.Support.NetDesktop.Activate();
-#endif
-            // Clean out all files from previous runs
-            if (System.IO.Directory.Exists(Directory)) {
-                System.IO.Directory.Delete(Directory, true);
-            }
         }
+#endif
 
 
         
