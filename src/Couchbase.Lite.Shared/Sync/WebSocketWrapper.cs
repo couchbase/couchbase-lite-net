@@ -426,7 +426,15 @@ namespace Couchbase.Lite.Sync
                 _logic[header.Key] = header.Value;
             }
 
-            _logic["Cookie"] = _options.CookieString;
+            var cookieString = _options.CookieString;
+            if (cookieString != null) {
+                // https://github.com/couchbase/couchbase-lite-net/issues/974
+                // Don't overwrite a possible entry in the above headers unless there is
+                // actually a value
+                _logic["Cookie"] = cookieString;
+            }
+
+            // These ones should be overwritten.  The user has no business setting them.
             _logic["Connection"] = "Upgrade";
             _logic["Upgrade"] = "websocket";
             _logic["Sec-WebSocket-Version"] = "13";
@@ -435,7 +443,7 @@ namespace Couchbase.Lite.Sync
             if (protocols != null) {
                 _logic["Sec-WebSocket-Protocol"] = protocols;
             }
-
+ 
             if (_logic.UseTls) {
                 var baseStream = _client?.GetStream();
                 if (baseStream == null) {
