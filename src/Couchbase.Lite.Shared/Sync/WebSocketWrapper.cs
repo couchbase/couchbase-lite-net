@@ -94,7 +94,12 @@ namespace Couchbase.Lite.Sync
             {
 				_connected.Wait();
                 ResetConnections();
-                _c4Queue.DispatchAsync(() => Native.c4socket_closed(_socket, new C4Error()));
+                _c4Queue.DispatchAsync(() =>
+                {
+                    if ((int)_socket->nativeHandle != 0) {
+                        Native.c4socket_closed(_socket, new C4Error());
+                    }
+                });
             });
         }
 
@@ -184,7 +189,9 @@ namespace Couchbase.Lite.Sync
 
                         _c4Queue.DispatchAsync(() =>
                         {
-                            Native.c4socket_completedWrite(_socket, (ulong) data.Length);
+                            if ((int)_socket->nativeHandle != 0) {
+                                Native.c4socket_completedWrite(_socket, (ulong) data.Length);
+                            }
                         });
                     }, cts.Token);
 	            });
@@ -345,7 +352,14 @@ namespace Couchbase.Lite.Sync
                         var socket = _socket;
                         var data = _buffer.Take(t.Result).ToArray();
                         _readMutex.Set();
-                        _c4Queue.DispatchAsync(() => Native.c4socket_received(socket, data));
+                        _c4Queue.DispatchAsync(() =>
+                        {
+                            // Guard against closure / disposal
+                            if ((int)socket->nativeHandle != 0) {
+                                Native.c4socket_received(socket, data);
+                            }
+                        });
+
                         if (_receivedBytesPending < MaxReceivedBytesPending) {
                             Receive();
                         }
