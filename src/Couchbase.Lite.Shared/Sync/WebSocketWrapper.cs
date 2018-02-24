@@ -96,9 +96,10 @@ namespace Couchbase.Lite.Sync
                 ResetConnections();
                 _c4Queue.DispatchAsync(() =>
                 {
-                    if ((int)_socket->nativeHandle != 0) {
-                        Native.c4socket_closed(_socket, new C4Error());
-                    }
+                    // This call is already guarded by the caller, and needs
+                    // to be called once with a nativeHandle value of "0" to actually
+                    // perform the close
+                    Native.c4socket_closed(_socket, new C4Error());
                 });
             });
         }
