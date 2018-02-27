@@ -604,7 +604,7 @@ namespace Couchbase.Lite
                 var val = NativeRaw.FLValue_FromTrustedData(new FLSlice(result.buf, result.size));
                 if (val == null) {
                     Native.c4slice_free(result);
-                    throw new LiteCoreException(new C4Error(C4ErrorCode.CorruptIndexData));
+                    throw new CouchbaseLiteException(C4ErrorCode.CorruptIndexData);
                 }
 
                 retVal = FLValueConverter.ToCouchbaseObject(val, this, true, typeof(string));
@@ -665,9 +665,7 @@ namespace Couchbase.Lite
                 VerifyDB(document);
 
                 if (!document.Exists) {
-                    var docID = new SecureLogString(document.Id, LogMessageSensitivity.PotentiallyInsecure);
-                    Log.To.Database.V(Tag, $"Ignoring purge of non-existent document {docID}");
-                    return;
+                    throw new CouchbaseLiteException(C4ErrorCode.NotFound);
                 }
 
                 InBatch(() =>
@@ -786,7 +784,7 @@ namespace Couchbase.Lite
             try {
                 var localDoc = new Document(this, docID);
                 if (!localDoc.Exists) {
-                    throw new LiteCoreException(new C4Error(C4ErrorCode.NotFound));
+                    throw new CouchbaseLiteException(C4ErrorCode.NotFound);
                 }
 
                 var remoteDoc = new Document(this, docID);
@@ -917,16 +915,11 @@ namespace Couchbase.Lite
             var localConfig1 = config;
             ThreadSafety.DoLocked(() =>
             {
-                _c4db = (C4Database*) NativeHandler.Create()
-                    .AllowError((int) C4ErrorCode.NotADatabaseFile, C4ErrorDomain.LiteCoreDomain).Execute(err =>
-                    {
-                        var localConfig2 = localConfig1;
-                        return Native.c4db_open(path, &localConfig2, err);
-                    });
-
-                if (_c4db == null) {
-                    throw new CouchbaseLiteException(StatusCode.Unauthorized);
-                }
+                _c4db = (C4Database*) LiteCoreBridge.Check(err =>
+                {
+                    var localConfig2 = localConfig1;
+                    return Native.c4db_open(path, &localConfig2, err);
+                });
 
                 _obs = Native.c4dbobs_create(_c4db, _DbObserverCallback, this);
             });
@@ -1010,7 +1003,7 @@ namespace Couchbase.Lite
         private void Save([NotNull]Document document, ConcurrencyControl concurrencyControl, bool deletion)
         {
             if (deletion && document.RevID == null) {
-                throw new CouchbaseLiteException(StatusCode.NotAllowed, "Cannot delete a document that has not yet been saved");
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Cannot delete a document that has not yet been saved");
             }
 
             ThreadSafety.DoLocked(() =>
@@ -1026,7 +1019,7 @@ namespace Couchbase.Lite
                     if (newDoc == null) {
                         // Handle conflict:
                         if (concurrencyControl == ConcurrencyControl.FailOnConflict) {
-                            throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
+                            throw new CouchbaseLiteException(C4ErrorCode.Conflict);
                         }
 
                         C4Error err;
@@ -1040,7 +1033,7 @@ namespace Couchbase.Lite
                                     return;
                                 }
 
-                                throw new LiteCoreException(err);
+                                throw CouchbaseException.Create(err);
                             } else if (curDoc->flags.HasFlag(C4DocumentFlags.DocDeleted)) {
                                 document.c4Doc = new C4DocumentWrapper(curDoc);
                                 curDoc = null;
@@ -1050,7 +1043,7 @@ namespace Couchbase.Lite
 
                         // Save changes on the current branch:
                         if (curDoc == null) {
-                            throw new LiteCoreException(err);
+                            throw CouchbaseException.Create(err);
                         }
 
                         Save(document, &newDoc, curDoc, deletion);
@@ -1177,7 +1170,7 @@ namespace Couchbase.Lite
             if (document.Database == null) {
                 document.Database = this;
             } else if (document.Database != this) {
-                throw new CouchbaseLiteException(StatusCode.Forbidden, "Cannot operate on a document from another database");
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Cannot operate on a document from another database");
             }
         }
 

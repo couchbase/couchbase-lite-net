@@ -84,11 +84,11 @@ namespace Test
             using (var doc1 = new MutableDocument("doc1"))
             using (var doc2 = new MutableDocument("doc2")) {
                 doc1.SetString("name", "Tiger");
-                Db.Save(doc1).Dispose();
+                Db.Save(doc1);
                 Db.Count.Should().Be(1UL);
 
                 doc2.SetString("name", "Cat");
-                _otherDB.Save(doc2).Dispose();
+                _otherDB.Save(doc2);
             }
 
             var config = CreateConfig(true, false, false);
@@ -106,11 +106,11 @@ namespace Test
             using (var doc1 = new MutableDocument("doc1"))
             using (var doc2 = new MutableDocument("doc2")) {
                 doc1.SetString("name", "Tiger");
-                Db.Save(doc1).Dispose();
+                Db.Save(doc1);
                 Db.Count.Should().Be(1UL);
 
                 doc2.SetString("name", "Cat");
-                _otherDB.Save(doc2).Dispose();
+                _otherDB.Save(doc2);
             }
 
             var config = CreateConfig(true, false, true);
@@ -129,13 +129,13 @@ namespace Test
         {
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Tiger");
-                Db.Save(doc1).Dispose();
+                Db.Save(doc1);
                 Db.Count.Should().Be(1, "because only one document was saved so far");
             }
 
             using (var doc2 = new MutableDocument("doc2")) {
                 doc2.SetString("name", "Cat");
-                _otherDB.Save(doc2).Dispose();
+                _otherDB.Save(doc2);
             }
 
             var config = CreateConfig(false, true, false);
@@ -153,13 +153,13 @@ namespace Test
         {
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Tiger");
-                Db.Save(doc1).Dispose();
+                Db.Save(doc1);
                 Db.Count.Should().Be(1, "because only one document was saved so far");
             }
 
             using (var doc2 = new MutableDocument("doc2")) {
                 doc2.SetString("name", "Cat");
-                _otherDB.Save(doc2).Dispose();
+                _otherDB.Save(doc2);
             }
 
             var config = CreateConfig(false, true, true);
@@ -177,29 +177,25 @@ namespace Test
         {
             var doc1 = new MutableDocument("doc1");
             doc1.SetString("species", "Tiger");
-            var saved = Db.Save(doc1);
-            Misc.SafeSwap(ref doc1, saved.ToMutable());
+            Db.Save(doc1);
             doc1.SetString("name", "Hobbes");
             Db.Save(doc1);
 
              var doc2 = new MutableDocument("doc2");
             doc2.SetString("species", "Tiger");
-            saved = Db.Save(doc2);
-            Misc.SafeSwap(ref doc2, saved.ToMutable());
+            Db.Save(doc2);
             doc2.SetString("pattern", "striped");
             Db.Save(doc2);
 
             var doc3 = new MutableDocument("doc3");
             doc3.SetString("species", "Tiger");
-            saved = _otherDB.Save(doc3);
-            Misc.SafeSwap(ref doc3, saved.ToMutable());
+             _otherDB.Save(doc3);
             doc3.SetString("name", "Hobbes");
             _otherDB.Save(doc3);
 
             var doc4 = new MutableDocument("doc4");
             doc4.SetString("species", "Tiger");
-            saved = _otherDB.Save(doc4);
-            Misc.SafeSwap(ref doc4, saved.ToMutable());
+            _otherDB.Save(doc4);
             doc4.SetString("pattern", "striped");
             _otherDB.Save(doc4);
 
@@ -210,41 +206,6 @@ namespace Test
             Db.GetDocument("doc3").Should().NotBeNull();
             _otherDB.Count.Should().Be(3, "because only one document should have been pushed");
             _otherDB.GetDocument("doc1").Should().NotBeNull();
-        }
-
-        [Fact]
-        public void TestPullConflictNoBaseRevision()
-        {
-            // Create the conflicting docs separately in each database.  They have the same base revID
-            // because the contents are identical, but because the DB never pushed revision 1, it doesn't
-            // think it needs to preserve the body; so when it pulls a conflict, there won't be a base
-            // revision for the resolver.
-
-            var doc1 = new MutableDocument("doc");
-            doc1.SetString("species", "tiger");
-            var saved = Db.Save(doc1);
-            Misc.SafeSwap(ref doc1, saved.ToMutable());
-            doc1.SetString("name", "Hobbes");
-            Db.Save(doc1);
-
-            var doc2 = new MutableDocument("doc");
-            doc2.SetString("species", "Tiger");
-            saved = _otherDB.Save(doc2);
-            Misc.SafeSwap(ref doc2, saved.ToMutable());
-            doc2.SetString("pattern", "striped");
-            _otherDB.Save(doc2);
-
-            var config = CreateConfig(false, true, false);
-            config.ConflictResolver = new MergeThenTheirsWins();
-            RunReplication(config, 0, 0);
-
-            Db.Count.Should().Be(1, "because the document in otherDB has the same ID");
-            var gotDoc1 = Db.GetDocument("doc");
-            gotDoc1.ToDictionary().ShouldBeEquivalentTo(new Dictionary<string, object> {
-                ["species"] = "Tiger",
-                ["name"] = "Hobbes",
-                ["pattern"] = "striped"
-            });
         }
 
         [Fact]
@@ -325,13 +286,13 @@ namespace Test
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("species", "Tiger");
                 doc1.SetString("name", "Hobbes");
-                Db.Save(doc1).Dispose();
+                Db.Save(doc1);
             }
 
             using (var doc2 = new MutableDocument("doc2")) {
                 doc2.SetString("species", "Tiger");
                 doc2.SetString("pattern", "striped");
-                Db.Save(doc2).Dispose();
+                Db.Save(doc2);
             }
 
             var config = CreateConfig(true, false, false);
@@ -356,7 +317,7 @@ namespace Test
         {
             var config = CreateConfig(false, true, false, new URLEndpoint(new Uri("ws://localhost/seekrit")));
             _repl = new Replicator(config);
-            RunReplication(config, 401, C4ErrorDomain.WebSocketDomain);
+            RunReplication(config, (int)CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
         }
 
 #if HAVE_SG
@@ -375,7 +336,7 @@ namespace Test
         public void TestSelfSignedSSLFailure()
         {
             var config = CreateConfig(false, true, false, new URLEndpoint(new Uri("wss://localhost/db")));
-            RunReplication(config, (int)C4NetworkErrorCode.TLSCertUntrusted, C4ErrorDomain.NetworkDomain);
+            RunReplication(config, (int)CouchbaseLiteError.TLSCertUntrusted, CouchbaseLiteErrorType.CouchbaseLite);
         }
 
 #if HAVE_SG
@@ -467,17 +428,17 @@ namespace Test
             return config;
         }
 
-        private void VerifyChange(ReplicatorStatusChangedEventArgs change, int errorCode, C4ErrorDomain domain)
+        private void VerifyChange(ReplicatorStatusChangedEventArgs change, int errorCode, CouchbaseLiteErrorType domain)
         {
             var s = change.Status;
             WriteLine($"---Status: {s.Activity} ({s.Progress.Completed} / {s.Progress.Total}), lastError = {s.Error}");
             if (s.Activity == ReplicatorActivityLevel.Stopped) {
                 if (errorCode != 0) {
-                    s.Error.Should().BeAssignableTo<LiteCoreException>();
-                    var error = s.Error.As<LiteCoreException>().Error;
-                    error.code.Should().Be(errorCode);
+                    s.Error.Should().BeAssignableTo<CouchbaseLiteException>();
+                    var error = s.Error.As<CouchbaseLiteException>();
+                    error.Error.Should().Be(errorCode);
                     if ((int) domain != 0) {
-                        error.domain.As<C4ErrorDomain>().Should().Be(domain);
+                        error.Domain.As<CouchbaseLiteErrorType>().Should().Be(domain);
                     }
                 } else {
                     s.Error.Should().BeNull("because otherwise an unexpected error occurred");
@@ -485,7 +446,7 @@ namespace Test
             }
         }
 
-        private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, C4ErrorDomain expectedErrDomain)
+        private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, CouchbaseLiteErrorType expectedErrDomain)
         {
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();

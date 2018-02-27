@@ -227,7 +227,7 @@ namespace Test
                     try {
                         Db.Purge(doc);
                     } catch (CouchbaseLiteException e) {
-                        if (e.Status != StatusCode.NotFound) {
+                        if (e.Error != CouchbaseLiteError.NotFound) {
                             throw;
                         }
                     }

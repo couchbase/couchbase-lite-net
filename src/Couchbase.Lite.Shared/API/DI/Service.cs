@@ -154,7 +154,7 @@ namespace Couchbase.Lite.DI
         [NotNull]
         internal static T GetRequiredInstance<T>() where T : class
         {
-            return GetInstance<T>() ??  throw new CouchbaseLiteException(StatusCode.MissingDependency,
+            return GetInstance<T>() ??  throw new InvalidOperationException(
                        @"A required dependency injection class is missing.
                        Please ensure that you have called the proper Activate() class in the 
                        support assembly (e.g. Couchbase.Lite.Support.UWP.Activate()) or that you 

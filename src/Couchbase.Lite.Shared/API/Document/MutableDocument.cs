@@ -229,7 +229,7 @@ namespace Couchbase.Lite
                 FLError err;
                 body = NativeRaw.FLEncoder_Finish(encoder, &err);
                 if (body.buf == null) {
-                    throw new LiteCoreException(new C4Error(err));
+                    throw new CouchbaseFleeceException(err);
                 }
             });
 

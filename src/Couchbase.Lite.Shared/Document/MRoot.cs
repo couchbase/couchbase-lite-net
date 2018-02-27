@@ -104,7 +104,7 @@ namespace Couchbase.Lite.Internal.Doc
             FLError error;
             var result = NativeRaw.FLEncoder_Finish(enc, &error);
             if (result.buf == null) {
-                throw new LiteCoreException(new C4Error(error));
+                throw new CouchbaseFleeceException(error);
             }
 
             return result;
@@ -119,7 +119,7 @@ namespace Couchbase.Lite.Internal.Doc
             FLError error;
             var result = NativeRaw.FLEncoder_Finish(enc, &error);
             if (result.buf == null) {
-                throw new LiteCoreException(new C4Error(error));
+                throw new CouchbaseFleeceException(error);
             }
 
             return result;

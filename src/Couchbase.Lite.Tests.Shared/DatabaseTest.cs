@@ -97,13 +97,13 @@ namespace Test
         [Fact]
         public void TestCreateWithEmptyDBNames()
         {
-            LiteCoreException e = null; ;
+            CouchbaseLiteException e = null; ;
             try {
                 OpenDB("");
-            } catch (LiteCoreException ex) {
+            } catch (CouchbaseLiteException ex) {
                 e = ex;
-                ex.Error.code.Should().Be((int)C4ErrorCode.WrongFormat, "because the database cannot have an empty name");
-                ex.Error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain, "because this is a LiteCore error");
+                ex.Error.Should().Be(CouchbaseLiteError.WrongFormat, "because the database cannot have an empty name");
+                ex.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite, "because this is a LiteCore error");
             }
 
             e.Should().NotBeNull("because an exception is expected");
@@ -234,8 +234,10 @@ namespace Test
                 doc.SetInt("key", 2);
                 otherDB.Invoking(d => d.Save(doc))
                     .ShouldThrow<CouchbaseLiteException>()
-                    .Which.Status.Should()
-                    .Be(StatusCode.Forbidden, "because a document cannot be saved into another database instance");
+                    .Where(
+                        e => e.Error == CouchbaseLiteError.InvalidParameter &&
+                             e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
+                        "because a document cannot be saved into another database instance");
             }
         }
 
@@ -251,8 +253,10 @@ namespace Test
                 doc.SetInt("key", 2);
                 otherDB.Invoking(d => d.Save(doc))
                     .ShouldThrow<CouchbaseLiteException>()
-                    .Which.Status.Should()
-                    .Be(StatusCode.Forbidden, "because a document cannot be saved into another database");
+                    .Where(
+                        e => e.Error == CouchbaseLiteError.InvalidParameter &&
+                             e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
+                        "because a document cannot be saved into another database");
                 DeleteDB(otherDB);
             }
         }
@@ -285,7 +289,10 @@ namespace Test
                 doc1a.SetString("name", "Jim");
                 Db.Save(doc1a);
                 doc1b.SetString("name", "Tim");
-                Db.Invoking(db => db.Save(doc1b, ConcurrencyControl.FailOnConflict)).ShouldThrow<LiteCoreException>();
+                Db.Invoking(db => db.Save(doc1b, ConcurrencyControl.FailOnConflict))
+                    .ShouldThrow<CouchbaseLiteException>().Where(x =>
+                        x.Domain == CouchbaseLiteErrorType.CouchbaseLite &&
+                        x.Error == CouchbaseLiteError.Conflict);
                 using (var gotDoc = Db.GetDocument(doc1a.Id)) {
                     gotDoc.GetString("name").Should().Be("Jim");
                 }
@@ -331,8 +338,10 @@ namespace Test
 
             Db.Invoking(d => d.Delete(doc))
                 .ShouldThrow<CouchbaseLiteException>()
-                .Which.Status.Should()
-                .Be(StatusCode.NotAllowed, "because deleting an unsaved document is not allowed");
+                .Where(
+                    e => e.Error == CouchbaseLiteError.InvalidParameter &&
+                         e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
+                    "because deleting an unsaved document is not allowed");
             Db.Count.Should().Be(0UL, "because the database should still be empty");
         }
 
@@ -361,8 +370,10 @@ namespace Test
                     .Be(1UL, "because the other database instance should reflect existing data");
                 otherDB.Invoking(d => d.Delete(doc))
                     .ShouldThrow<CouchbaseLiteException>()
-                    .Which.Status.Should()
-                    .Be(StatusCode.Forbidden, "because a document cannot be deleted from another database instance");
+                    .Where(
+                        e => e.Error == CouchbaseLiteError.InvalidParameter &&
+                             e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
+                        "because a document cannot be deleted from another database instance");
 
                 otherDB.Count.Should().Be(1UL, "because the delete failed");
                 Db.Count.Should().Be(1UL, "because the delete failed");
@@ -382,8 +393,10 @@ namespace Test
                     .Be(0UL, "because the other database should be empty");
                 otherDB.Invoking(d => d.Delete(doc))
                     .ShouldThrow<CouchbaseLiteException>()
-                    .Which.Status.Should()
-                    .Be(StatusCode.Forbidden, "because a document cannot be deleted from another database");
+                    .Where(
+                        e => e.Error == CouchbaseLiteError.InvalidParameter &&
+                             e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
+                        "because a document cannot be deleted from another database");
 
                 otherDB.Count.Should().Be(0UL, "because the database is still empty");
                 Db.Count.Should().Be(1UL, "because the delete failed");
@@ -440,7 +453,9 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc.SetInt("key", 1);
 
-            Db.Purge(doc);
+            Db.Invoking(db => db.Purge(doc)).ShouldThrow<CouchbaseLiteException>()
+                .Where(e => e.Error == CouchbaseLiteError.NotFound);
+
             Db.Count.Should().Be(0UL, "because the database should still be empty");
         }
 
@@ -464,8 +479,9 @@ namespace Test
                     .Be(1UL, "because the other database instance should reflect existing data");
                 otherDB.Invoking(d => d.Purge(doc))
                     .ShouldThrow<CouchbaseLiteException>()
-                    .Which.Status.Should()
-                    .Be(StatusCode.Forbidden, "because a document cannot be purged from another database instance");
+                    .Where(
+                        e => e.Error == CouchbaseLiteError.InvalidParameter &&
+                             e.Domain == CouchbaseLiteErrorType.CouchbaseLite, "because a document cannot be purged from another database instance");
 
                 otherDB.Count.Should().Be(1UL, "because the delete failed");
                 Db.Count.Should().Be(1UL, "because the delete failed");
@@ -485,8 +501,9 @@ namespace Test
                     .Be(0UL, "because the other database should be empty");
                 otherDB.Invoking(d => d.Purge(doc))
                     .ShouldThrow<CouchbaseLiteException>()
-                    .Which.Status.Should()
-                    .Be(StatusCode.Forbidden, "because a document cannot be purged from another database");
+                    .Where(
+                        e => e.Error == CouchbaseLiteError.InvalidParameter &&
+                             e.Domain == CouchbaseLiteErrorType.CouchbaseLite, "because a document cannot be purged from another database");
 
                 otherDB.Count.Should().Be(0UL, "because the database is still empty");
                 Db.Count.Should().Be(1UL, "because the delete failed");
@@ -626,10 +643,9 @@ namespace Test
             {
                 Db.Close();
             }))
-            .ShouldThrow<LiteCoreException>()
-            .Which.Error.Should()
-            .Match<C4Error>(
-                e => e.code == (int) C4ErrorCode.TransactionNotClosed && e.domain == C4ErrorDomain.LiteCoreDomain,
+            .ShouldThrow<CouchbaseLiteException>()
+            .Where(
+                e => e.Error == CouchbaseLiteError.TransactionNotClosed && e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
                 "because a database can't be closed in the middle of a batch");
         }
 
@@ -698,10 +714,9 @@ namespace Test
             {
                 Db.Delete();
             }))
-            .ShouldThrow<LiteCoreException>()
-            .Which.Error.Should()
-            .Match<C4Error>(
-                e => e.code == (int)C4ErrorCode.TransactionNotClosed && e.domain == C4ErrorDomain.LiteCoreDomain,
+            .ShouldThrow<CouchbaseLiteException>()
+            .Where(
+                e => e.Error == CouchbaseLiteError.TransactionNotClosed && e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
                 "because a database can't be closed in the middle of a batch");
         }
 
@@ -710,10 +725,9 @@ namespace Test
         {
             using (var otherDB = OpenDB(Db.Name)) {
                 Db.Invoking(d => d.Delete())
-                    .ShouldThrow<LiteCoreException>()
-                    .Which.Error.Should()
-                    .Match<C4Error>(e => e.code == (int) C4ErrorCode.Busy &&
-                                         e.domain == C4ErrorDomain.LiteCoreDomain,
+                    .ShouldThrow<CouchbaseLiteException>()
+                    .Where(e => e.Error == CouchbaseLiteError.Busy &&
+                                         e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
                         "because an in-use database cannot be deleted");
             }
         }
@@ -739,7 +753,8 @@ namespace Test
                 {
                     Database.Delete("db", null);
                 };
-                a.ShouldThrow<LiteCoreException>().Which.Error.Should().Be(new C4Error(C4ErrorCode.Busy));
+                a.ShouldThrow<CouchbaseLiteException>().Where(e =>
+                    e.Error == CouchbaseLiteError.Busy && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
             }
         }
 
@@ -769,13 +784,13 @@ namespace Test
                 Directory = dir
             };
             using (var db = new Database("db", options)) {
-                LiteCoreException e = null;
+                CouchbaseLiteException e = null;
                 try {
                     Database.Delete("db", dir);
-                } catch (LiteCoreException ex) {
+                } catch (CouchbaseLiteException ex) {
                     e = ex;
-                    ex.Error.code.Should().Be((int) C4ErrorCode.Busy, "because an in-use database cannot be deleted");
-                    ex.Error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain, "because this is a LiteCore error");
+                    ex.Error.Should().Be(CouchbaseLiteError.Busy, "because an in-use database cannot be deleted");
+                    ex.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite, "because this is a LiteCore error");
                 }
 
                 e.Should().NotBeNull("because an exception is expected");

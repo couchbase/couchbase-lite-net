@@ -226,7 +226,7 @@ namespace Test
 
             try {
                 Database.Delete($"{DatabaseName}{_counter}", Directory);
-            } catch (LiteCoreException) {
+            } catch (CouchbaseLiteException) {
                 // Change the DB Name so that not every single test after this fails,
                 // but also fail this test because it didn't clean up properly
                 _counter++;

@@ -469,7 +469,7 @@ namespace Couchbase.Lite.Sync
         {
             Exception error = null;
             if (state.error.code > 0) {
-                error = new LiteCoreException(state.error);
+                error = CouchbaseException.Create(state.error);
             }
 
             _rawStatus = state;

@@ -146,7 +146,7 @@ namespace Couchbase.Lite.Sync
                     }
 
                     if (++_redirectCount > MaxRedirects) {
-                        Error = new HttpLogicException(HttpLogicError.TooManyRedirects);
+                        Error = new CouchbaseNetworkException(C4NetworkErrorCode.TooManyRedirects);
                     } else if (!Redirect(parser)) {
                         Error = new HttpLogicException(HttpLogicError.BadRedirectLocation);
                     } else {
@@ -159,7 +159,7 @@ namespace Couchbase.Lite.Sync
                     var authResponse = parser.Headers.Get("WWW-Authenticate");
                     if (authResponse == null) {
                         Log.To.Sync.W(Tag, "HTTP missing WWW-Authenticate response!");
-                        Error = new LiteCoreException(new C4Error(C4ErrorCode.RemoteError));
+                        Error = new CouchbaseLiteException(C4ErrorCode.RemoteError);
                         break;
                     }
 

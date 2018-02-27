@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Internal.Doc
                 C4Error err;
                 var retVal = Native.c4stream_getLength(_readStream, &err);
                 if(err.code != 0) {
-                    throw new LiteCoreException(err);
+                    throw CouchbaseException.Create(err);
                 }
 
                 _length = retVal;

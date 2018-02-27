@@ -80,10 +80,9 @@ namespace Test
             doc.ToDictionary().Should().BeEmpty("because the document has no properties");
 
             Db.Invoking(d => d.Save(doc))
-                .ShouldThrow<LiteCoreException>()
-                .Which.Error.Should()
-                .Match<C4Error>(e => e.code == (int) C4ErrorCode.BadDocID &&
-                                     e.domain == C4ErrorDomain.LiteCoreDomain);
+                .ShouldThrow<CouchbaseLiteException>()
+                .Where(e => e.Error == CouchbaseLiteError.BadDocID &&
+                                     e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
         }
 
         [Fact]
@@ -1334,8 +1333,9 @@ namespace Test
 
             Db.Invoking(d => d.Delete(doc))
                 .ShouldThrow<CouchbaseLiteException>()
-                .Which.Status.Should()
-                .Be(StatusCode.NotAllowed, "because deleting a non-existent document is invalid");
+                .Where(
+                    e => e.Error == CouchbaseLiteError.InvalidParameter &&
+                         e.Domain == CouchbaseLiteErrorType.CouchbaseLite, "because deleting a non-existent document is invalid");
             doc.IsDeleted.Should().BeFalse("beacuse the document is still not deleted");
             doc.GetString("name").Should().Be("Scott Tiger", "because the delete was invalid");
         }
@@ -1408,9 +1408,9 @@ namespace Test
             doc.SetString("type", "profile");
             doc.SetString("name", "Scott");
             doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
-
-            // TODO
-            //Db.Invoking(db => db.Purge(doc)).ShouldThrow<LiteCoreException>();
+            
+            Db.Invoking(db => db.Purge(doc)).ShouldThrow<CouchbaseLiteException>().Where(e =>
+                e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
 
             // Save:
             SaveDocument(doc);

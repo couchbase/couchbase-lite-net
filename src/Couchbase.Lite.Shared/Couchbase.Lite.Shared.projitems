@@ -9,7 +9,6 @@
     <Import_RootNamespace>Couchbase.Lite.Shared</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)API\CouchbaseLiteException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Database.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DatabaseChangedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DatabaseConfiguration.cs" />
@@ -82,6 +81,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\QueryBuilder.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Result.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\SelectResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\RuntimeException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\Authenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\BasicAuthenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\HttpLogicException.cs" />

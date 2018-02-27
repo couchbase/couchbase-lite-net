@@ -205,7 +205,7 @@ namespace Couchbase.Lite.Sync
         private static string Base64Digest(string input)
         {
             var data = Encoding.ASCII.GetBytes(input);
-            var engine = SHA1.Create() ?? throw new CouchbaseLiteException(StatusCode.Unknown, "Failed to create SHA1 instance");
+            var engine = SHA1.Create() ?? throw new RuntimeException("Failed to create SHA1 instance");
             var hashed = engine.ComputeHash(data);
             return Convert.ToBase64String(hashed);
         }
@@ -431,7 +431,7 @@ namespace Couchbase.Lite.Sync
         private void StartInternal()
         {
             Log.To.Sync.I(Tag, $"WebSocket connecting to {_logic.UrlRequest?.Host}:{_logic.UrlRequest?.Port}");
-            var rng = RandomNumberGenerator.Create() ?? throw new CouchbaseLiteException(StatusCode.Unknown, "Failed to create RandomNumberGenerator");
+            var rng = RandomNumberGenerator.Create() ?? throw new RuntimeException("Failed to create RandomNumberGenerator");
             var nonceBytes = new byte[16];
             rng.GetBytes(nonceBytes);
             var nonceKey = Convert.ToBase64String(nonceBytes);

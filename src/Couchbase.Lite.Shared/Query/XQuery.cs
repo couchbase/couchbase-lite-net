@@ -217,7 +217,7 @@ namespace Couchbase.Lite.Internal.Query
                 }
                 
                 if (map.ContainsKey(name)) {
-                    throw new CouchbaseLiteException(StatusCode.InvalidQuery, $"Duplicate select result named {name}");
+                    throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery, $"Duplicate select result named {name}");
                 }
 
                 map[name] = index;
