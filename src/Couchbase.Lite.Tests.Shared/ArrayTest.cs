@@ -59,9 +59,9 @@ namespace Test
                 .As<MutableArrayObject>()
                 .Should()
                 .BeSameAs(array, "because the doc should return the same object");
-
-            var savedDoc = Db.Save(doc);
-            savedDoc.GetArray("array").ToList().Should().BeEmpty("because no objects were inserted");
+            
+            SaveDocument(doc,
+                d => { d.GetArray("array").ToList().Should().BeEmpty("because no objects were inserted"); });
         }
 
         [Fact]
@@ -79,8 +79,7 @@ namespace Test
                 .Should()
                 .BeSameAs(array, "because the doc should return the same object");
 
-            var savedDoc = Db.Save(doc);
-            savedDoc.GetArray("array").ToList().Should().ContainInOrder(data, "because the contents should match");
+            SaveDocument(doc, d => { d.GetArray("array").Should().ContainInOrder(data); });
         }
 
         [Fact]
@@ -95,8 +94,8 @@ namespace Test
 
             var doc = new MutableDocument("doc1");
             doc.SetArray("array", array);
-            var savedDoc = Db.Save(doc);
-            doc = savedDoc.ToMutable();
+            SaveDocument(doc);
+            doc = Db.GetDocument(doc.Id).ToMutable();
 
             var gotArray = doc.GetArray("array");
             data = new[] {"4", "5", "6"};
@@ -145,38 +144,40 @@ namespace Test
             var array = new MutableArrayObject();
             PopulateData(array);
 
-            var doc = new MutableDocument("doc1");
-            doc.SetArray("array", array);
-            doc = Db.Save(doc).ToMutable();
+            using (var doc = new MutableDocument("doc1")) {
+                doc.SetArray("array", array);
+                SaveDocument(doc);
 
-            var gotArray = doc.GetArray("array");
-            gotArray.Should().NotBeNull("because an array should be present at this key");
+                array = doc.GetArray("array");
+                array.Should().NotBeNull("because an array should be present at this key");
 
-            PopulateData(array); // Extra stuff
-            SaveArray(array, doc, "array", a =>
-            {
-                a.Count.Should().Be(22, "because 11 entries were added");
-                a.GetValue(11).Should().Be(true, "because that is what was added");
-                a.GetValue(12).Should().Be(false, "because that is what was added");
-                a.GetValue(13).Should().Be("string", "because that is what was added");
-                a.GetInt(14).Should().Be(0, "because that is what was added");
-                a.GetInt(15).Should().Be(1, "because that is what was added");
-                a.GetInt(16).Should().Be(-1, "because that is what was added");
-                a.GetValue(17).Should().Be(1.1, "because that is what was added");
-                a.GetDate(18).Should().Be(ArrayTestDate, "because that is what was added");
+                PopulateData(array); // Extra stuff
+                SaveDocument(doc, d =>
+                {
+                    var a = d.GetArray("array");
+                    a.Count.Should().Be(22, "because 11 entries were added");
+                    a.GetValue(11).Should().Be(true, "because that is what was added");
+                    a.GetValue(12).Should().Be(false, "because that is what was added");
+                    a.GetValue(13).Should().Be("string", "because that is what was added");
+                    a.GetInt(14).Should().Be(0, "because that is what was added");
+                    a.GetInt(15).Should().Be(1, "because that is what was added");
+                    a.GetInt(16).Should().Be(-1, "because that is what was added");
+                    a.GetValue(17).Should().Be(1.1, "because that is what was added");
+                    a.GetDate(18).Should().Be(ArrayTestDate, "because that is what was added");
 
-                var subdict = a.GetDictionary(19);
-                subdict.Should().NotBeNull("because a dictionary should be present at this index");
-                subdict.ToDictionary()
-                    .ShouldBeEquivalentTo(new Dictionary<string, object> {
-                        ["name"] = "Scott Tiger"
-                    }, "because that is what was added");
+                    var subdict = a.GetDictionary(19);
+                    subdict.Should().NotBeNull("because a dictionary should be present at this index");
+                    subdict.ToDictionary()
+                        .ShouldBeEquivalentTo(new Dictionary<string, object> { ["name"] = "Scott Tiger" },
+                            "because that is what was added");
 
-                var subarray = a.GetArray(20);
-                subarray.Should().NotBeNull("because an array should be present at this index");
-                subarray.ToList().Should().ContainInOrder(new[] { "a", "b", "c" }, "because that is what was added");
-                a.GetBlob(21).Should().Be(ArrayTestBlob(), "because that is what was added");
-            });
+                    var subarray = a.GetArray(20);
+                    subarray.Should().NotBeNull("because an array should be present at this index");
+                    subarray.ToList().Should()
+                        .ContainInOrder(new[] { "a", "b", "c" }, "because that is what was added");
+                    a.GetBlob(21).Should().Be(ArrayTestBlob(), "because that is what was added");
+                });
+            }
         }
 
         [Fact]
@@ -229,7 +230,7 @@ namespace Test
 
             var doc = new MutableDocument("doc1");
             doc.SetArray("array", array);
-            doc = Db.Save(doc).ToMutable();
+            Db.Save(doc);
             var gotArray = doc.GetArray("array");
 
             var data = CreateArrayOfAllTypes();
@@ -306,7 +307,7 @@ namespace Test
         {
             var doc = new MutableDocument("doc1");
             doc.SetArray("array", new MutableArrayObject());
-            doc = Db.Save(doc).ToMutable();
+            SaveDocument(doc);
 
             var array = doc.GetArray("array");
             array.Should().NotBeNull("because an array exists at this key");
@@ -384,7 +385,7 @@ namespace Test
 
             var doc = new MutableDocument("doc1");
             doc.SetArray("array", array);
-            doc = Db.Save(doc).ToMutable();
+            SaveDocument(doc);
             var gotArray = doc.GetArray("array");
 
             for (int i = gotArray.Count - 1; i >= 0; i--) {
@@ -708,7 +709,8 @@ namespace Test
             using (var mDoc = new MutableDocument("test")) {
                 mDoc.SetArray("array", mArray);
 
-                using (var doc = Db.Save(mDoc)) {
+                SaveDocument(mDoc);
+                using (var doc = Db.GetDocument(mDoc.Id)) {
                     var array = doc.GetArray("array");
                     array.Should().NotBeNull();
                     array.GetArray(0).Should().BeNull();
@@ -796,16 +798,13 @@ namespace Test
             array1.Should().ContainInOrder(new[] { "a", "b", "c", "d" }, "because otherwise the contents are incorrect");
             array2.Count.Should().Be(3, "because array1 should not affect array2");
             array2.Should().ContainInOrder(new[] { "x", "y", "z" }, "because array1 should not affect array2");
-
-            var savedDoc = Db.Save(doc);
-
-            savedDoc.GetArray("array")
-                .As<object>()
-                .Should()
-                .NotBeSameAs(array2, "because a new doc should return a new object");
-            var savedArray = savedDoc.GetArray("array");
-            savedArray.Count.Should().Be(3, "because there are still just three items");
-            savedArray.Should().ContainInOrder(new[] { "x", "y", "z" }, "because otherwise the contents are incorrect");
+            
+            SaveDocument(doc, d =>
+            {
+                var savedArray = d.GetArray("array");
+                savedArray.Count.Should().Be(3, "because there are still just three items");
+                savedArray.Should().ContainInOrder(new[] { "x", "y", "z" }, "because otherwise the contents are incorrect");
+            });
         }
 
         [Fact]
@@ -828,8 +827,8 @@ namespace Test
             array1.Count.Should().Be(4, "because another element was added");
             array1.Should().ContainInOrder(new[] { "a", "b", "c", "d" }, "because otherwise the contents are incorrect");
 
-            var savedDoc = Db.Save(doc);
-            savedDoc.GetValue("array").Should().Be("Daniel Tiger", "because that is what was saved");
+            SaveDocument(doc,
+                d => { d.GetValue("array").Should().Be("Daniel Tiger", "because that is what was saved"); });
         }
 
         [Fact]
@@ -1379,8 +1378,9 @@ namespace Test
             eval(array);
 
             doc.SetArray(key, array);
-            var savedDoc = Db.Save(doc);
-            
+            Db.Save(doc);
+            var savedDoc = Db.GetDocument(doc.Id);
+
             var savedArray = savedDoc.GetArray("array");
             eval(savedArray);
 

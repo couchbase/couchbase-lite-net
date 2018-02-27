@@ -65,7 +65,6 @@ namespace Couchbase.Lite.Sync
 
         [NotNull]private readonly Freezer _freezer = new Freezer();
         private Authenticator _authenticator;
-        [NotNull]private IConflictResolver _conflictResolver = new DefaultConflictResolver();
         private bool _continuous;
         private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
         private Uri _remoteUrl;
@@ -101,18 +100,6 @@ namespace Couchbase.Lite.Sync
         {
             get => Options.CheckpointInterval;
             set => _freezer.PerformAction(() => Options.CheckpointInterval = value);
-        }
-
-        /// <summary>
-        /// Gets or sets the object to use when resolving incoming conflicts.  The default
-        /// is <c>null</c> which will set up the default algorithm of the most active revision
-        /// </summary>
-        [NotNull]
-        internal IConflictResolver ConflictResolver
-        {
-            get => _conflictResolver;
-            set => _freezer.SetValue(ref _conflictResolver,
-                CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(ConflictResolver), value));
         }
 
         /// <summary>
@@ -227,7 +214,6 @@ namespace Couchbase.Lite.Sync
             var retVal = new ReplicatorConfiguration(Database, Target)
             {
                 Authenticator = Authenticator,
-                ConflictResolver = ConflictResolver,
                 Continuous = Continuous,
                 ReplicatorType = ReplicatorType,
                 Options = Options

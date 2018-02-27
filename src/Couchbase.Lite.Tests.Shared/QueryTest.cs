@@ -1260,7 +1260,7 @@ namespace Test
             foreach (var data in testData) {
                 using (var doc = new MutableDocument()) {
                     doc.SetString("value", data.Item1);
-                    var savedDoc = Db.Save(doc);
+                    Db.Save(doc);
 
                     var comparison = data.Item3
                         ? Expression.Property("value").Collate(data.Item4).EqualTo(Expression.String(data.Item2))
@@ -1274,7 +1274,7 @@ namespace Test
                             $"because otherwise the comparison failed for {data.Item1} and {data.Item2} (position {i})");
                     }
 
-                    Db.Delete(savedDoc);
+                    Db.Delete(Db.GetDocument(doc.Id));
                 }
 
                 i++;
@@ -1377,15 +1377,15 @@ namespace Test
             using (var bookmark2 = new MutableDocument("bookmark2")) {
                 hotel1.SetString("type", "hotel");
                 hotel1.SetString("name", "Hilton");
-                Db.Save(hotel1).Dispose();
+                Db.Save(hotel1);
 
                 hotel2.SetString("type", "hotel");
                 hotel2.SetString("name", "Sheraton");
-                Db.Save(hotel2).Dispose();
+                Db.Save(hotel2);
 
                 hotel3.SetString("type", "hotel");
                 hotel3.SetString("name", "Marriot");
-                Db.Save(hotel3).Dispose();
+                Db.Save(hotel3);
 
                 bookmark1.SetString("type", "bookmark");
                 bookmark1.SetString("title", "Bookmark for Hawaii");
@@ -1537,7 +1537,7 @@ namespace Test
 
             using (var doc1 = new MutableDocument("joinme")) {
                 doc1.SetInt("theone", 42);
-                Db.Save(doc1).Dispose();
+                Db.Save(doc1);
             }
 
             var mainDS = DataSource.Database(Db).As("main");
@@ -1586,7 +1586,7 @@ namespace Test
             using (var doc1 = new MutableDocument("joinme")) {
                 doc1.SetInt("theone", 42);
                 doc1.SetString("numberID", "doc1");
-                Db.Save(doc1).Dispose();
+                Db.Save(doc1);
             }
 
             var mainDS = DataSource.Database(Db).As("main");
@@ -1628,7 +1628,7 @@ namespace Test
                 doc1.SetInt("theone", 42);
                 doc1.SetString("numberID", "doc1");
                 doc1.SetString("nullval", null);
-                Db.Save(doc1).Dispose();
+                Db.Save(doc1);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Property("name"), SelectResult.Property("nullval"))
@@ -1689,7 +1689,7 @@ namespace Test
                 doc.SetDate("created_at", now);
                 doc.SetFloat("simple_pi", 3.14159f);
                 doc.SetLong("big_num", Int64.MaxValue);
-                Db.Save(doc).Dispose();
+                Db.Save(doc);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Property("array"),
@@ -1726,12 +1726,12 @@ namespace Test
 
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("passage", "The boy said to the child, 'Mommy, I want a cat.'");
-                Db.Save(doc1).Dispose();
+                Db.Save(doc1);
             }
 
             using (var doc2 = new MutableDocument("doc2")) {
                 doc2.SetString("passage", "The mother replied 'No, you already have too many cats.'");
-                Db.Save(doc2).Dispose();
+                Db.Save(doc2);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
@@ -1757,12 +1757,12 @@ namespace Test
 
         private Document CreateTaskDocument(string title, bool complete)
         {
-            using (var doc = new MutableDocument()) {
-                doc.SetString("type", "task");
-                doc.SetString("title", title);
-                doc.SetBoolean("complete", complete);
-                return Db.Save(doc);
-            }
+            var doc = new MutableDocument();
+            doc.SetString("type", "task");
+            doc.SetString("title", title);
+            doc.SetBoolean("complete", complete);
+            Db.Save(doc);
+            return doc;
         }
 
         private async Task TestLiveQueryNoUpdateInternal(bool consumeAll)

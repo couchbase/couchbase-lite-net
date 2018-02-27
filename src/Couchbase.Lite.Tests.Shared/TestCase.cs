@@ -18,6 +18,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
@@ -25,6 +26,8 @@ using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 
 using FluentAssertions;
+using FluentAssertions.Execution;
+
 using Newtonsoft.Json;
 using Test.Util;
 using LiteCore;
@@ -63,8 +66,6 @@ namespace Test
 #endif
 
         protected Database Db { get; private set; }
-
-        internal IConflictResolver ConflictResolver { get; set; }
 
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
@@ -106,7 +107,8 @@ namespace Test
         {
             WriteLine("Before Save...");
             eval(document);
-            using (var retVal = Db.Save(document)) {
+            Db.Save(document);
+            using (var retVal = Db.GetDocument(document.Id)) {
                 WriteLine("After Save...");
                 eval(retVal);
             }
@@ -145,10 +147,6 @@ namespace Test
                 Directory = Directory
             };
 
-            if (ConflictResolver != null) {
-                builder.ConflictResolver = ConflictResolver;
-            }
-
             return new Database(name, builder);
         }
 
@@ -157,6 +155,67 @@ namespace Test
             Db.Dispose();
             Db = null;
             OpenDB();
+        }
+
+        protected void SaveDocument(MutableDocument document)
+        {
+            Db.Save(document);
+
+            using (var savedDoc = Db.GetDocument(document.Id)) {
+                savedDoc.Id.Should().Be(document.Id);
+                if (!TestObjectEquality(document.ToDictionary(), savedDoc.ToDictionary())) {
+                    throw new AssertionFailedException($"Expected the saved document to match the original");
+                }
+            }
+        }
+
+        private bool TestObjectEquality(object o1, object o2)
+        {
+            switch (o1) {
+                    case IEnumerable<KeyValuePair<string, object>> e:
+                        return TestObjectEquality(e, o2 as IEnumerable<KeyValuePair<string, object>>);
+                    case IEnumerable<object> e:
+                        return TestObjectEquality(e, o2 as IEnumerable<object>);
+                    default:
+                        return Equals(o1, o2);
+            }
+        }
+
+        private bool TestObjectEquality(IEnumerable<KeyValuePair<string, object>> dic1, IEnumerable<KeyValuePair<string, object>> dic2)
+        {
+            if (dic2 == null) {
+                return false;
+            }
+
+            foreach (var pair in dic1) {
+                var second = dic2.FirstOrDefault(x => x.Key.Equals(pair.Key, StringComparison.Ordinal));
+                if (String.CompareOrdinal(pair.Key, second.Key) != 0) {
+                    throw new AssertionFailedException(
+                        $"Expected a dictionary to contain the key {pair.Key} but it didn't");
+                }
+
+                if (!TestObjectEquality(pair.Value, second.Value)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool TestObjectEquality(IEnumerable<object> arr1, IEnumerable<object> arr2)
+        {
+            if (arr2 == null) {
+                return false;
+            }
+
+            foreach (var entry in arr1) {
+                var second = arr2.FirstOrDefault(x => TestObjectEquality(entry, x));
+                if (entry != null && second == null) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         protected virtual void Dispose(bool disposing)

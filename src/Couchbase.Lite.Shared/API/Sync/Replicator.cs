@@ -314,7 +314,7 @@ namespace Couchbase.Lite.Sync
                 var safeDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
                 Log.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
                 try {
-                    Config.Database.ResolveConflict(docID, Config.ConflictResolver);
+                    Config.Database.ResolveConflict(docID);
                 } catch (Exception e) {
                     Log.To.Sync.W(Tag, $"Conflict resolution of '{logDocID}' failed", e);
                 }

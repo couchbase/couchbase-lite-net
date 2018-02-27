@@ -464,7 +464,8 @@ namespace Test
             for (uint i = 1; i <= count; i++) {
                 var doc = CreateDocument(tag);
                 WriteLine($"[{tag}] rounds: {i} saving {doc.Id}");
-                yield return Db.Save(doc);
+                Db.Save(doc);
+                yield return doc;
             }
         }
 

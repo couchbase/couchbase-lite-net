@@ -67,7 +67,7 @@ namespace Test
         }
 #endif
 
-        #if COUCHBASE_ENTERPRISE
+        #if COUCHBASE_ENTERPRISE_FUTURE
         [Fact]
         public void TestEncryptionKey()
         {

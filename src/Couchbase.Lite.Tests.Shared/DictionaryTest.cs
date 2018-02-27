@@ -332,10 +332,11 @@ namespace Test
             doc.GetValue("profile").Should()
                 .BeNull("because changes to the dictionary should not have any affect anymore");
 
-            var savedDoc = Db.Save(doc);
-
-            savedDoc.GetValue("profile").Should().BeNull("beacuse the value for 'profile' was removed");
-            savedDoc.Contains("profile").Should().BeFalse("because the value was removed");
+            SaveDocument(doc, d =>
+            {
+                d.GetValue("profile").Should().BeNull("beacuse the value for 'profile' was removed");
+                d.Contains("profile").Should().BeFalse("because the value was removed");
+            });
         }
 
         [Fact]
@@ -388,8 +389,8 @@ namespace Test
                 doc.SetLong("num1", num1);
                 doc.SetLong("num2", num2);
                 doc.SetLong("num3", num3);
-                using (var saved = Db.Save(doc)) 
-                using (var newDoc = saved.ToMutable()) {
+                Db.Save(doc);
+                using (var newDoc = Db.GetDocument(doc.Id).ToMutable()) {
                     newDoc.GetLong("num1").Should().Be(num1);
                     newDoc.GetLong("num2").Should().Be(num2);
                     newDoc.GetLong("num3").Should().Be(num3);
@@ -406,8 +407,8 @@ namespace Test
                 var num2 = 231548688L;
                 doc.SetLong("num1", num1);
                 doc.SetLong("num2", num2);
-                using (var saved = Db.Save(doc)) 
-                using (var newDoc = saved.ToMutable()) {
+                Db.Save(doc);
+                using (var newDoc = Db.GetDocument(doc.Id).ToMutable()) {
                     newDoc.GetLong("num1").Should().Be(num1);
                     newDoc.GetLong("num2").Should().Be(num2);
                 }
@@ -430,8 +431,9 @@ namespace Test
 
             using (var mDoc = new MutableDocument("test")) {
                 mDoc.SetDictionary("dict", mDict);
-
-                using (var doc = Db.Save(mDoc)) {
+                
+                Db.Save(mDoc);
+                using (var doc = Db.GetDocument(mDoc.Id).ToMutable()) {
                     var dict = doc.GetDictionary("dict");
                     dict.Should().NotBeNull();
                     dict.GetDictionary("not-exists").Should().BeNull();
@@ -458,8 +460,9 @@ namespace Test
 
             using (var mDoc = new MutableDocument("test")) {
                 mDoc.SetArray("array", mArray);
-
-                using (var doc = Db.Save(mDoc)) {
+                
+                Db.Save(mDoc);
+                using (var doc = Db.GetDocument(mDoc.Id).ToMutable()) {
                     var array = doc.GetArray("array");
                     array.Should().NotBeNull();
                     array.GetArray(0).Should().BeNull();

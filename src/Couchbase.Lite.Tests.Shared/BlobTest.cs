@@ -67,7 +67,8 @@ namespace Test
             var blob = new Blob("image/png", bytes);
             using (var mDoc = new MutableDocument("doc1")) {
                 mDoc.SetBlob("blob", blob);
-                using (var doc = Db.Save(mDoc)) {
+                Db.Save(mDoc);
+                using (var doc = Db.GetDocument(mDoc.Id)) {
                     var savedBlob = doc.GetBlob("blob");
                     savedBlob.Should().NotBeNull();
                     savedBlob.ContentType.Should().Be("image/png");
@@ -89,7 +90,8 @@ namespace Test
             var blob = new Blob("application/json", bytes);
             using (var mDoc = new MutableDocument("doc1")) {
                 mDoc.SetBlob("blob", blob);
-                using (var doc = Db.Save(mDoc)) {
+                Db.Save(mDoc);
+                using (var doc = Db.GetDocument(mDoc.Id)) {
                     var savedBlob = doc.GetBlob("blob");
                     savedBlob.Should().NotBeNull();
                     savedBlob.ContentType.Should().Be("application/json");

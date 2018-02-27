@@ -28,6 +28,8 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite.Support
 {
     /// <summary>
@@ -53,7 +55,7 @@ namespace Couchbase.Lite.Support
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-#if NETCOREAPP2_0
+#if NETCOREAPP2_0 || NET461
                 var codeBase = Path.GetDirectoryName(typeof(NetDesktop).GetTypeInfo().Assembly.Location);
                 if (codeBase == null) {
                     throw new DllNotFoundException(
@@ -108,11 +110,17 @@ namespace Couchbase.Lite.Support
         /// to the directory specified in <paramref name="directoryPath"/>
         /// </summary>
         /// <param name="directoryPath">The directory to write logs to</param>
+        [ContractAnnotation("null => halt")]
         public static void EnableTextLogging(string directoryPath)
         {
             Log.EnableTextLogging(new FileLogger(directoryPath));
         }
 
+        /// <summary>
+        /// Directs the binary log files to write to the specified directory.  Useful if
+        /// the default directory does not have write permission.
+        /// </summary>
+        /// <param name="directoryPath">The path to write binary logs to</param>
         public static void SetBinaryLogDirectory(string directoryPath)
         {
             Log.BinaryLogDirectory = directoryPath;

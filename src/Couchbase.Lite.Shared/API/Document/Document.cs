@@ -48,11 +48,6 @@ namespace Couchbase.Lite
         /// </summary>
         protected IDictionaryObject _dict;
 
-        /// <summary>
-        /// Whether or not the current document has been invalidated by a save or delete
-        /// </summary>
-        protected bool _isInvalidated;
-
         private MRoot _root;
 
         #endregion
@@ -111,8 +106,6 @@ namespace Couchbase.Lite
 
         internal virtual bool IsEmpty => _dict.Count == 0;
 
-        internal bool IsInvalidated => _isInvalidated;
-
         internal virtual bool IsMutable => false;
 
         [CanBeNull]
@@ -162,6 +155,7 @@ namespace Couchbase.Lite
         }
 
         internal Document([NotNull]Document other)
+            : this(other.Database, other.Id, other.c4Doc.Retain<C4DocumentWrapper>())
         {
             Debug.Assert(other != null);
 

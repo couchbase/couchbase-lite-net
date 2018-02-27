@@ -200,6 +200,7 @@ namespace Couchbase.Lite.Query
             return _deserialized[index] as string;
         }
 
+        /// <inheritdoc />
         public List<object> ToList()
         {
             return _deserialized.Select(DataOps.ToNetObject).ToList();

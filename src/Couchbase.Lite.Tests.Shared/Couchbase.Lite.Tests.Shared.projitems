@@ -12,7 +12,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)ArrayTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)BlobTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ConcurrencyTest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)ConflictTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CSharpTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DatabaseEncryptionTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DatabaseTest.cs" />

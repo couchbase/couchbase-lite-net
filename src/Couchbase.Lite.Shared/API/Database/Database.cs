@@ -43,6 +43,28 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
+
+    /// <summary>
+    /// Specifies the way that the library should behave when it encounters a situation
+    /// when the database has been altered since the last read (e.g. a local operation read
+    /// a document, modified it, and while it was being modified a replication committed a
+    /// change to the document, and then the local document was saved after that)
+    /// </summary>
+    public enum ConcurrencyControl
+    {
+        /// <summary>
+        /// Disregard the version that was received out of band and
+        /// force this version to be current
+        /// </summary>
+        LastWriteWins,
+
+        /// <summary>
+        /// Throw an exception to indicate the situation so that the latest
+        /// data can be read again from the local database
+        /// </summary>
+        FailOnConflict
+    }
+
     /// <summary>
     /// A container for storing and maintaining Couchbase Lite <see cref="Document"/>s
     /// </summary>
@@ -255,7 +277,7 @@ namespace Couchbase.Lite
 			{
 				var nativeConfig = DBConfig;
 
-                #if COUCHBASE_ENTERPRISE
+                #if COUCHBASE_ENTERPRISE_FUTURE
 				if (config?.EncryptionKey != null) {
 					var key = config.EncryptionKey;
 					var i = 0;
@@ -507,21 +529,28 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Deletes the given <see cref="Document"/> from the database
+        /// Deletes the given <see cref="Document"/> from this database.  This call is equivalent to calling
+        /// <see cref="Delete(Document, ConcurrencyControl)" /> with a second argument of
+        /// <see cref="ConcurrencyControl.LastWriteWins"/>
         /// </summary>
-        /// <param name="document">The document to delete</param>
+        /// <param name="document">The document to save</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to delete a document from a database
         /// other than the one it was previously added to</exception>
         [ContractAnnotation("null => halt")]
-        public void Delete(Document document)
-        {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(document), document);
+        public void Delete(Document document) => Delete(document, ConcurrencyControl.LastWriteWins);
 
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                Save(document, true);
-            });
+        /// <summary>
+        /// Deletes the given <see cref="Document"/> from this database
+        /// </summary>
+        /// <param name="document">The document to save</param>
+        /// <param name="concurrencyControl">The rule to use when encountering a conflict in the database</param>
+        /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
+        /// other than the one it was previously added to</exception>
+        [ContractAnnotation("document:null => halt")]
+        public void Delete(Document document, ConcurrencyControl concurrencyControl)
+        {
+            var doc = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(document), document);
+            Save(doc, concurrencyControl, true);
         }
 
         /// <summary>
@@ -671,22 +700,28 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Saves the given <see cref="MutableDocument"/> into this database
+        /// Saves the given <see cref="MutableDocument"/> into this database.  This call is equivalent to calling
+        /// <see cref="Save(MutableDocument, ConcurrencyControl)" /> with a second argument of
+        /// <see cref="ConcurrencyControl.LastWriteWins"/>
         /// </summary>
         /// <param name="document">The document to save</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
         /// other than the one it was previously added to</exception>
-        /// <returns>The document that was created as the new revision</returns>
-        [ContractAnnotation("null => halt; notnull => notnull")]
-        public Document Save(MutableDocument document)
-        {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(document), document);
+        [ContractAnnotation("null => halt")]
+        public void Save(MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
 
-            return ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                return Save(document, false);
-            });
+        /// <summary>
+        /// Saves the given <see cref="MutableDocument"/> into this database
+        /// </summary>
+        /// <param name="document">The document to save</param>
+        /// <param name="concurrencyControl">The rule to use when encountering a conflict in the database</param>
+        /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
+        /// other than the one it was previously added to</exception>
+        [ContractAnnotation("document:null => halt")]
+        public void Save(MutableDocument document, ConcurrencyControl concurrencyControl)
+        {
+            var doc = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(document), document);
+            Save(doc, concurrencyControl, false);
         }
 
         #if CBL_LINQ
@@ -710,7 +745,7 @@ namespace Couchbase.Lite
         }
         #endif
 
-        #if COUCHBASE_ENTERPRISE
+        #if COUCHBASE_ENTERPRISE_FUTURE
 		/// <summary>
 		/// Sets the encryption key for the database.  If null, encryption is
 		/// removed.
@@ -742,78 +777,32 @@ namespace Couchbase.Lite
 
         #region Internal Methods
         
-        internal void ResolveConflict([NotNull]string docID, [NotNull]IConflictResolver resolver)
+        internal void ResolveConflict([NotNull]string docID)
         {
             Debug.Assert(docID != null);
 
-            Document doc = null, otherDoc = null, baseDoc = null;
-            var inConflict = true;
-            while (inConflict) {
-                ThreadSafety.DoLocked(() =>
-                {
-                    LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
-                    try {
-                        doc = new Document(this, docID);
-                        if (!doc.Exists) {
-                            doc.Dispose();
-                            return;
-                        }
-
-                        otherDoc = new Document(this, docID);
-                        if (!otherDoc.Exists) {
-                            doc.Dispose();
-                            otherDoc.Dispose();
-                            return;
-                        }
-
-                        otherDoc.SelectConflictingRevision();
-                        baseDoc = new Document(this, docID);
-                        if (!baseDoc.SelectCommonAncestor(doc, otherDoc) || baseDoc.ToDictionary() == null) {
-                            baseDoc.Dispose();
-                            baseDoc = null;
-                        }
-
-                        LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, true, err));
-                    } catch (Exception) {
-                        doc?.Dispose();
-                        otherDoc?.Dispose();
-                        baseDoc?.Dispose();
-                        LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, false, err));
-                    }
-                });
-
-                var conflict = new Conflict(doc, otherDoc, baseDoc);
-                var logID = new SecureLogString(doc.Id, LogMessageSensitivity.PotentiallyInsecure);
-                Log.To.Database.I(Tag, $"Resolving doc '{logID}' with {resolver.GetType().Name} (mine={doc.RevID}, theirs={otherDoc.RevID}, base={baseDoc?.RevID})");
-                Document resolved = null;
-                try {
-                    resolved = resolver.Resolve(conflict);
-                    if (resolved == null) {
-                        throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
-                    }
-
-                    SaveResolvedDocument(resolved, conflict);
-                    inConflict = false;
-                } catch (LiteCoreException e) {
-                    if (e.Error.domain == C4ErrorDomain.LiteCoreDomain && e.Error.code == (int) C4ErrorCode.Conflict) {
-                        continue;
-                    }
-
-                    throw;
-                } finally {
-                    resolved?.Dispose();
-                    if (resolved != doc) {
-                        doc?.Dispose();
-                    }
-
-                    if (resolved != otherDoc) {
-                        otherDoc?.Dispose();
-                    }
-
-                    if (resolved != baseDoc) {
-                        baseDoc?.Dispose();
-                    }
+            var success = true;
+            LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
+            try {
+                var localDoc = new Document(this, docID);
+                if (!localDoc.Exists) {
+                    throw new LiteCoreException(new C4Error(C4ErrorCode.NotFound));
                 }
+
+                var remoteDoc = new Document(this, docID);
+                remoteDoc.SelectConflictingRevision();
+
+                // Resolve conflict:
+                Log.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
+                    new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevID,
+                    remoteDoc.RevID);
+                var resolvedDoc = ResolveConflict(localDoc, remoteDoc);
+                SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
+            } catch (Exception) {
+                success = false;
+                throw;
+            } finally {
+                LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, success, err));
             }
         }
 
@@ -891,7 +880,7 @@ namespace Couchbase.Lite
 
             if (!doc.Exists || doc.IsDeleted) {
                 doc.Dispose();
-                Log.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist or was deleted", 
+                Log.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist", 
                     new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
                 return null;
             }
@@ -911,7 +900,7 @@ namespace Couchbase.Lite
 
             var encrypted = "";
 
-            #if COUCHBASE_ENTERPRISE
+            #if COUCHBASE_ENTERPRISE_FUTURE
             if(Config.EncryptionKey != null) {
                 var key = Config.EncryptionKey;
                 var i = 0;
@@ -997,130 +986,91 @@ namespace Couchbase.Lite
             _documentChanged.Fire(documentID, this, change);
         }
 
-        [CanBeNull]
-        private Document Save([NotNull]Document document, bool deletion)
+        private Document ResolveConflict([NotNull]Document localDoc, [NotNull]Document remoteDoc)
         {
-            if (document.IsInvalidated) {
-                throw new CouchbaseLiteException(StatusCode.NotAllowed, "Cannot save or delete a MutableDocument that has already been used to save or delete");
+            if (remoteDoc.IsDeleted) {
+                return remoteDoc;
             }
 
+            if (localDoc.IsDeleted) {
+                return localDoc;
+            }
+
+            if (localDoc.Generation > remoteDoc.Generation) {
+                return localDoc;
+            }
+
+            if (remoteDoc.Generation > localDoc.Generation) {
+                return remoteDoc;
+            }
+
+            return String.CompareOrdinal(localDoc.RevID, remoteDoc.RevID) > 0 ? localDoc : remoteDoc;
+        }
+        
+        private void Save([NotNull]Document document, ConcurrencyControl concurrencyControl, bool deletion)
+        {
             if (deletion && document.RevID == null) {
                 throw new CouchbaseLiteException(StatusCode.NotAllowed, "Cannot delete a document that has not yet been saved");
             }
 
-            var docID = document.Id;
-            var doc = document;
-            Document baseDoc = null, otherDoc = null;
-            C4Document* newDoc = null;
-            Document retVal = null;
-
-            while (true) {
-                var resolve = false;
-                retVal = ThreadSafety.DoLocked(() =>
-                {
-                    VerifyDB(doc);
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                VerifyDB(document);
+                C4Document* curDoc = null;
+                C4Document* newDoc = null;
+                var committed = false;
+                try {
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
-                    try {
-                        if (deletion) {
-                            // Check for no-op case if the document does not exist
-                            var curDoc = (C4Document *)NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound))
-                                .Execute(err => Native.c4doc_get(_c4db, docID, true, err));
-                            if (curDoc == null) {
-                                (document as MutableDocument)?.MarkAsInvalidated();
-                                return null;
-                            }
-
-                            Native.c4doc_free(curDoc);
+                    Save(document, &newDoc, null, deletion);
+                    if (newDoc == null) {
+                        // Handle conflict:
+                        if (concurrencyControl == ConcurrencyControl.FailOnConflict) {
+                            throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
                         }
 
-                        var newDocOther = newDoc;
-                        Save(doc, &newDocOther, baseDoc?.c4Doc?.HasValue == true ? baseDoc.c4Doc.RawDoc : null, deletion);
-                        if (newDocOther != null) {
-                            // Save succeeded, so commit
-                            newDoc = newDocOther;
-                            LiteCoreBridge.Check(err =>
-                            {
-                                var success = Native.c4db_endTransaction(_c4db, true, err);
-                                if (!success) {
-                                    Native.c4doc_free(newDoc);
+                        C4Error err;
+                        curDoc = Native.c4doc_get(_c4db, document.Id, true, &err);
+
+                        // If deletion and the current oc has already been deleted
+                        // or doesn't exist:
+                        if (deletion) {
+                            if (curDoc == null) {
+                                if (err.code == (int) C4ErrorCode.NotFound) {
+                                    return;
                                 }
 
-                                return success;
-                            });
-
-                            (document as MutableDocument)?.MarkAsInvalidated();
-                            baseDoc?.Dispose();
-                            return new Document(this, docID, new C4DocumentWrapper(newDoc));
+                                throw new LiteCoreException(err);
+                            } else if (curDoc->flags.HasFlag(C4DocumentFlags.DocDeleted)) {
+                                document.c4Doc = new C4DocumentWrapper(curDoc);
+                                curDoc = null;
+                                return;
+                            }
                         }
 
-                        // There was a conflict
-                        if (deletion && !doc.IsDeleted) {
-                            var deletedDoc = doc.ToMutable();
-                            deletedDoc.MarkAsDeleted();
-                            doc = deletedDoc;
+                        // Save changes on the current branch:
+                        if (curDoc == null) {
+                            throw new LiteCoreException(err);
                         }
 
-                        if (doc.c4Doc != null) {
-                            baseDoc = new Document(this, docID, doc.c4Doc.Retain<C4DocumentWrapper>());
-                        }
-
-                        otherDoc = new Document(this, docID);
-                        if (!otherDoc.Exists) {
-                            LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, false, err));
-                            return null;
-                        }
-                    } catch(Exception) {
-                        baseDoc?.Dispose();
-                        otherDoc?.Dispose();
-                        LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, false, err));
-                        throw;
+                        Save(document, &newDoc, curDoc, deletion);
+                    }
+                    
+                    committed = true; // Weird, but if the next call fails I don't want to call it again in the catch block
+                    LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, true, e));
+                    document.c4Doc = new C4DocumentWrapper(newDoc);
+                    newDoc = null;
+                } catch (Exception) {
+                    if (!committed) {
+                        LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
                     }
 
-                    resolve = true;
-                    LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, false, err));
-                    return null;
-                });
-
-                if (!resolve) {
-                    return retVal;
-                }
-
-                // Resolve Conflict
-                Document resolved = null;
-                try {
-                    var resolver = Config.ConflictResolver;
-                    var conflict = new Conflict(doc, otherDoc, baseDoc);
-                    resolved = resolver.Resolve(conflict);
-                    if (resolved == null) {
-                        throw new LiteCoreException(new C4Error(C4ErrorCode.Conflict));
-                    }
+                    throw;
                 } finally {
-                    baseDoc?.Dispose();
-                    if (!ReferenceEquals(resolved, otherDoc)) {
-                        otherDoc?.Dispose();
-                    }
+                    Native.c4doc_free(curDoc);
+                    Native.c4doc_free(newDoc);
                 }
-
-                retVal = ThreadSafety.DoLocked(() =>
-                {
-                    var current = new Document(this, docID);
-                    if (resolved.RevID == current.RevID) {
-                        (document as MutableDocument)?.MarkAsInvalidated();
-                        current.Dispose();
-                        return resolved; // Same as current
-                    }
-
-                    // For saving
-                    doc = resolved;
-                    baseDoc = current;
-                    deletion = resolved.IsDeleted;
-                    return null;
-                });
-
-                if (retVal != null) {
-                    return retVal;
-                }
-            }
+            });
         }
 
         private void Save([NotNull]Document doc, C4Document** outDoc, C4Document* baseDoc, bool deletion)
@@ -1183,36 +1133,30 @@ namespace Couchbase.Lite
             }
         }
 
-        private void SaveResolvedDocument([NotNull]Document resolved, [NotNull]Conflict conflict)
+        // Must be called in transaction
+        private void SaveResolvedDocument([NotNull]Document resolved, [NotNull]Document localDoc, [NotNull]Document remoteDoc)
         {
-            InBatch(() =>
-            {
-                var doc = conflict.Mine;
-                var otherDoc = conflict.Theirs;
+            if (!ReferenceEquals(resolved, localDoc)) {
+                resolved.Database = this;
+            }
 
-                // Figure out what revision to delete and what if anything to add
-                string winningRevID, losingRevID;
-                byte[] mergedBody = null;
-                if (ReferenceEquals(resolved, otherDoc)) {
-                    winningRevID = otherDoc.RevID;
-                    losingRevID = doc.RevID;
-                } else {
-                    winningRevID = doc.RevID;
-                    losingRevID = otherDoc.RevID;
-                    if (!ReferenceEquals(resolved, doc)) {
-                        resolved.Database = this;
-                        mergedBody = resolved.Encode();
-                    }
-                }
+            // The remote branch has to win, so that the doc revision history matches the server's
+            var winningRevID = remoteDoc.RevID;
+            var losingRevID = localDoc.RevID;
 
-                // Tell LiteCore to do the resolution:
-                var rawDoc = doc.c4Doc?.HasValue == true ? doc.c4Doc.RawDoc : null;
-                LiteCoreBridge.Check(err =>
-                    Native.c4doc_resolveConflict(rawDoc, winningRevID, losingRevID, mergedBody, err));
-                LiteCoreBridge.Check(err => Native.c4doc_save(rawDoc, 0, err));
-                var logID = new SecureLogString(doc.Id, LogMessageSensitivity.PotentiallyInsecure);
-                Log.To.Database.I(Tag, $"Conflict resolved as doc '{logID}' rev {rawDoc->revID.CreateString()}");
-            });
+            byte[] mergedBody = null;
+            if (!ReferenceEquals(resolved, remoteDoc)) {
+                // Unless the remote revision is being used as-is, we need a new revision:
+                mergedBody = resolved.Encode();
+            }
+
+            // Tell LiteCore to do the resolution:
+            C4Document* rawDoc = localDoc.c4Doc != null ? localDoc.c4Doc.RawDoc : null;
+            LiteCoreBridge.Check(
+                err => Native.c4doc_resolveConflict(rawDoc, winningRevID, losingRevID, mergedBody, err));
+            LiteCoreBridge.Check(err => Native.c4doc_save(rawDoc, 0, err));
+
+            Log.To.Database.I(Tag, "Conflict resolved as doc '{0}' rev {1}", localDoc.Id, rawDoc->revID.CreateString());
         }
 
         private void ThrowIfActiveItems()

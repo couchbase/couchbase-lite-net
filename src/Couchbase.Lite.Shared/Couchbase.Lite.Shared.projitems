@@ -10,12 +10,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)API\CouchbaseLiteException.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)API\Database\Conflict.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Database.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DatabaseChangedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DatabaseConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DocumentChangedEventArgs.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)API\Database\IConflictResolver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\ListenerToken.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\CouchbaseDependencyAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\IDefaultDirectoryResolver.cs" />

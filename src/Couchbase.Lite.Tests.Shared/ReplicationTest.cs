@@ -55,7 +55,6 @@ namespace Test
         public ReplicatorTest()
 #endif
         {
-            ConflictResolver = new MergeThenTheirsWins();
             ReopenDB();
             _otherDB = OpenDB("otherdb");
         }

@@ -39,30 +39,17 @@ namespace Couchbase.Lite
         #region Variables
 
         [NotNull] private readonly Freezer _freezer = new Freezer();
-        [NotNull] private IConflictResolver _conflictResolver = new DefaultConflictResolver();
 
         [NotNull] private string _directory =
             Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
 
-        #if COUCHBASE_ENTERPRISE
+        #if COUCHBASE_ENTERPRISE_FUTURE
         private EncryptionKey _encryptionKey;
         #endif
 
         #endregion
 
         #region Properties
-
-        /// <summary>
-        /// Gets or sets the <see cref="IConflictResolver"/> used to handle conflicts by default
-        /// in the database to be created
-        /// </summary>
-        [NotNull]
-        internal IConflictResolver ConflictResolver
-        {
-            get => _conflictResolver;
-            set => _freezer.SetValue(ref _conflictResolver,
-                CBDebug.MustNotBeNull(Log.To.Database, Tag, "ConflictResolver", value));
-        }
 
         /// <summary>
         /// Gets or sets the directory to use when creating or opening the data
@@ -74,7 +61,7 @@ namespace Couchbase.Lite
             set => _freezer.SetValue(ref _directory, CBDebug.MustNotBeNull(Log.To.Database, Tag, "Directory", value));
         }
 
-        #if COUCHBASE_ENTERPRISE
+        #if COUCHBASE_ENTERPRISE_FUTURE
         /// <summary>
         /// Gets or sets the encryption key to use on the database
         /// </summary>
@@ -88,6 +75,9 @@ namespace Couchbase.Lite
 
         #endregion
 
+        /// <summary>
+        /// Default constructor
+        /// </summary>
         public DatabaseConfiguration()
         {
 
@@ -108,11 +98,10 @@ namespace Couchbase.Lite
         {
             var retVal = new DatabaseConfiguration
             {
-                ConflictResolver = ConflictResolver,
                 Directory = Directory,
             };
 
-            #if COUCHBASE_ENTERPRISE
+            #if COUCHBASE_ENTERPRISE_FUTURE
             retVal.EncryptionKey = EncryptionKey;
             #endif
 

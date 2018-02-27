@@ -135,6 +135,10 @@ namespace Couchbase.Lite
         [CanBeNull]
         object GetValue(int index);
 
+        /// <summary>
+        /// Converts the contents of the array to a .NET list type
+        /// </summary>
+        /// <returns>The contents of the array as a .NET list</returns>
         List<object> ToList();
 
         #endregion

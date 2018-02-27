@@ -49,16 +49,12 @@ namespace Couchbase.Lite
 
         [NotNull]
         private static readonly Dictionary<Guid, MutableDocument> _NativeCacheMap = new Dictionary<Guid, MutableDocument>();
-        private bool _isDeleted;
 
         #endregion
 
         #region Properties
 
         internal override uint Generation => base.Generation + Convert.ToUInt32(Changed);
-
-        /// <inheritdoc />
-        public override bool IsDeleted => _isDeleted || base.IsDeleted;
 
 #if CBL_LINQ
         internal override bool IsEmpty => _model == null && base.IsEmpty;
@@ -137,7 +133,7 @@ namespace Couchbase.Lite
         }
 
         private MutableDocument([NotNull]MutableDocument other)
-            : base(other)
+            : this((Document)other)
         {
             var dict = new MutableDictionaryObject();
             if (other._dict != null) {
@@ -159,16 +155,6 @@ namespace Couchbase.Lite
             _model = model;
         }
         #endif
-
-        internal void MarkAsDeleted()
-        {
-            _isDeleted = true;
-        }
-
-        internal void MarkAsInvalidated()
-        {
-            _isInvalidated = true;
-        }
 
         #endregion
 
