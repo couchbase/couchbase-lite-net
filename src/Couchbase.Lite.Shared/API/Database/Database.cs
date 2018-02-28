@@ -779,29 +779,32 @@ namespace Couchbase.Lite
         {
             Debug.Assert(docID != null);
 
-            var success = true;
-            LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
-            try {
-                var localDoc = new Document(this, docID);
-                if (!localDoc.Exists) {
-                    throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+            ThreadSafety.DoLocked(() =>
+            {
+                var success = true;
+                LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
+                try {
+                    var localDoc = new Document(this, docID);
+                    if (!localDoc.Exists) {
+                        throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+                    }
+
+                    var remoteDoc = new Document(this, docID);
+                    remoteDoc.SelectConflictingRevision();
+
+                    // Resolve conflict:
+                    Log.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
+                        new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevID,
+                        remoteDoc.RevID);
+                    var resolvedDoc = ResolveConflict(localDoc, remoteDoc);
+                    SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
+                } catch (Exception) {
+                    success = false;
+                    throw;
+                } finally {
+                    LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, success, err));
                 }
-
-                var remoteDoc = new Document(this, docID);
-                remoteDoc.SelectConflictingRevision();
-
-                // Resolve conflict:
-                Log.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
-                    new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevID,
-                    remoteDoc.RevID);
-                var resolvedDoc = ResolveConflict(localDoc, remoteDoc);
-                SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
-            } catch (Exception) {
-                success = false;
-                throw;
-            } finally {
-                LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, success, err));
-            }
+            });
         }
 
         #endregion
@@ -979,6 +982,7 @@ namespace Couchbase.Lite
             _documentChanged.Fire(documentID, this, change);
         }
 
+        [NotNull]
         private Document ResolveConflict([NotNull]Document localDoc, [NotNull]Document remoteDoc)
         {
             if (remoteDoc.IsDeleted) {
