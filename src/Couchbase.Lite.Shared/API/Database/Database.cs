@@ -194,13 +194,23 @@ namespace Couchbase.Lite
         {
             get {
                 FLEncoder* encoder = null;
-                ThreadSafety.DoLocked(() => encoder = Native.c4db_getSharedFleeceEncoder(_c4db));
+                ThreadSafety.DoLocked(() =>
+                {
+                    CheckOpen();
+                    encoder = Native.c4db_getSharedFleeceEncoder(_c4db);
+                });
+
                 return encoder;
             }
         }
 
         [NotNull]
-        internal SharedStringCache SharedStrings => ThreadSafety.DoLocked(() => _sharedStrings);
+        internal SharedStringCache SharedStrings => ThreadSafety.DoLocked(() =>
+        {
+            //TODO: Is this allowed?
+            //CheckOpen(); 
+            return _sharedStrings;
+        });
 
         [NotNull]
         internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
@@ -784,20 +794,30 @@ namespace Couchbase.Lite
                 var success = true;
                 LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
                 try {
-                    var localDoc = new Document(this, docID);
-                    if (!localDoc.Exists) {
-                        throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+                    Document localDoc = null, remoteDoc = null;
+                    try {
+                        localDoc = new Document(this, docID);
+                        if (!localDoc.Exists) {
+                            throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+                        }
+
+                        remoteDoc = new Document(this, docID);
+                        if (!remoteDoc.SelectConflictingRevision()) {
+                            Log.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', skipping...",
+                                new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+                            return;
+                        }
+
+                        // Resolve conflict:
+                        Log.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
+                            new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevID,
+                            remoteDoc.RevID);
+                        var resolvedDoc = ResolveConflict(localDoc, remoteDoc);
+                        SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
+                    } finally {
+                        localDoc?.Dispose();
+                        remoteDoc?.Dispose();
                     }
-
-                    var remoteDoc = new Document(this, docID);
-                    remoteDoc.SelectConflictingRevision();
-
-                    // Resolve conflict:
-                    Log.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
-                        new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevID,
-                        remoteDoc.RevID);
-                    var resolvedDoc = ResolveConflict(localDoc, remoteDoc);
-                    SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
                 } catch (Exception) {
                     success = false;
                     throw;
@@ -859,6 +879,11 @@ namespace Couchbase.Lite
 
             if (disposing) {
                 Misc.SafeSwap(ref _obs, null);
+                foreach (var obs in _docObs) {
+                    obs.Value?.Dispose();
+                }
+
+                _docObs.Clear();
                 if (_unsavedDocuments.Count > 0) {
                     Log.To.Database.W(Tag,
                         $"Closing database with {_unsavedDocuments.Count} such as {_unsavedDocuments.Any()}");
@@ -972,7 +997,7 @@ namespace Couchbase.Lite
             DocumentChangedEventArgs change = null;
             ThreadSafety.DoLocked(() =>
             {
-                if (!_docObs.ContainsKey(documentID) || _c4db == null || Native.c4db_isInTransaction(_c4db)) {
+                if (_c4db == null || !_docObs.ContainsKey(documentID) || Native.c4db_isInTransaction(_c4db)) {
                     return;
                 }
 
@@ -1079,8 +1104,13 @@ namespace Couchbase.Lite
 
             byte[] body = null;
             if (!deletion && !doc.IsEmpty) {
+                try {
+                    body = doc.Encode();
+                } catch (ObjectDisposedException) {
+                    Log.To.Database.E(Tag, "Save of disposed document {0} attempted, skipping...", new SecureLogString(doc.Id, LogMessageSensitivity.PotentiallyInsecure));
+                    return;
+                }
 
-                body = doc.Encode();
                 var root = Native.FLValue_FromTrustedData(body);
                 if (root == null) {
                     Log.To.Database.E(Tag, "Failed to encode document body properly.  Aborting save of document!");
@@ -1144,7 +1174,14 @@ namespace Couchbase.Lite
             byte[] mergedBody = null;
             if (!ReferenceEquals(resolved, remoteDoc)) {
                 // Unless the remote revision is being used as-is, we need a new revision:
-                mergedBody = resolved.Encode();
+                try {
+                    mergedBody = resolved.Encode();
+                } catch (ObjectDisposedException) {
+                    Log.To.Sync.E(Tag, "Resolved document for {0} somehow got disposed!",
+                        new SecureLogString(resolved.Id, LogMessageSensitivity.PotentiallyInsecure));
+                    throw new RuntimeException(
+                        "Resolved document was disposed before conflict resolution completed.  Please file a bug report at https://github.com/couchbase/couchbase-lite-net");
+                }
             }
 
             // Tell LiteCore to do the resolution:
@@ -1153,7 +1190,9 @@ namespace Couchbase.Lite
                 err => Native.c4doc_resolveConflict(rawDoc, winningRevID, losingRevID, mergedBody, err));
             LiteCoreBridge.Check(err => Native.c4doc_save(rawDoc, 0, err));
 
-            Log.To.Database.I(Tag, "Conflict resolved as doc '{0}' rev {1}", localDoc.Id, rawDoc->revID.CreateString());
+            Log.To.Database.I(Tag, "Conflict resolved as doc '{0}' rev {1}",
+                new SecureLogString(localDoc.Id, LogMessageSensitivity.PotentiallyInsecure),
+                rawDoc->revID.CreateString());
         }
 
         private void ThrowIfActiveItems()

@@ -192,12 +192,6 @@ namespace Couchbase.Lite
 
         #region Overrides
 
-        /// <inheritdoc />
-        public override MutableDocument ToMutable()
-        {
-            return new MutableDocument(this);
-        }
-
         internal override byte[] Encode()
         {
             Debug.Assert(Database != null);
@@ -205,7 +199,12 @@ namespace Couchbase.Lite
             var body = new FLSliceResult();
             Database.ThreadSafety.DoLocked(() =>
             {
-                var encoder = Database.SharedEncoder;
+                FLEncoder* encoder = null;
+                try {
+                    encoder = Database.SharedEncoder;
+                } catch (Exception) {
+                    body = new FLSliceResult(null, 0UL);
+                }
 
                 #if CBL_LINQ
                 if (_model != null) {

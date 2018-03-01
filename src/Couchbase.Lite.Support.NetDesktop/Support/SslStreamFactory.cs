@@ -24,6 +24,9 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Util;
+
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Support
 {
@@ -32,6 +35,7 @@ namespace Couchbase.Lite.Support
     {
         #region ISslStreamFactory
 
+        [ContractAnnotation("null => halt")]
         public ISslStream Create(Stream inner)
         {
             return new SslStreamImpl(inner);
@@ -50,7 +54,7 @@ namespace Couchbase.Lite.Support
 
         #region Variables
 
-        private readonly SslStream _innerStream;
+        [NotNull]private readonly SslStream _innerStream;
 
         #endregion
 
@@ -62,9 +66,10 @@ namespace Couchbase.Lite.Support
 
         #region Constructors
 
-        public SslStreamImpl(Stream inner)
+        public SslStreamImpl([NotNull]Stream inner)
         {
-            _innerStream = new SslStream(inner, false, ValidateServerCert);
+            var s = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(inner), inner);
+            _innerStream = new SslStream(s, false, ValidateServerCert);
         }
 
         #endregion

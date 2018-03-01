@@ -167,6 +167,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Sync\WebSocketWrapper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\AtomicBool.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\CBDebug.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\DisposalWatchdog.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Extensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\FilteredEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Misc.cs" />

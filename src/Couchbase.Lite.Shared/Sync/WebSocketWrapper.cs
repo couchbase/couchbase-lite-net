@@ -64,6 +64,7 @@ namespace Couchbase.Lite.Sync
         private string _expectedAcceptHeader;
         private uint _receivedBytesPending;
         private bool _receiving;
+        private bool _closed;
 
         #endregion
 
@@ -96,10 +97,14 @@ namespace Couchbase.Lite.Sync
                 ResetConnections();
                 _c4Queue.DispatchAsync(() =>
                 {
-                    // This call is already guarded by the caller, and needs
-                    // to be called once with a nativeHandle value of "0" to actually
-                    // perform the close
-                    Native.c4socket_closed(_socket, new C4Error());
+                    if (_closed) {
+                        Log.To.Sync.W(Tag, "Double close detected, ignoring...");
+                        return;
+                    }
+
+                    Log.To.Sync.I(Tag, "Closing socket normally due to request from LiteCore");
+                    Native.c4socket_closed(_socket, new C4Error(0, 0));
+                    _closed = true;
                 });
             });
         }
@@ -108,6 +113,11 @@ namespace Couchbase.Lite.Sync
         {
             _queue.DispatchAsync(() =>
             {
+                if (_closed) {
+                    Log.To.Sync.V(Tag, "Already closed, ignoring call to CompletedReceive...");
+                    return;
+                }
+
                 _receivedBytesPending -= (uint)byteCount;
                 Receive();
             });
@@ -153,10 +163,12 @@ namespace Couchbase.Lite.Sync
                     if (!NetworkTaskSuccessful(t)) {
                         if (t.IsCanceled) {
                             Native.c4socket_closed(_socket, new C4Error(C4NetworkErrorCode.Timeout));
+                            _closed = true;
                         } else {
                             C4Error err;
                             Status.ConvertError(t.Exception?.Flatten()?.InnerException, &err);
                             Native.c4socket_closed(_socket, err);
+                            _closed = true;
                         }
                         return;
                     }
@@ -169,6 +181,11 @@ namespace Couchbase.Lite.Sync
         {
             _queue.DispatchAsync(() =>
             {
+                if (_closed) {
+                    Log.To.Sync.W(Tag, "Already closed, ignoring call to Write...");
+                    return;
+                }
+
 				_connected.Wait();
                 _writeMutex.WaitOne();
                 var cts = new CancellationTokenSource();
@@ -190,7 +207,7 @@ namespace Couchbase.Lite.Sync
 
                         _c4Queue.DispatchAsync(() =>
                         {
-                            if ((int)_socket->nativeHandle != 0) {
+                            if (!_closed) {
                                 Native.c4socket_completedWrite(_socket, (ulong) data.Length);
                             }
                         });
@@ -248,7 +265,11 @@ namespace Couchbase.Lite.Sync
 
             Log.To.Sync.I(Tag, $"WebSocket CLOSED WITH STATUS {closeCode} \"{reason}\"");
             var c4Err = Native.c4error_make(C4ErrorDomain.WebSocketDomain, (int)closeCode, reason);
-            _c4Queue.DispatchAsync(() => Native.c4socket_closed(_socket, c4Err));
+            _c4Queue.DispatchAsync(() =>
+            {
+                Native.c4socket_closed(_socket, c4Err);
+                _closed = true;
+            });
         }
 
         private unsafe void DidClose(Exception e)
@@ -269,7 +290,11 @@ namespace Couchbase.Lite.Sync
             }
 
             var c4errCopy = c4err;
-            _c4Queue.DispatchAsync(() => Native.c4socket_closed(_socket, c4errCopy));
+            _c4Queue.DispatchAsync(() =>
+            {
+                Native.c4socket_closed(_socket, c4errCopy);
+                _closed = true;
+            });
         }
 
         private async void HandleHTTPResponse()
@@ -356,7 +381,7 @@ namespace Couchbase.Lite.Sync
                         _c4Queue.DispatchAsync(() =>
                         {
                             // Guard against closure / disposal
-                            if ((int)socket->nativeHandle != 0) {
+                            if (!_closed) {
                                 Native.c4socket_received(socket, data);
                             }
                         });

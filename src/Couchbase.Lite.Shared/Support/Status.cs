@@ -18,55 +18,17 @@
 
 using System;
 using System.Net.Sockets;
+
+using Couchbase.Lite.Logging;
+
 using LiteCore.Interop;
 
 namespace Couchbase.Lite
 {
-    /// <summary>
-    /// A list of statuses indicating various results and/or errors for Couchbase Lite
-    /// operations
-    /// </summary>
-    public enum StatusCode
-    {
-        /// <summary>
-        /// Unknown result (should not be used)
-        /// </summary>
-        Unknown = -1,
-
-        /// <summary>
-        /// A required dependency injection class is missing
-        /// </summary>
-        MissingDependency = 1,
-
-        /// <summary>
-        /// The current user does not have the authorization to perform the current action,
-        /// or a given password was incorrect (HTTP compliant)
-        /// </summary>
-        Unauthorized = 401,
-
-        /// <summary>
-        /// The requested action is not allowed to be executed by any user (HTTP compliant)
-        /// </summary>
-        Forbidden = 403,
-
-        /// <summary>
-        /// The requested item does not appear to exist (HTTP compliant)
-        /// </summary>
-        NotFound = 404,
-
-        /// <summary>
-        /// The action is not allowed (HTTP compliant)
-        /// </summary>
-        NotAllowed = 405,
-
-        /// <summary>
-        /// An invalid query was attempted
-        /// </summary>
-        InvalidQuery = 490
-    }
-
     internal static class Status
     {
+        private const string Tag = nameof(Status);
+
         public static unsafe void ConvertError(Exception e, C4Error* outError)
         {
             var c4err = new C4Error(C4ErrorCode.RemoteError);
@@ -110,6 +72,7 @@ namespace Couchbase.Lite
                     break;
             }
 
+            Log.To.Couchbase.W(Tag, $"No mapping for {e.GetType().Name}; interpreting as RemoteError");
             *outError = Native.c4error_make(c4err.domain, c4err.code, e.Message);
         }
     }

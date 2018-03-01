@@ -54,12 +54,12 @@ namespace Couchbase.Lite.Internal.Query
         private unsafe C4Query* _c4Query;
         private Dictionary<string, int> _columnNames;
         private ListenerToken _databaseChangedToken;
-        private bool _disposed;
         [NotNull]private List<QueryResultSet> _history = new List<QueryResultSet>();
         private DateTime _lastUpdatedAt;
         private int _observingCount = 0;
         [NotNull]private Parameters _queryParameters = new Parameters();
         private AtomicBool _willUpdate = false;
+        [NotNull] private readonly DisposalWatchdog _disposalWatchdog = new DisposalWatchdog(nameof(IQuery));
 
         #endregion
 
@@ -142,7 +142,7 @@ namespace Couchbase.Lite.Internal.Query
                     _history.Clear();
                     Native.c4query_free(_c4Query);
                     _c4Query = null;
-                    _disposed = true;
+                    _disposalWatchdog.Dispose();
                 });
             }
             else {
@@ -150,7 +150,6 @@ namespace Couchbase.Lite.Internal.Query
                 // is guaranteed
                 Native.c4query_free(_c4Query);
                 _c4Query = null;
-                _disposed = true;
             }
         }
 
@@ -185,7 +184,7 @@ namespace Couchbase.Lite.Internal.Query
 
             from.ThreadSafety.DoLockedBridge(err =>
             {
-                if (_disposed) {
+                if (_disposalWatchdog.IsDisposed) {
                     return true;
                 }
 
@@ -380,9 +379,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public unsafe string Explain()
         {
-            if (_disposed) {
-                throw new ObjectDisposedException(Tag);
-            }
+            _disposalWatchdog.CheckDisposed();
 
             // Used for debugging
             if (_c4Query == null) {
@@ -395,6 +392,7 @@ namespace Couchbase.Lite.Internal.Query
         public ListenerToken AddChangeListener(TaskScheduler scheduler, EventHandler<QueryChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(handler), handler);
+            _disposalWatchdog.CheckDisposed();
 
             var cbHandler = new CouchbaseEventHandler<QueryChangedEventArgs>(handler, scheduler);
             _changed.Add(cbHandler);
@@ -421,6 +419,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public void RemoveChangeListener(ListenerToken token)
         {
+            _disposalWatchdog.CheckDisposed();
             _changed.Remove(token);
             if (Interlocked.Decrement(ref _observingCount) == 0) {
                 Stop();
@@ -445,7 +444,7 @@ namespace Couchbase.Lite.Internal.Query
 
             var e = (C4QueryEnumerator*) fromImpl.ThreadSafety.DoLockedBridge(err =>
             {
-                if (_disposed) {
+                if (_disposalWatchdog.IsDisposed) {
                     return null;
                 }
 

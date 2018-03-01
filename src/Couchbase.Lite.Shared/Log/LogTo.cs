@@ -151,14 +151,14 @@ namespace Couchbase.Lite.Logging
         internal void V([NotNull]string tag, [NotNull]string msg)
         {
             if (ShouldLog(LogLevel.Verbose)) {
-               LogToLiteCore(C4LogLevel.Debug, FormatMessage(tag, msg));
+               LogToLiteCore(C4LogLevel.Verbose, FormatMessage(tag, msg));
             }
         }
 
         internal void V([NotNull]string tag, [NotNull]string msg, [NotNull]Exception tr)
         {
             if (ShouldLog(LogLevel.Verbose)) {
-                LogToLiteCore(C4LogLevel.Debug, FormatMessage(tag, msg, tr));
+                LogToLiteCore(C4LogLevel.Verbose, FormatMessage(tag, msg, tr));
             }
         }
 

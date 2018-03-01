@@ -58,34 +58,22 @@ namespace Couchbase.Lite.Sync
         private static void DoClose(C4Socket* socket)
         {
             var id = (int) socket->nativeHandle;
-            socket->nativeHandle = (void *)0;
-            if (id == 0) {
-                Log.To.Sync.E(Tag, "DoClose reached after close");
-                return;
-            }
-
             if (Sockets.TryGetValue(id, out var socketWrapper)) {
                 socketWrapper.CloseSocket();
                 Sockets.Remove(id);
             } else {
-                Log.To.Sync.E(Tag, "Invalid call to DoClose; socket does not exist (or was disposed)");
+                Log.To.Sync.W(Tag, "Invalid call to DoClose; socket does not exist (or was closed)");
             }
         }
 
         private static void DoCompleteReceive(C4Socket* socket, ulong bytecount)
         {
             var id = (int)socket->nativeHandle;
-            if (id == 0) {
-                // This one is not an error, it happens normally during connection close
-                // but log it anyway just in case
-                Log.To.Sync.V(Tag, "DoCompletedReceive reached after close, ignoring...");
-                return;
-            }
-            
+
             if (Sockets.TryGetValue(id, out var socketWrapper)) {
                 socketWrapper.CompletedReceive(bytecount);
             } else {
-                Log.To.Sync.E(Tag, "Invalid call to DoCompleteReceive; socket does not exist (or was disposed)");
+                Log.To.Sync.W(Tag, "Invalid call to DoCompleteReceive; socket does not exist (or was closed)");
             }
         }
 
@@ -130,15 +118,10 @@ namespace Couchbase.Lite.Sync
         private static void DoWrite(C4Socket* socket, byte[] data)
         {
             var id = (int)socket->nativeHandle;
-            if (id == 0) {
-                Log.To.Sync.E(Tag, "DoWrite reached after close");
-                return;
-            }
-            
             if (Sockets.TryGetValue(id, out var socketWrapper)) {
                 socketWrapper.Write(data);
             } else {
-                Log.To.Sync.E(Tag, "Invalid call to DoWrite; socket does not exist (or was disposed)");
+                Log.To.Sync.W(Tag, "Invalid call to DoWrite; socket does not exist (or was closed)");
             }
         }
 

@@ -50,6 +50,9 @@ namespace Couchbase.Lite
 
         private MRoot _root;
 
+        [NotNull]
+        internal readonly DisposalWatchdog _disposalWatchdog;
+
         #endregion
 
         #region Properties
@@ -140,6 +143,7 @@ namespace Couchbase.Lite
             Database = database;
             Id = id;
             this.c4Doc = c4Doc;
+            _disposalWatchdog = new DisposalWatchdog(GetType().Name);
         }
 
         internal Document([CanBeNull]Database database, [NotNull]string id)
@@ -174,12 +178,9 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>A mutable version of the document</returns>
         [NotNull]
-        public virtual MutableDocument ToMutable()
-        {
-            return new MutableDocument(this);
-        }
+        public virtual MutableDocument ToMutable() => new MutableDocument(this);
 
-        #if CBL_LINQ
+#if CBL_LINQ
         public T ToModel<T>() where T : class, Linq.IDocumentModel, new()
         {
             var serializer = Newtonsoft.Json.JsonSerializer.CreateDefault();
@@ -198,6 +199,7 @@ namespace Couchbase.Lite
         
         internal virtual byte[] Encode()
         {
+            _disposalWatchdog.CheckDisposed();
             return c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.body.ToArrayFast() : new byte[0];
         }
 
@@ -220,14 +222,25 @@ namespace Couchbase.Lite
             return true;
         }
 
-        internal void SelectConflictingRevision()
+        internal bool SelectConflictingRevision()
         {
             if (_c4Doc == null) {
                 throw new InvalidOperationException("No revision data on the document!");
             }
 
-            ThreadSafety.DoLockedBridge(err => Native.c4doc_selectNextLeafRevision(c4Doc.RawDoc, false, true, err));
+            C4Error err;
+            var success = Native.c4doc_selectNextLeafRevision(c4Doc.RawDoc, false, true, &err);
+            if (!success) {
+                if (err.code != 0) {
+                    throw CouchbaseException.Create(err);
+                }
+
+                Native.c4doc_selectCurrentRevision(c4Doc.RawDoc);
+                return false;
+            }
+
             c4Doc = _c4Doc.Retain<C4DocumentWrapper>();
+            return true;
         }
 
         #endregion
@@ -348,6 +361,7 @@ namespace Couchbase.Lite
         {
             ThreadSafety.DoLocked(() =>
             {
+                _disposalWatchdog.Dispose();
                 _root?.Dispose();
                 Misc.SafeSwap(ref _c4Doc, null);
             });
