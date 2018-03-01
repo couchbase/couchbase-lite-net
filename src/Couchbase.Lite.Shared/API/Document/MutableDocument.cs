@@ -192,6 +192,9 @@ namespace Couchbase.Lite
 
         #region Overrides
 
+        /// <inheritdoc />
+        public override MutableDocument ToMutable() => new MutableDocument(this); // MutableDocument constructor is different, so this override is needed
+
         internal override byte[] Encode()
         {
             Debug.Assert(Database != null);
