@@ -196,15 +196,19 @@ namespace Couchbase.Lite.Sync
                 NetworkStream.WriteAsync(data, 0, data.Length, cts.Token)
                     .ContinueWith(t =>
                     {
-                        _writeMutex.Set();
                         if (!NetworkTaskSuccessful(t)) {
+                            _writeMutex.Set();
                             return;
                         }
 
                         _c4Queue.DispatchAsync(() =>
                         {
-                            if (!_closed) {
-                                Native.c4socket_completedWrite(_socket, (ulong) data.Length);
+                            try {
+                                if (!_closed) {
+                                    Native.c4socket_completedWrite(_socket, (ulong) data.Length);
+                                }
+                            } finally {
+                                _writeMutex.Set();
                             }
                         });
                     }, cts.Token);
@@ -375,18 +379,21 @@ namespace Couchbase.Lite.Sync
                         Log.To.Sync.V(Tag, $"<<< received {t.Result} bytes [now {_receivedBytesPending} pending]");
                         var socket = _socket;
                         var data = _buffer.Take(t.Result).ToArray();
-                        _readMutex.Set();
+                        
                         _c4Queue.DispatchAsync(() =>
                         {
-                            // Guard against closure / disposal
-                            if (!_closed) {
-                                Native.c4socket_received(socket, data);
+                            try {
+                                // Guard against closure / disposal
+                                if (!_closed) {
+                                    Native.c4socket_received(socket, data);
+                                    if (_receivedBytesPending < MaxReceivedBytesPending) {
+                                        Receive();
+                                    }
+                                }
+                            } finally {
+                                _readMutex.Set();
                             }
                         });
-
-                        if (_receivedBytesPending < MaxReceivedBytesPending) {
-                            Receive();
-                        }
                     }, cts.Token);
             });
         }
