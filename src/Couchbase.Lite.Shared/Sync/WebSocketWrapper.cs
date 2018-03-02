@@ -15,18 +15,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Lite.DI;
+
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 
@@ -40,10 +43,11 @@ namespace Couchbase.Lite.Sync
     {
         #region Constants
 
-        private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(15);
-        private static readonly TimeSpan IdleTimeout = TimeSpan.FromSeconds(300);
         private const uint MaxReceivedBytesPending = 100 * 1024;
         private const string Tag = nameof(WebSocketWrapper);
+
+        private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(15);
+        private static readonly TimeSpan IdleTimeout = TimeSpan.FromSeconds(300);
 
         #endregion
 
@@ -61,10 +65,10 @@ namespace Couchbase.Lite.Sync
         private readonly unsafe C4Socket* _socket;
         [NotNull]private readonly AutoResetEvent _writeMutex = new AutoResetEvent(true);
         private TcpClient _client;
+        private bool _closed;
         private string _expectedAcceptHeader;
         private uint _receivedBytesPending;
         private bool _receiving;
-        private bool _closed;
 
         #endregion
 
@@ -161,17 +165,9 @@ namespace Couchbase.Lite.Sync
                 _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port).ContinueWith(t =>
                 {
                     if (!NetworkTaskSuccessful(t)) {
-                        if (t.IsCanceled) {
-                            Native.c4socket_closed(_socket, new C4Error(C4NetworkErrorCode.Timeout));
-                            _closed = true;
-                        } else {
-                            C4Error err;
-                            Status.ConvertError(t.Exception?.Flatten()?.InnerException, &err);
-                            Native.c4socket_closed(_socket, err);
-                            _closed = true;
-                        }
                         return;
                     }
+
                     _queue.DispatchAsync(StartInternal);
                 }, cts.Token);
             });
@@ -283,7 +279,7 @@ namespace Couchbase.Lite.Sync
             C4Error c4err;
             if (e != null && !(e is ObjectDisposedException) && !(e.InnerException is ObjectDisposedException)) {
                 Log.To.Sync.I(Tag, $"WebSocket CLOSED WITH ERROR: {e}");
-                Status.ConvertError(e, &c4err);
+                Status.ConvertNetworkError(e, &c4err);
             } else {
                 Log.To.Sync.I(Tag, "WebSocket CLOSED");
                 c4err = new C4Error();
@@ -320,11 +316,13 @@ namespace Couchbase.Lite.Sync
         {
             if (t.IsCanceled) {
                 DidClose(new SocketException((int)SocketError.TimedOut));
+                _closed = true;
                 return false;
             }
 
             if (t.Exception != null) {
                 DidClose(t.Exception?.Flatten()?.InnerException);
+                _closed = true;
                 return false;
             }
 
@@ -492,15 +490,13 @@ namespace Couchbase.Lite.Sync
                     return;
                 }
 
-                var stream = Service.GetRequiredInstance<ISslStreamFactory>().Create(baseStream);
-                stream.PinnedServerCertificate = _options.PinnedServerCertificate;
+                var stream = new SslStream(baseStream, false, ValidateServerCert);
                 X509CertificateCollection clientCerts = null;
                 if (_options.ClientCert != null) {
                     clientCerts = new X509CertificateCollection(new[] {_options.ClientCert as X509Certificate});
                 }
-
-                var port = _logic.UrlRequest?.Port ?? 0;
-                stream.ConnectAsync(_logic.UrlRequest?.Host, (ushort)port, clientCerts, false).ContinueWith(
+                
+                stream.AuthenticateAsClientAsync(_logic.UrlRequest?.Host, clientCerts, SslProtocols.Tls12, false).ContinueWith(
                     t =>
                     {
                         if (!NetworkTaskSuccessful(t)) {
@@ -509,12 +505,40 @@ namespace Couchbase.Lite.Sync
 
                         _queue.DispatchAsync(OnSocketReady);
                     });
-                NetworkStream = stream.AsStream();
+                NetworkStream = stream;
             }
             else {
                 NetworkStream = _client?.GetStream();
                 OnSocketReady();
             }
+        }
+
+        private bool ValidateServerCert(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            if (_options.PinnedServerCertificate != null) {
+                var retVal = certificate.Equals(_options.PinnedServerCertificate);
+                if (!retVal) {
+                    Log.To.Sync.W(Tag, "Server certificate did not match the pinned one!");
+                }
+
+                return retVal;
+            }
+
+            if (sslPolicyErrors != SslPolicyErrors.None) {
+                Log.To.Sync.W(Tag, $"Error validating TLS chain: {sslPolicyErrors}");
+                if (chain?.ChainStatus != null) {
+                    for (var i = 0; i < chain.ChainStatus.Length; i++) {
+                        var element = chain.ChainElements[i];
+                        var status = chain.ChainStatus[i];
+                        if (status.Status != X509ChainStatusFlags.NoError) {
+                            Log.To.Sync.V(Tag,
+                                $"Error {status.Status} ({status.StatusInformation}) for certificate:{Environment.NewLine}{element.Certificate}");
+                        }
+                    }
+                }
+            }
+
+            return sslPolicyErrors == SslPolicyErrors.None;
         }
 
         #endregion

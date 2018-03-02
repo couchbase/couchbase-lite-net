@@ -38,8 +38,7 @@ namespace Couchbase.Lite.DI
 
         [NotNull]
         private static readonly Type[] _RequiredTypes = new[] {
-            typeof(IDefaultDirectoryResolver),
-            typeof(ISslStreamFactory)
+            typeof(IDefaultDirectoryResolver)
         };
 
         #endregion

@@ -104,7 +104,7 @@ namespace Couchbase.Lite.Support
             
             await Semaphore.WaitAsync().ConfigureAwait(false);
             try {
-                _writer.WriteLine($"{category} {message}");
+                _writer.WriteLine($"{logLevel.ToString().ToUpperInvariant()}) {category} {message}");
             } finally {
                 Semaphore.Release();
             }

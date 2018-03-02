@@ -20,7 +20,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\IMainThreadTaskScheduler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\IReachability.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\IRuntimePlatform.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)API\DI\ISslStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\Service.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\ArrayObject.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\Blob.cs" />

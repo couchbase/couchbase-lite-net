@@ -18,7 +18,7 @@
 
 using System;
 using System.Net.Sockets;
-
+using System.Security.Authentication;
 using Couchbase.Lite.Logging;
 
 using LiteCore.Interop;
@@ -29,9 +29,9 @@ namespace Couchbase.Lite
     {
         private const string Tag = nameof(Status);
 
-        public static unsafe void ConvertError(Exception e, C4Error* outError)
+        public static unsafe void ConvertNetworkError(Exception e, C4Error* outError)
         {
-            var c4err = new C4Error(C4ErrorCode.RemoteError);
+            var c4err = new C4Error(C4ErrorDomain.WebSocketDomain, (int)C4WebSocketCloseCode.WebSocketCloseAbnormal);
             switch (e) {
                 case SocketException se:
                     switch (se.SocketErrorCode) {
@@ -59,20 +59,16 @@ namespace Couchbase.Lite
                     }
 
                     break;
-
-                default:
-                    //HACK: System.Net.Security not available on current UWP, so it can't be used
-                    if (e.GetType().Name == "AuthenticationException") {
-                        if (e.Message == "The remote certificate is invalid according to the validation procedure.") {
-                            c4err.domain = C4ErrorDomain.NetworkDomain;
-                            c4err.code = (int) C4NetworkErrorCode.TLSCertUntrusted;
-                        }
+                case AuthenticationException ae:
+                    if (ae.Message == "The remote certificate is invalid according to the validation procedure.") {
+                        c4err.domain = C4ErrorDomain.NetworkDomain;
+                        c4err.code = (int) C4NetworkErrorCode.TLSCertUntrusted;
                     }
 
                     break;
             }
 
-            Log.To.Couchbase.W(Tag, $"No mapping for {e.GetType().Name}; interpreting as RemoteError");
+            Log.To.Couchbase.W(Tag, $"No mapping for {e.GetType().Name}; interpreting as WebSocketAbnormal");
             *outError = Native.c4error_make(c4err.domain, c4err.code, e.Message);
         }
     }
