@@ -17,6 +17,7 @@
 //
 
 using System;
+using System.IO;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using Couchbase.Lite.Logging;
@@ -59,6 +60,12 @@ namespace Couchbase.Lite
                     }
 
                     break;
+                case IOException ie:
+                    if (ie.Message == "The handshake failed due to an unexpected packet format.") {
+                        c4err.domain = C4ErrorDomain.NetworkDomain;
+                        c4err.code = (int) C4NetworkErrorCode.TLSHandshakeFailed;
+                    }
+                    break;
                 case AuthenticationException ae:
                     if (ae.Message == "The remote certificate is invalid according to the validation procedure.") {
                         c4err.domain = C4ErrorDomain.NetworkDomain;
@@ -66,9 +73,12 @@ namespace Couchbase.Lite
                     }
 
                     break;
+                default:
+                    Log.To.Couchbase.W(Tag, $"No mapping for {e.GetType().Name}; interpreting as WebSocketAbnormal");
+                    break;
             }
 
-            Log.To.Couchbase.W(Tag, $"No mapping for {e.GetType().Name}; interpreting as WebSocketAbnormal");
+            
             *outError = Native.c4error_make(c4err.domain, c4err.code, e.Message);
         }
     }

@@ -407,7 +407,7 @@ Transfer-Encoding: chunked";
 
             foreach (var pair in exceptions.Zip(errors, (a, b) => new { a, b })) {
                 C4Error tmp;
-                Status.ConvertError(pair.a, &tmp);
+                Status.ConvertNetworkError(pair.a, &tmp);
                 tmp.Should().Be(pair.b);
             }
         }
