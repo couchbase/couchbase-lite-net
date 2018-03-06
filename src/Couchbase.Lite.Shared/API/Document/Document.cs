@@ -94,7 +94,7 @@ namespace Couchbase.Lite
 
         internal bool Exists => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true && c4Doc.RawDoc->flags.HasFlag(C4DocumentFlags.DocExists));
 
-        internal virtual uint Generation => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? NativeRaw.c4rev_getGeneration(c4Doc.RawDoc->revID) : 0U);
+        internal virtual uint Generation => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? NativeRaw.c4rev_getGeneration(c4Doc.RawDoc->selectedRev.revID) : 0U);
 
         /// <summary>
         /// Gets this document's unique ID
@@ -103,7 +103,7 @@ namespace Couchbase.Lite
         public string Id { get; }
         internal virtual bool IsDeleted => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true && c4Doc.RawDoc->selectedRev.flags.HasFlag(C4RevisionFlags.Deleted));
 
-        internal virtual bool IsEmpty => _dict.Count == 0;
+        internal virtual bool IsEmpty => _dict?.Count == 0;
 
         internal virtual bool IsMutable => false;
 
@@ -114,7 +114,7 @@ namespace Couchbase.Lite
         /// Gets the sequence of this document (a unique incrementing number
         /// identifying its status in a database)
         /// </summary>
-        public ulong Sequence => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? c4Doc.RawDoc->sequence : 0UL);
+        public ulong Sequence => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.sequence : 0UL);
 
         [NotNull]
         internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
