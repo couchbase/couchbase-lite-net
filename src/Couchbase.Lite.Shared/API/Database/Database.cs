@@ -1186,8 +1186,9 @@ namespace Couchbase.Lite
 
             // Tell LiteCore to do the resolution:
             C4Document* rawDoc = localDoc.c4Doc != null ? localDoc.c4Doc.RawDoc : null;
+            var flags = resolved.c4Doc != null ? resolved.c4Doc.RawDoc->selectedRev.flags : 0;
             LiteCoreBridge.Check(
-                err => Native.c4doc_resolveConflict(rawDoc, winningRevID, losingRevID, mergedBody, err));
+                err => Native.c4doc_resolveConflict(rawDoc, winningRevID, losingRevID, mergedBody, flags, err));
             LiteCoreBridge.Check(err => Native.c4doc_save(rawDoc, 0, err));
 
             Log.To.Database.I(Tag, "Conflict resolved as doc '{0}' rev {1}",

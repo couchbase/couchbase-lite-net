@@ -101,11 +101,7 @@ namespace Couchbase.Lite
         /// </summary>
         [NotNull]
         public string Id { get; }
-
-        /// <summary>
-        /// Gets whether or not this document is deleted
-        /// </summary>
-        public virtual bool IsDeleted => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true && c4Doc.RawDoc->flags.HasFlag(C4DocumentFlags.DocDeleted));
+        internal virtual bool IsDeleted => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true && c4Doc.RawDoc->selectedRev.flags.HasFlag(C4RevisionFlags.Deleted));
 
         internal virtual bool IsEmpty => _dict.Count == 0;
 
@@ -227,20 +223,22 @@ namespace Couchbase.Lite
             if (_c4Doc == null) {
                 throw new InvalidOperationException("No revision data on the document!");
             }
-
-            C4Error err;
-            var success = Native.c4doc_selectNextLeafRevision(c4Doc.RawDoc, false, true, &err);
-            if (!success) {
-                if (err.code != 0) {
-                    throw CouchbaseException.Create(err);
-                }
-
-                Native.c4doc_selectCurrentRevision(c4Doc.RawDoc);
-                return false;
+            
+            var foundConflict = false;
+            var err = new C4Error();
+            while (!foundConflict && Native.c4doc_selectNextLeafRevision(_c4Doc.RawDoc, true, true, &err)) {
+                foundConflict = _c4Doc.RawDoc->selectedRev.flags.HasFlag(C4RevisionFlags.IsConflict);
             }
 
-            c4Doc = _c4Doc.Retain<C4DocumentWrapper>();
-            return true;
+            if (err.code != 0) {
+                throw CouchbaseException.Create(err);
+            }
+
+            if (foundConflict) {
+                c4Doc = _c4Doc.Retain<C4DocumentWrapper>();
+            }
+            
+            return foundConflict;
         }
 
         #endregion
