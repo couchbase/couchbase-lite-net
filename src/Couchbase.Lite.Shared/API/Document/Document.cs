@@ -69,18 +69,23 @@ namespace Couchbase.Lite
         {
             get => _c4Doc;
             set {
-                var newVal = value;
-                Misc.SafeSwap(ref _c4Doc, newVal);
-                Data = null;
+                ThreadSafety.DoLocked(() =>
+                {
+                    var newVal = value;
+                    Misc.SafeSwap(ref _c4Doc, newVal);
 
-                if (newVal?.HasValue == true) {
-                    var body = newVal.RawDoc->selectedRev.body;
-                    if (body.size > 0) {
-                        Data = Native.FLValue_AsDict(NativeRaw.FLValue_FromTrustedData(new FLSlice(body.buf, body.size)));
+                    Data = null;
+
+                    if (newVal?.HasValue == true) {
+                        var body = newVal.RawDoc->selectedRev.body;
+                        if (body.size > 0) {
+                            Data = Native.FLValue_AsDict(
+                                NativeRaw.FLValue_FromTrustedData(new FLSlice(body.buf, body.size)));
+                        }
                     }
-                }
 
-                UpdateDictionary();
+                    UpdateDictionary();
+                });
             }
         }
 

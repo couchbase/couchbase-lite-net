@@ -17,6 +17,7 @@
 // 
 
 using System;
+
 using Couchbase.Lite.Util;
 
 using LiteCore.Interop;
@@ -60,6 +61,20 @@ namespace Couchbase.Lite.Internal.Doc
         protected override void Dispose(bool disposing)
         {
             Native.c4doc_free(RawDoc);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is C4DocumentWrapper other)) {
+                return false;
+            }
+            
+            return other.RawDoc == RawDoc;
+        }
+
+        public override int GetHashCode()
+        {
+            return (int) RawDoc;
         }
 
         public override string ToString()
