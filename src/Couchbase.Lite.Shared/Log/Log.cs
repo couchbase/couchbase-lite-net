@@ -45,6 +45,8 @@ namespace Couchbase.Lite.Logging
 
         internal static readonly C4LogDomain* LogDomainWebSocket = c4log_getDomain("WS", false);
 
+        internal static readonly C4LogDomain* LogDomainSyncBusy = c4log_getDomain("SyncBusy", false);
+
         #endregion
 
         #region Variables
