@@ -267,6 +267,11 @@ namespace Couchbase.Lite.Sync
             var c4Err = Native.c4error_make(C4ErrorDomain.WebSocketDomain, (int)closeCode, reason);
             _c4Queue.DispatchAsync(() =>
             {
+                if (_closed) {
+                    Log.To.Sync.W(Tag, "Double close detected, ignoring...");
+                    return;
+                }
+
                 Native.c4socket_closed(_socket, c4Err);
                 _closed = true;
             });
@@ -292,6 +297,11 @@ namespace Couchbase.Lite.Sync
             var c4errCopy = c4err;
             _c4Queue.DispatchAsync(() =>
             {
+                if (_closed) {
+                    Log.To.Sync.W(Tag, "Double close detected, ignoring...");
+                    return;
+                }
+
                 Native.c4socket_closed(_socket, c4errCopy);
                 _closed = true;
             });
@@ -304,12 +314,18 @@ namespace Couchbase.Lite.Sync
             using (var streamReader = new StreamReader(NetworkStream, Encoding.ASCII, false, 5, true)) {
                 var parser = new HttpMessageParser(await streamReader.ReadLineAsync().ConfigureAwait(false));
                 while (true) {
-                    var line = await streamReader.ReadLineAsync().ConfigureAwait(false);
-                    if (String.IsNullOrEmpty(line)) {
-                        break;
-                    }
+                    try {
+                        var line = await streamReader.ReadLineAsync().ConfigureAwait(false);
+                        if (String.IsNullOrEmpty(line)) {
+                            break;
+                        }
 
-                    parser.Append(line);
+                        parser.Append(line);
+                    } catch (Exception e) {
+                        Log.To.Sync.I(Tag, "Error reading HTTP response of websocket handshake", e);
+                        DidClose(e);
+                        return;
+                    }
                 }
 
                 ReceivedHttpResponse(parser);
@@ -320,13 +336,11 @@ namespace Couchbase.Lite.Sync
         {
             if (t.IsCanceled) {
                 DidClose(new SocketException((int)SocketError.TimedOut));
-                _closed = true;
                 return false;
             }
 
             if (t.Exception != null) {
                 DidClose(t.Exception?.Flatten()?.InnerException);
-                _closed = true;
                 return false;
             }
 
@@ -388,6 +402,8 @@ namespace Couchbase.Lite.Sync
                                     Native.c4socket_received(socket, data);
                                     if (_receivedBytesPending < MaxReceivedBytesPending) {
                                         Receive();
+                                    } else {
+                                        Log.To.Sync.V(Tag, "Too much pending data, throttling Receive...");
                                     }
                                 }
                             } finally {
