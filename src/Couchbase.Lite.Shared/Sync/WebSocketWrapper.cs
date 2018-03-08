@@ -143,9 +143,7 @@ namespace Couchbase.Lite.Sync
                         ReceiveTimeout = (int) IdleTimeout.TotalMilliseconds
                     };
                 } catch (Exception e) {
-                    Native.c4socket_closed(_socket,
-                        Native.c4error_make(C4ErrorDomain.WebSocketDomain, (int)C4WebSocketCloseCode.WebSocketCloseAbnormal,
-                            $"Unable to open socket connection {e}"));
+                    DidClose(e);
                     return;
                 }
 
@@ -279,10 +277,6 @@ namespace Couchbase.Lite.Sync
 
         private unsafe void DidClose(Exception e)
         {
-            if (NetworkStream == null) {
-                return;
-            }
-
             ResetConnections();
 
             C4Error c4err;
@@ -310,25 +304,25 @@ namespace Couchbase.Lite.Sync
         private async void HandleHTTPResponse()
         {
             Log.To.Sync.V(Tag, "WebSocket sent HTTP request...");
-            
-            using (var streamReader = new StreamReader(NetworkStream, Encoding.ASCII, false, 5, true)) {
-                var parser = new HttpMessageParser(await streamReader.ReadLineAsync().ConfigureAwait(false));
-                while (true) {
-                    try {
+            try {
+                using (var streamReader = new StreamReader(NetworkStream, Encoding.ASCII, false, 5, true)) {
+                    var parser = new HttpMessageParser(await streamReader.ReadLineAsync().ConfigureAwait(false));
+                    while (true) {
+
                         var line = await streamReader.ReadLineAsync().ConfigureAwait(false);
                         if (String.IsNullOrEmpty(line)) {
                             break;
                         }
 
                         parser.Append(line);
-                    } catch (Exception e) {
-                        Log.To.Sync.I(Tag, "Error reading HTTP response of websocket handshake", e);
-                        DidClose(e);
-                        return;
-                    }
-                }
 
-                ReceivedHttpResponse(parser);
+                    }
+
+                    ReceivedHttpResponse(parser);
+                }
+            } catch (Exception e) {
+                Log.To.Sync.I(Tag, "Error reading HTTP response of websocket handshake", e);
+                DidClose(e);
             }
         }
 
@@ -340,7 +334,7 @@ namespace Couchbase.Lite.Sync
             }
 
             if (t.Exception != null) {
-                DidClose(t.Exception?.Flatten()?.InnerException);
+                DidClose(t.Exception);
                 return false;
             }
 

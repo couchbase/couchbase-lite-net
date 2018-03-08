@@ -113,9 +113,10 @@ namespace Couchbase.Lite.Sync
                 FLSliceExtensions.ToObject(NativeRaw.FLValue_FromTrustedData((FLSlice) options)) as
                     Dictionary<string, object>;
             var replicationOptions = new ReplicatorOptionsDictionary(opts);
-            var socketWrapper = new WebSocketWrapper(uri, socket, replicationOptions);
+            
             var id = Interlocked.Increment(ref _NextID);
             socket->nativeHandle = (void*)id;
+            var socketWrapper = new WebSocketWrapper(uri, socket, replicationOptions);
             Sockets[id] = socketWrapper;
             socketWrapper.Start();
         }
