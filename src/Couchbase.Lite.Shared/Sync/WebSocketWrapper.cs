@@ -17,6 +17,7 @@
 // 
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -39,6 +40,32 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.Sync
 {
+    // This class is the workhorse of the flow of data during replication and needs
+    // to be airtight.  Some notes:  The network stream absolutely must not be written
+    // to and read from at the same time.  The documentation mentions two unique threads,
+    // one for read and one for write, as the best approach.  
+    //
+    // This class implements an actor like system to try to avoid locking and backing
+    // things up.  There are three distinct areas:
+    //
+    // <c>_queue</c>: This is a serial queue that processes actions that involve the state
+    // of the C4Socket* object (receiving data, writing data, closing, opening, etc)
+    //
+    // <c>PerformRead</c>: Dedicated thread for reading from the remote stream, and passing
+    // what it finds to the <c>_queue</c>
+    //
+    // <c>PerformWrite</c>: Dedicated thread for writing to the remote stream.  It receives
+    // data via a pub-sub system whereby it is the subscriber. 
+    //
+    // <c>_c4Queue</c>: This is a serial queue that process actions that involve operating
+    // on the C4Socket* object at the native (LiteCore) level.  The queue is used for thread
+    // safety.
+    //
+    // Example: When it is time to write, LiteCore will callback into the C# callback, and
+    // the data will end up in the <c>Write</c> method.  This method will enter the queue,
+    // and then publish a message to the write thread (order is important) before exiting
+    // the queue.  The write thread will pick that message up, send it, and then enter the
+    // _c4Queue to inform LiteCore that it finished sending the data.
     internal sealed class WebSocketWrapper
     {
         #region Constants
@@ -55,20 +82,19 @@ namespace Couchbase.Lite.Sync
 
         [NotNull]private readonly byte[] _buffer = new byte[MaxReceivedBytesPending];
         [NotNull]private readonly SerialQueue _c4Queue = new SerialQueue();
-        [NotNull]private readonly ManualResetEventSlim _connected = new ManualResetEventSlim();
         [NotNull]private readonly HTTPLogic _logic;
         [NotNull]private readonly ReplicatorOptionsDictionary _options;
 
         [NotNull]private readonly SerialQueue _queue = new SerialQueue();
-        [NotNull]private readonly AutoResetEvent _readMutex = new AutoResetEvent(true);
 
         private readonly unsafe C4Socket* _socket;
-        [NotNull]private readonly AutoResetEvent _writeMutex = new AutoResetEvent(true);
         private TcpClient _client;
         private bool _closed;
         private string _expectedAcceptHeader;
+        private CancellationTokenSource _readWriteCancellationTokenSource;
         private uint _receivedBytesPending;
-        private bool _receiving;
+        private ManualResetEventSlim _receivePause;
+        private BlockingCollection<byte[]> _writeQueue;
 
         #endregion
 
@@ -93,11 +119,12 @@ namespace Couchbase.Lite.Sync
 
         #region Public Methods
 
+        // Normal closure (requested by client)
         public unsafe void CloseSocket()
 		{
+            // Wait my turn!
             _queue.DispatchAsync(() =>
             {
-				_connected.Wait();
                 ResetConnections();
                 _c4Queue.DispatchAsync(() =>
                 {
@@ -113,6 +140,7 @@ namespace Couchbase.Lite.Sync
             });
         }
 
+        // LiteCore finished processing X number of bytes
         public void CompletedReceive(ulong byteCount)
         {
             _queue.DispatchAsync(() =>
@@ -123,18 +151,27 @@ namespace Couchbase.Lite.Sync
                 }
 
                 _receivedBytesPending -= (uint)byteCount;
-                Receive();
+                _receivePause?.Set();
             });
         }
 
-        public unsafe void Start()
+        // This starts the flow of data, and it is quite an intense multi step process
+        // So I will label it in sequential order
+        public void Start()
         {
             _queue.DispatchAsync(() =>
             {
                 if (_client != null) {
+                    Log.To.Sync.W(Tag, "Ignoring duplicate call to Start...");
                     return;
                 }
 
+                _readWriteCancellationTokenSource = new CancellationTokenSource();
+                _writeQueue = new BlockingCollection<byte[]>();
+                _receivePause = new ManualResetEventSlim(true);
+
+                // STEP 1: Create the TcpClient, which is responsible for negotiating
+                // the socket connection between here and the server
                 try {
                     // ReSharper disable once UseObjectOrCollectionInitializer
                     _client = new TcpClient(AddressFamily.InterNetworkV6)
@@ -158,6 +195,7 @@ namespace Couchbase.Lite.Sync
                     };
                 }
 
+                // STEP 2: Open the socket connection to the remote host
                 var cts = new CancellationTokenSource();
                 cts.CancelAfter(ConnectTimeout);
                 _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port).ContinueWith(t =>
@@ -171,46 +209,9 @@ namespace Couchbase.Lite.Sync
             });
         }
 
-        public unsafe void Write(byte[] data)
+        public void Write(byte[] data)
         {
-            _queue.DispatchAsync(() =>
-            {
-                if (_closed) {
-                    Log.To.Sync.W(Tag, "Already closed, ignoring call to Write...");
-                    return;
-                }
-
-				_connected.Wait();
-                _writeMutex.WaitOne();
-                var cts = new CancellationTokenSource();
-                cts.CancelAfter(IdleTimeout);
-                if (NetworkStream == null) {
-                    _writeMutex.Set();
-                    Log.To.Sync.E(Tag, "Lost network stream, closing socket...");
-                    DidClose(C4WebSocketCloseCode.WebSocketCloseAbnormal, "Unexpected error in client logic");
-                    return;
-                }
-
-                NetworkStream.WriteAsync(data, 0, data.Length, cts.Token)
-                    .ContinueWith(t =>
-                    {
-                        if (!NetworkTaskSuccessful(t)) {
-                            _writeMutex.Set();
-                            return;
-                        }
-
-                        _c4Queue.DispatchAsync(() =>
-                        {
-                            try {
-                                if (!_closed) {
-                                    Native.c4socket_completedWrite(_socket, (ulong) data.Length);
-                                }
-                            } finally {
-                                _writeMutex.Set();
-                            }
-                        });
-                    }, cts.Token);
-	            });
+            _writeQueue?.Add(data);
         }
 
         #endregion
@@ -238,13 +239,14 @@ namespace Couchbase.Lite.Sync
 
         private unsafe void Connected()
         {
+            // STEP 8: We have web socket connectivity!  Start the read and write threads.
             Log.To.Sync.I(Tag, "WebSocket CONNECTED!");
-            Receive();
             var socket = _socket;
-            _connected.Set();
             _c4Queue.DispatchAsync(() =>
             {
                 Native.c4socket_opened(socket);
+                Task.Factory.StartNew(PerformWrite, TaskCreationOptions.LongRunning);
+                Task.Factory.StartNew(PerformRead, TaskCreationOptions.LongRunning);
             });
         }
 
@@ -252,10 +254,6 @@ namespace Couchbase.Lite.Sync
         {
             if (closeCode == C4WebSocketCloseCode.WebSocketCloseNormal) {
                 DidClose(null);
-                return;
-            }
-
-            if (NetworkStream == null) {
                 return;
             }
 
@@ -269,7 +267,7 @@ namespace Couchbase.Lite.Sync
                     Log.To.Sync.W(Tag, "Double close detected, ignoring...");
                     return;
                 }
-
+                
                 Native.c4socket_closed(_socket, c4Err);
                 _closed = true;
             });
@@ -295,7 +293,7 @@ namespace Couchbase.Lite.Sync
                     Log.To.Sync.W(Tag, "Double close detected, ignoring...");
                     return;
                 }
-
+                
                 Native.c4socket_closed(_socket, c4errCopy);
                 _closed = true;
             });
@@ -303,6 +301,7 @@ namespace Couchbase.Lite.Sync
 
         private async void HandleHTTPResponse()
         {
+            // STEP 6: Read and parse the HTTP response
             Log.To.Sync.V(Tag, "WebSocket sent HTTP request...");
             try {
                 using (var streamReader = new StreamReader(NetworkStream, Encoding.ASCII, false, 5, true)) {
@@ -343,6 +342,7 @@ namespace Couchbase.Lite.Sync
 
         private void OnSocketReady()
         {
+            //STEP 5: Send the HTTP request to start the WebSocket upgrade
             var httpData = _logic.HTTPRequestData();
             var cts = new CancellationTokenSource();
             cts.CancelAfter(IdleTimeout);
@@ -352,6 +352,8 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
+            NetworkStream.ReadTimeout = (int)IdleTimeout.TotalMilliseconds;
+            NetworkStream.WriteTimeout = (int)IdleTimeout.TotalMilliseconds;
             NetworkStream.WriteAsync(httpData, 0, httpData.Length, cts.Token).ContinueWith(t =>
             {
                 if (!NetworkTaskSuccessful(t)) {
@@ -362,58 +364,116 @@ namespace Couchbase.Lite.Sync
             }, cts.Token);
         }
 
-        private unsafe void Receive()
+        // Run in a dedicated thread
+        private void PerformRead()
         {
-            _queue.DispatchAsync(() =>
-            {
-                if (_receiving || NetworkStream == null) {
+            var original = _readWriteCancellationTokenSource;
+            if (original == null) {
+                Log.To.Sync.V(Tag, "_readWriteCancellationTokenSource is null, cancelling read...");
+                return;
+            }
+
+            // This will protect us against future nullification of the original source
+            var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(original.Token);
+            while (!cancelSource.IsCancellationRequested) {
+                try {
+                    _receivePause?.Wait(cancelSource.Token);
+                } catch (ObjectDisposedException) {
+                    return;
+                } catch(OperationCanceledException){
                     return;
                 }
+                
+                try {
+                    var stream = NetworkStream;
+                    if (stream == null) {
+                        return;
+                    }
 
-                _receiving = true;
-                _readMutex.WaitOne();
-                var cts = new CancellationTokenSource();
-                cts.CancelAfter(IdleTimeout);
-                NetworkStream.ReadAsync(_buffer, 0, _buffer.Length, cts.Token)
-                    .ContinueWith(t =>
-                    {
-                        _receiving = false;
-                        if (!NetworkTaskSuccessful(t)) {
-                            _readMutex.Set();
+                    // Phew, at this point we are clear to actually read from the stream
+                    var received = stream.Read(_buffer, 0, _buffer.Length);
+                    var data = _buffer.Take(received).ToArray();
+                    Receive(data);
+                } catch (Exception e) {
+                    DidClose(e);
+                    return;
+                }
+            }
+        }
+
+        private unsafe void PerformWrite()
+        {
+            var original = _readWriteCancellationTokenSource;
+            if (original == null) {
+                return;
+            }
+            
+            // This will protect us against future nullification of the original source
+            var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(original.Token);
+            while (!cancelSource.IsCancellationRequested) {
+                try {
+                    var writeQueue = _writeQueue;
+                    if (writeQueue == null) {
+                        return;
+                    }
+
+                    var nextData = writeQueue.Take(cancelSource.Token);
+                    try {
+                        var stream = NetworkStream;
+                        if (stream == null) {
                             return;
                         }
 
-                        _receivedBytesPending += (uint) t.Result;
-                        Log.To.Sync.V(Tag, $"<<< received {t.Result} bytes [now {_receivedBytesPending} pending]");
-                        var socket = _socket;
-                        var data = _buffer.Take(t.Result).ToArray();
-                        
-                        _c4Queue.DispatchAsync(() =>
-                        {
-                            try {
-                                // Guard against closure / disposal
-                                if (!_closed) {
-                                    Native.c4socket_received(socket, data);
-                                    if (_receivedBytesPending < MaxReceivedBytesPending) {
-                                        Receive();
-                                    } else {
-                                        Log.To.Sync.V(Tag, "Too much pending data, throttling Receive...");
-                                    }
-                                }
-                            } finally {
-                                _readMutex.Set();
-                            }
-                        });
-                    }, cts.Token);
+                        // Clear to try to write
+                        stream.Write(nextData, 0, nextData.Length);
+                    } catch (Exception e) {
+                        DidClose(e);
+                        return;
+                    }
+
+                    _c4Queue.DispatchAsync(() =>
+                    {
+                        if (!_closed) {
+                            Native.c4socket_completedWrite(_socket, (ulong) nextData.Length);
+                        }
+                    });
+                } catch (OperationCanceledException) {
+                    return;
+                }
+            }
+        }
+
+        private unsafe void Receive(byte[] data)
+        {
+            // Schedule the processing to happen on the queue.  Out of order
+            // messages cause checksum errors!
+            _queue.DispatchAsync(() =>
+            {
+                _receivedBytesPending += (uint)data.Length;
+                Log.To.Sync.V(Tag, $"<<< received {data.Length} bytes [now {_receivedBytesPending} pending]");
+                var socket = _socket;
+                _c4Queue.DispatchAsync(() =>
+                {
+                    // Guard against closure / disposal
+                    if (!_closed) {
+                        Native.c4socket_received(socket, data);
+                        if (_receivedBytesPending >= MaxReceivedBytesPending) {
+                            Log.To.Sync.V(Tag, "Too much pending data, throttling Receive...");
+                            _receivePause?.Reset();
+                        }
+                    }
+                });
             });
         }
 
         private unsafe void ReceivedHttpResponse([NotNull]HttpMessageParser parser)
         {
+            // STEP 7: Determine if the HTTP response was a success
             _logic.ReceivedResponse(parser);
             var httpStatus = _logic.HttpStatus;
 
             if (_logic.ShouldRetry) {
+                // Usually authentication needed, or a redirect
                 ResetConnections();
                 Start();
                 return;
@@ -426,6 +486,7 @@ namespace Couchbase.Lite.Sync
                 Native.c4socket_gotHTTPResponse(socket, httpStatus, dict);
             });
 
+            // Success is a 101 response, anything else is not good
             if (httpStatus != 101) {
                 var closeCode = C4WebSocketCloseCode.WebSocketClosePolicyError;
                 if (httpStatus >= 300 && httpStatus < 1000) {
@@ -453,6 +514,13 @@ namespace Couchbase.Lite.Sync
                 _client = null;
                 NetworkStream?.Dispose();
                 NetworkStream = null;
+                _readWriteCancellationTokenSource?.Cancel();
+                _readWriteCancellationTokenSource?.Dispose();
+                _readWriteCancellationTokenSource = null;
+                _receivePause?.Dispose();
+                _receivePause = null;
+                _writeQueue?.Dispose();
+                _writeQueue = null;
             });
         }
 
@@ -470,6 +538,7 @@ namespace Couchbase.Lite.Sync
 
         private void StartInternal()
         {
+            // STEP 3: Create the WebSocket Upgrade HTTP request
             Log.To.Sync.I(Tag, $"WebSocket connecting to {_logic.UrlRequest?.Host}:{_logic.UrlRequest?.Port}");
             var rng = RandomNumberGenerator.Create() ?? throw new RuntimeException("Failed to create RandomNumberGenerator");
             var nonceBytes = new byte[16];
@@ -513,6 +582,7 @@ namespace Couchbase.Lite.Sync
                     clientCerts = new X509CertificateCollection(new[] {_options.ClientCert as X509Certificate});
                 }
                 
+                // STEP 3A: TLS handshake
                 stream.AuthenticateAsClientAsync(_logic.UrlRequest?.Host, clientCerts, SslProtocols.Tls12, false).ContinueWith(
                     t =>
                     {

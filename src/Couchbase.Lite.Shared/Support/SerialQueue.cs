@@ -53,7 +53,7 @@ namespace Couchbase.Lite.Support
         private SerialQueueState State
         {
             get => (SerialQueueState)_state;
-            set => _state = (int)value;
+            set => Interlocked.Exchange(ref _state, (int)value);
         }
 
         #endregion
