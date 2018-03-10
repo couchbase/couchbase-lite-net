@@ -220,7 +220,7 @@ namespace Test
                 }
 
                 this.Invoking(x => ReopenDB())
-                    .ShouldThrow<InvalidOperationException>(
+                    .ShouldThrow<CouchbaseLiteException>(
                         "because the database cannot be closed while replication is running");
 
                 repl.Stop();
