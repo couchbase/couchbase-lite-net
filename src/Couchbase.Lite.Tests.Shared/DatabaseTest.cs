@@ -289,10 +289,8 @@ namespace Test
                 doc1a.SetString("name", "Jim");
                 Db.Save(doc1a);
                 doc1b.SetString("name", "Tim");
-                Db.Invoking(db => db.Save(doc1b, ConcurrencyControl.FailOnConflict))
-                    .ShouldThrow<CouchbaseLiteException>().Where(x =>
-                        x.Domain == CouchbaseLiteErrorType.CouchbaseLite &&
-                        x.Error == CouchbaseLiteError.Conflict);
+                Db.Save(doc1b, ConcurrencyControl.FailOnConflict).Should()
+                    .BeFalse("beacuse a conflict should not be allowed in this mode");
                 using (var gotDoc = Db.GetDocument(doc1a.Id)) {
                     gotDoc.GetString("name").Should().Be("Jim");
                 }

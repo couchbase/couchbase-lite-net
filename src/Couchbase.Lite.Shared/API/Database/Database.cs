@@ -557,11 +557,12 @@ namespace Couchbase.Lite
         /// <param name="concurrencyControl">The rule to use when encountering a conflict in the database</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
         /// other than the one it was previously added to</exception>
+        /// <returns><c>true</c> if the delete succeeded, <c>false</c> if there was a conflict</returns>
         [ContractAnnotation("document:null => halt")]
-        public void Delete(Document document, ConcurrencyControl concurrencyControl)
+        public bool Delete(Document document, ConcurrencyControl concurrencyControl)
         {
             var doc = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(document), document);
-            Save(doc, concurrencyControl, true);
+            return Save(doc, concurrencyControl, true);
         }
 
         /// <summary>
@@ -615,7 +616,7 @@ namespace Couchbase.Lite
                 var val = NativeRaw.FLValue_FromTrustedData(new FLSlice(result.buf, result.size));
                 if (val == null) {
                     Native.c4slice_free(result);
-                    throw new CouchbaseLiteException(C4ErrorCode.CorruptIndexData);
+                    throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError);
                 }
 
                 retVal = FLValueConverter.ToCouchbaseObject(val, this, true, typeof(string));
@@ -726,11 +727,12 @@ namespace Couchbase.Lite
         /// <param name="concurrencyControl">The rule to use when encountering a conflict in the database</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
         /// other than the one it was previously added to</exception>
+        /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
         [ContractAnnotation("document:null => halt")]
-        public void Save(MutableDocument document, ConcurrencyControl concurrencyControl)
+        public bool Save(MutableDocument document, ConcurrencyControl concurrencyControl)
         {
             var doc = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(document), document);
-            Save(doc, concurrencyControl, false);
+            return Save(doc, concurrencyControl, false);
         }
 
         #if CBL_LINQ
@@ -1030,12 +1032,13 @@ namespace Couchbase.Lite
             return String.CompareOrdinal(localDoc.RevID, remoteDoc.RevID) > 0 ? localDoc : remoteDoc;
         }
         
-        private void Save([NotNull]Document document, ConcurrencyControl concurrencyControl, bool deletion)
+        private bool Save([NotNull]Document document, ConcurrencyControl concurrencyControl, bool deletion)
         {
             if (deletion && document.RevID == null) {
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Cannot delete a document that has not yet been saved");
             }
 
+            var success = true;
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -1049,13 +1052,16 @@ namespace Couchbase.Lite
                     if (newDoc == null) {
                         // Handle conflict:
                         if (concurrencyControl == ConcurrencyControl.FailOnConflict) {
-                            throw new CouchbaseLiteException(C4ErrorCode.Conflict);
+                            success = false;
+                            committed = true; // Weird, but if the next call fails I don't want to call it again in the catch block
+                            LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, true, e));
+                            return;
                         }
 
                         C4Error err;
                         curDoc = Native.c4doc_get(_c4db, document.Id, true, &err);
 
-                        // If deletion and the current oc has already been deleted
+                        // If deletion and the current doc has already been deleted
                         // or doesn't exist:
                         if (deletion) {
                             if (curDoc == null) {
@@ -1094,6 +1100,8 @@ namespace Couchbase.Lite
                     Native.c4doc_free(newDoc);
                 }
             });
+
+            return success;
         }
 
         private void Save([NotNull]Document doc, C4Document** outDoc, C4Document* baseDoc, bool deletion)
@@ -1200,13 +1208,15 @@ namespace Couchbase.Lite
         private void ThrowIfActiveItems()
         {
             if (ActiveReplications.Any()) {
-                throw new InvalidOperationException(
+                var c4err = Native.c4error_make(C4ErrorDomain.LiteCoreDomain, (int) C4ErrorCode.Busy,
                     "Cannot close the database. Please stop all of the replicators before closing the database.");
+                throw new CouchbaseLiteException(c4err);
             }
 
             if (ActiveLiveQueries.Any()) {
-                throw new InvalidOperationException(
-                    "Cannot close the database. Please remove all of the query listeners before closing the database");
+                var c4err = Native.c4error_make(C4ErrorDomain.LiteCoreDomain, (int) C4ErrorCode.Busy,
+                    "Cannot close the database. Please remove all of the query listeners before closing the database.");
+                throw new CouchbaseLiteException(c4err);
             }
         }
 
