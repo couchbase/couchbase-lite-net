@@ -148,7 +148,7 @@ namespace Couchbase.Lite.Sync
                     if (++_redirectCount > MaxRedirects) {
                         Error = new CouchbaseNetworkException(C4NetworkErrorCode.TooManyRedirects);
                     } else if (!Redirect(parser)) {
-                        Error = new HttpLogicException(HttpLogicError.BadRedirectLocation);
+                        Error = new CouchbaseNetworkException(C4NetworkErrorCode.InvalidRedirect);
                     } else {
                         ShouldRetry = true;
                     }
@@ -174,8 +174,7 @@ namespace Couchbase.Lite.Sync
                     var auth = new SecureLogString(_authorizationHeader, LogMessageSensitivity.Insecure);
                     var wwwAuth = new SecureLogString(authResponse, LogMessageSensitivity.Insecure);
                     Log.To.Sync.I(Tag, $"HTTP auth failed; sent Authorization {auth} ; got WWW-Authenticate {wwwAuth}");
-                    Error = new HttpLogicException(HttpLogicError.Unauthorized);
-
+                    Error = new CouchbaseNetworkException(httpStatus);
                     break;
                 default:
                     if ((int) httpStatus < 300) {
