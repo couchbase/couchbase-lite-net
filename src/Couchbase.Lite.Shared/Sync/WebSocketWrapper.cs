@@ -392,6 +392,13 @@ namespace Couchbase.Lite.Sync
 
                     // Phew, at this point we are clear to actually read from the stream
                     var received = stream.Read(_buffer, 0, _buffer.Length);
+                    if (received == 0) {
+                        // Should only happen on a closed stream, but just in case let's continue
+                        // after a small delay (wait for cancellation to confirm)
+                        Thread.Sleep(200);
+                        continue;
+                    }
+
                     var data = _buffer.Take(received).ToArray();
                     Receive(data);
                 } catch (Exception e) {
