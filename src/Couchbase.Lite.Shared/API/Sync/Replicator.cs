@@ -67,6 +67,7 @@ namespace Couchbase.Lite.Sync
 
         private string _desc;
         private bool _disposed;
+        private bool _stopping;
 
         private ReplicatorParameters _nativeParams;
         private C4ReplicatorStatus _rawStatus;
@@ -191,6 +192,11 @@ namespace Couchbase.Lite.Sync
         {
             _threadSafetyQueue.DispatchSync(() =>
             {
+                if (_stopping) {
+                    return;
+                }
+
+                _stopping = true;
                 _reachability?.Stop();
                 _reachability = null;
                 if (_repl != null) {
@@ -274,6 +280,11 @@ namespace Couchbase.Lite.Sync
 
         private bool HandleError(C4Error error)
         {
+            if (_stopping) {
+                Log.To.Sync.I(Tag, "Already stopping, ignoring error...");
+                return false;
+            }
+
             // If this is a transient error, or if I'm continuous and the error might go away with a change
             // in network (i.e. network down, hostname unknown), then go offline and retry later
             var transient = Native.c4error_mayBeTransient(error);
@@ -343,7 +354,7 @@ namespace Couchbase.Lite.Sync
         // Must be called from within the ThreadSafety
         private void Retry()
         {
-            if (_repl != null || _rawStatus.level != C4ReplicatorActivityLevel.Offline) {
+            if (_repl != null || _rawStatus.level != C4ReplicatorActivityLevel.Offline || _stopping) {
                 return;
             }
 
@@ -397,6 +408,7 @@ namespace Couchbase.Lite.Sync
 
             var err = new C4Error();
             var status = default(C4ReplicatorStatus);
+            _stopping = false;
             _databaseThreadSafety.DoLocked(() =>
             {
                 C4Error localErr;
