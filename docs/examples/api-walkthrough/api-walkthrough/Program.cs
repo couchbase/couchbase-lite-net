@@ -18,6 +18,8 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
+
 using Couchbase.Lite;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Sync;
@@ -37,47 +39,44 @@ namespace api_walkthrough
 
             // create database
             var config = new DatabaseConfiguration();
-            config.ConflictResolver = new ExampleConflictResolver();
             var database = new Database("my-database", config);
 
             // create document
-            var newTask = new MutableDocument();
-            newTask.SetString("type", "task");
-            newTask.SetString("owner", "todo");
-            newTask.SetDate("createdAt", DateTimeOffset.UtcNow);
-            newTask = database.Save(newTask).ToMutable();
+            using (var newTask = new MutableDocument()) {
+                newTask.SetString("type", "task");
+                newTask.SetString("owner", "todo");
+                newTask.SetDate("createdAt", DateTimeOffset.UtcNow);
+                database.Save(newTask);
 
-            // mutate document
-            newTask.SetString("name", "Apples");
-            newTask = database.Save(newTask).ToMutable();
+                // mutate document
+                newTask.SetString("name", "Apples");
+                database.Save(newTask);
 
-            // typed accessors
-            newTask.SetDate("createdAt", DateTimeOffset.UtcNow);
-            var date = newTask.GetDate("createdAt");
+                // typed accessors
+                newTask.SetDate("createdAt", DateTimeOffset.UtcNow);
+                var date = newTask.GetDate("createdAt");
 
-            // database transaction
-            database.InBatch(() =>
-            {
-                for (int i = 0; i < 10; i++)
+                // database transaction
+                database.InBatch(() =>
                 {
-                    using (var doc = new MutableDocument()) {
-                        doc.SetString("type", "user");
-                        doc.SetString("name", $"user {i}");
-                        using (var saved = database.Save(doc)) {
-                            Console.WriteLine($"saved user document {saved.GetString("name")}");
+                    for (int i = 0; i < 10; i++) {
+                        using (var doc = new MutableDocument()) {
+                            doc.SetString("type", "user");
+                            doc.SetString("name", $"user {i}");
+                            database.Save(doc);
+                            Console.WriteLine($"saved user document {doc.GetString("name")}");
                         }
                     }
-                }
-            });
+                });
 
-            // blob
-            var bytes = File.ReadAllBytes("avatar.jpg");
-            var blob = new Blob("image/jpg", bytes);
-            newTask.SetBlob("avatar", blob);
-            newTask = database.Save(newTask).ToMutable();
-            var taskBlob = newTask.GetBlob("avatar");
-            var data = taskBlob.Content;
-            newTask.Dispose();
+                // blob
+                var bytes = File.ReadAllBytes("avatar.jpg");
+                var blob = new Blob("image/jpg", bytes);
+                newTask.SetBlob("avatar", blob);
+                database.Save(newTask);
+                var taskBlob = newTask.GetBlob("avatar");
+                var data = taskBlob.Content;
+            }
 
             // query
             var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
@@ -92,7 +91,7 @@ namespace api_walkthrough
             
 
             // live query
-            query.AddChangeListener((sender, e) => {
+            var token = query.AddChangeListener((sender, e) => {
                 Console.WriteLine($"Number of rows :: {e.Results.Count()}");
             });
 
@@ -128,30 +127,9 @@ namespace api_walkthrough
                         $"document properties {JsonConvert.SerializeObject(doc.ToDictionary(), Formatting.Indented)}");
                 }
             }
-
-            // create conflict
-            /*
-			 * 1. Create a document twice with the same ID (the document will have two conflicting revisions).
-			 * 2. Upon saving the second revision, the ExampleConflictResolver's resolve method is called.
-			 * The `theirs` ReadOnlyDocument in the conflict resolver represents the current rev and `mine` is what's being saved.
-			 * 3. Read the document after the second save operation and verify its property is as expected.
-			 * The conflict resolver will have deleted the obsolete revision.
-			 */
-            using (var theirs = new MutableDocument("buzz"))
-            using (var mine = new MutableDocument("buzz")) {
-                theirs.SetString("status", "theirs");
-                mine.SetString("status", "mine");
-                database.Save(theirs);
-                database.Save(mine);
-            }
             
-            var conflictResolverResult = database.GetDocument("buzz");
-            Console.WriteLine($"conflictResolverResult doc.status ::: {conflictResolverResult.GetString("status")}");
-
-            // replication (Note: Linux / Mac requires .NET Core 2.0+ due to
-            // https://github.com/dotnet/corefx/issues/8768)
-			/*
-             * Tested with SG 1.5 https://www.couchbase.com/downloads
+            /*
+             * Tested with SG 2.0 https://www.couchbase.com/downloads
              * Config file:
              * {
 				  "databases": {
@@ -159,9 +137,6 @@ namespace api_walkthrough
 				      "server":"walrus:",
 				      "users": {
 				        "GUEST": {"disabled": false, "admin_channels": ["*"]}
-				      },
-				      "unsupported": {
-				        "replicator_2":true
 				      }
 				    }
 				  }
@@ -183,7 +158,15 @@ namespace api_walkthrough
 
             // This is important to do because otherwise the native connection
             // won't be released until the next garbage collection
+            query.RemoveChangeListener(token);
             query.Dispose();
+            replication.Stop();
+
+            while (replication.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                Console.WriteLine("Waiting for replicator to stop...");
+                Thread.Sleep(1000);
+            }
+
             database.Dispose();
         }
 
