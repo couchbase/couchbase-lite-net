@@ -83,7 +83,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\RuntimeException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\Authenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\BasicAuthenticator.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)API\Sync\HttpLogicException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\IEndpoint.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\ReplicationActivityLevel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\Replicator.cs" />

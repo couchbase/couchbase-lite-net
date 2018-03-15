@@ -494,7 +494,9 @@ namespace Couchbase.Lite.Sync
             });
 
             // Success is a 101 response, anything else is not good
-            if (httpStatus != 101) {
+            if (_logic.Error != null) {
+                DidClose(_logic.Error);
+            } else if (httpStatus != 101) {
                 var closeCode = C4WebSocketCloseCode.WebSocketClosePolicyError;
                 if (httpStatus >= 300 && httpStatus < 1000) {
                     closeCode = (C4WebSocketCloseCode)httpStatus;

@@ -62,6 +62,9 @@ namespace Couchbase.Lite
                 }
 
                 switch (inner) {
+                    case CouchbaseException ce:
+                        c4err = ce.LiteCoreError;
+                        break;
                     case SocketException se:
                         switch (se.SocketErrorCode) {
                             case SocketError.HostNotFound:
@@ -109,6 +112,7 @@ namespace Couchbase.Lite
                 Log.To.Couchbase.W(Tag, $"No mapping for {e.GetType().Name}; interpreting as WebSocketAbnormal");
             }
 
+            // Use the message of the top-level exception because it will print out nested ones too
             *outError = Native.c4error_make(c4err.domain, c4err.code, e.Message);
         }
     }
