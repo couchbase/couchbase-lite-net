@@ -127,8 +127,25 @@ namespace Couchbase.Lite.Internal.Doc
                     return ConvertDictionary(dict);
                 case IList list:
                     return ConvertList(list);
-                default:
+                case byte b:
+                case sbyte sb:
+                case ushort us:
+                case short s:
+                case uint ui:
+                case int i:
+                case long l:
+                case string str:
+                case bool bl:
+                case float f:
+                case double d:
+                case MutableArrayObject ao:
+                case MutableDictionaryObject dict:
+                case Blob blob:
                     return value;
+                default:
+                    throw new ArgumentException($"{value.GetType().Name} is not a valid type.  " +
+                                                "You may only pass byte, sbyte, short, ushort, int, uint, long, ulong, float, double, bool, DateTimeOffset, Blob" +
+                                                "or one-dimensional arrays or dictionaries containing the above types");
             }
         }
 

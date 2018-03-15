@@ -1336,6 +1336,34 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestTypes()
+        {
+            var array = new MutableArrayObject();
+            array.Invoking(a => a.AddValue(new ASCIIEncoding())).ShouldThrow<ArgumentException>();
+            array.Invoking(a => a.AddValue(1UL)).ShouldThrow<ArgumentException>();
+            array.Invoking(a => a.AddValue(new[] { new ASCIIEncoding() })).ShouldThrow<ArgumentException>();
+            array.Invoking(a => a.AddValue(new Dictionary<string, object> { ["encoding"] = new ASCIIEncoding() })).ShouldThrow<ArgumentException>();
+            array.AddValue((byte) 1);
+            array.AddValue((sbyte) 1);
+            array.AddValue((ushort) 1);
+            array.AddValue((short) 1);
+            array.AddValue(1);
+            array.AddValue(1U);
+            array.AddValue(1L);
+            array.AddValue(true);
+            array.AddValue("Test");
+            array.AddValue(1.1f);
+            array.AddValue(1.1);
+            array.AddValue(DateTimeOffset.UtcNow);
+            array.AddValue(new[] { 1, 2, 3, });
+            array.AddValue(new Dictionary<string, object> { ["foo"] = "bar" });
+            array.AddValue(new ArrayObject());
+            array.AddValue(new MutableArrayObject());
+            array.AddValue(new DictionaryObject());
+            array.AddValue(new MutableDictionaryObject());
+        }
+
         private IList<object> CreateArrayOfAllTypes()
         {
             var array = new List<object> {

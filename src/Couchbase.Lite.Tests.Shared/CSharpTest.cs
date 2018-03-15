@@ -41,6 +41,7 @@ using Couchbase.Lite.Util;
 using FluentAssertions;
 using LiteCore.Interop;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 using Extensions = Couchbase.Lite.Util.Extensions;
 #if !WINDOWS_UWP
@@ -143,10 +144,8 @@ namespace Test
             ao.AddBlob(blob);
             ao.AddDate(now);
             ao.AddDictionary(dict);
-
-            var obj = new Object();
+            
             var arr = new MutableArrayObject(new[] {5, 4, 3, 2, 1});
-            ao.InsertValue(0, obj);
             ao.InsertInt(0, 42);
             ao.InsertLong(0, Int64.MaxValue);
             ao.InsertFloat(0, 3.14f);
@@ -156,7 +155,7 @@ namespace Test
             ao.InsertDate(0, now);
             ao.InsertArray(0, arr);
             ao.InsertDictionary(0, dict);
-            ao.Should().Equal(dict, arr, nowStr, blob, true, Math.PI, 3.14f, Int64.MaxValue, 42, obj, 1.1f, blob,
+            ao.Should().Equal(dict, arr, nowStr, blob, true, Math.PI, 3.14f, Int64.MaxValue, 42, 1.1f, blob,
                 nowStr,
                 dict);
 
@@ -168,7 +167,7 @@ namespace Test
             ao.SetArray(5, arr);
             ao.SetDictionary(6, dict);
             ao.SetDate(7, now);
-            ao.Should().Equal(Int64.MaxValue, 3.14f, Math.PI, true, blob, arr, dict, nowStr, 42, obj, 1.1f, blob,
+            ao.Should().Equal(Int64.MaxValue, 3.14f, Math.PI, true, blob, arr, dict, nowStr, 42, 1.1f, blob,
                 nowStr,
                 dict);
         }
@@ -478,6 +477,29 @@ Transfer-Encoding: chunked";
                 var code = PosixBase.GetCode(err);
                 Native.c4error_mayBeNetworkDependent(new C4Error(C4ErrorDomain.POSIXDomain, code)).Should().BeTrue($"because {err} should be network dependent");
             }
+        }
+
+        [Fact]
+        public void TestAutoconvertJson()
+        {
+            var jVal = new JValue("test");
+            var jArray = new JArray(jVal);
+            var jObj = new JObject { ["test"] = jVal };
+
+            DataOps.ToCouchbaseObject(jVal).Should().Be("test");
+            DataOps.ToCouchbaseObject(jArray).As<MutableArrayObject>()[0].String.Should().Be("test");
+            DataOps.ToCouchbaseObject(jObj).As<MutableDictionaryObject>()["test"].String.Should().Be("test");
+
+            var jsonString = "{\"level1\":{\"foo\":\"bar\"},\"level2\":{\"list\":[1, 3.14, \"s\"]}, \"$type\":\"JSON .NET Object\"}";
+            var json = JsonConvert.DeserializeObject<IDictionary<string, object>>(jsonString);
+            var converted = DataOps.ToCouchbaseObject(json) as MutableDictionaryObject;
+            converted.Should().NotBeNull();
+
+            converted["level1"]["foo"].String.Should().Be("bar");
+            converted["level2"]["list"][0].Int.Should().Be(1);
+            converted["level2"]["list"][1].Double.Should().Be(3.14);
+            converted["level2"]["list"][2].String.Should().Be("s");
+            converted["$type"].String.Should().Be("JSON .NET Object");
         }
 
         #if !NETCOREAPP2_0

@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 
+using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
@@ -194,7 +195,14 @@ namespace Couchbase.Lite.Query
         {
             CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(name), name);
 
+            // HACK: Use side effect of data validation
+            var cbVal = DataOps.ToCouchbaseObject(value);
+            if (cbVal is MutableDictionaryObject || cbVal is MutableArrayObject) {
+                throw new ArgumentException("Query parameters are not allowed to contain collections");
+            }
+
             _freezer.PerformAction(() => _params[name] = value);
+            
             return this;
         }
 

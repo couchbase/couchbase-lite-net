@@ -1668,6 +1668,8 @@ namespace Test
                 .SetLong("big_num", Int64.MaxValue)
                 .SetString("name", "Jim");
 
+            builder.Invoking(b => b.SetValue("bad", new[] { 1, 2, 3 })).ShouldThrow<ArgumentException>();
+
             var parameters = builder;
             parameters.GetValue("true").As<bool>().Should().BeTrue();
             parameters.GetValue("now").As<DateTimeOffset>().Should().Be(now);

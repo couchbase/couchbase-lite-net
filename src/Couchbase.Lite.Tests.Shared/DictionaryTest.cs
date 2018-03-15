@@ -20,6 +20,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.Lite;
+using Couchbase.Lite.Internal.Doc;
+
 using FluentAssertions;
 #if !WINDOWS_UWP
 using Xunit;
@@ -474,6 +476,37 @@ namespace Test
                     nestedArray.ShouldBeEquivalentTo(mNestedArray);
                     array.ShouldBeEquivalentTo(mArray);
                 }
+            }
+        }
+
+        [Fact]
+        public void TestTypes()
+        {
+            var dict = new MutableDictionaryObject();
+            var dict2 = new InMemoryDictionary();
+            foreach (var d in new IMutableDictionary[] { dict, dict2 }) {
+                d.Invoking(d_ => d_.SetValue("test", new ASCIIEncoding())).ShouldThrow<ArgumentException>();
+                d.Invoking(d_ => d_.SetValue("test", 1UL)).ShouldThrow<ArgumentException>();
+                d.Invoking(d_ => d_.SetValue("test", new[] { new ASCIIEncoding() })).ShouldThrow<ArgumentException>();
+                d.Invoking(d_ => d_.SetValue("test", new Dictionary<string, object> { ["encoding"] = new ASCIIEncoding() })).ShouldThrow<ArgumentException>();
+                d.SetValue("test", (byte) 1);
+                d.SetValue("test", (sbyte) 1);
+                d.SetValue("test", (ushort) 1);
+                d.SetValue("test", (short) 1);
+                d.SetValue("test", 1);
+                d.SetValue("test", 1U);
+                d.SetValue("test", 1L);
+                d.SetValue("test", true);
+                d.SetValue("test", "Test");
+                d.SetValue("test", 1.1f);
+                d.SetValue("test", 1.1);
+                d.SetValue("test", DateTimeOffset.UtcNow);
+                d.SetValue("test", new[] { 1, 2, 3, });
+                d.SetValue("test", new Dictionary<string, object> { ["foo"] = "bar" });
+                d.SetValue("test", new ArrayObject());
+                d.SetValue("test", new MutableArrayObject());
+                d.SetValue("test", new DictionaryObject());
+                d.SetValue("test", new MutableDictionaryObject());
             }
         }
     }
