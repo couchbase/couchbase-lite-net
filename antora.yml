@@ -1,0 +1,6 @@
+name: couchbase-lite-net
+title: Couchbase Lite .NET
+version: '2.0'
+start_page: ROOT:csharp.adoc
+nav:
+- modules/docs/nav.adoc
