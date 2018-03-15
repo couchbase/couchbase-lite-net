@@ -397,8 +397,8 @@ Transfer-Encoding: chunked";
                 new C4Error(C4NetworkErrorCode.UnknownHost),
                 new C4Error(C4NetworkErrorCode.DNSFailure),
                 new C4Error(C4NetworkErrorCode.Timeout),
-                new C4Error(PosixStatus.CONNRESET),
-                new C4Error(PosixStatus.CONNREFUSED),
+                new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.GetCode(nameof(PosixWindows.ECONNRESET))),
+                new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.GetCode(nameof(PosixWindows.ECONNREFUSED))),
                 #if !WINDOWS_UWP
                 new C4Error(C4NetworkErrorCode.TLSCertUntrusted),
                 #endif
@@ -462,6 +462,22 @@ Transfer-Encoding: chunked";
             var t = queue.DispatchAfter(() => Volatile.Read(ref testBool), TimeSpan.FromMilliseconds(500));
             Volatile.Write(ref testBool, true);
             (await t).Should().BeTrue();
+        }
+
+        [Fact]
+        public void TestTransientAndNetworkDependent()
+        {
+            foreach (var err in new[]
+                { "ENETRESET", "ECONNABORTED", "ECONNRESET", "ETIMEDOUT", "ECONNREFUSED" }) {
+                var code = PosixBase.GetCode(err);
+                Native.c4error_mayBeTransient(new C4Error(C4ErrorDomain.POSIXDomain, code)).Should().BeTrue($"because {err} should be transient");
+            }
+
+            foreach (var err in new[]
+                { "ENETDOWN", "ENETUNREACH", "ENOTCONN", "ETIMEDOUT", "EHOSTUNREACH", "EADDRNOTAVAIL" }) {
+                var code = PosixBase.GetCode(err);
+                Native.c4error_mayBeNetworkDependent(new C4Error(C4ErrorDomain.POSIXDomain, code)).Should().BeTrue($"because {err} should be network dependent");
+            }
         }
 
         #if !NETCOREAPP2_0

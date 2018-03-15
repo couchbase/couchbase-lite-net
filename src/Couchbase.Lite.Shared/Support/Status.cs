@@ -82,11 +82,11 @@ namespace Couchbase.Lite
                             case SocketError.ConnectionAborted:
                             case SocketError.ConnectionReset:
                                 c4err.domain = C4ErrorDomain.POSIXDomain;
-                                c4err.code = (int)PosixStatus.CONNRESET;
+                                c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNRESET));
                                 break;
                             case SocketError.ConnectionRefused:
                                 c4err.domain = C4ErrorDomain.POSIXDomain;
-                                c4err.code = (int)PosixStatus.CONNREFUSED;
+                                c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNREFUSED));
                                 break;
                         }
 

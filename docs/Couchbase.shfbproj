@@ -18,8 +18,8 @@
     <HtmlHelpName>CouchbaseDocumentation</HtmlHelpName>
     <Language>en-US</Language>
     <DocumentationSources>
-      <DocumentationSource sourceFile="..\src\Couchbase.Lite\bin\Packaging\netstandard1.4\Couchbase.Lite.dll" />
-<DocumentationSource sourceFile="..\src\Couchbase.Lite\bin\Packaging\netstandard1.4\Couchbase.Lite.xml" />
+      <DocumentationSource sourceFile="..\src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.dll" />
+<DocumentationSource sourceFile="..\src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.xml" />
 <DocumentationSource sourceFile="C:\Users\borrr\.nuget\packages\system.runtime\4.3.0\ref\netstandard1.3\System.Runtime.xml" /></DocumentationSources>
     <HelpFileVersion>2.0.0.0</HelpFileVersion>
     <MaximumGroupParts>2</MaximumGroupParts>
