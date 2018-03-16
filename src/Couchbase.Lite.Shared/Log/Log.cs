@@ -39,6 +39,7 @@ namespace Couchbase.Lite.Logging
     {
         #region Constants
 
+        [NotNull]
         private static readonly LogTo _To;
 
         internal static readonly C4LogDomain* LogDomainBLIP = c4log_getDomain("BLIP", false);
@@ -52,14 +53,46 @@ namespace Couchbase.Lite.Logging
         #region Variables
 
         private static AtomicBool _Initialized = new AtomicBool(false);
-
+        private static string _BinaryLogDirectory;
         private static ILogger TextLogger;
 
         // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
         private static readonly C4LogCallback _LogCallback = LiteCoreLog;
         // ReSharper restore PrivateFieldCanBeConvertedToLocalVariable
 
-        internal static string BinaryLogDirectory { get; set; } = DefaultBinaryLogDirectory();
+        internal static string BinaryLogDirectory
+        {
+            get => _BinaryLogDirectory;
+            set {
+                if (_BinaryLogDirectory == value) {
+                    return;
+                }
+
+                _BinaryLogDirectory = value ?? DefaultBinaryLogDirectory();
+                try {
+                    Directory.CreateDirectory(_BinaryLogDirectory);
+                } catch(Exception e) {
+                    Console.WriteLine($"COUCHBASE LITE WARNING: FAILED TO CREATE BINARY LOGGING DIRECTORY {_BinaryLogDirectory}: {e}");
+                    return;
+                }
+
+                C4Error err;
+                #if DEBUG
+                var defaultLevel = C4LogLevel.Debug;
+                #else
+                var defaultLevel = C4LogLevel.Verbose;
+                #endif
+
+                var success = Native.c4log_writeToBinaryFile(defaultLevel, 
+                    Path.Combine(_BinaryLogDirectory, 
+                        $"log-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"), 
+                    &err);
+                if(!success) {
+                    Console.WriteLine($"COUCHBASE LITE WARNING: FAILED TO INITIALIZE LOGGING FILE IN {_BinaryLogDirectory}");
+                    Console.WriteLine($"ERROR {err.domain} / {err.code}");
+                }
+            }
+        }
 
         #endregion
 
@@ -70,6 +103,10 @@ namespace Couchbase.Lite.Logging
         {
             get {
                 if (!_Initialized.Set(true)) {
+                    if (BinaryLogDirectory == null) {
+                        BinaryLogDirectory = DefaultBinaryLogDirectory();
+                    }
+
                     var oldLevel = Database.GetLogLevels(LogDomain.Couchbase)[LogDomain.Couchbase];
                     Database.SetLogLevel(LogDomain.Couchbase, LogLevel.Info);
                     To.Couchbase.I("Startup", HTTPLogic.UserAgent);
@@ -87,31 +124,6 @@ namespace Couchbase.Lite.Logging
         static Log()
         {
             _To = new LogTo();
-            try {
-			    Directory.CreateDirectory(BinaryLogDirectory);
-            } catch(Exception) {
-                Console.WriteLine($"COUCHBASE LITE WARNING: FAILED TO CREATE BINARY LOGGING DIRECTORY {BinaryLogDirectory}");
-            }
-
-			C4Error err;
-            #if DEBUG
-            var defaultLevel = C4LogLevel.Debug;
-            #else
-            var defaultLevel = C4LogLevel.Verbose;
-            #endif
-
-            if(!Directory.Exists(BinaryLogDirectory)) {
-                return;
-            }
-
-			var success = Native.c4log_writeToBinaryFile(defaultLevel, 
-			                                             Path.Combine(BinaryLogDirectory, 
-			                                             $"log-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"), 
-			                                             &err);
-			if(!success) {
-				Console.WriteLine($"COUCHBASE LITE WARNING: FAILED TO INITIALIZE LOGGING FILE IN {BinaryLogDirectory}");
-				Console.WriteLine($"ERROR {err.domain} / {err.code}");
-			}
         }
 
         #endregion

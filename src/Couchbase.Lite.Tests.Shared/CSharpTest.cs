@@ -517,6 +517,25 @@ Transfer-Encoding: chunked";
             onMainThread.Should().BeTrue();
         }
 
+        #else
+
+        [Fact]
+        public void TestChangeBinaryLogDirectory()
+        {
+            var testDir = Path.Combine(Environment.CurrentDirectory, "TestLog");
+            if (System.IO.Directory.Exists(testDir)) {
+                System.IO.Directory.Delete(testDir, true);
+            }
+            
+            Couchbase.Lite.Support.NetDesktop.SetBinaryLogDirectory(testDir);
+            Couchbase.Lite.Logging.Log.To.Couchbase.E("TEST LOG", "TEST MESSAGE");
+            Couchbase.Lite.Support.NetDesktop.SetBinaryLogDirectory(null);
+            var file = System.IO.Directory.EnumerateFiles(testDir).First();
+            var line = File.ReadLines(file).Last();
+            line.Contains("TEST LOG").Should().BeTrue();
+            line.Contains("TEST MESSAGE").Should().BeTrue();
+        }
+
         #endif
 
         
