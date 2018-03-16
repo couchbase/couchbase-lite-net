@@ -280,7 +280,7 @@ namespace api_walkthrough
             Console.WriteLine("Wildchard Characters");
             var db = _Database;
 
-            // # tag::query-like-operator-wildcard-match[]
+            // # tag::query-like-operator-wildcard-character-match[]
             using (var query = QueryBuilder.Select(
                     SelectResult.Expression(Meta.ID),
                     SelectResult.Property("name"))
@@ -292,7 +292,7 @@ namespace api_walkthrough
                     Console.WriteLine($"Name Property :: {result.GetString("name")}");
                 }
             }
-            // # end::query-like-operator-wildcard-match[]
+            // # end::query-like-operator-wildcard-character-match[]
         }
 
         private static void SelectRegex()
