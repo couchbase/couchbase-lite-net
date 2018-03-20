@@ -438,7 +438,7 @@ namespace api_walkthrough
              * }
              */
 
-            // # tag::start-replication[]
+            // # tag::replication[]
             // Note: Android emulator needs to use 10.0.2.2 for localhost (10.0.3.2 for GenyMotion)
             var url = new Uri("ws://localhost:4984/db");
             var target = new URLEndpoint(url);
@@ -449,7 +449,7 @@ namespace api_walkthrough
 
             var replicator = new Replicator(config);
             replicator.Start();
-            // # end::start-replication[]
+            // # end::replication[]
 
             _Replicator = replicator;
         }
