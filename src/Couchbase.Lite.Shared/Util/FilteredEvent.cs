@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.Support;
@@ -90,6 +91,8 @@ namespace Couchbase.Lite.Util
 
         public CouchbaseEventHandler([NotNull]EventHandler<TEventType> handler, TaskScheduler scheduler)
         {
+            Debug.Assert(handler != null);
+
             _taskFactory = new TaskFactory(scheduler ?? new QueueTaskScheduler());
             _handler = handler;
         }
@@ -142,6 +145,8 @@ namespace Couchbase.Lite.Util
         public CouchbaseEventHandler([NotNull]EventHandler<TEventType> handler, [NotNull]TFilterType filter, TaskScheduler scheduler)
             : base(handler, scheduler)
         {
+            Debug.Assert(filter != null);
+
             Filter = filter;
         }
 
@@ -220,21 +225,14 @@ namespace Couchbase.Lite.Util
 
         #region Public Methods
 
-        public int Add(CouchbaseEventHandler<TFilterType, TEventType> handler)
+        public int Add([NotNull]CouchbaseEventHandler<TFilterType, TEventType> handler)
         {
-            var collection = _eventMap.GetOrAdd(handler.Filter, new HashSet<CouchbaseEventHandler<TEventType>>());
+            var collection = _eventMap.GetOrAdd(handler.Filter, new HashSet<CouchbaseEventHandler<TEventType>>())
+                             ?? new HashSet<CouchbaseEventHandler<TEventType>>(); // Suppress R# inspection
+
             lock (_locker) {
                 collection.Add(handler);
                 return collection.Count - 1;
-            }
-        }
-
-        public int Remove(TFilterType key, EventHandler<TEventType> method)
-        {
-            var collection = _eventMap.GetOrAdd(key, new HashSet<CouchbaseEventHandler<TEventType>>());
-            lock (_locker) {
-                collection.RemoveWhere(x => x.Equals(method));
-                return collection.Count;
             }
         }
 
@@ -244,7 +242,9 @@ namespace Couchbase.Lite.Util
                 return -1;
             }
 
-            var collection = _eventMap.GetOrAdd(handler.Filter, new HashSet<CouchbaseEventHandler<TEventType>>());
+            var collection = _eventMap.GetOrAdd(handler.Filter, new HashSet<CouchbaseEventHandler<TEventType>>())
+                             ?? new HashSet<CouchbaseEventHandler<TEventType>>(); // Suppress R# inspection
+
             lock (_locker) {
                 collection.Remove(handler);
                 return collection.Count;
@@ -257,7 +257,9 @@ namespace Couchbase.Lite.Util
 
         internal void Fire(TFilterType key, object sender, TEventType args)
         {
-            var collection = _eventMap.GetOrAdd(key, new HashSet<CouchbaseEventHandler<TEventType>>());
+            var collection = _eventMap.GetOrAdd(key, new HashSet<CouchbaseEventHandler<TEventType>>())
+                             ?? new HashSet<CouchbaseEventHandler<TEventType>>(); // Suppress R# inspection
+
             lock (_locker) {
                 foreach (var method in collection) {
                     method.Fire(sender, args);

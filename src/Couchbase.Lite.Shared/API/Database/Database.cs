@@ -66,7 +66,9 @@ namespace Couchbase.Lite
     }
 
     /// <summary>
-    /// A container for storing and maintaining Couchbase Lite <see cref="Document"/>s
+    /// A Couchbase Lite database.  This class is responsible for CRUD operations revolving around
+    /// <see cref="Document"/> instances.  It is portable between platforms if the file is retrieved,
+    /// and can be seeded with prepopulated data if desired.
     /// </summary>
     public sealed unsafe class Database : IDisposable
     {
@@ -121,32 +123,35 @@ namespace Couchbase.Lite
         #region Properties
 
         /// <summary>
-        /// Gets the configuration that were used to create the database
+        /// Gets the configuration that was used to create the database.  The returned object
+        /// is readonly; an <see cref="InvalidOperationException"/> will be thrown if the configuration
+        /// object is modified.
         /// </summary>
         [NotNull]
         public DatabaseConfiguration Config { get; }
 
         /// <summary>
-        /// Gets the total number of documents in the database
+        /// Gets the number of documents in the database
         /// </summary>
         public ulong Count => ThreadSafety.DoLocked(() => Native.c4db_getDocumentCount(_c4db));
 
         /// <summary>
-        /// Bracket operator for retrieving <see cref="DocumentFragment"/> objects
+        /// Gets a <see cref="DocumentFragment"/> with the given document ID
         /// </summary>
         /// <param name="id">The ID of the <see cref="DocumentFragment"/> to retrieve</param>
-        /// <returns>The instantiated <see cref="DocumentFragment"/></returns>
+        /// <returns>The <see cref="DocumentFragment"/> object</returns>
         [NotNull]
         public DocumentFragment this[string id] => new DocumentFragment(GetDocument(id));
 
         /// <summary>
-        /// Gets the name of the database
+        /// Gets the database's name
         /// </summary>
         [NotNull]
         public string Name { get; }
 
         /// <summary>
-        /// Gets the path on disk where the database exists
+        /// Gets the database's path.  If the database is closed or deleted, a <c>null</c>
+        /// value will be returned.
         /// </summary>
         [CanBeNull]
         public string Path
@@ -229,11 +234,17 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Creates a database given a name and some configuration
+        /// Creates a database with a given name and database configuration.  If the configuration
+        /// is <c>null</c> then the default configuration will be used.  If the database does not yet
+        /// exist, it will be created.
         /// </summary>
         /// <param name="name">The name of the database</param>
-        /// <param name="configuration">The configuration to open it with</param>
-        public Database(string name, DatabaseConfiguration configuration = null)
+        /// <param name="configuration">The database configuration, or <c>null</c> for the default configuration</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> is <c>null</c></exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="CouchbaseLiteError.CantOpenFile"/> if the
+        /// directory indicated in <paramref name="configuration"/> could not be created</exception>
+        /// <exception cref="CouchbaseException">Thrown if an error condition was returned by LiteCore</exception>
+        public Database([NotNull]string name, [CanBeNull]DatabaseConfiguration configuration = null)
         {
             Name = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
             Config = configuration?.Freeze() ?? new DatabaseConfiguration(true);
@@ -243,10 +254,6 @@ namespace Couchbase.Lite
             _sharedStrings = new SharedStringCache(keys);
         }
 
-        /// <summary>
-        /// Copy constructor
-        /// </summary>
-        /// <param name="other">The database to copy from</param>
         internal Database([NotNull]Database other)
             : this(other.Name, other.Config)
         {
@@ -270,14 +277,19 @@ namespace Couchbase.Lite
         #region Public Methods
 
         /// <summary>
-        /// Copies a database from the given path to be used as the database with
-        /// the given name and configuration
+        /// Copies a canned database from the given path to a new database with the given name and
+        /// the configuration.  The new database will be created at the directory specified in the
+        /// configuration.  Without given the database configuration, the default configuration that
+        /// is equivalent to setting all properties in the configuration to <c>null</c> wlil be used.
         /// </summary>
-        /// <param name="path">The path (of the .cblite2 folder) to copy</param>
-        /// <param name="name">The name of the database to be used when opening</param>
-        /// <param name="config">The config to use when copying (for specifying directory, etc)</param>
+        /// <param name="path">The source database path (i.e. path to the cblite2 folder)</param>
+        /// <param name="name">The name of the new database to be created</param>
+        /// <param name="config">The database configuration for the new database</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="path"/> or <paramref name="name"/>
+        /// are <c>null</c></exception>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         [ContractAnnotation("name:null => halt; path:null => halt")]
-        public static void Copy(string path, string name, [CanBeNull]DatabaseConfiguration config)
+        public static void Copy([NotNull]string path, [NotNull]string name, [CanBeNull]DatabaseConfiguration config)
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(path), path);
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
@@ -304,13 +316,15 @@ namespace Couchbase.Lite
 		}
 
         /// <summary>
-        /// Deletes the contents of a database with the given name in the
-        /// given directory
+        /// Deletes a database of the given name in the given directory.  If a <c>null</c> directory
+        /// is passed then the default directory is searched.
         /// </summary>
-        /// <param name="name">The name of the database to delete</param>
-        /// <param name="directory">The directory to search in</param>
+        /// <param name="name">The database name</param>
+        /// <param name="directory">The directory where the database is located, or <c>null</c> to check the default directory</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> is <c>null</c></exception>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         [ContractAnnotation("name:null => halt")]
-        public static void Delete(string name, [CanBeNull]string directory)
+        public static void Delete([NotNull]string name, [CanBeNull]string directory)
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
 
@@ -319,14 +333,16 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Returns whether or not a database with the given name
-        /// exists in the given directory
+        /// Checks whether a database of the given name exists in the given directory or not.  If a
+        /// <c>null</c> directory is passed then the default directory is checked
         /// </summary>
-        /// <param name="name">The name of the database to search for</param>
-        /// <param name="directory">The directory to search in</param>
+        /// <param name="name">The database name</param>
+        /// <param name="directory">The directory where the database is located</param>
         /// <returns><c>true</c> if the database exists in the directory, otherwise <c>false</c></returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> is <c>null</c></exception>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         [ContractAnnotation("name:null => halt")]
-        public static bool Exists(string name, [CanBeNull]string directory)
+        public static bool Exists([NotNull]string name, [CanBeNull]string directory)
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
 
@@ -336,8 +352,8 @@ namespace Couchbase.Lite
 		/// <summary>
 		/// Sets the log level for the given domains(s)
 		/// </summary>
-		/// <param name="domains">The domains(s) to change the log level for</param>
-		/// <param name="level">The level to set the logging to</param>
+		/// <param name="domains">The log domain(s)</param>
+		/// <param name="level">The log level</param>
 		public static void SetLogLevel(LogDomain domains, LogLevel level)
 		{
 			if(domains.HasFlag(LogDomain.Couchbase)) {
@@ -392,15 +408,18 @@ namespace Couchbase.Lite
         
         /// <summary>
         /// Adds a change listener for the changes that occur in this database.  Signatures
-        /// are the same as += style event handlers, but this signature allows the use of
-        /// a custom task scheduler, if desired.
+        /// are the same as += style event handlers, but the callbacks will be called using the
+        /// specified <see cref="TaskScheduler"/>.  If the scheduler is null, the default task
+        /// scheduler will be used (scheduled via thread pool).
         /// </summary>
         /// <param name="scheduler">The scheduler to use when firing the change handler</param>
         /// <param name="handler">The handler to invoke</param>
         /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
-        [ContractAnnotation("handler:null => halt; scheduler:null => notnull")]
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        [ContractAnnotation("handler:null => halt")]
         public ListenerToken AddChangeListener([CanBeNull]TaskScheduler scheduler,
-            EventHandler<DatabaseChangedEventArgs> handler)
+            [NotNull]EventHandler<DatabaseChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(handler), handler);
 
@@ -417,26 +436,31 @@ namespace Couchbase.Lite
 
         /// <summary>
         /// Adds a change listener for the changes that occur in this database.  Signatures
-        /// are the same as += style event handlers.
+        /// are the same as += style event handlers.  The callback will be invoked on a thread pool
+        /// thread.
         /// </summary>
         /// <param name="handler">The handler to invoke</param>
         /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [ContractAnnotation("null => halt")]
-        public ListenerToken AddChangeListener(EventHandler<DatabaseChangedEventArgs> handler)
-        {
-            return AddChangeListener(null, handler);
-        }
+        public ListenerToken AddChangeListener([NotNull]EventHandler<DatabaseChangedEventArgs> handler) => AddChangeListener(null, handler);
 
         /// <summary>
-        /// Adds a listener for changes on a certain document (by ID).
+        /// Adds a document change listener for the document with the given ID and the <see cref="TaskScheduler"/>
+        /// that will be used to invoke the callback.  If the scheduler is not specified, then the default scheduler
+        /// will be used (scheduled via thread pool)
         /// </summary>
-        /// <param name="id">The ID to add the listener for</param>
+        /// <param name="id">The document ID</param>
         /// <param name="scheduler">The scheduler to use when firing the event handler</param>
         /// <param name="handler">The logic to handle the event</param>
-        /// <returns>A token that can be used to remove the listener later</returns>
+        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the listener later</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
+        /// is <c>null</c></exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [ContractAnnotation("id:null => halt; handler:null => halt")]
-        public ListenerToken AddDocumentChangeListener(string id, [CanBeNull]TaskScheduler scheduler,
-            EventHandler<DocumentChangedEventArgs> handler)
+        public ListenerToken AddDocumentChangeListener([NotNull]string id, [CanBeNull]TaskScheduler scheduler,
+            [NotNull]EventHandler<DocumentChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(id), id);
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(handler), handler);
@@ -458,29 +482,31 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Adds a listener for changes on a certain document (by ID).
+        /// Adds a document change listener for the document with the given ID.  The callback will be
+        /// invoked on a thread pool thread.
         /// </summary>
-        /// <param name="id">The ID to add the listener for</param>
+        /// <param name="id">The document ID</param>
         /// <param name="handler">The logic to handle the event</param>
-        /// <returns>A token that can be used to remove the listener later</returns>
+        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the listener later</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
+        /// is <c>null</c></exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [ContractAnnotation("id:null => halt; handler:null => halt")]
-        public ListenerToken AddDocumentChangeListener(string id, EventHandler<DocumentChangedEventArgs> handler)
-        {
-            return AddDocumentChangeListener(id, null, handler);
-        }
+        public ListenerToken AddDocumentChangeListener([NotNull]string id, [NotNull]EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
 
         /// <summary>
         /// Closes the database
         /// </summary>
-        public void Close()
-        {
-            Dispose();
-        }
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.Busy"/> if there are still active replicators
+        /// or query listeners when the close call occurred</exception>
+        public void Close() => Dispose();
 
         /// <summary>
-        /// Performs a manual compaction of this database, removing old irrelevant data
-        /// and decreasing the size of the database file on disk
+        /// Compacts the database file by deleting unused attachment files and vacuuming
+        /// the SQLite database
         /// </summary>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         public void Compact()
         {
             ThreadSafety.DoLockedBridge(err =>
@@ -491,13 +517,21 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Creates an index of the given type on the given path with the given configuration
+        /// Creates an index which could be a value index from <see cref="IndexBuilder.ValueIndex"/> or a full-text search index
+        /// from <see cref="IndexBuilder.FullTextIndex"/> with the given name.
+        /// The name can be used for deleting the index. Creating a new different index with an existing
+        /// index name will replace the old index; creating the same index with the same name will be no-ops.
         /// </summary>
-        /// <param name="name">The name to give to the index (must be unique, or previous
-        /// index with the same name will be overwritten)</param>
-        /// <param name="index">The index to creaate</param>
+        /// <param name="name">The index name</param>
+        /// <param name="index">The index</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> or <paramref name="index"/>
+        /// is <c>null</c></exception>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
+        /// provided ones is used</exception>
         [ContractAnnotation("name:null => halt; index:null => halt")]
-        public void CreateIndex(string name, IIndex index)
+        public void CreateIndex([NotNull]string name, [NotNull]IIndex index)
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(index), index);
@@ -523,8 +557,12 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Deletes the database
+        /// Deletes a database
         /// </summary>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.Busy"/> if there are still active replicators
+        /// or query listeners when the close call occurred</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         public void Delete()
         {
             ThreadSafety.DoLocked(() =>
@@ -540,26 +578,35 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Deletes the given <see cref="Document"/> from this database.  This call is equivalent to calling
-        /// <see cref="Delete(Document, ConcurrencyControl)" /> with a second argument of
-        /// <see cref="ConcurrencyControl.LastWriteWins"/>
+        /// Deletes a document from the database.  When write operations are executed
+        /// concurrently, the last writer will overwrite all other written values.
+        /// Calling this method is the same as calling <see cref="Delete(Document, ConcurrencyControl)"/>
+        /// with <see cref="ConcurrencyControl.LastWriteWins"/>
         /// </summary>
-        /// <param name="document">The document to save</param>
-        /// <exception cref="InvalidOperationException">Thrown when trying to delete a document from a database
-        /// other than the one it was previously added to</exception>
+        /// <param name="document">The document</param>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
+        /// when trying to save a document into a database other than the one it was previously added to</exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
+        /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [ContractAnnotation("null => halt")]
-        public void Delete(Document document) => Delete(document, ConcurrencyControl.LastWriteWins);
+        public void Delete([NotNull]Document document) => Delete(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
         /// Deletes the given <see cref="Document"/> from this database
         /// </summary>
         /// <param name="document">The document to save</param>
         /// <param name="concurrencyControl">The rule to use when encountering a conflict in the database</param>
-        /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
-        /// other than the one it was previously added to</exception>
         /// <returns><c>true</c> if the delete succeeded, <c>false</c> if there was a conflict</returns>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
+        /// when trying to save a document into a database other than the one it was previously added to</exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
+        /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [ContractAnnotation("document:null => halt")]
-        public bool Delete(Document document, ConcurrencyControl concurrencyControl)
+        public bool Delete([NotNull]Document document, ConcurrencyControl concurrencyControl)
         {
             var doc = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(document), document);
             return Save(doc, concurrencyControl, true);
@@ -837,14 +884,15 @@ namespace Couchbase.Lite
         [NotNull]
         private static string DatabasePath(string name, string directory)
         {
-            if (String.IsNullOrWhiteSpace(name)) {
-                return directory;
-            }
-
             var directoryToUse = String.IsNullOrWhiteSpace(directory)
                 ? Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory()
                 : directory;
-            return System.IO.Path.Combine(directoryToUse, $"{name}.{DBExtension}");
+
+            if (String.IsNullOrWhiteSpace(name)) {
+                return directoryToUse;
+            }
+            
+            return System.IO.Path.Combine(directory, $"{name}.{DBExtension}") ?? throw new RuntimeException("Path.Combine failed to return a non-null value!");
         }
 
         private static void DbObserverCallback(C4DatabaseObserver* db, object context)
@@ -922,8 +970,13 @@ namespace Couchbase.Lite
             if(_c4db != null) {
                 return;
             }
-            
-            Directory.CreateDirectory(Config.Directory);
+
+            try {
+                Directory.CreateDirectory(Config.Directory);
+            } catch (Exception e) {
+                throw new CouchbaseLiteException(C4ErrorCode.CantOpenFile, "Unable to create database directory", e);
+            }
+
             var path = DatabasePath(Name, Config.Directory);
             var config = DBConfig;
 

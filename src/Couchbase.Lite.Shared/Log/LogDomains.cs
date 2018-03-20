@@ -22,7 +22,8 @@ using LiteCore.Interop;
 namespace Couchbase.Lite.Logging
 {
     /// <summary>
-    /// Contains all the available logging domains for the library
+    /// Contains all the available logging domains for the library.  Each log domain writes messages
+    /// regarding a specific area of Couchbase Lite operation.
     /// </summary>
 	[Flags]
     public enum LogDomain
@@ -37,8 +38,7 @@ namespace Couchbase.Lite.Logging
 
 		/// <summary>
 		/// Gets the logging domain for overall information that doesn't fit into
-		/// a more specific category, and is not generated from the native LiteCore
-		/// module.
+		/// a more specific category.
 		/// </summary>
 		Couchbase = 1 << 0,
 
@@ -71,7 +71,8 @@ namespace Couchbase.Lite.Logging
     }
 
 	/// <summary>
-	/// Defines the Couchbase Lite log verbosity levels
+	/// Defines the Couchbase Lite log verbosity levels.  The default level is
+	/// <see cref="Warning"/>.
 	/// </summary>
 	public enum LogLevel
 	{

@@ -30,14 +30,14 @@ namespace Couchbase.Lite.Util
         #if DEBUG
         [ContractAnnotation("assertion:false => halt")]
         #endif
-        public static void AssertAndLog(DomainLogger logger, bool assertion, string tag, string message)
+        public static void AssertAndLog([NotNull]DomainLogger logger, bool assertion, [NotNull]string tag, [NotNull]string message)
         {
             Debug.Assert(assertion, message);
             logger.W(tag, message);
         }
 
         [ContractAnnotation("=> halt")]
-        public static void LogAndThrow(DomainLogger logger, Exception e, string tag, string message, bool fatal)
+        public static void LogAndThrow([NotNull]DomainLogger logger, [NotNull]Exception e, [NotNull]string tag, [NotNull]string message, bool fatal)
         {
             if (fatal) {
                 logger.E(tag, message, e);
@@ -49,12 +49,12 @@ namespace Couchbase.Lite.Util
         }
 
         [NotNull]
-        public static T MustNotBeNull<T>(DomainLogger logger, string tag, string argumentName, T argumentValue) where T : class
+        public static T MustNotBeNull<T>([NotNull]DomainLogger logger, [NotNull]string tag, [NotNull]string argumentName, T argumentValue) where T : class
         {
             Debug.Assert(argumentValue != null);
             if (argumentValue == null) {
                 var ex = new ArgumentNullException(argumentName);
-                logger.E(tag, ex.ToString());
+                logger.E(tag, ex.ToString() ?? "");
                 throw ex;
             }
 
@@ -62,12 +62,12 @@ namespace Couchbase.Lite.Util
         }
 
         [NotNull]
-        public static unsafe void* MustNotBeNullPointer(DomainLogger logger, string tag, string argumentName, void* argumentValue)
+        public static unsafe void* MustNotBeNullPointer([NotNull]DomainLogger logger, [NotNull]string tag, [NotNull]string argumentName, void* argumentValue)
         {
             Debug.Assert(argumentValue != null);
             if (argumentValue == null) {
                 var ex = new ArgumentNullException(argumentName);
-                logger.E(tag, ex.ToString());
+                logger.E(tag, ex.ToString() ?? "");
                 throw ex;
             }
 
