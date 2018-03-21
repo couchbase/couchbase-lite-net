@@ -371,12 +371,12 @@ namespace Couchbase.Lite
 
 			if(domains.HasFlag(LogDomain.Replicator)) {
 				Log.To.Sync.Level = level;
+			    Native.c4log_setLevel(Log.LogDomainSyncBusy, (C4LogLevel)level);
 			}
 
 		    if (domains.HasFlag(LogDomain.Network)) {
 		        Native.c4log_setLevel(Log.LogDomainBLIP, (C4LogLevel)level);
                 Native.c4log_setLevel(Log.LogDomainWebSocket, (C4LogLevel)level);
-                Native.c4log_setLevel(Log.LogDomainSyncBusy, (C4LogLevel)level);
 		    }
 		}
 
