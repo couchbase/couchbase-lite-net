@@ -6,7 +6,7 @@
     <version>$version$</version>
     <authors>Jim Borden</authors>
     <owners>Couchbase</owners>
-    <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
+    <licenseUrl>http://www.couchbase.com/binaries/content/assets/website/legal/ce-license-agreement.pdf</licenseUrl>
     <projectUrl>https://github.com/couchbase/couchbase-lite-net</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/couchbase/couchbase-lite-net/master/packaging/nuget/logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
