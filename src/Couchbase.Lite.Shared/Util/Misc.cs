@@ -37,6 +37,10 @@ namespace Couchbase.Lite.Util
 
         public static void SafeSwap<T>(ref T old, T @new) where T : class, IDisposable
         {
+            if (ReferenceEquals(old, @new) || old?.Equals(@new) == true) {
+                return; // Same object, don't dispose
+            }
+
             var oldRef = Interlocked.Exchange(ref old, @new);
             oldRef?.Dispose();
         }

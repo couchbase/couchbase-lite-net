@@ -101,15 +101,9 @@ namespace Couchbase.Lite.Util
 
         #region Public Methods
 
-        public bool Equals(EventHandler<TEventType> handler)
-        {
-            return handler == _handler;
-        }
+        public bool Equals(EventHandler<TEventType> handler) => handler == _handler;
 
-        public void Fire(object sender, TEventType args)
-        {
-            _taskFactory.StartNew(() => _handler.Invoke(sender, args));
-        }
+        public void Fire(object sender, TEventType args) => _taskFactory.StartNew(() => _handler.Invoke(sender, args));
 
         #endregion
 
@@ -236,8 +230,9 @@ namespace Couchbase.Lite.Util
             }
         }
 
-        public int Remove(ListenerToken token)
+        public int Remove(ListenerToken token, out TFilterType filter)
         {
+            filter = default(TFilterType);
             if (!(token.EventHandler is CouchbaseEventHandler<TFilterType, TEventType> handler)) {
                 return -1;
             }
@@ -247,6 +242,7 @@ namespace Couchbase.Lite.Util
 
             lock (_locker) {
                 collection.Remove(handler);
+                filter = handler.Filter;
                 return collection.Count;
             }
         }

@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
@@ -428,7 +429,9 @@ namespace Couchbase.Lite
                 CheckOpen();
 
                 var cbHandler = new CouchbaseEventHandler<DatabaseChangedEventArgs>(handler, scheduler);
-                _databaseChanged.Add(cbHandler);
+                if (_databaseChanged.Add(cbHandler) == 0) {
+                    _obs = Native.c4dbobs_create(_c4db, _DbObserverCallback, this);
+                }
 
                 return new ListenerToken(cbHandler, "db");
             });
@@ -749,9 +752,16 @@ namespace Couchbase.Lite
                 CheckOpen();
 
                 if (token.Type == "db") {
-                    _databaseChanged.Remove(token);
+                    if (_databaseChanged.Remove(token) == 0) {
+                        Misc.SafeSwap(ref _obs, null);
+                    }
                 } else {
-                    _documentChanged.Remove(token);
+                    if (_documentChanged.Remove(token, out var docID) == 0) {
+                        if (_docObs.TryGetValue(docID, out var observer)) {
+                            _docObs.Remove(docID);
+                            observer.Dispose();
+                        }
+                    }
                 }
             });
         }
@@ -1004,14 +1014,11 @@ namespace Couchbase.Lite
                     var localConfig2 = localConfig1;
                     return Native.c4db_open(path, &localConfig2, err);
                 });
-
-                _obs = Native.c4dbobs_create(_c4db, _DbObserverCallback, this);
             });
         }
 
         private void PostDatabaseChanged()
         {
-            var allChanges = new List<DatabaseChangedEventArgs>();
 			ThreadSafety.DoLocked(() =>
 			{
 				if (_obs == null || _c4db == null || InTransaction) {
@@ -1031,7 +1038,7 @@ namespace Couchbase.Lite
 				        if (docIDs.Count > 0) {
                             // Only notify if there are actually changes to send
 				            var args = new DatabaseChangedEventArgs(this, docIDs);
-				            allChanges.Add(args);
+				            _databaseChanged.Fire(this, args);
 				            docIDs = new List<string>();
 				        }
 				    }
@@ -1040,12 +1047,9 @@ namespace Couchbase.Lite
 				    for (var i = 0; i < nChanges; i++) {
 				        docIDs.Add(changes[i].docID.CreateString());
 				    }
+                    Native.c4dbobs_releaseChanges(changes, nChanges);
 				} while (nChanges > 0);
 			});
-
-            foreach (var args in allChanges) {
-                _databaseChanged.Fire(this, args);
-            }
         }
 
         private void PostDocChanged([NotNull]string documentID)
@@ -1156,7 +1160,7 @@ namespace Couchbase.Lite
 
             return success;
         }
-
+        
         private void Save([NotNull]Document doc, C4Document** outDoc, C4Document* baseDoc, bool deletion)
         {
             var revFlags = (C4RevisionFlags) 0;
@@ -1173,25 +1177,29 @@ namespace Couchbase.Lite
                     return;
                 }
 
-                var root = Native.FLValue_FromTrustedData(body);
-                if (root == null) {
-                    Log.To.Database.E(Tag, "Failed to encode document body properly.  Aborting save of document!");
-                    return;
-                }
-
-                var rootDict = Native.FLValue_AsDict(root);
-                if (rootDict == null) {
-                    Log.To.Database.E(Tag, "Failed to encode document body properly.  Aborting save of document!");
-                    return;
-                }
-
-                ThreadSafety.DoLocked(() =>
-                {
-                    if (Native.c4doc_dictContainsBlobs(rootDict, SharedStrings.SharedKeys)) {
-                        revFlags |= C4RevisionFlags.HasAttachments;
+                // https://github.com/couchbase/couchbase-lite-net/issues/997
+                // body must not move while root / rootDict are being used
+                fixed (byte* b = body) {
+                    var root = Native.FLValue_FromTrustedData(body);
+                    if (root == null) {
+                        Log.To.Database.E(Tag, "Failed to encode document body properly.  Aborting save of document!");
+                        return;
                     }
-                });
-                
+
+                    var rootDict = Native.FLValue_AsDict(root);
+                    if (rootDict == null) {
+                        Log.To.Database.E(Tag, "Failed to encode document body properly.  Aborting save of document!");
+                        return;
+                    }
+
+                    ThreadSafety.DoLocked(() =>
+                    {
+                        if (Native.c4doc_dictContainsBlobs(rootDict, SharedStrings.SharedKeys)) {
+                            revFlags |= C4RevisionFlags.HasAttachments;
+                        }
+                    });
+                }
+
             } else if (doc.IsEmpty) {
                 FLEncoder* encoder = SharedEncoder;
                 Native.FLEncoder_BeginDict(encoder, 0);
