@@ -337,7 +337,7 @@ namespace Test
             Db.Invoking(d => d.Delete(doc))
                 .ShouldThrow<CouchbaseLiteException>()
                 .Where(
-                    e => e.Error == CouchbaseLiteError.InvalidParameter &&
+                    e => e.Error == CouchbaseLiteError.NotFound &&
                          e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
                     "because deleting an unsaved document is not allowed");
             Db.Count.Should().Be(0UL, "because the database should still be empty");
@@ -602,14 +602,15 @@ namespace Test
         [Fact]
         public void TestCloseThenAccessBlob()
         {
-            var doc = GenerateDocument("doc1").ToMutable();
-            var savedDoc = StoreBlob(Db, doc, Encoding.UTF8.GetBytes("12345"));
+            using (var doc = GenerateDocument("doc1")) {
+                var savedDoc = StoreBlob(Db, doc, Encoding.UTF8.GetBytes("12345"));
 
-            Db.Close();
-            var blob = savedDoc.GetBlob("data");
-            blob.Should().NotBeNull("because the blob should still exist and be accessible");
-            blob.Length.Should().Be(5, "because the blob's metadata should still be accessible");
-            blob.Content.Should().BeNull("because the content cannot be read from a closed database");
+                Db.Close();
+                var blob = savedDoc.GetBlob("data");
+                blob.Should().NotBeNull("because the blob should still exist and be accessible");
+                blob.Length.Should().Be(5, "because the blob's metadata should still be accessible");
+                blob.Content.Should().BeNull("because the content cannot be read from a closed database");
+            }
         }
 
         [Fact]
@@ -1151,7 +1152,7 @@ namespace Test
             }
         }
 
-        private Document GenerateDocument(string docID)
+        private MutableDocument GenerateDocument(string docID)
         {
             var doc = new MutableDocument(docID);
             doc.SetInt("key", 1);
@@ -1227,7 +1228,7 @@ namespace Test
             var blob = new Blob("text/plain", content);
             doc.SetBlob("data", blob);
             Db.Save(doc);
-            return doc;
+            return Db.GetDocument(doc.Id);
         }
     }
 }

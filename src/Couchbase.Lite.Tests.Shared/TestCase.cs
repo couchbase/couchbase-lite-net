@@ -176,8 +176,33 @@ namespace Test
                         return TestObjectEquality(e, o2 as IEnumerable<KeyValuePair<string, object>>);
                     case IEnumerable<object> e:
                         return TestObjectEquality(e, o2 as IEnumerable<object>);
-                    default:
-                        return Equals(o1, o2);
+                    case byte b:
+                    case ushort us:
+                    case uint ui:
+                    case ulong ul:
+                        try {
+                            return Equals(Convert.ToUInt64(o1), Convert.ToUInt64(o2));
+                        } catch (FormatException) {
+                            return false;
+                        }
+                case sbyte sb:
+                    case short s:
+                    case int i:
+                    case long l:
+                    try {
+                        return Equals(Convert.ToInt64(o1), Convert.ToInt64(o2));
+                    } catch (FormatException) {
+                        return false;
+                    }
+                case float f:
+                case double d:
+                    try {
+                        return Equals(Convert.ToDouble(o1), Convert.ToDouble(o2));
+                    } catch (FormatException) {
+                        return false;
+                    }
+                default:
+                    return Equals(o1, o2);
             }
         }
 

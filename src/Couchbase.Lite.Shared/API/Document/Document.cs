@@ -204,23 +204,12 @@ namespace Couchbase.Lite
             return c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.body.ToArrayFast() : new byte[0];
         }
 
-        internal bool SelectCommonAncestor(Document doc1, Document doc2)
+        internal void ReplaceC4Doc(C4DocumentWrapper newDoc)
         {
-            if (_c4Doc == null) {
-                return false;
-            }
-
-            var revID1 = doc1?.c4Doc?.HasValue == true ? doc1.c4Doc.RawDoc->selectedRev.revID : C4Slice.Null;
-            var revID2 = doc2?.c4Doc?.HasValue == true ? doc2.c4Doc.RawDoc->selectedRev.revID : C4Slice.Null;
-            var success = false;
-            ThreadSafety.DoLocked(() => success = NativeRaw.c4doc_selectCommonAncestorRevision(c4Doc.RawDoc, revID1, revID2));
-            if(!success) {
-                return false;
-            }
-
-            // HACK: Trigger side effect
-            c4Doc = _c4Doc.Retain<C4DocumentWrapper>();
-            return true;
+            // Note: purposely not disposing this for now...needs to be addressed
+            // ASAP
+            // ThreadSafety.DoLocked(() => Misc.SafeSwap(ref _c4Doc, newDoc));
+            ThreadSafety.DoLocked(() =>_c4Doc = newDoc);
         }
 
         internal bool SelectConflictingRevision()
@@ -240,6 +229,7 @@ namespace Couchbase.Lite
             }
 
             if (foundConflict) {
+                // HACK: Side effect of updating data
                 c4Doc = _c4Doc.Retain<C4DocumentWrapper>();
             }
             

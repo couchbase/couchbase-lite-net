@@ -590,7 +590,7 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
         /// when trying to save a document into a database other than the one it was previously added to</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
         /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [ContractAnnotation("null => halt")]
@@ -605,7 +605,7 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
         /// when trying to save a document into a database other than the one it was previously added to</exception>
-        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
         /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [ContractAnnotation("document:null => halt")]
@@ -737,6 +737,8 @@ namespace Couchbase.Lite
                         LiteCoreBridge.Check(err => Native.c4doc_save(document.c4Doc.RawDoc, 0, err));
                     }
                 });
+
+                document.ReplaceC4Doc(null);
             });
         }
 
@@ -1097,7 +1099,7 @@ namespace Couchbase.Lite
         private bool Save([NotNull]Document document, ConcurrencyControl concurrencyControl, bool deletion)
         {
             if (deletion && document.RevID == null) {
-                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Cannot delete a document that has not yet been saved");
+                throw new CouchbaseLiteException(C4ErrorCode.NotFound, "Cannot delete a document that has not yet been saved");
             }
 
             var success = true;
@@ -1133,9 +1135,10 @@ namespace Couchbase.Lite
 
                                 throw CouchbaseException.Create(err);
                             } else if (curDoc->flags.HasFlag(C4DocumentFlags.DocDeleted)) {
-                                document.c4Doc = new C4DocumentWrapper(curDoc);
+                                document.ReplaceC4Doc(new C4DocumentWrapper(curDoc));
                                 curDoc = null;
                                 return;
+
                             }
                         }
 
@@ -1149,7 +1152,7 @@ namespace Couchbase.Lite
                     
                     committed = true; // Weird, but if the next call fails I don't want to call it again in the catch block
                     LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, true, e));
-                    document.c4Doc = new C4DocumentWrapper(newDoc);
+                    document.ReplaceC4Doc(new C4DocumentWrapper(newDoc));
                     newDoc = null;
                 } catch (Exception) {
                     if (!committed) {

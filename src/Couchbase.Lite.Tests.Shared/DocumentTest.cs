@@ -1135,27 +1135,19 @@ namespace Test
 
             SaveDocument(doc);
 
-            var shipping = doc.GetDictionary("shipping");
-            var billing = doc.GetDictionary("billing");
+            DictionaryObject shipping = doc.GetDictionary("shipping");
+            DictionaryObject billing = doc.GetDictionary("billing");
+            shipping.Should().BeSameAs(address, "because the dictionaries should remain the same until the save");
+            billing.Should().BeSameAs(address, "because the dictionaries should remain the same until the save");
 
-            shipping.Should().NotBeSameAs(address, "because the dictionaries should now be independent");
-            billing.Should().NotBeSameAs(address, "because the dictionaries should now be independent");
-            shipping.Should().NotBeSameAs(billing, "because the dictionaries should now be independent");
-
-            shipping.SetString("street", "2 Main street");
-            billing.SetString("street", "3 Main street");
-
-            SaveDocument(doc);
-            var savedDoc = Db.GetDocument(doc.Id);
-
-            savedDoc.GetDictionary("shipping")
-                .GetString("street")
-                .Should()
-                .Be("2 Main street", "because that was the final value stored");
-            savedDoc.GetDictionary("billing")
-                .GetString("street")
-                .Should()
-                .Be("3 Main street", "because that was the final value stored");
+            using(var savedDoc = Db.GetDocument(doc.Id)) {
+                shipping = savedDoc.GetDictionary("shipping");
+                billing = savedDoc.GetDictionary("billing");
+                
+                shipping.Should().NotBeSameAs(address, "because the dictionaries should now be independent");
+                billing.Should().NotBeSameAs(address, "because the dictionaries should now be independent");
+                shipping.Should().NotBeSameAs(billing, "because the dictionaries should now be independent");
+            }
         }
 
         [Fact]
@@ -1171,7 +1163,7 @@ namespace Test
             phones.AddString("650-000-0003");
             doc.GetArray("mobile")
                 .Should()
-                .ContainInOrder(new[] {"650-000-0001", "650-000-0002", "650-000-0003"},
+                .ContainInOrder(new[] { "650-000-0001", "650-000-0002", "650-000-0003" },
                     "because both arrays should receive the update");
             doc.GetArray("home")
                 .Should()
@@ -1180,28 +1172,19 @@ namespace Test
 
             SaveDocument(doc);
 
-            var mobile = doc.GetArray("mobile");
-            var home = doc.GetArray("home");
-            mobile.Should().NotBeSameAs(phones, "because after save the arrays should be independent");
-            home.Should().NotBeSameAs(phones, "because after save the arrays should be independent");
-            mobile.Should().NotBeSameAs(home, "because after save the arrays should be independent");
+            // Both mobile and home are still the same instance
+            ArrayObject mobile = doc.GetArray("mobile");
+            ArrayObject home = doc.GetArray("home");
+            mobile.Should().BeSameAs(phones, "because all the arrays should still be the same");
+            home.Should().BeSameAs(phones, "because all the arrays should still be the same");
 
-            mobile.AddString("650-000-1234");
-            home.AddString("650-000-5678");
-
-            SaveDocument(doc);
-            var savedDoc = Db.GetDocument(doc.Id);
-
-            savedDoc.GetArray("mobile")
-                .ToList()
-                .Should()
-                .ContainInOrder(new[] {"650-000-0001", "650-000-0002", "650-000-0003", "650-000-1234"},
-                    "because otherwise the document is incorrect");
-            savedDoc.GetArray("home")
-                .ToList()
-                .Should()
-                .ContainInOrder(new[] { "650-000-0001", "650-000-0002", "650-000-0003", "650-000-5678" },
-                    "because otherwise the document is incorrect");
+            using (var savedDoc = Db.GetDocument(doc.Id)) {
+                mobile = savedDoc.GetArray("mobile");
+                home = savedDoc.GetArray("home");
+                mobile.Should().NotBeSameAs(phones, "because after save the arrays should be independent");
+                home.Should().NotBeSameAs(phones, "because after save the arrays should be independent");
+                mobile.Should().NotBeSameAs(home, "because after save the arrays should be independent");
+            }
         }
 
         [Fact]
@@ -1334,7 +1317,7 @@ namespace Test
             Db.Invoking(d => d.Delete(doc))
                 .ShouldThrow<CouchbaseLiteException>()
                 .Where(
-                    e => e.Error == CouchbaseLiteError.InvalidParameter &&
+                    e => e.Error == CouchbaseLiteError.NotFound &&
                          e.Domain == CouchbaseLiteErrorType.CouchbaseLite, "because deleting a non-existent document is invalid");
             doc.IsDeleted.Should().BeFalse("beacuse the document is still not deleted");
             doc.GetString("name").Should().Be("Scott Tiger", "because the delete was invalid");

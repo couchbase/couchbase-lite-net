@@ -154,21 +154,6 @@ namespace Couchbase.Lite.Internal.Serialization
             collection?.SetSlot(newSlot, this);
         }
 
-        private void SetObject(object obj)
-        {
-            if (NativeObject != obj) {
-                if (NativeObject != null) {
-                    NativeChangeSlot(null);
-                }
-
-                NativeObject = obj;
-
-                if (NativeObject != null) {
-                    NativeChangeSlot(this);
-                }
-            }
-        }
-
         #endregion
 
         #region IDisposable
