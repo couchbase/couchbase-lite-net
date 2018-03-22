@@ -206,10 +206,7 @@ namespace Couchbase.Lite
 
         internal void ReplaceC4Doc(C4DocumentWrapper newDoc)
         {
-            // Note: purposely not disposing this for now...needs to be addressed
-            // ASAP
-            // ThreadSafety.DoLocked(() => Misc.SafeSwap(ref _c4Doc, newDoc));
-            ThreadSafety.DoLocked(() =>_c4Doc = newDoc);
+            ThreadSafety.DoLocked(() => Misc.SafeSwap(ref _c4Doc, newDoc));
         }
 
         internal bool SelectConflictingRevision()
@@ -243,9 +240,8 @@ namespace Couchbase.Lite
         private void UpdateDictionary()
         {
             if (Data != null) {
-                var rawDoc = c4Doc?.HasValue == true ? c4Doc.RawDoc : null;
                 Misc.SafeSwap(ref _root,
-                    new MRoot(new DocContext(Database, rawDoc), (FLValue*) Data, IsMutable));
+                    new MRoot(new DocContext(Database, _c4Doc), (FLValue*) Data, IsMutable));
                 Database.ThreadSafety.DoLocked(() => _dict = (DictionaryObject) _root.AsObject());
             } else {
                 Misc.SafeSwap(ref _root, null);
