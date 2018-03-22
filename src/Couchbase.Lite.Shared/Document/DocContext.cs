@@ -17,29 +17,55 @@
 // 
 
 using Couchbase.Lite.Internal.Serialization;
+
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Doc
 {
     internal unsafe class DocContext : MContext
     {
+        #region Properties
+
         public Database Db { get; }
 
-        public C4Document* Doc { get; }
+        public C4DocumentWrapper Doc { get; }
 
         public SharedStringCache SharedStrings { get; }
 
-        public DocContext(Database db, C4Document* doc)
+        #endregion
+
+        #region Constructors
+
+        public DocContext(Database db, C4DocumentWrapper doc)
             : base(new FLSlice(), db.SharedStrings.SharedKeys)
         {
             Db = db;
-            Doc = doc;
+            Doc = doc?.Retain<C4DocumentWrapper>();
             SharedStrings = db.SharedStrings;
         }
+
+        #endregion
+
+        #region Public Methods
 
         public object ToObject(FLValue* value, bool dotNetType)
         {
             return FLValueConverter.ToCouchbaseObject(value, Db, dotNetType);
         }
+
+        #endregion
+
+        #region Overrides
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            if (disposing) {
+                Doc?.Dispose();
+            }
+        }
+
+        #endregion
     }
 }
