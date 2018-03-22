@@ -898,11 +898,16 @@ namespace Couchbase.Lite
                 ? Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory()
                 : directory;
 
+            if (String.IsNullOrWhiteSpace(directoryToUse)) {
+                throw new RuntimeException(
+                    "Failed to resolve a default directory!  If you have overriden the IDefaultDirectoryResolver interface, please check it.  Otherwise please file a bug report.");
+            }
+
             if (String.IsNullOrWhiteSpace(name)) {
                 return directoryToUse;
             }
             
-            return System.IO.Path.Combine(directory, $"{name}.{DBExtension}") ?? throw new RuntimeException("Path.Combine failed to return a non-null value!");
+            return System.IO.Path.Combine(directoryToUse, $"{name}.{DBExtension}") ?? throw new RuntimeException("Path.Combine failed to return a non-null value!");
         }
 
         private static void DbObserverCallback(C4DatabaseObserver* db, object context)
