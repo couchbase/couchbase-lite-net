@@ -100,6 +100,13 @@ namespace Couchbase.Lite.Support
             }
 
             Service.AutoRegister(typeof(NetDesktop).GetTypeInfo().Assembly);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                Service.Register<IProxy>(new WindowsProxy());
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                Service.Register<IProxy>(new MacProxy());
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+                Service.Register<IProxy>(new LinuxProxy());
+            }
         }
 
         /// <summary>
