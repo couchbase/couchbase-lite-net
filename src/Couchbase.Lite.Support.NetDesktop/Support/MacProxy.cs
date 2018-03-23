@@ -39,10 +39,9 @@ namespace Couchbase.Lite.Support
         private static readonly IntPtr kCFProxyHostNameKey = GetPointer(CFNetworkLibrary, nameof(kCFProxyHostNameKey));
         private static readonly IntPtr kCFProxyPortNumberKey  = GetPointer(CFNetworkLibrary, nameof(kCFProxyPortNumberKey));
 
-        private static readonly uint kCFStringEncodingASCII =
-            GetConstantUInt(CoreFoundationLibrary, nameof(kCFStringEncodingASCII));
+        private static readonly uint kCFStringEncodingASCII = 0x0600;
 
-        private static readonly int kCFNumberIntType = GetConstantInt(CoreFoundationLibrary, nameof(kCFNumberIntType));
+        private static readonly int kCFNumberIntType = 9;
 
         public unsafe IWebProxy CreateProxy(Uri destination)
         {
@@ -78,27 +77,21 @@ namespace Couchbase.Lite.Support
             var proxy = CFArrayGetValueAtIndex(proxies, 0);
             var proxyKeyValue = CFDictionaryGetValue(proxy, kCFProxyTypeKey);
             if (proxyKeyValue == kCFProxyTypeNone) {
+                CFRelease(proxies);
                 return null;
             }
 
             proxyKeyValue = CFDictionaryGetValue(proxy, kCFProxyHostNameKey);
-            var hostUrlString = CFStringGetCStringPtr(proxyKeyValue, kCFStringEncodingASCII);
+            var hostUrlString = GetCString(proxyKeyValue);
             proxyKeyValue = CFDictionaryGetValue(proxy, kCFProxyPortNumberKey);
             var port = 0;
             if(!CFNumberGetValue(proxyKeyValue, kCFNumberIntType, &port)) {
+                CFRelease(proxies);
                 return null;
             }
 
+            CFRelease(proxies);
             return new WebProxy(new Uri($"{hostUrlString}:{port}"));
-        }
-
-        private static uint GetConstantUInt(string libPath, string symbolName) =>
-            (uint) GetConstantInt(libPath, symbolName);
-
-        private static int GetConstantInt(string libPath, string symbolName)
-        {
-            var indirect = GetPointer(libPath, symbolName);
-            return Marshal.ReadInt32(indirect);
         }
 
         private static IntPtr GetPointer(string libPath, string symbolName)
@@ -113,14 +106,20 @@ namespace Couchbase.Lite.Support
                 throw new EntryPointNotFoundException($"Unable to find the symbol {symbolName} in {libPath}");
             }
 
-            return indirect;
+            return Marshal.ReadIntPtr(indirect);
+        }
+
+        private static string GetCString(IntPtr /* CFStringRef */ theString)
+        {
+            var pointer = CFStringGetCStringPtr(theString, kCFStringEncodingASCII);
+            return Marshal.PtrToStringAnsi(pointer);
         }
 
         [DllImport(CoreFoundationLibrary)]
         private static extern unsafe bool CFNumberGetValue(IntPtr /* CFNumberRef */ number, int /* CFNumberType */ theType, void *valuePtr);
 
         [DllImport(CoreFoundationLibrary)]
-        private static extern string CFStringGetCStringPtr(IntPtr /* CFStringRef */ theString, uint /* CFStringEncoding */ encoding);
+        private static extern IntPtr /* const char* */ CFStringGetCStringPtr(IntPtr /* CFStringRef */ theString, uint /* CFStringEncoding */ encoding);
 
         [DllImport (libSystemLibrary)]
         private static extern IntPtr dlsym (IntPtr handle, string symbol);
