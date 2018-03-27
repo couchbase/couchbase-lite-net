@@ -22,6 +22,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Interop;
 
 using JetBrains.Annotations;
 

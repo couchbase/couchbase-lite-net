@@ -28,6 +28,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>portable</DebugType>
@@ -37,6 +38,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DebugSymbols>true</DebugSymbols>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|AnyCPU'">
     <OutputPath>bin\Packaging\</OutputPath>
@@ -50,6 +52,7 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <DocumentationFile>bin\Packaging\Couchbase.Lite.Support.Android.xml</DocumentationFile>
     <DebugSymbols>true</DebugSymbols>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Mono.Android" />
@@ -67,6 +70,45 @@
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
+    </Compile>
+    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Base_native.cs">
+      <Link>Support\LiteCore\C4Base_native.cs</Link>
+    </Compile>
+    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4BlobStore_native.cs">
+      <Link>Support\LiteCore\C4BlobStore_native.cs</Link>
+    </Compile>
+    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Database_native.cs">
+      <Link>Support\LiteCore\C4Database_native.cs</Link>
+    </Compile>
+    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4DocEnumerator_native.cs">
+      <Link>Support\LiteCore\C4DocEnumerator_native.cs</Link>
+    </Compile>
+    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Document+Fleece_native.cs">
+      <Link>Support\LiteCore\C4Document+Fleece_native.cs</Link>
+    </Compile>
+    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Document_native.cs">
+      <Link>Support\LiteCore\C4Document_native.cs</Link>
+    </Compile>
+    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4ExpiryEnumerator_native.cs">
+      <Link>Support\LiteCore\C4ExpiryEnumerator_native.cs</Link>
+    </Compile>
+    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Observer_native.cs">
+      <Link>Support\LiteCore\C4Observer_native.cs</Link>
+    </Compile>
+    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Query_native.cs">
+      <Link>Support\LiteCore\C4Query_native.cs</Link>
+    </Compile>
+    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Replicator_native.cs">
+      <Link>Support\LiteCore\C4Replicator_native.cs</Link>
+    </Compile>
+    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Socket_native.cs">
+      <Link>Support\LiteCore\C4Socket_native.cs</Link>
+    </Compile>
+    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\Fleece_native.cs">
+      <Link>Support\LiteCore\Fleece_native.cs</Link>
+    </Compile>
+    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\LiteCore_impl.cs">
+      <Link>Support\LiteCore\LiteCore_impl.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Support\AndroidDefaultLogger.cs" />

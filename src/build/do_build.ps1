@@ -45,11 +45,11 @@ cd ..\..\Couchbase.Lite.Support.Android
 Write-Host
 Write-Host *** COPYING NATIVE RESOURCES ***
 Write-Host
-if(-Not (Test-Path "..\Couchbase.Lite.Support.Apple\iOS\Resources")) {
-    New-Item -ItemType Directory ..\Couchbase.Lite.Support.Apple\iOS\Resources
+if(-Not (Test-Path "..\Couchbase.Lite.Support.Apple\iOS\Native")) {
+    New-Item -ItemType Directory ..\Couchbase.Lite.Support.Apple\iOS\Native
 } 
 
-xcopy /Y ..\..\vendor\couchbase-lite-core\build_cmake\ios-fat\libLiteCore.dylib ..\Couchbase.Lite.Support.Apple\iOS\Resources
+Copy-Item -Recurse -Force ..\..\vendor\couchbase-lite-core\build_cmake\ios-fat\LiteCore.framework ..\Couchbase.Lite.Support.Apple\iOS\Native
 Write-Host *** BUILDING ***
 Write-Host
 

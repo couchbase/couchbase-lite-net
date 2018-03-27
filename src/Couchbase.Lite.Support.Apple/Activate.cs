@@ -25,6 +25,8 @@ using Couchbase.Lite.Util;
 
 using Foundation;
 
+using LiteCore.Interop;
+
 namespace Couchbase.Lite.Support
 {
     /// <summary>
@@ -51,28 +53,8 @@ namespace Couchbase.Lite.Support
             
 			Console.WriteLine("Loading support items");
             Service.AutoRegister(typeof(iOS).Assembly);
-
-			Console.WriteLine("Loading libLiteCore.dylib");
-			var dylibPath = Path.Combine(NSBundle.MainBundle.BundlePath, "libLiteCore.dylib");
-			if (!File.Exists(dylibPath))
-			{
-				Console.WriteLine("Failed to find libLiteCore.dylib, nothing is going to work!");
-			}
-
-			var loaded = ObjCRuntime.Dlfcn.dlopen(dylibPath, 0);
-			if (loaded == IntPtr.Zero)
-			{
-				Console.WriteLine("Failed to load libLiteCore.dylib, nothing is going to work!");
-				var error = ObjCRuntime.Dlfcn.dlerror();
-				if (String.IsNullOrEmpty(error))
-				{
-					Console.WriteLine("dlerror() was empty; most likely missing architecture");
-				}
-				else
-				{
-					Console.WriteLine($"Error: {error}");
-				}
-			}
+            Service.Register<ILiteCore>(new LiteCoreImpl());
+            Service.Register<ILiteCoreRaw>(new LiteCoreRawImpl());
 		}
 
 	    /// <summary>

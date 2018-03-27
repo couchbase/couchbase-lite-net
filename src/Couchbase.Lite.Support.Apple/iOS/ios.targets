@@ -1,5 +1,7 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-        <ItemGroup>
-            <BundleResource Include="$(MSBuildThisFileDirectory)libLiteCore.dylib" />
-        </ItemGroup>
+    <ItemGroup>
+        <NativeReference Include="$(MSBuildThisFileDirectory)LiteCore.framework">
+          <Kind>Framework</Kind>
+        </NativeReference>
+    </ItemGroup>
 </Project>

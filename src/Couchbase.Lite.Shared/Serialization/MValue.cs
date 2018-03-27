@@ -21,6 +21,7 @@ using System.Diagnostics;
 using System.Text;
 
 using Couchbase.Lite.Internal.Doc;
+using Couchbase.Lite.Interop;
 
 using LiteCore.Interop;
 

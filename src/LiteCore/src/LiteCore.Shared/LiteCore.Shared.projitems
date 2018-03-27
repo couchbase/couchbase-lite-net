@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>c37dc024-8762-4be4-9034-b2b5970c652c</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>LiteCore.Shared</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)API\CouchbaseLiteException.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Constants.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Base.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Base_defs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4BlobStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4BlobStore_defs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Database.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Database_defs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Query.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4DocEnumerator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4DocEnumerator_defs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Document_defs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4ExpiryEnumerator_defs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer_defs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Private.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Query_defs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Replicator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Replicator_defs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Socket.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Socket_defs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\Fleece.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\Fleece_defs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\ILiteCore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\LiteCoreBridge.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\LiteCore_shell.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\LiteCore_shell_defs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\PosixStatus.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\NativeHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\SQLiteStatus.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Annotations.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\C4String.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Hasher.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\PerfTimer.cs" />
+  </ItemGroup>
+</Project>

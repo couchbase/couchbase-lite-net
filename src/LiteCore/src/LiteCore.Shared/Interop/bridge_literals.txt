@@ -1,0 +1,91 @@
+c4stream_read
+        public static ulong c4stream_read(C4ReadStream *stream, byte[] buffer, int count, C4Error *outError)
+        {
+            return NativeRaw.c4stream_read(stream, buffer, (UIntPtr)count, outError).ToUInt64();
+        }
+
+
+c4stream_write
+        public static bool c4stream_write(C4WriteStream* stream, byte[] bytes, ulong length, C4Error* outError)
+        {
+            return NativeRaw.c4stream_write(stream, bytes, (UIntPtr)length, outError);
+        }
+
+
+c4db_enumerateSomeDocs
+        public static C4DocEnumerator* c4db_enumerateSomeDocs(C4Database *database, string[] docIDs, C4EnumeratorOptions *options, C4Error *outError)
+        {
+            var c4Strings = new C4String[docIDs.Length];
+            for(int i = 0; i < docIDs.Length; i++) {
+                c4Strings[i] = new C4String(docIDs[i]);
+            }
+
+            try {
+                var c4Slices = c4Strings.Select(x => x.AsC4Slice()).ToArray();
+                return NativeRaw.c4db_enumerateSomeDocs(database, c4Slices, (UIntPtr)c4Slices.Length, options, outError);
+            } finally {
+                foreach(var s in c4Strings) {
+                    s.Dispose();
+                }
+            }
+        }
+
+
+c4doc_put
+        public static C4Document* c4doc_put(C4Database *database, C4DocPutRequest *request, ulong* outCommonAncestorIndex, C4Error *outError)
+        {
+            var uintptr = new UIntPtr();
+            var retVal = NativeRaw.c4doc_put(database, request, &uintptr, outError);
+            if(outCommonAncestorIndex != null) {
+                *outCommonAncestorIndex = uintptr.ToUInt64();
+            }
+
+            return retVal;
+        }
+
+
+c4dbobs_getChanges
+        public static uint c4dbobs_getChanges(C4DatabaseObserver* observer, string[] outDocIDs, ulong* outLastSequence, bool* outExternal)
+        {
+            var c4Slices = new C4Slice[outDocIDs.Length];
+            var retVal =  NativeRaw.c4dbobs_getChanges(observer, c4Slices, (uint)c4Slices.Length, outLastSequence, outExternal);
+
+            var i = 0;
+            foreach(var slice in c4Slices.Take((int)retVal)) {
+                outDocIDs[i++] = slice.CreateString();
+            }
+
+            return retVal;
+        }
+
+
+FLData_Dump
+        public static string FLData_Dump(FLSlice data)
+        {
+            using(var retVal = NativeRaw.FLData_Dump(data)) {
+                return ((FLSlice)retVal).CreateString();
+            }
+        }
+
+
+FLDictKey_Init
+        // Note: Allocates unmanaged heap memory; should only be used with constants
+        public static FLDictKey FLDictKey_Init(string str, bool cachePointers)
+        {
+            return NativeRaw.FLDictKey_Init(FLSlice.Constant(str), cachePointers);
+        }
+
+FLDictKey_InitWithSharedKeys
+        // Note: Allocates unmanaged heap memory; should only be used with constants
+        public static FLDictKey FLDictKey_InitWithSharedKeys(string str, FLSharedKeys* sk)
+        {
+            return NativeRaw.FLDictKey_InitWithSharedKeys(FLSlice.Constant(str), sk);
+        }
+
+c4db_initFLDictKey
+        // Note: Allocates unmanaged heap memory; should only be used with constants
+        public static FLDictKey c4db_initFLDictKey(C4Database* db, string str)
+        {
+            return NativeRaw.c4db_initFLDictKey(db, C4Slice.Constant(str));
+        }
+

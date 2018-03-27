@@ -18,6 +18,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+
+using Couchbase.Lite.Interop;
 using Couchbase.Lite.Logging;
 
 using JetBrains.Annotations;

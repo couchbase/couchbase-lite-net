@@ -19,6 +19,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
+using Couchbase.Lite.Interop;
+
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Serialization

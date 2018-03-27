@@ -21,6 +21,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Interop;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
 

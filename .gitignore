@@ -156,3 +156,4 @@ couchbase.snk
 AboutResources.txt
 *.chm
 AboutAssets.txt
+src/Couchbase.Lite.Support.Apple/iOS/Native/

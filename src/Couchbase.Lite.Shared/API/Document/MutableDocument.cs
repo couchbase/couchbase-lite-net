@@ -23,6 +23,7 @@ using System.Diagnostics;
 using System.Linq;
 
 using Couchbase.Lite.Internal.Doc;
+using Couchbase.Lite.Interop;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 

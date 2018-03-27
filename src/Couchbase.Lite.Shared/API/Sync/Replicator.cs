@@ -24,6 +24,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Interop;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;

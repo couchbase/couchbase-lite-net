@@ -1,0 +1,20 @@
+c4stream_read
+        public static extern UIntPtr c4stream_read(C4ReadStream* stream, [Out]byte[] buffer, UIntPtr maxBytesToRead, C4Error* outError);
+
+c4stream_write
+        [return:MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4stream_write(C4WriteStream* stream, byte[] bytes, UIntPtr length, C4Error* outError);
+
+FLDict_GetWithKeys
+        public static extern UIntPtr FLDict_GetWithKeys(FLDict* dict, [Out]FLDictKey[] keys, [Out]FLValue[] values, UIntPtr count);
+
+FLEncoder_GetErrorMessage
+        [return: MarshalAs(UnmanagedType.LPStr)]
+        public static extern string FLEncoder_GetErrorMessage(FLEncoder* encoder);
+
+c4dbobs_getChanges
+        public static extern uint c4dbobs_getChanges(C4DatabaseObserver* observer, [Out]C4DatabaseChange[] outChanges, uint maxChanges, bool* outExternal);
+
+c4log_getDomain
+        public static extern C4LogDomain* c4log_getDomain(byte* name, [MarshalAs(UnmanagedType.U1)]bool create);
+

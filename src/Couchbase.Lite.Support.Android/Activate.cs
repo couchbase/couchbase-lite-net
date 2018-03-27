@@ -24,6 +24,8 @@ using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
 
+using LiteCore.Interop;
+
 namespace Couchbase.Lite.Support
 {
     /// <summary>
@@ -52,6 +54,8 @@ namespace Couchbase.Lite.Support
             Service.AutoRegister(typeof(Droid).Assembly);
             Service.Register<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver(context));
             Service.Register<IMainThreadTaskScheduler>(() => new MainThreadTaskScheduler(context));
+            Service.Register<ILiteCore>(new LiteCoreImpl());
+            Service.Register<ILiteCoreRaw>(new LiteCoreRawImpl());
         }
 
         /// <summary>

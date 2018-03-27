@@ -21,6 +21,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
+using Couchbase.Lite.Interop;
+
 using JetBrains.Annotations;
 
 using LiteCore.Interop;

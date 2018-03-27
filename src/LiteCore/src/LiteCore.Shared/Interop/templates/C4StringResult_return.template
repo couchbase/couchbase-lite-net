@@ -1,0 +1,3 @@
+{0}using(var retVal = NativeRaw.{1}{2}) {{
+{0}    return ((C4Slice)retVal).CreateString();
+{0}}}

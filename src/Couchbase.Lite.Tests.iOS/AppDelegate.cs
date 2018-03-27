@@ -37,12 +37,12 @@ namespace Couchbase.Lite.Tests.iOS
 
             // tests can be inside the main assembly
             AddTestAssembly(Assembly.GetExecutingAssembly());
-            AutoStart = true;
-            TerminateAfterExecution = true;
-            using (var str = GetType().Assembly.GetManifestResourceStream("result_ip"))
-            using (var sr = new StreamReader(str)) {
-                Writer = new TcpTextWriter(sr.ReadToEnd().TrimEnd(), 12345);
-            }
+            //AutoStart = true;
+            //TerminateAfterExecution = true;
+            //using (var str = GetType().Assembly.GetManifestResourceStream("result_ip"))
+            //using (var sr = new StreamReader(str)) {
+            //    Writer = new TcpTextWriter(sr.ReadToEnd().TrimEnd(), 12345);
+            //}
 
             return base.FinishedLaunching(app, options);
         }

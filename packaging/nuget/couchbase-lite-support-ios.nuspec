@@ -25,6 +25,6 @@
     <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.pdb" />
     <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.xml" />
     <file target="build\xamarinios\Couchbase.Lite.Support.iOS.targets" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\ios.targets" />
-    <file target="build\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Resources\libLiteCore.dylib" />
+    <file target="build\xamarinios\LiteCore.framework" src="src\Couchbase.Lite.Support.Apple\iOS\Native\LiteCore.framework\*" />
   </files>
 </package>

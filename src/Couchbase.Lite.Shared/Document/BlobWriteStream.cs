@@ -20,6 +20,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 
+using Couchbase.Lite.Interop;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;

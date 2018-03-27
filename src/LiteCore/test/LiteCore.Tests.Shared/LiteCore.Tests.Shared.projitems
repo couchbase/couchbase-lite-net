@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>6ec40f09-4c86-4f51-9f0e-c4397601a567</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>LiteCore.Tests.Shared</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)AllDocsPerformanceTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)BlobStoreTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CollatedQueryTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DatabaseInternalTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DatabaseTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DocumentTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NestedQueryTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ObserverTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PathsQueryTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PerfTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)QueryTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)QueryTestBase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StopwatchExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Test.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)TestBase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ThreadingTest.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)..\..\..\..\vendor\couchbase-lite-core\C\tests\data\*.*">
+      <Link>C\tests\data\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

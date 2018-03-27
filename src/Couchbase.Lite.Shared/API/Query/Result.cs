@@ -24,6 +24,7 @@ using System.Linq;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Internal.Serialization;
+using Couchbase.Lite.Interop;
 
 using JetBrains.Annotations;
 
