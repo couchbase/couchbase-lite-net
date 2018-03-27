@@ -43,8 +43,6 @@ they go through the QE process.
 |.NET Runtime |Minimum Runtime Version |Minimum OS version
 |.NET Core Mac |2.0 |10.12
 |.NET Core Linux |2.0 |n/a*
-|Xamarin iOS |10.14 |10.3.1
-|Xamarin Android |8.0 |4.4 (API 19)
 |=========================================================
 
 * There are many different variants of Linux, and we don't have the
