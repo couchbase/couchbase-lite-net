@@ -1,4 +1,25 @@
-﻿function Write-Implementation($collection, $className, [ref]$result) {
+﻿$HEADER = @"
+// 
+//  {0}.cs
+// 
+//  Copyright (c) {1} Couchbase, Inc All rights reserved.
+// 
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+// 
+//  http://www.apache.org/licenses/LICENSE-2.0
+// 
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+// 
+
+"@
+
+function Write-Implementation($collection, $className, [ref]$result) {
     foreach($entry in $collection) {
         if(-Not $entry.Contains("(")) {
             continue
@@ -41,7 +62,7 @@ ForEach-Object {
     }
 }
 
-$native_file = @("using System;`n", "using Couchbase.Lite.Interop;`n", "namespace LiteCore.Interop", "{", "    internal unsafe interface ILiteCore", "    {")
+$native_file = @("using System;`n", "using Couchbase.Lite.Interop;`n", "namespace LiteCore.Interop", "{", "    internal unsafe partial interface ILiteCore", "    {")
 $native_file += $native
 $native_file += "    }`n"
 $native_file += @("    internal unsafe interface ILiteCoreRaw", "    {")
@@ -49,16 +70,18 @@ $native_file += $native_raw
 $native_file += "    }"
 $native_file += "}"
 
-[string]::Join("`n", $native_file) | Out-File ILiteCore.cs
+$header = [string]::Format($HEADER, "ILiteCore", [datetime]::Now.Year)
+$header + [string]::Join("`n", $native_file) | Out-File ILiteCore.cs
 
-$implementation = @("using System;`n", "namespace LiteCore.Interop", "{", "    internal sealed unsafe class LiteCoreImpl : ILiteCore", "    {")
+$implementation = @("using System;`n", "namespace LiteCore.Interop", "{", "    internal sealed unsafe partial class LiteCoreImpl : ILiteCore", "    {")
 Write-Implementation $native "Native" ([ref]$implementation)
 $implementation += @("    }`n", "    internal sealed unsafe class LiteCoreRawImpl : ILiteCoreRaw", "    {")
 Write-Implementation $native_raw "NativeRaw" ([ref]$implementation)
 $implementation += "    }"
 $implementation += "}"
 
-[string]::Join("`n", $implementation) | Out-File LiteCore_impl.cs
+$header = [string]::Format($HEADER, "LiteCore_impl", [datetime]::Now.Year)
+$header + [string]::Join("`n", $implementation) | Out-File LiteCore_impl.cs
 
 $shell = @()
 $shell_raw = @()
@@ -82,4 +105,5 @@ $shell_file += $shell_raw
 $shell_file += "    }"
 $shell_file += "}"
 
-[string]::Join("`n", $shell_file) | Out-File LiteCore_shell.cs
+$header = [string]::Format($HEADER, "LiteCore_shell", [datetime]::Now.Year)
+$header + [string]::Join("`n", $shell_file) | Out-File LiteCore_shell.cs

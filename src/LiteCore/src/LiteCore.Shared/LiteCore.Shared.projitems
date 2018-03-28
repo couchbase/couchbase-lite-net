@@ -33,6 +33,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Interop\Fleece.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\Fleece_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\ILiteCore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\ILiteCore_manual.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\LiteCoreBridge.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\LiteCore_shell.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\LiteCore_shell_defs.cs" />

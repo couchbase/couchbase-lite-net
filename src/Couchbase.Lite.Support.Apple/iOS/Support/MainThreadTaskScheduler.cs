@@ -28,7 +28,7 @@ using Foundation;
 namespace Couchbase.Lite.Support
 {
     [CouchbaseDependency(Lazy = true, Transient = true)]
-    public class MainThreadTaskScheduler : TaskScheduler, IMainThreadTaskScheduler
+    internal sealed class MainThreadTaskScheduler : TaskScheduler, IMainThreadTaskScheduler
     {
         #region Constants
 

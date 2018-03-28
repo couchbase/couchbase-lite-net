@@ -1,5 +1,5 @@
-//
-// C4Private.cs
+﻿//
+// ILiteCore_manual.cs
 //
 // Copyright (c) 2016 Couchbase, Inc All rights reserved.
 //
@@ -16,18 +16,12 @@
 // limitations under the License.
 //
 
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
-
-using Couchbase.Lite.DI;
-
-using LiteCore.Util;
-
 namespace LiteCore.Interop
 {
-    internal static class NativePrivate
+    internal unsafe partial interface ILiteCore
     {
-        public static void c4log_warnOnErrors(bool warn) =>
-            Service.GetRequiredInstance<ILiteCore>().c4log_warnOnErrors(warn);
+        C4LogDomain* c4log_getDomain(byte* name, bool create);
+
+        void c4log_warnOnErrors(bool warn);
     }
 }

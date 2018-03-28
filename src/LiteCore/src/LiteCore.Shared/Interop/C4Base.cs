@@ -240,23 +240,8 @@ namespace Couchbase.Lite.Interop
 
     internal static partial class Native
     {
-        public static unsafe C4LogDomain* c4log_getDomain(byte* name, bool create)
-        {
-            if (Service.GetInstance<IRuntimePlatform>()?.OSDescription?.Contains("iOS") == true) {
-                return c4log_getDomain_ios(name, create);
-            }
-
-            return c4log_getDomain_common(name, create);
-        }
-
-        // NOTE: Must allocate unmanaged memory via Marshal class
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, EntryPoint = "c4log_getDomain")]
-        private static extern unsafe C4LogDomain* c4log_getDomain_common(byte* name,
-            [MarshalAs(UnmanagedType.U1)] bool create);
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, EntryPoint = "c4log_getDomain")]
-        private static extern unsafe C4LogDomain* c4log_getDomain_ios(byte* name,
-            [MarshalAs(UnmanagedType.U1)] bool create);
+        public static unsafe C4LogDomain* c4log_getDomain(byte* name, bool create) =>
+            Service.GetRequiredInstance<ILiteCore>().c4log_getDomain(name, create);
     }
 }
 

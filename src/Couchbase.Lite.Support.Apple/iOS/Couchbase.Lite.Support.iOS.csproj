@@ -99,6 +99,9 @@
     <Compile Include="..\..\LiteCore\src\LiteCore.Shared\Interop\iOS\Fleece_native_ios.cs">
       <Link>Support\LiteCore\Fleece_native_ios.cs</Link>
     </Compile>
+    <Compile Include="..\..\LiteCore\src\LiteCore.Shared\Interop\iOS\Misc_native.cs">
+      <Link>Support\LiteCore\Misc_native.cs</Link>
+    </Compile>
     <Compile Include="..\..\LiteCore\src\LiteCore.Shared\Interop\LiteCore_impl.cs">
       <Link>Support\LiteCore\LiteCore_impl.cs</Link>
     </Compile>
