@@ -30,6 +30,9 @@ namespace LiteCore.Interop
 {
     using Couchbase.Lite.Interop;
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    internal unsafe delegate void C4LogCallback(C4LogDomain* domain, C4LogLevel level, string message, IntPtr args);
+
     internal partial struct C4Error
     {
         public C4Error(C4ErrorDomain domain, int code)
@@ -255,9 +258,6 @@ namespace Couchbase.Lite.Interop
         private static extern unsafe C4LogDomain* c4log_getDomain_ios(byte* name,
             [MarshalAs(UnmanagedType.U1)] bool create);
     }
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    internal unsafe delegate void C4LogCallback(C4LogDomain* domain, C4LogLevel level, string message, IntPtr args);
 }
 
 // EPIC HACK: This is required for iOS callbacks, but not available in .NET Standard

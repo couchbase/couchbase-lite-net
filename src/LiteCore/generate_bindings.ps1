@@ -37,3 +37,4 @@ Move-Item -Force *_native_ios.cs $PSScriptRoot\src\LiteCore.Shared\Interop\iOS
 Move-Item -Force *_native.cs $PSScriptRoot\src\LiteCore.Shared\Interop\Common
 popd
 popd
+popd

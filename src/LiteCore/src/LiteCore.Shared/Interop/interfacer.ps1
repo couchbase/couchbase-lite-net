@@ -51,7 +51,7 @@ $native_file += "}"
 
 [string]::Join("`n", $native_file) | Out-File ILiteCore.cs
 
-$implementation = @("using System;`n", "using LiteCore.Interop;`n", "namespace LiteCore.Interop", "{", "    internal sealed unsafe class LiteCoreImpl : ILiteCore", "    {")
+$implementation = @("using System;`n", "namespace LiteCore.Interop", "{", "    internal sealed unsafe class LiteCoreImpl : ILiteCore", "    {")
 Write-Implementation $native "Native" ([ref]$implementation)
 $implementation += @("    }`n", "    internal sealed unsafe class LiteCoreRawImpl : ILiteCoreRaw", "    {")
 Write-Implementation $native_raw "NativeRaw" ([ref]$implementation)
