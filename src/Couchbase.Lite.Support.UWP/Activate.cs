@@ -22,6 +22,8 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
+using LiteCore.Interop;
+
 namespace Couchbase.Lite.Support
 {
     /// <summary>
@@ -47,6 +49,8 @@ namespace Couchbase.Lite.Support
             }
             
             Service.AutoRegister(typeof(UWP).GetTypeInfo().Assembly);
+            Service.Register<ILiteCore>(new LiteCoreImpl());
+            Service.Register<ILiteCoreRaw>(new LiteCoreRawImpl());
         }
 
         /// <summary>
