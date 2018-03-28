@@ -78,7 +78,7 @@ if(Test-Path "litecore-ios$suffix.zip") {
     New-Item -Type directory -ErrorAction Ignore ios-fat
     Set-Location ios-fat
     Move-Item ..\litecore-ios$suffix.zip .
-    & 7z e -y litecore-ios$suffix.zip
+    & 7z x -y litecore-ios$suffix.zip
     rm litecore-ios$suffix.zip
     Set-Location ..
 }
