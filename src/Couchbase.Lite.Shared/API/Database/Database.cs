@@ -301,7 +301,7 @@ namespace Couchbase.Lite
 			{
 				var nativeConfig = DBConfig;
 
-                #if COUCHBASE_ENTERPRISE_FUTURE
+                #if COUCHBASE_ENTERPRISE
 				if (config?.EncryptionKey != null) {
 					var key = config.EncryptionKey;
 					var i = 0;
@@ -816,7 +816,7 @@ namespace Couchbase.Lite
         }
         #endif
 
-        #if COUCHBASE_ENTERPRISE_FUTURE
+        #if COUCHBASE_ENTERPRISE
 		/// <summary>
 		/// Sets the encryption key for the database.  If null, encryption is
 		/// removed.
@@ -1000,7 +1000,7 @@ namespace Couchbase.Lite
 
             var encrypted = "";
 
-            #if COUCHBASE_ENTERPRISE_FUTURE
+            #if COUCHBASE_ENTERPRISE
             if(Config.EncryptionKey != null) {
                 var key = Config.EncryptionKey;
                 var i = 0;

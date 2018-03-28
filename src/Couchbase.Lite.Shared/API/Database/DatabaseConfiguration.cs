@@ -43,7 +43,7 @@ namespace Couchbase.Lite
         [NotNull] private string _directory =
             Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
 
-        #if COUCHBASE_ENTERPRISE_FUTURE
+        #if COUCHBASE_ENTERPRISE
         private EncryptionKey _encryptionKey;
         #endif
 
@@ -61,7 +61,7 @@ namespace Couchbase.Lite
             set => _freezer.SetValue(ref _directory, CBDebug.MustNotBeNull(Log.To.Database, Tag, "Directory", value));
         }
 
-        #if COUCHBASE_ENTERPRISE_FUTURE
+        #if COUCHBASE_ENTERPRISE
         /// <summary>
         /// Gets or sets the encryption key to use on the database
         /// </summary>
@@ -101,7 +101,7 @@ namespace Couchbase.Lite
                 Directory = Directory,
             };
 
-            #if COUCHBASE_ENTERPRISE_FUTURE
+            #if COUCHBASE_ENTERPRISE
             retVal.EncryptionKey = EncryptionKey;
             #endif
 
