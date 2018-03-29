@@ -610,7 +610,7 @@ namespace LiteCore.Tests
             });
         }
 
-        #if COUCHBASE_ENTERPRISE_FUTURE
+        #if COUCHBASE_ENTERPRISE
 
         [Fact]
         public void TestDatabaseRekey()

@@ -57,7 +57,7 @@ namespace LiteCore.Tests
 
         internal static readonly C4Slice FleeceBody;
         
-        #if COUCHBASE_ENTERPRISE_FUTURE
+        #if COUCHBASE_ENTERPRISE
         protected override int NumberOfOptions => 2;
         #else
         protected override int NumberOfOptions => 1;

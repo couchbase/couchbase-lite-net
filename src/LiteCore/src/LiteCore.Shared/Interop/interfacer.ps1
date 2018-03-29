@@ -71,7 +71,7 @@ $native_file += "    }"
 $native_file += "}"
 
 $header = [string]::Format($HEADER, "ILiteCore", [datetime]::Now.Year)
-$header + [string]::Join("`n", $native_file) | Out-File ILiteCore.cs
+$header + [string]::Join("`n", $native_file) | Out-File ILiteCore.cs -Encoding utf8
 
 $implementation = @("using System;`n", "namespace LiteCore.Interop", "{", "    internal sealed unsafe partial class LiteCoreImpl : ILiteCore", "    {")
 Write-Implementation $native "Native" ([ref]$implementation)
@@ -81,7 +81,7 @@ $implementation += "    }"
 $implementation += "}"
 
 $header = [string]::Format($HEADER, "LiteCore_impl", [datetime]::Now.Year)
-$header + [string]::Join("`n", $implementation) | Out-File LiteCore_impl.cs
+$header + [string]::Join("`n", $implementation) | Out-File LiteCore_impl.cs -Encoding utf8
 
 $shell = @()
 $shell_raw = @()
@@ -106,4 +106,4 @@ $shell_file += "    }"
 $shell_file += "}"
 
 $header = [string]::Format($HEADER, "LiteCore_shell", [datetime]::Now.Year)
-$header + [string]::Join("`n", $shell_file) | Out-File LiteCore_shell.cs
+$header + [string]::Join("`n", $shell_file) | Out-File LiteCore_shell.cs -Encoding utf8

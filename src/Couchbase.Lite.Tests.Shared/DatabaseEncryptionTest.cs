@@ -15,7 +15,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-#if COUCHBASE_ENTERPRISE_FUTURE
+#if COUCHBASE_ENTERPRISE
 using System;
 using System.Collections.Generic;
 using System.IO;

@@ -47,7 +47,7 @@ namespace LiteCore.Tests
         }
 #endif
 
-        #if COUCHBASE_ENTERPRISE_FUTURE
+        #if COUCHBASE_ENTERPRISE
         protected override int NumberOfOptions => 2;
         #else
         protected override int NumberOfOptions => 1;
