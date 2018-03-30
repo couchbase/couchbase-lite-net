@@ -1757,6 +1757,48 @@ namespace Test
             }
         }
 
+        [ForIssue("couchbase-lite-core/497")]
+        [Fact]
+        public void TestQueryJoinAndSelectAll()
+        {
+            LoadNumbers(100);
+
+            using (var doc1 = new MutableDocument("joinme")) {
+                doc1.SetInt("theone", 42);
+                Db.Save(doc1);
+            }
+
+            var mainDS = DataSource.Database(Db).As("main");
+            var secondaryDS = DataSource.Database(Db).As("secondary");
+
+            var mainPropExpr = Expression.Property("number1").From("main");
+            var secondaryExpr = Expression.Property("theone").From("secondary");
+            var joinExpr = mainPropExpr.EqualTo(secondaryExpr);
+            var join = Join.LeftJoin(secondaryDS).On(joinExpr);
+
+            var mainAll = SelectResult.All().From("main");
+            var secondaryAll = SelectResult.All().From("secondary");
+
+            using (var q = QueryBuilder.Select(mainAll, secondaryAll)
+                .From(mainDS)
+                .Join(join)) {
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    if (n == 41) {
+                        WriteLine($"41: {JsonConvert.SerializeObject(row.ToDictionary())}");
+                        row.GetDictionary("main").GetInt("number2").Should().Be(59);
+                        row.GetDictionary("secondary").Should().BeNull();
+                    } else if (n == 42) {
+                        WriteLine($"42: {JsonConvert.SerializeObject(row.ToDictionary())}");
+                        row.GetDictionary("main").GetInt("number2").Should().Be(58);
+                        row.GetDictionary("secondary").GetInt("theone").Should().Be(42);
+                    }
+                });
+
+                numRows.Should().Be(101);
+            }
+        }
+
         private Document CreateTaskDocument(string title, bool complete)
         {
             var doc = new MutableDocument();
