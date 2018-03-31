@@ -50,7 +50,7 @@ namespace Test
         public void TestPerformance()
         {
             var configuration = new DatabaseConfiguration {
-                Directory = Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
+                Directory = Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite")
             };
 
             SetOptions(configuration);

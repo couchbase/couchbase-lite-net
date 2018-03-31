@@ -45,7 +45,7 @@ namespace Test
         private ITestOutputHelper _output;
 #else 
         private TestContext _output;
-        public TestContext TestContext
+        public virtual TestContext TestContext
         {
             get => _output;
             set {
@@ -59,6 +59,13 @@ namespace Test
         private string _dbName;
 
         public Database Db { get; private set; }
+
+#if NETCOREAPP2_0
+        static PerfTest()
+        {
+            Couchbase.Lite.Support.NetDesktop.Activate();
+        }
+#endif
 
 #if !WINDOWS_UWP
         protected PerfTest(ITestOutputHelper output)

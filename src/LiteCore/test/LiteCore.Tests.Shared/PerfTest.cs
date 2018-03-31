@@ -47,7 +47,7 @@ namespace LiteCore.Tests
         }
 #endif
 
-#if PERFORMANCE
+#if PERFORMANCE_FUTURE
 
         [Fact]
         [Trait("Slow", "true")]

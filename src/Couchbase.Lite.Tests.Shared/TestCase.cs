@@ -278,7 +278,7 @@ namespace Test
             });
         }
 
-        internal bool ReadFileByLines(string path, Func<string, bool> callback)
+        internal static bool ReadFileByLines(string path, Func<string, bool> callback)
         {
 #if WINDOWS_UWP
                 var url = $"ms-appx:///Assets/{path}";

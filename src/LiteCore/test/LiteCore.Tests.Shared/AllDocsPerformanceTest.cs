@@ -49,36 +49,6 @@ namespace LiteCore.Tests
         }
 #endif
 
-#if PERFORMANCE
-
-        [Fact]
-        [Trait("Slow", "true")]
-        public void TestAllDocsPerformance() 
-        {
-            RunTestVariants(() => {
-                var st = Stopwatch.StartNew();
-
-                var options = C4EnumeratorOptions.Default;
-                options.flags &= ~C4EnumeratorFlags.IncludeBodies;
-                C4Error err;
-                var e = NativeRaw.c4db_enumerateAllDocs(Db, C4Slice.Null, C4Slice.Null, &options, &err);
-                ((long)e).Should().NotBe(0, "because the enumerator should be created successfully");
-                C4Document* doc;
-                uint i = 0;
-                while(null != (doc = Native.c4enum_nextDocument(e, &err))) {
-                    i++;
-                    Native.c4doc_free(doc);
-                }
-
-                Native.c4enum_free(e);
-                i.Should().Be(NumDocuments, "because the query should return all docs");
-                var elapsed = st.Elapsed.TotalMilliseconds;
-                Console.WriteLine($"Enumerating {i} docs took {elapsed:F3} ms ({elapsed/i:F3} ms/doc)");
-            });
-        }
-
-#endif
-
         protected override void SetupVariant(int option)
         {
             base.SetupVariant(option);

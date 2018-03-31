@@ -161,13 +161,13 @@ namespace Test
             doc.SetString("firstName", "Daniel");
             doc.SetString("lastName", "Tiger");
 
-            var address = new MutableDictionary();
+            var address = new MutableDictionaryObject();
             address.SetString("street", "1 Main street");
             address.SetString("city", "Mountain View");
             address.SetString("state", "CA");
             doc.SetDictionary("address", address);
 
-            var phones = new MutableArray();
+            var phones = new MutableArrayObject();
             phones.AddString("650-123-0001").AddString("650-123-0002");
             doc.SetArray("phones", phones);
 
@@ -179,7 +179,7 @@ namespace Test
         private void CreateDocumentNSave(string id, string tag)
         {
             using (var doc = CreateDocumentWithTag(id, tag)) {
-                Db.Save(doc).Dispose();
+                Db.Save(doc);
             }
         }
 
@@ -210,22 +210,21 @@ namespace Test
 
                 doc.SetDate("updated", DateTimeOffset.UtcNow);
 
-                Db.Save(doc).Dispose();
+                Db.Save(doc);
             }
         }
 
-        private void VerifyByTagName(string tag, Action<int, IResult> verify)
+        private void VerifyByTagName(string tag, Action<int, Result> verify)
         {
             var TAG_EXPR = Expression.Property("tag");
             var DOCID = SelectResult.Expression(Meta.ID);
             var ds = DataSource.Database(Db);
-            using (var q = Query.Select(DOCID).From(ds).Where(TAG_EXPR.EqualTo(tag))) {
+            using (var q = QueryBuilder.Select(DOCID).From(ds).Where(TAG_EXPR.EqualTo(Expression.String(tag)))) {
                 WriteLine($"query -> {(q as XQuery).Explain()}");
-                using (var rs = q.Execute()) {
-                    int n = 0;
-                    foreach (var row in rs) {
-                        verify(++n, row);
-                    }
+                var rs = q.Execute();
+                int n = 0;
+                foreach (var row in rs) {
+                    verify(++n, row);
                 }
             }
         }
