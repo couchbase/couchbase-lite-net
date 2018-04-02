@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Interop;
@@ -145,7 +146,9 @@ namespace Couchbase.Lite.Logging
 		{
 			var cblLevel = (LogLevel)level;
 			if(ShouldLog(cblLevel)) {
-			    textLogger?.Log(cblLevel, Domain, msg);
+			    var finalMessage =
+			        $"{DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture)} {msg}";
+			    textLogger?.Log(cblLevel, Domain, finalMessage);
 			}
 		}
 
@@ -202,7 +205,11 @@ namespace Couchbase.Lite.Logging
         {
             Debug.Assert(tag != null && message != null);
 
-            return $"({tag}) [{Environment.CurrentManagedThreadId}] {DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture)} {message}";
+            var threadId = Thread.CurrentThread?.Name != null
+                ? $"{Thread.CurrentThread.Name} ({Thread.CurrentThread.ManagedThreadId})"
+                : Environment.CurrentManagedThreadId.ToString();
+
+            return $"({tag}) [{threadId}] {message}";
         }
 
         [NotNull]
@@ -210,7 +217,11 @@ namespace Couchbase.Lite.Logging
         {
             Debug.Assert(tag != null && message != null && e != null);
 
-            return $"({tag}) [{Environment.CurrentManagedThreadId}] {DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture)} {message}: {e}";
+            var threadId = Thread.CurrentThread?.Name != null
+                ? $"{Thread.CurrentThread.Name} ({Thread.CurrentThread.ManagedThreadId})"
+                : Environment.CurrentManagedThreadId.ToString();
+
+            return $"({tag}) [{threadId}] {message}: {e}";
         }
 
 		private void LogToLiteCore(C4LogLevel level, [NotNull]string msg)
