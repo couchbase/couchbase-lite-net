@@ -54,6 +54,9 @@
     <FilterEntry>
       <ClassMask>Couchbase.Lite.Interop*</ClassMask>
     </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.Posix*</ClassMask>
+    </FilterEntry>
      <FilterEntry>
       <ClassMask>Couchbase.Lite.Logging*</ClassMask>
     </FilterEntry>

@@ -503,6 +503,35 @@ Transfer-Encoding: chunked";
             converted["$type"].String.Should().Be("JSON .NET Object");
         }
 
+        [Fact]
+        public void TestCreateExceptions()
+        {
+            var fleeceException = CouchbaseException.Create(new C4Error(FLError.EncodeError)) as CouchbaseFleeceException;
+            fleeceException.Should().NotBeNull();
+            fleeceException.Error.Should().Be((int) FLError.EncodeError);
+            fleeceException.Domain.Should().Be(CouchbaseLiteErrorType.Fleece);
+
+            var sqliteException =
+                CouchbaseException.Create(new C4Error(C4ErrorDomain.SQLiteDomain, (int) SQLiteStatus.Misuse)) as CouchbaseSQLiteException;
+            sqliteException.Should().NotBeNull();
+            sqliteException.BaseError.Should().Be(SQLiteStatus.Misuse);
+            sqliteException.Error.Should().Be((int) SQLiteStatus.Misuse);
+            sqliteException.Domain.Should().Be(CouchbaseLiteErrorType.SQLite);
+
+            var webSocketException = CouchbaseException.Create(new C4Error(C4ErrorDomain.WebSocketDomain, 1003)) as CouchbaseWebsocketException;
+            webSocketException.Error.Should().Be(CouchbaseLiteError.WebSocketDataError);
+            webSocketException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+
+            var posixException = CouchbaseException.Create(new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.EACCES)) as CouchbasePosixException;
+            posixException.Error.Should().Be(PosixBase.EACCES);
+            posixException.Domain.Should().Be(CouchbaseLiteErrorType.POSIX);
+
+            var networkException =
+                CouchbaseException.Create(new C4Error(C4NetworkErrorCode.InvalidURL)) as CouchbaseNetworkException;
+            networkException.Error.Should().Be(CouchbaseLiteError.InvalidUrl);
+            networkException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+        }
+
         #if !NETCOREAPP2_0
 
         [Fact]

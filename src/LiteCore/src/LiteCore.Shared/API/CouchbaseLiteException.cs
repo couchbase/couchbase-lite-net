@@ -511,7 +511,7 @@ namespace Couchbase.Lite
                 case C4ErrorDomain.NetworkDomain:
                     return err.code + (int) CouchbaseLiteError.NetworkBase;
                 case C4ErrorDomain.WebSocketDomain:
-                    return err.code + (int) CouchbaseLiteError.WebSocketBase;
+                    return err.code + (int) CouchbaseLiteError.HTTPBase;
                 default:
                     return err.code;
             }
