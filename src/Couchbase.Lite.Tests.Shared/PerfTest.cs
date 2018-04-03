@@ -138,11 +138,7 @@ namespace Test
 
         protected void WriteLine(string line)
         {
-#if !WINDOWS_UWP
             _output.WriteLine(line);
-#else
-            Console.WriteLine(line);
-#endif
         }
 
         protected void Measure(uint count, string unit, Action a)

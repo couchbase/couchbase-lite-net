@@ -18,12 +18,15 @@
 #if PERFORMANCE
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using Couchbase.Lite;
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 using FluentAssertions;
+
 using Newtonsoft.Json;
 using Test.Util;
 #if !WINDOWS_UWP
@@ -35,6 +38,9 @@ using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
 
 namespace Test
 {
+#if WINDOWS_UWP
+    [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
+#endif
     public sealed class TunesPerfTest : PerfTest
     {
         private int _documentCount;
@@ -66,7 +72,23 @@ namespace Test
             _queryFTSBench = new Benchmark(output);
         }
 #else
-        
+        public override Microsoft.VisualStudio.TestTools.UnitTesting.TestContext TestContext
+        {
+            get => base.TestContext;
+            set {
+                base.TestContext = value;
+                _importBench = new Benchmark(value);
+                _updatePlayCountBench = new Benchmark(value);
+                _updateArtistsBench = new Benchmark(value);
+                _indexArtistsBench = new Benchmark(value);
+                _queryArtistsBench = new Benchmark(value);
+                _queryIndexedArtistsBench = new Benchmark(value);
+                _queryAlbumsBench = new Benchmark(value);
+                _queryIndexedAlbumsBench = new Benchmark(value);
+                _indexFTSBench = new Benchmark(value);
+                _queryFTSBench = new Benchmark(value);
+            }
+        }
 #endif
 
         [Fact]
@@ -126,11 +148,10 @@ namespace Test
             WriteLine("");
             WriteLine("");
             WriteLine($"Import {numDocs:D5} docs");
+            _importBench.PrintReport();
             _importBench.PrintReport(1.0 / numDocs, "doc");
-            WriteLine($"Rate: {numDocs / _importBench.Median().TotalSeconds} docs/sec");
             WriteLine($"Update {numUpdates:D4} docs");
             _updateArtistsBench.PrintReport();
-            WriteLine($"Rate: {numUpdates / _updateArtistsBench.Median().TotalSeconds} docs/sec");
             _updateArtistsBench.PrintReport(1.0 / numUpdates, "update");
             WriteLine($"Query {numArtists:D4} artists");
             _queryArtistsBench.PrintReport();
@@ -213,7 +234,8 @@ namespace Test
 
         private int QueryAllArtists(Benchmark bench)
         {
-            var collation = Collation.Unicode().Locale("en").IgnoreCase(true).IgnoreAccents(true);
+            var collation = Collation.Unicode().IgnoreCase(true).IgnoreAccents(true).Locale("en");
+
             using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("Artist")))
                 .From(DataSource.Database(Db))
                 .Where(Expression.Property("Artist").NotNullOrMissing()
@@ -232,14 +254,16 @@ namespace Test
         {
             var albumCount = 0;
             // Workaround for https://github.com/couchbase/couchbase-lite-net/issues/1012
-            var whereCollation = Collation.Unicode().Locale("en").IgnoreCase(true).IgnoreAccents(true);
-            var collation = Collation.Unicode().Locale("en").IgnoreCase(true).IgnoreAccents(true);
+            var whereCollation = Collation.Unicode().IgnoreCase(true).IgnoreAccents(true);
+            var collation = Collation.Unicode().IgnoreCase(true).IgnoreAccents(true);
+            var collation2 = Collation.Unicode().IgnoreCase(true).IgnoreAccents(true);
+
             using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("Album")))
                 .From(DataSource.Database(Db))
                    .Where(Expression.Property("Artist").Collate(whereCollation).EqualTo(Expression.Parameter("ARTIST"))
                     .And(Expression.Property("Compilation").IsNullOrMissing()))
                 .GroupBy(Expression.Property("Album").Collate(collation))
-                   .OrderBy(Ordering.Expression(Expression.Property("Album").Collate(collation)))) {
+                   .OrderBy(Ordering.Expression(Expression.Property("Album").Collate(collation2)))) {
                 bench.Start();
                
                 foreach (var artist in _artists) {
@@ -259,7 +283,8 @@ namespace Test
         private void CreateArtistsIndex()
         {
             _indexArtistsBench.Start();
-            var collation = Collation.Unicode().Locale("en").IgnoreCase(true).IgnoreAccents(true);
+            var collation = Collation.Unicode().IgnoreCase(true).IgnoreAccents(true);
+
             var artist = Expression.Property("Artist").Collate(collation);
             var comp = Expression.Property("Compilation");
             var index = IndexBuilder.ValueIndex(ValueIndexItem.Expression(artist), ValueIndexItem.Expression(comp));
@@ -270,13 +295,13 @@ namespace Test
         private int FullTextSearch()
         {
             _indexFTSBench.Start();
-            var nameExpr = Expression.Property("Name");
             var index = IndexBuilder.FullTextIndex(FullTextIndexItem.Property("Name")).SetLanguage("en");
+
             Db.CreateIndex("nameFTS", index);
             _indexFTSBench.Stop();
 
-            var collate1 = Collation.Unicode().Locale("en").IgnoreAccents(true).IgnoreCase(true);
-            var collate2 = Collation.Unicode().Locale("en").IgnoreAccents(true).IgnoreCase(true);
+            var collate1 = Collation.Unicode().IgnoreAccents(true).IgnoreCase(true).Locale("en");
+            var collate2 = Collation.Unicode().IgnoreAccents(true).IgnoreCase(true).Locale("en");
 
             var ARTIST = Expression.Property("Artist");
             var ALBUM = Expression.Property("Album");

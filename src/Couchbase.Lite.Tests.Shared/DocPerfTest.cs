@@ -46,7 +46,6 @@ namespace Test
 #if PERFORMANCE
 
         [Fact]
-        [Trait("slow", "true")]
         public void TestPerformance()
         {
             var configuration = new DatabaseConfiguration {

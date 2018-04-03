@@ -31,6 +31,9 @@
       <ModuleMask>MSBuild</ModuleMask>
     </FilterEntry>
     <FilterEntry>
+      <ModuleMask>NuGet.MSBuildSdkResolver</ModuleMask>
+    </FilterEntry>
+    <FilterEntry>
       <ClassMask>JetBrains.Annotations*</ClassMask>
     </FilterEntry>
     <FilterEntry>
@@ -47,6 +50,9 @@
     </FilterEntry>
      <FilterEntry>
       <ClassMask>Couchbase.Lite.Util.CBDebug</ClassMask>
+    </FilterEntry>
+    <FilterEntry>
+      <ClassMask>Couchbase.Lite.Interop*</ClassMask>
     </FilterEntry>
      <FilterEntry>
       <ClassMask>Couchbase.Lite.Logging*</ClassMask>
