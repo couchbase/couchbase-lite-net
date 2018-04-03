@@ -39,6 +39,20 @@ namespace api_walkthrough
 
         #region Private Methods
 
+        private static void GettingStarted()
+        {
+            // # tag::getting-started[]
+            // TODO
+            // # end::getting-started[]
+        }
+
+        private static void Read1xAttachment()
+        {
+            // # tag::1x-attachment[]
+            // TODO
+            // # end::1x-attachment[]
+        }
+
         private static void CreateNewDatabase()
         {
             // # tag::new-database[]
