@@ -136,7 +136,7 @@ namespace LiteCore.Tests
             C4Error err;
             config.storageEngine = C4StorageEngine.SQLite;
             if ((option & 1) == 1) {
-                config.encryptionKey.algorithm = C4EncryptionAlgorithm.AES128;
+                config.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
                 var i = 0;
                 foreach (var b in Encoding.UTF8.GetBytes("this is not a random key at all.")) {
                     config.encryptionKey.bytes[i++] = b;
