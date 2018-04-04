@@ -42,15 +42,73 @@ namespace api_walkthrough
         private static void GettingStarted()
         {
             // # tag::getting-started[]
-            // TODO
+            // Get the database (and create it if it doesn't exist)
+            var database = new Database("mydb");
+            // Create a new document (i.e. a record) in the database
+            string id = null;
+            using (var mutableDoc = new MutableDocument()) {
+                mutableDoc.SetFloat("version", 2.0f)
+                    .SetString("type", "SDK");
+
+                // Save it to the database
+                database.Save(mutableDoc);
+                id = mutableDoc.Id;
+            }
+
+            // Update a document
+            using (var doc = database.GetDocument(id))
+            using (var mutableDoc = doc.ToMutable()) {
+                mutableDoc.SetString("language", "C#");
+                database.Save(mutableDoc);
+
+                using (var docAgain = database.GetDocument(id)) {
+                    Console.WriteLine($"Document ID :: {docAgain.Id}");
+                    Console.WriteLine($"Learning {docAgain.GetString("language")}");
+                }
+            }
+
+            // Create a query to fetch documents of type SDK
+            // i.e. SELECT * FROM database WHERE type = "SDK"
+            using (var query = QueryBuilder.Select(SelectResult.All())
+                .From(DataSource.Database(database))
+                .Where(Expression.Property("type").EqualTo(Expression.String("SDK")))) {
+                // Run the query
+                var result = query.Execute();
+                Console.WriteLine($"Number of rows :: {result.Count()}");
+            }
+
+            // Create replicator to push and pull changes to and from the cloud
+            var targetEndpoint = new URLEndpoint(new Uri("ws://localhost:4984/example_sg_db"));
+            var replConfig = new ReplicatorConfiguration(database, targetEndpoint);
+
+            // Add authentication
+            replConfig.Authenticator = new BasicAuthenticator("john", "pass");
+
+            // Create replicator
+            var replicator = new Replicator(replConfig);
+            replicator.AddChangeListener((sender, args) =>
+            {
+                if (args.Status.Error != null) {
+                    Console.WriteLine($"Error :: {args.Status.Error}");
+                }
+            });
+
+            replicator.Start();
+
+            // Later, stop and dispose the replicator *before* closing/disposing the database
             // # end::getting-started[]
         }
 
         private static void Read1xAttachment()
         {
-            // # tag::1x-attachment[]
-            // TODO
-            // # end::1x-attachment[]
+            var db = _Database;
+            using (var document = new MutableDocument()) {
+                // # tag::1x-attachment[]
+                var attachments = document.GetDictionary("_attachments");
+                var avatar = attachments.GetBlob("avatar");
+                var content = avatar?.Content;
+                // # end::1x-attachment[]
+            }
         }
 
         private static void CreateNewDatabase()
