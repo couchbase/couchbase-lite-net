@@ -27,7 +27,7 @@ namespace LiteCore.Interop
     using Couchbase.Lite.Interop;
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]   
-    internal unsafe delegate void SocketOpenDelegate(C4Socket* socket, C4Address* address, C4Slice options);
+    internal unsafe delegate void SocketOpenDelegate(C4Socket* socket, C4Address* address, C4Slice options, void* context);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate void SocketCloseDelegate(C4Socket* socket);
@@ -55,28 +55,41 @@ namespace LiteCore.Interop
     {
         private static readonly SocketOpenDelegate _open;
         private static readonly SocketCloseDelegate _close;
+        private static readonly SocketRequestCloseDelegate _requestClose;
         private static readonly SocketWriteDelegate _write;
         private static readonly SocketCompletedReceiveDelegate _completedReceive;
         private static readonly SocketDisposeDelegate _dispose;
 
         private static SocketOpenDelegate _externalOpen;
         private static SocketCloseDelegate _externalClose;
+        private static SocketRequestCloseDelegateManaged _externalRequestClose;
         private static SocketWriteDelegateManaged _externalWrite;
         private static SocketCompletedReceiveDelegateManaged _externalCompletedReceive;
         private static SocketErrorDelegate _error;
         private static SocketDisposeDelegate _externalDispose;
 
-        private static C4SocketFactory InternalFactory { get; }
+        internal static C4SocketFactory InternalFactory { get; }
 
         static SocketFactory()
         {
             _open = SocketOpened;
             _close = SocketClose;
+            _requestClose = SocketRequestClose;
             _write = SocketWrittenTo;
             _completedReceive = SocketCompletedReceive;
             _dispose = SocketDispose;
             InternalFactory = new C4SocketFactory(_open, _close, _write, _completedReceive, _dispose);
             Native.c4socket_registerFactory(InternalFactory);
+        }
+
+        [MonoPInvokeCallback(typeof(SocketRequestCloseDelegate))]
+        private static void SocketRequestClose(C4Socket* socket, int status, C4Slice message)
+        {
+            try {
+                _externalRequestClose?.Invoke(socket, status, message.CreateString());
+            } catch (Exception e) {
+                _error?.Invoke(socket, new Exception("Error requesting socket close", e));
+            }
         }
 
         [MonoPInvokeCallback(typeof(SocketDisposeDelegate))]
@@ -100,16 +113,27 @@ namespace LiteCore.Interop
             _externalDispose = doDispose;
         }
 
+        public static void RegisterFactory(SocketOpenDelegate doOpen, SocketRequestCloseDelegateManaged doRequestClose, 
+            SocketWriteDelegateManaged doWrite, SocketCompletedReceiveDelegateManaged doCompleteReceive,
+            SocketDisposeDelegate doDispose)
+        {
+            _externalOpen = doOpen;
+            _externalRequestClose = doRequestClose;
+            _externalWrite = doWrite;
+            _externalCompletedReceive = doCompleteReceive;
+            _externalDispose = doDispose;
+        }
+
         public static void SetErrorHandler(SocketErrorDelegate doError)
         {
             _error = doError;
         }
 
         [MonoPInvokeCallback(typeof(SocketOpenDelegate))]
-        private static void SocketOpened(C4Socket* socket, C4Address* address, C4Slice options)
+        private static void SocketOpened(C4Socket* socket, C4Address* address, C4Slice options, void* context)
         {
             try {
-                _externalOpen?.Invoke(socket, address, options);
+                _externalOpen?.Invoke(socket, address, options, context);
             } catch (Exception e) {
                 _error?.Invoke(socket, new Exception("Error opening to socket", e));
                 Native.c4socket_closed(socket, new C4Error(C4ErrorCode.UnexpectedError));

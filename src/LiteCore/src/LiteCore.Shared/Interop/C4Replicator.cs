@@ -103,6 +103,8 @@ namespace LiteCore.Interop
 
         internal C4ReplicatorParameters C4Params { get; }
 
+        internal C4SocketFactory SocketFactory { get; set; }
+
         static ReplicatorParameters()
         {
             NativeErrorCallback = OnError;

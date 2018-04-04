@@ -34,6 +34,13 @@ namespace LiteCore.Interop
             }
         }
 
+        public static string c4address_toURL(C4Address address)
+        {
+            using(var retVal = NativeRaw.c4address_toURL(address)) {
+                return ((C4Slice)retVal).CreateString();
+            }
+        }
+
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Replicator* c4repl_new(C4Database* db, C4Address remoteAddress, C4Slice remoteDatabaseName, C4Database* otherLocalDB, C4ReplicatorParameters @params, C4Error* outError);
 
@@ -79,6 +86,9 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4repl_isValidDatabaseName(C4Slice dbName);
+
+        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4SliceResult c4address_toURL(C4Address address);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

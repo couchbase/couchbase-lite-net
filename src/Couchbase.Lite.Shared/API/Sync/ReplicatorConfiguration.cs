@@ -26,6 +26,8 @@ using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
 
+using LiteCore.Interop;
+
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
@@ -69,6 +71,7 @@ namespace Couchbase.Lite.Sync
         private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
         private Uri _remoteUrl;
         private Database _otherDb;
+        private C4SocketFactory _socketFactory;
 
         #endregion
 
@@ -147,6 +150,12 @@ namespace Couchbase.Lite.Sync
         {
             get => _otherDb;
             set => _freezer.SetValue(ref _otherDb, value);
+        }
+
+        internal C4SocketFactory SocketFactory
+        {
+            get => _socketFactory.open != IntPtr.Zero ? _socketFactory : LiteCore.Interop.SocketFactory.InternalFactory;
+            set => _freezer.SetValue(ref _socketFactory, value);
         }
 
         /// <summary>

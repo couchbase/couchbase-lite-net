@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Internal.Serialization
                 switch (Native.FLValue_GetType(value)) {
                     case FLValueType.Array: {
                         if(dotNetTypes) {
-                            return ToObject(value, database.SharedStrings, 0, hintType1);
+                            return ToObject(value, database?.SharedStrings, 0, hintType1);
                         }
 
                         var array = new ArrayObject(new MArray(new MValue(value), null), false);
@@ -51,18 +51,18 @@ namespace Couchbase.Lite.Internal.Serialization
                     }
                     case FLValueType.Dict: {
                         var dict = Native.FLValue_AsDict(value);
-                        var type = TypeForDict(dict, database.SharedStrings);
+                        var type = TypeForDict(dict, database?.SharedStrings);
                         if (!dotNetTypes && type.buf == null && !IsOldAttachment(database, dict)) {
                             return new DictionaryObject(new MDict(new MValue(value), null), false);
                         }
 
-                        var result = ToObject(value, database.SharedStrings, 0, hintType1) as IDictionary<string, object>;
+                        var result = ToObject(value, database?.SharedStrings, 0, hintType1) as IDictionary<string, object>;
                         return ConvertDictionary(result, database);
                     }
                     case FLValueType.Undefined:
                         return null;
                     default:
-                        return ToObject(value, database.SharedStrings);
+                        return ToObject(value, database?.SharedStrings);
                 }
         }
 
@@ -174,7 +174,7 @@ namespace Couchbase.Lite.Internal.Serialization
                         var rawKey = Native.FLDictIterator_GetKey(&i);
                         string key;
                         if (Native.FLValue_GetType(rawKey) == FLValueType.Number) {
-                            key = sharedKeys.GetKey((int)Native.FLValue_AsInt(rawKey));
+                            key = sharedKeys?.GetKey((int)Native.FLValue_AsInt(rawKey));
                             if (key == null) {
                                 Log.To.Database.W(Tag, "Corrupt key found during deserialization, skipping...");
                                 continue;

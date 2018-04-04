@@ -21,6 +21,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Interop;
@@ -47,10 +48,7 @@ namespace Couchbase.Lite
         #if CBL_LINQ
         private Linq.IDocumentModel _model;
         #endif
-
-        [NotNull]
-        private static readonly Dictionary<Guid, MutableDocument> _NativeCacheMap = new Dictionary<Guid, MutableDocument>();
-
+           
         #endregion
 
         #region Properties
@@ -66,8 +64,6 @@ namespace Couchbase.Lite
         private bool Changed => (_dict as MutableDictionaryObject)?.HasChanges ?? (_dict as InMemoryDictionary)?.HasChanges ?? false;
 
         private IMutableDictionary Dict => _dict as IMutableDictionary;
-
-        internal static IReadOnlyDictionary<Guid, MutableDocument> NativeCacheMap => _NativeCacheMap;
 
         /// <inheritdoc />
         public new IMutableFragment this[string key] => Dict?[key] ?? Fragment.Null;
@@ -216,9 +212,8 @@ namespace Couchbase.Lite
                 }
                 #endif
 
-                var guid = Guid.NewGuid();
-                _NativeCacheMap[guid] = this;
-                Native.FLEncoder_SetExtraInfo(encoder, &guid);
+                var handle = GCHandle.Alloc(this);
+                Native.FLEncoder_SetExtraInfo(encoder, (void *)GCHandle.ToIntPtr(handle));
 
                 try {
                     _dict.FLEncode(encoder);
@@ -226,7 +221,7 @@ namespace Couchbase.Lite
                     Native.FLEncoder_Reset(encoder);
                     throw;
                 } finally {
-                    _NativeCacheMap.Remove(guid);
+                    handle.Free();
                 }
 
                 FLError err;

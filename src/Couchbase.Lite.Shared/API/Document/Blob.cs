@@ -20,6 +20,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
+
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Interop;
 using Couchbase.Lite.Logging;
@@ -262,8 +264,7 @@ namespace Couchbase.Lite
         {
             var extra = Native.FLEncoder_GetExtraInfo(enc);
             if (extra != null) {
-                var guid = *(Guid*) extra;
-                var document = MutableDocument.NativeCacheMap[guid];
+                var document = GCHandle.FromIntPtr((IntPtr) extra).Target as MutableDocument;
                 var database = document.Database;
                 try {
                     Install(database);

@@ -22,6 +22,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
@@ -76,9 +77,6 @@ namespace Couchbase.Lite
     {
         #region Constants
 
-        private static readonly DatabaseObserverCallback _DbObserverCallback;
-        private static readonly DocumentObserverCallback _DocObserverCallback;
-
         private static readonly C4DatabaseConfig DBConfig = new C4DatabaseConfig {
             flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact | C4DatabaseFlags.SharedKeys,
             storageEngine = "SQLite",
@@ -94,7 +92,7 @@ namespace Couchbase.Lite
         #region Variables
 
         [NotNull]
-        private readonly Dictionary<string, DocumentObserver> _docObs = new Dictionary<string, DocumentObserver>();
+        private readonly Dictionary<string, Tuple<IntPtr, GCHandle>> _docObs = new Dictionary<string, Tuple<IntPtr, GCHandle>>();
 
         [NotNull]
         private readonly FilteredEvent<string, DocumentChangedEventArgs> _documentChanged =
@@ -117,7 +115,8 @@ namespace Couchbase.Lite
         private IJsonSerializer _jsonSerializer;
         #endif
 
-        private DatabaseObserver _obs;
+        private C4DatabaseObserver* _obs;
+        private GCHandle _obsContext;
         private C4Database* _c4db;
 
         #endregion
@@ -230,8 +229,6 @@ namespace Couchbase.Lite
 
         static Database()
         {
-            _DbObserverCallback = DbObserverCallback;
-            _DocObserverCallback = DocObserverCallback;
             FLSliceExtensions.RegisterFLEncodeExtension(FLValueConverter.FLEncode);
         }
 
@@ -431,7 +428,8 @@ namespace Couchbase.Lite
 
                 var cbHandler = new CouchbaseEventHandler<DatabaseChangedEventArgs>(handler, scheduler);
                 if (_databaseChanged.Add(cbHandler) == 0) {
-                    _obs = Native.c4dbobs_create(_c4db, _DbObserverCallback, this);
+                    _obsContext = GCHandle.Alloc(this);
+                    _obs = Native.c4dbobs_create(_c4db, DbObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer());
                 }
 
                 return new ListenerToken(cbHandler, "db");
@@ -477,8 +475,9 @@ namespace Couchbase.Lite
                     new CouchbaseEventHandler<string, DocumentChangedEventArgs>(handler, id, scheduler);
                 var count = _documentChanged.Add(cbHandler);
                 if (count == 0) {
-                    var docObs = new DocumentObserver(_c4db, id, _DocObserverCallback, this);
-                    _docObs[id] = docObs;
+                    var handle = GCHandle.Alloc(this);
+                    var docObs = Native.c4docobs_create(_c4db, id, DocObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    _docObs[id] = Tuple.Create((IntPtr)docObs, handle);
                 }
                 
                 return new ListenerToken(cbHandler, "doc");
@@ -576,8 +575,9 @@ namespace Couchbase.Lite
                 LiteCoreBridge.Check(err => Native.c4db_delete(_c4db, err));
                 Native.c4db_free(_c4db);
                 _c4db = null;
-                _obs?.Dispose();
+                Native.c4dbobs_free(_obs);
                 _obs = null;
+                _obsContext.Free();
             });
         }
 
@@ -756,13 +756,16 @@ namespace Couchbase.Lite
 
                 if (token.Type == "db") {
                     if (_databaseChanged.Remove(token) == 0) {
-                        Misc.SafeSwap(ref _obs, null);
+                        Native.c4dbobs_free(_obs);
+                        _obs = null;
+                        _obsContext.Free();
                     }
                 } else {
                     if (_documentChanged.Remove(token, out var docID) == 0) {
                         if (_docObs.TryGetValue(docID, out var observer)) {
                             _docObs.Remove(docID);
-                            observer.Dispose();
+                            Native.c4docobs_free((C4DocumentObserver *)observer.Item1);
+                            observer.Item2.Free();
                         }
                     }
                 }
@@ -913,23 +916,23 @@ namespace Couchbase.Lite
             return System.IO.Path.Combine(directoryToUse, $"{name}.{DBExtension}") ?? throw new RuntimeException("Path.Combine failed to return a non-null value!");
         }
 
-        private static void DbObserverCallback(C4DatabaseObserver* db, object context)
+        private static void DbObserverCallback(C4DatabaseObserver* db, void* context)
         {
-            var dbObj = (Database)context;
+            var dbObj = GCHandle.FromIntPtr((IntPtr)context).Target as Database;
             dbObj?._callbackFactory.StartNew(() => {
               dbObj.PostDatabaseChanged();
             });
         }
 
-        private static void DocObserverCallback(C4DocumentObserver* obs, string docID, ulong sequence, object context)
+        private static void DocObserverCallback(C4DocumentObserver* obs, C4Slice docId, ulong sequence, void* context)
         {
-            if (docID == null) {
+            if (docId.buf == null) {
                 return;
             }
 
-            var dbObj = (Database)context;
+            var dbObj = GCHandle.FromIntPtr((IntPtr) context).Target as Database;
             dbObj?._callbackFactory.StartNew(() => {
-                dbObj.PostDocChanged(docID);
+                dbObj.PostDocChanged(docId.CreateString());
             });
         }
 
@@ -947,9 +950,14 @@ namespace Couchbase.Lite
             }
 
             if (disposing) {
-                Misc.SafeSwap(ref _obs, null);
+                if (_obs != null) {
+                    Native.c4dbobs_free(_obs);
+                    _obsContext.Free();
+                }
+
                 foreach (var obs in _docObs) {
-                    obs.Value?.Dispose();
+                    Native.c4docobs_free((C4DocumentObserver *)obs.Value.Item1);
+                    obs.Value.Item2.Free();
                 }
 
                 _docObs.Clear();
@@ -1041,7 +1049,7 @@ namespace Couchbase.Lite
 				do {
 					// Read changes in batches of MaxChanges:
 					bool newExternal;
-					nChanges = Native.c4dbobs_getChanges(_obs.Observer, changes, maxChanges, &newExternal);
+					nChanges = Native.c4dbobs_getChanges(_obs, changes, maxChanges, &newExternal);
 				    if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
 				        if (docIDs.Count > 0) {
                             // Only notify if there are actually changes to send

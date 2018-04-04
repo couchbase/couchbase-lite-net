@@ -16,12 +16,15 @@
 //  limitations under the License.
 // 
 using System;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.Interop;
 
 using FluentAssertions;
 using LiteCore.Interop;
+
+using ObjCRuntime;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -83,13 +86,17 @@ namespace LiteCore.Tests
         private void ObserverTask()
         {
             var database = OpenDB();
-            var observer = Native.c4dbobs_create(database, ObsCallback, this);
+            var handle = GCHandle.Alloc(this);
+            C4DatabaseObserverCallback callback = ObsCallback;
+            var observer = Native.c4dbobs_create(database, callback, GCHandle.ToIntPtr(handle).ToPointer());
             var lastSequence = 0UL;
 
             try {
                 do {
-                    lock (_observerMutex) {
-                        if (!_changesToObserve) {
+                    lock (_observerMutex)
+                    {
+                        if (!_changesToObserve)
+                        {
                             continue;
                         }
 
@@ -100,7 +107,8 @@ namespace LiteCore.Tests
                     var changes = new C4DatabaseChange[10];
                     uint nDocs;
                     bool external;
-                    while (0 < (nDocs = Native.c4dbobs_getChanges(observer.Observer, changes, 10U, &external))) {
+                    while (0 < (nDocs = Native.c4dbobs_getChanges(observer, changes, 10U, &external)))
+                    {
                         try
                         {
                             external.Should().BeTrue("because all changes will be external in this test");
@@ -110,22 +118,27 @@ namespace LiteCore.Tests
                                     "because otherwise the document ID is not what we created");
                                 lastSequence = changes[i].sequence;
                             }
-                        } finally {
+                        }
+                        finally
+                        {
                             Native.c4dbobs_releaseChanges(changes, nDocs);
                         }
                     }
-
+                    
                     Task.Delay(TimeSpan.FromMilliseconds(100)).Wait();
                 } while (lastSequence < NumDocs);
             } finally {
-                observer.Dispose();
+                Native.c4dbobs_free(observer);
+                handle.Free();
                 CloseDB(database);
             }
         }
 
-        private static void ObsCallback(C4DatabaseObserver* observer, object context)
+        [MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
+        private static void ObsCallback(C4DatabaseObserver* observer, void* context)
         {
-            ((ThreadingTest)context).Observe(observer);
+            var obj = GCHandle.FromIntPtr((IntPtr) context).Target as ThreadingTest;
+            obj.Observe(observer);
         }
 
         private void Observe(C4DatabaseObserver* observer)

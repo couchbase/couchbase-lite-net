@@ -19,6 +19,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -429,6 +430,14 @@ namespace Couchbase.Lite.Sync
             // Clear the reset flag, it is a one-time thing
             Config.Options.Reset = false;
 
+            var socketFactory = Config.SocketFactory;
+            socketFactory.context = GCHandle.ToIntPtr(GCHandle.Alloc(this)).ToPointer();
+            _nativeParams = new ReplicatorParameters(Mkmode(push, continuous), Mkmode(pull, continuous), options,
+                ValidateCallback,
+                OnDocError, StatusChangedCallback, this)
+            {
+                SocketFactory = socketFactory
+            };
 
             var err = new C4Error();
             var status = default(C4ReplicatorStatus);

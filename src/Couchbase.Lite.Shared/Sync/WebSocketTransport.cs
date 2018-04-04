@@ -89,7 +89,7 @@ namespace Couchbase.Lite.Sync
             Log.To.Sync.E(Tag, "Websocket Error", e);
         }
 
-        private static void DoOpen(C4Socket* socket, C4Address* address, C4Slice options)
+        private static void DoOpen(C4Socket* socket, C4Address* address, C4Slice options, void* context)
         {
             var builder = new UriBuilder {
                 Host = address->hostname.CreateString(),
