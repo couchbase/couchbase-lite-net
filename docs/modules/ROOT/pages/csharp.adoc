@@ -25,7 +25,7 @@ level).
 Starter code
 ^^^^^^^^^^^^
 
-Open *Main.cs* in Xcode and copy the following code in the `main` method. This snippet demonstrates
+Open *Main.cs* in Visual Studio and copy the following code in the `main` method. This snippet demonstrates
 how to run basic CRUD operations, a simple Query and running
 bi-directional replications with Sync Gateway.
 
