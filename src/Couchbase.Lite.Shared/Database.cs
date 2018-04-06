@@ -1813,8 +1813,15 @@ namespace Couchbase.Lite
                 var rev = new RevisionInternal(docId, revId, false);
                 LoadRevisionBody(rev);
                 return rev.GetAttachments();
+            } catch (CouchbaseLiteException e) {
+                if (e.Code == StatusCode.NotFound) {
+                    Log.To.Sync.I(Tag, "Caught NotFound while getting attachments from doc, ignoring and returning null...");
+                } else {
+                    Log.To.Sync.W(Tag, "Error getting attachments from document, returning null...", e);
+                }
+
+                return null;
             } catch (Exception e) {
-                Log.To.Sync.W(Tag, "Error getting attachments from document, returning null...", e);
                 return null;
             }
         }
