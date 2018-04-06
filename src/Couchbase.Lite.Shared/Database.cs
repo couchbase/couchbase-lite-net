@@ -1809,9 +1809,14 @@ namespace Couchbase.Lite
 
         internal IDictionary<string, object> GetAttachmentsFromDoc(string docId, RevisionID revId)
         {
-            var rev = new RevisionInternal(docId, revId, false);
-            LoadRevisionBody(rev);
-            return rev.GetAttachments();
+            try {
+                var rev = new RevisionInternal(docId, revId, false);
+                LoadRevisionBody(rev);
+                return rev.GetAttachments();
+            } catch (Exception e) {
+                Log.To.Sync.W(Tag, "Error getting attachments from document, returning null...", e);
+                return null;
+            }
         }
 
         // This is used by the listener
