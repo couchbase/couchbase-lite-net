@@ -1822,6 +1822,7 @@ namespace Couchbase.Lite
 
                 return null;
             } catch (Exception e) {
+                Log.To.Sync.W(Tag, "Error getting attachments from document, returning null...", e);
                 return null;
             }
         }
