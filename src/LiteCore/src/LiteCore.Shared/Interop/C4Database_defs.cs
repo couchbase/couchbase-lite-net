@@ -49,7 +49,6 @@ namespace LiteCore.Interop
     enum C4EncryptionAlgorithm : uint
     {
         None = 0,
-        AES128,
         AES256,
     }
 
@@ -70,7 +69,6 @@ namespace LiteCore.Interop
 #endif
     enum C4EncryptionKeySize : ulong
     {
-        KeySizeAES128 = 16,
         KeySizeAES256 = 32,
     }
 

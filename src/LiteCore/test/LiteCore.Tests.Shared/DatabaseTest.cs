@@ -610,7 +610,7 @@ namespace LiteCore.Tests
             });
         }
 
-        #if COUCHBASE_ENTERPRISE_FUTURE
+        #if COUCHBASE_ENTERPRISE
 
         [Fact]
         public void TestDatabaseRekey()
@@ -639,7 +639,7 @@ namespace LiteCore.Tests
                 // If we're on the unexcrypted pass, encrypt the db.  Otherwise, decrypt it:
                 var newKey = new C4EncryptionKey();
                 if(Native.c4db_getConfig(Db)->encryptionKey.algorithm == C4EncryptionAlgorithm.None) {
-                    newKey.algorithm = C4EncryptionAlgorithm.AES128;
+                    newKey.algorithm = C4EncryptionAlgorithm.AES256;
                     var keyBytes = Encoding.ASCII.GetBytes("a different key than default....");
                     Marshal.Copy(keyBytes, 0, (IntPtr)newKey.bytes, 32);
                 }

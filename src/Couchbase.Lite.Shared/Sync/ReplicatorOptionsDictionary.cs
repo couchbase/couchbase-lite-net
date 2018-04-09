@@ -47,6 +47,7 @@ namespace Couchbase.Lite.Sync
         private const string HeadersKey = "headers";
         private const string PinnedCertKey = "pinnedCert";
         private const string ProtocolsOptionKey = "WS-Protocols";
+        private const string ResetKey = "reset";
         private const string Tag = nameof(ReplicatorOptionsDictionary);
 
         #endregion
@@ -149,7 +150,19 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         [CanBeNull]
         public X509Certificate2 PinnedServerCertificate { get; set; }
-        
+
+        public bool Reset
+        {
+            get => this.GetCast<bool>(ResetKey);
+            set {
+                if (value) {
+                    this[ResetKey] = true;
+                } else {
+                    Remove(ResetKey);
+                }
+            }
+        }
+
         internal string CookieString => this.GetCast<string>(CookiesKey);
         
         internal string Protocols => this.GetCast<string>(ProtocolsOptionKey);

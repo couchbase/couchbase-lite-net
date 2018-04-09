@@ -246,8 +246,8 @@ namespace Couchbase.Lite.Sync
             _c4Queue.DispatchAsync(() =>
             {
                 Native.c4socket_opened(socket);
-                Task.Factory.StartNew(PerformWrite, TaskCreationOptions.LongRunning);
-                Task.Factory.StartNew(PerformRead, TaskCreationOptions.LongRunning);
+                Task.Factory.StartNew(PerformWrite);
+                Task.Factory.StartNew(PerformRead);
             });
         }
 
@@ -366,7 +366,7 @@ namespace Couchbase.Lite.Sync
         }
 
         // Run in a dedicated thread
-        private void PerformRead()
+        private async void PerformRead()
         {
             var original = _readWriteCancellationTokenSource;
             if (original == null) {
@@ -392,7 +392,7 @@ namespace Couchbase.Lite.Sync
                     }
 
                     // Phew, at this point we are clear to actually read from the stream
-                    var received = stream.Read(_buffer, 0, _buffer.Length);
+                    var received = await stream.ReadAsync(_buffer, 0, _buffer.Length, cancelSource.Token).ConfigureAwait(false);
                     if (received == 0) {
                         // Should only happen on a closed stream, but just in case let's continue
                         // after a small delay (wait for cancellation to confirm)
@@ -409,7 +409,7 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        private unsafe void PerformWrite()
+        private async void PerformWrite()
         {
             var original = _readWriteCancellationTokenSource;
             if (original == null) {
@@ -421,7 +421,7 @@ namespace Couchbase.Lite.Sync
             while (!cancelSource.IsCancellationRequested) {
                 try {
                     var writeQueue = _writeQueue;
-                    if (writeQueue == null) {
+                    if (writeQueue == null || writeQueue.IsCompleted) {
                         return;
                     }
 
@@ -433,20 +433,24 @@ namespace Couchbase.Lite.Sync
                         }
 
                         // Clear to try to write
-                        stream.Write(nextData, 0, nextData.Length);
+                        await stream.WriteAsync(nextData, 0, nextData.Length, cancelSource.Token).ConfigureAwait(false);
                     } catch (Exception e) {
                         DidClose(e);
                         return;
                     }
 
-                    _c4Queue.DispatchAsync(() =>
+                    var silenceCompiler = _c4Queue.DispatchAsync(() =>
                     {
                         if (!_closed) {
-                            Native.c4socket_completedWrite(_socket, (ulong) nextData.Length);
+                            unsafe {
+                                Native.c4socket_completedWrite(_socket, (ulong) nextData.Length);
+                            }
                         }
                     });
                 } catch (OperationCanceledException) {
                     return;
+                } catch (ArgumentNullException) {
+                    return; // Sometimes happens because of Dispose() call to _writeQueue, safe to ignore
                 }
             }
         }
@@ -529,6 +533,16 @@ namespace Couchbase.Lite.Sync
                 _readWriteCancellationTokenSource = null;
                 _receivePause?.Dispose();
                 _receivePause = null;
+                _writeQueue?.CompleteAdding();
+                var count = 0;
+                while (count++ < 5 && _writeQueue != null && _writeQueue.IsCompleted) {
+                    Thread.Sleep(500);
+                }
+
+                if (_writeQueue != null && !_writeQueue.IsCompleted) {
+                    Log.To.Sync.W(Tag, "Timed out waiting for _writeQueue to finish, forcing Dispose...");
+                }
+
                 _writeQueue?.Dispose();
                 _writeQueue = null;
             });
@@ -641,3 +655,4 @@ namespace Couchbase.Lite.Sync
         #endregion
     }
 }
+

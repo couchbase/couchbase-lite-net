@@ -10,7 +10,7 @@
     <projectUrl>https://github.com/couchbase/couchbase-lite-net</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/couchbase/couchbase-lite-net/master/packaging/nuget/logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
+    <description>Xamarin iOS native libraries and support classes for Couchbase Lite .NET</description>
     <releaseNotes>
         Couchbase Lite .NET Developer Build
     </releaseNotes>

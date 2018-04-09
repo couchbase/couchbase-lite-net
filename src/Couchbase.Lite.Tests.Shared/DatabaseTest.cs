@@ -68,7 +68,7 @@ namespace Test
                 Database.Delete("db", dir);
             }
 
-            #if COUCHBASE_ENTERPRISE_FUTURE
+            #if COUCHBASE_ENTERPRISE
             options.Invoking(o => o.EncryptionKey = new EncryptionKey("foo")).ShouldThrow<InvalidOperationException>("because the configuration is in use");
             #endif
         }
@@ -912,14 +912,14 @@ namespace Test
             var config1 = builder1;
             config1.Directory.Should().NotBeNullOrEmpty("because the directory should have a default value");
 
-            #if COUCHBASE_ENTERPRISE_FUTURE
+            #if COUCHBASE_ENTERPRISE
             config1.EncryptionKey.Should().BeNull("because it was not set");
             #endif
             
             var builder2 = new DatabaseConfiguration();
             builder2.Directory = "/tmp/mydb";
 
-            #if COUCHBASE_ENTERPRISE_FUTURE
+            #if COUCHBASE_ENTERPRISE
             var key = new EncryptionKey("key");
             builder2.EncryptionKey = key;
             #endif
@@ -927,7 +927,7 @@ namespace Test
             var config2 = builder2;
             config2.Directory.Should().Be("/tmp/mydb", "because that is what was set");
 
-            #if COUCHBASE_ENTERPRISE_FUTURE
+            #if COUCHBASE_ENTERPRISE
             config2.EncryptionKey.Should().Be(key, "because that is what was set");
             #endif
         }
@@ -941,7 +941,7 @@ namespace Test
                 db.Config.Should().NotBeSameAs(config, "because the configuration should be copied and frozen");
                 db.Config.Directory.Should().Be(config.Directory, "because the directory should be the same");
 
-                #if COUCHBASE_ENTERPRISE_FUTURE
+                #if COUCHBASE_ENTERPRISE
                 db.Config.EncryptionKey.Should().Be(config.EncryptionKey,
                     "because the encryption key should be the same");
                 #endif

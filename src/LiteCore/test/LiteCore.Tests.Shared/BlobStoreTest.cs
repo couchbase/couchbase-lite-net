@@ -47,7 +47,7 @@ namespace LiteCore.Tests
         }
 #endif
 
-        #if COUCHBASE_ENTERPRISE_FUTURE
+        #if COUCHBASE_ENTERPRISE
         protected override int NumberOfOptions => 2;
         #else
         protected override int NumberOfOptions => 1;
@@ -64,7 +64,7 @@ namespace LiteCore.Tests
             C4EncryptionKey *encryption = null;
             if(_encrypted) {
                 WriteLine("        ...encrypted");
-                crypto.algorithm = C4EncryptionAlgorithm.AES128;
+                crypto.algorithm = C4EncryptionAlgorithm.AES256;
                 for(int i = 0; i < 32; i++) {
                     crypto.bytes[i] = 0xcc;
                 }

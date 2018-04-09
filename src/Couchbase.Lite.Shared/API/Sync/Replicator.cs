@@ -164,6 +164,11 @@ namespace Couchbase.Lite.Sync
             _statusChanged.Remove(token);
         }
 
+        public void ResetCheckpoint()
+        {
+            Config.Options.Reset = true;
+        }
+
         /// <summary>
         /// Starts the replication
         /// </summary>
@@ -405,6 +410,9 @@ namespace Couchbase.Lite.Sync
             var continuous = Config.Continuous;
             _nativeParams = new ReplicatorParameters(Mkmode(push, continuous), Mkmode(pull, continuous), options, ValidateCallback, 
                 OnDocError, StatusChangedCallback, this);
+
+            // Clear the reset flag, it is a one-time thing
+            Config.Options.Reset = false;
 
 
             var err = new C4Error();

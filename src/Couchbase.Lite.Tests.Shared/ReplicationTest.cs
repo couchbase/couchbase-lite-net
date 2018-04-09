@@ -306,6 +306,46 @@ namespace Test
                 doc1.GetString("name").Should().Be("Hobbes");
             }
         }
+
+        [Fact]
+        [ForIssue("couchbase-lite-core/447")]
+        public void TestResetCheckpoint()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("species", "Tiger");
+                doc1.SetString("name", "Hobbes");
+                Db.Save(doc1);
+            }
+
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("species", "Tiger");
+                doc2.SetString("pattern", "striped");
+                Db.Save(doc2);
+            }
+
+            var config = CreateConfig(true, false, false);
+            RunReplication(config, 0, 0);
+            config = CreateConfig(false, true, false);
+            RunReplication(config, 0, 0);
+
+            _otherDB.Count.Should().Be(2UL);
+            using (var doc = Db.GetDocument("doc1")) {
+                Db.Purge(doc);
+            }
+
+            using (var doc = Db.GetDocument("doc2")) {
+                Db.Purge(doc);
+            }
+            
+            Db.Count.Should().Be(0UL, "because the documents were purged");
+            RunReplication(config, 0, 0);
+
+            Db.Count.Should().Be(0UL, "because the documents were purged and the replicator is already past them");
+            RunReplication(config, 0, 0, true);
+
+            Db.Count.Should().Be(2UL, "because the replicator was reset");
+
+        }
     #endif
 
         // The below tests are disabled because they require orchestration and should be moved
@@ -446,7 +486,7 @@ namespace Test
             }
         }
 
-        private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, CouchbaseLiteErrorType expectedErrDomain)
+        private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, CouchbaseLiteErrorType expectedErrDomain, bool reset = false)
         {
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
@@ -463,6 +503,10 @@ namespace Test
                     return args.Status.Activity == ReplicatorActivityLevel.Stopped;
                 });
             });
+
+            if (reset) {
+                _repl.ResetCheckpoint();
+            }
             
             _repl.Start();
             try {

@@ -15,7 +15,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-#if COUCHBASE_ENTERPRISE_FUTURE
+#if COUCHBASE_ENTERPRISE
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -59,12 +59,12 @@ namespace Test
             using (var seekrit = OpenSeekrit(null)) {
                 using (var doc = new MutableDocument(new Dictionary<string, object>
                     { ["answer"] = 42 })) {
-                    seekrit.Save(doc).Dispose();
+                    seekrit.Save(doc);
                 }
             }
 
-            this.Invoking(t => OpenSeekrit("wrong")).ShouldThrow<CouchbaseLiteException>().Which.Status.Should()
-                .Be(StatusCode.Unauthorized);
+            this.Invoking(t => OpenSeekrit("wrong")).ShouldThrow<CouchbaseLiteException>().Which.Error.Should()
+                .Be(CouchbaseLiteError.UnreadableDatabase);
 
             using (var seekrit = OpenSeekrit(null)) {
                 seekrit.Count.Should().Be(1UL);
@@ -78,14 +78,14 @@ namespace Test
             using (var seekrit = OpenSeekrit("letmein")) {
                 using (var doc = new MutableDocument(new Dictionary<string, object>
                     { ["answer"] = 42 })) {
-                    seekrit.Save(doc).Dispose();
+                    seekrit.Save(doc);
                 }
             }
 
-            this.Invoking(t => OpenSeekrit(null)).ShouldThrow<CouchbaseLiteException>().Which.Status.Should()
-                .Be(StatusCode.Unauthorized);
-            this.Invoking(t => OpenSeekrit("wrong")).ShouldThrow<CouchbaseLiteException>().Which.Status.Should()
-                .Be(StatusCode.Unauthorized);
+            this.Invoking(t => OpenSeekrit(null)).ShouldThrow<CouchbaseLiteException>().Which.Error.Should()
+                .Be(CouchbaseLiteError.UnreadableDatabase);
+            this.Invoking(t => OpenSeekrit("wrong")).ShouldThrow<CouchbaseLiteException>().Which.Error.Should()
+                .Be(CouchbaseLiteError.UnreadableDatabase);
 
             using (var seekrit = OpenSeekrit("letmein")) {
                 seekrit.Count.Should().Be(1UL);
@@ -110,8 +110,8 @@ namespace Test
                 seekrit.Count.Should().Be(0UL);
             }
 
-            this.Invoking(t => OpenSeekrit("letmein")).ShouldThrow<CouchbaseLiteException>().Which.Status.Should()
-                .Be(StatusCode.Unauthorized);
+            this.Invoking(t => OpenSeekrit("letmein")).ShouldThrow<CouchbaseLiteException>().Which.Error.Should()
+                .Be(CouchbaseLiteError.UnreadableDatabase);
         }
 
         [Fact]
@@ -122,16 +122,13 @@ namespace Test
 
                 using (var doc = new MutableDocument(new Dictionary<string, object>
                     { ["answer"] = 42 })) {
-                    using (var doc2 = seekrit.Save(doc).ToMutable()) {
-                        doc2.SetInt("answer", 84);
+                    seekrit.Save(doc);
+                    doc.SetInt("answer", 84);
 
-                        seekrit.Compact();
+                    seekrit.Compact();
                     
-                        doc2.SetInt("answer", 85);
-                        using (var doc3 = seekrit.Save(doc2).ToMutable()) {
-                            seekrit.Save(doc3).Dispose();
-                        }
-                    }
+                    doc.SetInt("answer", 85);
+                    seekrit.Save(doc);
                 }
             }
 
@@ -182,7 +179,7 @@ namespace Test
                     for (var i = 0; i < 100; i++) {
                         using (var doc = new MutableDocument(new Dictionary<string, object>
                             { ["seq"] = i })) {
-                            seekrit.Save(doc).Dispose();
+                            seekrit.Save(doc);
                         }
                     }
                 });
