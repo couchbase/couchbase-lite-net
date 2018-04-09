@@ -91,9 +91,9 @@ foreach($entry in $implementation) {
     }
 
     if($entry.Contains("NativeRaw")) {
-        $shell_raw += $entry.Replace("NativeRaw", "Impl").Replace("public ", "public static ")
+        $shell_raw += $entry.Replace("NativeRaw.", "Impl.").Replace("public ", "public static ")
     } else {
-        $shell += $entry.Replace("Native", "Impl").Replace("public ", "public static ")
+        $shell += $entry.Replace("Native.", "Impl.").Replace("public ", "public static ")
     }
 }
 

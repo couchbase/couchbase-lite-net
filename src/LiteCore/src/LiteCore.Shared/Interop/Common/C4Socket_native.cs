@@ -58,6 +58,9 @@ namespace LiteCore.Interop
             }
         }
 
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4Socket* c4socket_fromNative(C4SocketFactory factory, void* nativeHandle, C4Address* address);
+
 
     }
 

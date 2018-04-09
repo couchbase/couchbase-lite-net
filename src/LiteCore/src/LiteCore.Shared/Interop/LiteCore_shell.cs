@@ -182,7 +182,7 @@ namespace Couchbase.Lite.Interop
         public static void c4socket_closeRequested(C4Socket* socket, int status, string message) => Impl.c4socket_closeRequested(socket, status, message);
         public static void c4socket_completedWrite(C4Socket* socket, ulong byteCount) => Impl.c4socket_completedWrite(socket, byteCount);
         public static void c4socket_received(C4Socket* socket, byte[] data) => Impl.c4socket_received(socket, data);
-        public static C4Socket* c4socket_fromImpl(C4SocketFactory factory, void* nativeHandle, C4Address* address) => Impl.c4socket_fromImpl(factory, nativeHandle, address);
+        public static C4Socket* c4socket_fromNative(C4SocketFactory factory, void* nativeHandle, C4Address* address) => Impl.c4socket_fromNative(factory, nativeHandle, address);
         public static void FLSliceResult_Free(FLSliceResult slice) => Impl.FLSliceResult_Free(slice);
         public static bool FLSlice_Equal(FLSlice a, FLSlice b) => Impl.FLSlice_Equal(a, b);
         public static int FLSlice_Compare(FLSlice left, FLSlice right) => Impl.FLSlice_Compare(left, right);
