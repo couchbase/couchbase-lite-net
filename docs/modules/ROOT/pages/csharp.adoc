@@ -981,10 +981,6 @@ converts it to the appropriate type to configure the replication object.
 
 * https://github.com/couchbase/couchbase-lite-net/issues/647[*#647*]
 Equivalent to full text search
-* https://github.com/couchbase/couchbase-lite-net/issues/950[*#950*] API
-Enhancement Request
-* https://github.com/couchbase/couchbase-lite-net/issues/951[*#951*] API
-Enhancement Request - Filtered push replication
 * https://github.com/couchbase/couchbase-lite-net/issues/964[*#964*]
 AddLoggerProvider
 
