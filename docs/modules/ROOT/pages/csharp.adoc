@@ -94,7 +94,7 @@ version" is an approximately good metric here.
 
 == API References
 
-http://docs.couchbase.com/mobile/2.0/couchbase-lite-net/db022[`.NET SDK API References`]
+http://docs.couchbase.com/mobile/2.0/couchbase-lite-net/[`.NET SDK API References`]
 
 == Upgrading
 
