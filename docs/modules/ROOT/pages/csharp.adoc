@@ -977,81 +977,35 @@ converts it to the appropriate type to configure the replication object.
 
 == Release Notes
 
-*Performance Improvements*
-
-* https://github.com/couchbase/sync_gateway/issues/1383[*#1383*] Nginx
-load balancer needs plugins to detect db offline state.
-* https://github.com/couchbase/sync_gateway/issues/1850[*#1850*] Avoid
-duplicate parsing of HTTP query string
-* https://github.com/couchbase/sync_gateway/issues/2410[*#2410*] SG gets
-into a 100% cpu state, where restart is the only recovery
-* https://github.com/couchbase/sync_gateway/issues/2871[*#2871*] Review
-bucket_gocb concurrent op limits
-* https://github.com/couchbase/sync_gateway/issues/2928[*#2928*]
-Optimize document unmarshalling for GetDoc
-
 *Enhancements*
 
-* https://github.com/couchbase/sync_gateway/issues/744[*#744*] When try
-to put nonexistent document with rev: Document revision conflict
-* https://github.com/couchbase/sync_gateway/issues/955[*#955*] Support
-group reduce queries
-* https://github.com/couchbase/sync_gateway/issues/1280[*#1280*]
-Auto-expire unused _local checkpoint documents
-* https://github.com/couchbase/sync_gateway/issues/1580[*#1580*] Use
-latest version of Otto
-* https://github.com/couchbase/sync_gateway/issues/1720[*#1720*]
-Replication inaccurate 403 forbidden
-* https://github.com/couchbase/sync_gateway/issues/1850[*#1850*] Avoid
-duplicate parsing of HTTP query string
-* https://github.com/couchbase/sync_gateway/issues/2354[*#2354*] Windows
-service wrapper should write to a configurable stderr log file
-* https://github.com/couchbase/sync_gateway/issues/2709[*#2709*]
-Conflict-free mode (allow_conflicts:false)
-* https://github.com/couchbase/sync_gateway/issues/3123[*#3123*] Log
-_sync:seq on startup
-* https://github.com/couchbase/sync_gateway/issues/3136[*#3136*]
-Inter-document compression in BLIP replicator
-* https://github.com/couchbase/sync_gateway/issues/3168[*#3168*] Move
-allow_conflicts out of unsupported config
+* https://github.com/couchbase/couchbase-lite-net/issues/647[*#647*]
+Equivalent to full text search
+* https://github.com/couchbase/couchbase-lite-net/issues/950[*#950*] API
+Enhancement Request
+* https://github.com/couchbase/couchbase-lite-net/issues/951[*#951*] API
+Enhancement Request - Filtered push replication
+* https://github.com/couchbase/couchbase-lite-net/issues/964[*#964*]
+AddLoggerProvider
 
 *Bugs*
 
-* https://github.com/couchbase/sync_gateway/issues/1003[*#1003*] SG with
-bucket shadowing doesn't work properly after CB restarted
-* https://github.com/couchbase/sync_gateway/issues/1047[*#1047*] Runtime
-panic while running tests on Jenkins
-* https://github.com/couchbase/sync_gateway/issues/1406[*#1406*]
-Feedtype=DCP not working sometimes
-* https://github.com/couchbase/sync_gateway/issues/1488[*#1488*]
-Rebalance -in a CBS node results in timeouts which manifests as empty
-changes feed
-* https://github.com/couchbase/sync_gateway/issues/1720[*#1720*]
-Replication inaccurate 403 forbidden
-* https://github.com/couchbase/sync_gateway/issues/2108[*#2108*] Missing
-sequences in _changes feed causing sg-replicate missing documents
-replication
-* https://github.com/couchbase/sync_gateway/issues/2223[*#2223*] Wrong
-name being set for users
-* https://github.com/couchbase/sync_gateway/issues/2371[*#2371*] Logging - "Replicate" works when in *.json but not when you PUT _logging
-* https://github.com/couchbase/sync_gateway/issues/2383[*#2383*] Channel
-cache missing data when request instantiating cache times out
-* https://github.com/couchbase/sync_gateway/issues/2410[*#2410*] SG gets
-into a 100% cpu state, where restart is the only recovery
-* https://github.com/couchbase/sync_gateway/issues/2441[*#2441*]
-RedHat/Centos 6 'initctl restart sync_gateway' does not work as expected
-* https://github.com/couchbase/sync_gateway/issues/2458[*#2458*] Log
-rotation skipping BLIP keys
-* https://github.com/couchbase/sync_gateway/issues/2489[*#2489*] XATTRs - Error unmarshalling doc
-* https://github.com/couchbase/sync_gateway/issues/2497[*#2497*] XATTRS:
-Getting doc after restart fails
-* https://github.com/couchbase/sync_gateway/issues/2505[*#2505*] XATTRs:
-View not returning results after restart
-* https://github.com/couchbase/sync_gateway/issues/2521[*#2521*] XATTRs:
-GET on doc after deletion returns inconsistent responses
-* https://github.com/couchbase/sync_gateway/issues/2717[*#2717*] SG Blip
-handler not reloading user channels
-* https://github.com/couchbase/sync_gateway/issues/3048[*#3048*] Panic
-when attempting to make invalid update to a conflicting document
-* https://github.com/couchbase/sync_gateway/issues/3049[*#3049*] Allow
-non-winning tombstone revisions when running with allow_conflicts=false
+* https://github.com/couchbase/couchbase-lite-net/issues/884[*#884*]
+Replication with DNS endpoint failing on (at least) Mac
+* https://github.com/couchbase/couchbase-lite-net/issues/894[*#894*]
+Crash on iOS Simulator 9.x on Query.Run() execution
+* https://github.com/couchbase/couchbase-lite-net/issues/957[*#957*] SG
+doesn't have any docs in its cache after replication
+* https://github.com/couchbase/couchbase-lite-net/issues/966[*#966*]
+Incorrect callback type(?) leads to AOT compilation failure for Xamarin
+* https://github.com/couchbase/couchbase-lite-net/issues/994[*#994*]
+2.0db023 SetBinaryLogDirectory(string) path ignored, still written to
+AppContext.BaseDirectory
+
+*Known Issues*
+
+* https://github.com/couchbase/couchbase-lite-net/issues/1002[*#1002*]
+System proxy is not being used for replication
+* https://github.com/couchbase/couchbase-lite-net/issues/1012[*#1012*]
+Reusing the same collation in a query will cause all of them to be
+affected by the last modification
