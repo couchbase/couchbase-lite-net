@@ -1,6 +1,6 @@
-The Couchbase Lite .NET issue tracker is reserved for bug reports and enhancement 
+<!-- The Couchbase Lite .NET issue tracker is reserved for bug reports and enhancement 
 requests. For general questions, please use the Couchbase forums:
-https://forums.couchbase.com/c/mobile/ . Thank you!
+https://forums.couchbase.com/c/mobile/ . Thank you! -->
 
 ### Library Version
 
@@ -21,10 +21,13 @@ Xamarin Android <version>
 Xamarin iOS <version>
 -->
 
-### Operating System
+### Operating System / Device Details
 
 <!--
 e.g. Windows 10 Fall Creator's Update, macOS 10.13.2, iOS 11.3, etc
+
+The OS of your DEPLOYMENT device, not necessarily the build machine OS (i.e. if you are using Xamarin,
+this is the iOS or Android OS)
 -->
 
 ### Log Output
