@@ -823,7 +823,7 @@ namespace Couchbase.Lite
 		/// </summary>
 		/// <param name="key">The new key to encrypt the database with, or <c>null</c>
 		/// to remove encryption</param>
-		public void SetEncryptionKey([CanBeNull]EncryptionKey key)
+		public void ChangeEncryptionKey([CanBeNull]EncryptionKey key)
 		{
 			ThreadSafety.DoLockedBridge(err =>
 			{

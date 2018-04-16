@@ -156,7 +156,7 @@ namespace Test
 
                 // No throw
                 var newKey = new EncryptionKey("foobar");
-                seekrit.SetEncryptionKey(newKey);
+                seekrit.ChangeEncryptionKey(newKey);
             }
         }
 
@@ -185,7 +185,7 @@ namespace Test
                 });
 
                 var newKey = newPass != null ? new EncryptionKey(newPass) : null;
-                seekrit.SetEncryptionKey(newKey);
+                seekrit.ChangeEncryptionKey(newKey);
             }
             
 
