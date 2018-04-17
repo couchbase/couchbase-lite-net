@@ -78,7 +78,16 @@ namespace LiteCore.Interop
             _write = SocketWrittenTo;
             _completedReceive = SocketCompletedReceive;
             _dispose = SocketDispose;
-            InternalFactory = new C4SocketFactory(_open, _close, _write, _completedReceive, _dispose);
+            InternalFactory = new C4SocketFactory
+            {
+                framing = C4SocketFraming.WebSocketClientFraming,
+                open = Marshal.GetFunctionPointerForDelegate(_open),
+                close = Marshal.GetFunctionPointerForDelegate(_close),
+                write = Marshal.GetFunctionPointerForDelegate(_write),
+                completedReceive = Marshal.GetFunctionPointerForDelegate(_completedReceive),
+                dispose = Marshal.GetFunctionPointerForDelegate(_dispose)
+            };
+
             Native.c4socket_registerFactory(InternalFactory);
         }
 

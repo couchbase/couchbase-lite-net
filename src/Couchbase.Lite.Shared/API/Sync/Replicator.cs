@@ -232,12 +232,12 @@ namespace Couchbase.Lite.Sync
             return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
         }
 
-        private static void OnDocError(bool pushing, string docID, C4Error error, bool transient, object context)
+        private static void OnDocError(C4Replicator* repl, bool pushing, C4Slice docID, C4Error error, bool transient, void* context)
         {
-            var replicator = context as Replicator;
+            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             replicator?._threadSafetyQueue.DispatchAsync(() =>
             {
-                replicator.OnDocError(error, pushing, docID, transient);
+                replicator.OnDocError(error, pushing, docID.CreateString() ?? "", transient);
             });
 
         }
@@ -248,12 +248,12 @@ namespace Couchbase.Lite.Sync
             return TimeSpan.FromSeconds(Math.Min(delaySecs, MaxRetryDelay.TotalSeconds));
         }
 
-        private static void StatusChangedCallback(C4ReplicatorStatus status, object context)
+        private static void StatusChangedCallback(C4Replicator* repl, C4ReplicatorStatus status, void* context)
         {
-            var repl = context as Replicator;
-            repl?._threadSafetyQueue.DispatchSync(() =>
+            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            replicator?._threadSafetyQueue.DispatchSync(() =>
             {
-                repl.StatusChangedCallback(status);
+                replicator.StatusChangedCallback(status);
             });
         }
 
@@ -424,19 +424,19 @@ namespace Couchbase.Lite.Sync
             var push = Config.ReplicatorType.HasFlag(ReplicatorType.Push);
             var pull = Config.ReplicatorType.HasFlag(ReplicatorType.Pull);
             var continuous = Config.Continuous;
-            _nativeParams = new ReplicatorParameters(Mkmode(push, continuous), Mkmode(pull, continuous), options, ValidateCallback, 
-                OnDocError, StatusChangedCallback, this);
 
             // Clear the reset flag, it is a one-time thing
             Config.Options.Reset = false;
-
+            
             var socketFactory = Config.SocketFactory;
             socketFactory.context = GCHandle.ToIntPtr(GCHandle.Alloc(this)).ToPointer();
-            _nativeParams = new ReplicatorParameters(Mkmode(push, continuous), Mkmode(pull, continuous), options,
-                ValidateCallback,
-                OnDocError, StatusChangedCallback, this)
+            _nativeParams = new ReplicatorParameters(options)
             {
-                SocketFactory = socketFactory
+                Push = Mkmode(push, continuous),
+                Pull = Mkmode(pull, continuous),
+                Context = this,
+                OnDocumentError = OnDocError,
+                OnStatusChanged = StatusChangedCallback
             };
 
             var err = new C4Error();
@@ -465,8 +465,7 @@ namespace Couchbase.Lite.Sync
             host.Dispose();
 
             UpdateStateProperties(status);
-            StatusChangedCallback(status, this);
-
+            _threadSafetyQueue.DispatchSync(() => StatusChangedCallback(status));
         }
 
         private void StartReachabilityObserver()
