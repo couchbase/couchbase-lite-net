@@ -83,6 +83,7 @@ namespace Couchbase.Lite
                                 break;
                             case SocketError.ConnectionAborted:
                             case SocketError.ConnectionReset:
+                            case SocketError.Shutdown:
                                 c4err.domain = C4ErrorDomain.POSIXDomain;
                                 c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNRESET));
                                 break;

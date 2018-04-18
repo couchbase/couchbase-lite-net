@@ -212,7 +212,11 @@ namespace Couchbase.Lite.Sync
 
         public void Write(byte[] data)
         {
-            _writeQueue?.Add(data);
+            try {
+                _writeQueue?.Add(data);
+            } catch (InvalidOperationException) {
+                Log.To.Sync.I(Tag, "Attempt to write after closing socket, ignore...");
+            }
         }
 
         #endregion
@@ -374,6 +378,7 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
+            var zeroByteCount = 0;
             // This will protect us against future nullification of the original source
             var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(original.Token);
             while (!cancelSource.IsCancellationRequested) {
@@ -394,12 +399,19 @@ namespace Couchbase.Lite.Sync
                     // Phew, at this point we are clear to actually read from the stream
                     var received = await stream.ReadAsync(_buffer, 0, _buffer.Length, cancelSource.Token).ConfigureAwait(false);
                     if (received == 0) {
+                        if (zeroByteCount++ >= 10) {
+                            Log.To.Sync.I(Tag, "Failed to read from stream too many times, signaling closed...");
+                            DidClose(new CouchbasePosixException(PosixBase.GetCode(nameof(PosixWindows.ECONNRESET))));
+                            return;
+                        }
+
                         // Should only happen on a closed stream, but just in case let's continue
                         // after a small delay (wait for cancellation to confirm)
                         Thread.Sleep(200);
                         continue;
                     }
 
+                    zeroByteCount = 0;
                     var data = _buffer.Take(received).ToArray();
                     Receive(data);
                 } catch (Exception e) {
