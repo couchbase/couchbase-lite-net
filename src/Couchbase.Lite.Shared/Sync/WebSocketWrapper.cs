@@ -199,14 +199,19 @@ namespace Couchbase.Lite.Sync
                 // STEP 2: Open the socket connection to the remote host
                 var cts = new CancellationTokenSource();
                 cts.CancelAfter(ConnectTimeout);
-                _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port).ContinueWith(t =>
-                {
-                    if (!NetworkTaskSuccessful(t)) {
-                        return;
-                    }
+                try {
+                    _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port).ContinueWith(t =>
+                    {
+                        if (!NetworkTaskSuccessful(t)) {
+                            return;
+                        }
 
-                    _queue.DispatchAsync(StartInternal);
-                }, cts.Token);
+                        _queue.DispatchAsync(StartInternal);
+                    }, cts.Token);
+                } catch (Exception e) {
+                    // Yes, unfortunately exceptions can either be thrown here or in the task...
+                    DidClose(e);
+                }
             });
         }
 
