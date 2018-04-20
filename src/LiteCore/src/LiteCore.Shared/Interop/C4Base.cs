@@ -119,8 +119,7 @@ namespace LiteCore.Interop
                 return null;
             }
 
-            var bytes = ToArrayFast();
-            return Encoding.UTF8.GetString(bytes, 0, bytes.Length);
+            return Encoding.UTF8.GetString((byte*) buf, (int) size);
         }
 
         public byte[] ToArrayFast()
