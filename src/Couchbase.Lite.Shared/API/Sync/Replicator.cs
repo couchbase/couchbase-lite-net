@@ -63,7 +63,6 @@ namespace Couchbase.Lite.Sync
         #region Variables
         
         [NotNull]private readonly ThreadSafety _databaseThreadSafety;
-        [NotNull]private readonly SerialQueue _threadSafetyQueue = new SerialQueue();
         [NotNull]private readonly Event<ReplicatorStatusChangedEventArgs> _statusChanged =
             new Event<ReplicatorStatusChangedEventArgs>();
 
@@ -91,6 +90,8 @@ namespace Couchbase.Lite.Sync
         /// Gets the current status of the <see cref="Replicator"/>
         /// </summary>
         public ReplicatorStatus Status { get; set; }
+
+        internal SerialQueue DispatchQueue { get; } = new SerialQueue();
 
         #endregion
 
@@ -186,7 +187,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public void Start()
         {
-            _threadSafetyQueue.DispatchSync(() =>
+            DispatchQueue.DispatchSync(() =>
             {
                 if (_disposed) {
                     throw new ObjectDisposedException("Replication cannot be started after disposal");
@@ -208,7 +209,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public void Stop()
         {
-            _threadSafetyQueue.DispatchSync(() =>
+            DispatchQueue.DispatchSync(() =>
             {
                 if (_stopping) {
                     return;
@@ -235,7 +236,7 @@ namespace Couchbase.Lite.Sync
         private static void OnDocError(C4Replicator* repl, bool pushing, C4Slice docID, C4Error error, bool transient, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
-            replicator?._threadSafetyQueue.DispatchAsync(() =>
+            replicator?.DispatchQueue.DispatchAsync(() =>
             {
                 replicator.OnDocError(error, pushing, docID.CreateString() ?? "", transient);
             });
@@ -251,7 +252,7 @@ namespace Couchbase.Lite.Sync
         private static void StatusChangedCallback(C4Replicator* repl, C4ReplicatorStatus status, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
-            replicator?._threadSafetyQueue.DispatchSync(() =>
+            replicator?.DispatchQueue.DispatchSync(() =>
             {
                 replicator.StatusChangedCallback(status);
             });
@@ -264,7 +265,7 @@ namespace Couchbase.Lite.Sync
 
         private void ClearRepl()
         {
-            _threadSafetyQueue.DispatchSync(() =>
+            DispatchQueue.DispatchSync(() =>
             {
                 Native.c4repl_free(_repl);
                 _repl = null;
@@ -274,7 +275,7 @@ namespace Couchbase.Lite.Sync
 
         private void Dispose(bool finalizing)
         {
-            _threadSafetyQueue.DispatchSync(() =>
+            DispatchQueue.DispatchSync(() =>
             {
                 if (_disposed) {
                     return;
@@ -322,7 +323,7 @@ namespace Couchbase.Lite.Sync
                 var delay = RetryDelay(++_retryCount);
                 Log.To.Sync.I(Tag,
                     $"{this}: Transient error ({Native.c4error_getMessage(error)}); will retry in {delay}...");
-                _threadSafetyQueue.DispatchAfter(Retry, delay);
+                DispatchQueue.DispatchAfter(Retry, delay);
             } else {
                 Log.To.Sync.I(Tag,
                     $"{this}: Network error ({Native.c4error_getMessage(error)}); will retry when network changes...");
@@ -361,7 +362,7 @@ namespace Couchbase.Lite.Sync
         {
             Debug.Assert(e != null);
 
-            _threadSafetyQueue.DispatchAsync(() =>
+            DispatchQueue.DispatchAsync(() =>
             {
                 if (_repl == null && e.Status == NetworkReachabilityStatus.Reachable) {
                     Log.To.Sync.I(Tag, $"{this}: Server may now be reachable; retrying...");
@@ -465,7 +466,7 @@ namespace Couchbase.Lite.Sync
             host.Dispose();
 
             UpdateStateProperties(status);
-            _threadSafetyQueue.DispatchSync(() => StatusChangedCallback(status));
+            DispatchQueue.DispatchSync(() => StatusChangedCallback(status));
         }
 
         private void StartReachabilityObserver()
