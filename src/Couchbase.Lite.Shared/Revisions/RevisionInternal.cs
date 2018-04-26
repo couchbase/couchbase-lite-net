@@ -100,6 +100,8 @@ namespace Couchbase.Lite.Internal
 
         internal RevisionInternal(RevisionInternal other) : this(other.DocID, other.RevID, other.Deleted)
         {
+            Sequence = other.Sequence;
+            Missing = other.Missing;
             var unmodifiableProperties = other.GetProperties();
             var properties = new Dictionary<string, object>();
             if(unmodifiableProperties != null) {

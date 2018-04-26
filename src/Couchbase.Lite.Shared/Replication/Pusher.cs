@@ -496,7 +496,7 @@ namespace Couchbase.Lite.Replicator
                     continue;
                 }
 
-                var populatedRev = TransformRevision(loadedRev);
+                var populatedRev = new RevisionInternal(TransformRevision(loadedRev));
                 var backTo = revResults?.Get("possible_ancestors")?.AsList<RevisionID>();
 
                 try {
