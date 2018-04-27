@@ -113,7 +113,7 @@ The public facing API has completely changed in Couchbase Lite 2.0 and will requ
 
 * Remove the existing Couchbase Lite nuget package from the Visual Studio project.
 * Remove all the Couchbase Lite 1.x dependencies (see the link:https://developer.couchbase.com/documentation/mobile/1.5/installation/ios/index.html#ios-amp-tvos[1.x installation guide]).
-* Install the Couchbase Lite 2.0 framework in your project (see the link:csharp.html#_nuget[installation options]). At this point, there will be many compiler warnings. Refer to the examples on this page to learn about the new API.
+* Install the Couchbase Lite 2.0 framework in your project (see the link:csharp.html#getting-started[installation options]). At this point, there will be many compiler warnings. Refer to the examples on this page to learn about the new API.
 * Build & run your application.
 
 === Database Upgrade
@@ -848,7 +848,7 @@ can be tuned in the configuration file
 
 ==== Replication Ordering
 
- To optimize for speed, the replication protocol doesn't guarantee that documents will be received in a particular order. So we don't recommend to rely on that when using the replication or database change listeners for example.
+To optimize for speed, the replication protocol doesn't guarantee that documents will be received in a particular order. So we don't recommend to rely on that when using the replication or database change listeners for example.
 
 === Troubleshooting
 
