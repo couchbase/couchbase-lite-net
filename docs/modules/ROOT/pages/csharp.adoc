@@ -15,17 +15,9 @@ Create or open an existing Virtual Studio project and install Couchbase Lite usi
 
 === Nuget
 
-. Install Couchbase Lite from Nuget (or if you are interested in a prerelease build, install from http://mobile.nuget.couchbase.com/nuget/Developer).
-+
-*Couchbase Lite Community Edition*
-+
-Install the `Couchbase.Lite` package.
-+
-*Couchbase Lite Enterprise Edition*
-+
-If you have a license or you are evaluating the Enterprise edition, install the `Couchbase.Lite.Enterprise` package.
-+
-. Your app must call the relevant `Activate()` function inside of the
+* Add `http://mobile.nuget.couchbase.com/nuget/Developer/` to your Nuget package sources (for prerelease only).
+
+Your app must call the relevant `Activate()` function inside of the
 class that is included in the support assembly (there is only one public class in each support assembly, and the support assembly itself is a nuget dependency).
 +
 For example, UWP looks like `Couchbase.Lite.Support.UWP.Activate()`. Currently the support assemblies provide dependency injected mechanisms for default directory logic, and platform specific logging (i.e. Android will log to logcat with correct log levels and tags. No more "mono-stdout" at always info
@@ -49,8 +41,7 @@ link:../installation/sync-gateway/index.html[Installing Sync Gateway ⟶]
 
 == Supported Versions
 
-Couchbase Lite .NET will be a .NET Standard 2.0 library as of the
-Couchbase Lite .NET 2.0 GA release. Runtimes which have received more
+Couchbase Lite .NET is a .NET Standard 2.0 library. Runtimes which have received more
 testing and are *officially* supported are:
 
 [cols=",,",options="header",]
@@ -102,7 +93,8 @@ version" is an approximately good metric here.
 
 == API References
 
-http://docs.couchbase.com/mobile/2.0/couchbase-lite-net/[`.NET SDK API References`]
+- http://docs.couchbase.com/mobile/2.0/couchbase-lite-net/[`2.0 .NET SDK API References`]
+- http://docs.couchbase.com/mobile/2.1/couchbase-lite-net/db001[`2.1-DB001 .NET SDK API References`]
 
 == Upgrading
 
