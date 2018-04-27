@@ -68,6 +68,8 @@ using System.Diagnostics;
 using FluentAssertions;
 using SQLitePCL;
 
+using Newtonsoft.Json;
+
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
 using HttpWebRequest = System.Net.Couchbase.HttpWebRequest;
@@ -78,6 +80,42 @@ using WebException = System.Net.Couchbase.WebException;
 
 namespace Couchbase.Lite
 {
+    public class BulkDocsResponse
+    {
+        [JsonProperty("docs")]
+        public IReadOnlyList<RevisionEntry> Docs { get; set; }
+
+        [JsonProperty("new_edits")]
+        public bool NewEdits { get; set; }
+    }
+
+    public class RevisionEntry
+    {
+        [JsonProperty("_id")]
+        public string Id { get; set; }
+
+        [JsonProperty("_rev")]
+        public string Rev { get; set; }
+
+        [JsonProperty("_exp")]
+        public string Expiry { get; set; }
+
+        [JsonProperty("_revisions")]
+        public BulkDocRevisionList Revisions { get; set; }
+
+        [JsonProperty("_attachments")]
+        public IReadOnlyDictionary<string, object> Attachments { get; set; }
+    }
+
+    public class BulkDocRevisionList
+    {
+        [JsonProperty("start")]
+        public int Start { get; set; }
+
+        [JsonProperty("ids")]
+        public IReadOnlyList<string> Ids { get; set; }
+    }
+
     [TestFixture("ForestDB")]
     public class ReplicationTest : LiteTestCase
     {
@@ -242,6 +280,130 @@ namespace Couchbase.Lite
                 Thread.Sleep(20000);
                 pull.Status.Should().Be(ReplicationStatus.Idle, "because the replication should not stop");
             }
+        }
+
+        [Test]
+        public void TestPusherDoesntCorruptAttachment()
+        {
+            var ancestors = new List<string>();
+            var factory = new MockHttpClientFactory();
+            factory.HttpHandler.ClearResponders();
+            factory.HttpHandler.SetResponder("_revs_diff", request =>
+            {
+                var body = request.Content.ReadAsStringAsync().Result;
+                var json = JsonConvert.DeserializeObject<Dictionary<string, string[]>>(body);
+                var response = new HttpResponseMessage(HttpStatusCode.OK);
+                var missingArray = json["test"];
+                var responseJson = new Dictionary<string, Dictionary<string, string[]>>
+                {
+                    ["test"] = new Dictionary<string, string[]>
+                    {
+                        ["missing"] = missingArray,
+                        ["possible_ancestors"] = ancestors.ToArray()
+                    } 
+                };
+
+                ancestors.Add(missingArray[0]);
+                response.Content =
+                    new ByteArrayContent(Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(responseJson)));
+                return response;
+            });
+
+            factory.HttpHandler.SetResponder("test", request =>
+            {
+                var body = request.Content.ReadAsStringAsync().Result;
+                var firstContent = body.IndexOf("--");
+                var firstContentEnd = body.IndexOf("--", firstContent + 1);
+                var first = body.IndexOf("{");
+                var last = body.LastIndexOf("}", firstContentEnd);
+                var jsonSnippet = body.Substring(first, last - first + 1);
+                var json = JsonConvert.DeserializeObject<RevisionEntry>(jsonSnippet);
+                var response = new HttpResponseMessage(HttpStatusCode.OK);
+                var responseBody = new Dictionary<string, object>
+                {
+                    ["id"] = json.Id,
+                    ["rev"] = json.Rev,
+                    ["ok"] = true
+                };
+
+                response.Content = new StringContent(JsonConvert.SerializeObject(responseBody));
+                return response;
+            });
+
+            factory.HttpHandler.SetResponder("_bulk_docs", request =>
+            {
+                var body = request.Content.ReadAsStringAsync().Result;
+                var json = JsonConvert.DeserializeObject<BulkDocsResponse>(body);
+                var response = new HttpResponseMessage(HttpStatusCode.Created);
+                var entries = json.Docs;
+                var responseJson = new List<Dictionary<string, object>>();
+                foreach (var entry in entries) {
+                    responseJson.Add(new Dictionary<string, object>
+                    {
+                        ["id"] = entry.Id,
+                        ["rev"] = entry.Rev  
+                    });
+                }
+                
+                response.Content =
+                    new StringContent(JsonConvert.SerializeObject(responseJson));
+                return response;
+            });
+
+            factory.HttpHandler.SetResponder("_local", request =>
+            {
+                if (request.Method == HttpMethod.Put) {
+                    var response = new HttpResponseMessage(HttpStatusCode.Created);
+                    var responseBody = new Dictionary<string, object>
+                    {
+                        ["id"] = "fake",
+                        ["rev"] = "1-aa",
+                        ["ok"] = true
+                    };
+
+                    response.Content = new StringContent(JsonConvert.SerializeObject(responseBody));
+                    return response;
+                } 
+
+                throw new TaskCanceledException();
+            });
+
+            manager.DefaultHttpClientFactory = factory;
+            var doc = database.GetDocument("test");
+            var rev = doc.CreateRevision();
+            rev.SetUserProperties(new Dictionary<string, object>
+            {
+                ["rand"] = Guid.NewGuid().ToString()
+            });
+            var data = new byte[90000];
+            (new Random()).NextBytes(data);
+            rev.SetAttachment("attach", "application/octet-stream", data);
+            rev.Save();
+
+            // Need a real address to fool the reachability class (needs mocking)
+            var push = database.CreatePushReplication(new Uri("https://www.couchbase.com"));
+            push.Continuous = true;
+            push.Start();
+
+            while (push.Status != ReplicationStatus.Idle) {
+                Thread.Yield();
+            }
+
+            var props = doc.Properties;
+            props["rand"] = Guid.NewGuid().ToString();
+            doc.PutProperties(props);
+            while (push.Status != ReplicationStatus.Active) {
+                Thread.Yield();
+            }
+
+            while (push.Status != ReplicationStatus.Idle) {
+                Thread.Yield();
+            }
+
+            doc = database.GetDocument("test");
+            var att = doc.CurrentRevision.GetAttachment("attach");
+            att.Should().NotBeNull();
+            att.Content.Count().Should().BeGreaterThan(0);
         }
 
         [Test]
