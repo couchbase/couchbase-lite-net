@@ -47,8 +47,8 @@ testing and are *officially* supported are:
 [cols=",,",options="header",]
 |=========================================================
 |.NET Runtime |Minimum Runtime Version |Minimum OS version
-|.NET Core Win |2.0 |10 (any supported)
-|.NET Framework |4.6.1 |10 (any supported)
+|.NET Core Win |2.0 |10 (any Microsoft supported)
+|.NET Framework |4.6.1 |10 (any Microsoft supported)
 |UWP |6.0.1 |10.0.16299
 |=========================================================
 
