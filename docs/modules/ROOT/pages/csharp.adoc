@@ -15,8 +15,7 @@ Create or open an existing Virtual Studio project and install Couchbase Lite usi
 
 === Nuget
 
-1. Add `http://mobile.nuget.couchbase.com/nuget/Developer/` to your Nuget package sources.
-2. Install the package.
+. Install Couchbase Lite from Nuget.
 +
 *Couchbase Lite Community Edition*
 +
@@ -26,7 +25,7 @@ Install the `Couchbase.Lite` package.
 +
 If you have a license or you are evaluating the Enterprise edition, install the `Couchbase.Lite.Enterprise` package.
 +
-3. Your app must call the relevant `Activate()` function inside of the
+. Your app must call the relevant `Activate()` function inside of the
 class that is included in the support assembly (there is only one public class in each support assembly, and the support assembly itself is a nuget dependency).
 +
 For example, UWP looks like `Couchbase.Lite.Support.UWP.Activate()`. Currently the support assemblies provide dependency injected mechanisms for default directory logic, and platform specific logging (i.e. Android will log to logcat with correct log levels and tags. No more "mono-stdout" at always info
