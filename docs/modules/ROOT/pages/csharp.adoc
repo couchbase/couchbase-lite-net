@@ -979,7 +979,13 @@ include::{examplesdir}/Program.cs[tags=certificate-pinning]
 This example loads the certificate from the application sandbox, then
 converts it to the appropriate type to configure the replication object.
 
-== Release Notes
+== Release Notes (2.1-DB001)
+
+- Device Encryption is now supported (EE features)
+- Resetting a replication (in other words, making it start over again) is now supported via Replication's ResetCheckpoint method. Be sure to call it before the Replication is started.
+- Bug Fixes: #979, #1000, #1008, #1009, #1010, #1011
+
+== Release Notes (2.0)
 
 *Enhancements*
 
