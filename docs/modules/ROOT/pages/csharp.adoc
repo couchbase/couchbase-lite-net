@@ -15,7 +15,7 @@ Create or open an existing Virtual Studio project and install Couchbase Lite usi
 
 === Nuget
 
-. Install Couchbase Lite from Nuget.
+. Install Couchbase Lite from Nuget (or if you are interested in a prerelease build, install from http://mobile.nuget.couchbase.com/nuget/Developer).
 +
 *Couchbase Lite Community Edition*
 +
