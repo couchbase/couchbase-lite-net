@@ -61,6 +61,7 @@ namespace LiteCore.Interop
         public IntPtr onStatusChanged;
         public IntPtr onDocumentError;
         public void* callbackContext;
+        public C4SocketFactory* socketFactory;
     }
 
 

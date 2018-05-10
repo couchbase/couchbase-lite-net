@@ -104,6 +104,12 @@ namespace Couchbase.Lite.Interop
             }
         }
 
+        public unsafe C4SocketFactory* SocketFactory
+        {
+            get => _c4Params.socketFactory;
+            set => _c4Params.socketFactory = value;
+        }
+
         public void Dispose()
         {
             Native.FLSliceResult_Free((FLSliceResult)_c4Params.optionsDictFleece);

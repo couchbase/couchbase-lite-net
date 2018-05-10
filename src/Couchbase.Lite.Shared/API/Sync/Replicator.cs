@@ -437,7 +437,8 @@ namespace Couchbase.Lite.Sync
                 Pull = Mkmode(pull, continuous),
                 Context = this,
                 OnDocumentError = OnDocError,
-                OnStatusChanged = StatusChangedCallback
+                OnStatusChanged = StatusChangedCallback,
+                SocketFactory = &socketFactory
             };
 
             var err = new C4Error();
