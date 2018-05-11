@@ -165,7 +165,7 @@ The code below demonstrates how to open or create an existing database with an e
 
 [source,swift]
 ----
-include::{examplesdir}/SampleCodeTest.swift[tags=database-encryption]
+include::{examplesdir}/Program.cs[tags=database-encryption]
 ----
 
 The xref:swift.adoc#database-upgrade[automatic database upgrade] functionality is not supported for encrypted databases. Furthermore, databases encrypted with one SDK (i.e Swift, C#, Java or Objective-C) cannot be opened with another SDK.
