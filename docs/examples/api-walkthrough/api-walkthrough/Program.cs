@@ -285,12 +285,12 @@ namespace api_walkthrough
             // # end::query-where[]
         }
 
-        private static void UseCollectionOperators()
+        private static void UseCollectionContains()
         {
-            Console.WriteLine("Collection Operators");
+            Console.WriteLine("Collection Operator CONTAINS");
             var db = _Database;
 
-            // # tag::query-collection-operator[]
+            // # tag::query-collection-operator-contains[]
             using (var query = QueryBuilder.Select(
                     SelectResult.Expression(Meta.ID),
                     SelectResult.Property("name"),
@@ -305,7 +305,29 @@ namespace api_walkthrough
                     Console.WriteLine($"Public Likes :: {jsonString}");
                 }
             }
-            // # end::query-collection-operator[]
+            // # end::query-collection-operator-contains[]
+        }
+
+        private static void UseCollectionIn()
+        {
+            Console.WriteLine("Collection Operator IN");
+            var db = _Database;
+
+            // # tag::query-collection-operator-in[]
+            var values = new IExpression[]
+                { Expression.Property("first"), Expression.Property("last"), Expression.Property("username") };
+
+            using (var query = QueryBuilder.Select(
+                    SelectResult.All())
+                .From(DataSource.Database(db))
+                .Where(Expression.String("Armani").In(values))) {
+                foreach (var result in query.Execute()) {
+                    var body = result.GetDictionary(0);
+                    var jsonString = JsonConvert.SerializeObject(body);
+                    Console.WriteLine($"In results :: {jsonString}");
+                }
+            }
+            // # end::query-collection-operator-in[]
         }
 
         private static void SelectLike()
@@ -620,7 +642,7 @@ namespace api_walkthrough
             LoadPrebuilt();
             CreateIndex();
             SelectWhere();
-            UseCollectionOperators();
+            UseCollectionContains();
             SelectLike();
             SelectWildcardLike();
             SelectWildcardCharacterLike();
