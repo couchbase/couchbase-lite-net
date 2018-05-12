@@ -4,12 +4,12 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>DEBUG;LITECORE_PACKAGED;COUCHBASE_ENTERPRISE;NETCOREAPP2_0;PERFORMANCE</DefineConstants>
+    <DefineConstants>DEBUG;LITECORE_PACKAGED;COUCHBASE_ENTERPRISE</DefineConstants>
     <WarningLevel>0</WarningLevel>
     <Prefer32Bit>False</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DefineConstants>LITECORE_PACKAGED;RELEASE;COUCHBASE_ENTERPRISE;PERFORMANCE</DefineConstants>
+    <DefineConstants>LITECORE_PACKAGED;RELEASE;COUCHBASE_ENTERPRISE;</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="C\**" />
