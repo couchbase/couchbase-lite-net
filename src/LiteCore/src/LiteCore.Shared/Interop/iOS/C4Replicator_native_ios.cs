@@ -36,7 +36,7 @@ namespace LiteCore.Interop
 
         public static bool c4address_fromURL(string url, C4Address* address, C4Slice* dbName)
         {
-            using(var url_ = new C4String(url))
+            using(var url_ = new C4String(url)) {
                 return NativeRaw.c4address_fromURL(url_.AsC4Slice(), address, dbName);
             }
         }
@@ -96,7 +96,7 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4address_fromURL(C4Slice url, C4Address* address, C4String* dbName);
+        public static extern bool c4address_fromURL(C4Slice url, C4Address* address, C4Slice* dbName);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4SliceResult c4address_toURL(C4Address address);
