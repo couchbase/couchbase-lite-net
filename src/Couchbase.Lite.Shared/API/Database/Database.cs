@@ -577,7 +577,9 @@ namespace Couchbase.Lite
                 _c4db = null;
                 Native.c4dbobs_free(_obs);
                 _obs = null;
-                _obsContext.Free();
+                if (_obsContext.IsAllocated) {
+                    _obsContext.Free();
+                }
             });
         }
 
@@ -758,7 +760,9 @@ namespace Couchbase.Lite
                     if (_databaseChanged.Remove(token) == 0) {
                         Native.c4dbobs_free(_obs);
                         _obs = null;
-                        _obsContext.Free();
+                        if (_obsContext.IsAllocated) {
+                            _obsContext.Free();
+                        }
                     }
                 } else {
                     if (_documentChanged.Remove(token, out var docID) == 0) {
