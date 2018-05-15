@@ -157,3 +157,4 @@ AboutResources.txt
 *.chm
 AboutAssets.txt
 src/Couchbase.Lite.Support.Apple/iOS/Native/
+vendor/couchbase-lite-core-EE/

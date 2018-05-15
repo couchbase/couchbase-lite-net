@@ -9,7 +9,7 @@
     <Prefer32Bit>False</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DefineConstants>LITECORE_PACKAGED;RELEASE;COUCHBASE_ENTERPRISE;</DefineConstants>
+    <DefineConstants>LITECORE_PACKAGED;RELEASE;COUCHBASE_ENTERPRISE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="C\**" />

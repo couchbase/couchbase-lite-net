@@ -25,6 +25,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Lite;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.P2P;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
 
@@ -344,9 +345,160 @@ namespace Test
             RunReplication(config, 0, 0, true);
 
             Db.Count.Should().Be(2UL, "because the replicator was reset");
-
         }
-    #endif
+
+        [Fact]
+        public void TestShortP2P()
+        {
+            using (var mdoc = new MutableDocument("livesindb")) {
+                mdoc.SetString("name", "db");
+                Db.Save(mdoc);
+            }
+
+            using (var mdoc = new MutableDocument("livesinotherdb")) {
+                mdoc.SetString("name", "otherdb");
+                _otherDB.Save(mdoc);
+            }
+
+
+            // PUSH
+            var listener = new MockServerConnection(_otherDB);
+            var config = new ReplicatorConfiguration(Db,
+                    new MessageEndpoint("p2ptest1", listener, ProtocolType.ByteStream, new MockConnectionFactory(Db)))
+            {
+                ReplicatorType = ReplicatorType.Push,
+                Continuous = false
+            };
+            RunReplication(config, 0, 0);
+            _otherDB.Count.Should().Be(2UL, "because it contains the original and new");
+            Db.Count.Should().Be(1UL, "because there is no pull, so the first db should only have the original");
+            
+            // PULL
+            listener = new MockServerConnection(_otherDB);
+            config = new ReplicatorConfiguration(Db,
+                new MessageEndpoint("p2ptest2", listener, ProtocolType.ByteStream, new MockConnectionFactory(Db)))
+            {
+                ReplicatorType = ReplicatorType.Pull,
+                Continuous = false
+            };
+
+            RunReplication(config, 0, 0);
+            Db.Count.Should().Be(2UL, "because the pull should add the document from otherDB");
+
+            using(var savedDoc = Db.GetDocument("livesinotherdb"))
+            using (var mdoc = savedDoc.ToMutable()) {
+                mdoc.SetBoolean("modified", true);
+                Db.Save(mdoc);
+            }
+
+            using(var savedDoc = _otherDB.GetDocument("livesindb"))
+            using (var mdoc = savedDoc.ToMutable()) {
+                mdoc.SetBoolean("modified", true);
+                _otherDB.Save(mdoc);
+            }
+
+            // PUSH & PULL
+            listener = new MockServerConnection(_otherDB);
+            config = new ReplicatorConfiguration(Db,
+                new MessageEndpoint("p2ptest3", listener, ProtocolType.ByteStream, new MockConnectionFactory(Db)))
+            {
+                Continuous = false
+            };
+
+            RunReplication(config, 0, 0);
+            Db.Count.Should().Be(2UL, "because no new documents were added");
+
+            using (var savedDoc = Db.GetDocument("livesindb")) {
+                savedDoc.GetBoolean("modified").Should()
+                    .BeTrue("because the property change should have come from the other DB");
+            }
+
+            using (var savedDoc = _otherDB.GetDocument("livesinotherdb")) {
+                savedDoc.GetBoolean("modified").Should()
+                    .BeTrue("because the proeprty change should come from the original DB");
+            }
+        }
+
+        // Not yet passing
+        //[Fact]
+        public void TestContinuousP2P()
+        {
+            RunTwoStepContinuous(ReplicatorType.Push);
+            RunTwoStepContinuous(ReplicatorType.Pull);
+            RunTwoStepContinuous(ReplicatorType.PushAndPull);
+        }
+
+        private void RunTwoStepContinuous(ReplicatorType type)
+        {
+            var listener = new MockServerConnection(_otherDB);
+            var config = new ReplicatorConfiguration(Db,
+                new MessageEndpoint("p2ptest1", listener, ProtocolType.ByteStream, new MockConnectionFactory(Db)))
+            {
+                ReplicatorType = type,
+                Continuous = true
+            };
+            var replicator = new Replicator(config);
+            replicator.Start();
+
+            Database firstSource = null;
+            Database secondSource = null;
+            Database firstTarget = null;
+            Database secondTarget = null;
+            if (type == ReplicatorType.Push) {
+                firstSource = Db;
+                secondSource = Db;
+                firstTarget = _otherDB;
+                secondTarget = _otherDB;
+            } else if (type == ReplicatorType.Pull) {
+                firstSource = _otherDB;
+                secondSource = _otherDB;
+                firstTarget = Db;
+                secondTarget = Db;
+            } else {
+                firstSource = Db;
+                secondSource = _otherDB;
+                firstTarget = _otherDB;
+                secondTarget = Db;
+            }
+
+            using (var mdoc = new MutableDocument("livesindb")) {
+                mdoc.SetString("name", "db");
+                mdoc.SetInt("version", 1);
+                firstSource.Save(mdoc);
+            }
+
+            while (replicator.Status.Progress.Completed == 0 ||
+                   replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
+                Thread.Sleep(100);
+            }
+
+            var previousCompleted = replicator.Status.Progress.Completed;
+            firstTarget.Count.Should().Be(1);
+
+            using(var savedDoc = secondSource.GetDocument("livesindb"))
+            using (var mdoc = savedDoc.ToMutable()) {
+                mdoc.SetInt("version", 2);
+                secondSource.Save(mdoc);
+            }
+
+            while (replicator.Status.Progress.Completed == previousCompleted ||
+                   replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
+                Thread.Sleep(100);
+            }
+
+            using (var savedDoc = secondTarget.GetDocument("livesindb")) {
+                savedDoc.GetInt("version").Should().Be(2);
+            }
+
+            replicator.Stop();
+            while (replicator.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                Thread.Sleep(100);
+            }
+
+            replicator.Dispose();
+        }
+
+#endif
 
         // The below tests are disabled because they require orchestration and should be moved
         // to the functional test suite
@@ -510,7 +662,7 @@ namespace Test
             
             _repl.Start();
             try {
-                _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
+                _waitAssert.WaitForResult(TimeSpan.FromSeconds(1000));
             } catch {
                 _repl.Stop();
                 throw;
@@ -518,6 +670,25 @@ namespace Test
                 _repl.RemoveChangeListener(token);
             }
         }
+
+        #if COUCHBASE_ENTERPRISE
+
+        private class MockConnectionFactory : IMessageEndpointDelegate
+        {
+            private readonly Database _db;
+
+            public MockConnectionFactory(Database db)
+            {
+                _db = db;
+            }
+
+            public IMessageEndpointConnection CreateConnection(MessageEndpoint endpoint)
+            {
+                return new MockClientConnection(_db, endpoint.Target as MockServerConnection);
+            }
+        }
+
+        #endif
 
         protected override void Dispose(bool disposing)
         {
