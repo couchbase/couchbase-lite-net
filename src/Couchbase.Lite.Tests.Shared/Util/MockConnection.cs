@@ -17,50 +17,48 @@
 // 
 
 using System;
-using System.Linq;
-using System.Net;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-using Couchbase.Lite;
 using Couchbase.Lite.P2P;
-
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
     public abstract class MockConnection : IMessageEndpointConnection
     {
-        #region Constants
-
-        protected const char CommandPrefix = '!';
-        protected const char MessagePrefix = '\0';
-
-        #endregion
-
         #region Variables
 
         protected readonly MessageEndpointListener _host;
-        
+        private readonly ProtocolType _protocolType;
+
         protected IReplicatorConnection _connection;
-        private bool _receivedClose;
         private IMockConnectionErrorLogic _errorLogic;
+        private StreamWriter _logOut;
+        protected bool _noCloseRequest;
 
         #endregion
 
-        private IMockConnectionErrorLogic ErrorLogic => _errorLogic ?? (_errorLogic = new NoErrorLogic());
+        #region Properties
 
-        private MockConnectionType ConnectionType =>
-            _host == null ? MockConnectionType.Client : MockConnectionType.Server;
+        public IMockConnectionErrorLogic ErrorLogic
+        {
+            get => _errorLogic ?? (_errorLogic = new NoErrorLogic());
+            set => _errorLogic = value;
+        }
+
+        #endregion
 
         #region Constructors
 
-        protected MockConnection(Database database, bool outgoing)
+        protected MockConnection(Database database, bool outgoing, ProtocolType protocolType)
         {
             if (!outgoing) {
                 _host = new MessageEndpointListener(
-                    new MessageEndpointListenerConfiguration(database, ProtocolType.ByteStream));
+                    new MessageEndpointListenerConfiguration(database, protocolType));
             }
+
+            _protocolType = protocolType;
         }
 
         #endregion
@@ -69,18 +67,48 @@ namespace Couchbase.Lite
 
         public void Accept(byte[] message)
         {
-            if (ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Receive, ConnectionType)) {
-                _connection?.Close(ErrorLogic.CreateException(MockConnectionLifecycleLocation.Receive, ConnectionType));
+            if (ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Receive)) {
+                var e = ErrorLogic.CreateException();
+                ConnectionBroken(e);
+                _connection?.Close(e);
             } else {
                 _connection?.Receive(Message.FromBytes(message));
             }
+        }
+
+        public void LogConversation(string logPath)
+        {
+            var dirName = Path.GetDirectoryName(logPath);
+            if (!Directory.Exists(dirName)) {
+                Directory.CreateDirectory(dirName);
+            }
+
+            var outHandle = File.Open(logPath, FileMode.Append, FileAccess.Write, FileShare.Read);
+            _logOut = new StreamWriter(outHandle, Encoding.UTF8)
+            {
+                AutoFlush = true
+            };
+
+            var start = $"{Environment.NewLine}Starting new session{Environment.NewLine}";
+            _logOut.WriteLine(start);
         }
 
         #endregion
 
         #region Protected Methods
 
+        protected abstract void ConnectionBroken(MessagingException exception);
+
         protected abstract void PerformWrite(byte[] message);
+
+        #endregion
+
+        #region Private Methods
+
+        private void Log(string message)
+        {
+            _logOut?.WriteLine(message);
+        }
 
         #endregion
 
@@ -92,8 +120,18 @@ namespace Couchbase.Lite
                 return Task.CompletedTask;
             }
 
+            if (ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Close)) {
+                var e = ErrorLogic.CreateException();
+                ConnectionBroken(e);
+                return Task.FromException(e);
+            }
+
             _host?.Close(this);
             _connection = null;
+
+            if (_protocolType == ProtocolType.MessageStream && !_noCloseRequest) {
+                ConnectionBroken(null);
+            }
 
             return Task.CompletedTask;
         }
@@ -101,8 +139,10 @@ namespace Couchbase.Lite
         public virtual Task Open(IReplicatorConnection connection)
         {
             _connection = connection;
-            if (ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Connect, ConnectionType)) {
-                return Task.FromException(ErrorLogic.CreateException(MockConnectionLifecycleLocation.Connect, ConnectionType));
+            if (ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Connect)) {
+                var e = ErrorLogic.CreateException();
+                ConnectionBroken(e);
+                return Task.FromException(e);
             }
 
             return Task.CompletedTask;
@@ -110,9 +150,10 @@ namespace Couchbase.Lite
 
         public Task Send(Message message)
         {
-            if (ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Send, ConnectionType)) {
-                return Task.FromException(ErrorLogic.CreateException(MockConnectionLifecycleLocation.Send,
-                    ConnectionType));
+            if (ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Send)) {
+                var e = ErrorLogic.CreateException();
+                ConnectionBroken(e);
+                return Task.FromException(e);
             }
 
             var data = message.ToByteArray();
@@ -122,32 +163,40 @@ namespace Couchbase.Lite
 
         #endregion
 
+        #region Nested
+
         private sealed class NoErrorLogic : IMockConnectionErrorLogic
         {
-            public bool ShouldClose(MockConnectionLifecycleLocation location, MockConnectionType connectionType)
+            #region IMockConnectionErrorLogic
+
+            public MessagingException CreateException()
+            {
+                return null;
+            }
+
+            public bool ShouldClose(MockConnectionLifecycleLocation location)
             {
                 return false;
             }
 
-            public MessagingErrorException CreateException(MockConnectionLifecycleLocation location, MockConnectionType connectionType)
-            {
-                return null;
-            }
+            #endregion
         }
+
+        #endregion
     }
 
     public sealed class MockClientConnection : MockConnection
     {
         #region Variables
 
-        private readonly MockServerConnection _server;
+        private MockServerConnection _server;
 
         #endregion
 
         #region Constructors
 
-        public MockClientConnection(Database db, MockServerConnection server)
-            : base(db, true)
+        public MockClientConnection(Database db, MockServerConnection server, ProtocolType protocolType)
+            : base(db, true, protocolType)
         {
             _server = server;
         }
@@ -156,21 +205,31 @@ namespace Couchbase.Lite
 
         #region Overrides
 
-        public override Task Open(IReplicatorConnection connection)
+        protected override void ConnectionBroken(MessagingException exception)
         {
-            return base.Open(connection).ContinueWith(t =>
-            {
-                _server.ClientOpened(this);
-            });
+            var server = _server;
+            _server = null;
+            server?.ClientDisconnected(exception);
+        }
+
+        public override async Task Open(IReplicatorConnection connection)
+        {
+            await base.Open(connection).ConfigureAwait(false);
+            _server?.ClientOpened(this);
         }
 
         protected override void PerformWrite(byte[] message)
         {
-            _server.Accept(message);
+            _server?.Accept(message);
         }
 
         #endregion
 
+        public void ServerDisconnected(MessagingException exception)
+        {
+            _noCloseRequest = true;
+            _connection?.Close(exception);
+        }
     }
 
     public sealed class MockServerConnection : MockConnection
@@ -183,8 +242,8 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        public MockServerConnection(Database db)
-            : base(db, false)
+        public MockServerConnection(Database db, ProtocolType protocolType)
+            : base(db, false, protocolType)
         {
         }
 
@@ -202,11 +261,24 @@ namespace Couchbase.Lite
 
         #region Overrides
 
+        protected override void ConnectionBroken(MessagingException exception)
+        {
+            var client = _client;
+            _client = null;
+            client?.ServerDisconnected(exception);
+        }
+
         protected override void PerformWrite(byte[] message)
         {
-            _client.Accept(message);
+            _client?.Accept(message);
         }
 
         #endregion
+
+        public void ClientDisconnected(MessagingException exception)
+        {
+            _noCloseRequest = true;
+            _connection?.Close(exception);
+        }
     }
 }

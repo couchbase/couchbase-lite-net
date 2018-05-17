@@ -26,6 +26,12 @@ namespace LiteCore.Interop
 {
     using Couchbase.Lite.Interop;
 
+    internal enum C4WebSocketCustomCloseCode
+    {
+        WebSocketCloseFirstAvailable = C4WebSocketCloseCode.WebSocketCloseFirstAvailable,
+        WebSocketCloseCustomTransient
+    }
+
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]   
     internal unsafe delegate void SocketOpenDelegate(C4Socket* socket, C4Address* address, C4Slice options, void* context);
 

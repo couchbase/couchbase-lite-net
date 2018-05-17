@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
@@ -32,6 +33,8 @@ using Couchbase.Lite.Util;
 using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
+
+using ProtocolType = Couchbase.Lite.P2P.ProtocolType;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -49,6 +52,7 @@ namespace Test
         private Database _otherDB;
         private Replicator _repl;
         private WaitAssert _waitAssert;
+        private IMockConnectionErrorLogic _p2PErrorLogic;
 
 #if !WINDOWS_UWP
         public ReplicatorTest(ITestOutputHelper output) : base(output)
@@ -350,89 +354,172 @@ namespace Test
         [Fact]
         public void TestShortP2P()
         {
+            var testNo = 1;
+            foreach (var protocolType in new[] { ProtocolType.ByteStream, ProtocolType.MessageStream }) {
+                using (var mdoc = new MutableDocument("livesindb")) {
+                    mdoc.SetString("name", "db");
+                    Db.Save(mdoc);
+                }
+
+                using (var mdoc = new MutableDocument("livesinotherdb")) {
+                    mdoc.SetString("name", "otherdb");
+                    _otherDB.Save(mdoc);
+                }
+
+
+                // PUSH
+                var listener = new MockServerConnection(_otherDB, protocolType);
+                var config = new ReplicatorConfiguration(Db,
+                    new MessageEndpoint($"p2ptest{testNo++}", listener, protocolType,
+                        new MockConnectionFactory(Db, null)))
+                {
+                    ReplicatorType = ReplicatorType.Push,
+                    Continuous = false
+                };
+                RunReplication(config, 0, 0);
+                _otherDB.Count.Should().Be(2UL, "because it contains the original and new");
+                Db.Count.Should().Be(1UL, "because there is no pull, so the first db should only have the original");
+
+                // PULL
+                listener = new MockServerConnection(_otherDB, protocolType);
+                config = new ReplicatorConfiguration(Db,
+                    new MessageEndpoint($"p2ptest{testNo++}", listener, protocolType,
+                        new MockConnectionFactory(Db, null)))
+                {
+                    ReplicatorType = ReplicatorType.Pull,
+                    Continuous = false
+                };
+
+                RunReplication(config, 0, 0);
+                Db.Count.Should().Be(2UL, "because the pull should add the document from otherDB");
+
+                using (var savedDoc = Db.GetDocument("livesinotherdb"))
+                using (var mdoc = savedDoc.ToMutable()) {
+                    mdoc.SetBoolean("modified", true);
+                    Db.Save(mdoc);
+                }
+
+                using (var savedDoc = _otherDB.GetDocument("livesindb"))
+                using (var mdoc = savedDoc.ToMutable()) {
+                    mdoc.SetBoolean("modified", true);
+                    _otherDB.Save(mdoc);
+                }
+
+                // PUSH & PULL
+                listener = new MockServerConnection(_otherDB, protocolType);
+                config = new ReplicatorConfiguration(Db,
+                        new MessageEndpoint($"p2ptest{testNo++}", listener, protocolType,
+                            new MockConnectionFactory(Db, null)))
+                    { Continuous = false };
+
+                RunReplication(config, 0, 0);
+                Db.Count.Should().Be(2UL, "because no new documents were added");
+
+                using (var savedDoc = Db.GetDocument("livesindb")) {
+                    savedDoc.GetBoolean("modified").Should()
+                        .BeTrue("because the property change should have come from the other DB");
+                }
+
+                using (var savedDoc = _otherDB.GetDocument("livesinotherdb")) {
+                    savedDoc.GetBoolean("modified").Should()
+                        .BeTrue("because the proeprty change should come from the original DB");
+                }
+
+                Db.Delete();
+                ReopenDB();
+                _otherDB.Delete();
+                _otherDB.Dispose();
+                _otherDB = OpenDB(_otherDB.Name);
+            }
+        }
+        
+        [Fact]
+        public void TestContinuousP2P()
+        {
+            _otherDB.Delete();
+            _otherDB = OpenDB(_otherDB.Name);
+            Db.Delete();
+            ReopenDB();
+            RunTwoStepContinuous(ReplicatorType.Push, "p2ptest1");
+            _otherDB.Delete();
+            _otherDB = OpenDB(_otherDB.Name);
+            Db.Delete();
+            ReopenDB();
+            RunTwoStepContinuous(ReplicatorType.Pull, "p2ptest2");
+            _otherDB.Delete();
+            _otherDB = OpenDB(_otherDB.Name);
+            Db.Delete();
+            ReopenDB();
+            RunTwoStepContinuous(ReplicatorType.PushAndPull, "p2ptest3");
+        }
+
+        //[Fact]
+        //WIP
+        public void TestP2PRecoverableFailureDuringOpen() => TestP2PError(MockConnectionLifecycleLocation.Connect, true);
+
+        //[Fact]
+        //WIP
+        public void TestP2PRecoverableFailureDuringSend() => TestP2PError(MockConnectionLifecycleLocation.Send, true);
+
+        //[Fact]
+        //WIP
+        public void TestP2PRecoverableFailureDuringReceive() => TestP2PError(MockConnectionLifecycleLocation.Receive, true);
+
+
+        //[Fact]
+        //WIP
+        public void TestP2PRecoverableFailureDuringClose()
+        {
+            var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, MockConnectionLifecycleLocation.Close,
+                true);
+            RunReplication(config, (int)CouchbaseLiteError.WebSocketAbnormalClose, CouchbaseLiteErrorType.CouchbaseLite);
+            config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, MockConnectionLifecycleLocation.Close,
+                true);
+            RunReplication(config, (int)CouchbaseLiteError.WebSocketAbnormalClose, CouchbaseLiteErrorType.CouchbaseLite, true);
+        }
+
+        private ReplicatorConfiguration CreateFailureP2PConfiguration(ProtocolType protocolType, MockConnectionLifecycleLocation location, bool recoverable)
+        {
             using (var mdoc = new MutableDocument("livesindb")) {
                 mdoc.SetString("name", "db");
                 Db.Save(mdoc);
             }
 
-            using (var mdoc = new MutableDocument("livesinotherdb")) {
-                mdoc.SetString("name", "otherdb");
-                _otherDB.Save(mdoc);
+            var errorLocation = TestErrorLogic.FailWhen(location);
+
+            if (recoverable) {
+                errorLocation.WithRecoverableException(2);
+            } else {
+                errorLocation.WithPermanentException();
             }
 
-
-            // PUSH
-            var listener = new MockServerConnection(_otherDB);
+            var listener = new MockServerConnection(_otherDB, protocolType)
+            {
+                ErrorLogic = errorLocation
+            };
             var config = new ReplicatorConfiguration(Db,
-                    new MessageEndpoint("p2ptest1", listener, ProtocolType.ByteStream, new MockConnectionFactory(Db)))
+                new MessageEndpoint("p2ptest1", listener, protocolType, new MockConnectionFactory(Db, errorLocation)))
             {
                 ReplicatorType = ReplicatorType.Push,
                 Continuous = false
             };
-            RunReplication(config, 0, 0);
-            _otherDB.Count.Should().Be(2UL, "because it contains the original and new");
-            Db.Count.Should().Be(1UL, "because there is no pull, so the first db should only have the original");
-            
-            // PULL
-            listener = new MockServerConnection(_otherDB);
-            config = new ReplicatorConfiguration(Db,
-                new MessageEndpoint("p2ptest2", listener, ProtocolType.ByteStream, new MockConnectionFactory(Db)))
-            {
-                ReplicatorType = ReplicatorType.Pull,
-                Continuous = false
-            };
 
-            RunReplication(config, 0, 0);
-            Db.Count.Should().Be(2UL, "because the pull should add the document from otherDB");
-
-            using(var savedDoc = Db.GetDocument("livesinotherdb"))
-            using (var mdoc = savedDoc.ToMutable()) {
-                mdoc.SetBoolean("modified", true);
-                Db.Save(mdoc);
-            }
-
-            using(var savedDoc = _otherDB.GetDocument("livesindb"))
-            using (var mdoc = savedDoc.ToMutable()) {
-                mdoc.SetBoolean("modified", true);
-                _otherDB.Save(mdoc);
-            }
-
-            // PUSH & PULL
-            listener = new MockServerConnection(_otherDB);
-            config = new ReplicatorConfiguration(Db,
-                new MessageEndpoint("p2ptest3", listener, ProtocolType.ByteStream, new MockConnectionFactory(Db)))
-            {
-                Continuous = false
-            };
-
-            RunReplication(config, 0, 0);
-            Db.Count.Should().Be(2UL, "because no new documents were added");
-
-            using (var savedDoc = Db.GetDocument("livesindb")) {
-                savedDoc.GetBoolean("modified").Should()
-                    .BeTrue("because the property change should have come from the other DB");
-            }
-
-            using (var savedDoc = _otherDB.GetDocument("livesinotherdb")) {
-                savedDoc.GetBoolean("modified").Should()
-                    .BeTrue("because the proeprty change should come from the original DB");
-            }
+            return config;
         }
 
-        // Not yet passing
-        //[Fact]
-        public void TestContinuousP2P()
+        private void TestP2PError(MockConnectionLifecycleLocation location, bool recoverable)
         {
-            RunTwoStepContinuous(ReplicatorType.Push);
-            RunTwoStepContinuous(ReplicatorType.Pull);
-            RunTwoStepContinuous(ReplicatorType.PushAndPull);
+            var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, location, recoverable);
+            RunReplication(config, 0, 0);
+            config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, location, recoverable);
+            RunReplication(config, 0, 0, true);
         }
 
-        private void RunTwoStepContinuous(ReplicatorType type)
+        private void RunTwoStepContinuous(ReplicatorType type, string uid)
         {
-            var listener = new MockServerConnection(_otherDB);
+            var listener = new MockServerConnection(_otherDB, ProtocolType.ByteStream);
             var config = new ReplicatorConfiguration(Db,
-                new MessageEndpoint("p2ptest1", listener, ProtocolType.ByteStream, new MockConnectionFactory(Db)))
+                new MessageEndpoint(uid, listener, ProtocolType.ByteStream, new MockConnectionFactory(Db, null)))
             {
                 ReplicatorType = type,
                 Continuous = true
@@ -467,9 +554,12 @@ namespace Test
                 firstSource.Save(mdoc);
             }
 
+            var count = 0;
             while (replicator.Status.Progress.Completed == 0 ||
                    replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
-                Thread.Sleep(100);
+                Thread.Sleep(500);
+                count++;
+                count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
             }
 
             var previousCompleted = replicator.Status.Progress.Completed;
@@ -481,9 +571,12 @@ namespace Test
                 secondSource.Save(mdoc);
             }
 
+            count = 0;
             while (replicator.Status.Progress.Completed == previousCompleted ||
                    replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
-                Thread.Sleep(100);
+                Thread.Sleep(500);
+                count++;
+                count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
             }
 
             using (var savedDoc = secondTarget.GetDocument("livesindb")) {
@@ -626,8 +719,8 @@ namespace Test
             WriteLine($"---Status: {s.Activity} ({s.Progress.Completed} / {s.Progress.Total}), lastError = {s.Error}");
             if (s.Activity == ReplicatorActivityLevel.Stopped) {
                 if (errorCode != 0) {
-                    s.Error.Should().BeAssignableTo<CouchbaseLiteException>();
-                    var error = s.Error.As<CouchbaseLiteException>();
+                    s.Error.Should().BeAssignableTo<CouchbaseException>();
+                    var error = s.Error.As<CouchbaseException>();
                     error.Error.Should().Be(errorCode);
                     if ((int) domain != 0) {
                         error.Domain.As<CouchbaseLiteErrorType>().Should().Be(domain);
@@ -662,7 +755,7 @@ namespace Test
             
             _repl.Start();
             try {
-                _waitAssert.WaitForResult(TimeSpan.FromSeconds(1000));
+                _waitAssert.WaitForResult(TimeSpan.FromSeconds(100));
             } catch {
                 _repl.Stop();
                 throw;
@@ -676,15 +769,22 @@ namespace Test
         private class MockConnectionFactory : IMessageEndpointDelegate
         {
             private readonly Database _db;
+            private readonly IMockConnectionErrorLogic _errorLogic;
 
-            public MockConnectionFactory(Database db)
+            public MockConnectionFactory(Database db, IMockConnectionErrorLogic errorLogic)
             {
                 _db = db;
+                _errorLogic = errorLogic;
             }
 
             public IMessageEndpointConnection CreateConnection(MessageEndpoint endpoint)
             {
-                return new MockClientConnection(_db, endpoint.Target as MockServerConnection);
+                var retVal =
+                    new MockClientConnection(_db, endpoint.Target as MockServerConnection, endpoint.ProtocolType)
+                    {
+                        ErrorLogic = _errorLogic,
+                    };
+                return retVal;
             }
         }
 
@@ -699,6 +799,50 @@ namespace Test
 
             _otherDB.Delete();
             _otherDB = null;
+        }
+    }
+
+    public class TestErrorLogic : IMockConnectionErrorLogic
+    {
+        private readonly MockConnectionLifecycleLocation _locations;
+        private MessagingException _exception;
+        private int _current, _total;
+
+        private TestErrorLogic(MockConnectionLifecycleLocation locations)
+        {
+            _locations = locations;
+        }
+
+        public static TestErrorLogic FailWhen(MockConnectionLifecycleLocation locations)
+        {
+            return new TestErrorLogic(locations);
+        }
+
+        public TestErrorLogic WithRecoverableException(int count = 1)
+        {
+            _exception = new MessagingException("Test recoverable exception",
+                new SocketException((int) SocketError.ConnectionReset), true);
+            _total = count;
+            return this;
+        }
+
+        public TestErrorLogic WithPermanentException()
+        {
+            _exception = new MessagingException("Test permanent exception",
+                new SocketException((int) SocketError.AccessDenied), false);
+            _total = Int32.MaxValue;
+            return this;
+        }
+
+        public bool ShouldClose(MockConnectionLifecycleLocation location)
+        {
+            return _current < _total && _locations.HasFlag(location);
+        }
+
+        public MessagingException CreateException()
+        {
+            _current++;
+            return _exception;
         }
     }
 }
