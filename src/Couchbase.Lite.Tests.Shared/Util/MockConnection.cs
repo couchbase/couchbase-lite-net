@@ -16,6 +16,7 @@
 //  limitations under the License.
 // 
 
+#if COUCHBASE_ENTERPRISE
 using System;
 using System.IO;
 using System.Text;
@@ -30,7 +31,7 @@ namespace Couchbase.Lite
         #region Variables
 
         protected readonly MessageEndpointListener _host;
-        private readonly ProtocolType _protocolType;
+        protected readonly ProtocolType _protocolType;
 
         protected IReplicatorConnection _connection;
         private IMockConnectionErrorLogic _errorLogic;
@@ -47,17 +48,15 @@ namespace Couchbase.Lite
             set => _errorLogic = value;
         }
 
+        private bool IsClient => _host == null;
+
         #endregion
 
         #region Constructors
 
-        protected MockConnection(Database database, bool outgoing, ProtocolType protocolType)
+        protected MockConnection(MessageEndpointListener host, ProtocolType protocolType)
         {
-            if (!outgoing) {
-                _host = new MessageEndpointListener(
-                    new MessageEndpointListenerConfiguration(database, protocolType));
-            }
-
+            _host = host;
             _protocolType = protocolType;
         }
 
@@ -67,7 +66,7 @@ namespace Couchbase.Lite
 
         public void Accept(byte[] message)
         {
-            if (ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Receive)) {
+            if (IsClient && ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Receive)) {
                 var e = ErrorLogic.CreateException();
                 ConnectionBroken(e);
                 _connection?.Close(e);
@@ -114,32 +113,15 @@ namespace Couchbase.Lite
 
         #region IMessageEndpointConnection
 
-        public Task Close(Exception error)
+        public virtual Task Close(Exception error)
         {
-            if (_connection == null) {
-                return Task.CompletedTask;
-            }
-
-            if (ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Close)) {
-                var e = ErrorLogic.CreateException();
-                ConnectionBroken(e);
-                return Task.FromException(e);
-            }
-
-            _host?.Close(this);
-            _connection = null;
-
-            if (_protocolType == ProtocolType.MessageStream && !_noCloseRequest) {
-                ConnectionBroken(null);
-            }
-
             return Task.CompletedTask;
         }
 
         public virtual Task Open(IReplicatorConnection connection)
         {
             _connection = connection;
-            if (ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Connect)) {
+            if (IsClient && ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Connect)) {
                 var e = ErrorLogic.CreateException();
                 ConnectionBroken(e);
                 return Task.FromException(e);
@@ -150,7 +132,7 @@ namespace Couchbase.Lite
 
         public Task Send(Message message)
         {
-            if (ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Send)) {
+            if (IsClient && ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Send)) {
                 var e = ErrorLogic.CreateException();
                 ConnectionBroken(e);
                 return Task.FromException(e);
@@ -195,10 +177,10 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        public MockClientConnection(Database db, MockServerConnection server, ProtocolType protocolType)
-            : base(db, true, protocolType)
+        public MockClientConnection(MessageEndpoint endpoint)
+            : base(null, endpoint.ProtocolType)
         {
-            _server = server;
+            _server = endpoint.Target as MockServerConnection;
         }
 
         #endregion
@@ -218,18 +200,41 @@ namespace Couchbase.Lite
             _server?.ClientOpened(this);
         }
 
+        public override Task Close(Exception error)
+        {
+            if (_connection == null) {
+                return Task.CompletedTask;
+            }
+
+            if (ErrorLogic.ShouldClose(MockConnectionLifecycleLocation.Close)) {
+                var e = ErrorLogic.CreateException();
+                ConnectionBroken(e);
+                return Task.FromException(e);
+            }
+            
+            _connection = null;
+
+            if (_protocolType == ProtocolType.MessageStream && !_noCloseRequest) {
+                ConnectionBroken(null);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public void ServerDisconnected()
+        {
+            var server = _server;
+            _server = null;
+            _noCloseRequest = true;
+            _connection?.Close(null);
+        }
+
         protected override void PerformWrite(byte[] message)
         {
             _server?.Accept(message);
         }
 
         #endregion
-
-        public void ServerDisconnected(MessagingException exception)
-        {
-            _noCloseRequest = true;
-            _connection?.Close(exception);
-        }
     }
 
     public sealed class MockServerConnection : MockConnection
@@ -242,8 +247,8 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        public MockServerConnection(Database db, ProtocolType protocolType)
-            : base(db, false, protocolType)
+        public MockServerConnection(MessageEndpointListener host, ProtocolType protocolType)
+            : base(host, protocolType)
         {
         }
 
@@ -263,9 +268,17 @@ namespace Couchbase.Lite
 
         protected override void ConnectionBroken(MessagingException exception)
         {
-            var client = _client;
-            _client = null;
-            client?.ServerDisconnected(exception);
+            // No-op
+        }
+
+        public override Task Close(Exception e)
+        {
+            _host.Close(this);
+            if (_protocolType == ProtocolType.MessageStream && e == null) {
+                _client.ServerDisconnected();
+            }
+
+            return Task.CompletedTask;
         }
 
         protected override void PerformWrite(byte[] message)
@@ -282,3 +295,4 @@ namespace Couchbase.Lite
         }
     }
 }
+#endif

@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -26,7 +27,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Lite;
 using Couchbase.Lite.Logging;
-using Couchbase.Lite.P2P;
+
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
 
@@ -34,7 +35,11 @@ using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
 
+#if COUCHBASE_ENTERPRISE
+using Couchbase.Lite.P2P;
 using ProtocolType = Couchbase.Lite.P2P.ProtocolType;
+#endif
+
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -52,7 +57,9 @@ namespace Test
         private Database _otherDB;
         private Replicator _repl;
         private WaitAssert _waitAssert;
+        #if COUCHBASE_ENTERPRISE
         private IMockConnectionErrorLogic _p2PErrorLogic;
+        #endif
 
 #if !WINDOWS_UWP
         public ReplicatorTest(ITestOutputHelper output) : base(output)
@@ -368,10 +375,11 @@ namespace Test
 
 
                 // PUSH
-                var listener = new MockServerConnection(_otherDB, protocolType);
+                var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, protocolType));
+                var server = new MockServerConnection(listener, protocolType);
                 var config = new ReplicatorConfiguration(Db,
-                    new MessageEndpoint($"p2ptest{testNo++}", listener, protocolType,
-                        new MockConnectionFactory(Db, null)))
+                    new MessageEndpoint($"p2ptest{testNo++}", server, protocolType,
+                        new MockConnectionFactory(null)))
                 {
                     ReplicatorType = ReplicatorType.Push,
                     Continuous = false
@@ -381,10 +389,10 @@ namespace Test
                 Db.Count.Should().Be(1UL, "because there is no pull, so the first db should only have the original");
 
                 // PULL
-                listener = new MockServerConnection(_otherDB, protocolType);
+                server = new MockServerConnection(listener, protocolType);
                 config = new ReplicatorConfiguration(Db,
-                    new MessageEndpoint($"p2ptest{testNo++}", listener, protocolType,
-                        new MockConnectionFactory(Db, null)))
+                    new MessageEndpoint($"p2ptest{testNo++}", server, protocolType,
+                        new MockConnectionFactory(null)))
                 {
                     ReplicatorType = ReplicatorType.Pull,
                     Continuous = false
@@ -406,10 +414,10 @@ namespace Test
                 }
 
                 // PUSH & PULL
-                listener = new MockServerConnection(_otherDB, protocolType);
+                server = new MockServerConnection(listener, protocolType);
                 config = new ReplicatorConfiguration(Db,
-                        new MessageEndpoint($"p2ptest{testNo++}", listener, protocolType,
-                            new MockConnectionFactory(Db, null)))
+                        new MessageEndpoint($"p2ptest{testNo++}", server, protocolType,
+                            new MockConnectionFactory(null)))
                     { Continuous = false };
 
                 RunReplication(config, 0, 0);
@@ -453,52 +461,186 @@ namespace Test
             RunTwoStepContinuous(ReplicatorType.PushAndPull, "p2ptest3");
         }
 
-        //[Fact]
-        //WIP
+        [Fact]
         public void TestP2PRecoverableFailureDuringOpen() => TestP2PError(MockConnectionLifecycleLocation.Connect, true);
 
-        //[Fact]
-        //WIP
+        [Fact]
         public void TestP2PRecoverableFailureDuringSend() => TestP2PError(MockConnectionLifecycleLocation.Send, true);
 
-        //[Fact]
-        //WIP
+        [Fact]
         public void TestP2PRecoverableFailureDuringReceive() => TestP2PError(MockConnectionLifecycleLocation.Receive, true);
 
+        [Fact]
+        public void TestP2PPermanentFailureDuringOpen() => TestP2PError(MockConnectionLifecycleLocation.Connect, false);
 
-        //[Fact]
-        //WIP
-        public void TestP2PRecoverableFailureDuringClose()
-        {
-            var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, MockConnectionLifecycleLocation.Close,
-                true);
-            RunReplication(config, (int)CouchbaseLiteError.WebSocketAbnormalClose, CouchbaseLiteErrorType.CouchbaseLite);
-            config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, MockConnectionLifecycleLocation.Close,
-                true);
-            RunReplication(config, (int)CouchbaseLiteError.WebSocketAbnormalClose, CouchbaseLiteErrorType.CouchbaseLite, true);
-        }
+        [Fact]
+        public void TestP2PPermanentFailureDuringSend() => TestP2PError(MockConnectionLifecycleLocation.Send, false);
 
-        private ReplicatorConfiguration CreateFailureP2PConfiguration(ProtocolType protocolType, MockConnectionLifecycleLocation location, bool recoverable)
+        [Fact]
+        public void TestP2PPermanentFailureDuringReceive() => TestP2PError(MockConnectionLifecycleLocation.Receive, false);
+
+
+        [Fact]
+        public void TestP2PFailureDuringClose()
         {
             using (var mdoc = new MutableDocument("livesindb")) {
                 mdoc.SetString("name", "db");
                 Db.Save(mdoc);
             }
 
+            var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, MockConnectionLifecycleLocation.Close,
+                false);
+            RunReplication(config, (int)CouchbaseLiteError.WebSocketAbnormalClose, CouchbaseLiteErrorType.CouchbaseLite);
+            config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, MockConnectionLifecycleLocation.Close,
+                false);
+            RunReplication(config, (int)CouchbaseLiteError.WebSocketAbnormalClose, CouchbaseLiteErrorType.CouchbaseLite, true);
+        }
+
+        [Fact]
+        public void TestP2PPassiveClose()
+        {
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.MessageStream));
+            var serverConnection = new MockServerConnection(listener, ProtocolType.MessageStream);
+            var errorLogic = new ReconnectErrorLogic();
+            var config = new ReplicatorConfiguration(Db,
+                new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.MessageStream,
+                    new MockConnectionFactory(errorLogic)))
+            {
+                Continuous = true
+            };
+
+            var replicator = new Replicator(config);
+            replicator.Start();
+
+            var count = 0;
+            while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
+                Thread.Sleep(500);
+                count.Should().BeLessThan(10, "because otherwise the replicator never went idle");
+            }
+
+            errorLogic.ErrorActive = true;
+            listener.Close(serverConnection);
+            count = 0;
+            while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                Thread.Sleep(500);
+                count.Should().BeLessThan(10, "because otherwise the replicator never stopped");
+            }
+
+            replicator.Status.Error.Should()
+                .NotBeNull("because closing the passive side creates an error on the active one");
+        }
+
+        [Fact]
+        public void TestP2PPassiveCloseAll()
+        {
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.MessageStream));
+            var serverConnection1 = new MockServerConnection(listener, ProtocolType.MessageStream);
+            var serverConnection2 = new MockServerConnection(listener, ProtocolType.MessageStream);
+            var errorLogic = new ReconnectErrorLogic();
+            var config = new ReplicatorConfiguration(Db,
+                new MessageEndpoint("p2ptest1", serverConnection1, ProtocolType.MessageStream,
+                    new MockConnectionFactory(errorLogic)))
+            {
+                Continuous = true
+            };
+
+            var config2 = new ReplicatorConfiguration(Db,
+                new MessageEndpoint("p2ptest2", serverConnection2, ProtocolType.MessageStream,
+                    new MockConnectionFactory(errorLogic)))
+            {
+                Continuous = true
+            };
+
+            var replicator = new Replicator(config);
+            replicator.Start();
+            var replicator2 = new Replicator(config2);
+            replicator2.Start();
+
+            var count = 0;
+            while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Idle && replicator2.Status.Activity != ReplicatorActivityLevel.Idle) {
+                Thread.Sleep(500);
+                count.Should().BeLessThan(10, "because otherwise the replicator(s) never went idle");
+            }
+
+            errorLogic.ErrorActive = true;
+            listener.CloseAll();
+            count = 0;
+            while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped && replicator2.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                Thread.Sleep(500);
+                count.Should().BeLessThan(10, "because otherwise the replicator(s) never stopped");
+            }
+
+            replicator.Status.Error.Should()
+                .NotBeNull("because closing the passive side creates an error on the active one");
+            replicator2.Status.Error.Should()
+                .NotBeNull("because closing the passive side creates an error on the active one");
+            replicator.Dispose();
+            replicator2.Dispose();
+        }
+
+        [Fact]
+        public void TestP2PChangeListener()
+        {
+            var statuses = new List<ReplicatorActivityLevel>();
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.ByteStream));
+            var serverConnection = new MockServerConnection(listener, ProtocolType.ByteStream);
+            var config = new ReplicatorConfiguration(Db,
+                new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.ByteStream,
+                    new MockConnectionFactory(null)))
+            {
+                Continuous = true
+            };
+            listener.AddChangeListener((sender, args) =>
+            {
+                statuses.Add(args.Status.Activity);
+            });
+
+            RunReplication(config, 0, 0);
+            statuses.Count(x => x == ReplicatorActivityLevel.Connecting).Should().Be(1);
+            statuses.Count(x => x == ReplicatorActivityLevel.Busy).Should().BeGreaterOrEqualTo(1);
+            statuses.Any(x => x == ReplicatorActivityLevel.Offline).Should().Be(false);
+            statuses.Count(x => x == ReplicatorActivityLevel.Stopped).Should().Be(1);
+        }
+
+        [Fact]
+        public void TestRemoveChangeListener()
+        {
+            var statuses = new List<ReplicatorActivityLevel>();
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.ByteStream));
+            var serverConnection = new MockServerConnection(listener, ProtocolType.ByteStream);
+            var config = new ReplicatorConfiguration(Db,
+                new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.ByteStream,
+                    new MockConnectionFactory(null)))
+            {
+                Continuous = true
+            };
+            var token = listener.AddChangeListener((sender, args) =>
+            {
+                statuses.Add(args.Status.Activity);
+            });
+            listener.RemoveChangeListener(token);
+            RunReplication(config, 0, 0);
+
+            statuses.Count.Should().Be(0);
+        }
+
+        private ReplicatorConfiguration CreateFailureP2PConfiguration(ProtocolType protocolType, MockConnectionLifecycleLocation location, bool recoverable)
+        {
             var errorLocation = TestErrorLogic.FailWhen(location);
 
             if (recoverable) {
-                errorLocation.WithRecoverableException(2);
+                errorLocation.WithRecoverableException();
             } else {
                 errorLocation.WithPermanentException();
             }
 
-            var listener = new MockServerConnection(_otherDB, protocolType)
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, protocolType));
+            var server = new MockServerConnection(listener, protocolType)
             {
                 ErrorLogic = errorLocation
             };
             var config = new ReplicatorConfiguration(Db,
-                new MessageEndpoint("p2ptest1", listener, protocolType, new MockConnectionFactory(Db, errorLocation)))
+                new MessageEndpoint("p2ptest1", server, protocolType, new MockConnectionFactory(errorLocation)))
             {
                 ReplicatorType = ReplicatorType.Push,
                 Continuous = false
@@ -509,17 +651,26 @@ namespace Test
 
         private void TestP2PError(MockConnectionLifecycleLocation location, bool recoverable)
         {
+            using (var mdoc = new MutableDocument("livesindb")) {
+                mdoc.SetString("name", "db");
+                Db.Save(mdoc);
+            }
+
+            var expectedDomain = recoverable ? 0 : CouchbaseLiteErrorType.CouchbaseLite;
+            var expectedCode = recoverable ? 0 : (int)CouchbaseLiteError.WebSocketAbnormalClose;
+
             var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, location, recoverable);
-            RunReplication(config, 0, 0);
+            RunReplication(config, expectedCode, expectedDomain);
             config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, location, recoverable);
-            RunReplication(config, 0, 0, true);
+            RunReplication(config, expectedCode, expectedDomain, true);
         }
 
         private void RunTwoStepContinuous(ReplicatorType type, string uid)
         {
-            var listener = new MockServerConnection(_otherDB, ProtocolType.ByteStream);
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.ByteStream));
+            var server = new MockServerConnection(listener, ProtocolType.ByteStream);
             var config = new ReplicatorConfiguration(Db,
-                new MessageEndpoint(uid, listener, ProtocolType.ByteStream, new MockConnectionFactory(Db, null)))
+                new MessageEndpoint(uid, server, ProtocolType.ByteStream, new MockConnectionFactory(null)))
             {
                 ReplicatorType = type,
                 Continuous = true
@@ -719,6 +870,7 @@ namespace Test
             WriteLine($"---Status: {s.Activity} ({s.Progress.Completed} / {s.Progress.Total}), lastError = {s.Error}");
             if (s.Activity == ReplicatorActivityLevel.Stopped) {
                 if (errorCode != 0) {
+                    s.Error.Should().NotBeNull();
                     s.Error.Should().BeAssignableTo<CouchbaseException>();
                     var error = s.Error.As<CouchbaseException>();
                     error.Error.Should().Be(errorCode);
@@ -755,7 +907,7 @@ namespace Test
             
             _repl.Start();
             try {
-                _waitAssert.WaitForResult(TimeSpan.FromSeconds(100));
+                _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
             } catch {
                 _repl.Stop();
                 throw;
@@ -768,19 +920,17 @@ namespace Test
 
         private class MockConnectionFactory : IMessageEndpointDelegate
         {
-            private readonly Database _db;
             private readonly IMockConnectionErrorLogic _errorLogic;
 
-            public MockConnectionFactory(Database db, IMockConnectionErrorLogic errorLogic)
+            public MockConnectionFactory(IMockConnectionErrorLogic errorLogic)
             {
-                _db = db;
                 _errorLogic = errorLogic;
             }
 
             public IMessageEndpointConnection CreateConnection(MessageEndpoint endpoint)
             {
                 var retVal =
-                    new MockClientConnection(_db, endpoint.Target as MockServerConnection, endpoint.ProtocolType)
+                    new MockClientConnection(endpoint)
                     {
                         ErrorLogic = _errorLogic,
                     };
@@ -802,6 +952,7 @@ namespace Test
         }
     }
 
+    #if COUCHBASE_ENTERPRISE
     public class TestErrorLogic : IMockConnectionErrorLogic
     {
         private readonly MockConnectionLifecycleLocation _locations;
@@ -845,4 +996,21 @@ namespace Test
             return _exception;
         }
     }
+
+    public class ReconnectErrorLogic : IMockConnectionErrorLogic
+    {
+        public bool ErrorActive { get; set; }
+
+        public bool ShouldClose(MockConnectionLifecycleLocation location)
+        {
+            return ErrorActive && location == MockConnectionLifecycleLocation.Connect;
+        }
+
+        public MessagingException CreateException()
+        {
+            return new MessagingException("Server no longer listening", null, false);
+        }
+    }
+    #endif
 }
+
