@@ -596,10 +596,8 @@ namespace Test
             });
 
             RunReplication(config, 0, 0);
-            statuses.Count(x => x == ReplicatorActivityLevel.Connecting).Should().Be(1);
-            statuses.Count(x => x == ReplicatorActivityLevel.Busy).Should().BeGreaterOrEqualTo(1);
-            statuses.Any(x => x == ReplicatorActivityLevel.Offline).Should().Be(false);
-            statuses.Count(x => x == ReplicatorActivityLevel.Stopped).Should().Be(1);
+            statuses.Count.Should()
+                .BeGreaterThan(1, "because otherwise there were no callbacks to the change listener");
         }
 
         [Fact]
