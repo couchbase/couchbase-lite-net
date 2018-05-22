@@ -428,9 +428,6 @@ namespace Couchbase.Lite.Sync
             var push = Config.ReplicatorType.HasFlag(ReplicatorType.Push);
             var pull = Config.ReplicatorType.HasFlag(ReplicatorType.Pull);
             var continuous = Config.Continuous;
-
-            // Clear the reset flag, it is a one-time thing
-            Config.Options.Reset = false;
             
             var socketFactory = Config.SocketFactory;
             socketFactory.context = GCHandle.ToIntPtr(GCHandle.Alloc(this)).ToPointer();
@@ -443,6 +440,9 @@ namespace Couchbase.Lite.Sync
                 OnStatusChanged = StatusChangedCallback,
                 SocketFactory = &socketFactory
             };
+
+            // Clear the reset flag, it is a one-time thing
+            Config.Options.Reset = false;
 
             var err = new C4Error();
             var status = default(C4ReplicatorStatus);
