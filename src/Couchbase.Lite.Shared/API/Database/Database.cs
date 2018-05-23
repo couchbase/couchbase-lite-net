@@ -87,6 +87,9 @@ namespace Couchbase.Lite
 
         private const string Tag = nameof(Database);
 
+        private static readonly C4DocumentObserverCallback _DocumentObserverCallback = DocObserverCallback;
+        private static readonly C4DatabaseObserverCallback _DatabaseObserverCallback = DbObserverCallback;
+
         #endregion
 
         #region Variables
@@ -429,7 +432,7 @@ namespace Couchbase.Lite
                 var cbHandler = new CouchbaseEventHandler<DatabaseChangedEventArgs>(handler, scheduler);
                 if (_databaseChanged.Add(cbHandler) == 0) {
                     _obsContext = GCHandle.Alloc(this);
-                    _obs = Native.c4dbobs_create(_c4db, DbObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer());
+                    _obs = Native.c4dbobs_create(_c4db, _DatabaseObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer());
                 }
 
                 return new ListenerToken(cbHandler, "db");
@@ -476,7 +479,7 @@ namespace Couchbase.Lite
                 var count = _documentChanged.Add(cbHandler);
                 if (count == 0) {
                     var handle = GCHandle.Alloc(this);
-                    var docObs = Native.c4docobs_create(_c4db, id, DocObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    var docObs = Native.c4docobs_create(_c4db, id, _DocumentObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     _docObs[id] = Tuple.Create((IntPtr)docObs, handle);
                 }
                 
