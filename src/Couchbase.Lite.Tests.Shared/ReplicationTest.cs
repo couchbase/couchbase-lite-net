@@ -539,7 +539,6 @@ namespace Test
         public void TestP2PPassiveCloseAll()
         {
             var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.MessageStream));
-            var awaiter = new ListenerAwaiter(listener);
             var serverConnection1 = new MockServerConnection(listener, ProtocolType.MessageStream);
             var serverConnection2 = new MockServerConnection(listener, ProtocolType.MessageStream);
             var errorLogic = new ReconnectErrorLogic();
@@ -569,15 +568,26 @@ namespace Test
             }
 
             errorLogic.ErrorActive = true;
+            var closeCount = 0;
+            listener.AddChangeListener((sender, args) =>
+            {
+                if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                    closeCount++;
+                }
+            });
+
             listener.CloseAll();
             count = 0;
             while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped && replicator2.Status.Activity != ReplicatorActivityLevel.Stopped) {
                 Thread.Sleep(500);
                 count.Should().BeLessThan(10, "because otherwise the replicator(s) never stopped");
             }
-            
-            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
-            awaiter.Validate();
+
+            count = 0;
+            while (count++ < 10 && closeCount < 2) {
+                Thread.Sleep(500);
+                count.Should().BeLessThan(10, "because otherwise the listener(s) never stopped");
+            }
 
             replicator.Status.Error.Should()
                 .NotBeNull("because closing the passive side creates an error on the active one");
