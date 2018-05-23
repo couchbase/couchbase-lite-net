@@ -500,6 +500,7 @@ namespace Test
         public void TestP2PPassiveClose()
         {
             var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.MessageStream));
+            var awaiter = new ListenerAwaiter(listener);
             var serverConnection = new MockServerConnection(listener, ProtocolType.MessageStream);
             var errorLogic = new ReconnectErrorLogic();
             var config = new ReplicatorConfiguration(Db,
@@ -526,6 +527,10 @@ namespace Test
                 count.Should().BeLessThan(10, "because otherwise the replicator never stopped");
             }
 
+            
+            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
+            awaiter.Validate();
+
             replicator.Status.Error.Should()
                 .NotBeNull("because closing the passive side creates an error on the active one");
         }
@@ -534,6 +539,7 @@ namespace Test
         public void TestP2PPassiveCloseAll()
         {
             var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.MessageStream));
+            var awaiter = new ListenerAwaiter(listener);
             var serverConnection1 = new MockServerConnection(listener, ProtocolType.MessageStream);
             var serverConnection2 = new MockServerConnection(listener, ProtocolType.MessageStream);
             var errorLogic = new ReconnectErrorLogic();
@@ -569,6 +575,9 @@ namespace Test
                 Thread.Sleep(500);
                 count.Should().BeLessThan(10, "because otherwise the replicator(s) never stopped");
             }
+            
+            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
+            awaiter.Validate();
 
             replicator.Status.Error.Should()
                 .NotBeNull("because closing the passive side creates an error on the active one");
@@ -583,6 +592,7 @@ namespace Test
         {
             var statuses = new List<ReplicatorActivityLevel>();
             var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.ByteStream));
+            var awaiter = new ListenerAwaiter(listener);
             var serverConnection = new MockServerConnection(listener, ProtocolType.ByteStream);
             var config = new ReplicatorConfiguration(Db,
                 new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.ByteStream,
@@ -596,6 +606,8 @@ namespace Test
             });
 
             RunReplication(config, 0, 0);
+            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
+            awaiter.Validate();
             statuses.Count.Should()
                 .BeGreaterThan(1, "because otherwise there were no callbacks to the change listener");
         }
@@ -605,6 +617,7 @@ namespace Test
         {
             var statuses = new List<ReplicatorActivityLevel>();
             var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.ByteStream));
+            var awaiter = new ListenerAwaiter(listener);
             var serverConnection = new MockServerConnection(listener, ProtocolType.ByteStream);
             var config = new ReplicatorConfiguration(Db,
                 new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.ByteStream,
@@ -618,6 +631,8 @@ namespace Test
             });
             listener.RemoveChangeListener(token);
             RunReplication(config, 0, 0);
+            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
+            awaiter.Validate();
 
             statuses.Count.Should().Be(0);
         }
@@ -1007,6 +1022,40 @@ namespace Test
         public MessagingException CreateException()
         {
             return new MessagingException("Server no longer listening", null, false);
+        }
+    }
+
+    public class ListenerAwaiter
+    {
+        private readonly ListenerToken _token;
+        private readonly ManualResetEventSlim _mre = new ManualResetEventSlim();
+        private readonly List<Exception> _exceptions = new List<Exception>();
+        private readonly MessageEndpointListener _listener;
+
+        public WaitHandle WaitHandle => _mre.WaitHandle;
+
+        public ListenerAwaiter(MessageEndpointListener listener)
+        {
+            _token = listener.AddChangeListener(CheckForStopped);
+            _listener = listener;
+        }
+
+        public void Validate()
+        {
+            _mre.Dispose();
+            _exceptions.Should().BeEmpty("because otherwise an unexpected error occurred");
+        }
+
+        private void CheckForStopped(object sender, MessageEndpointListenerChangedEventArgs e)
+        {
+            if (e.Status.Error != null) {
+                _exceptions.Add(e.Status.Error);
+            }
+
+            if (e.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                _listener.RemoveChangeListener(_token);
+                _mre.Set();
+            }
         }
     }
     #endif
