@@ -38,6 +38,9 @@ namespace LiteCore.Tests
 #endif
     public unsafe class ObserverTest : Test
     {
+        private static readonly C4DatabaseObserverCallback DatabaseCallback = DBObserverCallback;
+        private static readonly C4DocumentObserverCallback DocumentCallback = DocObserverCallback;
+
         private C4DatabaseObserver* _dbObserver;
         private C4DocumentObserver* _docObserver;
 
@@ -61,7 +64,7 @@ namespace LiteCore.Tests
             {
                 var handle = GCHandle.Alloc(this);
                 try {
-                    _dbObserver = Native.c4dbobs_create(Db, DBObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    _dbObserver = Native.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     CreateRev("A", C4Slice.Constant("1-aa"), Body);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
                     CreateRev("B", C4Slice.Constant("1-bb"), Body);
@@ -93,7 +96,7 @@ namespace LiteCore.Tests
                 var handle = GCHandle.Alloc(this);
                 try {
                     CreateRev("A", C4Slice.Constant("1-aa"), Body);
-                    _docObserver = Native.c4docobs_create(Db, "A", DocObserverCallback,
+                    _docObserver = Native.c4docobs_create(Db, "A", DocumentCallback,
                         GCHandle.ToIntPtr(handle).ToPointer());
 
                     CreateRev("A", C4Slice.Constant("2-bb"), Body);
@@ -111,7 +114,7 @@ namespace LiteCore.Tests
             RunTestVariants(() => {
                 var handle = GCHandle.Alloc(this);
                 try {
-                    _dbObserver = Native.c4dbobs_create(Db, DBObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    _dbObserver = Native.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     CreateRev("A", C4Slice.Constant("1-aa"), Body);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
                     CreateRev("B", C4Slice.Constant("1-bb"), Body);

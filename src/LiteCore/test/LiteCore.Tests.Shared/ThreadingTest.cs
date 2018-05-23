@@ -43,6 +43,7 @@ namespace LiteCore.Tests
         private const int NumDocs = 10000;
         private const bool SharedHandle = false; // Use same C4Database on all threads_
         private object _observerMutex = new object();
+        private static readonly C4DatabaseObserverCallback ObserverCallback = ObsCallback;
         private bool _changesToObserve;
 
 #if !WINDOWS_UWP
@@ -87,8 +88,7 @@ namespace LiteCore.Tests
         {
             var database = OpenDB();
             var handle = GCHandle.Alloc(this);
-            C4DatabaseObserverCallback callback = ObsCallback;
-            var observer = Native.c4dbobs_create(database, callback, GCHandle.ToIntPtr(handle).ToPointer());
+            var observer = Native.c4dbobs_create(database, ObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
             var lastSequence = 0UL;
 
             try {
