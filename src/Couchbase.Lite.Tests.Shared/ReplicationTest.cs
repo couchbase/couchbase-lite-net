@@ -970,6 +970,8 @@ namespace Test
 
             base.Dispose(disposing);
 
+            Thread.Sleep(TimeSpan.FromMilliseconds());
+
             _otherDB.Delete();
             _otherDB = null;
         }
