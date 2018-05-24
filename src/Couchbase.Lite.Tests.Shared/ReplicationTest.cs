@@ -970,7 +970,9 @@ namespace Test
 
             base.Dispose(disposing);
 
-            Thread.Sleep(TimeSpan.FromMilliseconds());
+            // HACK: Try to give time for all async operations to shut down before deleting 
+            // and starting another test
+            Thread.Sleep(TimeSpan.FromMilliseconds(300));
 
             _otherDB.Delete();
             _otherDB = null;
