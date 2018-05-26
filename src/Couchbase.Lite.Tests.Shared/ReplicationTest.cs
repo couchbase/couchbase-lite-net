@@ -68,6 +68,7 @@ namespace Test
 #endif
         {
             ReopenDB();
+            Database.Delete("otherdb", Directory);
             _otherDB = OpenDB("otherdb");
         }
 
@@ -575,6 +576,8 @@ namespace Test
                     closeCount++;
                 }
             });
+
+            Thread.Sleep(1000);
 
             listener.CloseAll();
             count = 0;
