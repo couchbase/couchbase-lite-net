@@ -1030,7 +1030,7 @@ namespace Test
 
         public bool ShouldClose(MockConnectionLifecycleLocation location)
         {
-            return ErrorActive && location == MockConnectionLifecycleLocation.Connect;
+            return ErrorActive;
         }
 
         public MessagingException CreateException()
