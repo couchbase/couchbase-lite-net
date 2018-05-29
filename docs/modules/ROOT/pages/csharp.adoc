@@ -15,21 +15,7 @@ Create or open an existing Virtual Studio project and install Couchbase Lite usi
 
 === Nuget
 
-. Install Couchbase Lite from Nuget (or if you are interested in a prerelease build, install from http://mobile.nuget.couchbase.com/nuget/Developer).
-+
-*Couchbase Lite Community Edition*
-+
-Install the `Couchbase.Lite` package.
-+
-*Couchbase Lite Enterprise Edition*
-+
-If you have a license or you are evaluating the Enterprise edition, install the `Couchbase.Lite.Enterprise` package.
-+
-. Your app must call the relevant `Activate()` function inside of the
-class that is included in the support assembly (there is only one public class in each support assembly, and the support assembly itself is a nuget dependency).
-+
-For example, UWP looks like `Couchbase.Lite.Support.UWP.Activate()`. Currently the support assemblies provide dependency injected mechanisms for default directory logic, and platform specific logging (i.e. Android will log to logcat with correct log levels and tags. No more "mono-stdout" at always info
-level).
+include::{partialsdir}/pre-release-instructions.adoc[]
 
 === Starter code
 
@@ -49,15 +35,14 @@ link:../installation/sync-gateway/index.html[Installing Sync Gateway ⟶]
 
 == Supported Versions
 
-Couchbase Lite .NET will be a .NET Standard 2.0 library as of the
-Couchbase Lite .NET 2.0 GA release. Runtimes which have received more
+Couchbase Lite .NET is a .NET Standard 2.0 library. Runtimes which have received more
 testing and are *officially* supported are:
 
 [cols=",,",options="header",]
 |=========================================================
 |.NET Runtime |Minimum Runtime Version |Minimum OS version
-|.NET Core Win |2.0 |10 (any supported)
-|.NET Framework |4.6.1 |10 (any supported)
+|.NET Core Win |2.0 |10 (any Microsoft supported)
+|.NET Framework |4.6.1 |10 (any Microsoft supported)
 |UWP |6.0.1 |10.0.16299
 |=========================================================
 
@@ -102,7 +87,8 @@ version" is an approximately good metric here.
 
 == API References
 
-http://docs.couchbase.com/mobile/2.0/couchbase-lite-net/[`.NET SDK API References`]
+- http://docs.couchbase.com/mobile/2.0/couchbase-lite-net/[`2.0 .NET SDK API References`]
+- http://docs.couchbase.com/mobile/2.1/couchbase-lite-net/db001[`2.1-DB001 .NET SDK API References`]
 
 == Upgrading
 
@@ -164,6 +150,19 @@ Alternatively, the `Database(string name, DatabaseConfiguration config)`
 initializer can be used to provide specific options in the
 http://docs.couchbase.com/mobile/2.0/couchbase-lite-net/db022/html/T_Couchbase_Lite_DatabaseConfiguration.htm[`DatabaseConfiguration`]
 object such as the database directory.
+
+=== Database Encryption
+
+Couchbase Lite 2.1 introduces database encryption, this functionality is exclusively available in the Enterprise Edition.
+
+The code below demonstrates how to open or create an existing database with an encryption key. This code will not compile if you are running the Community Edition of Couchbase Lite.
+
+[source,swift]
+----
+include::{examplesdir}/Program.cs[tags=database-encryption]
+----
+
+The xref:swift.adoc#database-upgrade[automatic database upgrade] functionality is not supported for encrypted databases. Furthermore, databases encrypted with one SDK (i.e Swift, C#, Java or Objective-C) cannot be opened with another SDK.
 
 === Finding a Database File
 
@@ -917,6 +916,17 @@ Couchbase Lite replicator and thus will trigger a connection retry.
 - `504`: Gateway Timeout
 - `1001`: DNS resolution error
 
+=== Replication Checkpoints
+
+Checkpoints are used by the replicator to keep track of documents that are sent to the target database. Without checkpoints, Couchbase Lite would send the entire database content every time it connects to the target database, even though the target database may already have the majority of the database content from previous replications.
+
+This functionality is generally not a concern to application developers. But if you require the replication to start again from zero then you may call the checkpoint reset method before starting the replicator.
+
+[source,swift]
+----
+include::{examplesdir}/SampleCodeTest.swift[tags=replication-reset-checkpoint]
+----
+
 == Handling Conflicts
 
 In Couchbase Lite 2.0, document conflicts are automatically resolved. This
@@ -987,7 +997,13 @@ include::{examplesdir}/Program.cs[tags=certificate-pinning]
 This example loads the certificate from the application sandbox, then
 converts it to the appropriate type to configure the replication object.
 
-== Release Notes
+== Release Notes (2.1-DB001)
+
+- Device Encryption is now supported (EE features)
+- Resetting a replication (in other words, making it start over again) is now supported via Replication's ResetCheckpoint method. Be sure to call it before the Replication is started.
+- Bug Fixes: #979, #1000, #1008, #1009, #1010, #1011
+
+== Release Notes (2.0)
 
 *Enhancements*
 

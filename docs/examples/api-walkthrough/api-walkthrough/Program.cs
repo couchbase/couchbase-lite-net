@@ -100,6 +100,43 @@ namespace api_walkthrough
             // # end::getting-started[]
         }
 
+        private static void UseEncryption()
+        {
+            // Enterprise edition only
+
+            // # tag::database-encryption[]
+            // Create a new, or open an existing database with encryption enabled
+            var config = new DatabaseConfiguration
+            {
+                // Or, derive a key yourself and pass a byte array of the proper size
+                EncryptionKey = new EncryptionKey("password")
+            };
+
+            using (var db = new Database("seekrit", config)) {
+                // Change the encryption key (or add encryption if the DB is unencrypted)
+                db.ChangeEncryptionKey(new EncryptionKey("betterpassw0rd"));
+
+                // Remove encryption
+                db.ChangeEncryptionKey(null);
+            }
+            // # end::database-encryption[]
+        }
+
+        private static void ResetReplicatorCheckpoint()
+        {
+            var database = _Database;
+            var url = new Uri("ws://localhost:4984/db");
+            var target = new URLEndpoint(url);
+            var config = new ReplicatorConfiguration(database, target);
+            using (var replicator = new Replicator(config)) {
+                // # tag::replication-reset-checkpoint[]
+                // replicator is a Replicator instance
+                replicator.ResetCheckpoint();
+                replicator.Start();
+                // # end::replication-reset-checkpoint[]
+            }
+        }
+
         private static void Read1xAttachment()
         {
             var db = _Database;

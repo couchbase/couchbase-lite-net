@@ -1,0 +1,15 @@
+. Install Couchbase Lite from Nuget.
++
+*Couchbase Lite Community Edition*
++
+Install the `Couchbase.Lite` package.
++
+*Couchbase Lite Enterprise Edition*
++
+If you have a license or you are evaluating the Enterprise edition, install the `Couchbase.Lite.Enterprise` package.
++
+. Your app must call the relevant `Activate()` function inside of the
+class that is included in the support assembly (there is only one public class in each support assembly, and the support assembly itself is a nuget dependency).
++
+For example, UWP looks like `Couchbase.Lite.Support.UWP.Activate()`. Currently the support assemblies provide dependency injected mechanisms for default directory logic, and platform specific logging (i.e. Android will log to logcat with correct log levels and tags. No more "mono-stdout" at always info
+level).

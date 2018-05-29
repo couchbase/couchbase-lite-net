@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.0.0-db023" />
+    <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.1.0-db001" />
     <PackageReference Include="SkiaSharp.Components.Layout" Version="0.6.0" />
   </ItemGroup>
 
