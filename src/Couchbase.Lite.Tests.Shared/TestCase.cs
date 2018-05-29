@@ -15,6 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+#if __IOS__
+extern alias ios;
+#endif
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -296,7 +299,7 @@ namespace Test
                 string line;
                 while ((line = tr.ReadLine()) != null) {
 #elif __IOS__
-			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
+			var bundlePath = ios::Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			using (var tr = new StreamReader(File.Open(bundlePath, FileMode.Open, FileAccess.Read)))
 			{
 				string line;
@@ -336,7 +339,7 @@ namespace Test
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
             return ctx.Assets.Open(path);
 #elif __IOS__
-			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
+			var bundlePath = ios::Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			return File.Open(bundlePath, FileMode.Open, FileAccess.Read);
 #else
             return File.Open(path, FileMode.Open, FileAccess.Read);

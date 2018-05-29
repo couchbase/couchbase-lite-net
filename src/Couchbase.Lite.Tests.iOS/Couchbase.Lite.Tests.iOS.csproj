@@ -149,11 +149,11 @@
     <Reference Include="System" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Core" />
-    <Reference Include="Xamarin.iOS" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Xamarin.iOS" />
   </ItemGroup>
   <ItemGroup>
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\Contents.json">
@@ -165,7 +165,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Couchbase.Lite.Enterprise">
-      <Version>2.0.0-b0435</Version>
+      <Version>2.1.0-b0163</Version>
     </PackageReference>
     <PackageReference Include="FluentAssertions">
       <Version>4.19.4</Version>
@@ -191,6 +191,13 @@
   <ItemGroup>
     <BundleResource Include="Resources\*.*" />
   </ItemGroup>
+  <Target Name="AddAliases" BeforeTargets="FindReferenceAssembliesForReferences;ResolveReferences">
+    <ItemGroup>
+      <ReferencePath Condition="'%(FileName)' == 'Xamarin.iOS'">
+        <Aliases>ios</Aliases>
+      </ReferencePath>
+    </ItemGroup>
+  </Target>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />
   <Import Project="..\LiteCore\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\LiteCore\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
