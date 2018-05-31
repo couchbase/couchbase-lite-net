@@ -38,7 +38,7 @@ You can build Couchbase Lite using either of the following:
 There is one solution file with everything needed to build Couchbase Lite for any platform we support, and it includes the following projects:
 
 * Couchbase.Lite - The .NET Standard base Couchbase Lite library
-* Couchbase.Lite.Support.* - The support classes that inject support classes for a particular platfor
+* Couchbase.Lite.Support.* - The support classes that inject support classes for a particular platform
 
 If you simply build the solution file that will cause a build of *all* projects by default.  You can change which projects get built in the solution options of Xamarin Studio, or the Configuration Manager of Visual Studio.  Alternatively, you could build the projects you want instead of the whole solution.
 
