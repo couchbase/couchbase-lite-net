@@ -198,7 +198,7 @@ namespace Couchbase.Lite.Sync
                 foreach (var entry in split) {
                     var pieces = entry?.Split('=');
                     if (pieces?.Length != 2) {
-                        Log.To.Sync.W(Tag, "Garbage cookie value, ignoring:  {0}", new SecureLogString(entry, LogMessageSensitivity.Insecure));
+                        Log.To.Sync.W(Tag, "Garbage cookie value, ignoring");
                         continue;
                     }
 
