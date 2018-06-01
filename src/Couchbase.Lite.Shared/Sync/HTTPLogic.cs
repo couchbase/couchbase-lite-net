@@ -166,15 +166,12 @@ namespace Couchbase.Lite.Sync
 
                     if (_authorizationHeader == null && Credential != null) {
                         _authorizationHeader = CreateAuthHeader(authResponse);
-                        var password = new SecureLogString(Credential.Password, LogMessageSensitivity.Insecure);
-                        Log.To.Sync.I(Tag, $"Auth challenge; credential = {Credential.UserName} / {password}");
+                        Log.To.Sync.I(Tag, $"Auth challenge received for {Credential.UserName}");
                         ShouldRetry = true;
                         break;
                     }
 
-                    var auth = new SecureLogString(_authorizationHeader, LogMessageSensitivity.Insecure);
-                    var wwwAuth = new SecureLogString(authResponse, LogMessageSensitivity.Insecure);
-                    Log.To.Sync.I(Tag, $"HTTP auth failed; sent Authorization {auth} ; got WWW-Authenticate {wwwAuth}");
+                    Log.To.Sync.I(Tag, "HTTP auth failed");
                     Error = new CouchbaseNetworkException(httpStatus);
                     break;
                 default:

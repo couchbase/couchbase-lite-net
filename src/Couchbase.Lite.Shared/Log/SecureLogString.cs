@@ -125,9 +125,9 @@ namespace Couchbase.Lite.Logging
 
         #endregion
 
-        [NotNull]
         #region Properties
-
+        
+        [NotNull]
         private string String 
         {
             get {
