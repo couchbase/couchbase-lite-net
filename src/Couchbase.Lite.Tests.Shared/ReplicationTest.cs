@@ -70,11 +70,12 @@ namespace Test
             ReopenDB();
             Database.Delete("otherdb", Directory);
             _otherDB = OpenDB("otherdb");
-            Database.SetLogLevel(LogDomain.Replicator, LogLevel.Verbose);
+            //uncomment the code below when you need to see more detail log
+            //Database.SetLogLevel(LogDomain.Replicator, LogLevel.Verbose);
         }
 
         [Fact]
-        public async Task TestCloseServerWhenReplicatorExistsAsync()
+        public async Task TestToCheckReplicatorStopsWhenAttemptToConnectToInvalidEndpoint()
         {
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
             var config = new ReplicatorConfiguration(Db, targetEndpoint);
@@ -82,19 +83,13 @@ namespace Test
             {
                 repl.Start();
                 var count = 0;
-
-                this.Invoking(x => ReopenDB())
-                    .ShouldThrow<CouchbaseLiteException>(
-                        "because the database cannot be closed while replication is running");
-            
                 while (count++ > 20 && repl.Status.Activity != ReplicatorActivityLevel.Stopped)
                 {
                     WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
                     await Task.Delay(500);
                 }
 
-                if(repl.Status.Activity == ReplicatorActivityLevel.Stopped)
-                    WriteLine($"Replication status still {repl.Status.Activity}, stopped");
+                count.Should().BeLessThan(20);
             }
         }
 
