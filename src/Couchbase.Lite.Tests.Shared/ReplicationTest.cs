@@ -532,37 +532,45 @@ namespace Test
                 Continuous = true
             };
 
-            var replicator = new Replicator(config);
-            replicator.Start();
+            using (var replicator = new Replicator(config)) {
+                replicator.Start();
 
-            var count = 0;
-            while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
-                Thread.Sleep(500);
-                count.Should().BeLessThan(10, "because otherwise the replicator never went idle");
+                var count = 0;
+                while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
+                    Thread.Sleep(500);
+                    count.Should().BeLessThan(10, "because otherwise the replicator never went idle");
+                }
+
+                errorLogic.ErrorActive = true;
+                listener.Close(serverConnection);
+                count = 0;
+                while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                    Thread.Sleep(500);
+                    count.Should().BeLessThan(10, "because otherwise the replicator never stopped");
+                }
+
+
+                awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
+                awaiter.Validate();
+
+                replicator.Status.Error.Should()
+                    .NotBeNull("because closing the passive side creates an error on the active one");
             }
-
-            errorLogic.ErrorActive = true;
-            listener.Close(serverConnection);
-            count = 0;
-            while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped) {
-                Thread.Sleep(500);
-                count.Should().BeLessThan(10, "because otherwise the replicator never stopped");
-            }
-
-            
-            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
-            awaiter.Validate();
-
-            replicator.Status.Error.Should()
-                .NotBeNull("because closing the passive side creates an error on the active one");
         }
 
         [Fact]
         public void TestP2PPassiveCloseAll()
         {
+            using (var doc = new MutableDocument("test")) {
+                doc.SetString("name", "Smokey");
+                Db.Save(doc);
+            }
+
             var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.MessageStream));
             var serverConnection1 = new MockServerConnection(listener, ProtocolType.MessageStream);
             var serverConnection2 = new MockServerConnection(listener, ProtocolType.MessageStream);
+            var closeWait1 = new ManualResetEventSlim();
+            var closeWait2 = new ManualResetEventSlim();
             var errorLogic = new ReconnectErrorLogic();
             var config = new ReplicatorConfiguration(Db,
                 new MessageEndpoint("p2ptest1", serverConnection1, ProtocolType.MessageStream,
@@ -578,47 +586,48 @@ namespace Test
                 Continuous = true
             };
 
-            var replicator = new Replicator(config);
-            replicator.Start();
-            var replicator2 = new Replicator(config2);
-            replicator2.Start();
+            using(var replicator = new Replicator(config))
+            using (var replicator2 = new Replicator(config2)) {
+                replicator.Start();
+                replicator2.Start();
 
-            var count = 0;
-            while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Idle && replicator2.Status.Activity != ReplicatorActivityLevel.Idle) {
-                Thread.Sleep(500);
-                count.Should().BeLessThan(10, "because otherwise the replicator(s) never went idle");
-            }
-
-            errorLogic.ErrorActive = true;
-            var closeCount = 0;
-            listener.AddChangeListener((sender, args) =>
-            {
-                if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                    closeCount++;
+                var count = 0;
+                while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Idle &&
+                       replicator2.Status.Activity != ReplicatorActivityLevel.Idle) {
+                    Thread.Sleep(500);
+                    count.Should().BeLessThan(10, "because otherwise the replicator(s) never went idle");
                 }
-            });
 
-            Thread.Sleep(1000);
+                errorLogic.ErrorActive = true;
+                listener.AddChangeListener((sender, args) =>
+                {
+                    if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                        if (args.Connection == serverConnection1) {
+                            closeWait1.Set();
+                        } else {
+                            closeWait2.Set();
+                        }
+                    }
+                });
 
-            listener.CloseAll();
-            count = 0;
-            while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped && replicator2.Status.Activity != ReplicatorActivityLevel.Stopped) {
-                Thread.Sleep(500);
-                count.Should().BeLessThan(10, "because otherwise the replicator(s) never stopped");
+                listener.CloseAll();
+                count = 0;
+                while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped &&
+                       replicator2.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                    Thread.Sleep(500);
+                    count.Should().BeLessThan(10, "because otherwise the replicator(s) never stopped");
+                }
+
+                closeWait1.Wait(TimeSpan.FromSeconds(5)).Should()
+                    .BeTrue("because otherwise the first listener did not stop");
+                closeWait2.Wait(TimeSpan.FromSeconds(5)).Should()
+                    .BeTrue("because otherwise the second listener did not stop");
+
+                replicator.Status.Error.Should()
+                    .NotBeNull("because closing the passive side creates an error on the active one");
+                replicator2.Status.Error.Should()
+                    .NotBeNull("because closing the passive side creates an error on the active one");
             }
-
-            count = 0;
-            while (count++ < 10 && closeCount < 2) {
-                Thread.Sleep(500);
-                count.Should().BeLessThan(10, "because otherwise the listener(s) never stopped");
-            }
-
-            replicator.Status.Error.Should()
-                .NotBeNull("because closing the passive side creates an error on the active one");
-            replicator2.Status.Error.Should()
-                .NotBeNull("because closing the passive side creates an error on the active one");
-            replicator.Dispose();
-            replicator2.Dispose();
         }
 
         [Fact]
@@ -722,71 +731,71 @@ namespace Test
                 ReplicatorType = type,
                 Continuous = true
             };
-            var replicator = new Replicator(config);
-            replicator.Start();
 
-            Database firstSource = null;
-            Database secondSource = null;
-            Database firstTarget = null;
-            Database secondTarget = null;
-            if (type == ReplicatorType.Push) {
-                firstSource = Db;
-                secondSource = Db;
-                firstTarget = _otherDB;
-                secondTarget = _otherDB;
-            } else if (type == ReplicatorType.Pull) {
-                firstSource = _otherDB;
-                secondSource = _otherDB;
-                firstTarget = Db;
-                secondTarget = Db;
-            } else {
-                firstSource = Db;
-                secondSource = _otherDB;
-                firstTarget = _otherDB;
-                secondTarget = Db;
+            using (var replicator = new Replicator(config)) {
+                replicator.Start();
+
+                Database firstSource = null;
+                Database secondSource = null;
+                Database firstTarget = null;
+                Database secondTarget = null;
+                if (type == ReplicatorType.Push) {
+                    firstSource = Db;
+                    secondSource = Db;
+                    firstTarget = _otherDB;
+                    secondTarget = _otherDB;
+                } else if (type == ReplicatorType.Pull) {
+                    firstSource = _otherDB;
+                    secondSource = _otherDB;
+                    firstTarget = Db;
+                    secondTarget = Db;
+                } else {
+                    firstSource = Db;
+                    secondSource = _otherDB;
+                    firstTarget = _otherDB;
+                    secondTarget = Db;
+                }
+
+                using (var mdoc = new MutableDocument("livesindb")) {
+                    mdoc.SetString("name", "db");
+                    mdoc.SetInt("version", 1);
+                    firstSource.Save(mdoc);
+                }
+
+                var count = 0;
+                while (replicator.Status.Progress.Completed == 0 ||
+                       replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
+                    Thread.Sleep(500);
+                    count++;
+                    count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
+                }
+
+                var previousCompleted = replicator.Status.Progress.Completed;
+                firstTarget.Count.Should().Be(1);
+
+                using (var savedDoc = secondSource.GetDocument("livesindb"))
+                using (var mdoc = savedDoc.ToMutable()) {
+                    mdoc.SetInt("version", 2);
+                    secondSource.Save(mdoc);
+                }
+
+                count = 0;
+                while (replicator.Status.Progress.Completed == previousCompleted ||
+                       replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
+                    Thread.Sleep(500);
+                    count++;
+                    count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
+                }
+
+                using (var savedDoc = secondTarget.GetDocument("livesindb")) {
+                    savedDoc.GetInt("version").Should().Be(2);
+                }
+
+                replicator.Stop();
+                while (replicator.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                    Thread.Sleep(100);
+                }
             }
-
-            using (var mdoc = new MutableDocument("livesindb")) {
-                mdoc.SetString("name", "db");
-                mdoc.SetInt("version", 1);
-                firstSource.Save(mdoc);
-            }
-
-            var count = 0;
-            while (replicator.Status.Progress.Completed == 0 ||
-                   replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
-                Thread.Sleep(500);
-                count++;
-                count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
-            }
-
-            var previousCompleted = replicator.Status.Progress.Completed;
-            firstTarget.Count.Should().Be(1);
-
-            using(var savedDoc = secondSource.GetDocument("livesindb"))
-            using (var mdoc = savedDoc.ToMutable()) {
-                mdoc.SetInt("version", 2);
-                secondSource.Save(mdoc);
-            }
-
-            count = 0;
-            while (replicator.Status.Progress.Completed == previousCompleted ||
-                   replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
-                Thread.Sleep(500);
-                count++;
-                count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
-            }
-
-            using (var savedDoc = secondTarget.GetDocument("livesindb")) {
-                savedDoc.GetInt("version").Should().Be(2);
-            }
-
-            replicator.Stop();
-            while (replicator.Status.Activity != ReplicatorActivityLevel.Stopped) {
-                Thread.Sleep(100);
-            }
-
-            replicator.Dispose();
         }
 
 #endif
