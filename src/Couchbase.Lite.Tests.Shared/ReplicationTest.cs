@@ -75,7 +75,7 @@ namespace Test
         }
 
         [Fact]
-        public async Task TestToCheckReplicatorStopsWhenAttemptToConnectToInvalidEndpoint()
+        public async Task TestReplicatorStopsWhenEndpointInvalid()
         {
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
             var config = new ReplicatorConfiguration(Db, targetEndpoint);
@@ -89,7 +89,7 @@ namespace Test
                     await Task.Delay(500);
                 }
 
-                count.Should().BeLessThan(20);
+                count.Should().BeLessThan(20, "because otherwise the replicator never stopped");
             }
         }
 
