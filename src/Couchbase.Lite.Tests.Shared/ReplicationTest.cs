@@ -83,7 +83,7 @@ namespace Test
             {
                 repl.Start();
                 var count = 0;
-                while (count++ > 20 && repl.Status.Activity != ReplicatorActivityLevel.Stopped)
+                while (count++ <= 20 && repl.Status.Activity != ReplicatorActivityLevel.Stopped)
                 {
                     WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
                     await Task.Delay(500);
