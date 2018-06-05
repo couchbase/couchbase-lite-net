@@ -198,49 +198,35 @@ namespace Couchbase.Lite.Sync
 
                 // STEP 2: Open the socket connection to the remote host
                 var cts = new CancellationTokenSource(ConnectTimeout);
-
-                using (cts.Token.Register(() => { cts.Dispose(); }))
-                {
-                }
+                var tok = cts.Token;
+                
                 try
-                    {
-                        var task = _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port)
-                        .ContinueWith(t => {
-                            return t.IsFaulted ? null : _client;
-                         }, TaskContinuationOptions.ExecuteSynchronously);
-
-                        var timeoutTask = Task.Delay(ConnectTimeout)
-                            .ContinueWith<TcpClient>(t => null, TaskContinuationOptions.ExecuteSynchronously);
-                        var resultTask = Task.WhenAny(task, timeoutTask).Unwrap();
-
-                        resultTask.Wait();
-                        var resultTcpClient = resultTask.Result;
-
-                        if (resultTcpClient != null)
+                {
+                    _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port)
+                    .ContinueWith(t =>
                         {
-                            // Connected!
-                            task.ContinueWith(t =>
+                            if (!NetworkTaskSuccessful(t))
                             {
-                                if (!NetworkTaskSuccessful(t))
-                                {
-                                    return;
-                                }
+                                DidClose(new OperationCanceledException());
+                                return;
+                            }
+                            _queue.DispatchAsync(StartInternal);
 
-                                _queue.DispatchAsync(StartInternal);
+                        }, tok);
+                }
+                catch (Exception e)
+                {
+                    // Yes, unfortunately exceptions can either be thrown here or in the task...
+                    DidClose(e);
+                }
 
-                            }, cts.Token);
-                        }
-                        else
-                        {
-                            // Not connected
-                            DidClose(new OperationCanceledException());//what kind of exception we should use
-                        }
-                    }
-                    catch (Exception e)
+                using (tok.Register(() => { cts.Dispose(); }))
+                {
+                    if (!_client.Connected)
                     {
-                        // Yes, unfortunately exceptions can either be thrown here or in the task...
-                        DidClose(e);
+                        DidClose(new OperationCanceledException());
                     }
+                }
             });
         }
 
