@@ -74,7 +74,7 @@ namespace Test
             //Database.SetLogLevel(LogDomain.Replicator, LogLevel.Verbose);
         }
 
-        [Fact]
+        //[Fact]
         public async Task TestReplicatorStopsWhenEndpointInvalid()
         {
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
