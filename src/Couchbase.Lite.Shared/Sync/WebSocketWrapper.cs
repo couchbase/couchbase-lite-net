@@ -197,34 +197,43 @@ namespace Couchbase.Lite.Sync
                 }
 
                 // STEP 2: Open the socket connection to the remote host
-                var cts = new CancellationTokenSource();
-                var tok = cts.Token;
-                
-                tok.Register(() =>
-                {
-                    _client.Close();
-                });
+                var cts = new CancellationTokenSource(ConnectTimeout);
+                cts.CancelAfter(ConnectTimeout);
 
+                using (cts.Token.Register(() => { _client.Close(); }))
+                {
+                    _client.Dispose();
+                }
                 try
                 {
-                    _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port).ContinueWith(t =>
+                    using (cts)
                     {
-                        if (!NetworkTaskSuccessful(t)) {
-                            return;
-                        }
+                        _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port).ContinueWith(t =>
+                        {
+                            if (!NetworkTaskSuccessful(t))
+                            {
+                                return;
+                            }
 
-                        _queue.DispatchAsync(StartInternal);
+                            _queue.DispatchAsync(StartInternal);
 
-                        if (tok.IsCancellationRequested)
-                            return;
-                    }, tok);
+                        }, cts.Token);
+                    }
                 }
-                catch (Exception e) {
+                catch (OperationCanceledException)
+                {
+                    // connection timeout
+                    _client.Close();
+                }
+                catch (SocketException)
+                {
+                    _client.Close();
+                }
+                catch (Exception e)
+                {
                     // Yes, unfortunately exceptions can either be thrown here or in the task...
                     DidClose(e);
                 }
-
-                cts.CancelAfter(ConnectTimeout);
             });
         }
 
