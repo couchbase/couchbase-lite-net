@@ -198,7 +198,14 @@ namespace Couchbase.Lite.Sync
 
                 // STEP 2: Open the socket connection to the remote host
                 var cts = new CancellationTokenSource();
+                var tok = cts.Token;
                 cts.CancelAfter(ConnectTimeout);
+
+                tok.Register(() =>
+                {
+                    _client.Close();
+                });
+
                 try {
                     _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port).ContinueWith(t =>
                     {
@@ -207,7 +214,10 @@ namespace Couchbase.Lite.Sync
                         }
 
                         _queue.DispatchAsync(StartInternal);
-                    }, cts.Token);
+
+                        if (tok.IsCancellationRequested)
+                            return;
+                    }, tok);
                 } catch (Exception e) {
                     // Yes, unfortunately exceptions can either be thrown here or in the task...
                     DidClose(e);
