@@ -198,42 +198,49 @@ namespace Couchbase.Lite.Sync
 
                 // STEP 2: Open the socket connection to the remote host
                 var cts = new CancellationTokenSource(ConnectTimeout);
-                cts.CancelAfter(ConnectTimeout);
 
-                using (cts.Token.Register(() => { _client.Close(); }))
+                using (cts.Token.Register(() => { cts.Dispose(); }))
                 {
-                    _client.Dispose();
                 }
                 try
-                {
-                    using (cts)
                     {
-                        _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port).ContinueWith(t =>
+                        var task = _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port)
+                        .ContinueWith(t => {
+                            return t.IsFaulted ? null : _client;
+                         }, TaskContinuationOptions.ExecuteSynchronously);
+
+                        var timeoutTask = Task.Delay(ConnectTimeout)
+                            .ContinueWith<TcpClient>(t => null, TaskContinuationOptions.ExecuteSynchronously);
+                        var resultTask = Task.WhenAny(task, timeoutTask).Unwrap();
+
+                        resultTask.Wait();
+                        var resultTcpClient = resultTask.Result;
+
+                        if (resultTcpClient != null)
                         {
-                            if (!NetworkTaskSuccessful(t))
+                            // Connected!
+                            task.ContinueWith(t =>
                             {
-                                return;
-                            }
+                                if (!NetworkTaskSuccessful(t))
+                                {
+                                    return;
+                                }
 
-                            _queue.DispatchAsync(StartInternal);
+                                _queue.DispatchAsync(StartInternal);
 
-                        }, cts.Token);
+                            }, cts.Token);
+                        }
+                        else
+                        {
+                            // Not connected
+                            DidClose(new OperationCanceledException());//what kind of exception we should use
+                        }
                     }
-                }
-                catch (OperationCanceledException)
-                {
-                    // connection timeout
-                    _client.Close();
-                }
-                catch (SocketException)
-                {
-                    _client.Close();
-                }
-                catch (Exception e)
-                {
-                    // Yes, unfortunately exceptions can either be thrown here or in the task...
-                    DidClose(e);
-                }
+                    catch (Exception e)
+                    {
+                        // Yes, unfortunately exceptions can either be thrown here or in the task...
+                        DidClose(e);
+                    }
             });
         }
 
