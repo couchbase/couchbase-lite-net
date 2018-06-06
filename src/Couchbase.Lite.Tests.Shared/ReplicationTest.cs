@@ -83,13 +83,13 @@ namespace Test
             {
                 repl.Start();
                 var count = 0;
-                while (count++ <= 20 && repl.Status.Activity != ReplicatorActivityLevel.Stopped)
+                while (count++ <= 35 && repl.Status.Activity != ReplicatorActivityLevel.Stopped)
                 {
                     WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
                     await Task.Delay(500);
                 }
 
-                count.Should().BeLessThan(20, "because otherwise the replicator never stopped");
+                count.Should().BeLessThan(35, "because otherwise the replicator never stopped");
             }
         }
 
