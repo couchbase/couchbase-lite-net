@@ -205,9 +205,7 @@ namespace Couchbase.Lite.Sync
                     _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port)
                     .ContinueWith(t =>
                         {
-                            if (!NetworkTaskSuccessful(t))
-                            {
-                                DidClose(new OperationCanceledException());
+                            if (!NetworkTaskSuccessful(t)) {
                                 return;
                             }
                             _queue.DispatchAsync(StartInternal);
@@ -220,13 +218,18 @@ namespace Couchbase.Lite.Sync
                     DidClose(e);
                 }
 
-                using (tok.Register(() => { cts.Dispose(); }))
+                var cancelCallback = default(CancellationTokenRegistration);
+                cancelCallback = tok.Register(() =>
                 {
-                    if (!_client.Connected)
-                    {
+                    if (!_client.Connected) {
+                        // TODO: Should this be transient?
                         DidClose(new OperationCanceledException());
+                        _client.Dispose();
                     }
-                }
+
+                    cancelCallback.Dispose();
+                    cts.Dispose();
+                });
             });
         }
 
