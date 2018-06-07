@@ -254,7 +254,7 @@ namespace Test
         {
             var albumCount = 0;
             // Workaround for https://github.com/couchbase/couchbase-lite-net/issues/1012
-            var collation = (QueryCollation)Collation.Unicode().IgnoreCase(true).IgnoreAccents(true);
+            var collation = Collation.Unicode().IgnoreCase(true).IgnoreAccents(true);
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("Album")))
                 .From(DataSource.Database(Db))
