@@ -254,16 +254,14 @@ namespace Test
         {
             var albumCount = 0;
             // Workaround for https://github.com/couchbase/couchbase-lite-net/issues/1012
-            var whereCollation = Collation.Unicode().IgnoreCase(true).IgnoreAccents(true);
-            var collation = Collation.Unicode().IgnoreCase(true).IgnoreAccents(true);
-            var collation2 = Collation.Unicode().IgnoreCase(true).IgnoreAccents(true);
+            var collation = (QueryCollation)Collation.Unicode().IgnoreCase(true).IgnoreAccents(true);
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("Album")))
                 .From(DataSource.Database(Db))
-                   .Where(Expression.Property("Artist").Collate(whereCollation).EqualTo(Expression.Parameter("ARTIST"))
+                   .Where(Expression.Property("Artist").Collate(collation).EqualTo(Expression.Parameter("ARTIST"))
                     .And(Expression.Property("Compilation").IsNullOrMissing()))
                 .GroupBy(Expression.Property("Album").Collate(collation))
-                   .OrderBy(Ordering.Expression(Expression.Property("Album").Collate(collation2)))) {
+                   .OrderBy(Ordering.Expression(Expression.Property("Album").Collate(collation)))) {
                 bench.Start();
                
                 foreach (var artist in _artists) {
