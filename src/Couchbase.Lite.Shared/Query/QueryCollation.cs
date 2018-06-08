@@ -36,6 +36,12 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
+        // Copy constructor.
+        public QueryCollation(QueryCollation collationCopy)
+        {
+            _collation = new Dictionary<string, object>(collationCopy._collation);
+        }
+
         public QueryCollation(bool unicodeAware)
         {
             if (unicodeAware) {

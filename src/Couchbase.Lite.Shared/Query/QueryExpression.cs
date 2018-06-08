@@ -147,6 +147,7 @@ namespace Couchbase.Lite.Internal.Query
         public IExpression Collate(ICollation collation)
         {
             var col = Misc.TryCast<ICollation, QueryCollation>(collation);
+            col = new QueryCollation(col);
             col.SetOperand(this);
             return col;
         }
