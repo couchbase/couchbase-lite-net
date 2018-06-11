@@ -74,9 +74,11 @@ namespace Test
             //Database.SetLogLevel(LogDomain.Replicator, LogLevel.Verbose);
         }
 
-        //[Fact]
+        [Fact]
         public async Task TestReplicatorStopsWhenEndpointInvalid()
         {
+            // If this IP address happens to exist, then change it.  It needs to be an address that does not
+            // exist on the LAN
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
             var config = new ReplicatorConfiguration(Db, targetEndpoint);
             using (var repl = new Replicator(config))
