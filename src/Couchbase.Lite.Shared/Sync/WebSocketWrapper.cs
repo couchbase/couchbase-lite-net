@@ -224,7 +224,6 @@ namespace Couchbase.Lite.Sync
                     if (!_client.Connected) {
                         // TODO: Should this be transient?
                         DidClose(new OperationCanceledException());
-                        _client.Dispose();
                     }
 
                     cancelCallback.Dispose();
