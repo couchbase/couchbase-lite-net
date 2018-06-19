@@ -38,6 +38,8 @@ using LiteCore.Interop;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
+using System.Threading;
+
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 #else
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -91,9 +93,9 @@ namespace Test
         public TestCase()
         { 
 #endif
-                
-            Database.Delete($"{DatabaseName}{_counter}", Directory);
-            OpenDB();
+            var nextCounter = Interlocked.Increment(ref _counter);
+            Database.Delete($"{DatabaseName}{nextCounter}", Directory);
+            OpenDB(nextCounter);
         }
 
         protected void WriteLine(string line)
@@ -134,13 +136,13 @@ namespace Test
         }
 
 
-        protected void OpenDB()
+        protected void OpenDB(int count)
         {
             if(Db != null) {
                 throw new InvalidOperationException();
             }
             
-            Db = OpenDB($"{DatabaseName}{_counter}");
+            Db = OpenDB($"{DatabaseName}{count}");
         }
 
         protected Database OpenDB(string name)
@@ -156,8 +158,7 @@ namespace Test
         protected void ReopenDB()
         {
             Db.Dispose();
-            Db = null;
-            OpenDB();
+            Db = OpenDB(Db.Name);
         }
 
         protected void SaveDocument(MutableDocument document)
@@ -249,16 +250,12 @@ namespace Test
         protected virtual void Dispose(bool disposing)
         {
             Db?.Dispose();
+            var name = Db?.Name;
             Db = null;
             Log.DisableTextLogging();
 
-            try {
-                Database.Delete($"{DatabaseName}{_counter}", Directory);
-            } catch (CouchbaseLiteException) {
-                // Change the DB Name so that not every single test after this fails,
-                // but also fail this test because it didn't clean up properly
-                _counter++;
-                throw;
+            if (name != null) {
+                Database.Delete(name, Directory);
             }
         }
 

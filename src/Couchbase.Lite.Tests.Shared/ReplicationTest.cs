@@ -54,6 +54,7 @@ namespace Test
 #endif
     public sealed class ReplicatorTest : TestCase
     {
+        private static int Counter;
         private Database _otherDB;
         private Replicator _repl;
         private WaitAssert _waitAssert;
@@ -68,8 +69,9 @@ namespace Test
 #endif
         {
             ReopenDB();
-            Database.Delete("otherdb", Directory);
-            _otherDB = OpenDB("otherdb");
+            var nextCounter = Interlocked.Increment(ref Counter);
+            Database.Delete($"otherdb{nextCounter}", Directory);
+            _otherDB = OpenDB($"otherdb{nextCounter}");
             //uncomment the code below when you need to see more detail log
             //Database.SetLogLevel(LogDomain.Replicator, LogLevel.Verbose);
         }
@@ -1004,10 +1006,6 @@ namespace Test
             _repl = null;
 
             base.Dispose(disposing);
-
-            // HACK: Try to give time for all async operations to shut down before deleting 
-            // and starting another test
-            Thread.Sleep(TimeSpan.FromMilliseconds(300));
 
             _otherDB.Delete();
             _otherDB = null;
