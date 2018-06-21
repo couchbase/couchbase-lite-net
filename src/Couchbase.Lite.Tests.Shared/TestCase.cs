@@ -255,7 +255,21 @@ namespace Test
             Log.DisableTextLogging();
 
             if (name != null) {
-                Database.Delete(name, Directory);
+                var count = 0;
+                do {
+                    try {
+                        Database.Delete(name, Directory);
+                        count = 5;
+                    } catch (Exception e) {
+                        WriteLine($"Error deleting database: {e.Message}");
+                        if (count < 5) {
+                            Thread.Sleep(500);                            
+                            WriteLine("Retrying...");
+                        } else {
+                            throw;
+                        }
+                    }
+                } while (count++ < 5);
             }
         }
 

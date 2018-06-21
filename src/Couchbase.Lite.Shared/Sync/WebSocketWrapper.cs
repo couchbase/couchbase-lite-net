@@ -569,7 +569,7 @@ namespace Couchbase.Lite.Sync
                 _receivePause = null;
                 _writeQueue?.CompleteAdding();
                 var count = 0;
-                while (count++ < 5 && _writeQueue != null && _writeQueue.IsCompleted) {
+                while (count++ < 5 && _writeQueue != null && !_writeQueue.IsCompleted) {
                     Thread.Sleep(500);
                 }
 
