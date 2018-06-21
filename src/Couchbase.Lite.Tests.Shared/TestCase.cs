@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
@@ -38,7 +39,6 @@ using LiteCore.Interop;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-using System.Threading;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 #else
