@@ -221,7 +221,7 @@ namespace Couchbase.Lite.Sync
                 var cancelCallback = default(CancellationTokenRegistration);
                 cancelCallback = tok.Register(() =>
                 {
-                    if (!_client.Connected) {
+                    if (_client!=null && !_client.Connected) {
                         // TODO: Should this be transient?
                         DidClose(new OperationCanceledException());
                     }
