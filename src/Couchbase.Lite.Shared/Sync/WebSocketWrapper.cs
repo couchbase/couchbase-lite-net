@@ -210,11 +210,7 @@ namespace Couchbase.Lite.Sync
                         if (proxy != null) {
                             webproxy = proxy.CreateProxy(new Uri("ws://" + _logic.ProxyRequestUrl));
                             if (webproxy != null) {
-                                _logic.hasProxy = true;
-                                //sg
                                 connectProxyAsync(_logic.ProxyRequestUrl?.Host, _logic.ProxyRequestUrl.Port, "proxyUer", "proxyPassword");
-                                //p2p
-                                //connectProxy(_logic.ProxyRequestUrl?.Host, _logic.ProxyRequestUrl.Port, "proxyUer", "proxyPassword");
                             }
                         }
                     }
