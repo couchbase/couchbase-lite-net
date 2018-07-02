@@ -84,9 +84,7 @@ namespace Couchbase.Lite.Sync
 
         public bool ShouldRetry { get; private set; }
 
-        public bool hasProxy { get; set; }
-
-        public Uri ProxyRequestUrl { get; set; }
+        public bool HasProxy { get; set; }
 
         public Uri UrlRequest => _urlRequest.Uri;
 

@@ -196,28 +196,26 @@ namespace Couchbase.Lite.Sync
                     };
                 }
 
-                //TODO: find a way to pass the proxy url info
-                _logic.ProxyRequestUrl = new Uri("ws://localhost:3128");
-
                 // STEP 2.5: The IProxy interface will detect a system wide proxy that is set
                 // And if it is, it will return an IWebProxy object to use
                 // Sending "CONNECT" request if IWebProxy object is not null
                 IProxy proxy = Service.GetInstance<IProxy>();
-                IWebProxy webproxy = null;
+                WebProxy webproxy = null;
 
                 try {
                     if (_client != null && !_client.Connected) {
                         if (proxy != null) {
-                            webproxy = proxy.CreateProxy(new Uri("ws://" + _logic.ProxyRequestUrl));
+                            Uri proxyUri = new Uri("ws://"+_logic.UrlRequest.Host + ":" + _logic.UrlRequest.Port);
+                            webproxy = (WebProxy)proxy.CreateProxy(proxyUri);
                             if (webproxy != null) {
-                                _logic.hasProxy = true;
-                                connectProxyAsync(_logic.ProxyRequestUrl?.Host, _logic.ProxyRequestUrl.Port, "proxyUer", "proxyPassword");
+                                _logic.HasProxy = true;
+                                connectProxyAsync(webproxy.Address.Host, webproxy.Address.Port, "proxyUer", "proxyPassword");
                             }
                         }
                     }
                 } catch { }
 
-                if (!_logic.hasProxy) {
+                if (!_logic.HasProxy) {
                     OpenConnectionToRemote();
                 }
             });
@@ -632,7 +630,7 @@ namespace Couchbase.Lite.Sync
             var cts = new CancellationTokenSource(ConnectTimeout);
             var tok = cts.Token;
 
-            if(_logic.hasProxy) {
+            if(_logic.HasProxy) {
                 _queue.DispatchAsync(StartInternal);
             }
             else if (_client != null && !_client.Connected) {
