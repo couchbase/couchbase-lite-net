@@ -84,6 +84,10 @@ namespace Couchbase.Lite.Sync
 
         public bool ShouldRetry { get; private set; }
 
+        public bool hasProxy { get; set; }
+
+        public Uri ProxyRequestUrl { get; set; }
+
         public Uri UrlRequest => _urlRequest.Uri;
 
         public bool UseTls
@@ -107,6 +111,17 @@ namespace Couchbase.Lite.Sync
         #endregion
 
         #region Public Methods
+
+        public byte[] ProxyRequest(string user="", string password="")
+        {
+            String send = String.Format("CONNECT {0}:{1} HTTP/1.1\r\nHost: {0}\r\nProxy-Connection: keep-alive\r\n\r\n",
+                                            _urlRequest.Host, _urlRequest.Port);
+            if (user != "" && password != "") {
+                string basic = String.Format("CONNECT {0}:{1} HTTP/1.1\r\nHost: {0}\r\nContent-Length: 0\r\nProxy-Connection: Keep-Alive\r\nProxy-Authorization: Basic {2}\r\nPragma: no-cache\r\n\r\n\r\n",
+                                                _urlRequest.Host, _urlRequest.Port, Encoding.ASCII.GetBytes(String.Format("{0}:{1}", user, password)));
+            }
+            return Encoding.ASCII.GetBytes(send);
+        }
 
         public byte[] HTTPRequestData()
         {
