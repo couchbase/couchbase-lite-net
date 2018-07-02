@@ -30,7 +30,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-
+using Couchbase.Lite.DI;
 using Couchbase.Lite.Interop;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
@@ -196,39 +196,30 @@ namespace Couchbase.Lite.Sync
                     };
                 }
 
-                // STEP 2: Open the socket connection to the remote host
-                var cts = new CancellationTokenSource(ConnectTimeout);
-                var tok = cts.Token;
-                
-                try
-                {
-                    _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port)
-                    .ContinueWith(t =>
-                        {
-                            if (!NetworkTaskSuccessful(t)) {
-                                return;
+                //TODO: find a way to pass the proxy url info
+                _logic.ProxyRequestUrl = new Uri("ws://localhost:3128");
+
+                // STEP 2.5: The IProxy interface will detect a system wide proxy that is set
+                // And if it is, it will return an IWebProxy object to use
+                // Sending "CONNECT" request if IWebProxy object is not null
+                IProxy proxy = Service.GetInstance<IProxy>();
+                IWebProxy webproxy = null;
+
+                try {
+                    if (_client != null && !_client.Connected) {
+                        if (proxy != null) {
+                            webproxy = proxy.CreateProxy(new Uri("ws://" + _logic.ProxyRequestUrl));
+                            if (webproxy != null) {
+                                _logic.hasProxy = true;
+                                connectProxyAsync(_logic.ProxyRequestUrl?.Host, _logic.ProxyRequestUrl.Port, "proxyUer", "proxyPassword");
                             }
-                            _queue.DispatchAsync(StartInternal);
-
-                        }, tok);
-                }
-                catch (Exception e)
-                {
-                    // Yes, unfortunately exceptions can either be thrown here or in the task...
-                    DidClose(e);
-                }
-
-                var cancelCallback = default(CancellationTokenRegistration);
-                cancelCallback = tok.Register(() =>
-                {
-                    if (_client!=null && !_client.Connected) {
-                        // TODO: Should this be transient?
-                        DidClose(new OperationCanceledException());
+                        }
                     }
+                } catch { }
 
-                    cancelCallback.Dispose();
-                    cts.Dispose();
-                });
+                if (!_logic.hasProxy) {
+                    OpenConnectionToRemote();
+                }
             });
         }
 
@@ -594,6 +585,85 @@ namespace Couchbase.Lite.Sync
             }
         }
 
+        private bool ValidateServerCert(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            if (_options.PinnedServerCertificate != null) {
+                var retVal = certificate.Equals(_options.PinnedServerCertificate);
+                if (!retVal) {
+                    Log.To.Sync.W(Tag, "Server certificate did not match the pinned one!");
+                }
+
+                return retVal;
+            }
+
+            if (sslPolicyErrors != SslPolicyErrors.None) {
+                Log.To.Sync.W(Tag, $"Error validating TLS chain: {sslPolicyErrors}");
+                if (chain?.ChainStatus != null) {
+                    for (var i = 0; i < chain.ChainStatus.Length; i++) {
+                        var element = chain.ChainElements[i];
+                        var status = chain.ChainStatus[i];
+                        if (status.Status != X509ChainStatusFlags.NoError) {
+                            Log.To.Sync.V(Tag,
+                                $"Error {status.Status} ({status.StatusInformation}) for certificate:{Environment.NewLine}{element.Certificate}");
+                        }
+                    }
+                }
+            }
+
+            return sslPolicyErrors == SslPolicyErrors.None;
+        }
+
+        private async void connectProxyAsync(string proxyServer, int proxyPort, string user, string password)
+        {
+            try {
+                _client.Connect(proxyServer, proxyPort);
+                NetworkStream = _client.GetStream();
+                var proxyRequest = _logic.ProxyRequest();
+                NetworkStream.Write(proxyRequest, 0, proxyRequest.Length);
+                await WaitForResponse(NetworkStream);
+            } catch (Exception E) {
+                Console.WriteLine(E.Message);
+            }
+        }
+
+        private void OpenConnectionToRemote()
+        {
+            // STEP 2: Open the socket connection to the remote host
+            var cts = new CancellationTokenSource(ConnectTimeout);
+            var tok = cts.Token;
+
+            if(_logic.hasProxy) {
+                _queue.DispatchAsync(StartInternal);
+            }
+            else if (_client != null && !_client.Connected) {
+                try {
+                    _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port)
+                    .ContinueWith(t =>
+                    {
+                        if (!NetworkTaskSuccessful(t)) {
+                            return;
+                        }
+                        _queue.DispatchAsync(StartInternal);
+
+                    }, tok);
+                } catch (Exception e) {
+                    // Yes, unfortunately exceptions can either be thrown here or in the task...
+                    DidClose(e);
+                }
+            }
+            var cancelCallback = default(CancellationTokenRegistration);
+            cancelCallback = tok.Register(() =>
+            {
+                if (_client != null && !_client.Connected) {
+                    // TODO: Should this be transient?
+                    DidClose(new OperationCanceledException());
+                }
+
+                cancelCallback.Dispose();
+                cts.Dispose();
+            });
+        }
+
         private void StartInternal()
         {
             // STEP 3: Create the WebSocket Upgrade HTTP request
@@ -625,7 +695,7 @@ namespace Couchbase.Lite.Sync
             if (protocols != null) {
                 _logic["Sec-WebSocket-Protocol"] = protocols;
             }
- 
+
             if (_logic.UseTls) {
                 var baseStream = _client?.GetStream();
                 if (baseStream == null) {
@@ -637,9 +707,9 @@ namespace Couchbase.Lite.Sync
                 var stream = new SslStream(baseStream, false, ValidateServerCert);
                 X509CertificateCollection clientCerts = null;
                 if (_options.ClientCert != null) {
-                    clientCerts = new X509CertificateCollection(new[] {_options.ClientCert as X509Certificate});
+                    clientCerts = new X509CertificateCollection(new[] { _options.ClientCert as X509Certificate });
                 }
-                
+
                 // STEP 3A: TLS handshake
                 stream.AuthenticateAsClientAsync(_logic.UrlRequest?.Host, clientCerts, SslProtocols.Tls12, false).ContinueWith(
                     t =>
@@ -651,39 +721,22 @@ namespace Couchbase.Lite.Sync
                         _queue.DispatchAsync(OnSocketReady);
                     });
                 NetworkStream = stream;
-            }
-            else {
+            } else {
                 NetworkStream = _client?.GetStream();
                 OnSocketReady();
             }
         }
 
-        private bool ValidateServerCert(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        private async Task WaitForResponse(Stream stream)
         {
-            if (_options.PinnedServerCertificate != null) {
-                var retVal = certificate.Equals(_options.PinnedServerCertificate);
-                if (!retVal) {
-                    Log.To.Sync.W(Tag, "Server certificate did not match the pinned one!");
+            await Task.Factory.StartNew(() => {
+                byte[] buffer = new byte[16384];
+                int responseLength = stream.Read(buffer, 0, buffer.Length);
+                string resp = System.Text.UTF8Encoding.UTF8.GetString(buffer, 0, responseLength);
+                if (resp.Contains("200")) {
+                    OpenConnectionToRemote();
                 }
-
-                return retVal;
-            }
-
-            if (sslPolicyErrors != SslPolicyErrors.None) {
-                Log.To.Sync.W(Tag, $"Error validating TLS chain: {sslPolicyErrors}");
-                if (chain?.ChainStatus != null) {
-                    for (var i = 0; i < chain.ChainStatus.Length; i++) {
-                        var element = chain.ChainElements[i];
-                        var status = chain.ChainStatus[i];
-                        if (status.Status != X509ChainStatusFlags.NoError) {
-                            Log.To.Sync.V(Tag,
-                                $"Error {status.Status} ({status.StatusInformation}) for certificate:{Environment.NewLine}{element.Certificate}");
-                        }
-                    }
-                }
-            }
-
-            return sslPolicyErrors == SslPolicyErrors.None;
+            });
         }
 
         #endregion
