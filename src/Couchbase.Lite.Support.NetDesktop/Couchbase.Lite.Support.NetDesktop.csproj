@@ -4,7 +4,7 @@
     <IsMac Condition=" '$(OS)' == 'Unix' AND Exists('/Library/Frameworks') ">true</IsMac>
   </PropertyGroup>
   <PropertyGroup>
-    <Configurations>Debug;Release;Packaging</Configurations>
+    <Configurations>Debug;Release;Packaging;PackagingDebug</Configurations>
     <TargetFramework Condition=" '$(OS)' != 'Windows_NT' ">netcoreapp2.0</TargetFramework>
     <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">net461;netcoreapp2.0</TargetFrameworks>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
@@ -25,6 +25,10 @@
     <DebugSymbols>True</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>portable</DebugType>
+    <DebugSymbols>True</DebugSymbols>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='PackagingDebug|AnyCPU'">
     <DebugType>portable</DebugType>
     <DebugSymbols>True</DebugSymbols>
   </PropertyGroup>
@@ -51,7 +55,7 @@
     </None>
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(OS)' == 'Windows_NT' OR '$(Configuration)' == 'Packaging' ">
+  <ItemGroup Condition=" '$(OS)' == 'Windows_NT' OR $(Configuration.Contains('Packaging')) ">
     <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x86\RelWithDebInfo\LiteCore.dll">
       <Link>x86\LiteCore.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -69,13 +73,13 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-  <ItemGroup Condition=" $(IsMac) OR '$(Configuration)' == 'Packaging' ">
+  <ItemGroup Condition=" $(IsMac) OR $(Configuration.Contains('Packaging')) ">
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libLiteCore.dylib">
       <Link>libLiteCore.dylib</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <ItemGroup Condition=" (!$(IsMac) AND '$(OS)' == 'Unix') OR '$(Configuration)' == 'Packaging' ">
+  <ItemGroup Condition=" (!$(IsMac) AND '$(OS)' == 'Unix') OR $(Configuration.Contains('Packaging'))">
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libLiteCore.so">
       <Link>libLiteCore.so</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
