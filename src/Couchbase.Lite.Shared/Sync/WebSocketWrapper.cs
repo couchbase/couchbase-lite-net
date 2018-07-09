@@ -614,7 +614,11 @@ namespace Couchbase.Lite.Sync
         private async void connectProxyAsync(string proxyServer, int proxyPort, string user, string password)
         {
             try {
-                _client.Connect(proxyServer, proxyPort);
+                //create remote endpoint
+                IPAddress add = IPAddress.Parse(proxyServer);
+                IPEndPoint ep = new IPEndPoint(add, proxyPort);
+                //connect remote proxy endpoint
+                _client.Connect(ep);
                 NetworkStream = _client.GetStream();
                 var proxyRequest = _logic.ProxyRequest();
                 NetworkStream.Write(proxyRequest, 0, proxyRequest.Length);
