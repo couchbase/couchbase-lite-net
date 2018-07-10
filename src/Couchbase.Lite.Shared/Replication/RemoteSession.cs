@@ -215,6 +215,7 @@ namespace Couchbase.Lite.Internal
             var client = default(CouchbaseLiteHttpClient);
             if(!_client.AcquireFor(TimeSpan.FromSeconds(1), out client)) {
                 Log.To.Sync.I(Tag, "Client is disposed, aborting request to {0}", new SecureLogUri(url));
+                completionHandler(null, new InvalidOperationException("Client disposed so request was aborted"));
                 return null;
             }
 

@@ -48,6 +48,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -65,6 +66,7 @@ using System.Net.Sockets;
 using Couchbase.Lite.Revisions;
 using System.Diagnostics;
 using FluentAssertions;
+using SQLitePCL;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -3161,6 +3163,58 @@ namespace Couchbase.Lite
                     StopReplication(repl);
                     _sg.DeleteSessionCookie(remoteDb.Name, "jim");
                 }
+            }
+        }
+
+        [Category("issue/1036")]
+        [Test]
+        public void TestSaveCheckpointFailure()
+        {
+            if(_storageType == StorageEngineTypes.ForestDB) {
+                Assert.Inconclusive("Only valid for SQLite");
+            }
+
+            using(var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                var replicator = default(Replication);
+                CreateDocuments(database, 10);
+                var factory = new MockHttpClientFactory(false);
+                manager.DefaultHttpClientFactory = factory;
+                replicator = database.CreatePushReplication(remoteDb.RemoteUri);
+                RunReplication(replicator);
+
+                factory.HttpHandler.SetResponder("_bulk_docs", (request) => {
+                    // The next message after _bulk_docs should be _local, this is pretty 
+                    // fragile though
+                    var reflected = typeof(RemoteSession).GetField("_client", BindingFlags.Instance | BindingFlags.NonPublic);
+                    var client = reflected.GetValue(replicator._remoteSession) as IDisposable;
+                    client.Dispose();
+                    return new RequestCorrectHttpMessage();
+                });
+                CreateDocuments(database, 10);
+
+                RunReplication(replicator);
+                factory.HttpHandler.ClearResponders();
+                factory.HttpHandler.SetResponder("_bulk_docs", request => {
+                    return new RequestCorrectHttpMessage(); 
+                });
+
+                RunReplication(replicator);
+
+                Sleep(2000);
+
+                var storageEngine = database.Storage as Couchbase.Lite.Storage.SQLCipher.SqliteCouchStore;
+                int lastSequence = storageEngine.QueryOrDefault(c => {
+                    string key;
+                    int value;
+                    do {
+                        key = c.GetString(0);
+                        value = c.GetInt(1);
+                    } while(c.MoveToNext() && !key.StartsWith("checkpoint"));
+
+                    return value;
+                }, 0, "SELECT * FROM info");
+
+                Assert.AreEqual(20, lastSequence);
             }
         }
     }
