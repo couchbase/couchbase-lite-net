@@ -205,7 +205,7 @@ namespace Couchbase.Lite.Sync
                 try {
                     if (_client != null && !_client.Connected) {
                         if (proxy != null) {
-                            Uri proxyUri = new Uri("ws://"+_logic.UrlRequest.Host + ":" + _logic.UrlRequest.Port);
+                            Uri proxyUri = new Uri("http://"+_logic.UrlRequest.Host + ":" + _logic.UrlRequest.Port);
                             webproxy = (WebProxy)proxy.CreateProxy(proxyUri);
                             if (webproxy != null) {
                                 _logic.HasProxy = true;
