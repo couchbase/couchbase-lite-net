@@ -29,6 +29,7 @@ using Couchbase.Lite.Interop;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
+using ObjCRuntime;
 
 using JetBrains.Annotations;
 
@@ -233,6 +234,7 @@ namespace Couchbase.Lite.Sync
             return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
         }
 
+        [MonoPInvokeCallback(typeof(C4ReplicatorDocumentErrorCallback))]
         private static void OnDocError(C4Replicator* repl, bool pushing, C4Slice docID, C4Error error, bool transient, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
@@ -249,6 +251,7 @@ namespace Couchbase.Lite.Sync
             return TimeSpan.FromSeconds(Math.Min(delaySecs, MaxRetryDelay.TotalSeconds));
         }
 
+        [MonoPInvokeCallback(typeof(C4ReplicatorStatusChangedCallback))]
         private static void StatusChangedCallback(C4Replicator* repl, C4ReplicatorStatus status, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
@@ -258,6 +261,7 @@ namespace Couchbase.Lite.Sync
             });
         }
 
+        [MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
         private static bool ValidateCallback(string docID, IntPtr body, object context)
         {
             return true;
