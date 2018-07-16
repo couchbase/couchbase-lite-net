@@ -616,13 +616,12 @@ namespace Couchbase.Lite.Sync
             try {
                 //create remote endpoint
                 IPAddress add = IPAddress.Parse(proxyServer);
-                IPEndPoint ep = new IPEndPoint(add, proxyPort);
                 //connect remote proxy endpoint
-                _client.Connect(ep);
+                await _client.ConnectAsync(add, proxyPort).ConfigureAwait(false);
                 NetworkStream = _client.GetStream();
                 var proxyRequest = _logic.ProxyRequest();
                 NetworkStream.Write(proxyRequest, 0, proxyRequest.Length);
-                await WaitForResponse(NetworkStream);
+                await WaitForResponse(NetworkStream).ConfigureAwait(false);
             } catch (Exception E) {
                 Console.WriteLine(E.Message);
             }
