@@ -420,11 +420,6 @@ namespace Couchbase.Lite.Sync
             }
 
             var options = Config.Options;
-            var userInfo = remoteUrl?.UserInfo?.Split(':');
-            if (userInfo?.Length == 2) {
-                throw new ArgumentException(
-                    "Embedded credentials in a URL (username:password@url) are not allowed; use the BasicAuthenticator class instead");
-            }
 
             Config.Authenticator?.Authenticate(options);
 
