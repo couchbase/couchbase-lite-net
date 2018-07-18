@@ -57,7 +57,7 @@ namespace Couchbase.Lite
 
         public static unsafe void ConvertNetworkError(Exception e, C4Error* outError)
         {
-            var c4err = new C4Error(C4ErrorDomain.WebSocketDomain, (int)C4WebSocketCloseCode.WebSocketCloseAbnormal);
+            var c4err = new C4Error(C4ErrorDomain.LiteCoreDomain, (int)C4ErrorCode.UnexpectedError);
             foreach (var inner in FlattenedExceptions(e)) {
                 if (c4err.code != (int)C4WebSocketCloseCode.WebSocketCloseAbnormal || c4err.domain != C4ErrorDomain.WebSocketDomain) {
                     break;
@@ -112,7 +112,7 @@ namespace Couchbase.Lite
 
             if (c4err.code == (int) C4WebSocketCloseCode.WebSocketCloseAbnormal &&
                 c4err.domain == C4ErrorDomain.WebSocketDomain) {
-                Log.To.Couchbase.W(Tag, $"No mapping for {e.GetType().Name}; interpreting as WebSocketAbnormal");
+                Log.To.Couchbase.W(Tag, $"No mapping for {e.GetType().Name}; interpreting as 'UnexpectedError'");
             }
 
             // Use the message of the top-level exception because it will print out nested ones too
