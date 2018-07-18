@@ -59,7 +59,7 @@ namespace Couchbase.Lite
         {
             var c4err = new C4Error(C4ErrorDomain.LiteCoreDomain, (int)C4ErrorCode.UnexpectedError);
             foreach (var inner in FlattenedExceptions(e)) {
-                if (c4err.code != (int)C4WebSocketCloseCode.WebSocketCloseAbnormal || c4err.domain != C4ErrorDomain.WebSocketDomain) {
+                if (c4err.code != (int)C4ErrorCode.UnexpectedError || c4err.domain != C4ErrorDomain.LiteCoreDomain) {
                     break;
                 }
 
@@ -110,8 +110,8 @@ namespace Couchbase.Lite
                 }
             }
 
-            if (c4err.code == (int) C4WebSocketCloseCode.WebSocketCloseAbnormal &&
-                c4err.domain == C4ErrorDomain.WebSocketDomain) {
+            if (c4err.code == (int) C4ErrorCode.UnexpectedError &&
+                c4err.domain == C4ErrorDomain.LiteCoreDomain) {
                 Log.To.Couchbase.W(Tag, $"No mapping for {e.GetType().Name}; interpreting as 'UnexpectedError'");
             }
 

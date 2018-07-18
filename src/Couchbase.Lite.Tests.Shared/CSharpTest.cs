@@ -402,7 +402,7 @@ Transfer-Encoding: chunked";
                 #if !WINDOWS_UWP
                 new C4Error(C4NetworkErrorCode.TLSCertUntrusted),
                 #endif
-                new C4Error(C4ErrorDomain.WebSocketDomain, (int)C4WebSocketCloseCode.WebSocketCloseAbnormal) 
+                new C4Error(C4ErrorDomain.LiteCoreDomain, (int)C4ErrorCode.UnexpectedError) 
             };
 
             foreach (var pair in exceptions.Zip(errors, (a, b) => new { a, b })) {
