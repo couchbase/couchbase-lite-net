@@ -91,16 +91,9 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj">
-      <Project>{b1d1b3b3-225e-43bf-9feb-2ede6d926dee}</Project>
-      <Name>Couchbase.Lite.Support.Android</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Couchbase.Lite\Couchbase.Lite.csproj">
-      <Project>{8d5568ee-4c36-4245-8c36-65d9e7a01833}</Project>
-      <Name>Couchbase.Lite</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
+    <PackageReference Include="Couchbase.Lite.Enterprise.Debug">
+      <Version>2.1.0-b0204</Version>
+    </PackageReference>
     <PackageReference Include="FluentAssertions">
       <Version>4.19.4</Version>
     </PackageReference>

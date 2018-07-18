@@ -191,6 +191,9 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Couchbase.Lite.Enterprise.Debug">
+      <Version>2.1.0-b0204</Version>
+    </PackageReference>
     <PackageReference Include="FluentAssertions">
       <Version>4.19.4</Version>
     </PackageReference>
@@ -203,16 +206,6 @@
     <PackageReference Include="MSTest.TestFramework">
       <Version>1.2.0</Version>
     </PackageReference>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj">
-      <Project>{e0ae6111-4039-4db9-a1d9-21d6f92c4a6a}</Project>
-      <Name>Couchbase.Lite.Support.UWP</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Couchbase.Lite\Couchbase.Lite.csproj">
-      <Project>{dd9cb298-f3a1-4653-883b-352e69c16f93}</Project>
-      <Name>Couchbase.Lite</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
