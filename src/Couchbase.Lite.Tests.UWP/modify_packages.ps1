@@ -1,12 +1,18 @@
 param (
-    [Parameter(Mandatory=$true)][string]$version
+    [Parameter(Mandatory=$true)][string]$version,
+    [switch]$debugProject
 )
 
 $scriptpath = Split-Path $MyInvocation.MyCommand.Path
 Push-Location $scriptpath
 [Environment]::CurrentDirectory = $scriptpath
 
-$content = [System.IO.File]::ReadAllLines("Couchbase.Lite.Tests.UWP.csproj")
+if($debugProject){
+    $content = [System.IO.File]::ReadAllLines("Couchbase.Lite.Tests.UWP.csproj")
+} else {
+    $content = [System.IO.File]::ReadAllLines("Couchbase.Lite.Tests.UWP.Source.csproj")
+}
+
 $regex = New-Object -TypeName "System.Text.RegularExpressions.Regex" ".*?<Version>([0-9]\.[0-9]\.[0-9]-b[0-9]{4})<.*?"
 for($i = 0; $i -lt $content.Length; $i++) {
     $line = $content[$i]
@@ -18,4 +24,8 @@ for($i = 0; $i -lt $content.Length; $i++) {
     }
 }
 
-[System.IO.File]::WriteAllLines("Couchbase.Lite.Tests.UWP.csproj", $content)
+if($debugProject){
+    [System.IO.File]::WriteAllLines("Couchbase.Lite.Tests.UWP.csproj", $content)
+} else {
+    [System.IO.File]::WriteAllLines("Couchbase.Lite.Tests.UWP.Source.csproj", $content)
+}
