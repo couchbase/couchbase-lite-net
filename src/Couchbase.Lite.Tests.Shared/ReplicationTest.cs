@@ -387,7 +387,7 @@ namespace Test
         [Fact]
         public void TestShortP2P()
         {
-            var testNo = 1;
+            //var testNo = 1;
             foreach (var protocolType in new[] { ProtocolType.ByteStream, ProtocolType.MessageStream }) {
                 using (var mdoc = new MutableDocument("livesindb")) {
                     mdoc.SetString("name", "db");
@@ -404,7 +404,7 @@ namespace Test
                 var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, protocolType));
                 var server = new MockServerConnection(listener, protocolType);
                 var config = new ReplicatorConfiguration(Db,
-                    new MessageEndpoint($"p2ptest{testNo++}", server, protocolType,
+                    new MessageEndpoint($"p2ptest1", server, protocolType,
                         new MockConnectionFactory(null)))
                 {
                     ReplicatorType = ReplicatorType.Push,
@@ -417,7 +417,7 @@ namespace Test
                 // PULL
                 server = new MockServerConnection(listener, protocolType);
                 config = new ReplicatorConfiguration(Db,
-                    new MessageEndpoint($"p2ptest{testNo++}", server, protocolType,
+                    new MessageEndpoint($"p2ptest1", server, protocolType,
                         new MockConnectionFactory(null)))
                 {
                     ReplicatorType = ReplicatorType.Pull,
@@ -442,7 +442,7 @@ namespace Test
                 // PUSH & PULL
                 server = new MockServerConnection(listener, protocolType);
                 config = new ReplicatorConfiguration(Db,
-                        new MessageEndpoint($"p2ptest{testNo++}", server, protocolType,
+                        new MessageEndpoint($"p2ptest1", server, protocolType,
                             new MockConnectionFactory(null)))
                     { Continuous = false };
 
@@ -456,7 +456,7 @@ namespace Test
 
                 using (var savedDoc = _otherDB.GetDocument("livesinotherdb")) {
                     savedDoc.GetBoolean("modified").Should()
-                        .BeTrue("because the proeprty change should come from the original DB");
+                        .BeTrue("because the property change should come from the original DB");
                 }
 
                 Db.Delete();
