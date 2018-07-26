@@ -1,0 +1,184 @@
+html 
+{
+  height: 100%;
+  margin: 0;
+  padding: 0 6px;
+  font-family: verdana, helvetica, arial, sans-serif;
+  font-size: 11px;
+  color: #333333;
+}
+
+html.main 
+{
+  background-color: #d7dbde;
+  background-image: url("../images/header-background.png");
+  background-repeat: repeat-x;
+}
+
+body 
+{
+  margin: 0;
+  padding: 0;
+}
+
+html.main body
+{
+  height: 100%;
+}
+
+div.header 
+{
+  background-image: url("../images/dotcover-icon.png");
+  background-repeat: no-repeat;
+  background-position: 0px 2px;
+
+  height: 45px;
+  width: 100%;
+  vertical-align: middle;
+  padding-top: 10px;
+}
+
+div.header span.title 
+{
+  display: block;
+  font-size: 15px;
+  font-weight: bold;
+  color: #2f2f2f;
+  margin-left: 60px;
+}
+
+div.header span.info 
+{
+   margin-left: 60px;
+}
+
+div.content 
+{
+  height: 100%;
+  width: 100%;
+  background: white;
+}
+
+div.content ul.dynatree-container 
+{
+  height: 100%;
+  padding: 0;
+  background: #F2F4F8;
+}
+
+div.footer 
+{
+  height: 15px;
+  width: 100%;
+  text-align: center;
+  padding-top: 1px;
+}
+
+.vsplitbar 
+{
+  width: 6px;
+  background: #d7dbde;
+}
+
+.vsplitbar.active 
+{
+  background: #bbbbbb;
+  opacity: 0.7;
+}
+
+.vsplitbarmask 
+{
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 20000;
+}
+
+span.p 
+{
+  display: inline-block;
+  width: 40px;
+  height: 13px;
+  border: 1px solid black;
+  background-image: url("../images/percentbar-background.png");
+  margin-left: 3px;
+  margin-right: 3px;
+  text-align: center;
+  vertical-align: middle;
+  font-family: tahoma, arial, helvetica;
+  font-size: 10px;
+}
+
+span.i 
+{
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 0;
+  background-image: url("../images/metadata-icons.png");
+  margin-left: 1px;
+  margin-right: 1px;
+}
+
+div.footer a 
+{
+  color: #0066cc;
+  border: none;
+}
+
+span.dynatree-active a 
+{
+   background-color: #f2f4f8;
+}
+
+ul.dynatree-container a.n 
+{
+   vertical-align: middle;
+}
+
+ul.dynatree-container a.nws 
+{
+  vertical-align: middle;
+  text-decoration: underline;
+  color: #0066cc;
+}
+
+ul.dynatree-container span.dynatree-connector 
+{
+  background-image: none;
+}
+
+iframe 
+{
+  background: white;
+  border: 0;
+  overflow: auto;
+}
+
+html.no-source body 
+{
+  height: 100%;
+}
+
+html.no-source table
+{
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  vertical-align: middle;
+  background-color: white;
+}
+
+pre.source-code 
+{
+  width: 100%;
+  font-family: monospace;
+  font-size: 14px;
+  margin: 0;
+}
+
+a.covered { background-color: #e3fbc9; }
+a.uncovered { background-color: #ffbebe; }
