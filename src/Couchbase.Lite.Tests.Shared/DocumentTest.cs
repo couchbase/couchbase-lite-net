@@ -148,6 +148,33 @@ namespace Couchbase.Lite
             Assert.IsTrue(Math.Abs((next.Value - future).TotalSeconds) < 1.0);
         }
 
+        [Category("issue/1029")]
+        [Test]
+        public void TestLongExpiration()
+        {
+            // Before the fix this would crash because timers cannot be scheduled so far
+            // in the future.  Now the timer will fire early, do nothing and reschedule
+            // itself
+            var now = DateTime.UtcNow;
+            Trace.WriteLine($"Now is {now}");
+            var doc = CreateDocumentWithProperties(database, new Dictionary<string, object> { { "foo", 17 } });
+            Assert.IsNull(doc.GetExpirationDate());
+            database.RunInTransaction(() =>
+            {
+                doc.ExpireAfter(TimeSpan.FromDays(60));
+                return true;
+            });
+            
+            var exp = doc.GetExpirationDate();
+            Trace.WriteLine($"Doc expiration is {exp}");
+            Assert.IsNotNull(exp);
+            Assert.IsTrue(Math.Abs((exp.Value - now).TotalDays - 60.0) < 1.0);
+
+            var next = database.Storage.NextDocumentExpiry();
+            Trace.WriteLine($"Next expiry at {next}");
+            Assert.IsTrue(Math.Abs((next.Value - now).TotalDays - 60.0) < 1.0);
+        }
+
         [Test] // #447
         public void TestDocumentArraysMaintainOrder()
         {
