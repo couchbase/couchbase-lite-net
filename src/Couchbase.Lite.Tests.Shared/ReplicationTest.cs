@@ -3379,5 +3379,51 @@ namespace Couchbase.Lite
                 Assert.AreEqual(20, lastSequence);
             }
         }
+
+        [Category("issue/1036")]
+        [Test]
+        public void TestRecoveryFromStartWhileOffline()
+        {
+            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled")))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                remoteDb.AddDocument("test", new Dictionary<string, object> { ["test"] = "value" });
+                var remote = remoteDb.RemoteUri;
+                var repl = database.CreatePullReplication(remote);
+                repl.Continuous = true;
+                repl.Start();
+
+                Sleep(2000);
+                PutReplicationOffline(repl);
+                repl.LastSequence.Should().Be("4");
+                repl.Status.Should().Be(ReplicationStatus.Offline);
+                var completed = repl.CompletedChangesCount;
+                var total = repl.ChangesCount;
+
+                // Simulate a start resetting to null, which can happen if network connectivity
+                // is lost between the time it checks, and the time the checkpoint is fetched
+                repl.LastSequence = null;
+
+                repl.GoOnline();
+                while (repl.Status == ReplicationStatus.Offline) {
+                    Thread.Yield();
+                }
+
+                Sleep(2000);
+
+                repl.CompletedChangesCount.Should()
+                    .Be(completed, "because the last sequence should recover by going online");
+                repl.ChangesCount.Should()
+                    .Be(total, "because the last sequence should recover by going online");
+                repl.LastSequence.Should().Be("4");
+
+
+                StopReplication(repl);
+            }
+        }
     }
 }

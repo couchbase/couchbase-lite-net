@@ -799,7 +799,7 @@ namespace Couchbase.Lite.Replicator
         {
             base.PerformGoOnline();
 
-            BeginReplicating();
+            Login();
         }
 
         internal override void ProcessInbox(RevisionList inbox)
