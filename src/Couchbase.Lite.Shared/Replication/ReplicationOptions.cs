@@ -45,9 +45,9 @@ namespace Couchbase.Lite
         public static readonly TimeSpan DefaultRequestTimeout = TimeSpan.FromSeconds(60);
 
         /// <summary>
-        /// The default value for SocketTimeout (5 minutes)
+        /// The default value for SocketTimeout (5.5 minutes)
         /// </summary>
-        public static readonly TimeSpan DefaultSocketTimeout = TimeSpan.FromMinutes(5);
+        public static readonly TimeSpan DefaultSocketTimeout = TimeSpan.FromMinutes(5.5);
 
         /// <summary>
         /// The default value for MaxOpenHttpConnections (8)
