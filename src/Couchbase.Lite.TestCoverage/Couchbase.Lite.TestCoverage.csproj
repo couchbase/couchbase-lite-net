@@ -12,12 +12,14 @@
     <DefineConstants>LITECORE_PACKAGED;RELEASE;COUCHBASE_ENTERPRISE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="C\**" />
-    <EmbeddedResource Remove="C\**" />
-    <None Remove="C\**" />
-    <Compile Remove="replacedb\**" />
-    <EmbeddedResource Remove="replacedb\**" />
-    <None Remove="replacedb\**" />
+	<Content Include="..\Couchbase.Lite.Tests.NetCore\replacedb\**">
+		<Link>replacedb\%(RecursiveDir)%(Filename)%(Extension)</Link>
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
+	<Content Include="..\Couchbase.Lite.Tests.NetCore\C\**">
+		<Link>C\%(RecursiveDir)%(Filename)%(Extension)</Link>
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.1.0-b0213" />
@@ -26,11 +28,6 @@
     <PackageReference Include="xunit" Version="2.3.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.3.1" />
     <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
-  </ItemGroup>
-   <ItemGroup>
-    <Content Include="replacedb\*.*">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
   <ItemGroup>
     <None Condition="$(DefineConstants.Contains('HAVE_SG'))" Include="..\Couchbase.Lite.Tests.UWP\Assets\localhost-wrong.cert" Link="localhost-wrong.cert">
