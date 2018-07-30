@@ -13,17 +13,14 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="C\**" />
-    <Compile Remove="dotCover\**" />
     <EmbeddedResource Remove="C\**" />
-    <EmbeddedResource Remove="dotCover\**" />
     <None Remove="C\**" />
     <Compile Remove="replacedb\**" />
     <EmbeddedResource Remove="replacedb\**" />
-    <None Remove="dotCover\**" />
     <None Remove="replacedb\**" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.1.0-b0212" />
+    <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.1.0-b0213" />
     <PackageReference Include="FluentAssertions" Version="4.19.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.5.0" />
     <PackageReference Include="xunit" Version="2.3.1" />
@@ -35,9 +32,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-   <ItemGroup>
-     <None Remove="dotCover.html" />
-   </ItemGroup>
   <ItemGroup>
     <None Condition="$(DefineConstants.Contains('HAVE_SG'))" Include="..\Couchbase.Lite.Tests.UWP\Assets\localhost-wrong.cert" Link="localhost-wrong.cert">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
