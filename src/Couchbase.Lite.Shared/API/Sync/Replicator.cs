@@ -312,7 +312,7 @@ namespace Couchbase.Lite.Sync
             // in network (i.e. network down, hostname unknown), then go offline and retry later
             var transient = Native.c4error_mayBeTransient(error) ||
                             (error.domain == C4ErrorDomain.WebSocketDomain && error.code ==
-                             (int) C4WebSocketCustomCloseCode.WebSocketCloseCustomTransient);
+                             (int) C4WebSocketCustomCloseCode.WebSocketCloseUserTransient);
 
             if (!transient && !(Config.Continuous && Native.c4error_mayBeNetworkDependent(error))) {
                 Log.To.Sync.I(Tag, "Permanent error encountered ({0} / {1}), giving up...", error.domain, error.code);

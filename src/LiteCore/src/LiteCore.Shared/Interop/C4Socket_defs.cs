@@ -44,8 +44,7 @@ namespace LiteCore.Interop
         WebSocketCloseMissingExtension = 1010,
         WebSocketCloseCantFulfill      = 1011,
         WebSocketCloseTLSFailure       = 1015,
-        WebSocketCloseFirstAvailable   = 4000,
-        WebSocketCloseUserPermanent    = 4003
+        WebSocketCloseFirstAvailable   = 4000
     }
 
 #if LITECORE_PACKAGED
