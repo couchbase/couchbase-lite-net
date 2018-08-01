@@ -45,6 +45,7 @@ namespace LiteCore.Interop
         WebSocketCloseCantFulfill      = 1011,
         WebSocketCloseTLSFailure       = 1015,
         WebSocketCloseFirstAvailable   = 4000,
+        WebSocketCloseUserPermanent    = 4003
     }
 
 #if LITECORE_PACKAGED
