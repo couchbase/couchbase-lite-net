@@ -375,7 +375,7 @@ namespace Couchbase.Lite.Sync
             cts.CancelAfter(IdleTimeout);
             if (NetworkStream == null) {
                 Log.To.Sync.E(Tag, "Socket reported ready, but no network stream available!");
-                DidClose(C4WebSocketCustomCloseCode.WebSocketCloseUserPermanent, "Unexpected error in client logic");
+                DidClose(C4WebSocketCloseCode.WebSocketCloseAbnormal, "Unexpected error in client logic");
                 return;
             }
 
@@ -630,7 +630,7 @@ namespace Couchbase.Lite.Sync
                 var baseStream = _client?.GetStream();
                 if (baseStream == null) {
                     Log.To.Sync.W(Tag, "Failed to get network stream (already closed?).  Aborting start...");
-                    DidClose(C4WebSocketCustomCloseCode.WebSocketCloseUserPermanent, "Unexpected error in client logic");
+                    DidClose(C4WebSocketCloseCode.WebSocketCloseAbnormal, "Unexpected error in client logic");
                     return;
                 }
 
