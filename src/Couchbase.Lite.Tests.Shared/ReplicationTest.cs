@@ -516,10 +516,10 @@ namespace Test
 
             var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, MockConnectionLifecycleLocation.Close,
                 false);
-            RunReplication(config, (int)CouchbaseLiteError.WebSocketAbnormalClose, CouchbaseLiteErrorType.CouchbaseLite);
+            RunReplication(config, (int)CouchbaseLiteError.WebSocketUserPermanent, CouchbaseLiteErrorType.CouchbaseLite);
             config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, MockConnectionLifecycleLocation.Close,
                 false);
-            RunReplication(config, (int)CouchbaseLiteError.WebSocketAbnormalClose, CouchbaseLiteErrorType.CouchbaseLite, true);
+            RunReplication(config, (int)CouchbaseLiteError.WebSocketUserPermanent, CouchbaseLiteErrorType.CouchbaseLite, true);
         }
 
         [Fact]
