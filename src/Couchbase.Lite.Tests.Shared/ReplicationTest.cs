@@ -717,7 +717,7 @@ namespace Test
             }
 
             var expectedDomain = recoverable ? 0 : CouchbaseLiteErrorType.CouchbaseLite;
-            var expectedCode = recoverable ? 0 : (int)CouchbaseLiteError.WebSocketAbnormalClose;
+            var expectedCode = recoverable ? 0 : (int)CouchbaseLiteError.WebSocketUserPermanent;
 
             var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, location, recoverable);
             RunReplication(config, expectedCode, expectedDomain);
