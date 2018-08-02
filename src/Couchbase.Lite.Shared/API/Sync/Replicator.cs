@@ -238,9 +238,10 @@ namespace Couchbase.Lite.Sync
         private static void OnDocError(C4Replicator* repl, bool pushing, C4Slice docID, C4Error error, bool transient, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            var docIDStr = docID.CreateString();
             replicator?.DispatchQueue.DispatchAsync(() =>
             {
-                replicator.OnDocError(error, pushing, docID.CreateString() ?? "", transient);
+                replicator.OnDocError(error, pushing, docIDStr ?? "", transient);
             });
 
         }
