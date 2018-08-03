@@ -365,18 +365,22 @@ namespace Couchbase.Lite.Util
 
         private void SerializeToDB()
         {
-            if (_db == null) {
+            var db = _db;
+            if (db?.Storage == null) {
                 Log.To.Database.I(TAG, "Database null, so skipping serialization");
                 return;
             }
 
             List<Cookie> aggregate = new List<Cookie>();
-            foreach (var uri in _cookieUriReference) {
-                var collection = GetCookies(uri);
-                aggregate.AddRange(collection.Cast<Cookie>().Where(IsNotSessionOnly));
+            var cookieUriReference = _cookieUriReference;
+            if (cookieUriReference != null) {
+                foreach (var uri in cookieUriReference) {
+                    var collection = GetCookies(uri);
+                    aggregate.AddRange(collection.Cast<Cookie>().Where(IsNotSessionOnly));
+                }
             }
 
-            _db.Storage.SetInfo(CookieStorageKey, Manager.GetObjectMapper().WriteValueAsString(aggregate));
+            db.Storage.SetInfo(CookieStorageKey, Manager.GetObjectMapper().WriteValueAsString(aggregate));
         }
 
         private void DeserializeFromDB()
