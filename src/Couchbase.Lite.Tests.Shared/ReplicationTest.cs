@@ -3425,5 +3425,57 @@ namespace Couchbase.Lite
                 StopReplication(repl);
             }
         }
+
+        [Category("issue/1023")]
+        [Test]
+        public void TestPusherClearsPulledPendingIDs()
+        {
+            if (!Boolean.Parse((string)GetProperty("replicationTestsEnabled")))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            using (var remoteDb = _sg.CreateDatabase(TempDbName())) {
+                for (int i = 0; i < 5; i++)
+                {
+                    string docId = Guid.NewGuid().ToString();
+                    remoteDb.AddDocument(docId, new Dictionary<string, object>
+                    {
+                        ["_id"] = docId,
+                        ["key"] = docId,
+                        ["type"] = "test",
+                        ["category"] = "test",
+                        ["tenantKey"] = $"{i}",
+                        ["createdBy"] = "test",
+                        ["createdTime"] = "test",
+                        ["modifiedBy"] = "test",
+                        ["modifiedTime"] = "test",
+                        ["rand"] = Guid.NewGuid().ToString()
+                    });
+                }
+
+                Replication push = database.CreatePushReplication(remoteDb.RemoteUri);
+                push.Continuous = true;
+                push.Start();
+
+                while (push.Status != ReplicationStatus.Idle) { Thread.Sleep(50); }
+
+                Replication pull = database.CreatePullReplication(remoteDb.RemoteUri);
+                pull.Continuous = true;
+                pull.Start();
+                while (pull.CompletedChangesCount < 5) { Thread.Sleep(50); }
+
+                var pendingIds = push.GetPendingDocumentIDs();
+                int attempts = 0;
+                while (pendingIds != null && pendingIds.Count > 0 && attempts < 5) {
+                    Thread.Sleep(1000);
+                    attempts++;
+                }
+
+                pendingIds.Should().NotBeNull().And.HaveCount(0,
+                    "because the pulled revisions should be disregarded as pending by the pusher");
+            }
+        }
     }
 }

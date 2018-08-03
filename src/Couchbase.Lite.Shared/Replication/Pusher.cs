@@ -179,19 +179,35 @@ namespace Couchbase.Lite.Replicator
             {
                 // Skip expired documents
                 if (change.IsExpiration) {
-                    return;
+                    continue;
                 }
 
                 // Skip revisions that originally came from the database I'm syncing to:
                 var source = change.SourceUrl;
+                var rev = change.AddedRevision;
                 if (source != null && source.Equals(RemoteUrl)) {
-                    return;
+                    Log.To.Sync.V(TAG, "{0} skipping pulled revision from target {1}", this, rev);
+                    SkipSequence(rev.Sequence);
+                    continue;
                 }
 
-                var rev = change.AddedRevision;
                 if (LocalDatabase.RunFilter(_filter, FilterParams, rev)) {
                     Log.To.Sync.V(TAG, "{0} queuing {1} {2}", this, LocalDatabase.GetSequence(rev), rev);
                     AddToInbox(rev);
+                } else {
+                    Log.To.Sync.I(TAG, "{0} filter function rejected {1}", this, rev);
+                    SkipSequence(rev.Sequence);
+                }
+            }
+        }
+
+        private void SkipSequence(long sequence)
+        {
+            // I'm not going to do anything with this sequence, so increase the lastSequence up to it
+            if (_pendingSequences.Count == 0 || sequence < _pendingSequences.FirstOrDefault().Key) {
+                long parsedSeq;
+                if (LastSequence == null || Int64.TryParse(LastSequence, out parsedSeq) && sequence > parsedSeq) {
+                    LastSequence = sequence.ToString();
                 }
             }
         }

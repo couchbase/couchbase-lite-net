@@ -580,6 +580,8 @@ namespace Couchbase.Lite
                         lastSequenceChanged = true;
                         Task.Delay(SaveLastSequenceDelay).ContinueWith(t => SaveLastSequence(null));
                     }
+
+                    NotifyChangeListeners();
                 }
             }
         }
