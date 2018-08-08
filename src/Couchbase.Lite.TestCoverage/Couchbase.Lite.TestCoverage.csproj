@@ -22,11 +22,12 @@
 	</Content>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.1.0-b0213" />
+    <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.1.0-b0221" />
     <PackageReference Include="FluentAssertions" Version="4.19.4" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.5.0" />
-    <PackageReference Include="xunit" Version="2.3.1" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.3.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.8.0" />
+    <PackageReference Include="Moq" Version="4.9.0" />
+    <PackageReference Include="xunit" Version="2.4.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
     <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
   </ItemGroup>
   <ItemGroup>

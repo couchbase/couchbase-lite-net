@@ -35,6 +35,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\ZipFileExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\WaitAssert.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\XunitLogger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocketTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="$(MSBuildThisFileDirectory)C\tests\data\sentences.json">
