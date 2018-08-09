@@ -20,6 +20,7 @@ using Android.Content;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Support.Android.Support;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
@@ -56,6 +57,7 @@ namespace Couchbase.Lite.Support
             Service.Register<IMainThreadTaskScheduler>(() => new MainThreadTaskScheduler(context));
             Service.Register<ILiteCore>(new LiteCoreImpl());
             Service.Register<ILiteCoreRaw>(new LiteCoreRawImpl());
+            Service.Register<IProxy>(new XamarinAndroidProxy());
         }
 
         /// <summary>

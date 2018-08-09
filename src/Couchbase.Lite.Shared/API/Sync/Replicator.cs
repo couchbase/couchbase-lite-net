@@ -36,6 +36,7 @@ using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+using ObjCRuntime;
 
 namespace Couchbase.Lite.Sync
 {
