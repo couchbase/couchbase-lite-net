@@ -47,6 +47,7 @@ namespace Couchbase.Lite.Sync
         private const string HeadersKey = "headers";
         private const string PinnedCertKey = "pinnedCert";
         private const string ProtocolsOptionKey = "WS-Protocols";
+        private const string RemoteDBUniqueIDKey = "remoteDBUniqueID";
         private const string ResetKey = "reset";
         private const string Tag = nameof(ReplicatorOptionsDictionary);
 
@@ -150,6 +151,19 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         [CanBeNull]
         public X509Certificate2 PinnedServerCertificate { get; set; }
+
+        [CanBeNull]
+        public string RemoteDBUniqueID
+        {
+            get => this.GetCast<string>(RemoteDBUniqueIDKey);
+            set {
+                if (value != null) {
+                    this[RemoteDBUniqueIDKey] = value;
+                } else {
+                    Remove(RemoteDBUniqueIDKey);
+                }
+            }
+        }
 
         public bool Reset
         {

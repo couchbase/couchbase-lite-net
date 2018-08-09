@@ -253,6 +253,41 @@ Transfer-Encoding: chunked";
         }
 
         [Fact]
+        public void TestHttpMessageParserWithString()
+        {
+            var parser = new HttpMessageParser("HTTP/1.1 200 OK");
+            parser.StatusCode.Should().Be(HttpStatusCode.OK);
+            parser.Reason.Should().Be("OK");
+        }
+
+        [Fact]
+        public void TestAppenNullToHttpMessageParser()
+        {
+            var httpResponse =
+                @"HTTP/1.1 200 OK
+X-XSS-Protection: 1; mode=block
+X-Frame-Options: SAMEORIGIN
+Cache-Control: private, max-age=0
+Content-Type: text/html; charset=UTF-8
+Date: Fri, 13 Oct 2017 05:54:52 GMT
+Expires: -1
+P3P: CP=""This is not a P3P policy! See g.co/p3phelp for more info.""
+Set-Cookie: 1P_JAR=2017-10-13-05; expires=Fri, 20-Oct-2017 05:54:52 GMT; path=/; domain=.google.co.jp,NID=114=Vzr79B7ISI0vlP54dhHQ1lyoyqxePhvy_k3w2ofp1oce73oG3m9ltBiUgdQNj4tSMkp-oWtzmhUi3rf314Fcrjy6J2DxtyEdA_suJlgfdN9973V2HO32OG9D3svImEJf; expires=Sat, 14-Apr-2018 05:54:52 GMT; path=/; domain=.google.co.jp; HttpOnly
+Server: gws
+Accept-Ranges: none
+Vary: Accept-Encoding
+Transfer-Encoding: chunked";
+            Exception e = null;
+            var parser = new HttpMessageParser(Encoding.ASCII.GetBytes(httpResponse));
+            try {
+                parser.Append(null);
+            } catch (Exception ex) {
+                e = ex;
+            }
+            e.Should().NotBeNull("because an exception is expected");
+        }
+
+        [Fact]
         public unsafe void TestSerializationRoundTrip()
         {
             var masterList = new List<Dictionary<string, object>>();
@@ -330,6 +365,47 @@ Transfer-Encoding: chunked";
         }
 
         [Fact]
+        public void TestGettingPortFromHTTPLogic()
+        {
+            var logic = new HTTPLogic(new Uri("ws://192.168.0.1:59840"));
+            logic.Port.Should().Be(59840);
+            logic.Credential = new NetworkCredential("user", "password");
+            logic.Credential.UserName.Should().Be("user");
+            logic.Credential.Password.Should().Be("password");
+            logic.Credential.UserName = "newuser";
+            logic.Credential.Password = "newpassword";
+            logic.Credential.UserName.Should().Be("newuser");
+            logic.Credential.Password.Should().Be("newpassword");
+        }
+
+        [Fact]
+        public void TestBasicAuthenticator()
+        {
+            ReplicatorOptionsDictionary options = new ReplicatorOptionsDictionary();
+            var auth = new BasicAuthenticator("user", "password");
+            auth.Username.Should().Be("user");
+            auth.Password.Should().Be("password");
+            auth.Authenticate(options);
+            options.Auth.Username.Should().Be("user");
+            options.Auth.Password.Should().Be("password");
+            options.Auth.Type.Should().Be(AuthType.HttpBasic);
+        }
+
+        [Fact]
+        public void TestSessionAuthenticator()
+        {
+            ReplicatorOptionsDictionary options = new ReplicatorOptionsDictionary();
+            var auth = new SessionAuthenticator("justSessionID");
+            var auth2 = new SessionAuthenticator("sessionId", "myNameIsCookie");
+            auth.SessionID.Should().Be("justSessionID");
+            auth2.SessionID.Should().Be("sessionId");
+            auth2.CookieName.Should().Be("myNameIsCookie");
+            auth2.Authenticate(options);
+            options.Cookies.Count.Should().BeGreaterThan(0);
+            options.Cookies.First().Name.Should().Be("myNameIsCookie");
+        }
+
+        [Fact]
         public void TestFLEncode()
         {
             TestRoundTrip(42);
@@ -402,7 +478,7 @@ Transfer-Encoding: chunked";
                 #if !WINDOWS_UWP
                 new C4Error(C4NetworkErrorCode.TLSCertUntrusted),
                 #endif
-                new C4Error(C4ErrorDomain.WebSocketDomain, (int)C4WebSocketCloseCode.WebSocketCloseAbnormal) 
+                new C4Error(C4ErrorDomain.LiteCoreDomain, (int)C4ErrorCode.UnexpectedError) 
             };
 
             foreach (var pair in exceptions.Zip(errors, (a, b) => new { a, b })) {

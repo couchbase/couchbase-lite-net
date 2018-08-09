@@ -29,7 +29,8 @@ namespace LiteCore.Interop
     internal enum C4WebSocketCustomCloseCode
     {
         WebSocketCloseFirstAvailable = C4WebSocketCloseCode.WebSocketCloseFirstAvailable,
-        WebSocketCloseCustomTransient
+        WebSocketCloseUserTransient,
+        WebSocketCloseUserPermanent
     }
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]   

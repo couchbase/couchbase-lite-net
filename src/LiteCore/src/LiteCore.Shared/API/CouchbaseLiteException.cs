@@ -357,7 +357,17 @@ namespace Couchbase.Lite
         /// <summary>
         /// Can't fulfill request due to "unexpected condition"
         /// </summary>
-        WebSocketCantFulfill = C4WebSocketCloseCode.WebSocketCloseCantFulfill + HTTPBase
+        WebSocketCantFulfill = C4WebSocketCloseCode.WebSocketCloseCantFulfill + HTTPBase,
+
+        /// <summary>
+        /// Exceptions during P2P replication that are transient will be assigned this error code
+        /// </summary>
+        WebSocketUserTransient = C4WebSocketCustomCloseCode.WebSocketCloseUserTransient + HTTPBase,
+
+        /// <summary>
+        /// Exceptions during P2P replication that are permanent will be assigned this error code
+        /// </summary>
+        WebSocketUserPermanent = C4WebSocketCustomCloseCode.WebSocketCloseUserPermanent + HTTPBase
     }
 
     /// <summary>

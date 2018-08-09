@@ -29,6 +29,7 @@ using Couchbase.Lite.Interop;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
+using ObjCRuntime;
 
 using JetBrains.Annotations;
 
@@ -238,9 +239,10 @@ namespace Couchbase.Lite.Sync
         private static void OnDocError(C4Replicator* repl, bool pushing, C4Slice docID, C4Error error, bool transient, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            var docIDStr = docID.CreateString();
             replicator?.DispatchQueue.DispatchAsync(() =>
             {
-                replicator.OnDocError(error, pushing, docID.CreateString() ?? "", transient);
+                replicator.OnDocError(error, pushing, docIDStr ?? "", transient);
             });
 
         }
@@ -261,6 +263,7 @@ namespace Couchbase.Lite.Sync
             });
         }
 
+        [MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
         private static bool ValidateCallback(string docID, IntPtr body, object context)
         {
             return true;
@@ -311,7 +314,7 @@ namespace Couchbase.Lite.Sync
             // in network (i.e. network down, hostname unknown), then go offline and retry later
             var transient = Native.c4error_mayBeTransient(error) ||
                             (error.domain == C4ErrorDomain.WebSocketDomain && error.code ==
-                             (int) C4WebSocketCustomCloseCode.WebSocketCloseCustomTransient);
+                             (int) C4WebSocketCustomCloseCode.WebSocketCloseUserTransient);
 
             if (!transient && !(Config.Continuous && Native.c4error_mayBeNetworkDependent(error))) {
                 Log.To.Sync.I(Tag, "Permanent error encountered ({0} / {1}), giving up...", error.domain, error.code);
@@ -419,11 +422,6 @@ namespace Couchbase.Lite.Sync
             }
 
             var options = Config.Options;
-            var userInfo = remoteUrl?.UserInfo?.Split(':');
-            if (userInfo?.Length == 2) {
-                throw new ArgumentException(
-                    "Embedded credentials in a URL (username:password@url) are not allowed; use the BasicAuthenticator class instead");
-            }
 
             Config.Authenticator?.Authenticate(options);
 
