@@ -1,5 +1,4 @@
-﻿using Couchbase.Lite.P2P;
-using Couchbase.Lite.DI;
+﻿using Couchbase.Lite.DI;
 using Couchbase.Lite.Sync;
 using FluentAssertions;
 using System;
@@ -241,6 +240,7 @@ namespace Test
         [Fact]
         public void TestHttpLogic()
         {
+            var logic = new HTTPLogic(new Uri("ws://192.168.0.11:4984/app"));
             var prop = HttpLogicType.GetProperty("Credential", BindingFlags.Public | BindingFlags.Instance);
             prop.SetValue(hTTPLogic, new NetworkCredential("name", "pass"));
             var method = HttpLogicType.GetMethod("CreateAuthHeader", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -251,11 +251,16 @@ namespace Test
             res = method.Invoke(hTTPLogic, new object[1] { authstring });
 
             prop = HttpLogicType.GetProperty("UseTls", BindingFlags.Public | BindingFlags.Instance);
+            var useTle = logic.UseTls;
+
+            prop = HttpLogicType.GetProperty("Error", BindingFlags.Public | BindingFlags.Instance);
+            var error = logic.Error;
         }
 
         [Fact]
         public void TestReplicatorOptionsDictionary()
         {
+            var ReplicatorOptionsDictionaryType = typeof(ReplicatorOptionsDictionary);
             var optDict = new ReplicatorOptionsDictionary();
             var cookieStr = optDict.CookieString;
             var protocol = optDict.Protocols;
@@ -267,6 +272,11 @@ namespace Test
             var filterParam = optDict.FilterParams;
             optDict.RemoteDBUniqueID = "remote id";
             var remoteId = optDict.RemoteDBUniqueID;
+
+            optDict.Cookies.Add(new Cookie("name", "value"));
+
+            var method = ReplicatorOptionsDictionaryType.GetMethod("BuildInternal", BindingFlags.NonPublic | BindingFlags.Instance);
+            var res = method.Invoke(optDict, null);
         }
     }
 }
