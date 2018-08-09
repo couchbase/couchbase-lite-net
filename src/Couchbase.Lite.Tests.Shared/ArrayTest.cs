@@ -1341,7 +1341,6 @@ namespace Test
         {
             var array = new MutableArrayObject();
             array.Invoking(a => a.AddValue(new ASCIIEncoding())).ShouldThrow<ArgumentException>();
-            array.Invoking(a => a.AddValue(1UL)).ShouldThrow<ArgumentException>();
             array.Invoking(a => a.AddValue(new[] { new ASCIIEncoding() })).ShouldThrow<ArgumentException>();
             array.Invoking(a => a.AddValue(new Dictionary<string, object> { ["encoding"] = new ASCIIEncoding() })).ShouldThrow<ArgumentException>();
             array.AddValue((byte) 1);
@@ -1351,6 +1350,7 @@ namespace Test
             array.AddValue(1);
             array.AddValue(1U);
             array.AddValue(1L);
+            array.AddValue(1UL);
             array.AddValue(true);
             array.AddValue("Test");
             array.AddValue(1.1f);

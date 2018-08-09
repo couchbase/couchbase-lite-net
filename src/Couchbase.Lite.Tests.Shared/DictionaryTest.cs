@@ -486,7 +486,6 @@ namespace Test
             var dict2 = new InMemoryDictionary();
             foreach (var d in new IMutableDictionary[] { dict, dict2 }) {
                 d.Invoking(d_ => d_.SetValue("test", new ASCIIEncoding())).ShouldThrow<ArgumentException>();
-                d.Invoking(d_ => d_.SetValue("test", 1UL)).ShouldThrow<ArgumentException>();
                 d.Invoking(d_ => d_.SetValue("test", new[] { new ASCIIEncoding() })).ShouldThrow<ArgumentException>();
                 d.Invoking(d_ => d_.SetValue("test", new Dictionary<string, object> { ["encoding"] = new ASCIIEncoding() })).ShouldThrow<ArgumentException>();
                 d.SetValue("test", (byte) 1);
@@ -496,6 +495,7 @@ namespace Test
                 d.SetValue("test", 1);
                 d.SetValue("test", 1U);
                 d.SetValue("test", 1L);
+                d.SetValue("test", 1UL);
                 d.SetValue("test", true);
                 d.SetValue("test", "Test");
                 d.SetValue("test", 1.1f);
