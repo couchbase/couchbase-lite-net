@@ -2,7 +2,6 @@
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Sync;
 using FluentAssertions;
-using Moq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -41,7 +40,6 @@ namespace Test
         Type ReachabilityType = typeof(Reachability);
         Type HttpLogicType = typeof(HTTPLogic);
         WebSocketWrapper webSocketWrapper;
-        Mock<IWebSocketWrapper> webSocketWrapperMock;
         HTTPLogic hTTPLogic = new HTTPLogic(new Uri("ws://localhost:4984"));
 
 #if !WINDOWS_UWP
@@ -59,42 +57,22 @@ namespace Test
 
             var s = new LiteCore.Interop.C4Socket();
             webSocketWrapper = new WebSocketWrapper(uri, (&s), dict);
-            webSocketWrapperMock = new Mock<IWebSocketWrapper>();
         }
 #endif
 
         [Fact]
         public void TestWebSocketWrapper()
         {
-            var ws = webSocketWrapperMock.Object;
-            ws.NetworkStream.Should().BeNull();
-
-            webSocketWrapperMock.Setup(m => m.Start()).Verifiable();
             var method = WebSocketWrapperType.GetMethod("Start", BindingFlags.Public | BindingFlags.Instance);
             //method.Invoke(webSocketWrapper, null);
 
             byte[] byteArray = Encoding.ASCII.GetBytes("websocket testing");
 
-            try {
-                webSocketWrapperMock.Setup(m => m.Write(byteArray)).Throws(new InvalidOperationException());
-            } catch (Exception ex) {
-                ex.Should().Be(typeof(InvalidOperationException));
-            }
-
-            webSocketWrapperMock.Setup(m => m.Write(It.IsAny<byte[]>())).Verifiable();
-            webSocketWrapperMock.Object.Write(byteArray);
-
             method = WebSocketWrapperType.GetMethod("Write", BindingFlags.Public | BindingFlags.Instance);
             method.Invoke(webSocketWrapper, new object[1] { byteArray });
 
-            webSocketWrapperMock.Setup(m => m.CompletedReceive(It.IsAny<ulong>())).Verifiable();
-            webSocketWrapperMock.Object.CompletedReceive((ulong)byteArray.Length);
-
             method = WebSocketWrapperType.GetMethod("CompletedReceive", BindingFlags.Public | BindingFlags.Instance);
             method.Invoke(webSocketWrapper, new object[1] { (ulong)byteArray.Length });
-
-            webSocketWrapperMock.Setup(m => m.CloseSocket()).Verifiable();
-            webSocketWrapperMock.Object.CloseSocket();
 
             method = WebSocketWrapperType.GetMethod("CloseSocket", BindingFlags.Public | BindingFlags.Instance);
             //method.Invoke(webSocketWrapper, null);
@@ -125,7 +103,6 @@ namespace Test
         [Fact]
         public void TestBase64Digest()
         {
-            var websocket = new Mock<IWebSocketWrapper>();
             string input = "test coverage";
 
             var method = WebSocketWrapperType.GetMethod("Base64Digest", BindingFlags.NonPublic | BindingFlags.Static);
@@ -229,7 +206,6 @@ namespace Test
         [Fact]
         public void TestReachability()
         {
-            var reachabilityI = new Mock<IReachability>();
             var status = NetworkReachabilityStatus.Unknown;
             var e = new NetworkReachabilityChangeEventArgs(status);
             NetworkReachabilityStatus s = NetworkReachabilityStatus.Unknown;
