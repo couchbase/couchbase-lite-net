@@ -12,11 +12,11 @@
     <DefineConstants>LITECORE_PACKAGED;RELEASE;COUCHBASE_ENTERPRISE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-	<Content Include="..\Couchbase.Lite.Tests.NetCore\replacedb\**">
+	<Content Include="..\Couchbase.Lite.TestsCoverage\replacedb\**">
 		<Link>replacedb\%(RecursiveDir)%(Filename)%(Extension)</Link>
 		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
-	<Content Include="..\Couchbase.Lite.Tests.NetCore\C\**">
+	<Content Include="..\Couchbase.Lite.TestsCoverage\C\**">
 		<Link>C\%(RecursiveDir)%(Filename)%(Extension)</Link>
 		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
