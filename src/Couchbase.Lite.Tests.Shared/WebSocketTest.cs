@@ -240,6 +240,10 @@ namespace Test
         [Fact]
         public void TestHttpLogic()
         {
+            try {
+                var targetEndpoint = new URLEndpoint(new Uri("http://192.168.0.11:4984/app"));
+            } catch { }
+
             var logic = new HTTPLogic(new Uri("ws://192.168.0.11:4984/app"));
             var prop = HttpLogicType.GetProperty("Credential", BindingFlags.Public | BindingFlags.Instance);
             prop.SetValue(hTTPLogic, new NetworkCredential("name", "pass"));
@@ -255,6 +259,15 @@ namespace Test
 
             prop = HttpLogicType.GetProperty("Error", BindingFlags.Public | BindingFlags.Instance);
             var error = logic.Error;
+
+            prop = HttpLogicType.GetProperty("HttpStatus", BindingFlags.Public | BindingFlags.Instance);
+            var status = logic.HttpStatus;
+
+            prop = HttpLogicType.GetProperty("Port", BindingFlags.Public | BindingFlags.Instance);
+            var port = logic.Port;
+
+            prop = HttpLogicType.GetProperty("ShouldContinue", BindingFlags.Public | BindingFlags.Instance);
+            var shouldContinue = logic.ShouldContinue;
         }
 
         [Fact]

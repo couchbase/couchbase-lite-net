@@ -12,6 +12,14 @@
     <DefineConstants>LITECORE_PACKAGED;RELEASE;COUCHBASE_ENTERPRISE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="C\**" />
+    <EmbeddedResource Remove="C\**" />
+    <None Remove="C\**" />
+    <Compile Remove="replacedb\**" />
+    <EmbeddedResource Remove="replacedb\**" />
+    <None Remove="replacedb\**" />
+  </ItemGroup>
+  <ItemGroup>
 	<Content Include="..\Couchbase.Lite.TestsCoverage\replacedb\**">
 		<Link>replacedb\%(RecursiveDir)%(Filename)%(Extension)</Link>
 		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -20,6 +28,11 @@
 		<Link>C\%(RecursiveDir)%(Filename)%(Extension)</Link>
 		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="replacedb\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.1.0-b0221" />
