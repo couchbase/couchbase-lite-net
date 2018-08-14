@@ -18,11 +18,11 @@ before_build:
     - cmd: msbuild /t:Restore src/Couchbase.Lite.Support.UWP/Couchbase.Lite.Support.UWP.csproj
     - ps: New-Item -Type Directory -Path vendor/couchbase-lite-core/build_cmake/x64; New-Item -Type Directory -Path vendor/couchbase-lite-core/build_cmake/x86; New-Item -Type Directory -Path vendor/couchbase-lite-core/build_cmake/x64_store; 
             New-Item -Type Directory -Path vendor/couchbase-lite-core/build_cmake/x86_store; New-Item -Type Directory -Path vendor/couchbase-lite-core/build_cmake/ARM
-    - ps: New-Item -Type File -Path -Path vendor/couchbase-lite-core/build_cmake/x64/LiteCore.dll; New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x64/LiteCore.pdb;
+    - ps: New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x64/LiteCore.dll; New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x64/LiteCore.pdb;
             New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x86/LiteCore.dll; New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x86/LiteCore.pdb;
             New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x64_store/LiteCore.dll; New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x64_store/LiteCore.pdb;
             New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x86_store/LiteCore.dll; New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x86_store/LiteCore.pdb;
-            New-Item -Type File -Path -Path vendor/couchbase-lite-core/build_cmake/ARM/LiteCore.dll; New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/ARM/LiteCore.pdb;
+            New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/ARM/LiteCore.dll; New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/ARM/LiteCore.pdb;
     
 build_script:
     - cmd: dotnet build src/Couchbase.Lite.Support.NetDesktop/Couchbase.Lite.Support.NetDesktop.csproj
