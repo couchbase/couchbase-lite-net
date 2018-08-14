@@ -10,22 +10,7 @@ init:
 # Environment
 image: Visual Studio 2017
 clone_depth: 1
-
-before_build:
-    - cmd: dotnet --version
-    - cmd: dotnet restore src/Couchbase.Lite/Couchbase.Lite.csproj
-    - cmd: dotnet restore src/Couchbase.Lite.Support.NetDesktop/Couchbase.Lite.Support.NetDesktop.csproj
-    - cmd: msbuild /t:Restore src/Couchbase.Lite.Support.UWP/Couchbase.Lite.Support.UWP.csproj
-    # Put in a fake LiteCore to fool the build.  The full build will get the actual copy first.  This is just the sanity build though.
-    - ps: New-Item -Type Directory -Path vendor/couchbase-lite-core/build_cmake/x64/RelWithDebInfo/; New-Item -Type Directory -Path vendor/couchbase-lite-core/build_cmake/x86/RelWithDebInfo/; 
-            New-Item -Type Directory -Path vendor/couchbase-lite-core/build_cmake/x64_store/RelWithDebInfo/; New-Item -Type Directory -Path vendor/couchbase-lite-core/build_cmake/x86_store/RelWithDebInfo/; 
-            New-Item -Type Directory -Path vendor/couchbase-lite-core/build_cmake/ARM/RelWithDebInfo/
-    - ps: New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x64/RelWithDebInfo/LiteCore.dll; New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x64/RelWithDebInfo/LiteCore.pdb;
-            New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x86/RelWithDebInfo/LiteCore.dll; New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x86/RelWithDebInfo/LiteCore.pdb;
-            New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x64_store/RelWithDebInfo/LiteCore.dll; New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x64_store/RelWithDebInfo/LiteCore.pdb;
-            New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x86_store/RelWithDebInfo/LiteCore.dll; New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/x86_store/RelWithDebInfo/LiteCore.pdb;
-            New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/ARM/RelWithDebInfo/LiteCore.dll; New-Item -Type File -Path vendor/couchbase-lite-core/build_cmake/ARM/RelWithDebInfo/LiteCore.pdb;
     
 build_script:
-    - cmd: dotnet build src/Couchbase.Lite.Support.NetDesktop/Couchbase.Lite.Support.NetDesktop.csproj
-    - cmd: dotnet build src/Couchbase.Lite.Support.UWP/Couchbase.Lite.Support.UWP.csproj
+    - cmd: msbuild /t:Restore src/Couchbase.Lite.sln
+    - cmd: msbuild src/Couchbase.Lite.sln

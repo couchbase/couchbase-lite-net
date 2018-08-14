@@ -21,6 +21,8 @@ EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{11f38891-8397-49b4-9146-6daf0a9d7866}*SharedItemsImports = 13
+		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{39b57510-2b59-4aef-a676-c182a58f9937}*SharedItemsImports = 4
+		..\LiteCore\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{39b57510-2b59-4aef-a676-c182a58f9937}*SharedItemsImports = 4
 		..\LiteCore\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{6ec40f09-4c86-4f51-9f0e-c4397601a567}*SharedItemsImports = 13
 		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{907f602b-eff8-459f-af24-d6f8e4cbe45c}*SharedItemsImports = 4
 		..\LiteCore\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{907f602b-eff8-459f-af24-d6f8e4cbe45c}*SharedItemsImports = 4
