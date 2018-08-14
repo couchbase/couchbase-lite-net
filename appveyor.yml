@@ -14,9 +14,9 @@ clone_depth: 1
 before_build:
     - cmd: dotnet --version
     - cmd: dotnet restore src/Couchbase.Lite/Couchbase.Lite.csproj
-    - cmd: dotnet restore src/Couchbase.Lite.Support.NetCore/Couchbase.Lite.Support.NetCore.csproj
+    - cmd: dotnet restore src/Couchbase.Lite.Support.NetDesktop/Couchbase.Lite.Support.NetDesktop.csproj
     - cmd: msbuild /t:Restore src/Couchbase.Lite.Support.UWP/Couchbase.Lite.Support.UWP.csproj
     
 build_script:
-    - cmd: dotnet build src/Couchbase.Lite.Support.NetCore/Couchbase.Lite.Support.NetCore.csproj
+    - cmd: dotnet build src/Couchbase.Lite.Support.NetDesktop/Couchbase.Lite.Support.NetDesktop.csproj
     - cmd: dotnet build src/Couchbase.Lite.Support.UWP/Couchbase.Lite.Support.UWP.csproj
