@@ -126,7 +126,7 @@
       <Link>Properties\version</Link>
     </None>
   </ItemGroup>
-  <ItemGroup>
+  <ItemGroup Condition=" '$(JUST_CSHARP)' == '' ">
     <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\x86\libLiteCore.so">
       <Link>x86\libLiteCore.so</Link>
     </EmbeddedNativeLibrary>

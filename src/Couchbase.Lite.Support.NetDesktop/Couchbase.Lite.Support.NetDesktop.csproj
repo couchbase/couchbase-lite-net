@@ -55,7 +55,7 @@
     </None>
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(OS)' == 'Windows_NT' OR $(Configuration.Contains('Packaging')) ">
+  <ItemGroup Condition=" ('$(OS)' == 'Windows_NT' OR $(Configuration.Contains('Packaging'))) AND '$(JUST_CSHARP)' == '' ">
     <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x86\RelWithDebInfo\LiteCore.dll">
       <Link>x86\LiteCore.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -73,13 +73,13 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-  <ItemGroup Condition=" $(IsMac) OR $(Configuration.Contains('Packaging')) ">
+  <ItemGroup Condition=" ($(IsMac) OR $(Configuration.Contains('Packaging'))) AND '$(JUST_CSHARP)' == ''  ">
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libLiteCore.dylib">
       <Link>libLiteCore.dylib</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <ItemGroup Condition=" (!$(IsMac) AND '$(OS)' == 'Unix') OR $(Configuration.Contains('Packaging'))">
+  <ItemGroup Condition=" ((!$(IsMac) AND '$(OS)' == 'Unix') OR $(Configuration.Contains('Packaging'))) AND '$(JUST_CSHARP)' == '' ">
     <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libLiteCore.so">
       <Link>libLiteCore.so</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
