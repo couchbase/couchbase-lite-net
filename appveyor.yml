@@ -13,4 +13,4 @@ clone_depth: 1
     
 build_script:
     - cmd: msbuild /t:Restore src/Couchbase.Lite.sln
-    - cmd: msbuild src/Couchbase.Lite.sln
+    - cmd: msbuild src/Couchbase.Lite.sln /p:JUST_CSHARP=1
