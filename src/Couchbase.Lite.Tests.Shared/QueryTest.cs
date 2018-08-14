@@ -1757,6 +1757,63 @@ namespace Test
             }
         }
 
+        [ForIssue("couchbase-lite-net/1052")]
+        [Fact]
+        public void TestQueryDateTimeOffset()
+        {
+            var dto1 = DateTimeOffset.UtcNow;
+            var dto2 = new DateTimeOffset(15, new TimeSpan(0));
+            var dto3 = new DateTimeOffset(15000, new TimeSpan(0));
+
+            DictionaryObject[] results1;
+            DictionaryObject[] results2;
+            DictionaryObject[] results3;
+
+            using (var document = new MutableDocument("TestQueryDateTimeOffset.1")) {
+                document.SetDate("timestamp", dto1);
+                Db.Save(document);
+            }
+            using (var document = new MutableDocument("TestQueryDateTimeOffset.2")) {
+                document.SetDate("timestamp", dto2);
+                Db.Save(document);
+            }
+            using (var document = new MutableDocument("TestQueryDateTimeOffset.3")) {
+                document.SetDate("timestamp", dto3);
+                Db.Save(document);
+            }
+
+            using (var query = QueryBuilder
+                .Select(SelectResult.All())
+                .From(DataSource.Database(Db))
+                .Where(
+                    Expression.Property("timestamp").EqualTo(Expression.Date(dto1))
+                )) {
+                results1 = query.Execute().Select(r => r.GetDictionary(Db.Name)).ToArray();
+            }
+
+            using (var query = QueryBuilder
+                .Select(SelectResult.All())
+                .From(DataSource.Database(Db))
+                .Where(
+                    Expression.Property("timestamp").EqualTo(Expression.Date(dto2))
+                )) {
+                results2 = query.Execute().Select(r => r.GetDictionary(Db.Name)).ToArray();
+            }
+
+            using (var query = QueryBuilder
+                .Select(SelectResult.All())
+                .From(DataSource.Database(Db))
+                .Where(
+                    Expression.Property("timestamp").EqualTo(Expression.Date(dto3))
+                )) {
+                results3 = query.Execute().Select(r => r.GetDictionary(Db.Name)).ToArray();
+            }
+
+            results1.Length.ShouldBeEquivalentTo(1);
+            results2.Length.ShouldBeEquivalentTo(1);
+            results3.Length.ShouldBeEquivalentTo(1);
+        }
+
         [ForIssue("couchbase-lite-core/497")]
         [Fact]
         public void TestQueryJoinAndSelectAll()

@@ -53,7 +53,7 @@ namespace Couchbase.Lite.Query
         /// <param name="value">The value to use</param>
         /// <returns>An expression representing the fixed value</returns>
         [NotNull]
-        public static IExpression Date(DateTimeOffset value) => new QueryConstantExpression<DateTimeOffset>(value);
+        public static IExpression Date(DateTimeOffset value) => new QueryConstantExpression<string>(value.ToString("o")); //#1052 
 
         /// <summary>
         /// Returns an expression to represent a fixed <see cref="double"/> value
