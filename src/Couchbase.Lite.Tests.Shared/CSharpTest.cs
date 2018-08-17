@@ -131,6 +131,49 @@ namespace Test
             } finally {
                 Native.FLSliceResult_Free(flData);
             }
+
+            var mroot = new MRoot();
+        }
+
+        [Fact]
+        public unsafe void TestSharedstrings()
+        {
+            var now = DateTimeOffset.UtcNow;
+            var nestedArray = new[] { 1L, 2L, 3L };
+            var nestedDict = new Dictionary<string, object> { ["foo"] = "bar" };
+            var masterData = new object[] { 1, "str", nestedArray, now, nestedDict };
+            var flData = new FLSliceResult();
+            Db.InBatch(() =>
+            {
+                flData = masterData.FLEncode();
+            });
+            try {
+                var context = new DocContext(Db, null);
+                using (var mRoot = new MRoot(context)) {
+                    var flValue = NativeRaw.FLValue_FromTrustedData((FLSlice)flData);
+                    var mArr = new MArray(new MValue(flValue), mRoot);
+                    var sharedstrings = context.SharedStrings;
+                    FLEncoder* fLEncoder = Db.SharedEncoder;
+                    mRoot.FLEncode(fLEncoder);
+                    mRoot.Encode();
+
+                    var isReadonly = mArr.IsReadOnly;
+                    isReadonly.Should().BeFalse();
+                    Assert.Throws<NotImplementedException>(() => mArr.IndexOf(now));
+                    Assert.Throws<NotImplementedException>(() => mArr.Contains(now));
+                    Assert.Throws<NotImplementedException>(() => mArr.Remove(now));
+                    Assert.Throws<NotImplementedException>(() => mArr.CopyTo(new object[] { }, 12));
+                    var flDict = Native.FLValue_AsDict(flValue);
+                    var sharedStringCache = new SharedStringCache();
+                    var sharedStringCache1 = new SharedStringCache(sharedStringCache);
+                    sharedStringCache1 = new SharedStringCache(sharedStringCache, flDict);
+                    var i = default(FLDictIterator);
+                    var iterKey = sharedStringCache1.GetDictIterKey(&i);
+                    sharedStringCache1.UseDocumentRoot(flDict);
+                }
+            } finally {
+                Native.FLSliceResult_Free(flData);
+            }
         }
 
         [Fact]
@@ -211,6 +254,8 @@ namespace Test
                     var dict = deserializedDict.ToDictionary();
                     dict["array"].As<IList>().Should().Equal(1L, 2L, 3L);
                     dict["dict"].As<IDictionary<string, object>>().ShouldBeEquivalentTo(nestedDict);
+                    var isContain = mDict.Contains("");
+                    isContain.Should().BeFalse();
                 }
             } finally {
                 Native.FLSliceResult_Free(flData);
@@ -352,6 +397,8 @@ Transfer-Encoding: chunked";
                 .ShouldThrow<InvalidOperationException>("because the type key is required");
             dict.Invoking(d => d.Remove(new KeyValuePair<string, object>("type", "Basic")))
                 .ShouldThrow<InvalidOperationException>("because the type key is required");
+            dict.Clear();
+            dict.Count.Should().Be(0);
         }
         
         [Fact]
@@ -586,6 +633,8 @@ Transfer-Encoding: chunked";
             fleeceException.Should().NotBeNull();
             fleeceException.Error.Should().Be((int) FLError.EncodeError);
             fleeceException.Domain.Should().Be(CouchbaseLiteErrorType.Fleece);
+            fleeceException = new CouchbaseFleeceException(FLError.JSONError);
+            fleeceException = new CouchbaseFleeceException(FLError.JSONError, "json error");
 
             var sqliteException =
                 CouchbaseException.Create(new C4Error(C4ErrorDomain.SQLiteDomain, (int) SQLiteStatus.Misuse)) as CouchbaseSQLiteException;
@@ -593,22 +642,33 @@ Transfer-Encoding: chunked";
             sqliteException.BaseError.Should().Be(SQLiteStatus.Misuse);
             sqliteException.Error.Should().Be((int) SQLiteStatus.Misuse);
             sqliteException.Domain.Should().Be(CouchbaseLiteErrorType.SQLite);
+            sqliteException = new CouchbaseSQLiteException(999991);
+            sqliteException = new CouchbaseSQLiteException(999991, "new sql lite exception");
 
             var webSocketException = CouchbaseException.Create(new C4Error(C4ErrorDomain.WebSocketDomain, 1003)) as CouchbaseWebsocketException;
             webSocketException.Error.Should().Be(CouchbaseLiteError.WebSocketDataError);
             webSocketException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+            webSocketException = new CouchbaseWebsocketException(10404);
+            webSocketException = new CouchbaseWebsocketException(10404, "HTTP Not Found");
 
             var posixException = CouchbaseException.Create(new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.EACCES)) as CouchbasePosixException;
             posixException.Error.Should().Be(PosixBase.EACCES);
             posixException.Domain.Should().Be(CouchbaseLiteErrorType.POSIX);
+            posixException = new CouchbasePosixException(999992);
+            posixException = new CouchbasePosixException(999992, "new posix lite exception");
 
             var networkException =
                 CouchbaseException.Create(new C4Error(C4NetworkErrorCode.InvalidURL)) as CouchbaseNetworkException;
             networkException.Error.Should().Be(CouchbaseLiteError.InvalidUrl);
             networkException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+            networkException = new CouchbaseNetworkException(HttpStatusCode.BadRequest);
+            networkException = new CouchbaseNetworkException(C4NetworkErrorCode.InvalidURL);
+            networkException = new CouchbaseNetworkException(C4NetworkErrorCode.InvalidURL, "You are trying to connect to an invalid url");
+
+            var runtimeException = new RuntimeException("runtime exception");
         }
 
-        #if !NETCOREAPP2_0
+#if !NETCOREAPP2_0
 
         [Fact]
         public async Task TestMainThreadScheduler()
@@ -623,7 +683,7 @@ Transfer-Encoding: chunked";
             onMainThread.Should().BeTrue();
         }
 
-        #else
+#else
 
         [Fact]
         public void TestChangeBinaryLogDirectory()

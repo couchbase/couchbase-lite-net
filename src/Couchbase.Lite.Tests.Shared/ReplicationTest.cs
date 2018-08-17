@@ -399,13 +399,15 @@ namespace Test
                     _otherDB.Save(mdoc);
                 }
 
-
-                // PUSH
                 var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, protocolType));
                 var server = new MockServerConnection(listener, protocolType);
-                var config = new ReplicatorConfiguration(Db,
-                    new MessageEndpoint($"p2ptest1", server, protocolType,
-                        new MockConnectionFactory(null)))
+                var messageendpoint = new MessageEndpoint($"p2ptest1", server, protocolType,
+                        new MockConnectionFactory(null));
+                var uid = messageendpoint.Uid;
+                var replicationDict = _otherDB.Replications;
+
+                // PUSH
+                var config = new ReplicatorConfiguration(Db, messageendpoint)
                 {
                     ReplicatorType = ReplicatorType.Push,
                     Continuous = false
@@ -415,10 +417,7 @@ namespace Test
                 Db.Count.Should().Be(1UL, "because there is no pull, so the first db should only have the original");
 
                 // PULL
-                server = new MockServerConnection(listener, protocolType);
-                config = new ReplicatorConfiguration(Db,
-                    new MessageEndpoint($"p2ptest1", server, protocolType,
-                        new MockConnectionFactory(null)))
+                config = new ReplicatorConfiguration(Db, messageendpoint)
                 {
                     ReplicatorType = ReplicatorType.Pull,
                     Continuous = false
@@ -440,7 +439,6 @@ namespace Test
                 }
 
                 // PUSH & PULL
-                server = new MockServerConnection(listener, protocolType);
                 config = new ReplicatorConfiguration(Db,
                         new MessageEndpoint($"p2ptest1", server, protocolType,
                             new MockConnectionFactory(null)))
@@ -544,7 +542,7 @@ namespace Test
                     Thread.Sleep(500);
                     count.Should().BeLessThan(10, "because otherwise the replicator never went idle");
                 }
-
+                var connection = listener.Connections;
                 errorLogic.ErrorActive = true;
                 listener.Close(serverConnection);
                 count = 0;
@@ -613,7 +611,7 @@ namespace Test
                         }
                     }
                 });
-
+                var connection = listener.Connections;
                 listener.CloseAll();
                 count = 0;
                 while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped &&
@@ -651,7 +649,7 @@ namespace Test
             {
                 statuses.Add(args.Status.Activity);
             });
-
+            var connection = listener.Connections;
             RunReplication(config, 0, 0);
             awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
             awaiter.Validate();
@@ -676,6 +674,7 @@ namespace Test
             {
                 statuses.Add(args.Status.Activity);
             });
+            var connection = listener.Connections;
             listener.RemoveChangeListener(token);
             RunReplication(config, 0, 0);
             awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
@@ -705,7 +704,7 @@ namespace Test
                 ReplicatorType = ReplicatorType.Push,
                 Continuous = false
             };
-
+            var connection = listener.Connections;
             return config;
         }
 

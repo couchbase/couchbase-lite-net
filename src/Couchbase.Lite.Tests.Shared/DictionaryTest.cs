@@ -509,5 +509,21 @@ namespace Test
                 d.SetValue("test", new MutableDictionaryObject());
             }
         }
+
+        [Fact]
+        public void TestInMemoryDictionary()
+        {
+            var dict2 = new InMemoryDictionary();
+            IDictionary<string, object> idic = new Dictionary<string, object>();
+            idic.Add("one", 1);
+            idic.Add("two", 2);
+            idic.Add("three", 3);
+            idic.Add("four", 4);
+            idic.Add("five", 5);
+            idic.Add("six", 6);
+            var inmemorydict1 = new InMemoryDictionary(idic);
+            inmemorydict1.Count.Should().Be(6);
+            var inmemorydict = new InMemoryDictionary(dict2);
+        }
     }
 }

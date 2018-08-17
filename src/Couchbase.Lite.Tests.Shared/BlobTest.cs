@@ -121,6 +121,7 @@ namespace Test
                 stream.Write(bytes, 0, bytes.Length);
                 stream.Flush();
                 key = stream.Key;
+                var canread = stream.CanRead;
             }
 
             using (var stream = new BlobReadStream(Db.BlobStore, key)) {
@@ -140,6 +141,7 @@ namespace Test
                 stream.Seek(-2, SeekOrigin.End);
                 stream.Position.Should().Be(bytes.Length - 2); // ReadByte advanced the stream
                 stream.ReadByte().Should().Be(bytes[bytes.Length - 2]);
+                stream.Flush();
             }
         }
     }

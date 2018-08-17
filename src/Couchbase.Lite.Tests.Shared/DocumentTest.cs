@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 using Couchbase.Lite;
@@ -195,6 +196,37 @@ namespace Test
                 d.GetArray("key").Should().BeNull("because no array exists for this key");
                 d.ToDictionary().Should().BeEmpty("because this document has no properties");
             });
+        }
+
+        [Fact]
+        public void TestMutableDocument()
+        {
+            var doc = new MutableDocument("doc1");
+            SaveDocument(doc, d =>
+            {
+                d.GetInt("key").Should().Be(0, "because no integer exists for this key");
+                d.GetDouble("key").Should().Be(0.0, "because no double exists for this key");
+                d.GetFloat("key").Should().Be(0.0f, "because no float exists for this key");
+                d.GetBoolean("key").Should().BeFalse("because no boolean exists for this key");
+                d.GetBlob("key").Should().BeNull("because no blob exists for this key");
+                d.GetDate("key").Should().Be(DateTimeOffset.MinValue, "because no date exists for this key");
+                d.GetValue("key").Should().BeNull("because no object exists for this key");
+                d.GetString("key").Should().BeNull("because no string exists for this key");
+                d.GetDictionary("key").Should().BeNull("because no subdocument exists for this key");
+                d.GetArray("key").Should().BeNull("because no array exists for this key");
+                d.ToDictionary().Should().BeEmpty("because this document has no properties");
+            });
+
+            doc = new MutableDocument(Db, "doc1");
+            var gene = doc.Generation;
+            var encode1 = doc.Encode();
+            Type mutableDocumentType = typeof(MutableDocument);
+            var prop = mutableDocumentType.GetProperty("Changed", BindingFlags.NonPublic | BindingFlags.Instance);
+            var isChanged = prop;
+            var doc1 = new Document(doc);
+            var encode = doc1.Encode();
+            var gen = doc1.Generation;
+            var isSelecteConflicRev = doc1.SelectConflictingRevision();
         }
 
         [Fact]
@@ -708,6 +740,9 @@ namespace Test
             array.AddString("item4");
             array.AddString("item5");
             SaveDocument(doc, d => { d.GetArray("array").ToList().Should().ContainInOrder(array.ToList()); });
+
+            var imarr = new ArrayObject(array, false);
+            imarr.ShouldBeEquivalentTo(array.ToImmutable());
         }
 
         [Fact]

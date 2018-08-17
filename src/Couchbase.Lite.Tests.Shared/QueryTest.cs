@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -48,6 +49,8 @@ namespace Test
         private static readonly ISelectResult DocID = SelectResult.Expression(Meta.ID);
         private static readonly ISelectResult Sequence = SelectResult.Expression(Meta.Sequence);
 
+        Type queryTypeExpressionType = typeof(QueryTypeExpression);
+
 #if !WINDOWS_UWP
         public QueryTest(ITestOutputHelper output) : base(output)
         {
@@ -65,6 +68,16 @@ namespace Test
                 q.Invoking(q2 => q2.Parameters.SetValue("foo2", "bar2"))
                     .ShouldThrow<InvalidOperationException>("because the parameters are read only once in use");
             }
+        }
+
+        [Fact]
+        public void TestParametersWithDictionaryArgument()
+        {
+            var dict = new Dictionary<string, object>();
+            var utcNow = DateTime.UtcNow;
+            dict.Add(utcNow.ToShortDateString(), utcNow);
+            var parameters = new Parameters(dict);
+            parameters.GetValue(utcNow.ToShortDateString()).Should().Be(utcNow);
         }
 
         [Fact]
@@ -457,6 +470,7 @@ namespace Test
                             () => list.Count() == 10 && list.First().GetInt(0) == -1);
                     }
                     
+
                 });
 
                 await Task.Delay(500);
@@ -1691,6 +1705,7 @@ namespace Test
                 doc.SetDate("created_at", now);
                 doc.SetFloat("simple_pi", 3.14159f);
                 doc.SetLong("big_num", Int64.MaxValue);
+                doc.SetBoolean("boolean", true);
                 Db.Save(doc);
             }
 
@@ -1698,7 +1713,8 @@ namespace Test
                     SelectResult.Property("blob"),
                     SelectResult.Property("created_at"),
                     SelectResult.Property("simple_pi"),
-                    SelectResult.Property("big_num"))
+                    SelectResult.Property("big_num"),
+                    SelectResult.Property("boolean"))
                 .From(DataSource.Database(Db))) {
                 VerifyQuery(q, (n, row) =>
                 {
@@ -1715,6 +1731,12 @@ namespace Test
 
                     row[4].Long.Should().Be(Int64.MaxValue);
                     row["big_num"].Long.Should().Be(Int64.MaxValue);
+                    row.GetBoolean(5).Should().Be(true);
+                    row.GetBoolean("boolean").Should().Be(true);
+
+                    var resultList = row.ToList();
+                    resultList.Count.Should().Be(6);
+                    resultList.ElementAtOrDefault(2).Should().Be(now.ToString("o"));
                 });
             }
         }
@@ -1755,6 +1777,159 @@ namespace Test
                 });
                 count.Should().Be(1);
             }
+        }
+
+        [Fact]
+        public void TestQueryExpressions()
+        {
+            var doubleValue = Math.PI;
+            var floatValue = 1.5F;
+            var longValue = 4294967296L;
+            var value = (object)"stringObject";
+
+            DictionaryObject[] resultsDouble;
+            DictionaryObject[] resultsFloat;
+            DictionaryObject[] resultsLong;
+            DictionaryObject[] resultsValue;
+
+            using (var document = new MutableDocument("ExpressionTypes")) {
+                document.SetDouble("doubleValue", doubleValue);
+                Db.Save(document);
+
+                document.SetFloat("floatValue", floatValue);
+                Db.Save(document);
+
+                document.SetLong("longValue", longValue);
+                Db.Save(document);
+
+                document.SetValue("value", value);
+                Db.Save(document);
+            }
+
+            var v = Db.GetDocument("ExpressionTypes").GetDouble("doubleValue");
+
+            using (var query = QueryBuilder
+                .Select(SelectResult.All())
+                .From(DataSource.Database(Db))
+                .Where(
+                    Expression.Property("doubleValue").EqualTo(Expression.Double(doubleValue))
+                )) {
+                resultsDouble = query.Execute().Select(r => r.GetDictionary(Db.Name)).ToArray();
+            }
+
+            using (var query = QueryBuilder
+                .Select(SelectResult.All())
+                .From(DataSource.Database(Db))
+                .Where(
+                    Expression.Property("floatValue").EqualTo(Expression.Float(floatValue))
+                )) {
+                resultsFloat = query.Execute().Select(r => r.GetDictionary(Db.Name)).ToArray();
+            }
+
+            using (var query = QueryBuilder
+                .Select(SelectResult.All())
+                .From(DataSource.Database(Db))
+                .Where(
+                    Expression.Property("longValue").EqualTo(Expression.Long(longValue))
+                )) {
+                resultsLong = query.Execute().Select(r => r.GetDictionary(Db.Name)).ToArray();
+            }
+
+            using (var query = QueryBuilder
+                .Select(SelectResult.All())
+                .From(DataSource.Database(Db))
+                .Where(
+                    Expression.Property("value").EqualTo(Expression.Value(value))
+                )) {
+                resultsValue = query.Execute().Select(r => r.GetDictionary(Db.Name)).ToArray();
+            }
+
+            resultsDouble.Length.ShouldBeEquivalentTo(1);
+            resultsFloat.Length.ShouldBeEquivalentTo(1);
+            resultsLong.Length.ShouldBeEquivalentTo(1);
+            resultsValue.Length.ShouldBeEquivalentTo(1);
+        }
+
+        [Fact]
+        public void TestNullResultSet()
+        {
+            NullResultSet resultset = new NullResultSet();
+            var resultCnt = resultset.Count();
+            var current = resultset?.Current;
+            var enumerator = resultset?.GetEnumerator();
+            var canMoveNext = resultset?.MoveNext();
+            var allresult = resultset?.AllResults();
+            //resultset.Dispose();
+        }
+
+        [Fact]
+        public void TestQueryExpression()
+        {
+            var dto1 = 168;
+            var dto2 = 68;
+
+            DictionaryObject[] results1;
+            DictionaryObject[] results2;
+
+            using (var document = new MutableDocument("TestQueryExpression")) {
+                document.SetInt("onesixeight", dto1);
+                Db.Save(document);
+            }
+
+            using (var from = QueryBuilder
+                .Select(SelectResult.All())
+                .From(DataSource.Database(Db))) {
+                var l = from.Execute().ToArray();
+                l.Count().Should().Be(1);
+            }
+;
+            using (var query = QueryBuilder
+                .Select(SelectResult.All())
+                .From(DataSource.Database(Db))
+                .Where(
+                    Expression.Property("onesixeight").Is(Expression.Int(dto1))
+                )) {
+                results1 = query.Execute().Select(r => r.GetDictionary(Db.Name)).ToArray();
+            }
+
+            using (var query = QueryBuilder
+                .Select(SelectResult.All())
+                .From(DataSource.Database(Db))
+                .Where(
+                    Expression.Property("onesixeight").IsNot(Expression.Int(dto2))
+                )) {
+                results2 = query.Execute().Select(r => r.GetDictionary(Db.Name)).ToArray();
+            }
+
+            results1.Length.ShouldBeEquivalentTo(1);
+            results2.Length.ShouldBeEquivalentTo(1);
+        }
+
+        [Fact]
+        public void TestQueryResultSet()
+        {
+            QueryResultSet resultset;
+            var dto1 = DateTimeOffset.UtcNow;
+            using (var document = new MutableDocument("TestQueryResultSet")) {
+                document.SetDate("timestamp", dto1);
+                Db.Save(document);
+            }
+            using (var query = QueryBuilder
+                .Select(SelectResult.All())
+                .From(DataSource.Database(Db))
+                .Where(
+                    Expression.Property("timestamp").EqualTo(Expression.Date(dto1))
+                )) {
+                resultset = (QueryResultSet)query.Execute();
+                resultset.Database.Should().Be(Db);
+                List<Result> allRes = resultset.AllResults();
+                allRes.Count.Should().Be(1);
+                var columnName = resultset.ColumnNames;
+            }
+
+            var queryTypeExpression = new QueryTypeExpression("doubleValue", ExpressionType.KeyPath);
+            var method = queryTypeExpressionType.GetMethod("CalculateKeyPath", BindingFlags.NonPublic | BindingFlags.Instance);
+            var res = method.Invoke(queryTypeExpression, null);
         }
 
         [ForIssue("#1052")]
@@ -1967,8 +2142,6 @@ namespace Test
                 while (e.MoveNext()) {
                     block?.Invoke(++n, e.Current);
                 }
-
-
                 return n;
             }
         }
