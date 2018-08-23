@@ -179,7 +179,7 @@ namespace Test
             };
 
             LoadNumbers(10);
-            RunTestWithNumbers(new[] {2, 3, 4, 5, 1, 9}, cases);
+            RunTestWithNumbers(new[] { 2, 3, 4, 5, 1, 9 }, cases);
         }
 
         [Fact]
@@ -222,7 +222,7 @@ namespace Test
             };
 
             LoadNumbers(10);
-            RunTestWithNumbers(new[] {6, 3, 5, 5, 5, 7, 2, 3, 10, 5}, cases);
+            RunTestWithNumbers(new[] { 6, 3, 5, 5, 5, 7, 2, 3, 10, 5 }, cases);
         }
 
         [Fact]
@@ -600,9 +600,9 @@ namespace Test
         [Fact]
         public void TestGroupBy()
         {
-            var expectedStates = new[] {"AL", "CA", "CO", "FL", "IA"};
-            var expectedCounts = new[] {1, 6, 1, 1, 3};
-            var expectedZips = new[] {"35243", "94153", "81223", "33612", "50801"};
+            var expectedStates = new[] { "AL", "CA", "CO", "FL", "IA" };
+            var expectedCounts = new[] { 1, 6, 1, 1, 3 };
+            var expectedZips = new[] { "35243", "94153", "81223", "33612", "50801" };
 
             LoadJSONResource("names_100");
 
@@ -633,7 +633,7 @@ namespace Test
 
             expectedStates = new[] { "CA", "IA", "IN" };
             expectedCounts = new[] { 6, 3, 2 };
-            expectedZips = new[] {"94153", "50801", "47952"};
+            expectedZips = new[] { "94153", "50801", "47952" };
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(STATE), SelectResult.Expression(COUNT), SelectResult.Expression(MAXZIP))
                 .From(DataSource.Database(Db))
@@ -1926,7 +1926,7 @@ namespace Test
                 allRes.Count.Should().Be(1);
                 var columnName = resultset.ColumnNames;
             }
-
+            resultset.Refresh();
             var queryTypeExpression = new QueryTypeExpression("doubleValue", ExpressionType.KeyPath);
             var method = queryTypeExpressionType.GetMethod("CalculateKeyPath", BindingFlags.NonPublic | BindingFlags.Instance);
             var res = method.Invoke(queryTypeExpression, null);

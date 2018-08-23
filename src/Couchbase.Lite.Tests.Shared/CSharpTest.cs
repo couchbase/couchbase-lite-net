@@ -127,6 +127,9 @@ namespace Test
                     var list = deserializedArray.ToList();
                     list[2].Should().BeAssignableTo<IList<object>>();
                     list[4].Should().BeAssignableTo<IDictionary<string, object>>();
+
+                    var mVal = new MValue();
+                    mVal.Dispose();
                 }
             } finally {
                 Native.FLSliceResult_Free(flData);
@@ -423,6 +426,8 @@ Transfer-Encoding: chunked";
             logic.Credential.Password = "newpassword";
             logic.Credential.UserName.Should().Be("newuser");
             logic.Credential.Password.Should().Be("newpassword");
+            var proxyRequest = logic.ProxyRequest("", "");
+            logic.HasProxy = false;
         }
 
         [Fact]
