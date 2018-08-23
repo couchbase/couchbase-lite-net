@@ -36,6 +36,7 @@ using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+using ObjCRuntime;
 
 namespace Couchbase.Lite.Sync
 {
@@ -238,9 +239,10 @@ namespace Couchbase.Lite.Sync
         private static void OnDocError(C4Replicator* repl, bool pushing, C4Slice docID, C4Error error, bool transient, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            var docIDStr = docID.CreateString();
             replicator?.DispatchQueue.DispatchAsync(() =>
             {
-                replicator.OnDocError(error, pushing, docID.CreateString() ?? "", transient);
+                replicator.OnDocError(error, pushing, docIDStr ?? "", transient);
             });
 
         }
@@ -312,7 +314,7 @@ namespace Couchbase.Lite.Sync
             // in network (i.e. network down, hostname unknown), then go offline and retry later
             var transient = Native.c4error_mayBeTransient(error) ||
                             (error.domain == C4ErrorDomain.WebSocketDomain && error.code ==
-                             (int) C4WebSocketCustomCloseCode.WebSocketCloseCustomTransient);
+                             (int) C4WebSocketCustomCloseCode.WebSocketCloseUserTransient);
 
             if (!transient && !(Config.Continuous && Native.c4error_mayBeNetworkDependent(error))) {
                 Log.To.Sync.I(Tag, "Permanent error encountered ({0} / {1}), giving up...", error.domain, error.code);

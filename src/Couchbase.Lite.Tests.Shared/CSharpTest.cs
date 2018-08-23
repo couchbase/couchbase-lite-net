@@ -127,6 +127,52 @@ namespace Test
                     var list = deserializedArray.ToList();
                     list[2].Should().BeAssignableTo<IList<object>>();
                     list[4].Should().BeAssignableTo<IDictionary<string, object>>();
+
+                    var mVal = new MValue();
+                    mVal.Dispose();
+                }
+            } finally {
+                Native.FLSliceResult_Free(flData);
+            }
+
+            var mroot = new MRoot();
+        }
+
+        [Fact]
+        public unsafe void TestSharedstrings()
+        {
+            var now = DateTimeOffset.UtcNow;
+            var nestedArray = new[] { 1L, 2L, 3L };
+            var nestedDict = new Dictionary<string, object> { ["foo"] = "bar" };
+            var masterData = new object[] { 1, "str", nestedArray, now, nestedDict };
+            var flData = new FLSliceResult();
+            Db.InBatch(() =>
+            {
+                flData = masterData.FLEncode();
+            });
+            try {
+                var context = new DocContext(Db, null);
+                using (var mRoot = new MRoot(context)) {
+                    var flValue = NativeRaw.FLValue_FromTrustedData((FLSlice)flData);
+                    var mArr = new MArray(new MValue(flValue), mRoot);
+                    var sharedstrings = context.SharedStrings;
+                    FLEncoder* fLEncoder = Db.SharedEncoder;
+                    mRoot.FLEncode(fLEncoder);
+                    mRoot.Encode();
+
+                    var isReadonly = mArr.IsReadOnly;
+                    isReadonly.Should().BeFalse();
+                    Assert.Throws<NotImplementedException>(() => mArr.IndexOf(now));
+                    Assert.Throws<NotImplementedException>(() => mArr.Contains(now));
+                    Assert.Throws<NotImplementedException>(() => mArr.Remove(now));
+                    Assert.Throws<NotImplementedException>(() => mArr.CopyTo(new object[] { }, 12));
+                    var flDict = Native.FLValue_AsDict(flValue);
+                    var sharedStringCache = new SharedStringCache();
+                    var sharedStringCache1 = new SharedStringCache(sharedStringCache);
+                    sharedStringCache1 = new SharedStringCache(sharedStringCache, flDict);
+                    var i = default(FLDictIterator);
+                    var iterKey = sharedStringCache1.GetDictIterKey(&i);
+                    sharedStringCache1.UseDocumentRoot(flDict);
                 }
             } finally {
                 Native.FLSliceResult_Free(flData);
@@ -211,6 +257,8 @@ namespace Test
                     var dict = deserializedDict.ToDictionary();
                     dict["array"].As<IList>().Should().Equal(1L, 2L, 3L);
                     dict["dict"].As<IDictionary<string, object>>().ShouldBeEquivalentTo(nestedDict);
+                    var isContain = mDict.Contains("");
+                    isContain.Should().BeFalse();
                 }
             } finally {
                 Native.FLSliceResult_Free(flData);
@@ -250,6 +298,41 @@ Transfer-Encoding: chunked";
             parser = new HttpMessageParser("HTTP/1.1 200 OK");
             parser.StatusCode.Should().Be(HttpStatusCode.OK);
             parser.Reason.Should().Be("OK");
+        }
+
+        [Fact]
+        public void TestHttpMessageParserWithString()
+        {
+            var parser = new HttpMessageParser("HTTP/1.1 200 OK");
+            parser.StatusCode.Should().Be(HttpStatusCode.OK);
+            parser.Reason.Should().Be("OK");
+        }
+
+        [Fact]
+        public void TestAppenNullToHttpMessageParser()
+        {
+            var httpResponse =
+                @"HTTP/1.1 200 OK
+X-XSS-Protection: 1; mode=block
+X-Frame-Options: SAMEORIGIN
+Cache-Control: private, max-age=0
+Content-Type: text/html; charset=UTF-8
+Date: Fri, 13 Oct 2017 05:54:52 GMT
+Expires: -1
+P3P: CP=""This is not a P3P policy! See g.co/p3phelp for more info.""
+Set-Cookie: 1P_JAR=2017-10-13-05; expires=Fri, 20-Oct-2017 05:54:52 GMT; path=/; domain=.google.co.jp,NID=114=Vzr79B7ISI0vlP54dhHQ1lyoyqxePhvy_k3w2ofp1oce73oG3m9ltBiUgdQNj4tSMkp-oWtzmhUi3rf314Fcrjy6J2DxtyEdA_suJlgfdN9973V2HO32OG9D3svImEJf; expires=Sat, 14-Apr-2018 05:54:52 GMT; path=/; domain=.google.co.jp; HttpOnly
+Server: gws
+Accept-Ranges: none
+Vary: Accept-Encoding
+Transfer-Encoding: chunked";
+            Exception e = null;
+            var parser = new HttpMessageParser(Encoding.ASCII.GetBytes(httpResponse));
+            try {
+                parser.Append(null);
+            } catch (Exception ex) {
+                e = ex;
+            }
+            e.Should().NotBeNull("because an exception is expected");
         }
 
         [Fact]
@@ -317,6 +400,8 @@ Transfer-Encoding: chunked";
                 .ShouldThrow<InvalidOperationException>("because the type key is required");
             dict.Invoking(d => d.Remove(new KeyValuePair<string, object>("type", "Basic")))
                 .ShouldThrow<InvalidOperationException>("because the type key is required");
+            dict.Clear();
+            dict.Count.Should().Be(0);
         }
         
         [Fact]
@@ -327,6 +412,49 @@ Transfer-Encoding: chunked";
             logic["Cookie"] = null;
             var dataString = Encoding.ASCII.GetString(logic.HTTPRequestData());
             dataString.IndexOf("\r\n\r\n").Should().Be(dataString.Length - 4);
+        }
+
+        [Fact]
+        public void TestGettingPortFromHTTPLogic()
+        {
+            var logic = new HTTPLogic(new Uri("ws://192.168.0.1:59840"));
+            logic.Port.Should().Be(59840);
+            logic.Credential = new NetworkCredential("user", "password");
+            logic.Credential.UserName.Should().Be("user");
+            logic.Credential.Password.Should().Be("password");
+            logic.Credential.UserName = "newuser";
+            logic.Credential.Password = "newpassword";
+            logic.Credential.UserName.Should().Be("newuser");
+            logic.Credential.Password.Should().Be("newpassword");
+            var proxyRequest = logic.ProxyRequest("", "");
+            logic.HasProxy = false;
+        }
+
+        [Fact]
+        public void TestBasicAuthenticator()
+        {
+            ReplicatorOptionsDictionary options = new ReplicatorOptionsDictionary();
+            var auth = new BasicAuthenticator("user", "password");
+            auth.Username.Should().Be("user");
+            auth.Password.Should().Be("password");
+            auth.Authenticate(options);
+            options.Auth.Username.Should().Be("user");
+            options.Auth.Password.Should().Be("password");
+            options.Auth.Type.Should().Be(AuthType.HttpBasic);
+        }
+
+        [Fact]
+        public void TestSessionAuthenticator()
+        {
+            ReplicatorOptionsDictionary options = new ReplicatorOptionsDictionary();
+            var auth = new SessionAuthenticator("justSessionID");
+            var auth2 = new SessionAuthenticator("sessionId", "myNameIsCookie");
+            auth.SessionID.Should().Be("justSessionID");
+            auth2.SessionID.Should().Be("sessionId");
+            auth2.CookieName.Should().Be("myNameIsCookie");
+            auth2.Authenticate(options);
+            options.Cookies.Count.Should().BeGreaterThan(0);
+            options.Cookies.First().Name.Should().Be("myNameIsCookie");
         }
 
         [Fact]
@@ -510,6 +638,8 @@ Transfer-Encoding: chunked";
             fleeceException.Should().NotBeNull();
             fleeceException.Error.Should().Be((int) FLError.EncodeError);
             fleeceException.Domain.Should().Be(CouchbaseLiteErrorType.Fleece);
+            fleeceException = new CouchbaseFleeceException(FLError.JSONError);
+            fleeceException = new CouchbaseFleeceException(FLError.JSONError, "json error");
 
             var sqliteException =
                 CouchbaseException.Create(new C4Error(C4ErrorDomain.SQLiteDomain, (int) SQLiteStatus.Misuse)) as CouchbaseSQLiteException;
@@ -517,22 +647,33 @@ Transfer-Encoding: chunked";
             sqliteException.BaseError.Should().Be(SQLiteStatus.Misuse);
             sqliteException.Error.Should().Be((int) SQLiteStatus.Misuse);
             sqliteException.Domain.Should().Be(CouchbaseLiteErrorType.SQLite);
+            sqliteException = new CouchbaseSQLiteException(999991);
+            sqliteException = new CouchbaseSQLiteException(999991, "new sql lite exception");
 
             var webSocketException = CouchbaseException.Create(new C4Error(C4ErrorDomain.WebSocketDomain, 1003)) as CouchbaseWebsocketException;
             webSocketException.Error.Should().Be(CouchbaseLiteError.WebSocketDataError);
             webSocketException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+            webSocketException = new CouchbaseWebsocketException(10404);
+            webSocketException = new CouchbaseWebsocketException(10404, "HTTP Not Found");
 
             var posixException = CouchbaseException.Create(new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.EACCES)) as CouchbasePosixException;
             posixException.Error.Should().Be(PosixBase.EACCES);
             posixException.Domain.Should().Be(CouchbaseLiteErrorType.POSIX);
+            posixException = new CouchbasePosixException(999992);
+            posixException = new CouchbasePosixException(999992, "new posix lite exception");
 
             var networkException =
                 CouchbaseException.Create(new C4Error(C4NetworkErrorCode.InvalidURL)) as CouchbaseNetworkException;
             networkException.Error.Should().Be(CouchbaseLiteError.InvalidUrl);
             networkException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+            networkException = new CouchbaseNetworkException(HttpStatusCode.BadRequest);
+            networkException = new CouchbaseNetworkException(C4NetworkErrorCode.InvalidURL);
+            networkException = new CouchbaseNetworkException(C4NetworkErrorCode.InvalidURL, "You are trying to connect to an invalid url");
+
+            var runtimeException = new RuntimeException("runtime exception");
         }
 
-        #if !NETCOREAPP2_0
+#if !NETCOREAPP2_0
 
         [Fact]
         public async Task TestMainThreadScheduler()
@@ -547,7 +688,7 @@ Transfer-Encoding: chunked";
             onMainThread.Should().BeTrue();
         }
 
-        #else
+#else
 
         [Fact]
         public void TestChangeBinaryLogDirectory()

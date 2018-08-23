@@ -18,6 +18,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\IDefaultDirectoryResolver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\ILogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\IMainThreadTaskScheduler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\DI\IProxy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\IReachability.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\IRuntimePlatform.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\Service.cs" />

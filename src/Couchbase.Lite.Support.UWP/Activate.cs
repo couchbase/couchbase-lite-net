@@ -51,6 +51,7 @@ namespace Couchbase.Lite.Support
             Service.AutoRegister(typeof(UWP).GetTypeInfo().Assembly);
             Service.Register<ILiteCore>(new LiteCoreImpl());
             Service.Register<ILiteCoreRaw>(new LiteCoreRawImpl());
+            Service.Register<IProxy>(new UWPProxy());
         }
 
         /// <summary>

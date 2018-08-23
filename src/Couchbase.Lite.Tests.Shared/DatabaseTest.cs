@@ -104,6 +104,7 @@ namespace Test
                 e = ex;
                 ex.Error.Should().Be(CouchbaseLiteError.WrongFormat, "because the database cannot have an empty name");
                 ex.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite, "because this is a LiteCore error");
+                var exception = new CouchbaseLiteException(C4ErrorCode.NotFound, "database cannot have an empty name", ex);
             }
 
             e.Should().NotBeNull("because an exception is expected");

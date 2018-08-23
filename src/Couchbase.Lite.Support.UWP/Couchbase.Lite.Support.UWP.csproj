@@ -162,6 +162,7 @@
     <Compile Include="Support\MainThreadTaskScheduler.cs" />
     <Compile Include="Support\Reachability.cs" />
     <Compile Include="Support\UwpDefaultLogger.cs" />
+    <Compile Include="Support\UWPProxy.cs" />
     <Compile Include="Support\UwpRuntimePlatform.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -233,9 +234,9 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Couchbase.Lite.Enterprise\Couchbase.Lite.Enterprise.csproj">
-      <Project>{c3373f63-99fc-40bc-84e6-96b39f2e0020}</Project>
-      <Name>Couchbase.Lite.Enterprise</Name>
+    <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj">
+      <Project>{dd9cb298-f3a1-4653-883b-352e69c16f93}</Project>
+      <Name>Couchbase.Lite</Name>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
