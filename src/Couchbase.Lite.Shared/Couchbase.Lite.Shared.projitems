@@ -31,6 +31,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\ISecureStorage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Leasable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\LogicalDictionary.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\ThreadSafeHashSet.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)View.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\FacebookAuthorizer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\PersonaAuthorizer.cs" />

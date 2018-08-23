@@ -26,6 +26,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Shared.Util;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
@@ -40,7 +41,7 @@ namespace Couchbase.Lite.Auth
         private readonly RemoteSession _session;
         private TaskCompletionSource<bool> _tcs;
         private string _localUUID;
-        private static readonly HashSet<RemoteLogin> _activeAttempts = new HashSet<RemoteLogin>();
+        private static readonly ThreadSafeHashSet<RemoteLogin> _activeAttempts = new ThreadSafeHashSet<RemoteLogin>();
 
         public RemoteLogin(Uri remoteUrl, string localUUID, RemoteSession session)
         {
