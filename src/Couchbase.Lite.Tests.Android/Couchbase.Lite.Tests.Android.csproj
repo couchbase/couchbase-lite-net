@@ -100,8 +100,8 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Couchbase.Lite.Enterprise">
-      <Version>2.5.0-b0015</Version>
+    <PackageReference Include="Couchbase.Lite.Enterprise.Debug">
+      <Version>2.5.0-b0020</Version>
     </PackageReference>
     <PackageReference Include="FluentAssertions">
       <Version>4.19.4</Version>
@@ -114,6 +114,5 @@
     </PackageReference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" />
-  <Import Project="..\LiteCore\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems" Label="Shared" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
 </Project>

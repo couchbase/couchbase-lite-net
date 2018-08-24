@@ -3,31 +3,14 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2026
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Support.Android", "..\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj", "{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}"
-EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared", "..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.shproj", "{11F38891-8397-49B4-9146-6DAF0A9D7866}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Lite", "..\Couchbase.Lite\Couchbase.Lite.csproj", "{8D5568EE-4C36-4245-8C36-65D9E7A01833}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.Android", "Couchbase.Lite.Tests.Android.csproj", "{B6083D32-7EEB-4697-8723-8C92EE3A7149}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.Android.Source", "FromSource\Couchbase.Lite.Tests.Android.Source.csproj", "{0AE748EC-B7AF-42F3-99EA-FE48219F2006}"
-EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{9B92B9D6-5DD3-477A-883B-1B40D5DEEF3B}"
-EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LiteCore.Shared", "..\LiteCore\src\LiteCore.Shared\LiteCore.Shared.shproj", "{C37DC024-8762-4BE4-9034-B2B5970C652C}"
-EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LiteCore.Tests.Shared", "..\LiteCore\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.shproj", "{6EC40F09-4C86-4F51-9F0E-C4397601A567}"
-EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{0ae748ec-b7af-42f3-99ea-fe48219f2006}*SharedItemsImports = 4
 		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{11f38891-8397-49b4-9146-6daf0a9d7866}*SharedItemsImports = 13
-		..\LiteCore\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{6ec40f09-4c86-4f51-9f0e-c4397601a567}*SharedItemsImports = 13
-		..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{9b92b9d6-5dd3-477a-883b-1b40d5deef3b}*SharedItemsImports = 13
 		..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems*{b6083d32-7eeb-4697-8723-8c92ee3a7149}*SharedItemsImports = 4
-		..\LiteCore\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems*{b6083d32-7eeb-4697-8723-8c92ee3a7149}*SharedItemsImports = 4
-		..\LiteCore\src\LiteCore.Shared\LiteCore.Shared.projitems*{c37dc024-8762-4be4-9034-b2b5970c652c}*SharedItemsImports = 13
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,18 +18,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}.Packaging|Any CPU.ActiveCfg = Release|Any CPU
-		{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}.Packaging|Any CPU.Build.0 = Release|Any CPU
-		{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8D5568EE-4C36-4245-8C36-65D9E7A01833}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8D5568EE-4C36-4245-8C36-65D9E7A01833}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8D5568EE-4C36-4245-8C36-65D9E7A01833}.Packaging|Any CPU.ActiveCfg = Release|Any CPU
-		{8D5568EE-4C36-4245-8C36-65D9E7A01833}.Packaging|Any CPU.Build.0 = Release|Any CPU
-		{8D5568EE-4C36-4245-8C36-65D9E7A01833}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8D5568EE-4C36-4245-8C36-65D9E7A01833}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B6083D32-7EEB-4697-8723-8C92EE3A7149}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B6083D32-7EEB-4697-8723-8C92EE3A7149}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B6083D32-7EEB-4697-8723-8C92EE3A7149}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
@@ -56,15 +27,6 @@ Global
 		{B6083D32-7EEB-4697-8723-8C92EE3A7149}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B6083D32-7EEB-4697-8723-8C92EE3A7149}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B6083D32-7EEB-4697-8723-8C92EE3A7149}.Release|Any CPU.Deploy.0 = Release|Any CPU
-		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
-		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Packaging|Any CPU.ActiveCfg = Release|Any CPU
-		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Packaging|Any CPU.Build.0 = Release|Any CPU
-		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Packaging|Any CPU.Deploy.0 = Release|Any CPU
-		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0AE748EC-B7AF-42F3-99EA-FE48219F2006}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
