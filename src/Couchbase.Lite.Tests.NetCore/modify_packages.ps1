@@ -1,8 +1,11 @@
+param (
+    [Parameter(Mandatory=$true)][string]$version,
+    [switch]$debugProject
+)
 $sourceProjectFile = "couchbase-lite-net/src/Couchbase.Lite.Tests.NetCore/Couchbase.Lite.Tests.NetCore.Source.csproj"
 if (-NOT (Test-Path $sourceProjectFile)) {
-    param (
+
     [Parameter(Mandatory=$true)][string]$version
-)
 
 $scriptpath = Split-Path $MyInvocation.MyCommand.Path
 Push-Location $scriptpath
@@ -22,10 +25,6 @@ for($i = 0; $i -lt $content.Length; $i++) {
 
 [System.IO.File]::WriteAllLines("Couchbase.Lite.Tests.NetCore.csproj", $content)
 } else {
-param (
-    [Parameter(Mandatory=$true)][string]$version,
-    [switch]$debugProject
-)
 
 $scriptpath = Split-Path $MyInvocation.MyCommand.Path
 Push-Location $scriptpath
