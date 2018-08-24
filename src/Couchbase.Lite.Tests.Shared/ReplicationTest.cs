@@ -75,7 +75,7 @@ namespace Test
             //uncomment the code below when you need to see more detail log
             //Database.SetLogLevel(LogDomain.Replicator, LogLevel.Verbose);
         }
-
+#if !WINDOWS_UWP
         [Fact]
         public async Task TestReplicatorStopsWhenEndpointInvalid()
         {
@@ -96,7 +96,7 @@ namespace Test
                 count.Should().BeLessThan(35, "because otherwise the replicator never stopped");
             }
         }
-
+#endif
 #if COUCHBASE_ENTERPRISE
         [Fact]
         public void TestReadOnlyConfiguration()
@@ -885,13 +885,13 @@ namespace Test
             _otherDB.Count.Should().Be(10, "because 10 documents should be in the given channel");
         }
 
-        #if COUCHBASE_ENTERPRISE
+#if COUCHBASE_ENTERPRISE
         private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous)
         {
             var target = _otherDB;
             return CreateConfig(push, pull, continuous, target);
         }
-        #endif
+#endif
 
         private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous, URLEndpoint endpoint)
         {
@@ -899,13 +899,13 @@ namespace Test
             return ModifyConfig(retVal, push, pull, continuous);
         }
 
-        #if COUCHBASE_ENTERPRISE
+#if COUCHBASE_ENTERPRISE
         private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous, Database target)
         {
             var retVal = new ReplicatorConfiguration(Db, new DatabaseEndpoint(target));
             return ModifyConfig(retVal, push, pull, continuous);
         }
-        #endif
+#endif
 
         private ReplicatorConfiguration ModifyConfig(ReplicatorConfiguration config, bool push, bool pull, bool continuous)
         {
@@ -975,7 +975,7 @@ namespace Test
             }
         }
 
-        #if COUCHBASE_ENTERPRISE
+#if COUCHBASE_ENTERPRISE
 
         private class MockConnectionFactory : IMessageEndpointDelegate
         {
@@ -997,7 +997,7 @@ namespace Test
             }
         }
 
-        #endif
+#endif
 
         protected override void Dispose(bool disposing)
         {
@@ -1011,7 +1011,7 @@ namespace Test
         }
     }
 
-    #if COUCHBASE_ENTERPRISE
+#if COUCHBASE_ENTERPRISE
     public class TestErrorLogic : IMockConnectionErrorLogic
     {
         private readonly MockConnectionLifecycleLocation _locations;
@@ -1104,6 +1104,6 @@ namespace Test
             }
         }
     }
-    #endif
+#endif
 }
 

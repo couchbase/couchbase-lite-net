@@ -65,11 +65,13 @@ namespace Test
     {
 #if !WINDOWS_UWP
         public CSharpTest(ITestOutputHelper output) : base(output)
+#else
+        public CSharpTest()
+#endif
         {
         }
-#endif
 
-        #if COUCHBASE_ENTERPRISE
+#if COUCHBASE_ENTERPRISE
         [Fact]
         public void TestEncryptionKey()
         {
@@ -91,9 +93,9 @@ namespace Test
             badAction = (() => new EncryptionKey("foo", new byte[] {1, 2, 3, 4, 5}, 5));
             badAction.ShouldThrow<ArgumentOutOfRangeException>("because the rounds must be >= 200");
         }
-    #endif
+#endif
 
-        [Fact]
+    [Fact]
         public unsafe void TestReadOnlyArray()
         {
             var now = DateTimeOffset.UtcNow;
@@ -162,10 +164,12 @@ namespace Test
 
                     var isReadonly = mArr.IsReadOnly;
                     isReadonly.Should().BeFalse();
+#if !WINDOWS_UWP
                     Assert.Throws<NotImplementedException>(() => mArr.IndexOf(now));
                     Assert.Throws<NotImplementedException>(() => mArr.Contains(now));
                     Assert.Throws<NotImplementedException>(() => mArr.Remove(now));
                     Assert.Throws<NotImplementedException>(() => mArr.CopyTo(new object[] { }, 12));
+#endif
                     var flDict = Native.FLValue_AsDict(flValue);
                     var sharedStringCache = new SharedStringCache();
                     var sharedStringCache1 = new SharedStringCache(sharedStringCache);

@@ -133,8 +133,8 @@
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Couchbase.Lite.Enterprise">
-      <Version>2.5.0-b0015</Version>
+    <PackageReference Include="Couchbase.Lite.Enterprise.Debug">
+      <Version>2.5.0-b0020</Version>
     </PackageReference>
     <PackageReference Include="FluentAssertions">
       <Version>4.19.4</Version>
@@ -153,7 +153,6 @@
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" />
-  <Import Project="..\LiteCore\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems" Label="Shared" />
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>
