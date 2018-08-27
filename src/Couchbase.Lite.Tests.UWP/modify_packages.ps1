@@ -2,7 +2,7 @@ param (
     [Parameter(Mandatory=$true)][string]$version,
     [switch]$debugProject
 )
-$sourceProjectFile = "Couchbase.Lite.Tests.NetCore.Source.csproj"
+$sourceProjectFile = "Couchbase.Lite.Tests.UWP.Source.csproj"
 if (-NOT (Test-Path $sourceProjectFile)) {
     $scriptpath = Split-Path $MyInvocation.MyCommand.Path
     Push-Location $scriptpath
