@@ -19,10 +19,10 @@
     <EmbeddedResource Remove="replacedb\**" />
     <None Remove="replacedb\**" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+  <ItemGroup Condition=" '$(Configuration)' == 'Debug' ">
     <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.5.0-b0020" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+  <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
     <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.5.0-b0020" />
   </ItemGroup>
   <ItemGroup>
