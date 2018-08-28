@@ -132,10 +132,21 @@
     <Content Include="Assets\StoreLogo.png" />
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
+  <Choose>
+  <When Condition="'$(Configuration)'=='Debug'">
+    <ItemGroup>
+      <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.5.0-b0027" />
+    </ItemGroup>
+  </When>
+  </Choose>
+  <Choose>
+  <When Condition="'$(Configuration)'== 'Release'">
+    <ItemGroup>
+      <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.5.0-b0027" />
+    </ItemGroup>
+  </When>
+  </Choose>
   <ItemGroup>
-    <PackageReference Include="Couchbase.Lite.Enterprise.Debug">
-      <Version>2.5.0-b0020</Version>
-    </PackageReference>
     <PackageReference Include="FluentAssertions">
       <Version>4.19.4</Version>
     </PackageReference>
