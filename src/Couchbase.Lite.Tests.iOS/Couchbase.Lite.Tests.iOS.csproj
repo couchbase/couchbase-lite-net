@@ -163,12 +163,20 @@
       <Visible>false</Visible>
     </ImageAsset>
   </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.5.0-b0027" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
-    <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.5.0-b0027" />
-  </ItemGroup>
+  <Choose>
+    <When Condition="'$(Configuration)'=='Debug'">
+      <ItemGroup>
+        <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.5.0-b0029" />
+      </ItemGroup>
+    </When>
+  </Choose>
+  <Choose>
+    <When Condition="'$(Configuration)'== 'Release'">
+      <ItemGroup>
+        <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.5.0-b0029" />
+      </ItemGroup>
+    </When>
+  </Choose>
   <ItemGroup>
     <PackageReference Include="FluentAssertions">
       <Version>4.19.4</Version>
