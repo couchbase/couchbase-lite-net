@@ -35,7 +35,6 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.5.0-b0018" />
     <PackageReference Include="FluentAssertions" Version="4.19.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.8.0" />
     <PackageReference Include="xunit" Version="2.4.0" />
@@ -46,6 +45,10 @@
     <None Condition="$(DefineConstants.Contains('HAVE_SG'))" Include="..\Couchbase.Lite.Tests.UWP\Assets\localhost-wrong.cert" Link="localhost-wrong.cert">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Couchbase.Lite.Enterprise\Couchbase.Lite.Enterprise.csproj" />
+    <ProjectReference Include="..\Couchbase.Lite.Support.NetDesktop\Couchbase.Lite.Support.NetDesktop.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
