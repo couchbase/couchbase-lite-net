@@ -31,8 +31,12 @@ namespace Couchbase.Lite.Shared.Util
         public int Count
         {
             get {
-                _lock.EnterReadLock();
-                return _internal.Count;
+                try {
+                    _lock.EnterReadLock();
+                    return _internal.Count;
+                } finally {
+                    _lock.ExitReadLock();
+                }
             }
         }
 
@@ -40,34 +44,54 @@ namespace Couchbase.Lite.Shared.Util
 
         public void Add(T item)
         {
-            _lock.EnterWriteLock();
-            _internal.Add(item);
+            try {
+                _lock.EnterWriteLock();
+                _internal.Add(item);
+            } finally {
+                _lock.ExitWriteLock();
+            }
         }
 
         public void Clear()
         {
-            _lock.EnterWriteLock();
-            _internal.Clear();
+            try {
+                _lock.EnterWriteLock();
+                _internal.Clear();
+            } finally {
+                _lock.ExitWriteLock();
+            }
         }
 
         public bool Contains(T item)
         {
-            _lock.EnterReadLock();
-            return _internal.Contains(item);
+            try {
+                _lock.EnterReadLock();
+                return _internal.Contains(item);
+            } finally {
+                _lock.ExitReadLock();
+            }
         }
 
         public void CopyTo(T[] array, int arrayIndex)
         {
-            _lock.EnterReadLock();
-            _internal.CopyTo(array, arrayIndex);
+            try {
+                _lock.EnterReadLock();
+                _internal.CopyTo(array, arrayIndex);
+            } finally {
+                _lock.ExitReadLock();
+            }
         }
 
         public IEnumerator<T> GetEnumerator() => new SnapshotEnumerator(this);
 
         public bool Remove(T item)
         {
-            _lock.EnterWriteLock();
-            return _internal.Remove(item);
+            try {
+                _lock.EnterWriteLock();
+                return _internal.Remove(item);
+            } finally {
+                _lock.ExitWriteLock();
+            }
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
