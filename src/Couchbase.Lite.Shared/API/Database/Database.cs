@@ -44,6 +44,8 @@ using LiteCore.Util;
 
 using Newtonsoft.Json;
 
+using ObjCRuntime;
+
 namespace Couchbase.Lite
 {
 
