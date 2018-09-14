@@ -923,6 +923,7 @@ namespace Couchbase.Lite
             return System.IO.Path.Combine(directoryToUse, $"{name}.{DBExtension}") ?? throw new RuntimeException("Path.Combine failed to return a non-null value!");
         }
 
+        [MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
         private static void DbObserverCallback(C4DatabaseObserver* db, void* context)
         {
             var dbObj = GCHandle.FromIntPtr((IntPtr)context).Target as Database;
@@ -931,6 +932,7 @@ namespace Couchbase.Lite
             });
         }
 
+        [MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
         private static void DocObserverCallback(C4DocumentObserver* obs, C4Slice docId, ulong sequence, void* context)
         {
             if (docId.buf == null) {
