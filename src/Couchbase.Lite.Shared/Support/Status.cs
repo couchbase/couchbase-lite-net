@@ -87,6 +87,10 @@ namespace Couchbase.Lite
                                 c4err.domain = C4ErrorDomain.POSIXDomain;
                                 c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNRESET));
                                 break;
+                            case SocketError.NetworkUnreachable:
+                                c4err.domain = C4ErrorDomain.POSIXDomain;
+                                c4err.code = PosixBase.GetCode(nameof(PosixWindows.ENETRESET));
+                                break;
                             case SocketError.ConnectionRefused:
                                 c4err.domain = C4ErrorDomain.POSIXDomain;
                                 c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNREFUSED));
