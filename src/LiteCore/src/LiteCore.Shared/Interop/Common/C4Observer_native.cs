@@ -42,7 +42,7 @@ namespace LiteCore.Interop
         public static C4DocumentObserver* c4docobs_create(C4Database* database, string docID, C4DocumentObserverCallback callback, void* context)
         {
             using(var docID_ = new C4String(docID)) {
-                return NativeRaw.c4docobs_create(database, docID_.AsC4Slice(), callback, context);
+                return NativeRaw.c4docobs_create(database, docID_.AsFLSlice(), callback, context);
             }
         }
 
@@ -55,7 +55,7 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4DocumentObserver* c4docobs_create(C4Database* database, C4Slice docID, C4DocumentObserverCallback callback, void* context);
+        public static extern C4DocumentObserver* c4docobs_create(C4Database* database, FLSlice docID, C4DocumentObserverCallback callback, void* context);
 
 
     }

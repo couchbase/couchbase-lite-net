@@ -5,7 +5,7 @@ import re
 from datetime import date
 import parse_enums
 
-type_map = {"uint32_t":"uint","size_t":"UIntPtr","int32_t":"int","uint8_t":"byte","C4StorageEngine":"string","char*":"string","uint64_t":"ulong","uint16_t":"ushort","C4SequenceNumber":"ulong", "C4String":"C4Slice","C4String*":"C4Slice*","C4FullTextID":"ulong","C4RemoteID":"uint"}
+type_map = {"uint32_t":"uint","size_t":"UIntPtr","int32_t":"int","uint8_t":"byte","C4StorageEngine":"string","char*":"string","uint64_t":"ulong","uint16_t":"ushort","C4SequenceNumber":"ulong", "C4String":"FLSlice","C4FullTextID":"ulong","C4RemoteID":"uint","C4HeapString":"FLHeapSlice","C4Slice":"FLSlice","C4HeapSlice":"FLHeapSlice","C4SliceResult":"FLSliceResult","FLDoc":"FLDoc*","C4Slice*":"FLSlice*","C4String*":"FLSlice*"}
 bridge_types = ["UIntPtr","string","bool"]
 reverse_bridge_map = {"string":"IntPtr","bool":"byte"}
 skip_types = ["C4FullTextTerm","C4SocketFactory","C4ReplicatorParameters"]
@@ -112,7 +112,7 @@ if __name__ == "__main__":
                 continue
 
             partial = "partial " if name in partials else ""
-            out_text += "#if LITECORE_PACKAGED\n    internal\n#else\n    public\n#endif\n    unsafe {}struct {}\n    {{\n".format(partial, name)
+            out_text += "\tinternal unsafe {}struct {}\n    {{\n".format(partial, name)
             for variable in variables:
                 arg_info = variable.split()
                 name = arg_info[1]

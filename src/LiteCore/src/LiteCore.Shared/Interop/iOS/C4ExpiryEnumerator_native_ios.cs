@@ -37,7 +37,7 @@ namespace LiteCore.Interop
         public static string c4exp_getDocID(C4ExpiryEnumerator* e)
         {
             using(var retVal = NativeRaw.c4exp_getDocID(e)) {
-                return ((C4Slice)retVal).CreateString();
+                return ((FLSlice)retVal).CreateString();
             }
         }
 
@@ -57,7 +57,7 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4SliceResult c4exp_getDocID(C4ExpiryEnumerator* e);
+        public static extern FLSliceResult c4exp_getDocID(C4ExpiryEnumerator* e);
 
 
     }

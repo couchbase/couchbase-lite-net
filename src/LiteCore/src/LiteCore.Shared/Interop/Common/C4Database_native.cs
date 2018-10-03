@@ -30,7 +30,7 @@ namespace LiteCore.Interop
         public static C4Database* c4db_open(string path, C4DatabaseConfig* config, C4Error* outError)
         {
             using(var path_ = new C4String(path)) {
-                return NativeRaw.c4db_open(path_.AsC4Slice(), config, outError);
+                return NativeRaw.c4db_open(path_.AsFLSlice(), config, outError);
             }
         }
 
@@ -41,7 +41,7 @@ namespace LiteCore.Interop
         {
             using(var sourcePath_ = new C4String(sourcePath))
             using(var destinationPath_ = new C4String(destinationPath)) {
-                return NativeRaw.c4db_copy(sourcePath_.AsC4Slice(), destinationPath_.AsC4Slice(), config, error);
+                return NativeRaw.c4db_copy(sourcePath_.AsFLSlice(), destinationPath_.AsFLSlice(), config, error);
             }
         }
 
@@ -63,7 +63,7 @@ namespace LiteCore.Interop
         public static bool c4db_deleteAtPath(string dbPath, C4Error* outError)
         {
             using(var dbPath_ = new C4String(dbPath)) {
-                return NativeRaw.c4db_deleteAtPath(dbPath_.AsC4Slice(), outError);
+                return NativeRaw.c4db_deleteAtPath(dbPath_.AsFLSlice(), outError);
             }
         }
 
@@ -78,7 +78,7 @@ namespace LiteCore.Interop
         public static string c4db_getPath(C4Database* db)
         {
             using(var retVal = NativeRaw.c4db_getPath(db)) {
-                return ((C4Slice)retVal).CreateString();
+                return ((FLSlice)retVal).CreateString();
             }
         }
 
@@ -127,7 +127,7 @@ namespace LiteCore.Interop
         {
             using(var storeName_ = new C4String(storeName))
             using(var docID_ = new C4String(docID)) {
-                return NativeRaw.c4raw_get(database, storeName_.AsC4Slice(), docID_.AsC4Slice(), outError);
+                return NativeRaw.c4raw_get(database, storeName_.AsFLSlice(), docID_.AsFLSlice(), outError);
             }
         }
 
@@ -137,7 +137,7 @@ namespace LiteCore.Interop
             using(var key_ = new C4String(key))
             using(var meta_ = new C4String(meta))
             using(var body_ = new C4String(body)) {
-                return NativeRaw.c4raw_put(database, storeName_.AsC4Slice(), key_.AsC4Slice(), meta_.AsC4Slice(), body_.AsC4Slice(), outError);
+                return NativeRaw.c4raw_put(database, storeName_.AsFLSlice(), key_.AsFLSlice(), meta_.AsFLSlice(), body_.AsFLSlice(), outError);
             }
         }
 
@@ -147,25 +147,25 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Database* c4db_open(C4Slice path, C4DatabaseConfig* config, C4Error* outError);
+        public static extern C4Database* c4db_open(FLSlice path, C4DatabaseConfig* config, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_copy(C4Slice sourcePath, C4Slice destinationPath, C4DatabaseConfig* config, C4Error* error);
+        public static extern bool c4db_copy(FLSlice sourcePath, FLSlice destinationPath, C4DatabaseConfig* config, C4Error* error);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_deleteAtPath(C4Slice dbPath, C4Error* outError);
+        public static extern bool c4db_deleteAtPath(FLSlice dbPath, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4SliceResult c4db_getPath(C4Database* db);
+        public static extern FLSliceResult c4db_getPath(C4Database* db);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4RawDocument* c4raw_get(C4Database* database, C4Slice storeName, C4Slice docID, C4Error* outError);
+        public static extern C4RawDocument* c4raw_get(C4Database* database, FLSlice storeName, FLSlice docID, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4raw_put(C4Database* database, C4Slice storeName, C4Slice key, C4Slice meta, C4Slice body, C4Error* outError);
+        public static extern bool c4raw_put(C4Database* database, FLSlice storeName, FLSlice key, FLSlice meta, FLSlice body, C4Error* outError);
 
 
     }

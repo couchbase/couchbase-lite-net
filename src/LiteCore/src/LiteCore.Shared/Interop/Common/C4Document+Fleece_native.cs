@@ -27,10 +27,13 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLDoc c4doc_createFleeceDoc(C4Document* x);
+
         public static bool c4doc_isOldMetaProperty(string prop)
         {
             using(var prop_ = new C4String(prop)) {
-                return NativeRaw.c4doc_isOldMetaProperty(prop_.AsC4Slice());
+                return NativeRaw.c4doc_isOldMetaProperty(prop_.AsFLSlice());
             }
         }
 
@@ -38,29 +41,33 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_hasOldMetaProperties(FLDict* doc);
 
-        public static byte[] c4doc_encodeStrippingOldMetaProperties(FLDict* doc)
+        public static byte[] c4doc_encodeStrippingOldMetaProperties(FLDict* doc, FLSharedKeys* sk)
         {
-            using(var retVal = NativeRaw.c4doc_encodeStrippingOldMetaProperties(doc)) {
-                return ((C4Slice)retVal).ToArrayFast();
+            using(var retVal = NativeRaw.c4doc_encodeStrippingOldMetaProperties(doc, sk)) {
+                return ((FLSlice)retVal).ToArrayFast();
             }
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_dictIsBlob(FLDict* dict, FLSharedKeys* sk, C4BlobKey* outKey);
+        public static extern bool c4doc_getDictBlobKey(FLDict* dict, C4BlobKey* outKey);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_dictContainsBlobs(FLDict* dict, FLSharedKeys* sk);
+        public static extern bool c4doc_dictIsBlob(FLDict* dict, C4BlobKey* outKey);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_blobIsCompressible(FLDict* blobDict, FLSharedKeys* sk);
+        public static extern bool c4doc_dictContainsBlobs(FLDict* dict);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4doc_blobIsCompressible(FLDict* blobDict);
 
         public static string c4doc_bodyAsJSON(C4Document* doc, bool canonical, C4Error* outError)
         {
             using(var retVal = NativeRaw.c4doc_bodyAsJSON(doc, canonical, outError)) {
-                return ((C4Slice)retVal).CreateString();
+                return ((FLSlice)retVal).CreateString();
             }
         }
 
@@ -73,20 +80,14 @@ namespace LiteCore.Interop
         public static byte[] c4db_encodeJSON(C4Database* db, string jsonData, C4Error* outError)
         {
             using(var jsonData_ = new C4String(jsonData)) {
-                using(var retVal = NativeRaw.c4db_encodeJSON(db, jsonData_.AsC4Slice(), outError)) {
-                    return ((C4Slice)retVal).ToArrayFast();
+                using(var retVal = NativeRaw.c4db_encodeJSON(db, jsonData_.AsFLSlice(), outError)) {
+                    return ((FLSlice)retVal).ToArrayFast();
                 }
             }
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSharedKeys* c4db_getFLSharedKeys(C4Database* db);
-
-        // Note: Allocates unmanaged heap memory; should only be used with constants
-        public static FLDictKey c4db_initFLDictKey(C4Database* db, string str)
-        {
-            return NativeRaw.c4db_initFLDictKey(db, C4Slice.Constant(str));
-        }
 
 
     }
@@ -95,19 +96,16 @@ namespace LiteCore.Interop
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_isOldMetaProperty(C4Slice prop);
+        public static extern bool c4doc_isOldMetaProperty(FLSlice prop);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4SliceResult c4doc_encodeStrippingOldMetaProperties(FLDict* doc);
+        public static extern FLSliceResult c4doc_encodeStrippingOldMetaProperties(FLDict* doc, FLSharedKeys* sk);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4SliceResult c4doc_bodyAsJSON(C4Document* doc, [MarshalAs(UnmanagedType.U1)]bool canonical, C4Error* outError);
+        public static extern FLSliceResult c4doc_bodyAsJSON(C4Document* doc, [MarshalAs(UnmanagedType.U1)]bool canonical, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4SliceResult c4db_encodeJSON(C4Database* db, C4Slice jsonData, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLDictKey c4db_initFLDictKey(C4Database* db, C4Slice @string);
+        public static extern FLSliceResult c4db_encodeJSON(C4Database* db, FLSlice jsonData, C4Error* outError);
 
 
     }

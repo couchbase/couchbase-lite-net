@@ -30,6 +30,7 @@ if __name__ == "__main__":
 
     parser.add_argument("-o", "--output-dir", help="The directory to store the output files in (default current directory)")
     parser.add_argument("-c", "--config", help="A configuration file with data to help customize the parsing")
+    parser.add_argument("-v", "--verbose", help="Enable verbose output", action='store_true')
     args = parser.parse_args()
     output_dir = args.output_dir if args.output_dir is not None else ""
     config_module = {}
@@ -49,10 +50,13 @@ if __name__ == "__main__":
         if skip:
             print("Skipping {}".format(file))
             continue
+        
+        if args.verbose is not None:
+            print("Processing {}".format(file))
 
         #HACK: Typedefs choke CppHeaderParser if the struct and typename have the same name (i.e. typedef struct foo foo)
         fin = open(file, "r")
-        file_contents = fin.read().replace("C4NONNULL", "")
+        file_contents = fin.read().replace("C4NONNULL", "").replace("FLNONNULL","")
         file_contents = re.sub("typedef.*", "", file_contents)
         fin.close()
 

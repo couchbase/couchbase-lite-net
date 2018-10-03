@@ -132,10 +132,9 @@ namespace Couchbase.Lite.Internal.Serialization
                 case FLValueType.Dict:
                     cache = true;
                     var context = parent?.Context as DocContext;
-                    var sk = context != null ? context.SharedKeys : null;
                     var flDict = Native.FLValue_AsDict(mv.Value);
-                    var subType = Native.FLValue_AsString(Native.FLDict_GetSharedKey(flDict,
-                        Encoding.UTF8.GetBytes(ObjectTypeProperty), sk));
+                    var subType = Native.FLValue_AsString(Native.FLDict_Get(flDict,
+                        Encoding.UTF8.GetBytes(ObjectTypeProperty)));
                     var obj = CreateSpecialObject(subType, flDict, context);
                     if (obj != null) {
                         return obj;

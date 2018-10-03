@@ -44,7 +44,7 @@ namespace LiteCore.Interop
         WebSocketCloseMissingExtension = 1010,
         WebSocketCloseCantFulfill      = 1011,
         WebSocketCloseTLSFailure       = 1015,
-        WebSocketCloseFirstAvailable   = 4000
+        WebSocketCloseFirstAvailable   = 4000,
     }
 
 #if LITECORE_PACKAGED
@@ -59,27 +59,17 @@ namespace LiteCore.Interop
         WebSocketServerFraming,
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4Socket
+	internal unsafe struct C4Socket
     {
         public void* nativeHandle;
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4Address
+	internal unsafe struct C4Address
     {
-        public C4Slice scheme;
-        public C4Slice hostname;
+        public FLSlice scheme;
+        public FLSlice hostname;
         public ushort port;
-        public C4Slice path;
+        public FLSlice path;
     }
 
     internal unsafe struct C4SocketFactory

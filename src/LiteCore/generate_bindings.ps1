@@ -1,5 +1,5 @@
 
-$startdir = [IO.Path]::Combine([string]$PSScriptRoot, '..', '..', 'vendor', 'couchbase-lite-core', 'vendor', 'fleece', 'Fleece')
+$startdir = [IO.Path]::Combine([string]$PSScriptRoot, '..', '..', 'vendor', 'couchbase-lite-core', 'vendor', 'fleece', 'API', 'fleece')
 pushd $startdir
 
 Copy-Item $PSScriptRoot\parse\parse_API.py .
@@ -7,7 +7,7 @@ Copy-Item $PSScriptRoot\parse\parse_structs.py .
 Copy-Item $PSScriptRoot\parse\parse_enums.py .
 Copy-Item $PSScriptRoot\parse\config_fleece.py .
 Copy-Item -Recurse $PSScriptRoot\parse\templates_fleece templates
-python parse_API.py -c config_fleece
+python parse_API.py -c config_fleece -v
 python parse_structs.py
 Move-Item -Force *.template $PSScriptRoot\src\LiteCore.Shared\Interop
 Move-Item -Force *.cs $PSScriptRoot\src\LiteCore.Shared\Interop
@@ -22,7 +22,7 @@ Copy-Item $PSScriptRoot\parse\parse_structs.py .
 Copy-Item $PSScriptRoot\parse\parse_enums.py .
 Copy-Item $PSScriptRoot\parse\config_c4.py .
 Copy-Item -Recurse $PSScriptRoot\parse\templates_c4 templates
-python parse_API.py -c config_c4
+python parse_API.py -c config_c4 -v
 python parse_structs.py
 Move-Item -Force *.template $PSScriptRoot\src\LiteCore.Shared\Interop
 Move-Item -Force *.cs $PSScriptRoot\src\LiteCore.Shared\Interop

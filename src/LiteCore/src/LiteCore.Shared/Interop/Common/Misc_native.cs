@@ -24,7 +24,8 @@ namespace LiteCore.Interop
 {
     internal sealed partial class LiteCoreImpl
     {
-        public unsafe C4LogDomain* c4log_getDomain(byte* name, bool create) => Native.c4log_getDomain(name, create);
+        unsafe C4LogDomain* ILiteCore.c4log_getDomain(byte* name, bool create) => Native.c4log_getDomain(name, create);
+        //public unsafe C4LogDomain* c4log_getDomain(byte* name, bool create) => Native.c4log_getDomain(name, create);
 
         public void c4log_warnOnErrors(bool warn) => Native.c4log_warnOnErrors(warn);
     }

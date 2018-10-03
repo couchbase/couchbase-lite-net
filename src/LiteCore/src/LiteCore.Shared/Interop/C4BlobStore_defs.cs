@@ -27,40 +27,20 @@ namespace LiteCore.Interop
 {
 
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4BlobStore
+	internal unsafe struct C4BlobStore
     {
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4WriteStream
+	internal unsafe struct C4WriteStream
     {
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe partial struct C4BlobKey
+	internal unsafe partial struct C4BlobKey
     {
         public fixed byte bytes[20];
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4ReadStream
+	internal unsafe struct C4ReadStream
     {
     }
 }

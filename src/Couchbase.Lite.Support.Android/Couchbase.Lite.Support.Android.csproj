@@ -92,6 +92,9 @@
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4ExpiryEnumerator_native.cs">
       <Link>Support\LiteCore\C4ExpiryEnumerator_native.cs</Link>
     </Compile>
+    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Listener_native.cs">
+      <Link>Support\LiteCore\C4Listener_native.cs</Link>
+    </Compile>
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Observer_native.cs">
       <Link>Support\LiteCore\C4Observer_native.cs</Link>
     </Compile>
@@ -106,6 +109,9 @@
     </Compile>
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\Fleece_native.cs">
       <Link>Support\LiteCore\Fleece_native.cs</Link>
+    </Compile>
+    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\FLSlice_native.cs">
+      <Link>Support\LiteCore\FLSlice_native.cs</Link>
     </Compile>
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\Misc_native.cs">
       <Link>Support\LiteCore\Misc_native.cs</Link>

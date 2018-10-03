@@ -48,10 +48,9 @@ namespace Couchbase.Lite.Internal.Serialization
         {
         }
 
-        public MContext(FLSlice data, FLSharedKeys* sk)
+        public MContext(FLSlice data)
         {
             Data = data;
-            SharedKeys = sk;
         }
 
         ~MContext()

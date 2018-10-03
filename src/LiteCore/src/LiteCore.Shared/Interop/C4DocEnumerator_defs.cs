@@ -39,36 +39,21 @@ namespace LiteCore.Interop
         IncludeBodies        = 0x20
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe partial struct C4EnumeratorOptions
+	internal unsafe partial struct C4EnumeratorOptions
     {
         public C4EnumeratorFlags flags;
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4DocumentInfo
+	internal unsafe struct C4DocumentInfo
     {
         public C4DocumentFlags flags;
-        public C4Slice docID;
-        public C4Slice revID;
+        public FLHeapSlice docID;
+        public FLHeapSlice revID;
         public ulong sequence;
         public ulong bodySize;
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4DocEnumerator
+	internal unsafe struct C4DocEnumerator
     {
     }
 }

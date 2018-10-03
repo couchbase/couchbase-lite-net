@@ -34,24 +34,15 @@ namespace LiteCore.Interop
     {
         ValueIndex,
         FullTextIndex,
+        ArrayIndex,
         GeoIndex,
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4Query
+	internal unsafe struct C4Query
     {
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe partial struct C4QueryOptions
+	internal unsafe partial struct C4QueryOptions
     {
         private byte _rankFullText;
 
@@ -66,12 +57,7 @@ namespace LiteCore.Interop
         }
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe partial struct C4IndexOptions
+	internal unsafe partial struct C4IndexOptions
     {
         private IntPtr _language;
         private byte _ignoreDiacritics;
@@ -121,12 +107,7 @@ namespace LiteCore.Interop
         }
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4QueryEnumerator
+	internal unsafe struct C4QueryEnumerator
     {
         public FLArrayIterator columns;
         public ulong missingColumns;
@@ -134,12 +115,7 @@ namespace LiteCore.Interop
         public C4FullTextMatch* fullTextMatches;
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe partial struct C4FullTextMatch
+	internal unsafe partial struct C4FullTextMatch
     {
         public ulong dataSource;
         public uint property;

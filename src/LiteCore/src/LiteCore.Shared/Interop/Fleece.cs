@@ -24,13 +24,12 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 using Couchbase.Lite;
+using Couchbase.Lite.Interop;
 
 using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-    using Couchbase.Lite.Interop;
-
     internal unsafe interface IFLEncodable
     {
         void FLEncode(FLEncoder* enc);
@@ -71,6 +70,19 @@ namespace LiteCore.Interop
             slice.size = 0;
         }
 
+        public byte[] ToArrayFast()
+        {
+            if (buf == null)
+            {
+                return null;
+            }
+
+            var tmp = new IntPtr(buf);
+            var bytes = new byte[size];
+            Marshal.Copy(tmp, bytes, 0, bytes.Length);
+            return bytes;
+        }
+
         public string CreateString()
         {
             if(buf == null) {
@@ -108,24 +120,31 @@ namespace LiteCore.Interop
         {
             return new FLSliceResult(input.buf, input.size);
         }
+    }
 
-        public static explicit operator C4Slice(FLSlice input)
+    internal unsafe struct FLHeapSlice
+    {
+        public void* buf;
+        private UIntPtr _size;
+
+        public ulong size
         {
-            return new C4Slice(input.buf, input.size);
+            get => (ulong) _size;
+            set => _size = (UIntPtr) value;
         }
 
-        public static explicit operator C4SliceResult(FLSlice input)
+        public static implicit operator FLSlice(FLHeapSlice input)
         {
-            return new C4SliceResult(input.buf, input.size);
+            return new FLSlice(input.buf, input.size);
+        }
+
+        public string CreateString()
+        {
+            return ((FLSlice) this).CreateString();
         }
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-         unsafe partial struct FLSliceResult : IDisposable
+    internal unsafe partial struct FLSliceResult : IDisposable
     {
         public FLSliceResult(void* buf, ulong size)
         {
@@ -138,19 +157,9 @@ namespace LiteCore.Interop
             return new FLSlice(input.buf, input.size);
         }
 
-        public static explicit operator C4Slice(FLSliceResult input)
-        {
-            return new C4Slice(input.buf, input.size);
-        }
-
-        public static explicit operator C4SliceResult(FLSliceResult input)
-        {
-            return new C4SliceResult(input.buf, input.size);
-        }
-
         public void Dispose()
         {
-            Native.FLSliceResult_Free(this);
+            Native.FLSliceResult_Release(this);
         }
     }
 

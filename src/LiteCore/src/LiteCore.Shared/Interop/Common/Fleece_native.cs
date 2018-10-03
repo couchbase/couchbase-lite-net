@@ -27,27 +27,55 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void FLSliceResult_Free(FLSliceResult slice);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool FLSlice_Equal(FLSlice a, FLSlice b);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int FLSlice_Compare(FLSlice left, FLSlice right);
-
-        public static FLValue* FLValue_FromData(byte[] data)
+        public static FLDoc* FLDoc_FromData(byte[] data, FLTrust x, FLSharedKeys* shared, byte[] externData)
         {
-            fixed(byte *data_ = data) {
-                return NativeRaw.FLValue_FromData(new FLSlice(data_, (ulong)data.Length));
+            fixed(byte *data_ = data)
+            fixed(byte *externData_ = externData) {
+                return NativeRaw.FLDoc_FromData(new FLSlice(data_, (ulong)data.Length), x, shared, new FLSlice(externData_, (ulong)externData.Length));
             }
         }
 
-        public static FLValue* FLValue_FromTrustedData(byte[] data)
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLDoc* FLDoc_FromResultData(FLSliceResult data, FLTrust x, FLSharedKeys* shared, FLSlice externData);
+
+        public static FLDoc* FLDoc_FromJSON(byte[] json, FLError* outError)
+        {
+            fixed(byte *json_ = json) {
+                return NativeRaw.FLDoc_FromJSON(new FLSlice(json_, (ulong)json.Length), outError);
+            }
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLDoc_Release(FLDoc* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLDoc* FLDoc_Retain(FLDoc* x);
+
+        public static byte[] FLDoc_GetData(FLDoc* x)
+        {
+            return (NativeRaw.FLDoc_GetData(x)).ToArrayFast();
+        }
+
+        public static byte[] FLDoc_GetAllocedData(FLDoc* x)
+        {
+            using(var retVal = NativeRaw.FLDoc_GetAllocedData(x)) {
+                return ((FLSlice)retVal).ToArrayFast();
+            }
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLValue* FLDoc_GetRoot(FLDoc* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSharedKeys* FLDoc_GetSharedKeys(FLDoc* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLDoc* FLValue_FindDoc(FLValue* value);
+
+        public static FLValue* FLValue_FromData(byte[] data, FLTrust x)
         {
             fixed(byte *data_ = data) {
-                return NativeRaw.FLValue_FromTrustedData(new FLSlice(data_, (ulong)data.Length));
+                return NativeRaw.FLValue_FromData(new FLSlice(data_, (ulong)data.Length), x);
             }
         }
 
@@ -55,7 +83,7 @@ namespace LiteCore.Interop
         {
             fixed(byte *json_ = json) {
                 using(var retVal = NativeRaw.FLData_ConvertJSON(new FLSlice(json_, (ulong)json.Length), outError)) {
-                    return ((C4Slice)retVal).ToArrayFast();
+                    return ((FLSlice)retVal).ToArrayFast();
                 }
             }
         }
@@ -67,6 +95,46 @@ namespace LiteCore.Interop
             }
         }
 
+
+        public static string FLValue_ToJSON(FLValue* value)
+        {
+            using(var retVal = NativeRaw.FLValue_ToJSON(value)) {
+                return ((FLSlice)retVal).CreateString();
+            }
+        }
+
+        public static string FLValue_ToJSON5(FLValue* v)
+        {
+            using(var retVal = NativeRaw.FLValue_ToJSON5(v)) {
+                return ((FLSlice)retVal).CreateString();
+            }
+        }
+
+        public static string FLValue_ToJSONX(FLValue* v, bool json5, bool canonicalForm)
+        {
+            using(var retVal = NativeRaw.FLValue_ToJSONX(v, json5, canonicalForm)) {
+                return ((FLSlice)retVal).CreateString();
+            }
+        }
+
+        public static string FLJSON5_ToJSON(string json5, FLError* error)
+        {
+            using(var json5_ = new C4String(json5)) {
+                using(var retVal = NativeRaw.FLJSON5_ToJSON((FLSlice)json5_.AsFLSlice(), error)) {
+                    return ((FLSlice)retVal).CreateString();
+                }
+            }
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern char* FLDump(FLValue* value);
+
+        public static char* FLDumpData(byte[] data)
+        {
+            fixed(byte *data_ = data) {
+                return NativeRaw.FLDumpData(new FLSlice(data_, (ulong)data.Length));
+            }
+        }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValueType FLValue_GetType(FLValue* value);
@@ -106,7 +174,7 @@ namespace LiteCore.Interop
 
         public static byte[] FLValue_AsData(FLValue* value)
         {
-            return ((C4Slice)NativeRaw.FLValue_AsData(value)).ToArrayFast();
+            return (NativeRaw.FLValue_AsData(value)).ToArrayFast();
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
@@ -122,35 +190,11 @@ namespace LiteCore.Interop
             }
         }
 
-        public static string FLValue_ToJSON(FLValue* value)
-        {
-            using(var retVal = NativeRaw.FLValue_ToJSON(value)) {
-                return ((FLSlice)retVal).CreateString();
-            }
-        }
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLValue* FLValue_Retain(FLValue* value);
 
-        public static string FLValue_ToJSON5(FLValue* v)
-        {
-            using(var retVal = NativeRaw.FLValue_ToJSON5(v)) {
-                return ((FLSlice)retVal).CreateString();
-            }
-        }
-
-        public static string FLValue_ToJSONX(FLValue* v, FLSharedKeys* sk, bool json5, bool canonicalForm)
-        {
-            using(var retVal = NativeRaw.FLValue_ToJSONX(v, sk, json5, canonicalForm)) {
-                return ((FLSlice)retVal).CreateString();
-            }
-        }
-
-        public static string FLJSON5_ToJSON(string json5, FLError* error)
-        {
-            using(var json5_ = new C4String(json5)) {
-                using(var retVal = NativeRaw.FLJSON5_ToJSON((FLSlice)json5_.AsC4Slice(), error)) {
-                    return ((FLSlice)retVal).CreateString();
-                }
-            }
-        }
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLValue_Release(FLValue* value);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint FLArray_Count(FLArray* array);
@@ -158,6 +202,9 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool FLArray_IsEmpty(FLArray* array);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLMutableArray FLArray_AsMutable(FLArray* array);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValue* FLArray_Get(FLArray* array, uint index);
@@ -179,11 +226,109 @@ namespace LiteCore.Interop
         public static extern bool FLArrayIterator_Next(FLArrayIterator* i);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLMutableArray FLArray_MutableCopy(FLArray* array);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLMutableArray FLMutableArray_New();
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLArray* FLMutableArray_GetSource(FLMutableArray x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool FLMutableArray_IsChanged(FLMutableArray x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableArray_AppendNull(FLMutableArray x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableArray_AppendBool(FLMutableArray x, [MarshalAs(UnmanagedType.U1)]bool b);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableArray_AppendInt(FLMutableArray x, long l);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableArray_AppendUInt(FLMutableArray x, ulong u);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableArray_AppendFloat(FLMutableArray x, float f);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableArray_AppendDouble(FLMutableArray x, double d);
+
+        public static void FLMutableArray_AppendString(FLMutableArray x, string str)
+        {
+            using(var str_ = new C4String(str)) {
+                NativeRaw.FLMutableArray_AppendString(x, (FLSlice)str_.AsFLSlice());
+            }
+        }
+
+        public static void FLMutableArray_AppendData(FLMutableArray x, byte[] slice)
+        {
+            fixed(byte *slice_ = slice) {
+                NativeRaw.FLMutableArray_AppendData(x, new FLSlice(slice_, (ulong)slice.Length));
+            }
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableArray_AppendValue(FLMutableArray x, FLValue* value);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableArray_SetNull(FLMutableArray x, uint index);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableArray_SetBool(FLMutableArray x, uint index, [MarshalAs(UnmanagedType.U1)]bool b);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableArray_SetInt(FLMutableArray x, uint index, long l);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableArray_SetUInt(FLMutableArray x, uint index, ulong u);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableArray_SetFloat(FLMutableArray x, uint index, float f);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableArray_SetDouble(FLMutableArray x, uint index, double d);
+
+        public static void FLMutableArray_SetString(FLMutableArray x, uint index, string str)
+        {
+            using(var str_ = new C4String(str)) {
+                NativeRaw.FLMutableArray_SetString(x, index, (FLSlice)str_.AsFLSlice());
+            }
+        }
+
+        public static void FLMutableArray_SetData(FLMutableArray x, uint index, byte[] slice)
+        {
+            fixed(byte *slice_ = slice) {
+                NativeRaw.FLMutableArray_SetData(x, index, new FLSlice(slice_, (ulong)slice.Length));
+            }
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableArray_SetValue(FLMutableArray x, uint index, FLValue* value);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableArray_Remove(FLMutableArray array, uint firstIndex, uint count);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableArray_Resize(FLMutableArray array, uint size);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLMutableArray FLMutableArray_GetMutableArray(FLMutableArray x, uint index);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLMutableDict FLMutableArray_GetMutableDict(FLMutableArray x, uint index);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint FLDict_Count(FLDict* dict);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool FLDict_IsEmpty(FLDict* dict);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLMutableDict FLDict_AsMutable(FLDict* dict);
 
         public static FLValue* FLDict_Get(FLDict* dict, byte[] keyString)
         {
@@ -192,30 +337,8 @@ namespace LiteCore.Interop
             }
         }
 
-        public static FLValue* FLDict_GetSharedKey(FLDict* d, byte[] keyString, FLSharedKeys* sk)
-        {
-            fixed(byte *keyString_ = keyString) {
-                return NativeRaw.FLDict_GetSharedKey(d, new FLSlice(keyString_, (ulong)keyString.Length), sk);
-            }
-        }
-
-        public static string FLSharedKey_GetKeyString(FLSharedKeys* sk, int keyCode, FLError* outError)
-        {
-            return NativeRaw.FLSharedKey_GetKeyString(sk, keyCode, outError).CreateString();
-        }
-
-        public static FLValue* FLDict_GetUnsorted(FLDict* dict, byte[] keyString)
-        {
-            fixed(byte *keyString_ = keyString) {
-                return NativeRaw.FLDict_GetUnsorted(dict, new FLSlice(keyString_, (ulong)keyString.Length));
-            }
-        }
-
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void FLDictIterator_Begin(FLDict* dict, FLDictIterator* i);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void FLDictIterator_BeginShared(FLDict* dict, FLDictIterator* i, FLSharedKeys* shared);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValue* FLDictIterator_GetKey(FLDictIterator* i);
@@ -235,35 +358,175 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool FLDictIterator_Next(FLDictIterator* i);
 
-        // Note: Allocates unmanaged heap memory; should only be used with constants
-        public static FLDictKey FLDictKey_Init(string str, bool cachePointers)
-        {
-            return NativeRaw.FLDictKey_Init(FLSlice.Constant(str), cachePointers);
-        }
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLDictIterator_End(FLDictIterator* i);
 
         // Note: Allocates unmanaged heap memory; should only be used with constants
-        public static FLDictKey FLDictKey_InitWithSharedKeys(string str, FLSharedKeys* sk)
+        public static FLDictKey FLDictKey_Init(string str)
         {
-            return NativeRaw.FLDictKey_InitWithSharedKeys(FLSlice.Constant(str), sk);
+            return NativeRaw.FLDictKey_Init(FLSlice.Constant(str));
         }
 
-        public static string FLDictKey_GetString(FLDictKey* key)
+        public static string FLDictKey_GetString(FLDictKey* dictKey)
         {
-            return NativeRaw.FLDictKey_GetString(key).CreateString();
+            return NativeRaw.FLDictKey_GetString(dictKey).CreateString();
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValue* FLDict_GetWithKey(FLDict* dict, FLDictKey* dictKey);
 
-        public static ulong FLDict_GetWithKeys(FLDict* dict, FLDictKey[] keys, FLValue[] values, ulong count)
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLMutableDict FLDict_MutableCopy(FLDict* source);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLMutableDict FLMutableDict_New();
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLDict* FLMutableDict_GetSource(FLMutableDict x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool FLMutableDict_IsChanged(FLMutableDict x);
+
+        public static void FLMutableDict_SetNull(FLMutableDict x, string key)
         {
-            return NativeRaw.FLDict_GetWithKeys(dict, keys, values, (UIntPtr)count).ToUInt64();
+            using(var key_ = new C4String(key)) {
+                NativeRaw.FLMutableDict_SetNull(x, (FLSlice)key_.AsFLSlice());
+            }
         }
 
-        public static FLKeyPath* FLKeyPath_New(byte[] specifier, FLSharedKeys* shared, FLError* error)
+        public static void FLMutableDict_SetBool(FLMutableDict x, string key, bool b)
+        {
+            using(var key_ = new C4String(key)) {
+                NativeRaw.FLMutableDict_SetBool(x, (FLSlice)key_.AsFLSlice(), b);
+            }
+        }
+
+        public static void FLMutableDict_SetInt(FLMutableDict x, string key, long l)
+        {
+            using(var key_ = new C4String(key)) {
+                NativeRaw.FLMutableDict_SetInt(x, (FLSlice)key_.AsFLSlice(), l);
+            }
+        }
+
+        public static void FLMutableDict_SetUInt(FLMutableDict x, string key, ulong u)
+        {
+            using(var key_ = new C4String(key)) {
+                NativeRaw.FLMutableDict_SetUInt(x, (FLSlice)key_.AsFLSlice(), u);
+            }
+        }
+
+        public static void FLMutableDict_SetFloat(FLMutableDict x, string key, float f)
+        {
+            using(var key_ = new C4String(key)) {
+                NativeRaw.FLMutableDict_SetFloat(x, (FLSlice)key_.AsFLSlice(), f);
+            }
+        }
+
+        public static void FLMutableDict_SetDouble(FLMutableDict x, string key, double d)
+        {
+            using(var key_ = new C4String(key)) {
+                NativeRaw.FLMutableDict_SetDouble(x, (FLSlice)key_.AsFLSlice(), d);
+            }
+        }
+
+        public static void FLMutableDict_SetString(FLMutableDict x, string key, string str)
+        {
+            using(var key_ = new C4String(key))
+            using(var str_ = new C4String(str)) {
+                NativeRaw.FLMutableDict_SetString(x, (FLSlice)key_.AsFLSlice(), (FLSlice)str_.AsFLSlice());
+            }
+        }
+
+        public static void FLMutableDict_SetData(FLMutableDict x, string key, byte[] slice)
+        {
+            using(var key_ = new C4String(key))
+            fixed(byte *slice_ = slice) {
+                NativeRaw.FLMutableDict_SetData(x, (FLSlice)key_.AsFLSlice(), new FLSlice(slice_, (ulong)slice.Length));
+            }
+        }
+
+        public static void FLMutableDict_SetValue(FLMutableDict x, string key, FLValue* value)
+        {
+            using(var key_ = new C4String(key)) {
+                NativeRaw.FLMutableDict_SetValue(x, (FLSlice)key_.AsFLSlice(), value);
+            }
+        }
+
+        public static void FLMutableDict_Remove(FLMutableDict x, string key)
+        {
+            using(var key_ = new C4String(key)) {
+                NativeRaw.FLMutableDict_Remove(x, (FLSlice)key_.AsFLSlice());
+            }
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableDict_RemoveAll(FLMutableDict x);
+
+        public static FLMutableArray FLMutableDict_GetMutableArray(FLMutableDict x, string key)
+        {
+            using(var key_ = new C4String(key)) {
+                return NativeRaw.FLMutableDict_GetMutableArray(x, (FLSlice)key_.AsFLSlice());
+            }
+        }
+
+        public static FLMutableDict FLMutableDict_GetMutableDict(FLMutableDict x, string key)
+        {
+            using(var key_ = new C4String(key)) {
+                return NativeRaw.FLMutableDict_GetMutableDict(x, (FLSlice)key_.AsFLSlice());
+            }
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLDeepIterator* FLDeepIterator_New(FLValue* value);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLDeepIterator_Free(FLDeepIterator* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLValue* FLDeepIterator_GetValue(FLDeepIterator* x);
+
+        public static byte[] FLDeepIterator_GetKey(FLDeepIterator* x)
+        {
+            return (NativeRaw.FLDeepIterator_GetKey(x)).ToArrayFast();
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint FLDeepIterator_GetIndex(FLDeepIterator* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern UIntPtr FLDeepIterator_GetDepth(FLDeepIterator* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLDeepIterator_SkipChildren(FLDeepIterator* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool FLDeepIterator_Next(FLDeepIterator* x);
+
+        public static void FLDeepIterator_GetPath(FLDeepIterator* x, FLPathComponent** outPath, UIntPtr* outDepth)
+        {
+            NativeRaw.FLDeepIterator_GetPath(x, outPath, outDepth);
+        }
+
+        public static byte[] FLDeepIterator_GetPathString(FLDeepIterator* x)
+        {
+            using(var retVal = NativeRaw.FLDeepIterator_GetPathString(x)) {
+                return ((FLSlice)retVal).ToArrayFast();
+            }
+        }
+
+        public static byte[] FLDeepIterator_GetJSONPointer(FLDeepIterator* x)
+        {
+            using(var retVal = NativeRaw.FLDeepIterator_GetJSONPointer(x)) {
+                return ((FLSlice)retVal).ToArrayFast();
+            }
+        }
+
+        public static FLKeyPath* FLKeyPath_New(byte[] specifier, FLError* error)
         {
             fixed(byte *specifier_ = specifier) {
-                return NativeRaw.FLKeyPath_New(new FLSlice(specifier_, (ulong)specifier.Length), shared, error);
+                return NativeRaw.FLKeyPath_New(new FLSlice(specifier_, (ulong)specifier.Length), error);
             }
         }
 
@@ -273,19 +536,54 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValue* FLKeyPath_Eval(FLKeyPath* keyPath, FLValue* root);
 
-        public static FLValue* FLKeyPath_EvalOnce(byte[] specifier, FLSharedKeys* shared, FLValue* root, FLError* error)
+        public static FLValue* FLKeyPath_EvalOnce(byte[] specifier, FLValue* root, FLError* error)
         {
             fixed(byte *specifier_ = specifier) {
-                return NativeRaw.FLKeyPath_EvalOnce(new FLSlice(specifier_, (ulong)specifier.Length), shared, root, error);
+                return NativeRaw.FLKeyPath_EvalOnce(new FLSlice(specifier_, (ulong)specifier.Length), root, error);
             }
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSharedKeys* FLSharedKeys_Create();
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSharedKeys* FLSharedKeys_Retain(FLSharedKeys* shared);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLSharedKeys_Release(FLSharedKeys* shared);
+
+        public static FLSharedKeys* FLSharedKeys_CreateFromStateData(byte[] slice)
+        {
+            fixed(byte *slice_ = slice) {
+                return NativeRaw.FLSharedKeys_CreateFromStateData(new FLSlice(slice_, (ulong)slice.Length));
+            }
+        }
+
+        public static byte[] FLSharedKeys_GetStateData(FLSharedKeys* shared)
+        {
+            using(var retVal = NativeRaw.FLSharedKeys_GetStateData(shared)) {
+                return ((FLSlice)retVal).ToArrayFast();
+            }
+        }
+
+        public static int FLSharedKeys_Encode(FLSharedKeys* shared, string str, bool add)
+        {
+            using(var str_ = new C4String(str)) {
+                return NativeRaw.FLSharedKeys_Encode(shared, (FLSlice)str_.AsFLSlice(), add);
+            }
+        }
+
+        public static string FLSharedKeys_Decode(FLSharedKeys* shared, int key)
+        {
+            return NativeRaw.FLSharedKeys_Decode(shared, key).CreateString();
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLEncoder* FLEncoder_New();
 
-        public static FLEncoder* FLEncoder_NewWithOptions(FLEncoderFormat format, ulong reserveSize, bool uniqueStrings, bool sortKeys)
+        public static FLEncoder* FLEncoder_NewWithOptions(FLEncoderFormat format, ulong reserveSize, bool uniqueStrings)
         {
-            return NativeRaw.FLEncoder_NewWithOptions(format, (UIntPtr)reserveSize, uniqueStrings, sortKeys);
+            return NativeRaw.FLEncoder_NewWithOptions(format, (UIntPtr)reserveSize, uniqueStrings);
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
@@ -295,20 +593,34 @@ namespace LiteCore.Interop
         public static extern void FLEncoder_SetSharedKeys(FLEncoder* encoder, FLSharedKeys* shared);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void FLEncoder_SetExtraInfo(FLEncoder* e, void* info);
+        public static extern void FLEncoder_SetExtraInfo(FLEncoder* encoder, void* info);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void* FLEncoder_GetExtraInfo(FLEncoder* e);
+        public static extern void* FLEncoder_GetExtraInfo(FLEncoder* encoder);
 
-        public static void FLEncoder_MakeDelta(FLEncoder* e, byte[] @base, bool reuseStrings)
+        public static void FLEncoder_Amend(FLEncoder* e, byte[] @base, bool reuseStrings, bool externPointers)
         {
             fixed(byte *@base_ = @base) {
-                NativeRaw.FLEncoder_MakeDelta(e, new FLSlice(@base_, (ulong)@base.Length), reuseStrings);
+                NativeRaw.FLEncoder_Amend(e, new FLSlice(@base_, (ulong)@base.Length), reuseStrings, externPointers);
             }
         }
 
+        public static byte[] FLEncoder_GetBase(FLEncoder* encoder)
+        {
+            return (NativeRaw.FLEncoder_GetBase(encoder)).ToArrayFast();
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLEncoder_SuppressTrailer(FLEncoder* encoder);
+
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void FLEncoder_Reset(FLEncoder* encoder);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern UIntPtr FLEncoder_BytesWritten(FLEncoder* encoder);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern UIntPtr FLEncoder_GetNextWritePos(FLEncoder* encoder);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -337,7 +649,7 @@ namespace LiteCore.Interop
         public static bool FLEncoder_WriteString(FLEncoder* encoder, string str)
         {
             using(var str_ = new C4String(str)) {
-                return NativeRaw.FLEncoder_WriteString(encoder, (FLSlice)str_.AsC4Slice());
+                return NativeRaw.FLEncoder_WriteString(encoder, (FLSlice)str_.AsFLSlice());
             }
         }
 
@@ -372,7 +684,7 @@ namespace LiteCore.Interop
         public static bool FLEncoder_WriteKey(FLEncoder* encoder, string str)
         {
             using(var str_ = new C4String(str)) {
-                return NativeRaw.FLEncoder_WriteKey(encoder, (FLSlice)str_.AsC4Slice());
+                return NativeRaw.FLEncoder_WriteKey(encoder, (FLSlice)str_.AsFLSlice());
             }
         }
 
@@ -384,33 +696,56 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool FLEncoder_WriteValue(FLEncoder* encoder, FLValue* value);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool FLEncoder_WriteValueWithSharedKeys(FLEncoder* encoder, FLValue* value, FLSharedKeys* shared);
-
-        public static bool FLEncoder_ConvertJSON(FLEncoder* e, byte[] json)
+        public static bool FLEncoder_ConvertJSON(FLEncoder* encoder, byte[] json)
         {
             fixed(byte *json_ = json) {
-                return NativeRaw.FLEncoder_ConvertJSON(e, new FLSlice(json_, (ulong)json.Length));
+                return NativeRaw.FLEncoder_ConvertJSON(encoder, new FLSlice(json_, (ulong)json.Length));
             }
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UIntPtr FLEncoder_BytesWritten(FLEncoder* e);
+        public static extern UIntPtr FLEncoder_FinishItem(FLEncoder* encoder);
 
-        public static byte[] FLEncoder_Finish(FLEncoder* encoder, FLError* outError)
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLDoc* FLEncoder_FinishDoc(FLEncoder* encoder, FLError* outError);
+
+        public static byte[] FLEncoder_Finish(FLEncoder* e, FLError* outError)
         {
-            using(var retVal = NativeRaw.FLEncoder_Finish(encoder, outError)) {
-                return ((C4Slice)retVal).ToArrayFast();
+            using(var retVal = NativeRaw.FLEncoder_Finish(e, outError)) {
+                return ((FLSlice)retVal).ToArrayFast();
             }
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLError FLEncoder_GetError(FLEncoder* e);
+        public static extern FLError FLEncoder_GetError(FLEncoder* encoder);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.LPStr)]
         public static extern string FLEncoder_GetErrorMessage(FLEncoder* encoder);
+
+        public static byte[] FLCreateJSONDelta(FLValue* old, FLValue* nuu)
+        {
+            using(var retVal = NativeRaw.FLCreateJSONDelta(old, nuu)) {
+                return ((FLSlice)retVal).ToArrayFast();
+            }
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool FLEncodeJSONDelta(FLValue* old, FLValue* nuu, FLEncoder* jsonEncoder);
+
+        public static byte[] FLApplyJSONDelta(FLValue* old, byte[] jsonDelta, FLError* error)
+        {
+            fixed(byte *jsonDelta_ = jsonDelta) {
+                using(var retVal = NativeRaw.FLApplyJSONDelta(old, new FLSlice(jsonDelta_, (ulong)jsonDelta.Length), error)) {
+                    return ((FLSlice)retVal).ToArrayFast();
+                }
+            }
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool FLEncodeApplyingJSONDelta(FLValue* old, FLValue* jsonDelta, FLEncoder* encoder);
 
 
     }
@@ -418,16 +753,40 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLValue* FLValue_FromData(FLSlice data);
+        public static extern FLDoc* FLDoc_FromData(FLSlice data, FLTrust x, FLSharedKeys* shared, FLSlice externData);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLValue* FLValue_FromTrustedData(FLSlice data);
+        public static extern FLDoc* FLDoc_FromJSON(FLSlice json, FLError* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSlice FLDoc_GetData(FLDoc* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult FLDoc_GetAllocedData(FLDoc* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLValue* FLValue_FromData(FLSlice data, FLTrust x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult FLData_ConvertJSON(FLSlice json, FLError* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult FLData_Dump(FLSlice data);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult FLValue_ToJSON(FLValue* value);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult FLValue_ToJSON5(FLValue* v);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult FLValue_ToJSONX(FLValue* v, [MarshalAs(UnmanagedType.U1)]bool json5, [MarshalAs(UnmanagedType.U1)]bool canonicalForm);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult FLJSON5_ToJSON(FLSlice json5, FLError* error);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern char* FLDumpData(FLSlice data);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSlice FLValue_AsString(FLValue* value);
@@ -439,55 +798,103 @@ namespace LiteCore.Interop
         public static extern FLSliceResult FLValue_ToString(FLValue* value);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult FLValue_ToJSON(FLValue* value);
+        public static extern void FLMutableArray_AppendString(FLMutableArray x, FLSlice str);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult FLValue_ToJSON5(FLValue* v);
+        public static extern void FLMutableArray_AppendData(FLMutableArray x, FLSlice slice);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult FLValue_ToJSONX(FLValue* v, FLSharedKeys* sk, [MarshalAs(UnmanagedType.U1)]bool json5, [MarshalAs(UnmanagedType.U1)]bool canonicalForm);
+        public static extern void FLMutableArray_SetString(FLMutableArray x, uint index, FLSlice str);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult FLJSON5_ToJSON(FLSlice json5, FLError* error);
+        public static extern void FLMutableArray_SetData(FLMutableArray x, uint index, FLSlice slice);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValue* FLDict_Get(FLDict* dict, FLSlice keyString);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLValue* FLDict_GetSharedKey(FLDict* d, FLSlice keyString, FLSharedKeys* sk);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSlice FLSharedKey_GetKeyString(FLSharedKeys* sk, int keyCode, FLError* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLValue* FLDict_GetUnsorted(FLDict* dict, FLSlice keyString);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSlice FLDictIterator_GetKeyString(FLDictIterator* i);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLDictKey FLDictKey_Init(FLSlice @string, [MarshalAs(UnmanagedType.U1)]bool cachePointers);
+        public static extern FLDictKey FLDictKey_Init(FLSlice @string);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLDictKey FLDictKey_InitWithSharedKeys(FLSlice @string, FLSharedKeys* sharedKeys);
+        public static extern FLSlice FLDictKey_GetString(FLDictKey* dictKey);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSlice FLDictKey_GetString(FLDictKey* key);
+        public static extern void FLMutableDict_SetNull(FLMutableDict x, FLSlice key);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern UIntPtr FLDict_GetWithKeys(FLDict* dict, [Out]FLDictKey[] keys, [Out]FLValue[] values, UIntPtr count);
+        public static extern void FLMutableDict_SetBool(FLMutableDict x, FLSlice key, [MarshalAs(UnmanagedType.U1)]bool b);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLKeyPath* FLKeyPath_New(FLSlice specifier, FLSharedKeys* shared, FLError* error);
+        public static extern void FLMutableDict_SetInt(FLMutableDict x, FLSlice key, long l);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLValue* FLKeyPath_EvalOnce(FLSlice specifier, FLSharedKeys* shared, FLValue* root, FLError* error);
+        public static extern void FLMutableDict_SetUInt(FLMutableDict x, FLSlice key, ulong u);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLEncoder* FLEncoder_NewWithOptions(FLEncoderFormat format, UIntPtr reserveSize, [MarshalAs(UnmanagedType.U1)]bool uniqueStrings, [MarshalAs(UnmanagedType.U1)]bool sortKeys);
+        public static extern void FLMutableDict_SetFloat(FLMutableDict x, FLSlice key, float f);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void FLEncoder_MakeDelta(FLEncoder* e, FLSlice @base, [MarshalAs(UnmanagedType.U1)]bool reuseStrings);
+        public static extern void FLMutableDict_SetDouble(FLMutableDict x, FLSlice key, double d);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableDict_SetString(FLMutableDict x, FLSlice key, FLSlice str);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableDict_SetData(FLMutableDict x, FLSlice key, FLSlice slice);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableDict_SetValue(FLMutableDict x, FLSlice key, FLValue* value);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLMutableDict_Remove(FLMutableDict x, FLSlice key);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLMutableArray FLMutableDict_GetMutableArray(FLMutableDict x, FLSlice key);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLMutableDict FLMutableDict_GetMutableDict(FLMutableDict x, FLSlice key);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSlice FLDeepIterator_GetKey(FLDeepIterator* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLDeepIterator_GetPath(FLDeepIterator* x, FLPathComponent** outPath, UIntPtr* outDepth);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult FLDeepIterator_GetPathString(FLDeepIterator* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult FLDeepIterator_GetJSONPointer(FLDeepIterator* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLKeyPath* FLKeyPath_New(FLSlice specifier, FLError* error);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLValue* FLKeyPath_EvalOnce(FLSlice specifier, FLValue* root, FLError* error);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSharedKeys* FLSharedKeys_CreateFromStateData(FLSlice slice);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult FLSharedKeys_GetStateData(FLSharedKeys* shared);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int FLSharedKeys_Encode(FLSharedKeys* shared, FLSlice str, [MarshalAs(UnmanagedType.U1)]bool add);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSlice FLSharedKeys_Decode(FLSharedKeys* shared, int key);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLEncoder* FLEncoder_NewWithOptions(FLEncoderFormat format, UIntPtr reserveSize, [MarshalAs(UnmanagedType.U1)]bool uniqueStrings);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLEncoder_Amend(FLEncoder* e, FLSlice @base, [MarshalAs(UnmanagedType.U1)]bool reuseStrings, [MarshalAs(UnmanagedType.U1)]bool externPointers);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSlice FLEncoder_GetBase(FLEncoder* encoder);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -515,10 +922,16 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool FLEncoder_ConvertJSON(FLEncoder* e, FLSlice json);
+        public static extern bool FLEncoder_ConvertJSON(FLEncoder* encoder, FLSlice json);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult FLEncoder_Finish(FLEncoder* encoder, FLError* outError);
+        public static extern FLSliceResult FLEncoder_Finish(FLEncoder* e, FLError* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult FLCreateJSONDelta(FLValue* old, FLValue* nuu);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult FLApplyJSONDelta(FLValue* old, FLSlice jsonDelta, FLError* error);
 
 
     }

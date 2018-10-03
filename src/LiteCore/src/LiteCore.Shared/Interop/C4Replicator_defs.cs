@@ -56,7 +56,7 @@ namespace LiteCore.Interop
     {
         public C4ReplicatorMode push;
         public C4ReplicatorMode pull;
-        public C4Slice optionsDictFleece;
+        public FLSlice optionsDictFleece;
         public IntPtr validationFunc;
         public IntPtr onStatusChanged;
         public IntPtr onDocumentError;
@@ -65,33 +65,18 @@ namespace LiteCore.Interop
     }
 
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4Progress
+	internal unsafe struct C4Progress
     {
         public ulong unitsCompleted;
         public ulong unitsTotal;
         public ulong documentCount;
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4Replicator
+	internal unsafe struct C4Replicator
     {
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4ReplicatorStatus
+	internal unsafe struct C4ReplicatorStatus
     {
         public C4ReplicatorActivityLevel level;
         public C4Progress progress;

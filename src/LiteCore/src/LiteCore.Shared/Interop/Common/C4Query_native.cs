@@ -30,7 +30,7 @@ namespace LiteCore.Interop
         public static C4Query* c4query_new(C4Database* database, string expression, C4Error* error)
         {
             using(var expression_ = new C4String(expression)) {
-                return NativeRaw.c4query_new(database, expression_.AsC4Slice(), error);
+                return NativeRaw.c4query_new(database, expression_.AsFLSlice(), error);
             }
         }
 
@@ -40,7 +40,7 @@ namespace LiteCore.Interop
         public static string c4query_explain(C4Query* query)
         {
             using(var retVal = NativeRaw.c4query_explain(query)) {
-                return ((C4Slice)retVal).CreateString();
+                return ((FLSlice)retVal).CreateString();
             }
         }
 
@@ -50,14 +50,14 @@ namespace LiteCore.Interop
         public static C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, string encodedParameters, C4Error* outError)
         {
             using(var encodedParameters_ = new C4String(encodedParameters)) {
-                return NativeRaw.c4query_run(query, options, encodedParameters_.AsC4Slice(), outError);
+                return NativeRaw.c4query_run(query, options, encodedParameters_.AsFLSlice(), outError);
             }
         }
 
         public static string c4query_fullTextMatched(C4Query* query, C4FullTextMatch* term, C4Error* outError)
         {
             using(var retVal = NativeRaw.c4query_fullTextMatched(query, term, outError)) {
-                return ((C4Slice)retVal).CreateString();
+                return ((FLSlice)retVal).CreateString();
             }
         }
 
@@ -85,21 +85,21 @@ namespace LiteCore.Interop
         {
             using(var name_ = new C4String(name))
             using(var expressionsJSON_ = new C4String(expressionsJSON)) {
-                return NativeRaw.c4db_createIndex(database, name_.AsC4Slice(), expressionsJSON_.AsC4Slice(), indexType, indexOptions, outError);
+                return NativeRaw.c4db_createIndex(database, name_.AsFLSlice(), expressionsJSON_.AsFLSlice(), indexType, indexOptions, outError);
             }
         }
 
         public static bool c4db_deleteIndex(C4Database* database, string name, C4Error* outError)
         {
             using(var name_ = new C4String(name)) {
-                return NativeRaw.c4db_deleteIndex(database, name_.AsC4Slice(), outError);
+                return NativeRaw.c4db_deleteIndex(database, name_.AsFLSlice(), outError);
             }
         }
 
         public static byte[] c4db_getIndexes(C4Database* database, C4Error* outError)
         {
             using(var retVal = NativeRaw.c4db_getIndexes(database, outError)) {
-                return ((C4Slice)retVal).ToArrayFast();
+                return ((FLSlice)retVal).ToArrayFast();
             }
         }
 
@@ -109,27 +109,27 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Query* c4query_new(C4Database* database, C4Slice expression, C4Error* error);
+        public static extern C4Query* c4query_new(C4Database* database, FLSlice expression, C4Error* error);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4SliceResult c4query_explain(C4Query* query);
+        public static extern FLSliceResult c4query_explain(C4Query* query);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, C4Slice encodedParameters, C4Error* outError);
+        public static extern C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, FLSlice encodedParameters, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4SliceResult c4query_fullTextMatched(C4Query* query, C4FullTextMatch* term, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_createIndex(C4Database* database, C4Slice name, C4Slice expressionsJSON, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError);
+        public static extern FLSliceResult c4query_fullTextMatched(C4Query* query, C4FullTextMatch* term, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_deleteIndex(C4Database* database, C4Slice name, C4Error* outError);
+        public static extern bool c4db_createIndex(C4Database* database, FLSlice name, FLSlice expressionsJSON, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4SliceResult c4db_getIndexes(C4Database* database, C4Error* outError);
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4db_deleteIndex(C4Database* database, FLSlice name, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4db_getIndexes(C4Database* database, C4Error* outError);
 
 
     }

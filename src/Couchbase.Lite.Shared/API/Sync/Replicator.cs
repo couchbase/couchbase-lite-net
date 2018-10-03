@@ -36,7 +36,6 @@ using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
-using ObjCRuntime;
 
 namespace Couchbase.Lite.Sync
 {
@@ -236,7 +235,7 @@ namespace Couchbase.Lite.Sync
         }
 
         [MonoPInvokeCallback(typeof(C4ReplicatorDocumentErrorCallback))]
-        private static void OnDocError(C4Replicator* repl, bool pushing, C4Slice docID, C4Error error, bool transient, void* context)
+        private static void OnDocError(C4Replicator* repl, bool pushing, FLSlice docID, C4Error error, bool transient, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             var docIDStr = docID.CreateString();
@@ -413,10 +412,10 @@ namespace Couchbase.Lite.Sync
                 scheme = new C4String(remoteUrl.Scheme);
                 host = new C4String(remoteUrl.Host);
                 path = new C4String(pathStr);
-                addr.scheme = scheme.AsC4Slice();
-                addr.hostname = host.AsC4Slice();
+                addr.scheme = scheme.AsFLSlice();
+                addr.hostname = host.AsFLSlice();
                 addr.port = (ushort) remoteUrl.Port;
-                addr.path = path.AsC4Slice();
+                addr.path = path.AsFLSlice();
             } else {
                 otherDB = Config.OtherDB;
             }

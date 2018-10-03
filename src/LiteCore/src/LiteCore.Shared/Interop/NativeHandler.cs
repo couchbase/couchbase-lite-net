@@ -65,7 +65,7 @@ namespace LiteCore.Interop
 #else
     public
 #endif
-         unsafe delegate C4Slice C4TryLogicDelegate4(C4Error* err);
+         unsafe delegate FLSlice C4TryLogicDelegate4(C4Error* err);
 
     #endregion
 
@@ -220,7 +220,7 @@ namespace LiteCore.Interop
             return retVal;
         }
 
-        public unsafe C4Slice Execute(C4TryLogicDelegate4 block)
+        public unsafe FLSlice Execute(C4TryLogicDelegate4 block)
         {
             Debug.Assert(block != null);
 

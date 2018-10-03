@@ -104,9 +104,6 @@ namespace Couchbase.Lite
         [NotNull]
         private readonly Event<DatabaseChangedEventArgs> _databaseChanged = 
             new Event<DatabaseChangedEventArgs>();
-
-        [NotNull]
-        private readonly SharedStringCache _sharedStrings;
         
         [NotNull]
         private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
@@ -214,14 +211,6 @@ namespace Couchbase.Lite
         }
 
         [NotNull]
-        internal SharedStringCache SharedStrings => ThreadSafety.DoLocked(() =>
-        {
-            //TODO: Is this allowed?
-            //CheckOpen(); 
-            return _sharedStrings;
-        });
-
-        [NotNull]
         internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
         
         private bool InTransaction => ThreadSafety.DoLocked(() => _c4db != null && Native.c4db_isInTransaction(_c4db));
@@ -251,9 +240,6 @@ namespace Couchbase.Lite
             Name = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
             Config = configuration?.Freeze() ?? new DatabaseConfiguration(true);
             Open();
-            FLSharedKeys* keys = null;
-            ThreadSafety.DoLocked(() => keys = Native.c4db_getFLSharedKeys(_c4db));
-            _sharedStrings = new SharedStringCache(keys);
         }
 
         internal Database([NotNull]Database other)
@@ -662,21 +648,21 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                var result = new C4SliceResult();
+                var result = new FLSliceResult();
                 LiteCoreBridge.Check(err =>
                 {
                     result = NativeRaw.c4db_getIndexes(c4db, err);
                     return result.buf != null;
                 });
 
-                var val = NativeRaw.FLValue_FromTrustedData(new FLSlice(result.buf, result.size));
+                var val = NativeRaw.FLValue_FromData(new FLSlice(result.buf, result.size), FLTrust.Trusted);
                 if (val == null) {
-                    Native.c4slice_free(result);
+                    Native.FLSliceResult_Release(result);
                     throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError);
                 }
 
                 retVal = FLValueConverter.ToCouchbaseObject(val, this, true, typeof(string));
-                Native.c4slice_free(result);
+                Native.FLSliceResult_Release(result);
             });
 
             return retVal as IList<string> ?? new List<string>();
@@ -931,7 +917,7 @@ namespace Couchbase.Lite
             });
         }
 
-        private static void DocObserverCallback(C4DocumentObserver* obs, C4Slice docId, ulong sequence, void* context)
+        private static void DocObserverCallback(C4DocumentObserver* obs, FLSlice docId, ulong sequence, void* context)
         {
             if (docId.buf == null) {
                 return;
@@ -1204,7 +1190,7 @@ namespace Couchbase.Lite
                 // https://github.com/couchbase/couchbase-lite-net/issues/997
                 // body must not move while root / rootDict are being used
                 fixed (byte* b = body) {
-                    var root = Native.FLValue_FromTrustedData(body);
+                    var root = Native.FLValue_FromData(body, FLTrust.Trusted);
                     if (root == null) {
                         Log.To.Database.E(Tag, "Failed to encode document body properly.  Aborting save of document!");
                         return;
@@ -1218,7 +1204,7 @@ namespace Couchbase.Lite
 
                     ThreadSafety.DoLocked(() =>
                     {
-                        if (Native.c4doc_dictContainsBlobs(rootDict, SharedStrings.SharedKeys)) {
+                        if (Native.c4doc_dictContainsBlobs(rootDict)) {
                             revFlags |= C4RevisionFlags.HasAttachments;
                         }
                     });

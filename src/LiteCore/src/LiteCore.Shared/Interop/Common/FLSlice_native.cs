@@ -1,5 +1,5 @@
 //
-// C4ExpiryEnumerator_native.cs
+// FLSlice_native.cs
 //
 // Copyright (c) 2018 Couchbase, Inc All rights reserved.
 //
@@ -28,37 +28,26 @@ namespace LiteCore.Interop
     internal unsafe static partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4ExpiryEnumerator* c4db_enumerateExpired(C4Database* database, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4exp_next(C4ExpiryEnumerator* e, C4Error* outError);
-
-        public static string c4exp_getDocID(C4ExpiryEnumerator* e)
-        {
-            using(var retVal = NativeRaw.c4exp_getDocID(e)) {
-                return ((FLSlice)retVal).CreateString();
-            }
-        }
+        public static extern bool FLSlice_Equal(FLSlice a, FLSlice b);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4exp_purgeExpired(C4ExpiryEnumerator* e, C4Error* outError);
+        public static extern int FLSlice_Compare(FLSlice left, FLSlice right);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4exp_close(C4ExpiryEnumerator* e);
+        public static extern FLSliceResult FLSliceResult_Retain(FLSliceResult slice);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4exp_free(C4ExpiryEnumerator* e);
+        public static extern void FLSliceResult_Release(FLSliceResult slice);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult FLSlice_Copy(FLSlice slice);
 
 
     }
 
     internal unsafe static partial class NativeRaw
     {
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4exp_getDocID(C4ExpiryEnumerator* e);
-
 
     }
 }

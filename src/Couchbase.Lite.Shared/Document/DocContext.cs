@@ -30,18 +30,15 @@ namespace Couchbase.Lite.Internal.Doc
 
         public C4DocumentWrapper Doc { get; }
 
-        public SharedStringCache SharedStrings { get; }
-
         #endregion
 
         #region Constructors
 
         public DocContext(Database db, C4DocumentWrapper doc)
-            : base(new FLSlice(), db.SharedStrings.SharedKeys)
+            : base(new FLSlice())
         {
             Db = db;
             Doc = doc?.Retain<C4DocumentWrapper>();
-            SharedStrings = db.SharedStrings;
         }
 
         #endregion

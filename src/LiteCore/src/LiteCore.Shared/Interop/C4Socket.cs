@@ -34,16 +34,16 @@ namespace LiteCore.Interop
     }
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]   
-    internal unsafe delegate void SocketOpenDelegate(C4Socket* socket, C4Address* address, C4Slice options, void* context);
+    internal unsafe delegate void SocketOpenDelegate(C4Socket* socket, C4Address* address, FLSlice options, void* context);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate void SocketCloseDelegate(C4Socket* socket);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate void SocketRequestCloseDelegate(C4Socket* socket, int status, C4Slice message);
+    internal unsafe delegate void SocketRequestCloseDelegate(C4Socket* socket, int status, FLSlice message);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate void SocketWriteDelegate(C4Socket* socket, C4SliceResult allocatedData);
+    internal unsafe delegate void SocketWriteDelegate(C4Socket* socket, FLSliceResult allocatedData);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate void SocketCompletedReceiveDelegate(C4Socket* socket, UIntPtr byteCount);
@@ -99,7 +99,7 @@ namespace LiteCore.Interop
         }
 
         [MonoPInvokeCallback(typeof(SocketRequestCloseDelegate))]
-        private static void SocketRequestClose(C4Socket* socket, int status, C4Slice message)
+        private static void SocketRequestClose(C4Socket* socket, int status, FLSlice message)
         {
             try {
                 _externalRequestClose?.Invoke(socket, status, message.CreateString());
@@ -146,7 +146,7 @@ namespace LiteCore.Interop
         }
 
         [MonoPInvokeCallback(typeof(SocketOpenDelegate))]
-        private static void SocketOpened(C4Socket* socket, C4Address* address, C4Slice options, void* context)
+        private static void SocketOpened(C4Socket* socket, C4Address* address, FLSlice options, void* context)
         {
             try {
                 _externalOpen?.Invoke(socket, address, options, context);
@@ -167,10 +167,10 @@ namespace LiteCore.Interop
         }
 
         [MonoPInvokeCallback(typeof(SocketWriteDelegate))]
-        private static void SocketWrittenTo(C4Socket* socket, C4SliceResult allocatedData)
+        private static void SocketWrittenTo(C4Socket* socket, FLSliceResult allocatedData)
         {
             try {
-                _externalWrite?.Invoke(socket, ((C4Slice) allocatedData).ToArrayFast());
+                _externalWrite?.Invoke(socket, ((FLSlice) allocatedData).ToArrayFast());
             } catch (Exception e) {
                 _error?.Invoke(socket, new Exception("Error writing to socket", e));
                 Native.c4socket_closed(socket, new C4Error(C4ErrorCode.UnexpectedError));
@@ -202,7 +202,7 @@ namespace Couchbase.Lite.Interop
             IDictionary<string, object> headers)
         {
             using (var headers_ = headers.FLEncode()) {
-                c4socket_gotHTTPResponse(socket, httpStatus, (C4Slice)headers_);
+                c4socket_gotHTTPResponse(socket, httpStatus, (FLSlice)headers_);
             }
         }
     }

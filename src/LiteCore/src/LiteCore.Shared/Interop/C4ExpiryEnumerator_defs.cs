@@ -27,12 +27,7 @@ namespace LiteCore.Interop
 {
 
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4ExpiryEnumerator
+	internal unsafe struct C4ExpiryEnumerator
     {
     }
 }

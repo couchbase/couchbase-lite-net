@@ -27,24 +27,17 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4SliceEqual(C4Slice a, C4Slice b);
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4slice_free(C4SliceResult slice);
-
         public static string c4error_getMessage(C4Error error)
         {
             using(var retVal = NativeRaw.c4error_getMessage(error)) {
-                return ((C4Slice)retVal).CreateString();
+                return ((FLSlice)retVal).CreateString();
             }
         }
 
         public static C4Error c4error_make(C4ErrorDomain domain, int code, string message)
         {
             using(var message_ = new C4String(message)) {
-                return NativeRaw.c4error_make(domain, code, message_.AsC4Slice());
+                return NativeRaw.c4error_make(domain, code, message_.AsFLSlice());
             }
         }
 
@@ -62,7 +55,7 @@ namespace LiteCore.Interop
         public static bool c4log_writeToBinaryFile(C4LogLevel level, string path, C4Error* error)
         {
             using(var path_ = new C4String(path)) {
-                return NativeRaw.c4log_writeToBinaryFile(level, path_.AsC4Slice(), error);
+                return NativeRaw.c4log_writeToBinaryFile(level, path_.AsFLSlice(), error);
             }
         }
 
@@ -93,21 +86,21 @@ namespace LiteCore.Interop
         public static void c4slog(C4LogDomain* domain, C4LogLevel level, string msg)
         {
             using(var msg_ = new C4String(msg)) {
-                NativeRaw.c4slog(domain, level, msg_.AsC4Slice());
+                NativeRaw.c4slog(domain, level, msg_.AsFLSlice());
             }
         }
 
         public static string c4_getBuildInfo()
         {
             using(var retVal = NativeRaw.c4_getBuildInfo()) {
-                return ((C4Slice)retVal).CreateString();
+                return ((FLSlice)retVal).CreateString();
             }
         }
 
         public static string c4_getVersion()
         {
             using(var retVal = NativeRaw.c4_getVersion()) {
-                return ((C4Slice)retVal).CreateString();
+                return ((FLSlice)retVal).CreateString();
             }
         }
 
@@ -123,26 +116,26 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4SliceResult c4error_getMessage(C4Error error);
+        public static extern FLSliceResult c4error_getMessage(C4Error error);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Error c4error_make(C4ErrorDomain domain, int code, C4Slice message);
+        public static extern C4Error c4error_make(C4ErrorDomain domain, int code, FLSlice message);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4log_writeToBinaryFile(C4LogLevel level, C4Slice path, C4Error* error);
+        public static extern bool c4log_writeToBinaryFile(C4LogLevel level, FLSlice path, C4Error* error);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte* c4log_getDomainName(C4LogDomain* x);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4slog(C4LogDomain* domain, C4LogLevel level, C4Slice msg);
+        public static extern void c4slog(C4LogDomain* domain, C4LogLevel level, FLSlice msg);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4SliceResult c4_getBuildInfo();
+        public static extern FLSliceResult c4_getBuildInfo();
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4SliceResult c4_getVersion();
+        public static extern FLSliceResult c4_getVersion();
 
 
     }

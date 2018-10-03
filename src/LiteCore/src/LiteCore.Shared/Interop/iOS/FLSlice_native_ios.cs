@@ -1,5 +1,5 @@
 //
-// C4Observer_native_ios.cs
+// FLSlice_native_ios.cs
 //
 // Copyright (c) 2018 Couchbase, Inc All rights reserved.
 //
@@ -28,35 +28,26 @@ namespace LiteCore.Interop
     internal unsafe static partial class Native
     {
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4DatabaseObserver* c4dbobs_create(C4Database* database, C4DatabaseObserverCallback callback, void* context);
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool FLSlice_Equal(FLSlice a, FLSlice b);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint c4dbobs_getChanges(C4DatabaseObserver* observer, [Out]C4DatabaseChange[] outChanges, uint maxChanges, bool* outExternal);
+        public static extern int FLSlice_Compare(FLSlice left, FLSlice right);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4dbobs_releaseChanges(C4DatabaseChange[] changes, uint numChanges);
+        public static extern FLSliceResult FLSliceResult_Retain(FLSliceResult slice);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4dbobs_free(C4DatabaseObserver* observer);
-
-        public static C4DocumentObserver* c4docobs_create(C4Database* database, string docID, C4DocumentObserverCallback callback, void* context)
-        {
-            using(var docID_ = new C4String(docID)) {
-                return NativeRaw.c4docobs_create(database, docID_.AsFLSlice(), callback, context);
-            }
-        }
+        public static extern void FLSliceResult_Release(FLSliceResult slice);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4docobs_free(C4DocumentObserver* observer);
+        public static extern FLSliceResult FLSlice_Copy(FLSlice slice);
 
 
     }
 
     internal unsafe static partial class NativeRaw
     {
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4DocumentObserver* c4docobs_create(C4Database* database, FLSlice docID, C4DocumentObserverCallback callback, void* context);
-
 
     }
 }

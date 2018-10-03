@@ -89,7 +89,7 @@ namespace Couchbase.Lite.Sync
             Log.To.Sync.E(Tag, "Websocket Error", e);
         }
 
-        private static void DoOpen(C4Socket* socket, C4Address* address, C4Slice options, void* context)
+        private static void DoOpen(C4Socket* socket, C4Address* address, FLSlice options, void* context)
         {
             var builder = new UriBuilder {
                 Host = address->hostname.CreateString(),
@@ -112,7 +112,7 @@ namespace Couchbase.Lite.Sync
             }
 
             var opts =
-                FLSliceExtensions.ToObject(NativeRaw.FLValue_FromTrustedData((FLSlice) options)) as
+                FLSliceExtensions.ToObject(NativeRaw.FLValue_FromData((FLSlice) options, FLTrust.Trusted)) as
                     Dictionary<string, object>;
             var replicationOptions = new ReplicatorOptionsDictionary(opts);
             

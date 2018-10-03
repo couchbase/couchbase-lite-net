@@ -19,6 +19,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text;
 
 using Couchbase.Lite.Interop;
 using Couchbase.Lite.Logging;
@@ -43,7 +44,7 @@ namespace Couchbase.Lite.Internal.Serialization
                 switch (Native.FLValue_GetType(value)) {
                     case FLValueType.Array: {
                         if(dotNetTypes) {
-                            return ToObject(value, database?.SharedStrings, 0, hintType1);
+                            return ToObject(value, 0, hintType1);
                         }
 
                         var array = new ArrayObject(new MArray(new MValue(value), null), false);
@@ -51,18 +52,18 @@ namespace Couchbase.Lite.Internal.Serialization
                     }
                     case FLValueType.Dict: {
                         var dict = Native.FLValue_AsDict(value);
-                        var type = TypeForDict(dict, database?.SharedStrings);
+                        var type = TypeForDict(dict);
                         if (!dotNetTypes && type.buf == null && !IsOldAttachment(database, dict)) {
                             return new DictionaryObject(new MDict(new MValue(value), null), false);
                         }
 
-                        var result = ToObject(value, database?.SharedStrings, 0, hintType1) as IDictionary<string, object>;
+                        var result = ToObject(value, 0, hintType1) as IDictionary<string, object>;
                         return ConvertDictionary(result, database);
                     }
                     case FLValueType.Undefined:
                         return null;
                     default:
-                        return ToObject(value, database?.SharedStrings);
+                        return ToObject(value);
                 }
         }
 
@@ -89,10 +90,10 @@ namespace Couchbase.Lite.Internal.Serialization
 
         internal static bool IsOldAttachment(Database db, FLDict* dict)
         {
-            var flDigest = db.SharedStrings.GetDictValue(dict, "digest");
-            var flLength = db.SharedStrings.GetDictValue(dict, "length");
-            var flStub = db.SharedStrings.GetDictValue(dict, "stub");
-            var flRevPos = db.SharedStrings.GetDictValue(dict, "revpos");
+            var flDigest = Native.FLDict_Get(dict, Encoding.UTF8.GetBytes("digest"));
+            var flLength =  Native.FLDict_Get(dict, Encoding.UTF8.GetBytes("length"));
+            var flStub =  Native.FLDict_Get(dict, Encoding.UTF8.GetBytes("stub"));
+            var flRevPos =  Native.FLDict_Get(dict, Encoding.UTF8.GetBytes("revpos"));
 
             return flDigest != null && flLength != null && flStub != null && flRevPos != null;
         }
@@ -128,7 +129,7 @@ namespace Couchbase.Lite.Internal.Serialization
             return digest != null && length != null && stub != null && revpos != null;
         }
 
-        private static object ToObject(FLValue* value, SharedStringCache sharedKeys, int level = 0, Type hintType1 = null)
+        private static object ToObject(FLValue* value, int level = 0, Type hintType1 = null)
         {
             if (value == null) {
                 return null;
@@ -150,7 +151,7 @@ namespace Couchbase.Lite.Internal.Serialization
                     var i = default(FLArrayIterator);
                     Native.FLArrayIterator_Begin(arr, &i);
                     do {
-                        retVal.Add(ToObject(Native.FLArrayIterator_GetValue(&i), sharedKeys, level + 1, hintType1));
+                        retVal.Add(ToObject(Native.FLArrayIterator_GetValue(&i), level + 1, hintType1));
                     } while (Native.FLArrayIterator_Next(&i));
 
                     return retVal;
@@ -171,19 +172,8 @@ namespace Couchbase.Lite.Internal.Serialization
                     var i = default(FLDictIterator);
                     Native.FLDictIterator_Begin(dict, &i);
                     do {
-                        var rawKey = Native.FLDictIterator_GetKey(&i);
-                        string key;
-                        if (Native.FLValue_GetType(rawKey) == FLValueType.Number) {
-                            key = sharedKeys?.GetKey((int)Native.FLValue_AsInt(rawKey));
-                            if (key == null) {
-                                Log.To.Database.W(Tag, "Corrupt key found during deserialization, skipping...");
-                                continue;
-                            }
-                        } else {
-                            key = Native.FLValue_AsString(rawKey);
-                        }
-
-                        retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), sharedKeys, level + 1, hintType1);
+                        var key = Native.FLDictIterator_GetKeyString(&i);
+                        retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), level + 1, hintType1);
                     } while (Native.FLDictIterator_Next(&i));
 
                     return retVal;
@@ -209,12 +199,10 @@ namespace Couchbase.Lite.Internal.Serialization
             }
         }
 
-        private static FLSlice TypeForDict(FLDict* dict, SharedStringCache sharedKeys)
+        private static FLSlice TypeForDict(FLDict* dict)
         {
             var typeKey = FLSlice.Constant(Constants.ObjectTypeProperty);
-            var type = sharedKeys != null
-                ? sharedKeys.GetDictValue(dict, typeKey)
-                : NativeRaw.FLDict_Get(dict, typeKey);
+            var type = NativeRaw.FLDict_Get(dict, typeKey);
 
             return NativeRaw.FLValue_AsString(type);
         }

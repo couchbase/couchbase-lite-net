@@ -1,9 +1,6 @@
 //
 // Fleece_defs.cs
 //
-// Author:
-// 	Jim Borden  <jim.borden@couchbase.com>
-//
 // Copyright (c) 2018 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -74,6 +71,21 @@ namespace LiteCore.Interop
         InternalError,
         NotFound,
         SharedKeysStateError,
+        POSIXError,
+        Unsupported,
+    }
+
+#if LITECORE_PACKAGED
+    internal
+#else
+    public
+#endif
+    enum FLTrust
+    {
+        
+        Untrusted,
+        
+        Trusted
     }
 
     internal unsafe struct FLDictIterator
@@ -92,13 +104,42 @@ namespace LiteCore.Interop
         #pragma warning restore CS0169
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct FLEncoder
+	internal unsafe struct FLPathComponent
     {
+        public FLSlice key;
+        public uint index;
+    }
+
+	internal unsafe struct FLDeepIterator
+    {
+    }
+
+	internal unsafe struct FLKeyPath
+    {
+    }
+
+	internal unsafe struct FLEncoder
+    {
+    }
+
+	internal unsafe struct FLArray
+    {
+    }
+
+	internal unsafe struct FLMutableDict
+    {
+    }
+
+    internal unsafe struct FLArrayIterator
+    {
+        #pragma warning disable CS0169
+
+        private void* _private1;
+        private uint _private2;
+        private byte _private3;
+        private void* _private4;
+
+        #pragma warning restore CS0169
     }
 
     internal unsafe struct FLDictKey
@@ -118,102 +159,23 @@ namespace LiteCore.Interop
         #pragma warning restore CS0169
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct FLArray
+	internal unsafe struct FLValue
     {
     }
 
-    internal unsafe struct FLArrayIterator
-    {
-        #pragma warning disable CS0169
-
-        private void* _private1;
-        private uint _private2;
-        private byte _private3;
-        private void* _private4;
-
-        #pragma warning restore CS0169
-    }
-
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe partial struct FLSliceResult
-    {
-        public void* buf;
-        private UIntPtr _size;
-
-        public ulong size
-        {
-            get {
-                return _size.ToUInt64();
-            }
-            set {
-                _size = (UIntPtr)value;
-            }
-        }
-    }
-
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct FLValue
+	internal unsafe struct FLSharedKeys
     {
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct FLKeyPath
+	internal unsafe struct FLDoc
     {
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct FLSharedKeys
+	internal unsafe struct FLDict
     {
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe partial struct FLSlice
-    {
-        public void* buf;
-        private UIntPtr _size;
-
-        public ulong size
-        {
-            get {
-                return _size.ToUInt64();
-            }
-            set {
-                _size = (UIntPtr)value;
-            }
-        }
-    }
-
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct FLDict
+	internal unsafe struct FLMutableArray
     {
     }
 }

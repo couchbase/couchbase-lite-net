@@ -56,36 +56,27 @@ namespace LiteCore.Interop
         Closed         = 0x40,
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4Revision
+	internal unsafe struct C4Revision
     {
-        public C4Slice revID;
+        public FLHeapSlice revID;
         public C4RevisionFlags flags;
         public ulong sequence;
-        public C4Slice body;
+        public FLSlice body;
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4DocPutRequest
+	internal unsafe struct C4DocPutRequest
     {
-        public C4Slice body;
-        public C4Slice docID;
+        public FLSlice body;
+        public FLSlice docID;
         public C4RevisionFlags revFlags;
         private byte _existingRevision;
         private byte _allowConflict;
-        public C4Slice* history;
+        public FLSlice* history;
         private UIntPtr _historyCount;
         private byte _save;
         public uint maxRevTreeDepth;
         public uint remoteDBID;
+        public FLSliceResult allocedBody;
 
         public bool existingRevision
         {
@@ -128,16 +119,11 @@ namespace LiteCore.Interop
         }
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4Document
+	internal unsafe struct C4Document
     {
         public C4DocumentFlags flags;
-        public C4Slice docID;
-        public C4Slice revID;
+        public FLHeapSlice docID;
+        public FLHeapSlice revID;
         public ulong sequence;
         public C4Revision selectedRev;
     }

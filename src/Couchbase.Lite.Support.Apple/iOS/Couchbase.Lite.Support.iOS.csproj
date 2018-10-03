@@ -84,6 +84,9 @@
     <Compile Include="..\..\LiteCore\src\LiteCore.Shared\Interop\iOS\C4ExpiryEnumerator_native_ios.cs">
       <Link>Support\LiteCore\C4ExpiryEnumerator_native_ios.cs</Link>
     </Compile>
+    <Compile Include="..\..\LiteCore\src\LiteCore.Shared\Interop\iOS\C4Listener_native_ios.cs">
+      <Link>Support\LiteCore\C4Listener_native_ios.cs</Link>
+    </Compile>
     <Compile Include="..\..\LiteCore\src\LiteCore.Shared\Interop\iOS\C4Observer_native_ios.cs">
       <Link>Support\LiteCore\C4Observer_native_ios.cs</Link>
     </Compile>
@@ -98,6 +101,9 @@
     </Compile>
     <Compile Include="..\..\LiteCore\src\LiteCore.Shared\Interop\iOS\Fleece_native_ios.cs">
       <Link>Support\LiteCore\Fleece_native_ios.cs</Link>
+    </Compile>
+    <Compile Include="..\..\LiteCore\src\LiteCore.Shared\Interop\iOS\FLSlice_native_ios.cs">
+      <Link>Support\LiteCore\FLSlice_native_ios.cs</Link>
     </Compile>
     <Compile Include="..\..\LiteCore\src\LiteCore.Shared\Interop\iOS\Misc_native.cs">
       <Link>Support\LiteCore\Misc_native.cs</Link>

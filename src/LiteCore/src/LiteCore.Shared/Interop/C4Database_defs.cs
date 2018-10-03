@@ -72,12 +72,7 @@ namespace LiteCore.Interop
         KeySizeAES256 = 32,
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe partial struct C4DatabaseConfig
+	internal unsafe partial struct C4DatabaseConfig
     {
         public C4DatabaseFlags flags;
         private IntPtr _storageEngine;
@@ -96,45 +91,25 @@ namespace LiteCore.Interop
         }
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe partial struct C4UUID
+	internal unsafe partial struct C4UUID
     {
         public fixed byte bytes[16];
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4RawDocument
+	internal unsafe struct C4RawDocument
     {
-        public C4Slice key;
-        public C4Slice meta;
-        public C4Slice body;
+        public FLSlice key;
+        public FLSlice meta;
+        public FLSlice body;
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe partial struct C4EncryptionKey
+	internal unsafe partial struct C4EncryptionKey
     {
         public C4EncryptionAlgorithm algorithm;
         public fixed byte bytes[32];
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4Database
+	internal unsafe struct C4Database
     {
     }
 }

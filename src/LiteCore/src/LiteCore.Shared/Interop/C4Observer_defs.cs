@@ -27,34 +27,19 @@ namespace LiteCore.Interop
 {
 
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4DatabaseChange
+	internal unsafe struct C4DatabaseChange
     {
-        public C4Slice docID;
-        public C4Slice revID;
+        public FLHeapSlice docID;
+        public FLHeapSlice revID;
         public ulong sequence;
         public uint bodySize;
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4DocumentObserver
+	internal unsafe struct C4DocumentObserver
     {
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4DatabaseObserver
+	internal unsafe struct C4DatabaseObserver
     {
     }
 }

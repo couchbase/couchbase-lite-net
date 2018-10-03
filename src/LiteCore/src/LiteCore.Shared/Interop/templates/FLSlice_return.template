@@ -1,1 +1,1 @@
-{0}return ((C4Slice)NativeRaw.{1}{2}).ToArrayFast();
+{0}return (NativeRaw.{1}{2}).ToArrayFast();

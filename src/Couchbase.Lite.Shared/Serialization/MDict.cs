@@ -47,8 +47,6 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public int Count { get; private set; }
 
-        public FLSharedKeys* SharedKeys => Context.SharedKeys;
-
         #endregion
 
         #region Constructors
@@ -88,7 +86,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public bool Contains(string key)
         {
-            return _map.ContainsKey(key) || Native.FLDict_GetSharedKey(_dict, Encoding.UTF8.GetBytes(key), SharedKeys) != null;
+            return _map.ContainsKey(key) || Native.FLDict_Get(_dict, Encoding.UTF8.GetBytes(key)) != null;
         }
 
         [NotNull]
@@ -100,7 +98,7 @@ namespace Couchbase.Lite.Internal.Serialization
                 return _map[key];
             }
 
-            var val = Native.FLDict_GetSharedKey(_dict, Encoding.UTF8.GetBytes(key), SharedKeys);
+            var val = Native.FLDict_Get(_dict, Encoding.UTF8.GetBytes(key));
             if (val == null) {
                 return MValue.Empty;
             }
@@ -136,7 +134,7 @@ namespace Couchbase.Lite.Internal.Serialization
                 Count += Convert.ToInt32(!val.IsEmpty) - Convert.ToInt32(!existing.IsEmpty);
                 _map[key] = val;
             } else {
-                if (Native.FLDict_GetSharedKey(_dict, Encoding.UTF8.GetBytes(key), SharedKeys) != null) {
+                if (Native.FLDict_Get(_dict, Encoding.UTF8.GetBytes(key)) != null) {
                     if (val.IsEmpty) {
                         Count--;
                     }
@@ -183,7 +181,7 @@ namespace Couchbase.Lite.Internal.Serialization
         private FLDictIterator BeginIteration()
         {
             FLDictIterator i;
-            Native.FLDictIterator_BeginShared(_dict, &i, SharedKeys);
+            Native.FLDictIterator_Begin(_dict, &i);
             return i;
         }
 

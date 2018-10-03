@@ -52,26 +52,25 @@ namespace Couchbase.Lite.Internal.Doc
         }
 
         public MRoot(MContext context, bool isMutable = true)
-            : this(context, NativeRaw.FLValue_FromData(context.Data), isMutable)
+            : this(context, NativeRaw.FLValue_FromData(context.Data, FLTrust.Untrusted), isMutable)
         {
             
         }
 
-        public MRoot(FLSlice fleeceData, FLSharedKeys* sk, FLValue* value, bool isMutable = true)
-            : this(new MContext(fleeceData, sk), isMutable)
+        public MRoot(FLSlice fleeceData, FLValue* value, bool isMutable = true)
+            : this(new MContext(fleeceData), isMutable)
         {
             
         }
 
-        public MRoot(FLSlice fleeceData, FLSharedKeys* sk = null, bool isMutable = true)
-            : this(fleeceData, sk, NativeRaw.FLValue_FromData(fleeceData), isMutable)
+        public MRoot(FLSlice fleeceData, bool isMutable = true)
+            : this(fleeceData, NativeRaw.FLValue_FromData(fleeceData, FLTrust.Untrusted), isMutable)
         {
             
         }
 
         public MRoot(MRoot other)
-            : this(other?.Context?.Data ?? FLSlice.Null, 
-                other?.Context != null ? other.Context.SharedKeys : null, 
+            : this(other?.Context?.Data ?? FLSlice.Null,
                 other?.IsMutable == true)
         {
 
@@ -81,9 +80,9 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Public Methods
 
-        public static object AsObject(FLSlice fleeceData, FLSharedKeys* sk = null, bool mutableContainers = true)
+        public static object AsObject(FLSlice fleeceData, bool mutableContainers = true)
         {
-            using (var root = new MRoot(fleeceData, sk, mutableContainers)) {
+            using (var root = new MRoot(fleeceData, mutableContainers)) {
                 return root.AsObject();
             }
         }
@@ -101,21 +100,6 @@ namespace Couchbase.Lite.Internal.Doc
         public FLSliceResult Encode()
         {
             var enc = Native.FLEncoder_New();
-            FLEncode(enc);
-
-            FLError error;
-            var result = NativeRaw.FLEncoder_Finish(enc, &error);
-            if (result.buf == null) {
-                throw new CouchbaseFleeceException(error);
-            }
-
-            return result;
-        }
-
-        public FLSliceResult EncodeDelta()
-        {
-            var enc = Native.FLEncoder_New();
-            NativeRaw.FLEncoder_MakeDelta(enc, Context.Data, true);
             FLEncode(enc);
 
             FLError error;

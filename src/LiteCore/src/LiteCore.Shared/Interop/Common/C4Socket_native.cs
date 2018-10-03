@@ -31,7 +31,7 @@ namespace LiteCore.Interop
         public static extern void c4socket_registerFactory(C4SocketFactory factory);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4socket_gotHTTPResponse(C4Socket* socket, int httpStatus, C4Slice responseHeadersFleece);
+        public static extern void c4socket_gotHTTPResponse(C4Socket* socket, int httpStatus, FLSlice responseHeadersFleece);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4socket_opened(C4Socket* socket);
@@ -42,7 +42,7 @@ namespace LiteCore.Interop
         public static void c4socket_closeRequested(C4Socket* socket, int status, string message)
         {
             using(var message_ = new C4String(message)) {
-                NativeRaw.c4socket_closeRequested(socket, status, message_.AsC4Slice());
+                NativeRaw.c4socket_closeRequested(socket, status, message_.AsFLSlice());
             }
         }
 
@@ -54,7 +54,7 @@ namespace LiteCore.Interop
         public static void c4socket_received(C4Socket* socket, byte[] data)
         {
             fixed(byte *data_ = data) {
-                NativeRaw.c4socket_received(socket, new C4Slice(data_, data == null ? 0 : (ulong)data.Length));
+                NativeRaw.c4socket_received(socket, new FLSlice(data_, data == null ? 0 : (ulong)data.Length));
             }
         }
 
@@ -67,13 +67,13 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4socket_closeRequested(C4Socket* socket, int status, C4Slice message);
+        public static extern void c4socket_closeRequested(C4Socket* socket, int status, FLSlice message);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4socket_completedWrite(C4Socket* socket, UIntPtr byteCount);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4socket_received(C4Socket* socket, C4Slice data);
+        public static extern void c4socket_received(C4Socket* socket, FLSlice data);
 
 
     }

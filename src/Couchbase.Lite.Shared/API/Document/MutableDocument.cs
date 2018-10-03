@@ -231,8 +231,8 @@ namespace Couchbase.Lite
                 }
             });
 
-            var retVal = ((C4Slice)body).ToArrayFast();
-            Native.FLSliceResult_Free(body);
+            var retVal = ((FLSlice)body).ToArrayFast();
+            Native.FLSliceResult_Release(body);
             return retVal;
         }
 

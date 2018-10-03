@@ -81,7 +81,7 @@ namespace Couchbase.Lite
                         var body = newVal.RawDoc->selectedRev.body;
                         if (body.size > 0) {
                             Data = Native.FLValue_AsDict(
-                                NativeRaw.FLValue_FromTrustedData(new FLSlice(body.buf, body.size)));
+                                NativeRaw.FLValue_FromData(body, FLTrust.Trusted));
                         }
                     }
 

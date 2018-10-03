@@ -1,7 +1,7 @@
 //
-// %(filename)s
+// FLSlice_defs.cs
 //
-// Copyright (c) %(year)d Couchbase, Inc All rights reserved.
+// Copyright (c) 2018 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,5 +25,37 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-%(structs)s
+
+
+	internal unsafe partial struct FLSliceResult
+    {
+        public void* buf;
+        private UIntPtr _size;
+
+        public ulong size
+        {
+            get {
+                return _size.ToUInt64();
+            }
+            set {
+                _size = (UIntPtr)value;
+            }
+        }
+    }
+
+	internal unsafe partial struct FLSlice
+    {
+        public void* buf;
+        private UIntPtr _size;
+
+        public ulong size
+        {
+            get {
+                return _size.ToUInt64();
+            }
+            set {
+                _size = (UIntPtr)value;
+            }
+        }
+    }
 }

@@ -150,7 +150,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MDict.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MValue.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Serialization\SharedStringCache.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Freezer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\IThreadSafety.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\NullThreadSafety.cs" />

@@ -70,9 +70,9 @@ FLData_Dump
 
 FLDictKey_Init
         // Note: Allocates unmanaged heap memory; should only be used with constants
-        public static FLDictKey FLDictKey_Init(string str, bool cachePointers)
+        public static FLDictKey FLDictKey_Init(string str)
         {
-            return NativeRaw.FLDictKey_Init(FLSlice.Constant(str), cachePointers);
+            return NativeRaw.FLDictKey_Init(FLSlice.Constant(str));
         }
 
 FLDictKey_InitWithSharedKeys

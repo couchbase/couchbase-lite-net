@@ -117,45 +117,14 @@ namespace LiteCore.Interop
         None
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe partial struct C4Error
+	internal unsafe partial struct C4Error
     {
         public C4ErrorDomain domain;
         public int code;
         public int internal_info;
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe partial struct C4Slice
-    {
-        public void* buf;
-        private UIntPtr _size;
-
-        public ulong size
-        {
-            get {
-                return _size.ToUInt64();
-            }
-            set {
-                _size = (UIntPtr)value;
-            }
-        }
-    }
-
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    unsafe struct C4LogDomain
+	internal unsafe struct C4LogDomain
     {
     }
 }
