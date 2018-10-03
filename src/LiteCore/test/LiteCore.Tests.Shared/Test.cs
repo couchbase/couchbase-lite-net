@@ -56,9 +56,9 @@ namespace LiteCore.Tests
         public static readonly string TestDir = Path.GetTempPath();
 #endif
 
-        internal static readonly C4Slice Body = C4Slice.Constant("{\"name\":007}");
+        internal static readonly FLSlice Body = FLSlice.Constant("{\"name\":007}");
 
-        internal static readonly C4Slice FleeceBody;
+        internal static readonly FLSlice FleeceBody;
         
         #if COUCHBASE_ENTERPRISE
         protected override int NumberOfOptions => 2;
@@ -72,13 +72,13 @@ namespace LiteCore.Tests
         internal C4DocumentVersioning Versioning { get; private set; }
         protected string Storage { get; private set; }
 
-        internal C4Slice DocID => C4Slice.Constant("mydoc");
+        internal FLSlice DocID => FLSlice.Constant("mydoc");
 
-        internal C4Slice RevID => IsRevTrees() ? C4Slice.Constant("1-abcd") : C4Slice.Constant("1@*");
+        internal FLSlice RevID => IsRevTrees() ? FLSlice.Constant("1-abcd") : FLSlice.Constant("1@*");
 
-        internal C4Slice Rev2ID => IsRevTrees() ? C4Slice.Constant("2-c001d00d") : C4Slice.Constant("2@*");
+        internal FLSlice Rev2ID => IsRevTrees() ? FLSlice.Constant("2-c001d00d") : FLSlice.Constant("2@*");
 
-        internal C4Slice Rev3ID => IsRevTrees() ? C4Slice.Constant("3-deadbeef") : C4Slice.Constant("3@*");
+        internal FLSlice Rev3ID => IsRevTrees() ? FLSlice.Constant("3-deadbeef") : FLSlice.Constant("3@*");
 
         static Test()
         {
@@ -91,7 +91,7 @@ namespace LiteCore.Tests
             Native.FLEncoder_WriteInt(enc, 42);
             Native.FLEncoder_EndDict(enc);
             var result = NativeRaw.FLEncoder_Finish(enc, null);
-            FleeceBody = (C4Slice)result;
+            FleeceBody = (FLSlice)result;
         }
 
 #if !WINDOWS_UWP
@@ -163,14 +163,14 @@ namespace LiteCore.Tests
             //}
         }
 
-        internal void CreateRev(C4Database *db, string docID, C4Slice revID, C4Slice body, C4RevisionFlags flags = (C4RevisionFlags)0)
+        internal void CreateRev(C4Database *db, string docID, FLSlice revID, FLSlice body, C4RevisionFlags flags = (C4RevisionFlags)0)
         {
             LiteCoreBridge.Check(err => Native.c4db_beginTransaction(db, err));
             try {
                 var curDoc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(db, docID, 
                     false, err));
                 var history = new[] { revID, curDoc->revID };
-                fixed(C4Slice* h = history) {
+                fixed(FLSlice* h = history) {
                     var rq = new C4DocPutRequest {
                         existingRevision = true,
                         docID = curDoc->docID,
@@ -193,7 +193,7 @@ namespace LiteCore.Tests
             }
         }
 
-        internal void CreateRev(string docID, C4Slice revID, C4Slice body, C4RevisionFlags flags = (C4RevisionFlags)0)
+        internal void CreateRev(string docID, FLSlice revID, FLSlice body, C4RevisionFlags flags = (C4RevisionFlags)0)
         {
             CreateRev(Db, docID, revID, body, flags);
         }
@@ -208,7 +208,7 @@ namespace LiteCore.Tests
 
         protected string DatabasePath() => Path.Combine(TestDir, "cbl_core_test");
 
-        private void Log(C4LogLevel level, C4Slice s)
+        private void Log(C4LogLevel level, FLSlice s)
         {
             WriteLine($"[{level}] {s.CreateString()}");
         }
@@ -243,7 +243,7 @@ namespace LiteCore.Tests
                 while((line = tr.ReadLine()) != null) {
 #endif
 					using(var c4 = new C4String(line)) {
-                        if(!callback((FLSlice)c4.AsC4Slice())) {
+                        if(!callback((FLSlice)c4.AsFLSlice())) {
                             return false;
                         }
                     }
@@ -273,7 +273,7 @@ namespace LiteCore.Tests
             try {
                 ReadFileByLines(path, line => {
                     C4Error error;
-                    var body = NativeRaw.c4db_encodeJSON(Db, (C4Slice)line, &error);
+                    var body = NativeRaw.c4db_encodeJSON(Db, (FLSlice)line, &error);
                     ((long)body.buf).Should().NotBe(0, "because otherwise the encode failed");
 
                     var docID = (numDocs + 1).ToString("D7");
@@ -281,8 +281,8 @@ namespace LiteCore.Tests
                     // Save document:
                     using(var docID_ = new C4String(docID)) {
                         var rq = new C4DocPutRequest {
-                            docID = docID_.AsC4Slice(),
-                            body = (C4Slice)body,
+                            docID = docID_.AsFLSlice(),
+                            body = (FLSlice)body,
                             save = true
                         };
                         var doc = (C4Document *)LiteCoreBridge.Check(err => {
@@ -292,7 +292,7 @@ namespace LiteCore.Tests
                         Native.c4doc_free(doc);
                     }
 
-                    Native.c4slice_free(body);
+                    Native.FLSliceResult_Release(body);
                     ++numDocs;
                     if(numDocs % 1000 == 0 && st.Elapsed >= timeout) {
                         Console.Write($"Stopping JSON import after {st.Elapsed.TotalSeconds:F3} sec ");
@@ -331,7 +331,7 @@ namespace LiteCore.Tests
             });
         }
 
-        internal C4BlobKey[] AddDocWithAttachments(C4Slice docID, List<string> atts, string contentType)
+        internal C4BlobKey[] AddDocWithAttachments(FLSlice docID, List<string> atts, string contentType)
         {
             var keys = new List<C4BlobKey>();
             var json = new StringBuilder();
@@ -357,16 +357,16 @@ namespace LiteCore.Tests
             var jsonStr = Native.FLJSON5_ToJSON(json.ToString(), null);
             using (var jsonStr_ = new C4String(jsonStr)) {
                 C4Error error; 
-                var body = NativeRaw.c4db_encodeJSON(Db, jsonStr_.AsC4Slice(), &error);
+                var body = NativeRaw.c4db_encodeJSON(Db, jsonStr_.AsFLSlice(), &error);
                 ((long) body.buf).Should().NotBe(0, "because otherwise the encode failed");
 
                 var rq = new C4DocPutRequest();
                 rq.docID = docID;
                 rq.revFlags = C4RevisionFlags.HasAttachments;
-                rq.body = (C4Slice)body;
+                rq.body = (FLSlice)body;
                 rq.save = true;
                 var doc = Native.c4doc_put(Db, &rq, null, &error);
-                Native.c4slice_free(body);
+                Native.FLSliceResult_Release(body);
                 ((long) doc).Should().NotBe(0, "because otherwise the put failed");
                 Native.c4doc_free(doc);
                 return keys.ToArray();
@@ -425,7 +425,7 @@ namespace LiteCore.Tests
             }
 
             ((long)fleeceData.buf).Should().NotBe(0, "because otherwise the conversion failed");
-            var root = Native.FLValue_AsArray(NativeRaw.FLValue_FromTrustedData((FLSlice)fleeceData));
+            var root = Native.FLValue_AsArray(NativeRaw.FLValue_FromData((FLSlice)fleeceData, FLTrust.Trusted));
             ((long)root).Should().NotBe(0, "because otherwise the value is not of the expected type");
 
             LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
@@ -442,8 +442,8 @@ namespace LiteCore.Tests
                     var body = NativeRaw.FLEncoder_Finish(enc, &error);
 
                     var rq = new C4DocPutRequest {
-                        docID = C4Slice.Allocate(docID),
-                        body = (C4Slice)body,
+                        docID = FLSlice.Allocate(docID),
+                        body = (FLSlice)body,
                         save = true
                     };
 
@@ -454,8 +454,8 @@ namespace LiteCore.Tests
                     });
 
                     Native.c4doc_free(doc);
-                    Native.FLSliceResult_Free(body);
-                    C4Slice.Free(rq.docID);
+                    Native.FLSliceResult_Release(body);
+                    FLSlice.Free(rq.docID);
                     ++numDocs;
                     if ((numDocs % 1000) == 0 && st.Elapsed > timeout) {
                         WriteLine($"WARNING: Stopping JSON import after {st.Elapsed}");
@@ -473,7 +473,7 @@ namespace LiteCore.Tests
                 return numDocs;
             }
             finally {
-                Native.FLSliceResult_Free(fleeceData);
+                Native.FLSliceResult_Release(fleeceData);
                 LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
             }
         }

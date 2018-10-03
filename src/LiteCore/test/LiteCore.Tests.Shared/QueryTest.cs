@@ -169,8 +169,8 @@ namespace LiteCore.Tests
                 try {
                     var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(Db, "0000015", true, err));
                     var rq = new C4DocPutRequest {
-                        docID = C4Slice.Constant("0000015"),
-                        history = &doc->revID,
+                        docID = FLSlice.Constant("0000015"),
+                        history = (FLSlice *)&doc->revID,
                         historyCount = 1,
                         revFlags = C4RevisionFlags.Deleted,
                         save = true
@@ -399,7 +399,6 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                var sk = Native.c4db_getFLSharedKeys(Db);
                 var expectedFirst = new[] { "Cleveland", "Georgetta", "Margaretta" };
                 var expectedLast = new[] { "Bejcek", "Kolding", "Ogwynn" };
                 CompileSelect(Json5(
@@ -418,10 +417,10 @@ namespace LiteCore.Tests
                     var col = Native.FLArrayIterator_GetValueAt(&e->columns, 0);
                     Native.FLValue_GetType(col).Should().Be(FLValueType.Dict);
                     var name = Native.FLValue_AsDict(col);
-                    WriteLine(Native.FLValue_ToJSONX(col, Native.c4db_getFLSharedKeys(Db), false, false));
-                    Native.FLValue_AsString(Native.FLDict_GetSharedKey(name, Encoding.UTF8.GetBytes("first"), sk))
+                    WriteLine(Native.FLValue_ToJSONX(col, false, false));
+                    Native.FLValue_AsString(Native.FLDict_Get(name, Encoding.UTF8.GetBytes("first")))
                         .Should().Be(expectedFirst[i]);
-                    Native.FLValue_AsString(Native.FLDict_GetSharedKey(name, Encoding.UTF8.GetBytes("last"), sk))
+                    Native.FLValue_AsString(Native.FLDict_Get(name, Encoding.UTF8.GetBytes("last")))
                         .Should().Be(expectedLast[i]);
                     ++i;
                 }

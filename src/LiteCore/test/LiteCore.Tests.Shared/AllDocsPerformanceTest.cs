@@ -67,14 +67,14 @@ namespace LiteCore.Tests
                     var history = IsRevTrees() ? new C4String[1] { new C4String("1-deadbeefcafebabe80081e50") }
                         : new C4String[1] { new C4String("1@deadbeefcafebabe80081e50") };
 
-                    var rawHistory = history.Select(x => x.AsC4Slice()).ToArray();
-                    fixed(C4Slice* rawHistory_ = rawHistory) {
+                    var rawHistory = history.Select(x => x.AsFLSlice()).ToArray();
+                    fixed(FLSlice* rawHistory_ = rawHistory) {
                         var rq = new C4DocPutRequest();
                         rq.existingRevision = true;
-                        rq.docID = docID.AsC4Slice();
+                        rq.docID = docID.AsFLSlice();
                         rq.history = rawHistory_;
                         rq.historyCount = 1;
-                        rq.body = json.AsC4Slice();
+                        rq.body = json.AsFLSlice();
                         rq.save = true;
                         var doc = Native.c4doc_put(Db, &rq, null, &err);
                         ((long)doc).Should().NotBe(0, $"because otherwise the put failed");

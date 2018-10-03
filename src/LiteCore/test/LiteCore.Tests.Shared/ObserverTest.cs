@@ -65,23 +65,23 @@ namespace LiteCore.Tests
                 var handle = GCHandle.Alloc(this);
                 try {
                     _dbObserver = Native.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
-                    CreateRev("A", C4Slice.Constant("1-aa"), Body);
+                    CreateRev("A", FLSlice.Constant("1-aa"), Body);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
-                    CreateRev("B", C4Slice.Constant("1-bb"), Body);
+                    CreateRev("B", FLSlice.Constant("1-bb"), Body);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
 
                     CheckChanges(new[] { "A", "B" }, new[] { "1-aa", "1-bb" });
 
-                    CreateRev("B", C4Slice.Constant("2-bbbb"), Body);
+                    CreateRev("B", FLSlice.Constant("2-bbbb"), Body);
                     _dbCallbackCalls.Should().Be(2, "because we should have received a callback");
-                    CreateRev("C", C4Slice.Constant("1-cc"), Body);
+                    CreateRev("C", FLSlice.Constant("1-cc"), Body);
                     _dbCallbackCalls.Should().Be(2, "because we should have received a callback");
 
                     CheckChanges(new[] { "B", "C" }, new[] { "2-bbbb", "1-cc" });
                     Native.c4dbobs_free(_dbObserver);
                     _dbObserver = null;
 
-                    CreateRev("A", C4Slice.Constant("2-aaaa"), Body);
+                    CreateRev("A", FLSlice.Constant("2-aaaa"), Body);
                     _dbCallbackCalls.Should().Be(2, "because the observer was disposed");
                 } finally {
                     handle.Free();
@@ -95,12 +95,12 @@ namespace LiteCore.Tests
             RunTestVariants(() => {
                 var handle = GCHandle.Alloc(this);
                 try {
-                    CreateRev("A", C4Slice.Constant("1-aa"), Body);
+                    CreateRev("A", FLSlice.Constant("1-aa"), Body);
                     _docObserver = Native.c4docobs_create(Db, "A", DocumentCallback,
                         GCHandle.ToIntPtr(handle).ToPointer());
 
-                    CreateRev("A", C4Slice.Constant("2-bb"), Body);
-                    CreateRev("B", C4Slice.Constant("1-bb"), Body);
+                    CreateRev("A", FLSlice.Constant("2-bb"), Body);
+                    CreateRev("B", FLSlice.Constant("1-bb"), Body);
                     _docCallbackCalls.Should().Be(1, "because there was only one update to the doc in question");
                 } finally {
                     handle.Free();
@@ -115,9 +115,9 @@ namespace LiteCore.Tests
                 var handle = GCHandle.Alloc(this);
                 try {
                     _dbObserver = Native.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
-                    CreateRev("A", C4Slice.Constant("1-aa"), Body);
+                    CreateRev("A", FLSlice.Constant("1-aa"), Body);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
-                    CreateRev("B", C4Slice.Constant("1-bb"), Body);
+                    CreateRev("B", FLSlice.Constant("1-bb"), Body);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
 
                     CheckChanges(new[] { "A", "B" }, new[] { "1-aa", "1-bb" });
@@ -127,9 +127,9 @@ namespace LiteCore.Tests
                         Native.c4db_open(DatabasePath(), Native.c4db_getConfig(Db), err));
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(otherdb, err));
                     try {
-                        CreateRev(otherdb, "C", C4Slice.Constant("1-cc"), Body);
-                        CreateRev(otherdb, "D", C4Slice.Constant("1-dd"), Body);
-                        CreateRev(otherdb, "E", C4Slice.Constant("1-ee"), Body);
+                        CreateRev(otherdb, "C", FLSlice.Constant("1-cc"), Body);
+                        CreateRev(otherdb, "D", FLSlice.Constant("1-dd"), Body);
+                        CreateRev(otherdb, "E", FLSlice.Constant("1-ee"), Body);
                     } finally {
                         LiteCoreBridge.Check(err => Native.c4db_endTransaction(otherdb, true, err));
                     }
@@ -140,7 +140,7 @@ namespace LiteCore.Tests
                     Native.c4dbobs_free(_dbObserver);
                     _dbObserver = null;
 
-                    CreateRev("A", C4Slice.Constant("2-aaaa"), Body);
+                    CreateRev("A", FLSlice.Constant("2-aaaa"), Body);
                     _dbCallbackCalls.Should().Be(2, "because the observer was disposed");
 
                     LiteCoreBridge.Check(err => Native.c4db_close(otherdb, err));
@@ -172,7 +172,7 @@ namespace LiteCore.Tests
             obj.DbObserverCalled(obs);
         }
 
-        private static void DocObserverCallback(C4DocumentObserver* obs, C4Slice docId, ulong sequence, void* context)
+        private static void DocObserverCallback(C4DocumentObserver* obs, FLSlice docId, ulong sequence, void* context)
         {
             var obj = GCHandle.FromIntPtr((IntPtr) context).Target as ObserverTest;
             obj.DocObserverCalled(obs, docId.CreateString(), sequence);

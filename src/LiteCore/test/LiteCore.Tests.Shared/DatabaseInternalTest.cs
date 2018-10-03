@@ -62,15 +62,15 @@ namespace LiteCore.Tests
                 using (var docID_ = new C4String(docID))
                 using (var revID_ = new C4String(revID))
                 using (var body_ = new C4String(body)) {
-                    var history = new C4Slice[] { revID_.AsC4Slice() };
-                    fixed (C4Slice* history_ = history) {
+                    var history = new FLSlice[] { revID_.AsFLSlice() };
+                    fixed (FLSlice* history_ = history) {
                         var rq = new C4DocPutRequest
                         {
                             allowConflict = false,
-                            docID = docID_.AsC4Slice(),
+                            docID = docID_.AsFLSlice(),
                             history = revID == null ? null : history_,
                             historyCount = revID == null ? 0UL : 1UL,
-                            body = body_.AsC4Slice(),
+                            body = body_.AsFLSlice(),
                             revFlags = flags,
                             remoteDBID = _remoteDocID,
                             save = true
@@ -125,24 +125,24 @@ namespace LiteCore.Tests
             var success = false;
             try {
                 var i = 0;
-                var sliceHistory = new C4Slice[history.Length];
+                var sliceHistory = new FLSlice[history.Length];
                 foreach(var entry in history) {
                     var c4Str = new C4String(entry);
                     c4History[i] = c4Str;
-                    sliceHistory[i++] = c4Str.AsC4Slice();
+                    sliceHistory[i++] = c4Str.AsFLSlice();
                 }
 
                 using (var docID_ = new C4String(docID))
                 using (var body_ = new C4String(body)) {
-                    fixed (C4Slice* sliceHistory_ = sliceHistory) {
+                    fixed (FLSlice* sliceHistory_ = sliceHistory) {
                         var rq = new C4DocPutRequest
                         {
-                            docID = docID_.AsC4Slice(),
+                            docID = docID_.AsFLSlice(),
                             existingRevision = true,
                             allowConflict = true,
                             history = sliceHistory_,
                             historyCount = (ulong)history.Length,
-                            body = body_.AsC4Slice(),
+                            body = body_.AsFLSlice(),
                             revFlags = flags,
                             remoteDBID = _remoteDocID,
                             save = true
@@ -729,15 +729,15 @@ namespace LiteCore.Tests
                     using (var docID_ = new C4String(docID))
                     using (var revID_ = new C4String(revID))
                     using (var body_ = new C4String(body)) {
-                        var history = new C4Slice[] { revID_.AsC4Slice() };
-                        fixed (C4Slice* history_ = history) {
+                        var history = new FLSlice[] { revID_.AsFLSlice() };
+                        fixed (FLSlice* history_ = history) {
                             var rq = new C4DocPutRequest
                             {
                                 allowConflict = true,
-                                docID = docID_.AsC4Slice(),
+                                docID = docID_.AsFLSlice(),
                                 history = history_,
                                 historyCount = 1,
-                                body = body_.AsC4Slice(),
+                                body = body_.AsFLSlice(),
                                 revFlags = 0,
                                 save = true
                             };

@@ -113,7 +113,7 @@ namespace Test
                 var context = new DocContext(Db, null);
                 using (var mRoot = new MRoot(context)) {
                     mRoot.Context.Should().BeSameAs(context);
-                    var flValue = NativeRaw.FLValue_FromTrustedData((FLSlice) flData);
+                    var flValue = NativeRaw.FLValue_FromData((FLSlice) flData, FLTrust.Trusted);
                     var mArr = new MArray(new MValue(flValue), mRoot);
                     var deserializedArray = new ArrayObject(mArr, false);
                     deserializedArray.GetArray(2).Should().Equal(1L, 2L, 3L);
@@ -134,53 +134,10 @@ namespace Test
                     mVal.Dispose();
                 }
             } finally {
-                Native.FLSliceResult_Free(flData);
+                Native.FLSliceResult_Release(flData);
             }
 
             var mroot = new MRoot();
-        }
-
-        [Fact]
-        public unsafe void TestSharedstrings()
-        {
-            var now = DateTimeOffset.UtcNow;
-            var nestedArray = new[] { 1L, 2L, 3L };
-            var nestedDict = new Dictionary<string, object> { ["foo"] = "bar" };
-            var masterData = new object[] { 1, "str", nestedArray, now, nestedDict };
-            var flData = new FLSliceResult();
-            Db.InBatch(() =>
-            {
-                flData = masterData.FLEncode();
-            });
-            try {
-                var context = new DocContext(Db, null);
-                using (var mRoot = new MRoot(context)) {
-                    var flValue = NativeRaw.FLValue_FromTrustedData((FLSlice)flData);
-                    var mArr = new MArray(new MValue(flValue), mRoot);
-                    var sharedstrings = context.SharedStrings;
-                    FLEncoder* fLEncoder = Db.SharedEncoder;
-                    mRoot.FLEncode(fLEncoder);
-                    mRoot.Encode();
-
-                    var isReadonly = mArr.IsReadOnly;
-                    isReadonly.Should().BeFalse();
-#if !WINDOWS_UWP
-                    Assert.Throws<NotImplementedException>(() => mArr.IndexOf(now));
-                    Assert.Throws<NotImplementedException>(() => mArr.Contains(now));
-                    Assert.Throws<NotImplementedException>(() => mArr.Remove(now));
-                    Assert.Throws<NotImplementedException>(() => mArr.CopyTo(new object[] { }, 12));
-#endif
-                    var flDict = Native.FLValue_AsDict(flValue);
-                    var sharedStringCache = new SharedStringCache();
-                    var sharedStringCache1 = new SharedStringCache(sharedStringCache);
-                    sharedStringCache1 = new SharedStringCache(sharedStringCache, flDict);
-                    var i = default(FLDictIterator);
-                    var iterKey = sharedStringCache1.GetDictIterKey(&i);
-                    sharedStringCache1.UseDocumentRoot(flDict);
-                }
-            } finally {
-                Native.FLSliceResult_Free(flData);
-            }
         }
 
         [Fact]
@@ -246,7 +203,7 @@ namespace Test
                 var context = new DocContext(Db, null);
                 using (var mRoot = new MRoot(context)) {
                     mRoot.Context.Should().BeSameAs(context);
-                    var flValue = NativeRaw.FLValue_FromTrustedData((FLSlice) flData);
+                    var flValue = NativeRaw.FLValue_FromData((FLSlice) flData, FLTrust.Trusted);
                     var mDict = new MDict(new MValue(flValue), mRoot);
                     var deserializedDict = new DictionaryObject(mDict, false);
 
@@ -265,7 +222,7 @@ namespace Test
                     isContain.Should().BeFalse();
                 }
             } finally {
-                Native.FLSliceResult_Free(flData);
+                Native.FLSliceResult_Release(flData);
             }
         }
 
@@ -362,7 +319,7 @@ Transfer-Encoding: chunked";
             {
                 using (var flData = masterList.FLEncode()) {
                     retrieved =
-                        FLValueConverter.ToCouchbaseObject(NativeRaw.FLValue_FromTrustedData((FLSlice) flData), Db,
+                        FLValueConverter.ToCouchbaseObject(NativeRaw.FLValue_FromData((FLSlice) flData, FLTrust.Trusted), Db,
                                 true, typeof(Dictionary<,>).MakeGenericType(typeof(string), typeof(object))) as
                             List<Dictionary<string, object>>;
                 }
@@ -718,7 +675,7 @@ Transfer-Encoding: chunked";
         private unsafe void TestRoundTrip<T>(T item)
         {
             using (var encoded = item.FLEncode()) {
-                var flValue = NativeRaw.FLValue_FromTrustedData((FLSlice) encoded);
+                var flValue = NativeRaw.FLValue_FromData((FLSlice) encoded, FLTrust.Trusted);
                 ((IntPtr) flValue).Should().NotBe(IntPtr.Zero);
                 if (item is IEnumerable enumerable && !(item is string)) {
                     ((IEnumerable) FLSliceExtensions.ToObject(flValue)).ShouldBeEquivalentTo(enumerable);

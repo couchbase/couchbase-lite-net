@@ -103,7 +103,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                var blobToStore = C4Slice.Constant("This is a blob to store in the store!");
+                var blobToStore = FLSlice.Constant("This is a blob to store in the store!");
                 C4BlobKey key, expectedKey = new C4BlobKey();
                 var i = 0;
                 foreach (var b in Enumerable.Repeat<byte>(0x55, sizeof(C4BlobKey))) {

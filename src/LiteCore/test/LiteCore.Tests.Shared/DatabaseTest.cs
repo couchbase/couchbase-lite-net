@@ -53,7 +53,7 @@ namespace LiteCore.Tests
             CreateNumberedDocs(99);
 
             // Add a deleted doc to make sure it's skipped by default:
-            CreateRev("doc-005DEL", RevID, C4Slice.Null, C4RevisionFlags.Deleted);
+            CreateRev("doc-005DEL", RevID, FLSlice.Null, C4RevisionFlags.Deleted);
         }
 
         private void AssertMessage(C4ErrorDomain domain, int code, string expected)
@@ -87,7 +87,7 @@ namespace LiteCore.Tests
                     doc->revID.Equals(RevID).Should().BeTrue("because the doc should have the current revID");
                     doc->selectedRev.revID.Equals(RevID).Should().BeTrue("because the selected rev should have the correct rev ID");
                     doc->selectedRev.sequence.Should().Be((ulong)i, "because the sequences should come in order");
-                    doc->selectedRev.body.Equals(C4Slice.Null).Should().BeTrue("because the body is not loaded yet");
+                    doc->selectedRev.body.Equals(FLSlice.Null).Should().BeTrue("because the body is not loaded yet");
                     LiteCoreBridge.Check(err => Native.c4doc_loadRevisionBody(doc, err));
                     doc->selectedRev.body.Equals(Body).Should().BeTrue("because the loaded body should be correct");
 
@@ -215,15 +215,15 @@ namespace LiteCore.Tests
         public void TestCreateRawDoc()
         {
             RunTestVariants(() => {
-                var key = C4Slice.Constant("key");
-                var meta = C4Slice.Constant("meta");
+                var key = FLSlice.Constant("key");
+                var meta = FLSlice.Constant("meta");
                 LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
-                LiteCoreBridge.Check(err => NativeRaw.c4raw_put(Db, C4Slice.Constant("test"), key, meta, 
+                LiteCoreBridge.Check(err => NativeRaw.c4raw_put(Db, FLSlice.Constant("test"), key, meta, 
                     Body, err));
                 LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
 
                 var doc = (C4RawDocument *)LiteCoreBridge.Check(err => NativeRaw.c4raw_get(Db,
-                    C4Slice.Constant("test"), key, err));
+                    FLSlice.Constant("test"), key, err));
                 doc->key.Equals(key).Should().BeTrue("because the key should not change");
                 doc->meta.Equals(meta).Should().BeTrue("because the meta should not change");
                 doc->body.Equals(Body).Should().BeTrue("because the body should not change");
@@ -251,9 +251,9 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                var doc1ID = C4Slice.Constant("doc001");
-                var doc2ID = C4Slice.Constant("doc002");
-                var doc3ID = C4Slice.Constant("doc003");
+                var doc1ID = FLSlice.Constant("doc001");
+                var doc2ID = FLSlice.Constant("doc002");
+                var doc3ID = FLSlice.Constant("doc003");
                 var content1 = "This is the first attachment";
                 var content2 = "This is the second attachment";
 
@@ -278,21 +278,21 @@ namespace LiteCore.Tests
                 Native.c4blob_getSize(store, key2).Should()
                     .BeGreaterThan(0, "because the attachment should survive the first compact");
 
-                CreateRev("doc001", Rev2ID, C4Slice.Null, C4RevisionFlags.Deleted);
+                CreateRev("doc001", Rev2ID, FLSlice.Null, C4RevisionFlags.Deleted);
                 LiteCoreBridge.Check(err => Native.c4db_compact(Db, err));
                 Native.c4blob_getSize(store, key1).Should().Be(-1,
                     "because the attachment should be collected in the second compact");
                 Native.c4blob_getSize(store, key2).Should()
                     .BeGreaterThan(0, "because the attachment should survive the second compact");
 
-                CreateRev("doc002", Rev2ID, C4Slice.Null, C4RevisionFlags.Deleted);
+                CreateRev("doc002", Rev2ID, FLSlice.Null, C4RevisionFlags.Deleted);
                 LiteCoreBridge.Check(err => Native.c4db_compact(Db, err));
                 Native.c4blob_getSize(store, key1).Should().Be(-1,
                     "because the attachment should still be gone in the third compact");
                 Native.c4blob_getSize(store, key2).Should()
                     .BeGreaterThan(0, "because the attachment should survive the third compact");
 
-                CreateRev("doc003", Rev2ID, C4Slice.Null, C4RevisionFlags.Deleted);
+                CreateRev("doc003", Rev2ID, FLSlice.Null, C4RevisionFlags.Deleted);
                 LiteCoreBridge.Check(err => Native.c4db_compact(Db, err));
                 Native.c4blob_getSize(store, key1).Should().Be(-1,
                     "because the attachment should still be gone in the fourth compact");
@@ -620,7 +620,7 @@ namespace LiteCore.Tests
                 CreateNumberedDocs(99);
 
                 // Add blob to the store:
-                var blobToStore = C4Slice.Constant("This is a blob to store in the store!");
+                var blobToStore = FLSlice.Constant("This is a blob to store in the store!");
                 var blobKey = new C4BlobKey();
                 var blobStore = (C4BlobStore*)LiteCoreBridge.Check(err => Native.c4db_getBlobStore(Db, err));
                 LiteCoreBridge.Check(err =>
@@ -633,8 +633,8 @@ namespace LiteCore.Tests
 
                 C4Error error;
                 var blobResult = NativeRaw.c4blob_getContents(blobStore, blobKey, &error);
-                ((C4Slice)blobResult).Should().Equal(blobToStore);
-                Native.c4slice_free(blobResult);
+                ((FLSlice)blobResult).Should().Be(blobToStore);
+                Native.FLSliceResult_Release(blobResult);
 
                 // If we're on the unexcrypted pass, encrypt the db.  Otherwise, decrypt it:
                 var newKey = new C4EncryptionKey();
@@ -655,8 +655,8 @@ namespace LiteCore.Tests
                 Native.c4db_getDocumentCount(Db).Should().Be(99);
                 ((IntPtr)blobStore).Should().NotBe(IntPtr.Zero);
                 blobResult = NativeRaw.c4blob_getContents(blobStore, blobKey, &error);
-                ((C4Slice)blobResult).Should().Equal(blobToStore);
-                Native.c4slice_free(blobResult);
+                ((FLSlice)blobResult).Should().Be(blobToStore);
+                Native.FLSliceResult_Release(blobResult);
 
                 // Check thqat db can be reopened with the new key:
                 Native.c4db_getConfig(Db)->encryptionKey.algorithm.Should().Be(newKey.algorithm);
