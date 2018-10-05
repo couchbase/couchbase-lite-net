@@ -95,7 +95,7 @@ namespace LiteCore.Interop
         bool c4enum_next(C4DocEnumerator* e, C4Error* outError);
         C4Document* c4enum_getDocument(C4DocEnumerator* e, C4Error* outError);
         bool c4enum_getDocumentInfo(C4DocEnumerator* e, C4DocumentInfo* outInfo);
-        FLDoc c4doc_createFleeceDoc(C4Document* x);
+        FLDoc* c4doc_createFleeceDoc(C4Document* x);
         bool c4doc_isOldMetaProperty(string prop);
         bool c4doc_hasOldMetaProperties(FLDict* doc);
         byte[] c4doc_encodeStrippingOldMetaProperties(FLDict* doc, FLSharedKeys* sk);

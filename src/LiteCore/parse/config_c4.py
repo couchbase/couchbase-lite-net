@@ -6,5 +6,5 @@ default_param_name = {"C4SliceResult":"slice","C4WriteStream*":"stream","C4ReadS
 "C4Database*":"db","C4SequenceNumber":"sequence","C4StringResult":"str","C4String":"str"}
 param_bridge_types = ["C4Slice", "size_t", "size_t*","C4Slice[]", "C4String", "C4String[]"]
 return_bridge_types = ["C4SliceResult", "C4Slice", "size_t", "byte*", "C4StringResult", "C4String"]
-type_map = {"int32_t":"int","uint32_t":"uint","int64_t":"long","uint64_t":"ulong","size_t":"UIntPtr","size_t*":"UIntPtr*","C4SequenceNumber":"ulong","C4SequenceNumber*":"ulong*","unsigned":"uint","FLSharedKeys":"FLSharedKeys*","char*":"byte*","FLEncoder":"FLEncoder*","C4LogDomain":"C4LogDomain*","FLDict":"FLDict*","C4FullTextID":"ulong","C4RemoteID":"uint","C4String*":"FLSlice*"}
+type_map = {"int32_t":"int","uint32_t":"uint","int64_t":"long","uint64_t":"ulong","size_t":"UIntPtr","size_t*":"UIntPtr*","C4SequenceNumber":"ulong","C4SequenceNumber*":"ulong*","unsigned":"uint","FLSharedKeys":"FLSharedKeys*","char*":"byte*","FLEncoder":"FLEncoder*","C4LogDomain":"C4LogDomain*","FLDict":"FLDict*","C4FullTextID":"ulong","C4RemoteID":"uint","C4String*":"FLSlice*","FLDoc":"FLDoc*"}
 reserved = ["string","params"]

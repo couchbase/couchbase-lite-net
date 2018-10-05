@@ -95,7 +95,7 @@ namespace Couchbase.Lite.Interop
         public static bool c4enum_next(C4DocEnumerator* e, C4Error* outError) => Impl.c4enum_next(e, outError);
         public static C4Document* c4enum_getDocument(C4DocEnumerator* e, C4Error* outError) => Impl.c4enum_getDocument(e, outError);
         public static bool c4enum_getDocumentInfo(C4DocEnumerator* e, C4DocumentInfo* outInfo) => Impl.c4enum_getDocumentInfo(e, outInfo);
-        public static FLDoc c4doc_createFleeceDoc(C4Document* x) => Impl.c4doc_createFleeceDoc(x);
+        public static FLDoc* c4doc_createFleeceDoc(C4Document* x) => Impl.c4doc_createFleeceDoc(x);
         public static bool c4doc_isOldMetaProperty(string prop) => Impl.c4doc_isOldMetaProperty(prop);
         public static bool c4doc_hasOldMetaProperties(FLDict* doc) => Impl.c4doc_hasOldMetaProperties(doc);
         public static byte[] c4doc_encodeStrippingOldMetaProperties(FLDict* doc, FLSharedKeys* sk) => Impl.c4doc_encodeStrippingOldMetaProperties(doc, sk);

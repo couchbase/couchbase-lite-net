@@ -28,7 +28,7 @@ namespace LiteCore.Interop
     internal unsafe static partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLDoc c4doc_createFleeceDoc(C4Document* x);
+        public static extern FLDoc* c4doc_createFleeceDoc(C4Document* x);
 
         public static bool c4doc_isOldMetaProperty(string prop)
         {
