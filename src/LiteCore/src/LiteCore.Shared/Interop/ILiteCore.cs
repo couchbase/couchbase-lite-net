@@ -24,6 +24,8 @@ namespace LiteCore.Interop
     internal unsafe partial interface ILiteCore
     {
         string c4error_getMessage(C4Error error);
+        byte[] c4error_getDescription(C4Error error);
+        string c4error_getDescriptionC(C4Error error, char[] buffer, ulong bufferSize);
         C4Error c4error_make(C4ErrorDomain domain, int code, string message);
         bool c4error_mayBeTransient(C4Error err);
         bool c4error_mayBeNetworkDependent(C4Error err);
@@ -78,6 +80,7 @@ namespace LiteCore.Interop
         ulong c4db_getDocumentCount(C4Database* database);
         ulong c4db_getLastSequence(C4Database* database);
         ulong c4db_nextDocExpiration(C4Database* database);
+        long c4db_purgeExpiredDocs(C4Database* db, C4Error* outError);
         uint c4db_getMaxRevTreeDepth(C4Database* database);
         void c4db_setMaxRevTreeDepth(C4Database* database, uint maxRevTreeDepth);
         bool c4db_getUUIDs(C4Database* database, C4UUID* publicUUID, C4UUID* privateUUID, C4Error* outError);
@@ -137,12 +140,6 @@ namespace LiteCore.Interop
         C4Document* c4doc_put(C4Database *database, C4DocPutRequest *request, ulong* outCommonAncestorIndex, C4Error *outError);
         C4Document* c4doc_create(C4Database* db, string docID, byte[] body, C4RevisionFlags revisionFlags, C4Error* error);
         C4Document* c4doc_update(C4Document* doc, byte[] revisionBody, C4RevisionFlags revisionFlags, C4Error* error);
-        C4ExpiryEnumerator* c4db_enumerateExpired(C4Database* database, C4Error* outError);
-        bool c4exp_next(C4ExpiryEnumerator* e, C4Error* outError);
-        string c4exp_getDocID(C4ExpiryEnumerator* e);
-        bool c4exp_purgeExpired(C4ExpiryEnumerator* e, C4Error* outError);
-        void c4exp_close(C4ExpiryEnumerator* e);
-        void c4exp_free(C4ExpiryEnumerator* e);
         C4ListenerAPIs c4listener_availableAPIs();
         C4Listener* c4listener_start(C4ListenerConfig* config, C4Error* error);
         void c4listener_free(C4Listener* listener);
@@ -338,6 +335,7 @@ namespace LiteCore.Interop
         bool FLEncoder_EndArray(FLEncoder* encoder);
         bool FLEncoder_BeginDict(FLEncoder* encoder, ulong reserveCount);
         bool FLEncoder_WriteKey(FLEncoder* encoder, string str);
+        bool FLEncoder_WriteKeyValue(FLEncoder* encoder, FLValue* value);
         bool FLEncoder_EndDict(FLEncoder* encoder);
         bool FLEncoder_WriteValue(FLEncoder* encoder, FLValue* value);
         bool FLEncoder_ConvertJSON(FLEncoder* encoder, byte[] json);
@@ -360,6 +358,8 @@ namespace LiteCore.Interop
     internal unsafe interface ILiteCoreRaw
     {
         FLSliceResult c4error_getMessage(C4Error error);
+        FLSliceResult c4error_getDescription(C4Error error);
+        byte* c4error_getDescriptionC(C4Error error, char[] buffer, UIntPtr bufferSize);
         C4Error c4error_make(C4ErrorDomain domain, int code, FLSlice message);
         bool c4log_writeToBinaryFile(C4LogLevel level, FLSlice path, C4Error* error);
         byte* c4log_getDomainName(C4LogDomain* x);
@@ -403,7 +403,6 @@ namespace LiteCore.Interop
         C4Document* c4doc_put(C4Database* database, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError);
         C4Document* c4doc_create(C4Database* db, FLSlice docID, FLSlice body, C4RevisionFlags revisionFlags, C4Error* error);
         C4Document* c4doc_update(C4Document* doc, FLSlice revisionBody, C4RevisionFlags revisionFlags, C4Error* error);
-        FLSliceResult c4exp_getDocID(C4ExpiryEnumerator* e);
         bool c4listener_shareDB(C4Listener* listener, FLSlice name, C4Database* db);
         bool c4listener_unshareDB(C4Listener* listener, FLSlice name);
         FLSliceResult c4db_URINameFromPath(FLSlice path);

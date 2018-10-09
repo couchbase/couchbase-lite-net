@@ -34,6 +34,19 @@ namespace LiteCore.Interop
             }
         }
 
+        public static byte[] c4error_getDescription(C4Error error)
+        {
+            using(var retVal = NativeRaw.c4error_getDescription(error)) {
+                return ((FLSlice)retVal).ToArrayFast();
+            }
+        }
+
+        public static string c4error_getDescriptionC(C4Error error, char[] buffer, ulong bufferSize)
+        {
+            var retVal = NativeRaw.c4error_getDescriptionC(error, buffer, (UIntPtr)bufferSize);
+            return Marshal.PtrToStringAnsi((IntPtr)retVal);
+        }
+
         public static C4Error c4error_make(C4ErrorDomain domain, int code, string message)
         {
             using(var message_ = new C4String(message)) {
@@ -117,6 +130,12 @@ namespace LiteCore.Interop
     {
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult c4error_getMessage(C4Error error);
+
+        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4error_getDescription(C4Error error);
+
+        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
+        public static extern byte* c4error_getDescriptionC(C4Error error, char[] buffer, UIntPtr bufferSize);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Error c4error_make(C4ErrorDomain domain, int code, FLSlice message);

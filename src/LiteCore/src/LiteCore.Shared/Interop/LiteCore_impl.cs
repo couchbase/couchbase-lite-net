@@ -22,6 +22,8 @@ namespace LiteCore.Interop
     internal sealed unsafe partial class LiteCoreImpl : ILiteCore
     {
         public string c4error_getMessage(C4Error error) => Native.c4error_getMessage(error);
+        public byte[] c4error_getDescription(C4Error error) => Native.c4error_getDescription(error);
+        public string c4error_getDescriptionC(C4Error error, char[] buffer, ulong bufferSize) => Native.c4error_getDescriptionC(error, buffer, bufferSize);
         public C4Error c4error_make(C4ErrorDomain domain, int code, string message) => Native.c4error_make(domain, code, message);
         public bool c4error_mayBeTransient(C4Error err) => Native.c4error_mayBeTransient(err);
         public bool c4error_mayBeNetworkDependent(C4Error err) => Native.c4error_mayBeNetworkDependent(err);
@@ -76,6 +78,7 @@ namespace LiteCore.Interop
         public ulong c4db_getDocumentCount(C4Database* database) => Native.c4db_getDocumentCount(database);
         public ulong c4db_getLastSequence(C4Database* database) => Native.c4db_getLastSequence(database);
         public ulong c4db_nextDocExpiration(C4Database* database) => Native.c4db_nextDocExpiration(database);
+        public long c4db_purgeExpiredDocs(C4Database* db, C4Error* outError) => Native.c4db_purgeExpiredDocs(db, outError);
         public uint c4db_getMaxRevTreeDepth(C4Database* database) => Native.c4db_getMaxRevTreeDepth(database);
         public void c4db_setMaxRevTreeDepth(C4Database* database, uint maxRevTreeDepth) => Native.c4db_setMaxRevTreeDepth(database, maxRevTreeDepth);
         public bool c4db_getUUIDs(C4Database* database, C4UUID* publicUUID, C4UUID* privateUUID, C4Error* outError) => Native.c4db_getUUIDs(database, publicUUID, privateUUID, outError);
@@ -135,12 +138,6 @@ namespace LiteCore.Interop
         public C4Document* c4doc_put(C4Database *database, C4DocPutRequest *request, ulong* outCommonAncestorIndex, C4Error *outError) => Native.c4doc_put(database, request, outCommonAncestorIndex, outError);
         public C4Document* c4doc_create(C4Database* db, string docID, byte[] body, C4RevisionFlags revisionFlags, C4Error* error) => Native.c4doc_create(db, docID, body, revisionFlags, error);
         public C4Document* c4doc_update(C4Document* doc, byte[] revisionBody, C4RevisionFlags revisionFlags, C4Error* error) => Native.c4doc_update(doc, revisionBody, revisionFlags, error);
-        public C4ExpiryEnumerator* c4db_enumerateExpired(C4Database* database, C4Error* outError) => Native.c4db_enumerateExpired(database, outError);
-        public bool c4exp_next(C4ExpiryEnumerator* e, C4Error* outError) => Native.c4exp_next(e, outError);
-        public string c4exp_getDocID(C4ExpiryEnumerator* e) => Native.c4exp_getDocID(e);
-        public bool c4exp_purgeExpired(C4ExpiryEnumerator* e, C4Error* outError) => Native.c4exp_purgeExpired(e, outError);
-        public void c4exp_close(C4ExpiryEnumerator* e) => Native.c4exp_close(e);
-        public void c4exp_free(C4ExpiryEnumerator* e) => Native.c4exp_free(e);
         public C4ListenerAPIs c4listener_availableAPIs() => Native.c4listener_availableAPIs();
         public C4Listener* c4listener_start(C4ListenerConfig* config, C4Error* error) => Native.c4listener_start(config, error);
         public void c4listener_free(C4Listener* listener) => Native.c4listener_free(listener);
@@ -336,6 +333,7 @@ namespace LiteCore.Interop
         public bool FLEncoder_EndArray(FLEncoder* encoder) => Native.FLEncoder_EndArray(encoder);
         public bool FLEncoder_BeginDict(FLEncoder* encoder, ulong reserveCount) => Native.FLEncoder_BeginDict(encoder, reserveCount);
         public bool FLEncoder_WriteKey(FLEncoder* encoder, string str) => Native.FLEncoder_WriteKey(encoder, str);
+        public bool FLEncoder_WriteKeyValue(FLEncoder* encoder, FLValue* value) => Native.FLEncoder_WriteKeyValue(encoder, value);
         public bool FLEncoder_EndDict(FLEncoder* encoder) => Native.FLEncoder_EndDict(encoder);
         public bool FLEncoder_WriteValue(FLEncoder* encoder, FLValue* value) => Native.FLEncoder_WriteValue(encoder, value);
         public bool FLEncoder_ConvertJSON(FLEncoder* encoder, byte[] json) => Native.FLEncoder_ConvertJSON(encoder, json);
@@ -358,6 +356,8 @@ namespace LiteCore.Interop
     internal sealed unsafe class LiteCoreRawImpl : ILiteCoreRaw
     {
         public FLSliceResult c4error_getMessage(C4Error error) => NativeRaw.c4error_getMessage(error);
+        public FLSliceResult c4error_getDescription(C4Error error) => NativeRaw.c4error_getDescription(error);
+        public byte* c4error_getDescriptionC(C4Error error, char[] buffer, UIntPtr bufferSize) => NativeRaw.c4error_getDescriptionC(error, buffer, bufferSize);
         public C4Error c4error_make(C4ErrorDomain domain, int code, FLSlice message) => NativeRaw.c4error_make(domain, code, message);
         public bool c4log_writeToBinaryFile(C4LogLevel level, FLSlice path, C4Error* error) => NativeRaw.c4log_writeToBinaryFile(level, path, error);
         public byte* c4log_getDomainName(C4LogDomain* x) => NativeRaw.c4log_getDomainName(x);
@@ -401,7 +401,6 @@ namespace LiteCore.Interop
         public C4Document* c4doc_put(C4Database* database, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError) => NativeRaw.c4doc_put(database, request, outCommonAncestorIndex, outError);
         public C4Document* c4doc_create(C4Database* db, FLSlice docID, FLSlice body, C4RevisionFlags revisionFlags, C4Error* error) => NativeRaw.c4doc_create(db, docID, body, revisionFlags, error);
         public C4Document* c4doc_update(C4Document* doc, FLSlice revisionBody, C4RevisionFlags revisionFlags, C4Error* error) => NativeRaw.c4doc_update(doc, revisionBody, revisionFlags, error);
-        public FLSliceResult c4exp_getDocID(C4ExpiryEnumerator* e) => NativeRaw.c4exp_getDocID(e);
         public bool c4listener_shareDB(C4Listener* listener, FLSlice name, C4Database* db) => NativeRaw.c4listener_shareDB(listener, name, db);
         public bool c4listener_unshareDB(C4Listener* listener, FLSlice name) => NativeRaw.c4listener_unshareDB(listener, name);
         public FLSliceResult c4db_URINameFromPath(FLSlice path) => NativeRaw.c4db_URINameFromPath(path);

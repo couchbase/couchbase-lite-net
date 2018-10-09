@@ -59,7 +59,8 @@ namespace LiteCore.Interop
         public FLSlice optionsDictFleece;
         public IntPtr validationFunc;
         public IntPtr onStatusChanged;
-        public IntPtr onDocumentError;
+        public IntPtr onDocumentEnded;
+        public IntPtr onBlobProgress;
         public void* callbackContext;
         public C4SocketFactory* socketFactory;
     }

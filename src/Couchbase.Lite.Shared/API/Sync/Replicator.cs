@@ -235,7 +235,7 @@ namespace Couchbase.Lite.Sync
         }
 
         [MonoPInvokeCallback(typeof(C4ReplicatorDocumentErrorCallback))]
-        private static void OnDocError(C4Replicator* repl, bool pushing, FLSlice docID, C4Error error, bool transient, void* context)
+        private static void OnDocEnded(C4Replicator* repl, bool pushing, FLSlice docID, C4Error error, bool transient, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             var docIDStr = docID.CreateString();
@@ -436,7 +436,7 @@ namespace Couchbase.Lite.Sync
                 Push = Mkmode(push, continuous),
                 Pull = Mkmode(pull, continuous),
                 Context = this,
-                OnDocumentError = OnDocError,
+                OnDocumentEnded = OnDocEnded,
                 OnStatusChanged = StatusChangedCallback,
                 SocketFactory = &socketFactory
             };

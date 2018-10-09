@@ -24,6 +24,8 @@ namespace Couchbase.Lite.Interop
     internal static unsafe partial class Native
     {
         public static string c4error_getMessage(C4Error error) => Impl.c4error_getMessage(error);
+        public static byte[] c4error_getDescription(C4Error error) => Impl.c4error_getDescription(error);
+        public static string c4error_getDescriptionC(C4Error error, char[] buffer, ulong bufferSize) => Impl.c4error_getDescriptionC(error, buffer, bufferSize);
         public static C4Error c4error_make(C4ErrorDomain domain, int code, string message) => Impl.c4error_make(domain, code, message);
         public static bool c4error_mayBeTransient(C4Error err) => Impl.c4error_mayBeTransient(err);
         public static bool c4error_mayBeNetworkDependent(C4Error err) => Impl.c4error_mayBeNetworkDependent(err);
@@ -78,6 +80,7 @@ namespace Couchbase.Lite.Interop
         public static ulong c4db_getDocumentCount(C4Database* database) => Impl.c4db_getDocumentCount(database);
         public static ulong c4db_getLastSequence(C4Database* database) => Impl.c4db_getLastSequence(database);
         public static ulong c4db_nextDocExpiration(C4Database* database) => Impl.c4db_nextDocExpiration(database);
+        public static long c4db_purgeExpiredDocs(C4Database* db, C4Error* outError) => Impl.c4db_purgeExpiredDocs(db, outError);
         public static uint c4db_getMaxRevTreeDepth(C4Database* database) => Impl.c4db_getMaxRevTreeDepth(database);
         public static void c4db_setMaxRevTreeDepth(C4Database* database, uint maxRevTreeDepth) => Impl.c4db_setMaxRevTreeDepth(database, maxRevTreeDepth);
         public static bool c4db_getUUIDs(C4Database* database, C4UUID* publicUUID, C4UUID* privateUUID, C4Error* outError) => Impl.c4db_getUUIDs(database, publicUUID, privateUUID, outError);
@@ -137,12 +140,6 @@ namespace Couchbase.Lite.Interop
         public static C4Document* c4doc_put(C4Database *database, C4DocPutRequest *request, ulong* outCommonAncestorIndex, C4Error *outError) => Impl.c4doc_put(database, request, outCommonAncestorIndex, outError);
         public static C4Document* c4doc_create(C4Database* db, string docID, byte[] body, C4RevisionFlags revisionFlags, C4Error* error) => Impl.c4doc_create(db, docID, body, revisionFlags, error);
         public static C4Document* c4doc_update(C4Document* doc, byte[] revisionBody, C4RevisionFlags revisionFlags, C4Error* error) => Impl.c4doc_update(doc, revisionBody, revisionFlags, error);
-        public static C4ExpiryEnumerator* c4db_enumerateExpired(C4Database* database, C4Error* outError) => Impl.c4db_enumerateExpired(database, outError);
-        public static bool c4exp_next(C4ExpiryEnumerator* e, C4Error* outError) => Impl.c4exp_next(e, outError);
-        public static string c4exp_getDocID(C4ExpiryEnumerator* e) => Impl.c4exp_getDocID(e);
-        public static bool c4exp_purgeExpired(C4ExpiryEnumerator* e, C4Error* outError) => Impl.c4exp_purgeExpired(e, outError);
-        public static void c4exp_close(C4ExpiryEnumerator* e) => Impl.c4exp_close(e);
-        public static void c4exp_free(C4ExpiryEnumerator* e) => Impl.c4exp_free(e);
         public static C4ListenerAPIs c4listener_availableAPIs() => Impl.c4listener_availableAPIs();
         public static C4Listener* c4listener_start(C4ListenerConfig* config, C4Error* error) => Impl.c4listener_start(config, error);
         public static void c4listener_free(C4Listener* listener) => Impl.c4listener_free(listener);
@@ -338,6 +335,7 @@ namespace Couchbase.Lite.Interop
         public static bool FLEncoder_EndArray(FLEncoder* encoder) => Impl.FLEncoder_EndArray(encoder);
         public static bool FLEncoder_BeginDict(FLEncoder* encoder, ulong reserveCount) => Impl.FLEncoder_BeginDict(encoder, reserveCount);
         public static bool FLEncoder_WriteKey(FLEncoder* encoder, string str) => Impl.FLEncoder_WriteKey(encoder, str);
+        public static bool FLEncoder_WriteKeyValue(FLEncoder* encoder, FLValue* value) => Impl.FLEncoder_WriteKeyValue(encoder, value);
         public static bool FLEncoder_EndDict(FLEncoder* encoder) => Impl.FLEncoder_EndDict(encoder);
         public static bool FLEncoder_WriteValue(FLEncoder* encoder, FLValue* value) => Impl.FLEncoder_WriteValue(encoder, value);
         public static bool FLEncoder_ConvertJSON(FLEncoder* encoder, byte[] json) => Impl.FLEncoder_ConvertJSON(encoder, json);
@@ -360,6 +358,8 @@ namespace Couchbase.Lite.Interop
     internal static unsafe partial class NativeRaw
     {
         public static FLSliceResult c4error_getMessage(C4Error error) => Impl.c4error_getMessage(error);
+        public static FLSliceResult c4error_getDescription(C4Error error) => Impl.c4error_getDescription(error);
+        public static byte* c4error_getDescriptionC(C4Error error, char[] buffer, UIntPtr bufferSize) => Impl.c4error_getDescriptionC(error, buffer, bufferSize);
         public static C4Error c4error_make(C4ErrorDomain domain, int code, FLSlice message) => Impl.c4error_make(domain, code, message);
         public static bool c4log_writeToBinaryFile(C4LogLevel level, FLSlice path, C4Error* error) => Impl.c4log_writeToBinaryFile(level, path, error);
         public static byte* c4log_getDomainName(C4LogDomain* x) => Impl.c4log_getDomainName(x);
@@ -403,7 +403,6 @@ namespace Couchbase.Lite.Interop
         public static C4Document* c4doc_put(C4Database* database, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError) => Impl.c4doc_put(database, request, outCommonAncestorIndex, outError);
         public static C4Document* c4doc_create(C4Database* db, FLSlice docID, FLSlice body, C4RevisionFlags revisionFlags, C4Error* error) => Impl.c4doc_create(db, docID, body, revisionFlags, error);
         public static C4Document* c4doc_update(C4Document* doc, FLSlice revisionBody, C4RevisionFlags revisionFlags, C4Error* error) => Impl.c4doc_update(doc, revisionBody, revisionFlags, error);
-        public static FLSliceResult c4exp_getDocID(C4ExpiryEnumerator* e) => Impl.c4exp_getDocID(e);
         public static bool c4listener_shareDB(C4Listener* listener, FLSlice name, C4Database* db) => Impl.c4listener_shareDB(listener, name, db);
         public static bool c4listener_unshareDB(C4Listener* listener, FLSlice name) => Impl.c4listener_unshareDB(listener, name);
         public static FLSliceResult c4db_URINameFromPath(FLSlice path) => Impl.c4db_URINameFromPath(path);
