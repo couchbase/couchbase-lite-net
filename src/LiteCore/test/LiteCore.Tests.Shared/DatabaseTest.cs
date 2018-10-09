@@ -141,30 +141,6 @@ namespace LiteCore.Tests
         }
 
         [Fact]
-        public void TestCancelExpire()
-        {
-            RunTestVariants(() => {
-                const string docID = "expire_me";
-                CreateRev(docID, RevID, Body);
-                var expire = (ulong)DateTimeOffset.UtcNow.AddSeconds(2).ToUnixTimeSeconds();
-                LiteCoreBridge.Check(err => Native.c4doc_setExpiration(Db, docID, expire, err));
-                LiteCoreBridge.Check(err => Native.c4doc_setExpiration(Db, docID, UInt64.MaxValue, err));
-
-                Task.Delay(TimeSpan.FromSeconds(2)).Wait();
-                var e = (C4ExpiryEnumerator *)LiteCoreBridge.Check(err => Native.c4db_enumerateExpired(Db, err));
-
-                int expiredCount = 0;
-                while(Native.c4exp_next(e, null)) {
-                    expiredCount++;
-                }
-
-                LiteCoreBridge.Check(err => Native.c4exp_purgeExpired(e, err));
-                Native.c4exp_free(e);
-                expiredCount.Should().Be(0, "because the expiration was cancelled");    
-            });
-        }
-
-        [Fact]
         public void TestChanges()
         {
             RunTestVariants(() => {
@@ -361,72 +337,7 @@ namespace LiteCore.Tests
             AssertMessage((C4ErrorDomain)666, -1234, "unknown error domain");
         }
 
-        [Fact]
-        public void TestExpired()
-        {
-            RunTestVariants(() => {
-                const string docID = "expire_me";
-                CreateRev(docID, RevID, Body);
-                var expire = DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(1)).ToUnixTimeSeconds();
-                LiteCoreBridge.Check(err => Native.c4doc_setExpiration(Db, docID, (ulong)expire, err));
-
-                expire = DateTimeOffset.UtcNow.Add(TimeSpan.FromSeconds(2)).ToUnixTimeSeconds();
-                // Make sure setting it to the same is also true
-                LiteCoreBridge.Check(err => Native.c4doc_setExpiration(Db, docID, (ulong)expire, err));
-                LiteCoreBridge.Check(err => Native.c4doc_setExpiration(Db, docID, (ulong)expire, err));
-
-                const string docID2 = "expire_me_too";
-                CreateRev(docID2, RevID, Body);
-                LiteCoreBridge.Check(err => Native.c4doc_setExpiration(Db, docID2, (ulong)expire, err));
-
-                const string docID3 = "dont_expire_me";
-                CreateRev(docID3, RevID, Body);
-
-                WriteLine("---- Wait till expiration time...");
-                Task.Delay(TimeSpan.FromSeconds(2)).Wait();
-
-                WriteLine("---- Scan expired docs (#1)");
-                var e = (C4ExpiryEnumerator *)LiteCoreBridge.Check(err => Native.c4db_enumerateExpired(Db, err));
-                int expiredCount = 0;
-                while(Native.c4exp_next(e, null)) {
-                    var existingDocID = Native.c4exp_getDocID(e);
-                    existingDocID.Should().NotBe(docID3, "because the last document is not scheduled for expiration");
-                    expiredCount++;
-                }
-
-                Native.c4exp_free(e);
-                expiredCount.Should().Be(2, "because 2 documents were scheduled for expiration");
-                Native.c4doc_getExpiration(Db, docID).Should().Be((ulong)expire, "because that was what was set as the expiration");
-                Native.c4doc_getExpiration(Db, docID2).Should().Be((ulong)expire, "because that was what was set as the expiration");
-                Native.c4db_nextDocExpiration(Db).Should().Be((ulong)expire, "because that is the closest expiration date");
-
-                WriteLine("---- Scan expired docs (#2)");
-                e = (C4ExpiryEnumerator *)LiteCoreBridge.Check(err => Native.c4db_enumerateExpired(Db, err));
-                expiredCount = 0;
-                while(Native.c4exp_next(e, null)) {
-                    var existingDocID = Native.c4exp_getDocID(e);
-                    existingDocID.Should().NotBe(docID3, "because the last document is not scheduled for expiration");
-                    expiredCount++;
-                }
-
-                WriteLine("---- Purge expired docs");
-                LiteCoreBridge.Check(err => Native.c4exp_purgeExpired(e, err));
-                Native.c4exp_free(e);
-                expiredCount.Should().Be(2, "because 2 documents were scheduled for expiration");
-
-                WriteLine("---- Scan expired docs (#3)");
-                e = (C4ExpiryEnumerator *)LiteCoreBridge.Check(err => Native.c4db_enumerateExpired(Db, err));
-                expiredCount = 0;
-                while(Native.c4exp_next(e, null)) {
-                    expiredCount++;
-                }
-
-                Write("---- Purge expired docs (again");
-                LiteCoreBridge.Check(err => Native.c4exp_purgeExpired(e, err));
-                Native.c4exp_free(e);
-                expiredCount.Should().Be(0, "because no more documents were scheduled for expiration");
-            });
-        }
+       
 
         [Fact]
         public void TestOpenBundle()
