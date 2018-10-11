@@ -142,6 +142,30 @@ namespace LiteCore.Interop
         {
             return ((FLSlice) this).CreateString();
         }
+
+        public override int GetHashCode()
+        {
+            var hasher = Hasher.Start.Add(size);
+            var ptr = (byte*)buf;
+            if (ptr != null) {
+                hasher.Add(ptr[size - 1]);
+            }
+
+            return hasher.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            if(obj is FLSliceResult f) {
+                return Native.FLSlice_Compare(this, (FLSlice)f) == 0;
+            }
+
+            if (obj is FLSlice f2) {
+                return Native.FLSlice_Compare(this, f2) == 0;
+            }
+
+            return false;
+        }
     }
 
     internal unsafe partial struct FLSliceResult : IDisposable

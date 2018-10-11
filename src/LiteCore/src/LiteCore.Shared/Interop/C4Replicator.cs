@@ -46,6 +46,10 @@ namespace LiteCore.Interop
     internal unsafe delegate void C4ReplicatorBlobProgressCallback(C4Replicator* replicator,
         [MarshalAs(UnmanagedType.U1)] bool pushing, FLSlice docID, FLSlice docProperty,
         C4BlobKey blobKey, ulong bytesComplete, ulong bytesTotal, C4Error error, void* context);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    internal unsafe delegate void C4ReplicatorPushFilterFunction(FLSlice docID,
+        FLDict* body, void* context);
 }
 
 namespace Couchbase.Lite.Interop
@@ -56,6 +60,7 @@ namespace Couchbase.Lite.Interop
         private C4ReplicatorStatusChangedCallback _onStatusChanged;
         private C4ReplicatorDocumentErrorCallback _onDocumentError;
         private C4ReplicatorBlobProgressCallback _onBlobProgress;
+        private C4ReplicatorPushFilterFunction _pushFilter;
 
         public C4ReplicatorParameters C4Params => _c4Params;
 
@@ -102,6 +107,15 @@ namespace Couchbase.Lite.Interop
             set {
                 _onBlobProgress = value;
                 _c4Params.onBlobProgress = Marshal.GetFunctionPointerForDelegate(value);
+            }
+        }
+
+        public C4ReplicatorPushFilterFunction PushFilter
+        {
+            get => _pushFilter;
+            set {
+                _pushFilter = value;
+                _c4Params.pushFilter = Marshal.GetFunctionPointerForDelegate(value);
             }
         }
 

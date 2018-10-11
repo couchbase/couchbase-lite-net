@@ -641,38 +641,35 @@ namespace LiteCore.Tests
                     LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
                 }
 
-                var result = NativeRaw.FLEncoder_Finish(enc, null);
-                ((long) result.buf).Should().NotBe(0);
+                var result = Native.FLEncoder_FinishDoc(enc, null);
                 try {
-                    var val = NativeRaw.FLValue_FromData((FLSlice) result, FLTrust.Trusted);
+                    ((long) result).Should().NotBe(0);
+                    ((long) Native.FLDoc_GetSharedKeys(result)).Should().NotBe(0);
+                    var val = Native.FLDoc_GetRoot(result);
                     var d = Native.FLValue_AsDict(val);
                     ((long) d).Should().NotBe(0);
 
-                    var key = Native.FLDictKey_Init(@"type");
-                    var keyStr = Native.FLDictKey_GetString(&key);
-                    keyStr.Should().Be("@type");
-                    var testVal = Native.FLDict_GetWithKey(d, &key);
+                    var testKey = Native.FLDictKey_Init("@type");
+                    var testVal = Native.FLDict_GetWithKey(d, &testKey);
 
                     Native.FLValue_AsString(testVal).Should().Be("blob");
+                    ((long)Native.FLValue_FindDoc((FLValue *)d)).Should().Be((long)result);
                     Native.c4doc_dictContainsBlobs(d).Should().BeTrue();
-
                 } finally {
-                    Native.FLSliceResult_Release(result);
+                    Native.FLDoc_Release(result);
                 }
 
                 enc = Native.c4db_getSharedFleeceEncoder(Db);
                 Native.FLEncoder_BeginDict(enc, 0);
                 Native.FLEncoder_EndDict(enc);
-                result = NativeRaw.FLEncoder_Finish(enc, null);
-                ((long) result.buf).Should().NotBe(0);
+                result = Native.FLEncoder_FinishDoc(enc, null);
                 try {
-                    var val = NativeRaw.FLValue_FromData((FLSlice) result, FLTrust.Trusted);
+                    ((long) result).Should().NotBe(0);
+                    var val = Native.FLDoc_GetRoot(result);
                     var d = Native.FLValue_AsDict(val);
-                    ((long) d).Should().NotBe(0);
-
                     Native.c4doc_dictContainsBlobs(d).Should().BeFalse();
                 } finally {
-                    Native.FLSliceResult_Release(result);
+                    Native.FLDoc_Release(result);
                 }
             });
         }
