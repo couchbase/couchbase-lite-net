@@ -132,7 +132,8 @@ namespace Couchbase.Lite.Sync
                 _headers["Host"] = $"{_urlRequest.Host}:{_urlRequest.Port}";
             }
 
-            if (ShouldRetry && _authorizationHeader != null) {
+            _authorizationHeader = CreateAuthHeader();
+            if (_authorizationHeader != null) {
                 _headers["Authorization"] = _authorizationHeader;
             }
 
@@ -170,20 +171,6 @@ namespace Couchbase.Lite.Sync
                     break;
                 case HttpStatusCode.Unauthorized:
                 case HttpStatusCode.ProxyAuthenticationRequired:
-                    var authResponse = parser.Headers.Get("WWW-Authenticate");
-                    if (authResponse == null) {
-                        Log.To.Sync.W(Tag, "HTTP missing WWW-Authenticate response!");
-                        Error = new CouchbaseLiteException(C4ErrorCode.RemoteError);
-                        break;
-                    }
-
-                    if (_authorizationHeader == null && Credential != null) {
-                        _authorizationHeader = CreateAuthHeader(authResponse);
-                        Log.To.Sync.I(Tag, $"Auth challenge received for {Credential.UserName}");
-                        ShouldRetry = true;
-                        break;
-                    }
-
                     Log.To.Sync.I(Tag, "HTTP auth failed");
                     Error = new CouchbaseNetworkException(httpStatus);
                     break;
@@ -201,20 +188,11 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods
 
-        private string CreateAuthHeader(string authResponse)
+        private string CreateAuthHeader()
         {
-            var challenge = ParseAuthHeader(authResponse);
-            if (challenge == null) {
-                return null;
-            }
-
-            if (challenge["Scheme"] == "Basic") {
-                var cipher = Encoding.UTF8.GetBytes($"{Credential.UserName}:{Credential.Password}");
-                var encodedVal = Convert.ToBase64String(cipher);
-                return $"Basic {encodedVal}";
-            }
-
-            return null;
+            var cipher = Encoding.UTF8.GetBytes($"{Credential.UserName}:{Credential.Password}");
+            var encodedVal = Convert.ToBase64String(cipher);
+            return $"Basic {encodedVal}";
         }
 
 		private static string GetUserAgent()
