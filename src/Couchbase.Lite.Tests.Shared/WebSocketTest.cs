@@ -273,11 +273,7 @@ namespace Test
             var prop = HttpLogicType.GetProperty("Credential", BindingFlags.Public | BindingFlags.Instance);
             prop.SetValue(hTTPLogic, new NetworkCredential("name", "pass"));
             var method = HttpLogicType.GetMethod("CreateAuthHeader", BindingFlags.NonPublic | BindingFlags.Instance);
-            var authstring = "Basic realm=\"Couchbase Sync Gateway\"";
-            var res = method.Invoke(hTTPLogic, new object[1] { authstring });
-
-            method = HttpLogicType.GetMethod("ParseAuthHeader", BindingFlags.NonPublic | BindingFlags.Instance);
-            res = method.Invoke(hTTPLogic, new object[1] { authstring });
+            var res = method.Invoke(hTTPLogic, null);
 
             prop = HttpLogicType.GetProperty("UseTls", BindingFlags.Public | BindingFlags.Instance);
             var useTle = logic.UseTls;

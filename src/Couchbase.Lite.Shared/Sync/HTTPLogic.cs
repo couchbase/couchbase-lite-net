@@ -190,6 +190,10 @@ namespace Couchbase.Lite.Sync
 
         private string CreateAuthHeader()
         {
+            if (Credential == null) {
+                return null;
+            }
+
             var cipher = Encoding.UTF8.GetBytes($"{Credential.UserName}:{Credential.Password}");
             var encodedVal = Convert.ToBase64String(cipher);
             return $"Basic {encodedVal}";
@@ -229,27 +233,6 @@ namespace Couchbase.Lite.Sync
 			var hardware = runtimePlatform != null ? $"; {runtimePlatform.HardwareName}" : "";
 			return $"CouchbaseLite/{version} (.NET; {osDescription}{hardware}) Build/{build} LiteCore/{Native.c4_getVersion()} Commit/{commit}";
 		}
-
-        private Dictionary<string, string> ParseAuthHeader(string authResponse)
-        {
-            if (authResponse == null) {
-                return null;
-            }
-
-            var challenge = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            var re = new Regex("(\\w+)\\s+(\\w+)=((\\w+)|\"([^\"]+))");
-            var groups = re.Match(authResponse).Groups;
-            var key = authResponse.Substring(groups[2].Index, groups[2].Length);
-            var k = groups[4];
-            if (k.Length == 0) {
-                k = groups[5];
-            }
-
-            challenge[key] = authResponse.Substring(k.Index, k.Length);
-            challenge["Scheme"] = authResponse.Substring(groups[1].Index, groups[1].Length);
-            challenge["WWW-Authenticate"] = authResponse;
-            return challenge;
-        }
 
         private bool Redirect(HttpMessageParser parser)
         {
