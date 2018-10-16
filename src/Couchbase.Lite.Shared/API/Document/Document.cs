@@ -234,6 +234,16 @@ namespace Couchbase.Lite
             return foundConflict;
         }
 
+        internal bool SetExpiration(string docId, ulong timestamp, C4Error* outError)
+        {
+            return Native.c4doc_setExpiration(c4Db, docId, timestamp, outError);
+        }
+
+        internal ulong GetExpiration(string docId)
+        {
+            return Native.c4doc_getExpiration(c4Db, docId);
+        }
+
         #endregion
 
         #region Private Methods
