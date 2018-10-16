@@ -162,6 +162,12 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <summary>
+        /// Returns the timestamp at which the next document expiration should take place, <c>0</c>
+        /// value will be returned if there are no documents with expiration times.
+        /// </summary>
+        public ulong NextDocExpiration => Native.c4db_nextDocExpiration(_c4db);
+
         [NotNull]
         [ItemNotNull]
         internal ICollection<XQuery> ActiveLiveQueries { get; } = new HashSet<XQuery>();
@@ -735,6 +741,16 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
+        /// Purges all documents that are expired. <c>-1</c> will be returned on error,
+        /// otherwise, the number of documents purged will be returned.
+        /// </summary>
+        /// <returns>Number of documents purged or <c>-1</c> on error</returns>
+        public long PurgeExpiredDocs()
+        {
+            return PurgeExpiredDocs(_c4db, null);
+        }
+
+        /// <summary>
         /// Removes a database changed listener by token
         /// </summary>
         /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{DatabaseChangedEventArgs})"/>
@@ -810,9 +826,9 @@ namespace Couchbase.Lite
                 }
             });
         }
-        #endif
+#endif
 
-        #if COUCHBASE_ENTERPRISE
+#if COUCHBASE_ENTERPRISE
 		/// <summary>
 		/// Sets the encryption key for the database.  If null, encryption is
 		/// removed.
@@ -838,12 +854,12 @@ namespace Couchbase.Lite
 			    return Native.c4db_rekey(c4db, &newKey, err);
 			});
 		}
-    #endif
+#endif
 
         #endregion
 
         #region Internal Methods
-        
+
         internal void ResolveConflict([NotNull]string docID)
         {
             Debug.Assert(docID != null);
@@ -886,10 +902,15 @@ namespace Couchbase.Lite
             });
         }
 
+        internal long PurgeExpiredDocs(C4Database* c4db, C4Error* outError)
+        {
+            return Native.c4db_purgeExpiredDocs(_c4db, outError);
+        }
+
         #endregion
 
         #region Private Methods
-        
+
         [NotNull]
         private static string DatabasePath(string name, string directory)
         {
