@@ -22,7 +22,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-
+using System.Threading;
 using Couchbase.Lite;
 using FluentAssertions;
 using LiteCore;
@@ -42,6 +42,12 @@ namespace Test
     public class DocumentTest : TestCase
     {
         private const string Blob = "i'm blob";
+        private static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        private static long ConvertToTimestamp(DateTime value)
+        {
+            TimeSpan elapsedTime = value - Epoch;
+            return (long)elapsedTime.TotalSeconds;
+        }
 
 #if !WINDOWS_UWP
         public DocumentTest(ITestOutputHelper output) : base(output)
@@ -1797,6 +1803,67 @@ namespace Test
 
                 Db.GetDocument(docID).Should().BeNull();
             }
+        }
+
+        [Fact]
+        public void TestSetAndGetExpirationFromDoc()
+        {
+            ulong exp = (ulong)ConvertToTimestamp(DateTime.UtcNow);
+            using (var doc1a = new MutableDocument("doc1"))
+            using (var doc1b = new MutableDocument("doc2"))
+            using (var doc1c = new MutableDocument("doc3")) {
+                doc1a.SetInt("answer", 42);
+                doc1a.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1a);
+
+                doc1b.SetInt("answer", 42);
+                doc1b.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1b);
+
+                doc1c.SetInt("answer", 42);
+                doc1c.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1c);
+
+                doc1a.SetExpiration("doc1", exp + 30);
+                doc1c.SetExpiration("doc3", exp + 30);
+            }
+            var doc1 = Db.GetDocument("doc1");
+            var doc2 = Db.GetDocument("doc2");
+            var doc3 = Db.GetDocument("doc3");
+            doc3.SetExpiration("doc3", 0);
+            doc1.GetExpiration("doc1").Should().Be(exp + 30);
+            doc2.GetExpiration("doc2").Should().Be(0);
+            doc3.GetExpiration("doc3").Should().Be(0);
+        }
+
+        [Fact]
+        public void TestFindUpComingAndPurgeDocExpiretion()
+        {
+            ulong exp = (ulong)ConvertToTimestamp(DateTime.UtcNow);
+            using (var doc1a = new MutableDocument("doc1"))
+            using (var doc1b = new MutableDocument("doc2"))
+            using (var doc1c = new MutableDocument("doc3")) {
+                doc1a.SetInt("answer", 42);
+                doc1a.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1a);
+
+                doc1b.SetInt("answer", 42);
+                doc1b.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1b);
+
+                doc1c.SetInt("answer", 42);
+                doc1c.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1c);
+
+                doc1a.SetExpiration("doc1", exp + 2);
+                doc1c.SetExpiration("doc2", exp + 4);
+                doc1c.SetExpiration("doc3", exp + 8);
+            }
+            Db.PurgeExpiredDocs().Should().Be(0);
+            Db.NextDocExpiration.Should().Be(exp + 2);
+            Thread.Sleep(8000);
+            Db.PurgeExpiredDocs().Should().Be(3);
+            Db.NextDocExpiration.Should().Be(0);
         }
 
         private void PopulateData(MutableDocument doc)
