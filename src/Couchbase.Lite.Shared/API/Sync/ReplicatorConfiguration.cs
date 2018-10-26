@@ -69,6 +69,8 @@ namespace Couchbase.Lite.Sync
         private Authenticator _authenticator;
         private bool _continuous;
         private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
+        private Func<Document, bool> _PushFilter;
+        private Func<Document, bool> _PullValidator;
         private Uri _remoteUrl;
         private Database _otherDb;
         private C4SocketFactory _socketFactory;
@@ -120,6 +122,28 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         [NotNull]
         public Database Database { get; }
+
+        /// <summary>
+        /// Func delegate that takes Document input parameter and bool output parameter
+        /// Document push will be allowed if output is true, othewise, Document push 
+        /// will not be allowed
+        /// </summary>
+        public Func<Document, bool> PushFilter
+        {
+            get => _PushFilter;
+            set => _freezer.PerformAction(() => _PushFilter = value);
+        }
+
+        /// <summary>
+        /// Func delegate that takes Document input parameter and bool output parameter
+        /// Document pull will be allowed if output is true, othewise, Document pull 
+        /// will not be allowed
+        /// </summary>
+        public Func<Document, bool> PullFilter
+        {
+            get => _PullValidator;
+            set => _freezer.PerformAction(() => _PullValidator = value);
+        }
 
         /// <summary>
         /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
@@ -224,6 +248,8 @@ namespace Couchbase.Lite.Sync
             {
                 Authenticator = Authenticator,
                 Continuous = Continuous,
+                PushFilter = PushFilter,
+                PullFilter = PullFilter,
                 ReplicatorType = ReplicatorType,
                 Options = Options
             };

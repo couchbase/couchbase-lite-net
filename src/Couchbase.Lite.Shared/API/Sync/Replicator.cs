@@ -262,10 +262,40 @@ namespace Couchbase.Lite.Sync
             });
         }
 
-        [MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
-        private static bool ValidateCallback(string docID, IntPtr body, object context)
+        [MonoPInvokeCallback(typeof(C4ReplicatorPushFilterFunction))]
+        private static bool PushFilterCallback(FLSlice docID, FLDict* dict, void* context)
+        { 
+            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            var docIDStr = docID.CreateString();
+            return replicator.PushFilterCallback(docIDStr, dict);
+        }
+
+        bool PushFilterCallback(string docID, FLDict* dict)
         {
-            return true;
+            if (Config.PushFilter == null)
+                return true;
+            var doc = Config.Database.GetDocument(docID);
+            var f = Config.PushFilter;
+            var v = f(doc);
+            return v;
+        }
+
+        [MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
+        private static bool PullValidateCallback(FLSlice docID, FLDict* dict, void* context)
+        {
+            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            var docIDStr = docID.CreateString();
+            return replicator.PullValidateCallback(docIDStr, dict);
+        }
+
+        bool PullValidateCallback(string docID, FLDict* dict)
+        {
+            if (Config.PullFilter == null)
+                return true;
+            var doc = Config.Database.GetDocument(docID);
+            var f = Config.PullFilter;
+            var v = f(doc);
+            return v;
         }
 
         private void ClearRepl()
@@ -341,7 +371,7 @@ namespace Couchbase.Lite.Sync
             StartReachabilityObserver();
             return true;
         }
-        
+
         private void OnDocError(C4Error error, bool pushing, [NotNull]string docID, bool transient)
         {
             if (_disposed) {
@@ -443,7 +473,10 @@ namespace Couchbase.Lite.Sync
 
             // Clear the reset flag, it is a one-time thing
             Config.Options.Reset = false;
-
+            if(Config.PushFilter!=null)
+                _nativeParams.PushFilter = PushFilterCallback;
+            if (Config.PullFilter != null)
+                _nativeParams.Validation = PullValidateCallback;
             var err = new C4Error();
             var status = default(C4ReplicatorStatus);
             _stopping = false;

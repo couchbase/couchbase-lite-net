@@ -33,23 +33,25 @@ namespace LiteCore.Interop
             C4ReplicatorStatus replicatorState, void* context);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    [return: MarshalAs(UnmanagedType.U1)]
-    internal unsafe delegate bool C4ReplicatorValidationFunction(FLSlice docID,
-            FLDict* body, void* context);
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate void C4ReplicatorDocumentErrorCallback(C4Replicator* replicator,
             [MarshalAs(UnmanagedType.U1)]bool pushing, FLSlice docID, C4Error error, 
             [MarshalAs(UnmanagedType.U1)]bool transient, void* context);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate void C4ReplicatorBlobProgressCallback(C4Replicator* replicator,
-        [MarshalAs(UnmanagedType.U1)] bool pushing, FLSlice docID, FLSlice docProperty,
-        C4BlobKey blobKey, ulong bytesComplete, ulong bytesTotal, C4Error error, void* context);
+        [MarshalAs(UnmanagedType.U1)]bool pushing, FLSlice docID, FLSlice docProperty, 
+        C4BlobKey blobKey, ulong bytesComplete, ulong bytesTotal, C4Error error, 
+        void* context);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate void C4ReplicatorPushFilterFunction(FLSlice docID,
-        FLDict* body, void* context);
+    [return: MarshalAs(UnmanagedType.U1)]
+    internal unsafe delegate bool C4ReplicatorPushFilterFunction(FLSlice docID, FLDict* body,
+        void* context);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    internal unsafe delegate bool C4ReplicatorValidationFunction(FLSlice docID, FLDict* body, 
+        void* context);
 }
 
 namespace Couchbase.Lite.Interop
@@ -57,10 +59,11 @@ namespace Couchbase.Lite.Interop
     internal sealed class ReplicatorParameters : IDisposable
     {
         private C4ReplicatorParameters _c4Params;
+        private C4ReplicatorBlobProgressCallback _onBlobProgressUpdated;
         private C4ReplicatorStatusChangedCallback _onStatusChanged;
-        private C4ReplicatorDocumentErrorCallback _onDocumentError;
-        private C4ReplicatorBlobProgressCallback _onBlobProgress;
+        private C4ReplicatorDocumentEndedCallback _onDocumentEnded;
         private C4ReplicatorPushFilterFunction _pushFilter;
+        private C4ReplicatorValidationFunction _validation;
 
         public C4ReplicatorParameters C4Params => _c4Params;
 
@@ -83,6 +86,15 @@ namespace Couchbase.Lite.Interop
             set => _c4Params.pull = value;
         }
 
+        public C4ReplicatorBlobProgressCallback OnBlobProgress
+        {
+            get => _onBlobProgressUpdated;
+            set {
+                _onBlobProgressUpdated = value;
+                _c4Params.onBlobProgress = Marshal.GetFunctionPointerForDelegate(value);
+            }
+        }
+
         public C4ReplicatorStatusChangedCallback OnStatusChanged
         {
             get => _onStatusChanged;
@@ -92,21 +104,12 @@ namespace Couchbase.Lite.Interop
             }
         }
 
-        public C4ReplicatorDocumentErrorCallback OnDocumentEnded
+        public C4ReplicatorDocumentEndedCallback OnDocumentEnded
         {
-            get => _onDocumentError;
+            get => _onDocumentEnded;
             set {
-                _onDocumentError = value;
+                _onDocumentEnded = value;
                 _c4Params.onDocumentEnded = Marshal.GetFunctionPointerForDelegate(value);
-            }
-        }
-
-        public C4ReplicatorBlobProgressCallback OnBlobProgress
-        {
-            get => _onBlobProgress;
-            set {
-                _onBlobProgress = value;
-                _c4Params.onBlobProgress = Marshal.GetFunctionPointerForDelegate(value);
             }
         }
 
@@ -116,6 +119,15 @@ namespace Couchbase.Lite.Interop
             set {
                 _pushFilter = value;
                 _c4Params.pushFilter = Marshal.GetFunctionPointerForDelegate(value);
+            }
+        }
+
+        public C4ReplicatorValidationFunction Validation
+        {
+            get => _validation;
+            set {
+                _validation = value;
+                _c4Params.validationFunc = Marshal.GetFunctionPointerForDelegate(value);
             }
         }
 
