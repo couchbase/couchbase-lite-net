@@ -104,7 +104,7 @@ namespace Couchbase.Lite.Support
         {
             _queue.DispatchSync(() =>
             {
-                if (_started) {
+                if (_started || Url?.IsLoopback == true) {
                     return;
                 }
 

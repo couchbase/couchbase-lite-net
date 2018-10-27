@@ -484,9 +484,14 @@ namespace Couchbase.Lite.Sync
                 return;   
             }
 
+            var remoteUrl = (Config.Target as URLEndpoint)?.Url;
+            if(remoteUrl == null) {
+                return;
+            }
+
             _reachability = Service.GetInstance<IReachability>() ?? new Reachability();
             _reachability.StatusChanged += ReachabilityChanged;
-            _reachability.Url = Config.RemoteUrl;
+            _reachability.Url = remoteUrl;
             _reachability.Start();
         }
 
