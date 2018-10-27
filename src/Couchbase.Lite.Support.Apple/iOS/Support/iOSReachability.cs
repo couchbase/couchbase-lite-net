@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Support
 
         private NetworkReachability _ref;
         private DispatchQueue _queue;
-        private AtomicBool _started;
+        private bool _started;
 
         public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
 
@@ -102,42 +102,51 @@ namespace Couchbase.Lite.Support
 
         public void Start()
         {
-            if (_started.Set(true))
+            _queue.DispatchSync(() =>
             {
-                return;
-            }
+                if (_started) {
+                    return;
+                }
 
-            if (Url == null)
-            {
-                _ref = new NetworkReachability(new IPAddress(0));
-            }
-            else
-            {
-                _ref = new NetworkReachability(Url.Host);
-            }
+                _started = true;
 
-            _ref.SetDispatchQueue(_queue);
-            _ref.SetNotification(ClientCallback);
-            if (_ref.GetFlags(out var flags) == StatusCode.OK)
-            {
-                Log.To.Sync.I(Tag, $"{this}: flags={flags}; starting...");
-                NotifyFlagsChanged(flags);
-            }
-            else
-            {
-                Log.To.Sync.I(Tag, $"{this}: starting...");
-            }
+                if (String.IsNullOrEmpty(Url?.Host))
+                {
+                    _ref = new NetworkReachability(new IPAddress(0));
+                }
+                else
+                {
+                    _ref = new NetworkReachability(Url.Host);
+                }
+
+                _ref.SetDispatchQueue(_queue);
+                _ref.SetNotification(ClientCallback);
+                if (_ref.GetFlags(out var flags) == StatusCode.OK)
+                {
+                    Log.To.Sync.I(Tag, $"{this}: flags={flags}; starting...");
+                    NotifyFlagsChanged(flags);
+                }
+                else
+                {
+                    Log.To.Sync.I(Tag, $"{this}: starting...");
+                }
+            });
         }
 
         public void Stop()
         {
-            if (!_started.Set(false))
+            _queue.DispatchSync(() =>
             {
-                return;
-            }
+                if (!_started) {
+                    return;
+                }
 
-            ReachabilityKnown = false;
-            _ref.SetDispatchQueue(null);
+                _started = false;
+                ReachabilityKnown = false;
+                _ref?.SetDispatchQueue(null);
+                _ref?.Dispose();
+                _ref = null;
+            });
         }
 
         #endregion 
