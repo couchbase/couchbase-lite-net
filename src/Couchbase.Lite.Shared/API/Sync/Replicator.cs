@@ -221,6 +221,11 @@ namespace Couchbase.Lite.Sync
                 _reachability = null;
                 if (_repl != null) {
                     Native.c4repl_stop(_repl);
+                } else if(_rawStatus.level == C4ReplicatorActivityLevel.Offline) {
+                    StatusChangedCallback(new C4ReplicatorStatus
+                    {
+                        level = C4ReplicatorActivityLevel.Stopped
+                    });
                 }
             });
         }
@@ -481,6 +486,7 @@ namespace Couchbase.Lite.Sync
 
             _reachability = Service.GetInstance<IReachability>() ?? new Reachability();
             _reachability.StatusChanged += ReachabilityChanged;
+            _reachability.Url = Config.RemoteUrl;
             _reachability.Start();
         }
 

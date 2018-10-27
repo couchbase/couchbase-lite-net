@@ -31,6 +31,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Couchbase.Lite.DI;
 using Couchbase.Lite.Interop;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
@@ -96,6 +97,7 @@ namespace Couchbase.Lite.Sync
         private uint _receivedBytesPending;
         private ManualResetEventSlim _receivePause;
         private BlockingCollection<byte[]> _writeQueue;
+        private readonly IReachability _reachability = Service.GetInstance<IReachability>() ?? new Reachability();
 
         #endregion
 
@@ -112,6 +114,9 @@ namespace Couchbase.Lite.Sync
             _socket = socket;
             _logic = new HTTPLogic(url);
             _options = options;
+            _reachability.StatusChanged += ReachabilityChanged;
+            _reachability.Url = url;
+            _reachability.Start();
 
             SetupAuth();
         }
@@ -487,6 +492,16 @@ namespace Couchbase.Lite.Sync
                     return; // Sometimes happens because of Dispose() call to _writeQueue, safe to ignore
                 }
             }
+        }
+
+        private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)
+        {
+            _queue.DispatchAsync(() =>
+            {
+                if(NetworkStream != null && e.Status == NetworkReachabilityStatus.Unreachable) {
+                    DidClose(new SocketException((int)SocketError.NetworkUnreachable));
+                }
+            });
         }
 
         private unsafe void Receive(byte[] data)
