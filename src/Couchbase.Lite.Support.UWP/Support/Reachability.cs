@@ -32,6 +32,12 @@ namespace Couchbase.Lite.Support
         public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
 
         #endregion
+        
+        #region Properties
+        
+        public Uri Url { get; set; }
+        
+        #endregion
 
         #region Private Methods
 
