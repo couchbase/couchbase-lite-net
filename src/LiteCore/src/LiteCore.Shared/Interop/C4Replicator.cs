@@ -61,7 +61,7 @@ namespace Couchbase.Lite.Interop
         private C4ReplicatorParameters _c4Params;
         private C4ReplicatorBlobProgressCallback _onBlobProgressUpdated;
         private C4ReplicatorStatusChangedCallback _onStatusChanged;
-        private C4ReplicatorDocumentEndedCallback _onDocumentEnded;
+        private C4ReplicatorDocumentErrorCallback _onDocumentEnded;
         private C4ReplicatorPushFilterFunction _pushFilter;
         private C4ReplicatorValidationFunction _validation;
 
@@ -104,7 +104,7 @@ namespace Couchbase.Lite.Interop
             }
         }
 
-        public C4ReplicatorDocumentEndedCallback OnDocumentEnded
+        public C4ReplicatorDocumentErrorCallback OnDocumentEnded
         {
             get => _onDocumentEnded;
             set {
