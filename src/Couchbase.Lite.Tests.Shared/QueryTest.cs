@@ -48,6 +48,8 @@ namespace Test
     {
         private static readonly ISelectResult DocID = SelectResult.Expression(Meta.ID);
         private static readonly ISelectResult Sequence = SelectResult.Expression(Meta.Sequence);
+        private static readonly ISelectResult IsDeleted = SelectResult.Expression(Meta.IsDeleted);
+        private static readonly ISelectResult Expiration = SelectResult.Expression(Meta.Expiration);
 
         Type queryTypeExpressionType = typeof(QueryTypeExpression);
 
@@ -57,6 +59,16 @@ namespace Test
 
         }
 #endif
+
+        public void TestQueryDocumentExpiration()
+        {
+
+        }
+
+        public void TestQueryDocumentIsDeleted()
+        {
+
+        }
 
         [Fact]
         public void TestReadOnlyParameters()

@@ -741,6 +741,41 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
+        /// Purges the given document id of the <see cref="Document"/> 
+        /// from the database.  This leaves no trace behind and will 
+        /// not be replicated
+        /// </summary>
+        /// <param name="docId">The id of the document to purge</param>
+        /// <returns>Whether or not the document was actually purged.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when trying to purge a document 
+        /// from a database other than the one it was previously added to</exception>
+        [ContractAnnotation("null => halt")]
+        public void Purge(string docId)
+        {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(docId), docId);
+            var document = GetDocument(docId);
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                VerifyDB(document);
+
+                if (!document.Exists) {
+                    throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+                }
+
+                InBatch(() =>
+                {
+                    var result = Native.c4doc_purgeRevision(document.c4Doc.RawDoc, null, null);
+                    if (result >= 0) {
+                        LiteCoreBridge.Check(err => Native.c4doc_save(document.c4Doc.RawDoc, 0, err));
+                    }
+                });
+
+                document.ReplaceC4Doc(null);
+            });
+        }
+
+        /// <summary>
         /// Purges all documents that are expired. <c>-1</c> will be returned on error,
         /// otherwise, the number of documents purged will be returned.
         /// </summary>
@@ -748,6 +783,50 @@ namespace Couchbase.Lite
         public long PurgeExpiredDocs()
         {
             return PurgeExpiredDocs(_c4db, null);
+        }
+
+        /// <summary>
+        /// Sets an expiration date on a document. After this time, the document
+        /// will be purged from the database.
+        /// </summary>
+        /// <param name="docId"> The ID of the <see cref="Document"/> </param> 
+        /// <param name="timestamp"> Nullable expiration timestamp as a 
+        /// <see cref="DateTimeOffset"/>, set timestamp to <c>null</c> 
+        /// to remove expiration date time from doc.</param>
+        /// <returns>Whether succesfully sets an expiration date on the document</returns>
+        /// <exception cref="C4ErrorCode.NotFound">Throws NOT FOUND error if the document 
+        /// doesn't exist</exception>
+        public bool SetDocumentExpiration(string docId, DateTimeOffset? timestamp)
+        {
+            if(GetDocument(docId) == null) {
+                throw new CouchbaseLiteException(C4ErrorCode.NotFound, "Cannot find the document.");
+            }
+            if (timestamp == null) {
+                return Native.c4doc_setExpiration(_c4db, docId, 0, null);
+            }
+            var Timestamp = timestamp?.ToUnixTimeMilliseconds();
+            return Native.c4doc_setExpiration(_c4db, docId, (ulong)Timestamp, null);
+        }
+
+        /// <summary>
+        /// Returns the expiration time of the document. <c>0</c> will be returned
+        /// if there is no expiration time set
+        /// </summary>
+        /// <param name="docId"> The ID of the <see cref="Document"/> </param>
+        /// <returns>Nullable expiration timestamp as a <see cref="DateTimeOffset"/> 
+        /// of the document or <c>null</c> if time not set. </returns>
+        /// <exception cref="C4ErrorCode.NotFound">Throws NOT FOUND error if the document 
+        /// doesn't exist</exception>
+        public DateTimeOffset? GetDocumentExpiration(string docId)
+        {
+            if (GetDocument(docId) == null) {
+                throw new CouchbaseLiteException(C4ErrorCode.NotFound, "Cannot find the document.");
+            }
+            var res = (long)Native.c4doc_getExpiration(_c4db, docId);
+            if (res == 0)
+                return null;
+            DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(res);
+            return dateTimeOffset;
         }
 
         /// <summary>

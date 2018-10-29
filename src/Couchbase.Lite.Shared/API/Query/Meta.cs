@@ -53,6 +53,16 @@ namespace Couchbase.Lite.Query
         [NotNull]
         public static IMetaExpression Sequence => new QueryTypeExpression(SequenceKeyPath, SequenceColumnName);
 
+        /// <summary>
+        /// A metadata expression refering to the deleted boolean flag of the document.
+        /// </summary>
+        public static IMetaExpression IsDeleted => new QueryTypeExpression(SequenceKeyPath, SequenceColumnName);
+
+        /// <summary>
+        /// A metadata expression refering to the expiration date of the document.
+        /// </summary>
+        public static IMetaExpression Expiration => new QueryTypeExpression(SequenceKeyPath, SequenceColumnName);
+
         #endregion
     }
 }

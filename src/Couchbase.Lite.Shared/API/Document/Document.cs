@@ -122,6 +122,8 @@ namespace Couchbase.Lite
         /// </summary>
         public ulong Sequence => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.sequence : 0UL);
 
+        public DateTimeOffset? Expiration => null;
+
         [NotNull]
         internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
 
@@ -182,29 +184,6 @@ namespace Couchbase.Lite
         [NotNull]
         public virtual MutableDocument ToMutable() => new MutableDocument(this);
 
-        /// <summary>
-        /// Sets an expiration date on a document. After this time, the document
-        /// will be purged from the database.
-        /// </summary>
-        /// <param name="docId">The ID of the <see cref="Document"/> </param> 
-        /// <param name="timestamp"> Expiration timestamp</param>
-        /// <returns>Whether succesfully sets an expiration date on the document</returns>
-        public bool SetExpiration(string docId, ulong timestamp)
-        {
-            return Native.c4doc_setExpiration(c4Db, docId, timestamp, null);
-        }
-
-        /// <summary>
-        /// Returns the expiration time of the document. <c>0</c> will be returned
-        /// if there is no expiration time set
-        /// </summary>
-        /// <param name="docId">The ID of the <see cref="Document"/> </param>
-        /// <returns>Expiration time of the document or <c>0</c> if time not set</returns>
-        public ulong GetExpiration(string docId)
-        {
-            return Native.c4doc_getExpiration(c4Db, docId);
-        }
-
 #if CBL_LINQ
         public T ToModel<T>() where T : class, Linq.IDocumentModel, new()
         {
@@ -255,11 +234,6 @@ namespace Couchbase.Lite
             }
             
             return foundConflict;
-        }
-
-        internal bool SetExpiration(string docId, ulong timestamp, C4Error* outError)
-        {
-            return Native.c4doc_setExpiration(c4Db, docId, timestamp, outError);
         }
         #endregion
 

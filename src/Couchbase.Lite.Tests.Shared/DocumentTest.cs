@@ -1808,7 +1808,9 @@ namespace Test
         [Fact]
         public void TestSetAndGetExpirationFromDoc()
         {
-            ulong exp = (ulong)ConvertToTimestamp(DateTime.UtcNow);
+            var dto30 = DateTimeOffset.Now.AddSeconds(30);
+            var dto0 = DateTimeOffset.Now;
+
             using (var doc1a = new MutableDocument("doc1"))
             using (var doc1b = new MutableDocument("doc2"))
             using (var doc1c = new MutableDocument("doc3")) {
@@ -1824,22 +1826,24 @@ namespace Test
                 doc1c.SetValue("options", new[] { 1, 2, 3 });
                 Db.Save(doc1c);
 
-                doc1a.SetExpiration("doc1", exp + 30);
-                doc1c.SetExpiration("doc3", exp + 30);
+                Db.SetDocumentExpiration("doc1", dto30).Should().Be(true);
+                Db.SetDocumentExpiration("doc3", dto30).Should().Be(true);
             }
-            var doc1 = Db.GetDocument("doc1");
-            var doc2 = Db.GetDocument("doc2");
-            var doc3 = Db.GetDocument("doc3");
-            doc3.SetExpiration("doc3", 0);
-            doc1.GetExpiration("doc1").Should().Be(exp + 30);
-            doc2.GetExpiration("doc2").Should().Be(0);
-            doc3.GetExpiration("doc3").Should().Be(0);
+            Db.SetDocumentExpiration("doc3", null).Should().Be(true);
+            var v = Db.GetDocumentExpiration("doc1").Value;
+            v.Should().BeSameDateAs(dto30.DateTime);
+            Db.GetDocumentExpiration("doc2").Should().Be(null);
+            Db.GetDocumentExpiration("doc3").Should().Be(null);
         }
 
         [Fact]
         public void TestFindUpComingAndPurgeDocExpiretion()
         {
-            ulong exp = (ulong)ConvertToTimestamp(DateTime.UtcNow);
+            var dto10 = DateTimeOffset.Now.AddSeconds(10);
+            var dto20 = DateTimeOffset.Now.AddSeconds(20);
+            var dto30 = DateTimeOffset.Now.AddSeconds(30);
+
+            ulong now = (ulong)ConvertToTimestamp(DateTime.Now);
             using (var doc1a = new MutableDocument("doc1"))
             using (var doc1b = new MutableDocument("doc2"))
             using (var doc1c = new MutableDocument("doc3")) {
@@ -1855,12 +1859,12 @@ namespace Test
                 doc1c.SetValue("options", new[] { 1, 2, 3 });
                 Db.Save(doc1c);
 
-                doc1a.SetExpiration("doc1", exp + 2);
-                doc1c.SetExpiration("doc2", exp + 4);
-                doc1c.SetExpiration("doc3", exp + 8);
+                Db.SetDocumentExpiration("doc1", dto10);
+                Db.SetDocumentExpiration("doc2", dto20);
+                Db.SetDocumentExpiration("doc3", dto30);
             }
             Db.PurgeExpiredDocs().Should().Be(0);
-            Db.NextDocExpiration.Should().Be(exp + 2);
+            Db.NextDocExpiration.Should().Be(now + 2);
             Thread.Sleep(8000);
             Db.PurgeExpiredDocs().Should().Be(3);
             Db.NextDocExpiration.Should().Be(0);
