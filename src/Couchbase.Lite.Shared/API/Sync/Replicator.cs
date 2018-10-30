@@ -183,6 +183,11 @@ namespace Couchbase.Lite.Sync
             Config.Options.Reset = true;
         }
 
+        public void DisableDeltas()
+        {
+            Config.Options.NoDeltas = true;
+        }
+
         /// <summary>
         /// Starts the replication
         /// </summary>
@@ -444,6 +449,7 @@ namespace Couchbase.Lite.Sync
             // Clear the reset flag, it is a one-time thing
             Config.Options.Reset = false;
 
+            Config.Options.NoDeltas = false;
             var err = new C4Error();
             var status = default(C4ReplicatorStatus);
             _stopping = false;
