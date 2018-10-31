@@ -262,7 +262,7 @@ namespace Couchbase.Lite.Sync
             });
         }
 
-        [MonoPInvokeCallback(typeof(C4ReplicatorPushFilterFunction))]
+        [MonoPInvokeCallback(typeof(C4ReplicatorFilterFunction))]
         private static bool PushFilterCallback(FLSlice docID, FLDict* dict, void* context)
         { 
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
@@ -270,7 +270,7 @@ namespace Couchbase.Lite.Sync
             return replicator.PushFilterCallback(docIDStr, dict);
         }
 
-        bool PushFilterCallback(string docID, FLDict* dict)
+        private bool PushFilterCallback(string docID, FLDict* dict)
         {
             if (Config.PushFilter == null)
                 return true;
@@ -280,7 +280,7 @@ namespace Couchbase.Lite.Sync
             return v;
         }
 
-        [MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
+        [MonoPInvokeCallback(typeof(C4ReplicatorFilterFunction))]
         private static bool PullValidateCallback(FLSlice docID, FLDict* dict, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
@@ -288,7 +288,7 @@ namespace Couchbase.Lite.Sync
             return replicator.PullValidateCallback(docIDStr, dict);
         }
 
-        bool PullValidateCallback(string docID, FLDict* dict)
+        private bool PullValidateCallback(string docID, FLDict* dict)
         {
             if (Config.PullFilter == null)
                 return true;
@@ -476,7 +476,7 @@ namespace Couchbase.Lite.Sync
             if(Config.PushFilter!=null)
                 _nativeParams.PushFilter = PushFilterCallback;
             if (Config.PullFilter != null)
-                _nativeParams.Validation = PullValidateCallback;
+                _nativeParams.PullFilter = PullValidateCallback;
             var err = new C4Error();
             var status = default(C4ReplicatorStatus);
             _stopping = false;

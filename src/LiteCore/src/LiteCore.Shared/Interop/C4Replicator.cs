@@ -45,12 +45,7 @@ namespace LiteCore.Interop
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     [return: MarshalAs(UnmanagedType.U1)]
-    internal unsafe delegate bool C4ReplicatorPushFilterFunction(FLSlice docID, FLDict* body,
-        void* context);
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    [return: MarshalAs(UnmanagedType.U1)]
-    internal unsafe delegate bool C4ReplicatorValidationFunction(FLSlice docID, FLDict* body, 
+    internal unsafe delegate bool C4ReplicatorFilterFunction(FLSlice docID, FLDict* body,
         void* context);
 }
 
@@ -62,8 +57,8 @@ namespace Couchbase.Lite.Interop
         private C4ReplicatorBlobProgressCallback _onBlobProgressUpdated;
         private C4ReplicatorStatusChangedCallback _onStatusChanged;
         private C4ReplicatorDocumentErrorCallback _onDocumentEnded;
-        private C4ReplicatorPushFilterFunction _pushFilter;
-        private C4ReplicatorValidationFunction _validation;
+        private C4ReplicatorFilterFunction _pushFilter;
+        private C4ReplicatorFilterFunction _validation;
 
         public C4ReplicatorParameters C4Params => _c4Params;
 
@@ -113,7 +108,7 @@ namespace Couchbase.Lite.Interop
             }
         }
 
-        public C4ReplicatorPushFilterFunction PushFilter
+        public C4ReplicatorFilterFunction PushFilter
         {
             get => _pushFilter;
             set {
@@ -122,7 +117,7 @@ namespace Couchbase.Lite.Interop
             }
         }
 
-        public C4ReplicatorValidationFunction Validation
+        public C4ReplicatorFilterFunction PullFilter
         {
             get => _validation;
             set {
