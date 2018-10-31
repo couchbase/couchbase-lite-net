@@ -1837,37 +1837,19 @@ namespace Test
         }
 
         [Fact]
-        public void TestFindUpComingAndPurgeDocExpiretion()
+        public void TestSetExpirationOnNoneExistDoc()
         {
-            var dto10 = DateTimeOffset.Now.AddSeconds(10);
-            var dto20 = DateTimeOffset.Now.AddSeconds(20);
             var dto30 = DateTimeOffset.Now.AddSeconds(30);
-
-            ulong now = (ulong)ConvertToTimestamp(DateTime.Now);
-            using (var doc1a = new MutableDocument("doc1"))
-            using (var doc1b = new MutableDocument("doc2"))
-            using (var doc1c = new MutableDocument("doc3")) {
-                doc1a.SetInt("answer", 42);
-                doc1a.SetValue("options", new[] { 1, 2, 3 });
-                Db.Save(doc1a);
-
-                doc1b.SetInt("answer", 42);
-                doc1b.SetValue("options", new[] { 1, 2, 3 });
-                Db.Save(doc1b);
-
-                doc1c.SetInt("answer", 42);
-                doc1c.SetValue("options", new[] { 1, 2, 3 });
-                Db.Save(doc1c);
-
-                Db.SetDocumentExpiration("doc1", dto10);
-                Db.SetDocumentExpiration("doc2", dto20);
-                Db.SetDocumentExpiration("doc3", dto30);
-            }
-            Db.PurgeExpiredDocs().Should().Be(0);
-            Db.NextDocExpiration.Should().Be(now + 2);
-            Thread.Sleep(8000);
-            Db.PurgeExpiredDocs().Should().Be(3);
-            Db.NextDocExpiration.Should().Be(0);
+            Action badAction = (() => Db.SetDocumentExpiration("not_exist", dto30));
+            badAction.ShouldThrow<CouchbaseLiteException>("Cannot find the document.");
+        }
+        
+        [Fact]
+        public void TestGetExpirationFromNoneExistDoc()
+        {
+            var dto30 = DateTimeOffset.Now.AddSeconds(30);
+            Action badAction = (() => Db.GetDocumentExpiration("not_exist"));
+            badAction.ShouldThrow<CouchbaseLiteException>("Cannot find the document.");
         }
 
         private void PopulateData(MutableDocument doc)

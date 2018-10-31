@@ -34,6 +34,10 @@ namespace Couchbase.Lite.Query
         private const string IDKeyPath = "_id";
         private const string SequenceColumnName = "sequence";
         private const string SequenceKeyPath = "_sequence";
+        private const string IsDeletedColumnName = "isDeleted";
+        private const string IsDeletedKeyPath = "_isDeleted";
+        private const string ExpirationColumnName = "expiration";
+        private const string ExpirationKeyPath = "_expiration";
 
         #endregion
 
@@ -56,12 +60,12 @@ namespace Couchbase.Lite.Query
         /// <summary>
         /// A metadata expression refering to the deleted boolean flag of the document.
         /// </summary>
-        public static IMetaExpression IsDeleted => new QueryTypeExpression(SequenceKeyPath, SequenceColumnName);
+        public static IMetaExpression IsDeleted => new QueryTypeExpression(IsDeletedKeyPath, IsDeletedColumnName);
 
         /// <summary>
         /// A metadata expression refering to the expiration date of the document.
         /// </summary>
-        public static IMetaExpression Expiration => new QueryTypeExpression(SequenceKeyPath, SequenceColumnName);
+        public static IMetaExpression Expiration => new QueryTypeExpression(ExpirationKeyPath, ExpirationColumnName);
 
         #endregion
     }

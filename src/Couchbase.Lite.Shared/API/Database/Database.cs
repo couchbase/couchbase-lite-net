@@ -162,12 +162,6 @@ namespace Couchbase.Lite
             }
         }
 
-        /// <summary>
-        /// Returns the timestamp at which the next document expiration should take place, <c>0</c>
-        /// value will be returned if there are no documents with expiration times.
-        /// </summary>
-        public ulong NextDocExpiration => Native.c4db_nextDocExpiration(_c4db);
-
         [NotNull]
         [ItemNotNull]
         internal ICollection<XQuery> ActiveLiveQueries { get; } = new HashSet<XQuery>();
@@ -711,7 +705,6 @@ namespace Couchbase.Lite
         /// no trace behind and will not be replicated
         /// </summary>
         /// <param name="document">The document to purge</param>
-        /// <returns>Whether or not the document was actually purged.</returns>
         /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a database
         /// other than the one it was previously added to</exception>
         [ContractAnnotation("null => halt")]
@@ -746,9 +739,8 @@ namespace Couchbase.Lite
         /// not be replicated
         /// </summary>
         /// <param name="docId">The id of the document to purge</param>
-        /// <returns>Whether or not the document was actually purged.</returns>
-        /// <exception cref="InvalidOperationException">Thrown when trying to purge a document 
-        /// from a database other than the one it was previously added to</exception>
+        /// <exception cref="C4ErrorCode.NotFound">Throws NOT FOUND error if the document 
+        /// of the docId doesn't exist.</exception>
         [ContractAnnotation("null => halt")]
         public void Purge(string docId)
         {
@@ -776,16 +768,6 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Purges all documents that are expired. <c>-1</c> will be returned on error,
-        /// otherwise, the number of documents purged will be returned.
-        /// </summary>
-        /// <returns>Number of documents purged or <c>-1</c> on error</returns>
-        public long PurgeExpiredDocs()
-        {
-            return PurgeExpiredDocs(_c4db, null);
-        }
-
-        /// <summary>
         /// Sets an expiration date on a document. After this time, the document
         /// will be purged from the database.
         /// </summary>
@@ -804,8 +786,17 @@ namespace Couchbase.Lite
             if (timestamp == null) {
                 return Native.c4doc_setExpiration(_c4db, docId, 0, null);
             }
-            var Timestamp = timestamp?.ToUnixTimeMilliseconds();
-            return Native.c4doc_setExpiration(_c4db, docId, (ulong)Timestamp, null);
+            var succeed = false;
+            ThreadSafety.DoLocked(() =>
+            {
+                LiteCoreBridge.Check(err =>
+                {
+                    var Timestamp = timestamp?.ToUnixTimeMilliseconds();
+                    succeed = Native.c4doc_setExpiration(_c4db, docId, (ulong)Timestamp, err);
+                    return succeed;
+                });
+            });
+            return succeed;
         }
 
         /// <summary>
@@ -823,10 +814,10 @@ namespace Couchbase.Lite
                 throw new CouchbaseLiteException(C4ErrorCode.NotFound, "Cannot find the document.");
             }
             var res = (long)Native.c4doc_getExpiration(_c4db, docId);
-            if (res == 0)
+            if (res == 0) {
                 return null;
-            DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeMilliseconds(res);
-            return dateTimeOffset;
+            }
+            return DateTimeOffset.FromUnixTimeMilliseconds(res);
         }
 
         /// <summary>
@@ -980,12 +971,6 @@ namespace Couchbase.Lite
                 }
             });
         }
-
-        internal long PurgeExpiredDocs(C4Database* c4db, C4Error* outError)
-        {
-            return Native.c4db_purgeExpiredDocs(_c4db, outError);
-        }
-
         #endregion
 
         #region Private Methods
