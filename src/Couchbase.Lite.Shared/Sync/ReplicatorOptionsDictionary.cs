@@ -49,6 +49,7 @@ namespace Couchbase.Lite.Sync
         private const string ProtocolsOptionKey = "WS-Protocols";
         private const string RemoteDBUniqueIDKey = "remoteDBUniqueID";
         private const string ResetKey = "reset";
+        private const string NoDeltasKey = "noDeltas";
         private const string Tag = nameof(ReplicatorOptionsDictionary);
 
         #endregion
@@ -173,6 +174,18 @@ namespace Couchbase.Lite.Sync
                     this[ResetKey] = true;
                 } else {
                     Remove(ResetKey);
+                }
+            }
+        }
+
+        internal bool NoDeltas
+        {
+            get => this.GetCast<bool>(NoDeltasKey);
+            set {
+                if (value) {
+                    this[NoDeltasKey] = true;
+                } else {
+                    Remove(NoDeltasKey);
                 }
             }
         }

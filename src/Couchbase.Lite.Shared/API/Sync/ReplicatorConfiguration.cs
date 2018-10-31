@@ -193,6 +193,17 @@ namespace Couchbase.Lite.Sync
         [NotNull]
         public IEndpoint Target { get; }
 
+        /// <summary>
+        /// A bool value indicating the delta sync is enabled or not. The
+        /// default value it true.
+        /// </summary>
+        [CanBeNull]
+        public bool DeltaSyncEnabled
+        {
+            get => !Options.NoDeltas;
+            set => _freezer.PerformAction(() => Options.NoDeltas = !value);
+        }
+
         #endregion
 
         #region Constructors
