@@ -746,25 +746,7 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(docId), docId);
             var document = GetDocument(docId);
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                VerifyDB(document);
-
-                if (!document.Exists) {
-                    throw new CouchbaseLiteException(C4ErrorCode.NotFound);
-                }
-
-                InBatch(() =>
-                {
-                    var result = Native.c4doc_purgeRevision(document.c4Doc.RawDoc, null, null);
-                    if (result >= 0) {
-                        LiteCoreBridge.Check(err => Native.c4doc_save(document.c4Doc.RawDoc, 0, err));
-                    }
-                });
-
-                document.ReplaceC4Doc(null);
-            });
+            Purge(document);
         }
 
         /// <summary>

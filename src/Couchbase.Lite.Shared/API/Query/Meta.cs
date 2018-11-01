@@ -34,8 +34,8 @@ namespace Couchbase.Lite.Query
         private const string IDKeyPath = "_id";
         private const string SequenceColumnName = "sequence";
         private const string SequenceKeyPath = "_sequence";
-        private const string IsDeletedColumnName = "isDeleted";
-        private const string IsDeletedKeyPath = "_isDeleted";
+        private const string IsDeletedColumnName = "deleted";
+        private const string IsDeletedKeyPath = "_deleted";
         private const string ExpirationColumnName = "expiration";
         private const string ExpirationKeyPath = "_expiration";
 
