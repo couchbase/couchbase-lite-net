@@ -197,7 +197,6 @@ namespace Couchbase.Lite.Sync
         /// A bool value indicating the delta sync is enabled or not. The
         /// default value it true.
         /// </summary>
-        [NotNull]
         public bool DeltaSyncEnabled
         {
             get => !Options.NoDeltas;
