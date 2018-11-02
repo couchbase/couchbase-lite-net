@@ -122,8 +122,6 @@ namespace Couchbase.Lite
         /// </summary>
         public ulong Sequence => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.sequence : 0UL);
 
-        public DateTimeOffset? Expiration => null;
-
         [NotNull]
         internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
 
