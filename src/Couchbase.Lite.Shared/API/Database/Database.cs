@@ -769,14 +769,11 @@ namespace Couchbase.Lite
                 return Native.c4doc_setExpiration(_c4db, docId, 0, null);
             }
             var succeed = false;
-            ThreadSafety.DoLocked(() =>
+            ThreadSafety.DoLockedBridge(err =>
             {
-                LiteCoreBridge.Check(err =>
-                {
-                    var Timestamp = timestamp?.ToUnixTimeMilliseconds();
-                    succeed = Native.c4doc_setExpiration(_c4db, docId, (ulong)Timestamp, err);
-                    return succeed;
-                });
+                var Timestamp = timestamp?.ToUnixTimeMilliseconds();
+                succeed = Native.c4doc_setExpiration(_c4db, docId, (ulong)Timestamp, err);
+                return succeed;
             });
             return succeed;
         }
