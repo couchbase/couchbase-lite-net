@@ -782,7 +782,7 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Returns the expiration time of the document. <c>0</c> will be returned
+        /// Returns the expiration time of the document. <c>null</c> will be returned
         /// if there is no expiration time set
         /// </summary>
         /// <param name="docId"> The ID of the <see cref="Document"/> </param>
