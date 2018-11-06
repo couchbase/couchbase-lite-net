@@ -766,7 +766,10 @@ namespace Couchbase.Lite
                 throw new CouchbaseLiteException(C4ErrorCode.NotFound, "Cannot find the document.");
             }
             if (timestamp == null) {
-                return Native.c4doc_setExpiration(_c4db, docId, 0, null);
+                ThreadSafety.DoLockedBridge(err =>
+                {
+                    return Native.c4doc_setExpiration(_c4db, docId, 0, null);
+                });
             }
             var succeed = false;
             ThreadSafety.DoLockedBridge(err =>

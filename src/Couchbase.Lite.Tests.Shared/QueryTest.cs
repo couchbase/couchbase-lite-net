@@ -60,13 +60,65 @@ namespace Test
         }
 #endif
 
+        [Fact]
         public void TestQueryDocumentExpiration()
         {
+            var dto0 = DateTimeOffset.Now.AddSeconds(0);
+            var dto20 = DateTimeOffset.Now.AddSeconds(20);
+            var dto30 = DateTimeOffset.Now.AddSeconds(30);
+            var dto40 = DateTimeOffset.Now.AddSeconds(40);
+            var dto60 = DateTimeOffset.Now.AddSeconds(60);
 
+            using (var doc1a = new MutableDocument("doc1"))
+            using (var doc1b = new MutableDocument("doc2"))
+            using (var doc1c = new MutableDocument("doc3")) {
+                doc1a.SetInt("answer", 42);
+                doc1a.SetString("a", "string");
+                Db.Save(doc1a);
+
+                doc1b.SetInt("answer", 42);
+                doc1b.SetString("b", "string");
+                Db.Save(doc1b);
+
+                doc1c.SetInt("answer", 42);
+                doc1c.SetString("c", "string");
+                Db.Save(doc1c);
+
+                Db.SetDocumentExpiration("doc1", dto20).Should().Be(true);
+                Db.SetDocumentExpiration("doc2", dto30).Should().Be(true);
+                Db.SetDocumentExpiration("doc3", dto40).Should().Be(true);
+            }
+
+            var r = QueryBuilder.Select(DocID, Expiration)
+                .From(DataSource.Database(Db))
+                .Where(Expression.Property("_expiration")
+                .Between(Expression.Long(dto0.ToUnixTimeSeconds()), Expression.Long(dto60.ToUnixTimeSeconds())));
+            var b = r.Execute();
         }
 
+        [Fact]
         public void TestQueryDocumentIsDeleted()
         {
+            using (var doc1a = new MutableDocument("doc1"))
+            using (var doc1b = new MutableDocument("doc2"))
+            using (var doc1c = new MutableDocument("doc3")) {
+                doc1a.SetInt("answer", 42);
+                doc1a.SetString("a", "string");
+                Db.Save(doc1a);
+
+                doc1b.SetInt("answer", 42);
+                doc1b.SetString("b", "string");
+                Db.Save(doc1b);
+
+                doc1c.SetInt("answer", 42);
+                doc1c.SetString("c", "string");
+                Db.Save(doc1c);
+            }
+
+            var q = QueryBuilder.Select(DocID, IsDeleted)
+                .From(DataSource.Database(Db))
+                .Where(Expression.Property("_id").EqualTo(Expression.String("doc1")));
+            var r = q.Execute().AllResults().FirstOrDefault();
 
         }
 
