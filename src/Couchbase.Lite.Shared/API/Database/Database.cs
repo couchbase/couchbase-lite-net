@@ -765,17 +765,15 @@ namespace Couchbase.Lite
             if(GetDocument(docId) == null) {
                 throw new CouchbaseLiteException(C4ErrorCode.NotFound, "Cannot find the document.");
             }
-            if (timestamp == null) {
-                ThreadSafety.DoLockedBridge(err =>
-                {
-                    return Native.c4doc_setExpiration(_c4db, docId, 0, null);
-                });
-            }
             var succeed = false;
             ThreadSafety.DoLockedBridge(err =>
             {
-                var Timestamp = timestamp?.ToUnixTimeMilliseconds();
-                succeed = Native.c4doc_setExpiration(_c4db, docId, (ulong)Timestamp, err);
+                if (timestamp == null)
+                    succeed = Native.c4doc_setExpiration(_c4db, docId, 0, null);
+                else {
+                    var Timestamp = timestamp?.ToUnixTimeSeconds();
+                    succeed = Native.c4doc_setExpiration(_c4db, docId, (ulong)Timestamp, err);
+                }
                 return succeed;
             });
             return succeed;
@@ -799,7 +797,7 @@ namespace Couchbase.Lite
             if (res == 0) {
                 return null;
             }
-            return DateTimeOffset.FromUnixTimeMilliseconds(res);
+            return DateTimeOffset.FromUnixTimeSeconds(res);
         }
 
         /// <summary>
