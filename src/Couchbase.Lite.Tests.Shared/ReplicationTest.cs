@@ -371,10 +371,8 @@ namespace Test
                 Db.Purge(doc);
             }
 
-            using (var doc = Db.GetDocument("doc2")) {
-                Db.Purge(doc);
-            }
-            
+            Db.Purge("doc2");
+               
             Db.Count.Should().Be(0UL, "because the documents were purged");
             RunReplication(config, 0, 0);
 
