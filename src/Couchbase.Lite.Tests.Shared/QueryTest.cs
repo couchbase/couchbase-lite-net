@@ -108,9 +108,10 @@ namespace Test
 
             var q = QueryBuilder.Select(DocID, IsDeleted)
                  .From(DataSource.Database(Db))
-                 .Where(Meta.ID
-                 .EqualTo(Expression.String("doc1")));
-            q.Execute().FirstOrDefault().GetBoolean(1).Should().BeFalse();
+                 .Where(Meta.ID.EqualTo(Expression.String("doc1"))
+                 .And(Meta.IsDeleted.EqualTo(Expression.Boolean(false))));
+            q.Execute().AllResults().FirstOrDefault().GetString(0).Should().Be("doc1");
+            q.Execute().AllResults().FirstOrDefault().GetBoolean(1).Should().BeFalse();
         }
 
         [Fact]
@@ -124,8 +125,9 @@ namespace Test
             Db.Delete(Db.GetDocument("doc1"));
             var q = QueryBuilder.Select(DocID, IsDeleted)
                  .From(DataSource.Database(Db))
-                 .Where(Meta.ID.EqualTo(Expression.String("doc1")));
-            q.Execute().FirstOrDefault().GetBoolean(1).Should().BeTrue();
+                 .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(true))
+                 .And(Meta.ID.EqualTo(Expression.String("doc1"))));
+            q.Execute().AllResults().Count().Should().Be(1);
         }
 
         [Fact]
