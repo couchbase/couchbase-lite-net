@@ -63,11 +63,10 @@ namespace Test
         [Fact]
         public void TestQueryDocumentExpiration()
         {
-            var dto0 = DateTimeOffset.Now.AddSeconds(0);
             var dto20 = DateTimeOffset.Now.AddSeconds(20);
             var dto30 = DateTimeOffset.Now.AddSeconds(30);
             var dto40 = DateTimeOffset.Now.AddSeconds(40);
-            var dto60 = DateTimeOffset.Now.AddSeconds(60);
+            var dto60InMS = DateTimeOffset.Now.AddSeconds(60).ToUnixTimeMilliseconds();
 
             using (var doc1a = new MutableDocument("doc1"))
             using (var doc1b = new MutableDocument("doc2"))
@@ -89,10 +88,10 @@ namespace Test
                 Db.SetDocumentExpiration("doc3", dto40).Should().Be(true);
             }
 
-            var ex = Expression.Property("_expiration");
             var r = QueryBuilder.Select(DocID, Expiration)
                 .From(DataSource.Database(Db))
-                .Where(ex.LessThan(Expression.Long(dto60.ToUnixTimeMilliseconds())));
+                .Where(Expression.Property("_expiration")
+                .LessThan(Expression.Long(dto60InMS)));
 
             var b = r.Execute().AllResults();
             b.Count().Should().Be(3);
