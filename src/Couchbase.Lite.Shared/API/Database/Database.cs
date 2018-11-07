@@ -771,7 +771,7 @@ namespace Couchbase.Lite
                 if (timestamp == null) {
                     succeed = Native.c4doc_setExpiration(_c4db, docId, 0, null);
                 } else {
-                    var Timestamp = timestamp?.ToUnixTimeSeconds();
+                    var Timestamp = timestamp?.ToUnixTimeMilliseconds();
                     succeed = Native.c4doc_setExpiration(_c4db, docId, (ulong)Timestamp, err);
                 }
                 return succeed;
@@ -797,7 +797,7 @@ namespace Couchbase.Lite
             if (res == 0) {
                 return null;
             }
-            return DateTimeOffset.FromUnixTimeSeconds(res);
+            return DateTimeOffset.FromUnixTimeMilliseconds(res);
         }
 
         /// <summary>
