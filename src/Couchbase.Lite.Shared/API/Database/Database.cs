@@ -758,7 +758,7 @@ namespace Couchbase.Lite
         /// <see cref="DateTimeOffset"/>, set timestamp to <c>null</c> 
         /// to remove expiration date time from doc.</param>
         /// <returns>Whether succesfully sets an expiration date on the document</returns>
-        /// <exception cref="C4ErrorCode.NotFound">Throws NOT FOUND error if the document 
+        /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
         /// doesn't exist</exception>
         public bool SetDocumentExpiration(string docId, DateTimeOffset? timestamp)
         {
@@ -768,9 +768,9 @@ namespace Couchbase.Lite
             var succeed = false;
             ThreadSafety.DoLockedBridge(err =>
             {
-                if (timestamp == null)
+                if (timestamp == null) {
                     succeed = Native.c4doc_setExpiration(_c4db, docId, 0, null);
-                else {
+                } else {
                     var Timestamp = timestamp?.ToUnixTimeSeconds();
                     succeed = Native.c4doc_setExpiration(_c4db, docId, (ulong)Timestamp, err);
                 }
@@ -786,7 +786,7 @@ namespace Couchbase.Lite
         /// <param name="docId"> The ID of the <see cref="Document"/> </param>
         /// <returns>Nullable expiration timestamp as a <see cref="DateTimeOffset"/> 
         /// of the document or <c>null</c> if time not set. </returns>
-        /// <exception cref="C4ErrorCode.NotFound">Throws NOT FOUND error if the document 
+        /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
         /// doesn't exist</exception>
         public DateTimeOffset? GetDocumentExpiration(string docId)
         {
