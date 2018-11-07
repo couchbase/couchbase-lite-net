@@ -87,10 +87,10 @@ namespace Test
                 Db.SetDocumentExpiration("doc2", dto30).Should().Be(true);
                 Db.SetDocumentExpiration("doc3", dto40).Should().Be(true);
             }
-
+            
             var r = QueryBuilder.Select(DocID, Expiration)
                 .From(DataSource.Database(Db))
-                .Where(Expression.Property("_expiration")
+                .Where(Meta.Expiration
                 .LessThan(Expression.Long(dto60InMS)));
 
             var b = r.Execute().AllResults();
@@ -108,7 +108,8 @@ namespace Test
 
             var q = QueryBuilder.Select(DocID, IsDeleted)
                  .From(DataSource.Database(Db))
-                 .Where(Expression.Property("_id").EqualTo(Expression.String("doc1")));
+                 .Where(Meta.ID
+                 .EqualTo(Expression.String("doc1")));
             q.Execute().FirstOrDefault().GetBoolean(1).Should().BeFalse();
         }
 
@@ -123,7 +124,7 @@ namespace Test
             Db.Delete(Db.GetDocument("doc1"));
             var q = QueryBuilder.Select(DocID, IsDeleted)
                  .From(DataSource.Database(Db))
-                 .Where(Expression.Property("_id").EqualTo(Expression.String("doc1")));
+                 .Where(Meta.ID.EqualTo(Expression.String("doc1")));
             q.Execute().FirstOrDefault().GetBoolean(1).Should().BeTrue();
         }
 
