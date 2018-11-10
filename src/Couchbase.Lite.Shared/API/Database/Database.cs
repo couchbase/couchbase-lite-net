@@ -705,7 +705,6 @@ namespace Couchbase.Lite
         /// no trace behind and will not be replicated
         /// </summary>
         /// <param name="document">The document to purge</param>
-        /// <returns>Whether or not the document was actually purged.</returns>
         /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a database
         /// other than the one it was previously added to</exception>
         [ContractAnnotation("null => halt")]
@@ -732,6 +731,73 @@ namespace Couchbase.Lite
 
                 document.ReplaceC4Doc(null);
             });
+        }
+
+        /// <summary>
+        /// Purges the given document id of the <see cref="Document"/> 
+        /// from the database.  This leaves no trace behind and will 
+        /// not be replicated
+        /// </summary>
+        /// <param name="docId">The id of the document to purge</param>
+        /// <exception cref="C4ErrorCode.NotFound">Throws NOT FOUND error if the document 
+        /// of the docId doesn't exist.</exception>
+        [ContractAnnotation("null => halt")]
+        public void Purge(string docId)
+        {
+            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(docId), docId);
+            var document = GetDocument(docId);
+            Purge(document);
+        }
+
+        /// <summary>
+        /// Sets an expiration date on a document. After this time, the document
+        /// will be purged from the database.
+        /// </summary>
+        /// <param name="docId"> The ID of the <see cref="Document"/> </param> 
+        /// <param name="timestamp"> Nullable expiration timestamp as a 
+        /// <see cref="DateTimeOffset"/>, set timestamp to <c>null</c> 
+        /// to remove expiration date time from doc.</param>
+        /// <returns>Whether succesfully sets an expiration date on the document</returns>
+        /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
+        /// doesn't exist</exception>
+        public bool SetDocumentExpiration(string docId, DateTimeOffset? timestamp)
+        {
+            if(GetDocument(docId) == null) {
+                throw new CouchbaseLiteException(C4ErrorCode.NotFound, "Cannot find the document.");
+            }
+            var succeed = false;
+            ThreadSafety.DoLockedBridge(err =>
+            {
+                if (timestamp == null) {
+                    succeed = Native.c4doc_setExpiration(_c4db, docId, 0, null);
+                } else {
+                    var Timestamp = timestamp?.ToUnixTimeMilliseconds();
+                    succeed = Native.c4doc_setExpiration(_c4db, docId, (ulong)Timestamp, err);
+                }
+                return succeed;
+            });
+            return succeed;
+        }
+
+        /// <summary>
+        /// Returns the expiration time of the document. <c>null</c> will be returned
+        /// if there is no expiration time set
+        /// </summary>
+        /// <param name="docId"> The ID of the <see cref="Document"/> </param>
+        /// <returns>Nullable expiration timestamp as a <see cref="DateTimeOffset"/> 
+        /// of the document or <c>null</c> if time not set. </returns>
+        /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
+        /// doesn't exist</exception>
+        public DateTimeOffset? GetDocumentExpiration(string docId)
+        {
+            if (GetDocument(docId) == null) {
+                throw new CouchbaseLiteException(C4ErrorCode.NotFound, "Cannot find the document.");
+            }
+            var res = (long)Native.c4doc_getExpiration(_c4db, docId);
+            if (res == 0) {
+                return null;
+            }
+            return DateTimeOffset.FromUnixTimeMilliseconds(res);
         }
 
         /// <summary>
@@ -810,9 +876,9 @@ namespace Couchbase.Lite
                 }
             });
         }
-        #endif
+#endif
 
-        #if COUCHBASE_ENTERPRISE
+#if COUCHBASE_ENTERPRISE
 		/// <summary>
 		/// Sets the encryption key for the database.  If null, encryption is
 		/// removed.
@@ -838,12 +904,12 @@ namespace Couchbase.Lite
 			    return Native.c4db_rekey(c4db, &newKey, err);
 			});
 		}
-    #endif
+#endif
 
         #endregion
 
         #region Internal Methods
-        
+
         internal void ResolveConflict([NotNull]string docID)
         {
             Debug.Assert(docID != null);
@@ -885,11 +951,10 @@ namespace Couchbase.Lite
                 }
             });
         }
-
         #endregion
 
         #region Private Methods
-        
+
         [NotNull]
         private static string DatabasePath(string name, string directory)
         {

@@ -48,6 +48,8 @@ namespace Test
     {
         private static readonly ISelectResult DocID = SelectResult.Expression(Meta.ID);
         private static readonly ISelectResult Sequence = SelectResult.Expression(Meta.Sequence);
+        private static readonly ISelectResult IsDeleted = SelectResult.Expression(Meta.IsDeleted);
+        private static readonly ISelectResult Expiration = SelectResult.Expression(Meta.Expiration);
 
         Type queryTypeExpressionType = typeof(QueryTypeExpression);
 
@@ -57,6 +59,76 @@ namespace Test
 
         }
 #endif
+
+        [Fact]
+        public void TestQueryDocumentExpiration()
+        {
+            var dto20 = DateTimeOffset.Now.AddSeconds(20);
+            var dto30 = DateTimeOffset.Now.AddSeconds(30);
+            var dto40 = DateTimeOffset.Now.AddSeconds(40);
+            var dto60InMS = DateTimeOffset.Now.AddSeconds(60).ToUnixTimeMilliseconds();
+
+            using (var doc1a = new MutableDocument("doc1"))
+            using (var doc1b = new MutableDocument("doc2"))
+            using (var doc1c = new MutableDocument("doc3")) {
+                doc1a.SetInt("answer", 42);
+                doc1a.SetString("a", "string");
+                Db.Save(doc1a);
+
+                doc1b.SetInt("answer", 42);
+                doc1b.SetString("b", "string");
+                Db.Save(doc1b);
+
+                doc1c.SetInt("answer", 42);
+                doc1c.SetString("c", "string");
+                Db.Save(doc1c);
+
+                Db.SetDocumentExpiration("doc1", dto20).Should().Be(true);
+                Db.SetDocumentExpiration("doc2", dto30).Should().Be(true);
+                Db.SetDocumentExpiration("doc3", dto40).Should().Be(true);
+            }
+            
+            var r = QueryBuilder.Select(DocID, Expiration)
+                .From(DataSource.Database(Db))
+                .Where(Meta.Expiration
+                .LessThan(Expression.Long(dto60InMS)));
+
+            var b = r.Execute().AllResults();
+            b.Count().Should().Be(3);
+        }
+
+        [Fact]
+        public void TestQueryDocumentIsNotDeleted()
+        {
+            using (var doc1a = new MutableDocument("doc1")){
+                doc1a.SetInt("answer", 42);
+                doc1a.SetString("a", "string");
+                Db.Save(doc1a);
+            }
+
+            var q = QueryBuilder.Select(DocID, IsDeleted)
+                 .From(DataSource.Database(Db))
+                 .Where(Meta.ID.EqualTo(Expression.String("doc1"))
+                 .And(Meta.IsDeleted.EqualTo(Expression.Boolean(false))));
+            q.Execute().AllResults().FirstOrDefault().GetString(0).Should().Be("doc1");
+            q.Execute().AllResults().FirstOrDefault().GetBoolean(1).Should().BeFalse();
+        }
+
+        [Fact]
+        public void TestQueryDocumentIsDeleted()
+        {
+            using (var doc1a = new MutableDocument("doc1")) {
+                doc1a.SetInt("answer", 42);
+                doc1a.SetString("a", "string");
+                Db.Save(doc1a);
+            }
+            Db.Delete(Db.GetDocument("doc1"));
+            var q = QueryBuilder.Select(DocID, IsDeleted)
+                 .From(DataSource.Database(Db))
+                 .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(true))
+                 .And(Meta.ID.EqualTo(Expression.String("doc1"))));
+            q.Execute().AllResults().Count().Should().Be(1);
+        }
 
         [Fact]
         public void TestReadOnlyParameters()

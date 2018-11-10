@@ -122,6 +122,12 @@ namespace Couchbase.Lite
         /// </summary>
         public ulong Sequence => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.sequence : 0UL);
 
+        /// <summary>
+        /// Gets the expiration time of the document. <c>null</c> will be returned
+        /// if there is no expiration time set
+        /// </summary>
+        public DateTimeOffset? Expiration => Database?.GetDocumentExpiration(Id);
+
         [NotNull]
         internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
 
@@ -193,12 +199,12 @@ namespace Couchbase.Lite
                 return retVal;
             }
         }
-        #endif
+#endif
 
         #endregion
 
         #region Internal Methods
-        
+
         internal virtual byte[] Encode()
         {
             _disposalWatchdog.CheckDisposed();
@@ -233,7 +239,6 @@ namespace Couchbase.Lite
             
             return foundConflict;
         }
-
         #endregion
 
         #region Private Methods

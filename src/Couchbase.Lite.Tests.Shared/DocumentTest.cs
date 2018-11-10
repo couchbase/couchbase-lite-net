@@ -22,7 +22,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-
+using System.Threading;
 using Couchbase.Lite;
 using FluentAssertions;
 using LiteCore;
@@ -42,6 +42,12 @@ namespace Test
     public class DocumentTest : TestCase
     {
         private const string Blob = "i'm blob";
+        private static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        private static long ConvertToTimestamp(DateTime value)
+        {
+            TimeSpan elapsedTime = value - Epoch;
+            return (long)elapsedTime.TotalSeconds;
+        }
 
 #if !WINDOWS_UWP
         public DocumentTest(ITestOutputHelper output) : base(output)
@@ -1797,6 +1803,53 @@ namespace Test
 
                 Db.GetDocument(docID).Should().BeNull();
             }
+        }
+
+        [Fact]
+        public void TestSetAndGetExpirationFromDoc()
+        {
+            var dto30 = DateTimeOffset.Now.AddSeconds(30);
+            var dto0 = DateTimeOffset.Now;
+
+            using (var doc1a = new MutableDocument("doc1"))
+            using (var doc1b = new MutableDocument("doc2"))
+            using (var doc1c = new MutableDocument("doc3")) {
+                doc1a.SetInt("answer", 42);
+                doc1a.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1a);
+
+                doc1b.SetInt("answer", 42);
+                doc1b.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1b);
+
+                doc1c.SetInt("answer", 42);
+                doc1c.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1c);
+
+                Db.SetDocumentExpiration("doc1", dto30).Should().Be(true);
+                Db.SetDocumentExpiration("doc3", dto30).Should().Be(true);
+            }
+            Db.SetDocumentExpiration("doc3", null).Should().Be(true);
+            var v = Db.GetDocumentExpiration("doc1").Value;
+            v.Should().BeSameDateAs(dto30.DateTime);
+            Db.GetDocumentExpiration("doc2").Should().Be(null);
+            Db.GetDocumentExpiration("doc3").Should().Be(null);
+        }
+
+        [Fact]
+        public void TestSetExpirationOnNoneExistDoc()
+        {
+            var dto30 = DateTimeOffset.Now.AddSeconds(30);
+            Action badAction = (() => Db.SetDocumentExpiration("not_exist", dto30));
+            badAction.ShouldThrow<CouchbaseLiteException>("Cannot find the document.");
+        }
+        
+        [Fact]
+        public void TestGetExpirationFromNoneExistDoc()
+        {
+            var dto30 = DateTimeOffset.Now.AddSeconds(30);
+            Action badAction = (() => Db.GetDocumentExpiration("not_exist"));
+            badAction.ShouldThrow<CouchbaseLiteException>("Cannot find the document.");
         }
 
         private void PopulateData(MutableDocument doc)
