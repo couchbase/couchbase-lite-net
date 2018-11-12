@@ -36,6 +36,8 @@ using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+using Couchbase.Lite.Internal.Serialization;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Sync
 {
@@ -270,13 +272,11 @@ namespace Couchbase.Lite.Sync
             return replicator.PushFilterCallback(docIDStr, dict);
         }
 
-        private bool PushFilterCallback(string docID, FLDict* dict)
+        private bool PushFilterCallback(string docID, FLDict* value)
         {
-            if (Config.PushFilter == null)
-                return true;
-            var doc = Config.Database.GetDocument(docID);
+            var d = FLValueConverter.ToCouchbaseObject((FLValue*)value, Config.Database, true) as IDictionary<string, object>;
             var f = Config.PushFilter;
-            var v = f(doc);
+            var v = f(new MutableDocument(docID, d));
             return v;
         }
 
@@ -285,16 +285,14 @@ namespace Couchbase.Lite.Sync
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             var docIDStr = docID.CreateString();
-            return replicator.PullValidateCallback(docIDStr, dict);
+            return replicator.PullValidateCallback(docIDStr, NativeRaw.FLDict_Get(dict, docID));
         }
 
-        private bool PullValidateCallback(string docID, FLDict* dict)
+        private bool PullValidateCallback(string docID, FLValue* value)
         {
-            if (Config.PullFilter == null)
-                return true;
-            var doc = Config.Database.GetDocument(docID);
+            var d = FLValueConverter.ToCouchbaseObject(value, Config.Database, true) as IDictionary<string, object>;
             var f = Config.PullFilter;
-            var v = f(doc);
+            var v = f(new MutableDocument(docID, d));
             return v;
         }
 
