@@ -134,7 +134,7 @@ namespace Test
             RunReplication(config, 0, 0);
             _isFilteredCallback.Should().BeTrue();
             _otherDB.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
-            _otherDB.GetDocument("doc2").Count().Should().Be(1, "because doc1 is filtered in in the callback");
+            _otherDB.GetDocument("doc2").Count().Should().Be(1, "because doc2 is filtered in in the callback");
             _isFilteredCallback = false;
         }
 
@@ -201,7 +201,7 @@ namespace Test
             RunReplication(config, 0, 0);
             _isFilteredCallback.Should().BeTrue();
             Db.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
-            Db.GetDocument("doc2").Count().Should().Be(1, "because doc1 is filtered in in the callback");
+            Db.GetDocument("doc2").Count().Should().Be(1, "because doc2 is filtered in in the callback");
             _isFilteredCallback = false;
         }
 
