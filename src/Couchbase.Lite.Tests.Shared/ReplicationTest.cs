@@ -58,7 +58,7 @@ namespace Test
         private Database _otherDB;
         private Replicator _repl;
         private WaitAssert _waitAssert;
-        private bool _isFiltered;
+        private bool _isFilteredCallback;
         #if COUCHBASE_ENTERPRISE
         private IMockConnectionErrorLogic _p2PErrorLogic;
         #endif
@@ -122,19 +122,20 @@ namespace Test
         {
             using (var doc1 = new MutableDocument("doc1"))
             using (var doc2 = new MutableDocument("doc2")) {
-                doc1.SetString("name", "Tiger");
+                doc1.SetString("name", "donotpass");
                 Db.Save(doc1);
 
-                doc2.SetString("name", "Cat");
-                _otherDB.Save(doc2);
+                doc2.SetString("name", "pass");
+                Db.Save(doc2);
             }
 
             var config = CreateConfig(true, false, false);
             config.PushFilter = _replicator__filterCallback;
             RunReplication(config, 0, 0);
-            _isFiltered.Should().BeTrue();
-
-            _isFiltered = false;
+            _isFilteredCallback.Should().BeTrue();
+            _otherDB.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
+            _otherDB.GetDocument("doc2").Count().Should().Be(1, "because doc1 is filtered in in the callback");
+            _isFilteredCallback = false;
         }
 
         [Fact]
@@ -152,7 +153,7 @@ namespace Test
 
             var config = CreateConfig(true, false, false);
             RunReplication(config, 0, 0);
-            _isFiltered.Should().BeFalse();
+            _isFilteredCallback.Should().BeFalse();
 
             _otherDB.Count.Should().Be(2UL);
             using (var savedDoc1 = _otherDB.GetDocument("doc1")) {
@@ -186,22 +187,22 @@ namespace Test
         [Fact]
         public void TestPullDocWithFilter()
         {
-            using (var doc1 = new MutableDocument("doc1")) {
-                doc1.SetString("name", "Tiger");
-                Db.Save(doc1);
-            }
-
+            using (var doc1 = new MutableDocument("doc1"))
             using (var doc2 = new MutableDocument("doc2")) {
-                doc2.SetString("name", "Cat");
+                doc1.SetString("name", "donotpass");
+                _otherDB.Save(doc1);
+
+                doc2.SetString("name", "pass");
                 _otherDB.Save(doc2);
             }
 
             var config = CreateConfig(false, true, false);
             config.PullFilter = _replicator__filterCallback;
             RunReplication(config, 0, 0);
-            _isFiltered.Should().BeTrue();
-
-            _isFiltered = false;
+            _isFilteredCallback.Should().BeTrue();
+            Db.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
+            Db.GetDocument("doc2").Count().Should().Be(1, "because doc1 is filtered in in the callback");
+            _isFilteredCallback = false;
         }
 
         [ForIssue("couchbase-lite-core/156")]
@@ -221,7 +222,7 @@ namespace Test
 
             var config = CreateConfig(false, true, false);
             RunReplication(config, 0, 0);
-            _isFiltered.Should().BeFalse();
+            _isFilteredCallback.Should().BeFalse();
 
             Db.Count.Should().Be(2, "because the replicator should have pulled doc2 from the other DB");
             using (var doc2 = Db.GetDocument("doc2")) {
@@ -951,8 +952,13 @@ namespace Test
 
         private bool _replicator__filterCallback(Document doc)
         {
-            _isFiltered = true;
-            return true;
+            _isFilteredCallback = true;
+            var name = doc.GetString("name");
+            if (name == "pass") {
+                return true;
+            }else {
+                return false;
+            }
         }
 
         private ReplicatorConfiguration ModifyConfig(ReplicatorConfiguration config, bool push, bool pull, bool continuous)
