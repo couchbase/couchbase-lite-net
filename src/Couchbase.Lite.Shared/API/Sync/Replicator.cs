@@ -285,12 +285,12 @@ namespace Couchbase.Lite.Sync
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             var docIDStr = docID.CreateString();
-            return replicator.PullValidateCallback(docIDStr, NativeRaw.FLDict_Get(dict, docID));
+            return replicator.PullValidateCallback(docIDStr, dict);
         }
 
-        private bool PullValidateCallback(string docID, FLValue* value)
+        private bool PullValidateCallback(string docID, FLDict* value)
         {
-            var d = FLValueConverter.ToCouchbaseObject(value, Config.Database, true) as IDictionary<string, object>;
+            var d = FLValueConverter.ToCouchbaseObject((FLValue*)value, Config.Database, true) as IDictionary<string, object>;
             var f = Config.PullFilter;
             var v = f(new MutableDocument(docID, d));
             return v;

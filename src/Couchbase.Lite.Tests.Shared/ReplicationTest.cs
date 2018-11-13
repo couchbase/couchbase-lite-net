@@ -58,6 +58,7 @@ namespace Test
         private Database _otherDB;
         private Replicator _repl;
         private WaitAssert _waitAssert;
+        private bool _isFiltered;
         #if COUCHBASE_ENTERPRISE
         private IMockConnectionErrorLogic _p2PErrorLogic;
         #endif
@@ -117,6 +118,26 @@ namespace Test
         }
 
         [Fact]
+        public void TestPushDocWithFilter()
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1);
+
+                doc2.SetString("name", "Cat");
+                _otherDB.Save(doc2);
+            }
+
+            var config = CreateConfig(true, false, false);
+            config.PushFilter = _replicator__filterCallback;
+            RunReplication(config, 0, 0);
+            _isFiltered.Should().BeTrue();
+
+            _isFiltered = false;
+        }
+
+        [Fact]
         public void TestPushDoc()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -131,6 +152,7 @@ namespace Test
 
             var config = CreateConfig(true, false, false);
             RunReplication(config, 0, 0);
+            _isFiltered.Should().BeFalse();
 
             _otherDB.Count.Should().Be(2UL);
             using (var savedDoc1 = _otherDB.GetDocument("doc1")) {
@@ -161,6 +183,27 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestPullDocWithFilter()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1);
+            }
+
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("name", "Cat");
+                _otherDB.Save(doc2);
+            }
+
+            var config = CreateConfig(false, true, false);
+            config.PullFilter = _replicator__filterCallback;
+            RunReplication(config, 0, 0);
+            _isFiltered.Should().BeTrue();
+
+            _isFiltered = false;
+        }
+
         [ForIssue("couchbase-lite-core/156")]
         [Fact]
         public void TestPullDoc()
@@ -178,6 +221,7 @@ namespace Test
 
             var config = CreateConfig(false, true, false);
             RunReplication(config, 0, 0);
+            _isFiltered.Should().BeFalse();
 
             Db.Count.Should().Be(2, "because the replicator should have pulled doc2 from the other DB");
             using (var doc2 = Db.GetDocument("doc2")) {
@@ -904,6 +948,12 @@ namespace Test
             return ModifyConfig(retVal, push, pull, continuous);
         }
 #endif
+
+        private bool _replicator__filterCallback(Document doc)
+        {
+            _isFiltered = true;
+            return true;
+        }
 
         private ReplicatorConfiguration ModifyConfig(ReplicatorConfiguration config, bool push, bool pull, bool continuous)
         {
