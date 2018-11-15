@@ -41,6 +41,10 @@ namespace Couchbase.Lite.Sync
         }
     }
 
+    /// <summary>
+    /// A struct describing the current <see cref="Document"/> ended progress 
+    /// of a <see cref="Replicator"/>
+    /// </summary>
     public struct DocumentReplicatedStatus
     {
         public bool Completed { get; }

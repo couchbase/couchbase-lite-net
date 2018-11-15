@@ -381,7 +381,7 @@ namespace Test
 
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
-            var token1 = _repl.AddReplicationListener(ReplicationDocumentEndedUpdate);
+            var token1 = _repl.AddReplicationListener(DocumentEndedUpdate);
             var token = _repl.AddChangeListener((sender, args) =>
             {
                 _waitAssert.RunConditionalAssert(() =>
@@ -1075,7 +1075,7 @@ namespace Test
             }
         }
 
-        private void ReplicationDocumentEndedUpdate(object sender, ReplicatorDocumentReplicatedEventArgs args)
+        private void DocumentEndedUpdate(object sender, DocumentReplicatedEventArgs args)
         {
             _replicationEvents.Add(args);
         }
