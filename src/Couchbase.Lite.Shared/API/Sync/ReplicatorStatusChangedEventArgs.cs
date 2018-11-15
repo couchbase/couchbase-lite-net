@@ -44,4 +44,28 @@ namespace Couchbase.Lite.Sync
 
         #endregion
     }
+
+    /// <summary>
+    /// Event arguments for the <see cref="Replicator.AddDetailChangeListener(EventHandler{DocumentReplicatedEventArgs})" /> event
+    /// </summary>
+    public sealed class DocumentReplicatedEventArgs : EventArgs
+    {
+        #region Properties
+
+        /// <summary>
+        /// The new status for the <see cref="Replicator"/> in question.
+        /// </summary>
+        public DocumentReplicatedStatus Status { get; }
+
+        #endregion
+
+        #region Constructors
+
+        internal DocumentReplicatedEventArgs(DocumentReplicatedStatus status)
+        {
+            Status = status;
+        }
+
+        #endregion
+    }
 }

@@ -68,6 +68,12 @@ namespace Couchbase.Lite.Sync
         [NotNull]private readonly ThreadSafety _databaseThreadSafety;
         [NotNull]private readonly Event<ReplicatorStatusChangedEventArgs> _statusChanged =
             new Event<ReplicatorStatusChangedEventArgs>();
+        [NotNull]
+        private readonly Event<ReplicatorBlobProgressUpdatedEventArgs> _blobProgressupdated =
+            new Event<ReplicatorBlobProgressUpdatedEventArgs>();
+        [NotNull]
+        private readonly Event<DocumentReplicatedEventArgs> _documentEndedUpdate =
+            new Event<DocumentReplicatedEventArgs>();
 
         private string _desc;
         private bool _disposed;
@@ -376,7 +382,7 @@ namespace Couchbase.Lite.Sync
             if (_disposed) {
                 return;
             }
-
+            
             var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
             if (!pushing && error.domain == C4ErrorDomain.LiteCoreDomain && error.code == (int) C4ErrorCode.Conflict) {
                 // Conflict pulling a document -- the revision was added but app needs to resolve it:
@@ -392,6 +398,11 @@ namespace Couchbase.Lite.Sync
                 var dirStr = pushing ? "pushing" : "pulling";
                 Log.To.Sync.I(Tag,
                     $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
+            }
+
+            if (error.domain == 0 && error.code == 0) {
+                var status = new DocumentReplicatedStatus(docID, pushing, true);
+                _documentEndedUpdate.Fire(this, new DocumentReplicatedEventArgs(status));
             }
         }
 

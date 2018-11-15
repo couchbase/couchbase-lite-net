@@ -40,4 +40,18 @@ namespace Couchbase.Lite.Sync
             Total = total;
         }
     }
+
+    public struct DocumentReplicatedStatus
+    {
+        public bool Completed { get; }
+        public bool Pushing { get; }
+        public string DocID { get; }
+
+        internal DocumentReplicatedStatus(string docID, bool pushing, bool completed)
+        {
+            DocID = docID;
+            Completed = completed;
+            Pushing = pushing;
+        }
+    }
 }
