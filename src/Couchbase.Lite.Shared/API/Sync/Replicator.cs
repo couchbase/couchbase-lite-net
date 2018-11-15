@@ -133,6 +133,11 @@ namespace Couchbase.Lite.Sync
 
         #region Public Methods
 
+        /// <summary>
+        /// Adds a document ended listener on this replication object (similar to a C# event)
+        /// </summary>
+        /// <param name="handler">The logic to run during the callback</param>
+        /// <returns>A token to remove the handler later</returns>
         [ContractAnnotation("null => halt")]
         public ListenerToken AddReplicationListener(EventHandler<DocumentReplicatedEventArgs> handler)
         {
@@ -141,6 +146,15 @@ namespace Couchbase.Lite.Sync
             return AddReplicationListener(null, handler);
         }
 
+        /// <summary>
+        /// Adds a document ended listener on this replication object (similar to a C# event, but
+        /// with the ability to specify a <see cref="TaskScheduler"/> to schedule the 
+        /// handler to run on)
+        /// </summary>
+        /// <param name="scheduler">The <see cref="TaskScheduler"/> to run the <c>handler</c> on
+        /// (<c>null</c> for default)</param>
+        /// <param name="handler">The logic to run during the callback</param>
+        /// <returns>A token to remove the handler later</returns>
         [ContractAnnotation("handler:null => halt")]
         public ListenerToken AddReplicationListener([CanBeNull]TaskScheduler scheduler,
             EventHandler<DocumentReplicatedEventArgs> handler)
@@ -152,6 +166,10 @@ namespace Couchbase.Lite.Sync
             return new ListenerToken(cbHandler, "repl");
         }
 
+        /// <summary>
+        /// Removes a previously added documents ended listener via its <see cref="ListenerToken"/>
+        /// </summary>
+        /// <param name="token">The token received from <see cref="AddReplicationListener(TaskScheduler, EventHandler{DocumentReplicatedEventArgs})"/></param>
         public void RemoveReplicationListener(ListenerToken token)
         {
             _documentEndedUpdate.Remove(token);

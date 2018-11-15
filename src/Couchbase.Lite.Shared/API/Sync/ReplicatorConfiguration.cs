@@ -53,6 +53,28 @@ namespace Couchbase.Lite.Sync
     }
 
     /// <summary>
+    /// An enum representing level of opt in on progress of replication
+    /// </summary>
+    [Flags]
+    public enum ReplicatorOptionProgressLevel : int
+    {
+        /// <summary>
+        /// No additional replication progress callback
+        /// </summary>
+        Overall,
+
+        /// <summary>
+        /// Every document replication ended callback
+        /// </summary>
+        PerDocument, // >=1
+
+        /// <summary>
+        /// Every blob replication progress callback
+        /// </summary>
+        PerAttachment // >=2
+    }
+
+    /// <summary>
     /// A class representing configuration options for a <see cref="Replicator"/>
     /// </summary>
     public sealed class ReplicatorConfiguration
