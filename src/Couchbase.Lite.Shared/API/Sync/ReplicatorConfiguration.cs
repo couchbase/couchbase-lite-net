@@ -69,8 +69,8 @@ namespace Couchbase.Lite.Sync
         private Authenticator _authenticator;
         private bool _continuous;
         private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
-        private Func<Document, bool> _PushFilter;
-        private Func<Document, bool> _PullValidator;
+        private Func<Document, bool> _pushFilter;
+        private Func<Document, bool> _pullValidator;
         private Uri _remoteUrl;
         private Database _otherDb;
         private C4SocketFactory _socketFactory;
@@ -130,8 +130,8 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public Func<Document, bool> PushFilter
         {
-            get => _PushFilter;
-            set => _freezer.PerformAction(() => _PushFilter = value);
+            get => _pushFilter;
+            set => _freezer.PerformAction(() => _pushFilter = value);
         }
 
         /// <summary>
@@ -141,8 +141,8 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public Func<Document, bool> PullFilter
         {
-            get => _PullValidator;
-            set => _freezer.PerformAction(() => _PullValidator = value);
+            get => _pullValidator;
+            set => _freezer.PerformAction(() => _pullValidator = value);
         }
 
         /// <summary>
