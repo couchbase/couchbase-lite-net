@@ -258,6 +258,7 @@ namespace Couchbase.Lite.Sync
                 PushFilter = PushFilter,
                 PullFilter = PullFilter,
                 ReplicatorType = ReplicatorType,
+                ProgressLevel = ProgressLevel,
                 Options = Options
             };
 
