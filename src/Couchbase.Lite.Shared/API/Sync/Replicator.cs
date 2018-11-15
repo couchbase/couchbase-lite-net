@@ -68,11 +68,7 @@ namespace Couchbase.Lite.Sync
         [NotNull]private readonly ThreadSafety _databaseThreadSafety;
         [NotNull]private readonly Event<ReplicatorStatusChangedEventArgs> _statusChanged =
             new Event<ReplicatorStatusChangedEventArgs>();
-        [NotNull]
-        private readonly Event<ReplicatorBlobProgressUpdatedEventArgs> _blobProgressupdated =
-            new Event<ReplicatorBlobProgressUpdatedEventArgs>();
-        [NotNull]
-        private readonly Event<DocumentReplicatedEventArgs> _documentEndedUpdate =
+        [NotNull]private readonly Event<DocumentReplicatedEventArgs> _documentEndedUpdate =
             new Event<DocumentReplicatedEventArgs>();
 
         private string _desc;
@@ -134,7 +130,7 @@ namespace Couchbase.Lite.Sync
         #region Public Methods
 
         /// <summary>
-        /// Adds a document ended listener on this replication object (similar to a C# event)
+        /// Adds a documents ended listener on this replication object (similar to a C# event)
         /// </summary>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
