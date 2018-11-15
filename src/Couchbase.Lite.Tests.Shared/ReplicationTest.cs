@@ -59,6 +59,7 @@ namespace Test
         private Replicator _repl;
         private WaitAssert _waitAssert;
         private bool _isFilteredCallback;
+        private List<DocumentReplicatedEventArgs> _replicationEvents = new List<DocumentReplicatedEventArgs>();
         #if COUCHBASE_ENTERPRISE
         private IMockConnectionErrorLogic _p2PErrorLogic;
         #endif
@@ -361,6 +362,55 @@ namespace Test
                     Task.Delay(100).Wait();
                 }
             }
+        }
+
+        [Fact]
+        public void TestReplicationListenerForDocumentEndedStatus()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1);
+            }
+
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("name", "Cat");
+                _otherDB.Save(doc2);
+            }
+
+            var config = CreateConfig(true, true, true);//push n pull
+
+            Misc.SafeSwap(ref _repl, new Replicator(config));
+            _waitAssert = new WaitAssert();
+            var token1 = _repl.AddReplicationListener(ReplicationDocumentEndedUpdate);
+            var token = _repl.AddChangeListener((sender, args) =>
+            {
+                _waitAssert.RunConditionalAssert(() =>
+                {
+                    VerifyChange(args, 0, 0);
+                    if (config.Continuous && args.Status.Activity == ReplicatorActivityLevel.Idle
+                                          && args.Status.Progress.Completed == args.Status.Progress.Total) {
+                        ((Replicator)sender).Stop();
+                    }
+                    return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                });
+            });
+            
+            _repl.Start();
+            try {
+                _waitAssert.WaitForResult(TimeSpan.FromSeconds(30));
+            } catch {
+                _repl.Stop();
+                throw;
+            } finally {
+                _repl.RemoveChangeListener(token);
+                _repl.RemoveReplicationListener(token1);
+            }
+
+            _replicationEvents.Count().Should().Be(2);
+            var push = _replicationEvents.Where(g => g.Status.Pushing == true && g.Status.Completed == true).FirstOrDefault();
+            push.Status.DocID.Should().Be("doc1");
+            var pull = _replicationEvents.Where(g => g.Status.Pushing == false && g.Status.Completed == true).FirstOrDefault();
+            pull.Status.DocID.Should().Be("doc2");
         }
 
         [Fact]
@@ -1023,6 +1073,11 @@ namespace Test
             } finally {
                 _repl.RemoveChangeListener(token);
             }
+        }
+
+        private void ReplicationDocumentEndedUpdate(object sender, ReplicatorDocumentReplicatedEventArgs args)
+        {
+            _replicationEvents.Add(args);
         }
 
 #if COUCHBASE_ENTERPRISE

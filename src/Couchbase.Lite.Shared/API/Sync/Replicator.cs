@@ -156,7 +156,7 @@ namespace Couchbase.Lite.Sync
             EventHandler<DocumentReplicatedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(handler), handler);
-
+            Config.Options.ProgressLevel = ReplicatorProgressLevel.PerDocument;
             var cbHandler = new CouchbaseEventHandler<DocumentReplicatedEventArgs>(handler, scheduler);
             _documentEndedUpdate.Add(cbHandler);
             return new ListenerToken(cbHandler, "repl");
@@ -168,6 +168,7 @@ namespace Couchbase.Lite.Sync
         /// <param name="token">The token received from <see cref="AddReplicationListener(TaskScheduler, EventHandler{DocumentReplicatedEventArgs})"/></param>
         public void RemoveReplicationListener(ListenerToken token)
         {
+            Config.Options.ProgressLevel = ReplicatorProgressLevel.OverAll;
             _documentEndedUpdate.Remove(token);
         }
 
