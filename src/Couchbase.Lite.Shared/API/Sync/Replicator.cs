@@ -168,7 +168,7 @@ namespace Couchbase.Lite.Sync
         /// <param name="token">The token received from <see cref="AddReplicationListener(TaskScheduler, EventHandler{DocumentReplicatedEventArgs})"/></param>
         public void RemoveReplicationListener(ListenerToken token)
         {
-            Config.Options.ProgressLevel = ReplicatorProgressLevel.OverAll;
+            Config.Options.ProgressLevel = ReplicatorProgressLevel.Overall;
             _documentEndedUpdate.Remove(token);
         }
 

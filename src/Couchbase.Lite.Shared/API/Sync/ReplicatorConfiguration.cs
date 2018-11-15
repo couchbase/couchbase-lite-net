@@ -56,7 +56,7 @@ namespace Couchbase.Lite.Sync
     /// An enum representing level of opt in on progress of replication
     /// </summary>
     [Flags]
-    public enum ReplicatorOptionProgressLevel : int
+    public enum ReplicatorProgressLevel : int
     {
         /// <summary>
         /// No additional replication progress callback
@@ -96,7 +96,7 @@ namespace Couchbase.Lite.Sync
         private Uri _remoteUrl;
         private Database _otherDb;
         private C4SocketFactory _socketFactory;
-        private ReplicatorOptionProgressLevel _progressLevel = ReplicatorOptionProgressLevel.Overall;
+        private ReplicatorProgressLevel _progressLevel = ReplicatorProgressLevel.Overall;
 
         #endregion
 
@@ -130,7 +130,7 @@ namespace Couchbase.Lite.Sync
             set => _freezer.PerformAction(() => Options.CheckpointInterval = value);
         }
 
-        internal ReplicatorOptionProgressLevel ProgressLevel
+        internal ReplicatorProgressLevel ProgressLevel
         {
             get => Options.ProgressLevel;
             set => _freezer.PerformAction(() => Options.ProgressLevel = value);
