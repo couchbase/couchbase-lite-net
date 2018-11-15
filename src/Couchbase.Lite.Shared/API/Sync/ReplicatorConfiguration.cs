@@ -108,6 +108,12 @@ namespace Couchbase.Lite.Sync
             set => _freezer.PerformAction(() => Options.CheckpointInterval = value);
         }
 
+        internal ReplicatorOptionProgressLevel ProgressLevel
+        {
+            get => Options.ProgressLevel;
+            set => _freezer.PerformAction(() => Options.ProgressLevel = value);
+        }
+
         /// <summary>
         /// Gets or sets whether or not the <see cref="Replicator"/> should stay
         /// active indefinitely.  The default is <c>false</c>
@@ -217,12 +223,6 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         [NotNull]
         public IEndpoint Target { get; }
-
-        public ReplicatorOptionProgressLevel ProgressLevel
-        {
-            get => _progressLevel;
-            set => _freezer.SetValue(ref _progressLevel, value);
-        }
 
         #endregion
 

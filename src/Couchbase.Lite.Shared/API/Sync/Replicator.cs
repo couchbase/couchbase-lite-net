@@ -506,11 +506,13 @@ namespace Couchbase.Lite.Sync
             };
 
             // Clear the reset flag, it is a one-time thing
-            Config.Options.Reset = false;
+            options.Reset = false;
+
             if(Config.PushFilter!=null)
                 _nativeParams.PushFilter = PushFilterCallback;
             if (Config.PullFilter != null)
                 _nativeParams.PullFilter = PullValidateCallback;
+
             var err = new C4Error();
             var status = default(C4ReplicatorStatus);
             _stopping = false;
