@@ -133,6 +133,30 @@ namespace Couchbase.Lite.Sync
 
         #region Public Methods
 
+        [ContractAnnotation("null => halt")]
+        public ListenerToken AddReplicationListener(EventHandler<DocumentReplicatedEventArgs> handler)
+        {
+            CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(handler), handler);
+
+            return AddReplicationListener(null, handler);
+        }
+
+        [ContractAnnotation("handler:null => halt")]
+        public ListenerToken AddReplicationListener([CanBeNull]TaskScheduler scheduler,
+            EventHandler<DocumentReplicatedEventArgs> handler)
+        {
+            CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(handler), handler);
+
+            var cbHandler = new CouchbaseEventHandler<DocumentReplicatedEventArgs>(handler, scheduler);
+            _documentEndedUpdate.Add(cbHandler);
+            return new ListenerToken(cbHandler, "repl");
+        }
+
+        public void RemoveReplicationListener(ListenerToken token)
+        {
+            _documentEndedUpdate.Remove(token);
+        }
+
         /// <summary>
         /// Adds a change listener on this replication object (similar to a C# event)
         /// </summary>
