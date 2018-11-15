@@ -236,14 +236,15 @@ namespace Couchbase.Lite.Sync
             return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
         }
 
-        [MonoPInvokeCallback(typeof(C4ReplicatorDocumentErrorCallback))]
+
+        [MonoPInvokeCallback(typeof(C4ReplicatorDocumentEndedCallback))]
         private static void OnDocEnded(C4Replicator* repl, bool pushing, FLSlice docID, C4Error error, bool transient, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             var docIDStr = docID.CreateString();
             replicator?.DispatchQueue.DispatchAsync(() =>
             {
-                replicator.OnDocError(error, pushing, docIDStr ?? "", transient);
+                replicator.OnDocEnded(error, pushing, docIDStr ?? "", transient);
             });
 
         }
@@ -370,7 +371,7 @@ namespace Couchbase.Lite.Sync
             return true;
         }
 
-        private void OnDocError(C4Error error, bool pushing, [NotNull]string docID, bool transient)
+        private void OnDocEnded(C4Error error, bool pushing, [NotNull]string docID, bool transient)
         {
             if (_disposed) {
                 return;
