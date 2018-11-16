@@ -56,7 +56,7 @@ namespace Couchbase.Lite.Sync
     /// An enum representing level of opt in on progress of replication
     /// </summary>
     [Flags]
-    public enum ReplicatorProgressLevel : int
+    internal enum ReplicatorProgressLevel : int
     {
         /// <summary>
         /// No additional replication progress callback
