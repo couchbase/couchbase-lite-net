@@ -40,4 +40,22 @@ namespace Couchbase.Lite.Sync
             Total = total;
         }
     }
+
+    /// <summary>
+    /// A struct describing the current <see cref="Document"/> ended progress 
+    /// of a <see cref="Replicator"/>
+    /// </summary>
+    public struct DocumentReplicatedStatus
+    {
+        public bool Completed { get; }
+        public bool Pushing { get; }
+        public string DocID { get; }
+
+        internal DocumentReplicatedStatus(string docID, bool pushing, bool completed)
+        {
+            DocID = docID;
+            Completed = completed;
+            Pushing = pushing;
+        }
+    }
 }

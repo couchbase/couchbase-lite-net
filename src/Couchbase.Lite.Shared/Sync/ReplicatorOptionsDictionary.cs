@@ -49,11 +49,19 @@ namespace Couchbase.Lite.Sync
         private const string ProtocolsOptionKey = "WS-Protocols";
         private const string RemoteDBUniqueIDKey = "remoteDBUniqueID";
         private const string ResetKey = "reset";
+        private const string LevelKey = "progress";
         private const string Tag = nameof(ReplicatorOptionsDictionary);
 
         #endregion
 
         #region Properties
+
+        [CanBeNull]
+        public ReplicatorProgressLevel ProgressLevel
+        {
+            get => (ReplicatorProgressLevel)this.GetCast<int>(LevelKey);
+            set => this[LevelKey] = (int)value;
+        }
 
         /// <summary>
         /// Gets or sets the authentication parameters

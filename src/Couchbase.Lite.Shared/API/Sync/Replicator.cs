@@ -68,6 +68,8 @@ namespace Couchbase.Lite.Sync
         [NotNull]private readonly ThreadSafety _databaseThreadSafety;
         [NotNull]private readonly Event<ReplicatorStatusChangedEventArgs> _statusChanged =
             new Event<ReplicatorStatusChangedEventArgs>();
+        [NotNull]private readonly Event<DocumentReplicatedEventArgs> _documentEndedUpdate =
+            new Event<DocumentReplicatedEventArgs>();
 
         private string _desc;
         private bool _disposed;
@@ -126,6 +128,49 @@ namespace Couchbase.Lite.Sync
         #endregion
 
         #region Public Methods
+
+        /// <summary>
+        /// Adds a documents ended listener on this replication object (similar to a C# event)
+        /// </summary>
+        /// <param name="handler">The logic to run during the callback</param>
+        /// <returns>A token to remove the handler later</returns>
+        [ContractAnnotation("null => halt")]
+        public ListenerToken AddReplicationListener(EventHandler<DocumentReplicatedEventArgs> handler)
+        {
+            CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(handler), handler);
+
+            return AddReplicationListener(null, handler);
+        }
+
+        /// <summary>
+        /// Adds a document ended listener on this replication object (similar to a C# event, but
+        /// with the ability to specify a <see cref="TaskScheduler"/> to schedule the 
+        /// handler to run on)
+        /// </summary>
+        /// <param name="scheduler">The <see cref="TaskScheduler"/> to run the <c>handler</c> on
+        /// (<c>null</c> for default)</param>
+        /// <param name="handler">The logic to run during the callback</param>
+        /// <returns>A token to remove the handler later</returns>
+        [ContractAnnotation("handler:null => halt")]
+        public ListenerToken AddReplicationListener([CanBeNull]TaskScheduler scheduler,
+            EventHandler<DocumentReplicatedEventArgs> handler)
+        {
+            CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(handler), handler);
+            Config.Options.ProgressLevel = ReplicatorProgressLevel.PerDocument;
+            var cbHandler = new CouchbaseEventHandler<DocumentReplicatedEventArgs>(handler, scheduler);
+            _documentEndedUpdate.Add(cbHandler);
+            return new ListenerToken(cbHandler, "repl");
+        }
+
+        /// <summary>
+        /// Removes a previously added documents ended listener via its <see cref="ListenerToken"/>
+        /// </summary>
+        /// <param name="token">The token received from <see cref="AddReplicationListener(TaskScheduler, EventHandler{DocumentReplicatedEventArgs})"/></param>
+        public void RemoveReplicationListener(ListenerToken token)
+        {
+            Config.Options.ProgressLevel = ReplicatorProgressLevel.Overall;
+            _documentEndedUpdate.Remove(token);
+        }
 
         /// <summary>
         /// Adds a change listener on this replication object (similar to a C# event)
@@ -236,14 +281,15 @@ namespace Couchbase.Lite.Sync
             return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
         }
 
-        [MonoPInvokeCallback(typeof(C4ReplicatorDocumentErrorCallback))]
+
+        [MonoPInvokeCallback(typeof(C4ReplicatorDocumentEndedCallback))]
         private static void OnDocEnded(C4Replicator* repl, bool pushing, FLSlice docID, C4Error error, bool transient, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             var docIDStr = docID.CreateString();
             replicator?.DispatchQueue.DispatchAsync(() =>
             {
-                replicator.OnDocError(error, pushing, docIDStr ?? "", transient);
+                replicator.OnDocEnded(error, pushing, docIDStr ?? "", transient);
             });
 
         }
@@ -370,12 +416,12 @@ namespace Couchbase.Lite.Sync
             return true;
         }
 
-        private void OnDocError(C4Error error, bool pushing, [NotNull]string docID, bool transient)
+        private void OnDocEnded(C4Error error, bool pushing, [NotNull]string docID, bool transient)
         {
             if (_disposed) {
                 return;
             }
-
+            
             var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
             if (!pushing && error.domain == C4ErrorDomain.LiteCoreDomain && error.code == (int) C4ErrorCode.Conflict) {
                 // Conflict pulling a document -- the revision was added but app needs to resolve it:
@@ -391,6 +437,11 @@ namespace Couchbase.Lite.Sync
                 var dirStr = pushing ? "pushing" : "pulling";
                 Log.To.Sync.I(Tag,
                     $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
+            }
+
+            if (error.domain == 0 && error.code == 0) {
+                var status = new DocumentReplicatedStatus(docID, pushing, true);
+                _documentEndedUpdate.Fire(this, new DocumentReplicatedEventArgs(status));
             }
         }
 
@@ -470,11 +521,13 @@ namespace Couchbase.Lite.Sync
             };
 
             // Clear the reset flag, it is a one-time thing
-            Config.Options.Reset = false;
+            options.Reset = false;
+
             if(Config.PushFilter!=null)
                 _nativeParams.PushFilter = PushFilterCallback;
             if (Config.PullFilter != null)
                 _nativeParams.PullFilter = PullValidateCallback;
+
             var err = new C4Error();
             var status = default(C4ReplicatorStatus);
             _stopping = false;

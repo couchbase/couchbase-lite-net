@@ -53,6 +53,28 @@ namespace Couchbase.Lite.Sync
     }
 
     /// <summary>
+    /// An enum representing level of opt in on progress of replication
+    /// </summary>
+    [Flags]
+    internal enum ReplicatorProgressLevel : int
+    {
+        /// <summary>
+        /// No additional replication progress callback
+        /// </summary>
+        Overall,
+
+        /// <summary>
+        /// Every document replication ended callback
+        /// </summary>
+        PerDocument, // >=1
+
+        /// <summary>
+        /// Every blob replication progress callback
+        /// </summary>
+        PerAttachment // >=2
+    }
+
+    /// <summary>
     /// A class representing configuration options for a <see cref="Replicator"/>
     /// </summary>
     public sealed class ReplicatorConfiguration
@@ -74,6 +96,7 @@ namespace Couchbase.Lite.Sync
         private Uri _remoteUrl;
         private Database _otherDb;
         private C4SocketFactory _socketFactory;
+        private ReplicatorProgressLevel _progressLevel = ReplicatorProgressLevel.Overall;
 
         #endregion
 
@@ -105,6 +128,12 @@ namespace Couchbase.Lite.Sync
         {
             get => Options.CheckpointInterval;
             set => _freezer.PerformAction(() => Options.CheckpointInterval = value);
+        }
+
+        internal ReplicatorProgressLevel ProgressLevel
+        {
+            get => Options.ProgressLevel;
+            set => _freezer.PerformAction(() => Options.ProgressLevel = value);
         }
 
         /// <summary>
@@ -251,6 +280,7 @@ namespace Couchbase.Lite.Sync
                 PushFilter = PushFilter,
                 PullFilter = PullFilter,
                 ReplicatorType = ReplicatorType,
+                ProgressLevel = ProgressLevel,
                 Options = Options
             };
 
