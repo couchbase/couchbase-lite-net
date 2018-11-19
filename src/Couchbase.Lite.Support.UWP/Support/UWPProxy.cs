@@ -70,7 +70,7 @@ namespace Couchbase.Lite.Support
             return WinHttpCloseHandle(handle);
         }
 
-        [DllImport("winhttp.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        [DllImport("winhttp.dll", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool WinHttpCloseHandle(
             IntPtr handle);
@@ -136,19 +136,19 @@ namespace Couchbase.Lite.Support
             public IntPtr ProxyBypass;
         }
 
-        [DllImport("winhttp.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        [DllImport("winhttp.dll", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool WinHttpGetProxyForUrl(
             SafeWinHttpHandle sessionHandle, string url,
             ref WINHTTP_AUTOPROXY_OPTIONS autoProxyOptions,
             out WINHTTP_PROXY_INFO proxyInfo);
 
-        [DllImport("winhttp.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        [DllImport("winhttp.dll", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool WinHttpGetIEProxyConfigForCurrentUser(
             out WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig);
 
-        [DllImport("winhttp.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true)]
+        [DllImport("winhttp.dll", ExactSpelling = true, CallingConvention = CallingConvention.StdCall, SetLastError = true)]
         private static extern SafeWinHttpHandle WinHttpOpen([In] [Optional] [MarshalAs(UnmanagedType.LPWStr)]
             string pwszUserAgent,
             [In] uint dwAccessType, [In] [MarshalAs(UnmanagedType.LPWStr)] string pwszProxyName,
