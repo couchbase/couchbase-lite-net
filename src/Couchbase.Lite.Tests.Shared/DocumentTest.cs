@@ -1808,21 +1808,21 @@ namespace Test
         [Fact]
         public void TestSetAndGetExpirationFromDoc()
         {
-            var dto30 = DateTimeOffset.Now.AddSeconds(30);
-            var dto0 = DateTimeOffset.Now;
+            var dto30 = DateTimeOffset.UtcNow.AddSeconds(30);
+            var dto0 = DateTimeOffset.UtcNow;
 
             using (var doc1a = new MutableDocument("doc1"))
             using (var doc1b = new MutableDocument("doc2"))
             using (var doc1c = new MutableDocument("doc3")) {
-                doc1a.SetInt("answer", 42);
+                doc1a.SetInt("answer", 12);
                 doc1a.SetValue("options", new[] { 1, 2, 3 });
                 Db.Save(doc1a);
 
-                doc1b.SetInt("answer", 42);
+                doc1b.SetInt("answer", 22);
                 doc1b.SetValue("options", new[] { 1, 2, 3 });
                 Db.Save(doc1b);
 
-                doc1c.SetInt("answer", 42);
+                doc1c.SetInt("answer", 32);
                 doc1c.SetValue("options", new[] { 1, 2, 3 });
                 Db.Save(doc1c);
 
@@ -1834,6 +1834,22 @@ namespace Test
             v.Should().BeSameDateAs(dto30.DateTime);
             Db.GetDocumentExpiration("doc2").Should().Be(null);
             Db.GetDocumentExpiration("doc3").Should().Be(null);
+        }
+
+        [Fact]
+        public void TestSetExpirationFromDoc()
+        {
+            var dto3 = DateTimeOffset.UtcNow.AddSeconds(3);
+            using (var doc1a = new MutableDocument("doc1")) {
+                doc1a.SetInt("answer", 12);
+                doc1a.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1a);
+
+                Db.SetDocumentExpiration("doc1", dto3).Should().Be(true);
+
+            }
+            Thread.Sleep(4000);
+            var doc = Db.GetDocument("doc1").Should().BeNull();
         }
 
         [Fact]
@@ -1850,6 +1866,24 @@ namespace Test
             var dto30 = DateTimeOffset.Now.AddSeconds(30);
             Action badAction = (() => Db.GetDocumentExpiration("not_exist"));
             badAction.ShouldThrow<CouchbaseLiteException>("Cannot find the document.");
+        }
+
+        [Fact]
+        public void TestLongExpiration()
+        {
+            var now = DateTime.UtcNow;
+            using (var doc = new MutableDocument("doc")) {
+                doc.SetInt("answer", 42);
+                doc.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc);
+
+                Db.GetDocumentExpiration("doc").Should().BeNull();
+                Db.SetDocumentExpiration("doc", new DateTimeOffset(DateTime.UtcNow.AddDays(60)));
+
+                var exp = Db.GetDocumentExpiration("doc");
+                exp.Should().NotBeNull();
+                (Math.Abs((exp.Value - now).TotalDays - 60.0) < 1.0).Should().BeTrue();
+            }
         }
 
         private void PopulateData(MutableDocument doc)

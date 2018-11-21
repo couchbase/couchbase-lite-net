@@ -23,6 +23,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
@@ -94,6 +95,8 @@ namespace Couchbase.Lite
 
         #region Variables
 
+        private static readonly TimeSpan HousekeepingDelayAfterOpen = TimeSpan.FromSeconds(3);
+
         [NotNull]
         private readonly Dictionary<string, Tuple<IntPtr, GCHandle>> _docObs = new Dictionary<string, Tuple<IntPtr, GCHandle>>();
 
@@ -111,10 +114,11 @@ namespace Couchbase.Lite
         [NotNull]
         private readonly TaskFactory _callbackFactory = new TaskFactory(new QueueTaskScheduler());
 
-        #if false
+#if false
         private IJsonSerializer _jsonSerializer;
-        #endif
+#endif
 
+        private Timer _expirePurgeTimer;
         private C4DatabaseObserver* _obs;
         private GCHandle _obsContext;
         private C4Database* _c4db;
@@ -745,8 +749,13 @@ namespace Couchbase.Lite
         public void Purge(string docId)
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(docId), docId);
-            var document = GetDocument(docId);
-            Purge(document);
+            try {
+                LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
+                PurgeDocById(docId);
+                LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, true, e));
+            } catch (Exception) {
+                LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
+            }
         }
 
         /// <summary>
@@ -762,9 +771,6 @@ namespace Couchbase.Lite
         /// doesn't exist</exception>
         public bool SetDocumentExpiration(string docId, DateTimeOffset? timestamp)
         {
-            if(GetDocument(docId) == null) {
-                throw new CouchbaseLiteException(C4ErrorCode.NotFound, "Cannot find the document.");
-            }
             var succeed = false;
             ThreadSafety.DoLockedBridge(err =>
             {
@@ -774,6 +780,7 @@ namespace Couchbase.Lite
                     var millisSinceEpoch = timestamp.Value.ToUnixTimeMilliseconds();
                     succeed = Native.c4doc_setExpiration(_c4db, docId, millisSinceEpoch, err);
                 }
+                SchedulePurgeExpired(TimeSpan.Zero);
                 return succeed;
             });
             return succeed;
@@ -951,6 +958,29 @@ namespace Couchbase.Lite
                 }
             });
         }
+
+        internal void SchedulePurgeExpired(TimeSpan delay)
+        {
+            var nextExpiration = Native.c4db_nextDocExpiration(_c4db);
+            if (nextExpiration > 0) {
+                var delta = (DateTimeOffset.FromUnixTimeMilliseconds((long)nextExpiration) - DateTimeOffset.UtcNow).Add(TimeSpan.FromSeconds(1));
+                var expirationTimeSpan = delta > delay ? delta : delay;
+                if (expirationTimeSpan.TotalMilliseconds >= UInt32.MaxValue) {
+                    _expirePurgeTimer.Change(TimeSpan.FromMilliseconds(UInt32.MaxValue - 1), TimeSpan.FromMilliseconds(-1));
+                    Log.To.Database.I(Tag, "{0:F3} seconds is too far in the future to schedule a document expiration," +
+                                           " will run again at the maximum value of {0:F3} seconds", expirationTimeSpan.TotalSeconds, (UInt32.MaxValue - 1) / 1000);
+                } else if (expirationTimeSpan.TotalSeconds <= Double.Epsilon) {
+                    _expirePurgeTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                    PurgeExpired(null);
+                } else {
+                    _expirePurgeTimer.Change(expirationTimeSpan, TimeSpan.FromMilliseconds(-1));
+                    Log.To.Database.I(Tag, "Scheduling next doc expiration in {0:F3} seconds", expirationTimeSpan.TotalSeconds);
+                }
+            } else {
+                Log.To.Database.I(Tag, "No pending doc expirations");
+            }
+        }
+
         #endregion
 
         #region Private Methods
@@ -1089,6 +1119,8 @@ namespace Couchbase.Lite
                     return Native.c4db_open(path, &localConfig2, err);
                 });
             });
+
+            _expirePurgeTimer = new Timer(PurgeExpired, null, HousekeepingDelayAfterOpen, TimeSpan.FromMilliseconds(-1));
         }
 
         private void PostDatabaseChanged()
@@ -1363,6 +1395,29 @@ namespace Couchbase.Lite
             } else if (document.Database != this) {
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Cannot operate on a document from another database");
             }
+        }
+
+        private void PurgeDocById(string id)
+        {
+            ThreadSafety.DoLockedBridge(err =>
+            {
+                return Native.c4db_purgeDoc(_c4db, id, err);
+            });
+        }
+
+        private void PurgeExpired(object state)
+        {
+            var cnt = 0L;
+            ThreadSafety.DoLockedBridge(err =>
+            {
+                CheckOpen();
+                cnt = Native.c4db_purgeExpiredDocs(_c4db, err);
+                Log.To.Database.I(Tag, "{0} purged {1} expired documents", this, cnt);
+                SchedulePurgeExpired(TimeSpan.FromSeconds(1));
+                if (err->code>0 && err->domain>0)
+                    return false;
+                return true;
+            });
         }
 
         #endregion
