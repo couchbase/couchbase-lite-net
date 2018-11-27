@@ -749,13 +749,18 @@ namespace Couchbase.Lite
         public void Purge(string docId)
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(docId), docId);
-            try {
+            ThreadSafety.DoLocked(() =>
+            {
                 LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
-                PurgeDocById(docId);
-                LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, true, e));
-            } catch (Exception) {
-                LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
-            }
+                try {
+                    PurgeDocById(docId);
+                } catch (Exception e) {
+                    Log.To.Database.W(Tag, "Exception during Purge doc by id...", e);
+                    throw;
+                } finally {
+                    LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
+                }
+            });
         }
 
         /// <summary>

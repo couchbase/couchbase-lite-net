@@ -1444,6 +1444,26 @@ namespace Test
         }
 
         [Fact]
+        public void TestPurgeDocumentById()
+        {
+            var doc = new MutableDocument("doc1");
+            doc.SetString("type", "profile");
+            doc.SetString("name", "Scott");
+            doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
+
+            Db.Invoking(db => db.Purge("doc1")).ShouldThrow<CouchbaseLiteException>().Where(e =>
+                e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
+
+            // Save:
+            SaveDocument(doc);
+
+            // Purge should not throw:
+            Db.Purge("doc1");
+
+            Db.GetDocument("doc1").Should().BeNull();
+        }
+
+        [Fact]
         public void TestReopenDB()
         {
             var doc = new MutableDocument("doc1");
