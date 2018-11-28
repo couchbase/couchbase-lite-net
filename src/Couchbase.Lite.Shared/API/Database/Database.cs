@@ -1401,16 +1401,12 @@ namespace Couchbase.Lite
         private void PurgeExpired(object state)
         {
             var cnt = 0L;
-            ThreadSafety.DoLockedBridge(err =>
+            LiteCoreBridge.Check(err =>
             {
                 CheckOpen();
                 cnt = Native.c4db_purgeExpiredDocs(_c4db, err);
-                if (err->code > 0 && err->domain > 0) {
-                    return false;
-                } else {
-                    Log.To.Database.I(Tag, "{0} purged {1} expired documents", this, cnt);
-                    return true;
-                }
+                Log.To.Database.I(Tag, "{0} purged {1} expired documents", this, cnt);
+                return err;
             });
             SchedulePurgeExpired(TimeSpan.FromSeconds(1));
         }
