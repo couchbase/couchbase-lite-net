@@ -749,7 +749,7 @@ namespace Couchbase.Lite
         public void Purge(string docId)
         {
             CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(docId), docId);
-            ThreadSafety.DoLocked(() => InBatch(() => PurgeDocById(docId)));
+            InBatch(() => PurgeDocById(docId));
         }
 
         /// <summary>
@@ -791,8 +791,9 @@ namespace Couchbase.Lite
         /// doesn't exist</exception>
         public DateTimeOffset? GetDocumentExpiration(string docId)
         {
-            if (LiteCoreBridge.Check(err => Native.c4doc_get(_c4db, docId, true, err)) == null)
+            if (LiteCoreBridge.Check(err => Native.c4doc_get(_c4db, docId, true, err)) == null) {
                 throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+            }
             var res = (long)Native.c4doc_getExpiration(_c4db, docId);
             if (res == 0) {
                 return null;
