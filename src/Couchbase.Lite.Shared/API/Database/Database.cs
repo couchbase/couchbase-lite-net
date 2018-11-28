@@ -765,8 +765,6 @@ namespace Couchbase.Lite
         /// doesn't exist</exception>
         public bool SetDocumentExpiration(string docId, DateTimeOffset? timestamp)
         {
-            if (LiteCoreBridge.Check(err => Native.c4doc_get(_c4db, docId, true, err)) == null)
-                return false;
             var succeed = false;
             ThreadSafety.DoLockedBridge(err =>
             {
@@ -794,7 +792,7 @@ namespace Couchbase.Lite
         public DateTimeOffset? GetDocumentExpiration(string docId)
         {
             if (LiteCoreBridge.Check(err => Native.c4doc_get(_c4db, docId, true, err)) == null)
-                return null;
+                throw new CouchbaseLiteException(C4ErrorCode.NotFound);
             var res = (long)Native.c4doc_getExpiration(_c4db, docId);
             if (res == 0) {
                 return null;
