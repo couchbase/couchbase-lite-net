@@ -21,7 +21,7 @@ using System.Linq;
 using System.Net;
 
 using Couchbase.Lite.DI;
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 
 namespace Couchbase.Lite.Support
 {
@@ -44,7 +44,7 @@ namespace Couchbase.Lite.Support
         public IWebProxy CreateProxy(Uri destination)
         {
             if (!_Logged) {
-                Log.To.Sync.W(Tag, "Linux does not support per URL proxy evaluation");
+                WriteLog.To.Sync.W(Tag, "Linux does not support per URL proxy evaluation");
                 _Logged = true;
             }
 

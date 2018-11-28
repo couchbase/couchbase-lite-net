@@ -21,7 +21,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
@@ -102,7 +102,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IJoin On(IExpression expression)
         {
-            CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(expression), expression);
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
 
             _on = expression;
             return this;
@@ -124,7 +124,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IWhere Where(IExpression expression)
         {
-            CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(expression), expression);
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
 
             return new Where(this, expression);
         }

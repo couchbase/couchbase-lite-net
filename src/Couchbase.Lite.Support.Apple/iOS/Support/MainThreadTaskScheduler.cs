@@ -21,7 +21,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 
 using Foundation;
 
@@ -44,12 +44,17 @@ namespace Couchbase.Lite.Support
 
         #region Overrides
 
+        protected override IEnumerable<Task> GetScheduledTasks()
+        {
+            throw new NotSupportedException();
+        }
+
         protected override void QueueTask(Task task)
         {
             NSRunLoop.Main.BeginInvokeOnMainThread(() =>
             {
                 if (!TryExecuteTask(task)) {
-                    Log.To.Couchbase.W(Tag, "Failed to execute task");
+                    WriteLog.To.Couchbase.W(Tag, "Failed to execute task");
                 }
             });
         }
@@ -61,11 +66,6 @@ namespace Couchbase.Lite.Support
             }
 
             return TryExecuteTask(task);
-        }
-
-        protected override IEnumerable<Task> GetScheduledTasks()
-        {
-            throw new NotSupportedException();
         }
 
         #endregion

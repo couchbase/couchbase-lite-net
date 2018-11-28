@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -23,8 +24,8 @@ using System.IO;
 using System.Runtime.InteropServices;
 
 using Couchbase.Lite.Internal.Doc;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Interop;
-using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
@@ -42,12 +43,13 @@ namespace Couchbase.Lite
     {
         #region Constants
 
+        private const string ContentTypeKey = "content_type";
+        private const string DigestKey = "digest";
+        private const string LengthKey = "length";
+
         private const uint MaxCachedContentLength = 8 * 1024;
         private const int ReadBufferSize = 8 * 1024;
         private const string Tag = nameof(Blob);
-        private const string ContentTypeKey = "content_type";
-        private const string LengthKey = "length";
-        private const string DigestKey = "digest";
 
         #endregion
 
@@ -85,7 +87,7 @@ namespace Couchbase.Lite
                     C4Error err;
                     var content = Native.c4blob_getContents(blobStore, key, &err);
                     if (err.domain == C4ErrorDomain.LiteCoreDomain && err.code == (int)C4ErrorCode.NotFound) {
-                        Log.To.Database.W(Tag,
+                        WriteLog.To.Database.W(Tag,
                             "Blob in database has no data (are you calling Blob.Content from a pull filter function?), returning null...");
                         return null;
                     }
@@ -212,7 +214,7 @@ namespace Couchbase.Lite
         public Blob(string contentType, [NotNull]byte[] content)
         {
             ContentType = contentType;
-            _content = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(content), content);
+            _content = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(content), content);
             Length = content.Length;
         }
 
@@ -226,7 +228,7 @@ namespace Couchbase.Lite
         public Blob(string contentType, [NotNull]Stream stream)
         {
             ContentType = contentType;
-            _initialContentStream = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(stream), stream);
+            _initialContentStream = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(stream), stream);
         }
 
         /// <summary>
@@ -239,7 +241,7 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentException">Thrown if fileUrl is not a file based URL</exception>
         public Blob(string contentType, [NotNull]Uri fileUrl)
         {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(fileUrl), fileUrl);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(fileUrl), fileUrl);
 
             if(!fileUrl.IsFile) {
                 throw new ArgumentException($"{fileUrl} must be a file-based URL", nameof(fileUrl));
@@ -248,22 +250,22 @@ namespace Couchbase.Lite
             ContentType = contentType;
             _initialContentStream = File.OpenRead(fileUrl.AbsolutePath);
         }
-        
+
         internal Blob([NotNull]Database db, [NotNull]IDictionary<string, object> properties)
         {
             if(properties == null) {
                 throw new ArgumentNullException(nameof(properties));
             }
 
-            _db = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(db), db);
-            _properties = new Dictionary<string, object>(CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(properties), properties));
+            _db = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(db), db);
+            _properties = new Dictionary<string, object>(CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(properties), properties));
             _properties.Remove(Constants.ObjectTypeProperty);
 
             Length = properties.GetCast<int>(LengthKey);
             Digest = properties.GetCast<string>(DigestKey);
             ContentType = properties.GetCast<string>(ContentTypeKey);
             if(Digest == null) {
-                Log.To.Database.W(Tag, "Blob read from database has missing digest");
+                WriteLog.To.Database.W(Tag, "Blob read from database has missing digest");
             }
         }
 
@@ -281,7 +283,7 @@ namespace Couchbase.Lite
                 try {
                     Install(database);
                 } catch (Exception) {
-                    Log.To.Database.W(Tag, "Error installing blob to database, throwing...");
+                    WriteLog.To.Database.W(Tag, "Error installing blob to database, throwing...");
                     throw;
                 }
 
@@ -306,7 +308,7 @@ namespace Couchbase.Lite
                 return false;
             }
         }
-        
+
         private void Install([NotNull]Database db)
         {
             Debug.Assert(db != null);

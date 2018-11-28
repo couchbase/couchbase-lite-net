@@ -18,7 +18,7 @@
 
 using System.Diagnostics;
 
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
@@ -62,8 +62,8 @@ namespace Couchbase.Lite.Sync
         /// <param name="password">The password to send through HTTP Basic authentication</param>
         public BasicAuthenticator([NotNull]string username, [NotNull]string password)
         {
-            Username = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(username), username);
-            Password = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(password), password);
+            Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
+            Password = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(password), password);
         }
 
         #endregion

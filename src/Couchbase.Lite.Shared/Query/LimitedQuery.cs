@@ -16,7 +16,7 @@
 //  limitations under the License.
 // 
 
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
@@ -34,7 +34,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public ILimit Limit(IExpression limit)
         {
-            CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(limit), limit);
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(limit), limit);
 
             LimitValue = limit;
             return this;
@@ -42,8 +42,8 @@ namespace Couchbase.Lite.Internal.Query
 
         public ILimit Limit(IExpression limit, IExpression offset)
         {
-            CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(limit), limit);
-            CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(offset), offset);
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(limit), limit);
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(offset), offset);
 
             LimitValue = limit;
             SkipValue = offset;

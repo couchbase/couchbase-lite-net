@@ -17,15 +17,14 @@
 //
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Security.Authentication;
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Interop;
-using Couchbase.Lite.Logging;
 
 using JetBrains.Annotations;
 
@@ -35,26 +34,13 @@ namespace Couchbase.Lite
 {
     internal static class Status
     {
+        #region Constants
+
         private const string Tag = nameof(Status);
 
-        private static IEnumerable<Exception> FlattenedExceptions([NotNull]Exception top)
-        {
-            if (top is AggregateException ae) {
-                foreach (var inner in ae.InnerExceptions) {
-                    foreach (var nested in FlattenedExceptions(inner)) {
-                        yield return nested;
-                    }
-                }
-            }
+        #endregion
 
-            if (top.InnerException != null) {
-                foreach (var inner in FlattenedExceptions(top.InnerException)) {
-                    yield return inner;
-                }
-            }
-
-            yield return top;
-        }
+        #region Public Methods
 
         public static unsafe void ConvertNetworkError(Exception e, C4Error* outError)
         {
@@ -127,7 +113,7 @@ namespace Couchbase.Lite
 
             if (c4err.code == (int) C4ErrorCode.UnexpectedError &&
                 c4err.domain == C4ErrorDomain.LiteCoreDomain) {
-                Log.To.Couchbase.W(Tag, $"No mapping for {e.GetType().Name}; interpreting as 'UnexpectedError'");
+                WriteLog.To.Couchbase.W(Tag, $"No mapping for {e.GetType().Name}; interpreting as 'UnexpectedError'");
                 if(message == null && e is AggregateException ae) {
                     message = ae.InnerExceptions.Select(x => x.Message).Aggregate((x, y) => $"{x}; {y}");
                 }
@@ -136,5 +122,30 @@ namespace Couchbase.Lite
             // Use the message of the top-level exception because it will print out nested ones too
             *outError = Native.c4error_make(c4err.domain, c4err.code, message ?? e.Message);
         }
+
+        #endregion
+
+        #region Private Methods
+
+        private static IEnumerable<Exception> FlattenedExceptions([NotNull]Exception top)
+        {
+            if (top is AggregateException ae) {
+                foreach (var inner in ae.InnerExceptions) {
+                    foreach (var nested in FlattenedExceptions(inner)) {
+                        yield return nested;
+                    }
+                }
+            }
+
+            if (top.InnerException != null) {
+                foreach (var inner in FlattenedExceptions(top.InnerException)) {
+                    yield return inner;
+                }
+            }
+
+            yield return top;
+        }
+
+        #endregion
     }
 }

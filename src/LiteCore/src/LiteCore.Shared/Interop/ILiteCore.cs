@@ -31,7 +31,7 @@ namespace LiteCore.Interop
         bool c4error_mayBeTransient(C4Error err);
         bool c4error_mayBeNetworkDependent(C4Error err);
         void c4log_writeToCallback(C4LogLevel level, C4LogCallback callback, bool preformatted);
-        bool c4log_writeToBinaryFile(C4LogLevel level, string path, C4Error* error);
+        bool c4log_writeToBinaryFile(C4LogFileOptions options, C4Error* error);
         C4LogLevel c4log_callbackLevel();
         void c4log_setCallbackLevel(C4LogLevel level);
         C4LogLevel c4log_binaryFileLevel();
@@ -362,7 +362,6 @@ namespace LiteCore.Interop
         FLSliceResult c4error_getDescription(C4Error error);
         byte* c4error_getDescriptionC(C4Error error, char[] buffer, UIntPtr bufferSize);
         C4Error c4error_make(C4ErrorDomain domain, int code, FLSlice message);
-        bool c4log_writeToBinaryFile(C4LogLevel level, FLSlice path, C4Error* error);
         byte* c4log_getDomainName(C4LogDomain* x);
         void c4slog(C4LogDomain* domain, C4LogLevel level, FLSlice msg);
         FLSliceResult c4_getBuildInfo();

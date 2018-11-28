@@ -20,7 +20,7 @@ using System;
 using System.Collections.Generic;
 
 using Couchbase.Lite.Internal.Doc;
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
@@ -67,7 +67,7 @@ namespace Couchbase.Lite.Query
         /// <param name="parameters">The object to copy values from</param>
         public Parameters([NotNull]Parameters parameters)
         {
-            CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(parameters), parameters);
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(parameters), parameters);
             _params = new Dictionary<string, object>(parameters._params);
         }
 
@@ -209,7 +209,7 @@ namespace Couchbase.Lite.Query
         [ContractAnnotation("name:null => halt")]
         public Parameters SetValue(string name, object value)
         {
-            CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(name), name);
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
 
             // HACK: Use side effect of data validation
             var cbVal = DataOps.ToCouchbaseObject(value);

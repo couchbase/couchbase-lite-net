@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -23,12 +24,11 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
-using Couchbase.Lite.DI;
-using Couchbase.Lite.Interop;
-using Couchbase.Lite.Logging;
-using Couchbase.Lite.Util;
 
-using LiteCore;
+using Couchbase.Lite.DI;
+using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Interop;
+
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Sync
@@ -40,11 +40,11 @@ namespace Couchbase.Lite.Sync
         private const int MaxRedirects = 10;
         private const string Tag = nameof(HTTPLogic);
 
-		#endregion
+        public static readonly string UserAgent = GetUserAgent();
 
-		#region Variables
+        #endregion
 
-		public static readonly string UserAgent = GetUserAgent();
+        #region Variables
 
         private readonly Dictionary<string, string> _headers = new Dictionary<string, string>();
         private string _authorizationHeader;
@@ -60,6 +60,8 @@ namespace Couchbase.Lite.Sync
         public Exception Error { get; private set; }
 
         public bool HandleRedirects { get; set; }
+
+        public bool HasProxy { get; set; }
 
         public int HttpStatus { get; private set; }
 
@@ -84,8 +86,6 @@ namespace Couchbase.Lite.Sync
 
         public bool ShouldRetry { get; private set; }
 
-        public bool HasProxy { get; set; }
-
         public Uri UrlRequest => _urlRequest.Uri;
 
         public bool UseTls
@@ -109,17 +109,6 @@ namespace Couchbase.Lite.Sync
         #endregion
 
         #region Public Methods
-
-        public byte[] ProxyRequest(string user="", string password="")
-        {
-            String send = String.Format("CONNECT {0}:{1} HTTP/1.1\r\nHost: {0}\r\nProxy-Connection: keep-alive\r\n\r\n",
-                                            _urlRequest.Host, _urlRequest.Port);
-            if (user != "" && password != "") {
-                string basic = String.Format("CONNECT {0}:{1} HTTP/1.1\r\nHost: {0}\r\nContent-Length: 0\r\nProxy-Connection: Keep-Alive\r\nProxy-Authorization: Basic {2}\r\nPragma: no-cache\r\n\r\n\r\n",
-                                                _urlRequest.Host, _urlRequest.Port, Encoding.ASCII.GetBytes(String.Format("{0}:{1}", user, password)));
-            }
-            return Encoding.ASCII.GetBytes(send);
-        }
 
         public byte[] HTTPRequestData()
         {
@@ -148,6 +137,17 @@ namespace Couchbase.Lite.Sync
             return Encoding.ASCII.GetBytes(stringBuilder.ToString());
         }
 
+        public byte[] ProxyRequest(string user="", string password="")
+        {
+            String send = String.Format("CONNECT {0}:{1} HTTP/1.1\r\nHost: {0}\r\nProxy-Connection: keep-alive\r\n\r\n",
+                                            _urlRequest.Host, _urlRequest.Port);
+            if (user != "" && password != "") {
+                string basic = String.Format("CONNECT {0}:{1} HTTP/1.1\r\nHost: {0}\r\nContent-Length: 0\r\nProxy-Connection: Keep-Alive\r\nProxy-Authorization: Basic {2}\r\nPragma: no-cache\r\n\r\n\r\n",
+                                                _urlRequest.Host, _urlRequest.Port, Encoding.ASCII.GetBytes(String.Format("{0}:{1}", user, password)));
+            }
+            return Encoding.ASCII.GetBytes(send);
+        }
+
         public void ReceivedResponse(HttpMessageParser parser)
         {
             ShouldContinue = ShouldRetry = false;
@@ -171,7 +171,7 @@ namespace Couchbase.Lite.Sync
                     break;
                 case HttpStatusCode.Unauthorized:
                 case HttpStatusCode.ProxyAuthenticationRequired:
-                    Log.To.Sync.I(Tag, "HTTP auth failed");
+                    WriteLog.To.Sync.I(Tag, "HTTP auth failed");
                     Error = new CouchbaseNetworkException(httpStatus);
                     break;
                 default:
@@ -188,18 +188,7 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods
 
-        private string CreateAuthHeader()
-        {
-            if (Credential == null) {
-                return null;
-            }
-
-            var cipher = Encoding.UTF8.GetBytes($"{Credential.UserName}:{Credential.Password}");
-            var encodedVal = Convert.ToBase64String(cipher);
-            return $"Basic {encodedVal}";
-        }
-
-		private static string GetUserAgent()
+        private static string GetUserAgent()
 		{
 
 			var versionAtt = (AssemblyInformationalVersionAttribute)typeof(Database).GetTypeInfo().Assembly
@@ -225,7 +214,7 @@ namespace Couchbase.Lite.Sync
 			}
 			catch (Exception e)
 			{
-				Log.To.Couchbase.W(Tag, "Error getting commit information", e);
+				WriteLog.To.Couchbase.W(Tag, "Error getting commit information", e);
 			}
 
 			var runtimePlatform = Service.GetInstance<IRuntimePlatform>();
@@ -233,6 +222,17 @@ namespace Couchbase.Lite.Sync
 			var hardware = runtimePlatform != null ? $"; {runtimePlatform.HardwareName}" : "";
 			return $"CouchbaseLite/{version} (.NET; {osDescription}{hardware}) Build/{build} LiteCore/{Native.c4_getVersion()} Commit/{commit}";
 		}
+
+        private string CreateAuthHeader()
+        {
+            if (Credential == null) {
+                return null;
+            }
+
+            var cipher = Encoding.UTF8.GetBytes($"{Credential.UserName}:{Credential.Password}");
+            var encodedVal = Convert.ToBase64String(cipher);
+            return $"Basic {encodedVal}";
+        }
 
         private bool Redirect(HttpMessageParser parser)
         {

@@ -28,6 +28,7 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Doc;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Interop;
@@ -150,6 +151,9 @@ namespace Couchbase.Lite
         [NotNull]
         public DocumentFragment this[string id] => new DocumentFragment(GetDocument(id));
 
+        [NotNull]
+        public static Log Log { get; } = new Log();
+
         /// <summary>
         /// Gets the database's name
         /// </summary>
@@ -243,7 +247,7 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseException">Thrown if an error condition was returned by LiteCore</exception>
         public Database([NotNull]string name, [CanBeNull]DatabaseConfiguration configuration = null)
         {
-            Name = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
+            Name = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
             Config = configuration?.Freeze() ?? new DatabaseConfiguration(true);
             Open();
         }
@@ -262,7 +266,7 @@ namespace Couchbase.Lite
             try {
                 Dispose(false);
             } catch (Exception e) {
-                Log.To.Database.E(Tag, "Error during finalizer, swallowing!", e);
+                WriteLog.To.Database.E(Tag, "Error during finalizer, swallowing!", e);
             }
         }
 
@@ -285,8 +289,8 @@ namespace Couchbase.Lite
         [ContractAnnotation("name:null => halt; path:null => halt")]
         public static void Copy([NotNull]string path, [NotNull]string name, [CanBeNull]DatabaseConfiguration config)
         {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(path), path);
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(path), path);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
             var destPath = DatabasePath(name, config?.Directory);
 			LiteCoreBridge.Check(err =>
@@ -320,7 +324,7 @@ namespace Couchbase.Lite
         [ContractAnnotation("name:null => halt")]
         public static void Delete([NotNull]string name, [CanBeNull]string directory)
         {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
             var path = DatabasePath(name, directory);
             LiteCoreBridge.Check(err => Native.c4db_deleteAtPath(path, err) || err->code == 0);
@@ -338,7 +342,7 @@ namespace Couchbase.Lite
         [ContractAnnotation("name:null => halt")]
         public static bool Exists([NotNull]string name, [CanBeNull]string directory)
         {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
             return Directory.Exists(DatabasePath(name, directory));
         }
@@ -348,56 +352,59 @@ namespace Couchbase.Lite
 		/// </summary>
 		/// <param name="domains">The log domain(s)</param>
 		/// <param name="level">The log level</param>
+		[Obsolete("This has been superseded by Database.Log.Console.  The ability to set independent levels" +
+		          "per domain has been removed, and so this function will now only reflect 'None' or 'Not None'")]
 		public static void SetLogLevel(LogDomain domains, LogLevel level)
 		{
-			if(domains.HasFlag(LogDomain.Couchbase)) {
-				Log.To.Couchbase.Level = level;
-			    Log.To.LiteCore.Level = level;
-			}
+			//if(domains.HasFlag(LogDomain.Couchbase)) {
+			//	WriteLog.To.Couchbase.Level = level;
+			//    WriteLog.To.LiteCore.Level = level;
+			//}
 
-			if(domains.HasFlag(LogDomain.Database)) {
-				Log.To.Database.Level = level;
-			}
+			//if(domains.HasFlag(LogDomain.Database)) {
+			//	WriteLog.To.Database.Level = level;
+			//}
 
-			if(domains.HasFlag(LogDomain.Query)) {
-				Log.To.Query.Level = level;
-			}
+			//if(domains.HasFlag(LogDomain.Query)) {
+			//	WriteLog.To.Query.Level = level;
+			//}
 
-			if(domains.HasFlag(LogDomain.Replicator)) {
-				Log.To.Sync.Level = level;
-			    Native.c4log_setLevel(Log.LogDomainSyncBusy, (C4LogLevel)level);
-			}
+			//if(domains.HasFlag(LogDomain.Replicator)) {
+			//	WriteLog.To.Sync.Level = level;
+			//    Native.c4log_setLevel(Log.LogDomainSyncBusy, (C4LogLevel)level);
+			//}
 
-		    if (domains.HasFlag(LogDomain.Network)) {
-		        Native.c4log_setLevel(Log.LogDomainBLIP, (C4LogLevel)level);
-                Native.c4log_setLevel(Log.LogDomainWebSocket, (C4LogLevel)level);
-		    }
+		 //   if (domains.HasFlag(LogDomain.Network)) {
+		 //       Native.c4log_setLevel(Log.LogDomainBLIP, (C4LogLevel)level);
+   //             Native.c4log_setLevel(Log.LogDomainWebSocket, (C4LogLevel)level);
+		 //   }
 		}
 
         internal static IReadOnlyDictionary<LogDomain, LogLevel> GetLogLevels(LogDomain domains)
         {
-            var retVal = new Dictionary<LogDomain, LogLevel>();
-            if(domains.HasFlag(LogDomain.Couchbase)) {
-                retVal[LogDomain.Couchbase] = Log.To.Couchbase.Level;
-            }
+            return null;
+            //var retVal = new Dictionary<LogDomain, LogLevel>();
+            //if(domains.HasFlag(LogDomain.Couchbase)) {
+            //    retVal[LogDomain.Couchbase] = WriteLog.To.Couchbase.Level;
+            //}
 
-            if(domains.HasFlag(LogDomain.Database)) {
-                retVal[LogDomain.Database] = Log.To.Database.Level;
-            }
+            //if(domains.HasFlag(LogDomain.Database)) {
+            //    retVal[LogDomain.Database] = WriteLog.To.Database.Level;
+            //}
 
-            if(domains.HasFlag(LogDomain.Query)) {
-                retVal[LogDomain.Query] = Log.To.Query.Level;
-            }
+            //if(domains.HasFlag(LogDomain.Query)) {
+            //    retVal[LogDomain.Query] = WriteLog.To.Query.Level;
+            //}
 
-            if(domains.HasFlag(LogDomain.Replicator)) {
-                retVal[LogDomain.Replicator] = Log.To.Sync.Level;
-            }
+            //if(domains.HasFlag(LogDomain.Replicator)) {
+            //    retVal[LogDomain.Replicator] = WriteLog.To.Sync.Level;
+            //}
 
-            if (domains.HasFlag(LogDomain.Network)) {
-                retVal[LogDomain.Network] = (LogLevel)Native.c4log_getLevel(Log.LogDomainBLIP);
-            }
+            //if (domains.HasFlag(LogDomain.Network)) {
+            //    retVal[LogDomain.Network] = (LogLevel)Native.c4log_getLevel(WriteLog.LogDomainBLIP);
+            //}
 
-            return retVal;
+            //return retVal;
         }
         
         /// <summary>
@@ -415,7 +422,7 @@ namespace Couchbase.Lite
         public ListenerToken AddChangeListener([CanBeNull]TaskScheduler scheduler,
             [NotNull]EventHandler<DatabaseChangedEventArgs> handler)
         {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(handler), handler);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
 
             return ThreadSafety.DoLocked(() =>
             {
@@ -459,8 +466,8 @@ namespace Couchbase.Lite
         public ListenerToken AddDocumentChangeListener([NotNull]string id, [CanBeNull]TaskScheduler scheduler,
             [NotNull]EventHandler<DocumentChangedEventArgs> handler)
         {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(id), id);
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(handler), handler);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
 
             return ThreadSafety.DoLocked(() =>
             {
@@ -531,8 +538,8 @@ namespace Couchbase.Lite
         [ContractAnnotation("name:null => halt; index:null => halt")]
         public void CreateIndex([NotNull]string name, [NotNull]IIndex index)
         {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(index), index);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(index), index);
 
             ThreadSafety.DoLocked(() =>
             {
@@ -609,7 +616,7 @@ namespace Couchbase.Lite
         [ContractAnnotation("document:null => halt")]
         public bool Delete([NotNull]Document document, ConcurrencyControl concurrencyControl)
         {
-            var doc = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(document), document);
+            var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             return Save(doc, concurrencyControl, true);
         }
 
@@ -620,7 +627,7 @@ namespace Couchbase.Lite
         [ContractAnnotation("null => halt")]
         public void DeleteIndex(string name)
         {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(name), name);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
             ThreadSafety.DoLockedBridge(err =>
             {
@@ -638,7 +645,7 @@ namespace Couchbase.Lite
         [ContractAnnotation("null => halt")]
         public Document GetDocument(string id)
         {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(id), id);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
             return ThreadSafety.DoLocked(() => GetDocumentInternal(id));
         }
 
@@ -681,7 +688,7 @@ namespace Couchbase.Lite
         [ContractAnnotation("null => halt")]
         public void InBatch(Action action)
         {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(action), action);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(action), action);
 
             ThreadSafety.DoLocked(() =>
             {
@@ -693,7 +700,7 @@ namespace Couchbase.Lite
                 try {
                     action();
                 } catch (Exception e) {
-                    Log.To.Database.W(Tag, "Exception during InBatch, rolling back...", e);
+                    WriteLog.To.Database.W(Tag, "Exception during InBatch, rolling back...", e);
                     success = false;
                     throw;
                 } finally {
@@ -716,7 +723,7 @@ namespace Couchbase.Lite
         [ContractAnnotation("null => halt")]
         public void Purge(Document document)
         {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(document), document);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
 
             ThreadSafety.DoLocked(() =>
             {
@@ -750,7 +757,7 @@ namespace Couchbase.Lite
         [ContractAnnotation("null => halt")]
         public void Purge(string docId)
         {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(docId), docId);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(docId), docId);
             InBatch(() => PurgeDocById(docId));
         }
 
@@ -856,14 +863,14 @@ namespace Couchbase.Lite
         [ContractAnnotation("document:null => halt")]
         public bool Save(MutableDocument document, ConcurrencyControl concurrencyControl)
         {
-            var doc = CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(document), document);
+            var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             return Save(doc, concurrencyControl, false);
         }
 
         #if CBL_LINQ
         public void Save(Couchbase.Lite.Linq.IDocumentModel model)
         {
-            CBDebug.MustNotBeNull(Log.To.Database, Tag, nameof(model), model);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(model), model);
 
             ThreadSafety.DoLocked(() =>
             {
@@ -903,13 +910,13 @@ namespace Couchbase.Lite
 
                         remoteDoc = new Document(this, docID);
                         if (!remoteDoc.SelectConflictingRevision()) {
-                            Log.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', skipping...",
+                            WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', skipping...",
                                 new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
                             return;
                         }
 
                         // Resolve conflict:
-                        Log.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
+                        WriteLog.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
                             new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevID,
                             remoteDoc.RevID);
                         var resolvedDoc = ResolveConflict(localDoc, remoteDoc);
@@ -935,17 +942,17 @@ namespace Couchbase.Lite
                 var expirationTimeSpan = delta > delay ? delta : delay;
                 if (expirationTimeSpan.TotalMilliseconds >= UInt32.MaxValue) {
                     _expirePurgeTimer?.Change(TimeSpan.FromMilliseconds(UInt32.MaxValue - 1), TimeSpan.FromMilliseconds(-1));
-                    Log.To.Database.I(Tag, "{0:F3} seconds is too far in the future to schedule a document expiration," +
+                    WriteLog.To.Database.I(Tag, "{0:F3} seconds is too far in the future to schedule a document expiration," +
                                            " will run again at the maximum value of {0:F3} seconds", expirationTimeSpan.TotalSeconds, (UInt32.MaxValue - 1) / 1000);
                 } else if (expirationTimeSpan.TotalMilliseconds <= Double.Epsilon) {
                     _expirePurgeTimer?.Change(Timeout.Infinite, Timeout.Infinite);
                     PurgeExpired(null);
                 } else {
                     _expirePurgeTimer?.Change(expirationTimeSpan, TimeSpan.FromMilliseconds(-1));
-                    Log.To.Database.I(Tag, "Scheduling next doc expiration in {0:F3} seconds", expirationTimeSpan.TotalSeconds);
+                    WriteLog.To.Database.I(Tag, "Scheduling next doc expiration in {0:F3} seconds", expirationTimeSpan.TotalSeconds);
                 }
             } else {
-                Log.To.Database.I(Tag, "No pending doc expirations");
+                WriteLog.To.Database.I(Tag, "No pending doc expirations");
             }
         }
 
@@ -1020,14 +1027,14 @@ namespace Couchbase.Lite
 
                 _docObs.Clear();
                 if (_unsavedDocuments.Count > 0) {
-                    Log.To.Database.W(Tag,
+                    WriteLog.To.Database.W(Tag,
                         $"Closing database with {_unsavedDocuments.Count} such as {_unsavedDocuments.Any()}");
                 }
 
                 _unsavedDocuments.Clear();
             }
 
-            Log.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(_c4db)}");
+            WriteLog.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(_c4db)}");
             LiteCoreBridge.Check(err => Native.c4db_close(_c4db, err));
             Native.c4db_free(_c4db);
             _c4db = null;
@@ -1041,7 +1048,7 @@ namespace Couchbase.Lite
 
             if (!doc.Exists || doc.IsDeleted) {
                 doc.Dispose();
-                Log.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist", 
+                WriteLog.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist", 
                     new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
                 return null;
             }
@@ -1079,7 +1086,7 @@ namespace Couchbase.Lite
             }
             #endif
 
-            Log.To.Database.I(Tag, $"Opening {encrypted}database at {path}");
+            WriteLog.To.Database.I(Tag, $"Opening {encrypted}database at {path}");
             var localConfig1 = config;
             ThreadSafety.DoLocked(() =>
             {
@@ -1250,7 +1257,7 @@ namespace Couchbase.Lite
                 try {
                     body = doc.Encode();
                 } catch (ObjectDisposedException) {
-                    Log.To.Database.E(Tag, "Save of disposed document {0} attempted, skipping...", new SecureLogString(doc.Id, LogMessageSensitivity.PotentiallyInsecure));
+                    WriteLog.To.Database.E(Tag, "Save of disposed document {0} attempted, skipping...", new SecureLogString(doc.Id, LogMessageSensitivity.PotentiallyInsecure));
                     return;
                 }
 
@@ -1259,13 +1266,13 @@ namespace Couchbase.Lite
                 fixed (byte* b = body) {
                     var root = Native.FLValue_FromData(body, FLTrust.Trusted);
                     if (root == null) {
-                        Log.To.Database.E(Tag, "Failed to encode document body properly.  Aborting save of document!");
+                        WriteLog.To.Database.E(Tag, "Failed to encode document body properly.  Aborting save of document!");
                         return;
                     }
 
                     var rootDict = Native.FLValue_AsDict(root);
                     if (rootDict == null) {
-                        Log.To.Database.E(Tag, "Failed to encode document body properly.  Aborting save of document!");
+                        WriteLog.To.Database.E(Tag, "Failed to encode document body properly.  Aborting save of document!");
                         return;
                     }
 
@@ -1324,7 +1331,7 @@ namespace Couchbase.Lite
                 try {
                     mergedBody = resolved.Encode();
                 } catch (ObjectDisposedException) {
-                    Log.To.Sync.E(Tag, "Resolved document for {0} somehow got disposed!",
+                    WriteLog.To.Sync.E(Tag, "Resolved document for {0} somehow got disposed!",
                         new SecureLogString(resolved.Id, LogMessageSensitivity.PotentiallyInsecure));
                     throw new RuntimeException(
                         "Resolved document was disposed before conflict resolution completed.  Please file a bug report at https://github.com/couchbase/couchbase-lite-net");
@@ -1338,7 +1345,7 @@ namespace Couchbase.Lite
                 err => Native.c4doc_resolveConflict(rawDoc, winningRevID, losingRevID, mergedBody, flags, err));
             LiteCoreBridge.Check(err => Native.c4doc_save(rawDoc, 0, err));
 
-            Log.To.Database.I(Tag, "Conflict resolved as doc '{0}' rev {1}",
+            WriteLog.To.Database.I(Tag, "Conflict resolved as doc '{0}' rev {1}",
                 new SecureLogString(localDoc.Id, LogMessageSensitivity.PotentiallyInsecure),
                 rawDoc->revID.CreateString());
         }
@@ -1354,7 +1361,7 @@ namespace Couchbase.Lite
             timer.Change(Timeout.Infinite, Timeout.Infinite);
             timer.Dispose(mre);
             if (!mre.WaitOne(TimeSpan.FromSeconds(5))) {
-                Log.To.Database.W(Tag, "Unable to stop purge timer!");
+                WriteLog.To.Database.W(Tag, "Unable to stop purge timer!");
             }
         }
 
@@ -1406,9 +1413,9 @@ namespace Couchbase.Lite
                 C4Error err;
                 cnt = Native.c4db_purgeExpiredDocs(_c4db, &err);
                 if (err.code != 0) {
-                    Log.To.Database.W(Tag, "Error received while purging docs: {0}/{1}", err.domain, err.code);
+                    WriteLog.To.Database.W(Tag, "Error received while purging docs: {0}/{1}", err.domain, err.code);
                 } else {
-                    Log.To.Database.I(Tag, "{0} purged {1} expired documents", this, cnt);
+                    WriteLog.To.Database.I(Tag, "{0} purged {1} expired documents", this, cnt);
                 }
             });
 

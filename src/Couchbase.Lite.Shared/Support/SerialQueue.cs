@@ -15,19 +15,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 
 namespace Couchbase.Lite.Support
 {
     // Inspired by https://github.com/borland/SerialQueue
     internal sealed class SerialQueue
     {
+        #region Enums
+
+        private enum SerialQueueState
+        {
+            Idle,
+            Scheduled,
+            Processing
+        }
+
+        #endregion
+
         #region Constants
 
         private const string Tag = nameof(SerialQueue);
@@ -142,7 +154,7 @@ namespace Couchbase.Lite.Support
                     _currentProcessingThread = Environment.CurrentManagedThreadId;
                     a();
                 } catch(Exception e) {
-					Log.To.Couchbase.W(Tag, "Exception during DispatchSync", e);
+					WriteLog.To.Couchbase.W(Tag, "Exception during DispatchSync", e);
                     throw; // Synchronous, so let the caller handle it
                 } finally {
                     _currentProcessingThread = oldThread;
@@ -179,7 +191,7 @@ namespace Couchbase.Lite.Support
                             item.Tcs.SetResult(true);
                         }, next);
                     } catch(Exception e) {
-                        Log.To.Couchbase.W(Tag, "Exception during DispatchAsync", e);
+                        WriteLog.To.Couchbase.W(Tag, "Exception during DispatchAsync", e);
                         next.SyncContext.Post(s =>
                         {
                             var item = (SerialQueueItem)s;
@@ -211,13 +223,6 @@ namespace Couchbase.Lite.Support
             public TaskCompletionSource<bool> Tcs;
 
             #endregion
-        }
-
-        private enum SerialQueueState
-        {
-            Idle,
-            Scheduled,
-            Processing
         }
 
         #endregion

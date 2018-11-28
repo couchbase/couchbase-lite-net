@@ -15,12 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
 using System;
 using System.Collections.Generic;
 using System.Threading;
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Interop;
-using Couchbase.Lite.Logging;
 
 using JetBrains.Annotations;
 
@@ -64,7 +65,7 @@ namespace Couchbase.Lite.Sync
             if (Sockets.TryGetValue(id, out var socketWrapper)) {
                 socketWrapper.CloseSocket();
             } else {
-                Log.To.Sync.W(Tag, "Invalid call to DoClose; socket does not exist (or was disposed)");
+                WriteLog.To.Sync.W(Tag, "Invalid call to DoClose; socket does not exist (or was disposed)");
             }
         }
 
@@ -75,7 +76,7 @@ namespace Couchbase.Lite.Sync
             if (Sockets.TryGetValue(id, out var socketWrapper)) {
                 socketWrapper.CompletedReceive(bytecount);
             } else {
-                Log.To.Sync.W(Tag, "Invalid call to DoCompleteReceive; socket does not exist (or was closed)");
+                WriteLog.To.Sync.W(Tag, "Invalid call to DoCompleteReceive; socket does not exist (or was closed)");
             }
         }
 
@@ -87,7 +88,7 @@ namespace Couchbase.Lite.Sync
 
         private static void DoError(C4Socket* socket, Exception e)
         {
-            Log.To.Sync.E(Tag, "Websocket Error", e);
+            WriteLog.To.Sync.E(Tag, "Websocket Error", e);
         }
 
         private static void DoOpen(C4Socket* socket, C4Address* address, FLSlice options, void* context)
@@ -130,7 +131,7 @@ namespace Couchbase.Lite.Sync
             if (Sockets.TryGetValue(id, out var socketWrapper)) {
                 socketWrapper.Write(data);
             } else {
-                Log.To.Sync.W(Tag, "Invalid call to DoWrite; socket does not exist (or was closed)");
+                WriteLog.To.Sync.W(Tag, "Invalid call to DoWrite; socket does not exist (or was closed)");
             }
         }
 

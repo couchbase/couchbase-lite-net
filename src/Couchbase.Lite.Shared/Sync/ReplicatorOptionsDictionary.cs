@@ -22,7 +22,7 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
 
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
@@ -45,23 +45,16 @@ namespace Couchbase.Lite.Sync
         private const string FilterKey = "filter";
         private const string FilterParamsKey = "filterParams";
         private const string HeadersKey = "headers";
+        private const string LevelKey = "progress";
         private const string PinnedCertKey = "pinnedCert";
         private const string ProtocolsOptionKey = "WS-Protocols";
         private const string RemoteDBUniqueIDKey = "remoteDBUniqueID";
         private const string ResetKey = "reset";
-        private const string LevelKey = "progress";
         private const string Tag = nameof(ReplicatorOptionsDictionary);
 
         #endregion
 
         #region Properties
-
-        [CanBeNull]
-        public ReplicatorProgressLevel ProgressLevel
-        {
-            get => (ReplicatorProgressLevel)this.GetCast<int>(LevelKey);
-            set => this[LevelKey] = (int)value;
-        }
 
         /// <summary>
         /// Gets or sets the authentication parameters
@@ -161,6 +154,13 @@ namespace Couchbase.Lite.Sync
         public X509Certificate2 PinnedServerCertificate { get; set; }
 
         [CanBeNull]
+        public ReplicatorProgressLevel ProgressLevel
+        {
+            get => (ReplicatorProgressLevel)this.GetCast<int>(LevelKey);
+            set => this[LevelKey] = (int)value;
+        }
+
+        [CanBeNull]
         public string RemoteDBUniqueID
         {
             get => this.GetCast<string>(RemoteDBUniqueIDKey);
@@ -186,7 +186,7 @@ namespace Couchbase.Lite.Sync
         }
 
         internal string CookieString => this.GetCast<string>(CookiesKey);
-        
+
         internal string Protocols => this.GetCast<string>(ProtocolsOptionKey);
 
         #endregion
@@ -233,7 +233,7 @@ namespace Couchbase.Lite.Sync
                 foreach (var entry in split) {
                     var pieces = entry?.Split('=');
                     if (pieces?.Length != 2) {
-                        Log.To.Sync.W(Tag, "Garbage cookie value, ignoring");
+                        WriteLog.To.Sync.W(Tag, "Garbage cookie value, ignoring");
                         continue;
                     }
 

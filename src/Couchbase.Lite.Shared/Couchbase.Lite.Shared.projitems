@@ -16,7 +16,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\ListenerToken.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\CouchbaseDependencyAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\IDefaultDirectoryResolver.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)API\DI\ILogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\IMainThreadTaskScheduler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\IProxy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\IReachability.cs" />
@@ -36,6 +35,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\MutableArrayObject.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\MutableDictionaryObject.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\MutableDocument.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Log\ConsoleLogger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Log\FileLogger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Log\ILogger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Log\Log.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ArrayExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ArrayFunction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Collation.cs" />

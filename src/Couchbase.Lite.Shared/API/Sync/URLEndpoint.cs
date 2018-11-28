@@ -18,7 +18,7 @@
 
 using System;
 
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
@@ -56,7 +56,7 @@ namespace Couchbase.Lite.Sync
         /// <exception cref="ArgumentException">Thrown if the url scheme is not ws or wss</exception>
         public URLEndpoint([NotNull]Uri url)
         {
-            var urlToUse = CBDebug.MustNotBeNull(Log.To.Sync, Tag, "url", url);
+            var urlToUse = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, "url", url);
             if (!urlToUse.Scheme.StartsWith("ws")) {
                 throw new ArgumentException($"Invalid scheme for URLEndpoint url ({urlToUse.Scheme}); must be either ws or wss");
             }

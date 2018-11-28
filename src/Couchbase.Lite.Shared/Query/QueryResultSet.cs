@@ -21,8 +21,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Interop;
-using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 
@@ -197,7 +197,7 @@ namespace Couchbase.Lite.Internal.Query
             {
                 _parent = parent;
                 _enum = _parent._c4Enum;
-                Log.To.Query.I(Tag, $"Beginning query enumeration ({(long) _enum:x})");
+                WriteLog.To.Query.I(Tag, $"Beginning query enumeration ({(long) _enum:x})");
             }
 
             #endregion
@@ -228,9 +228,9 @@ namespace Couchbase.Lite.Internal.Query
                     }
 
                     if (err.code != 0) {
-                        Log.To.Query.W(Tag, $"{this} error: {err.domain}/{err.code}");
+                        WriteLog.To.Query.W(Tag, $"{this} error: {err.domain}/{err.code}");
                     } else {
-                        Log.To.Query.I(Tag, $"End of query enumeration ({(long) _enum:x})");
+                        WriteLog.To.Query.I(Tag, $"End of query enumeration ({(long) _enum:x})");
                     }
 
                     return false;
