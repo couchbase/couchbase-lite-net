@@ -1873,6 +1873,39 @@ namespace Test
         }
 
         [Fact]
+        public void TestSetExpirationOnDeletedDoc()
+        {
+            var dto3 = DateTimeOffset.Now.AddSeconds(3);
+            using (var doc1a = new MutableDocument("deleted_doc1")) {
+                doc1a.SetInt("answer", 12);
+                doc1a.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1a);
+                Db.Delete(doc1a);
+
+                Db.SetDocumentExpiration("deleted_doc1", dto3).Should().BeTrue();
+                Thread.Sleep(5000);
+
+                Action badAction = (() => Db.SetDocumentExpiration("deleted_doc1", dto3));
+                badAction.ShouldThrow<CouchbaseLiteException>("Cannot find the document.");
+            }
+        }
+
+        [Fact]
+        public void TestGetExpirationFromDeletedDoc()
+        {
+            DateTimeOffset dto3 = DateTimeOffset.UtcNow.AddSeconds(3);
+            using (var doc1a = new MutableDocument("deleted_doc")) {
+                doc1a.SetInt("answer", 12);
+                doc1a.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1a);
+                Db.SetDocumentExpiration("deleted_doc", dto3).Should().Be(true);
+                Db.Delete(doc1a);  
+            }
+            var exp = Db.GetDocumentExpiration("deleted_doc");
+            exp.Should().BeSameDateAs(dto3);
+        }
+
+        [Fact]
         public void TestSetExpirationOnNoneExistDoc()
         {
             var dto30 = DateTimeOffset.Now.AddSeconds(30);
