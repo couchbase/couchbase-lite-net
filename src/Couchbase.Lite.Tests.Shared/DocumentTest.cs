@@ -1857,7 +1857,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestSetExpirationFromDoc()
+        public void TestSetExpirationOnDoc()
         {
             var dto3 = DateTimeOffset.UtcNow.AddSeconds(3);
             using (var doc1a = new MutableDocument("doc1")) {
@@ -1883,7 +1883,7 @@ namespace Test
                 Db.Delete(doc1a);
 
                 Db.SetDocumentExpiration("deleted_doc1", dto3).Should().BeTrue();
-                Thread.Sleep(5000);
+                Thread.Sleep(4000);
 
                 Action badAction = (() => Db.SetDocumentExpiration("deleted_doc1", dto3));
                 badAction.ShouldThrow<CouchbaseLiteException>("Cannot find the document.");

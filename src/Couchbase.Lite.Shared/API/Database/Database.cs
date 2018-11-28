@@ -957,7 +957,7 @@ namespace Couchbase.Lite
         {
             var nextExpiration = Native.c4db_nextDocExpiration(_c4db);
             if (nextExpiration > 0) {
-                var delta = (DateTimeOffset.FromUnixTimeMilliseconds((long)nextExpiration) - DateTimeOffset.UtcNow).Add(TimeSpan.FromSeconds(1));
+                var delta = (DateTimeOffset.FromUnixTimeMilliseconds((long)nextExpiration) - DateTimeOffset.UtcNow).Add(TimeSpan.FromSeconds(0));
                 var expirationTimeSpan = delta > delay ? delta : delay;
                 if (expirationTimeSpan.TotalMilliseconds >= UInt32.MaxValue) {
                     _expirePurgeTimer.Change(TimeSpan.FromMilliseconds(UInt32.MaxValue - 1), TimeSpan.FromMilliseconds(-1));
@@ -1407,7 +1407,7 @@ namespace Couchbase.Lite
                 CheckOpen();
                 cnt = Native.c4db_purgeExpiredDocs(_c4db, err);
                 Log.To.Database.I(Tag, "{0} purged {1} expired documents", this, cnt);
-                return err;
+                return err->code == 0;
             });
             SchedulePurgeExpired(TimeSpan.FromSeconds(1));
         }
