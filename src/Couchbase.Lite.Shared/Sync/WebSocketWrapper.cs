@@ -35,6 +35,7 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Interop;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
+using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
 
@@ -97,6 +98,8 @@ namespace Couchbase.Lite.Sync
         private uint _receivedBytesPending;
         private ManualResetEventSlim _receivePause;
         private BlockingCollection<byte[]> _writeQueue;
+        private readonly object _writeQueueLock = new object(); // Used to avoid disposal race
+        
         private readonly IReachability _reachability = Service.GetInstance<IReachability>() ?? new Reachability();
 
         #endregion
@@ -459,12 +462,20 @@ namespace Couchbase.Lite.Sync
             var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(original.Token);
             while (!cancelSource.IsCancellationRequested) {
                 try {
-                    var writeQueue = _writeQueue;
-                    if (writeQueue == null || writeQueue.IsCompleted) {
+                    var completed = _writeQueue == null || _writeQueue?.IsCompleted == true;
+                    if (completed) {
                         return;
                     }
 
-                    var nextData = writeQueue.Take(cancelSource.Token);
+                    byte[] nextData;
+                    lock (_writeQueueLock) {
+                        nextData = _writeQueue?.Take(cancelSource.Token);
+                    }
+
+                    if (nextData == null) {
+                        return; // write queue is already gone
+                    }
+
                     try {
                         var stream = NetworkStream;
                         if (stream == null) {
@@ -489,6 +500,8 @@ namespace Couchbase.Lite.Sync
                 } catch (OperationCanceledException) {
                     return;
                 } catch (ArgumentNullException) {
+                    return; // Sometimes happens because of Dispose() call to _writeQueue, safe to ignore
+                } catch (NullReferenceException) {
                     return; // Sometimes happens because of Dispose() call to _writeQueue, safe to ignore
                 }
             }
@@ -592,8 +605,9 @@ namespace Couchbase.Lite.Sync
                     Log.To.Sync.W(Tag, "Timed out waiting for _writeQueue to finish, forcing Dispose...");
                 }
 
-                _writeQueue?.Dispose();
-                _writeQueue = null;
+                lock (_writeQueueLock) {
+                    Misc.SafeSwap(ref _writeQueue, null);
+                }
             });
         }
 
