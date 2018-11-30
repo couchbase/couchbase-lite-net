@@ -6,6 +6,6 @@ namespace Couchbase.Lite.Logging
 {
     public interface IConsoleLogger : ILogger
     {
-        IList<LogDomain> Domains { get; set; }
+        LogDomain Domains { get; set; }
     }
 }

@@ -121,7 +121,7 @@ namespace Couchbase.Lite.Support
         /// to the directory specified in <paramref name="directoryPath"/>
         /// </summary>
         /// <param name="directoryPath">The directory to write logs to</param>
-        [Obsolete("This has been superceded by Database.Log.Console.  It is a no-op now")]
+        [Obsolete("This has been superseded by Database.Log.Console.  It is a no-op now")]
         [ContractAnnotation("null => halt")]
         public static void EnableTextLogging(string directoryPath)
         {
@@ -133,7 +133,7 @@ namespace Couchbase.Lite.Support
         /// the default directory does not have write permission.
         /// </summary>
         /// <param name="directoryPath">The path to write binary logs to</param>
-        [Obsolete("This has been superceded by Database.Log.File.Directory.")]
+        [Obsolete("This has been superseded by Database.Log.File.Directory.")]
         public static void SetBinaryLogDirectory(string directoryPath)
         {
             Database.Log.File.Directory = directoryPath;

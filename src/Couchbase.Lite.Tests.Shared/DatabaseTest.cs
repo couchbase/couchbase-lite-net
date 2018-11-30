@@ -27,6 +27,8 @@ using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
 using System.Linq;
+using System.Threading;
+
 using Couchbase.Lite.Query;
 #if !WINDOWS_UWP
 using Xunit;
@@ -573,6 +575,7 @@ namespace Test
         [Fact]
         public void TestClose()
         {
+            Thread.Sleep(1500);
             Db.Close();
         }
 

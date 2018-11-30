@@ -18,30 +18,47 @@
 #if !WINDOWS_UWP
 using System;
 
-using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
-using Couchbase.Lite.Support;
+
 using Xunit.Abstractions;
 
 namespace Test.Util
 {
     internal sealed class XunitLogger : ILogger
     {
+        #region Variables
+
         private readonly ITestOutputHelper _output;
+
+        #endregion
+
+        #region Properties
+
+        public LogLevel Level { get; set; }
+
+        #endregion
+
+        #region Constructors
 
         public XunitLogger(ITestOutputHelper output)
         {
             _output = output;
         }
 
-        public void Log(LogLevel level, string category, string msg)
+        #endregion
+
+        #region ILogger
+
+        public void Log(LogLevel level, LogDomain domain, string message)
         {
             try {
-                _output.WriteLine($"{level.ToString().ToUpperInvariant()}) {category} {msg}");
+                _output.WriteLine($"{level.ToString().ToUpperInvariant()}) {domain} {message}");
             } catch (Exception) {
                 // _output is busted, the test is probably already finished.  Nothing we can do
             }
         }
+
+        #endregion
     }
 }
 #else

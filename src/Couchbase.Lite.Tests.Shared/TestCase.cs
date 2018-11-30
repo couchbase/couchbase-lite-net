@@ -66,7 +66,7 @@ namespace Test
             get => _testContext;
             set {
                 _testContext = value;
-                Log.EnableTextLogging(new MSTestLogger(_testContext));
+                Database.Log.Custom = new MSTestLogger(_testContext);
             }
         }
 #endif
@@ -88,7 +88,7 @@ namespace Test
 #if !WINDOWS_UWP
         public TestCase(ITestOutputHelper output)
         {
-            Log.EnableTextLogging(new XunitLogger(output));
+            Database.Log.Custom = new XunitLogger(output);
             _output = output;
 #else
         public TestCase()
@@ -263,7 +263,7 @@ namespace Test
             Db?.Dispose();
             var name = Db?.Name;
             Db = null;
-            Log.DisableTextLogging();
+            Database.Log.Custom = null;
 
             if (name != null) {
                 var count = 0;

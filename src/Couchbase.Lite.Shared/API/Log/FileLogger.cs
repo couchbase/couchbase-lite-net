@@ -6,6 +6,8 @@ using System.Runtime.InteropServices;
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Interop;
 
+using JetBrains.Annotations;
+
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
@@ -17,10 +19,11 @@ namespace Couchbase.Lite.Logging
         #region Variables
 
         private string _directory;
-        private LogLevel _level;
         private int _maxRotateCount;
         private long _maxSize;
         private bool _usePlaintext;
+
+        [NotNull]
         private readonly Dictionary<LogDomain,IntPtr> _domainObjects = new Dictionary<LogDomain, IntPtr>();
 
         #endregion
@@ -53,8 +56,8 @@ namespace Couchbase.Lite.Logging
 
         public LogLevel Level
         {
-            get => _level;
-            set => SetAndReact(ref _level, value);
+            get => (LogLevel)Native.c4log_binaryFileLevel();
+            set => Native.c4log_setBinaryFileLevel((C4LogLevel)value);
         }
 
         #endregion
@@ -63,11 +66,11 @@ namespace Couchbase.Lite.Logging
 
         public FileLogger()
         {
-            Directory = DefaultDirectory();
-            MaxRotateCount = 1;
-            MaxSize = 1024;
-            Level = LogLevel.Info;
+            _maxRotateCount = 1;
+            _maxSize = 1024;
             SetupDomainObjects();
+            Level = LogLevel.Info;
+            SetAndReact(ref _directory, DefaultDirectory());
         }
 
         private unsafe void SetupDomainObjects()
@@ -91,7 +94,7 @@ namespace Couchbase.Lite.Logging
 
         private unsafe void SetAndReact<T>(ref T storage, T value)
         {
-            if (storage.Equals(value)) {
+            if (storage?.Equals(value) == true) {
                 return;
             }
 
@@ -121,7 +124,7 @@ namespace Couchbase.Lite.Logging
 
         public unsafe void Log(LogLevel level, LogDomain domain, string message)
         {
-            if (level > Level || !_domainObjects.ContainsKey(domain)) {
+            if (level < Level || !_domainObjects.ContainsKey(domain)) {
                 return;
             }
 

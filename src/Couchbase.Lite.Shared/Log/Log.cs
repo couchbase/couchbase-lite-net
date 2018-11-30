@@ -47,7 +47,7 @@ namespace Couchbase.Lite.Internal.Logging
         internal static readonly C4LogDomain* LogDomainBLIP = c4log_getDomain("BLIP", false);
         internal static readonly C4LogDomain* LogDomainWebSocket = c4log_getDomain("WS", false);
         internal static readonly C4LogDomain* LogDomainSyncBusy = c4log_getDomain("SyncBusy", false);
-        private static LogLevel _CurrentLevel;
+        private static LogLevel _CurrentLevel = LogLevel.Warning;
         private static AtomicBool _Initialized = new AtomicBool(false);
 
         private static readonly C4LogCallback LogCallback = LiteCoreLog;
@@ -68,10 +68,13 @@ namespace Couchbase.Lite.Internal.Logging
                 if (!_Initialized.Set(true)) {
                     var oldLevel = Database.Log.Console.Level;
                     Database.Log.Console.Level = LogLevel.Info;
-                    To.Couchbase.I("Startup", HTTPLogic.UserAgent);
+                    _To.Couchbase.I("Startup", HTTPLogic.UserAgent);
                     Database.Log.Console.Level = oldLevel;
                 }
 
+                // Not the best place to do this, but otherwise we have to require the developer
+                // To signal us when they change the log level
+                RecalculateLevel();
                 return _To;
             }
         }

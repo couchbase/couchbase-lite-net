@@ -235,7 +235,7 @@ namespace Couchbase.Lite.Internal.Logging
 
             _allLoggers = new DomainLogger[domains.Length];
             for(int i = 0; i < 5; i++) {
-                CreateAndAddLogger(domainStrings[i], domains[i], i++);
+                CreateAndAddLogger(domainStrings[i], domains[i], i);
             }
         }
 
