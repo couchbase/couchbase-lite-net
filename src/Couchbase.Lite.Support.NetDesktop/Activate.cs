@@ -117,7 +117,7 @@ namespace Couchbase.Lite.Support
         }
 
         /// <summary>
-        /// Turns on text based logging for debugging purposes.  The logs will be written 
+        /// [DEPRECATED] Turns on text based logging for debugging purposes.  The logs will be written 
         /// to the directory specified in <paramref name="directoryPath"/>
         /// </summary>
         /// <param name="directoryPath">The directory to write logs to</param>
@@ -129,7 +129,7 @@ namespace Couchbase.Lite.Support
         }
 
         /// <summary>
-        /// Directs the binary log files to write to the specified directory.  Useful if
+        /// [DEPRECATED] Directs the binary log files to write to the specified directory.  Useful if
         /// the default directory does not have write permission.
         /// </summary>
         /// <param name="directoryPath">The path to write binary logs to</param>

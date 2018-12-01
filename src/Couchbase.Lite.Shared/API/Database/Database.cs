@@ -348,7 +348,7 @@ namespace Couchbase.Lite
         }
 
 		/// <summary>
-		/// Sets the log level for the given domains(s)
+		/// [DEPRECATED] Sets the log level for the given domains(s)
 		/// </summary>
 		/// <param name="domains">The log domain(s)</param>
 		/// <param name="level">The log level</param>
@@ -356,56 +356,15 @@ namespace Couchbase.Lite
 		          "per domain has been removed, and so this function will now only reflect 'None' or 'Not None'")]
 		public static void SetLogLevel(LogDomain domains, LogLevel level)
 		{
-			//if(domains.HasFlag(LogDomain.Couchbase)) {
-			//	WriteLog.To.Couchbase.Level = level;
-			//    WriteLog.To.LiteCore.Level = level;
-			//}
+		    var current = Log.Console.Domains;
+		    if (level == LogLevel.None) {
+		        current &= ~domains;
+		    } else {
+		        current |= domains;
+		    }
 
-			//if(domains.HasFlag(LogDomain.Database)) {
-			//	WriteLog.To.Database.Level = level;
-			//}
-
-			//if(domains.HasFlag(LogDomain.Query)) {
-			//	WriteLog.To.Query.Level = level;
-			//}
-
-			//if(domains.HasFlag(LogDomain.Replicator)) {
-			//	WriteLog.To.Sync.Level = level;
-			//    Native.c4log_setLevel(Log.LogDomainSyncBusy, (C4LogLevel)level);
-			//}
-
-		 //   if (domains.HasFlag(LogDomain.Network)) {
-		 //       Native.c4log_setLevel(Log.LogDomainBLIP, (C4LogLevel)level);
-   //             Native.c4log_setLevel(Log.LogDomainWebSocket, (C4LogLevel)level);
-		 //   }
+		    Log.Console.Domains = current;
 		}
-
-        internal static IReadOnlyDictionary<LogDomain, LogLevel> GetLogLevels(LogDomain domains)
-        {
-            return null;
-            //var retVal = new Dictionary<LogDomain, LogLevel>();
-            //if(domains.HasFlag(LogDomain.Couchbase)) {
-            //    retVal[LogDomain.Couchbase] = WriteLog.To.Couchbase.Level;
-            //}
-
-            //if(domains.HasFlag(LogDomain.Database)) {
-            //    retVal[LogDomain.Database] = WriteLog.To.Database.Level;
-            //}
-
-            //if(domains.HasFlag(LogDomain.Query)) {
-            //    retVal[LogDomain.Query] = WriteLog.To.Query.Level;
-            //}
-
-            //if(domains.HasFlag(LogDomain.Replicator)) {
-            //    retVal[LogDomain.Replicator] = WriteLog.To.Sync.Level;
-            //}
-
-            //if (domains.HasFlag(LogDomain.Network)) {
-            //    retVal[LogDomain.Network] = (LogLevel)Native.c4log_getLevel(WriteLog.LogDomainBLIP);
-            //}
-
-            //return retVal;
-        }
         
         /// <summary>
         /// Adds a change listener for the changes that occur in this database.  Signatures

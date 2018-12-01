@@ -21,7 +21,7 @@ namespace Couchbase.Lite.Logging
     {
         #region Properties
 
-        LogLevel Level { get; set; }
+        LogLevel Level { get; }
 
         #endregion
 

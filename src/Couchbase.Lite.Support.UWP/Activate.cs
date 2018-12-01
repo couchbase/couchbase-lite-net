@@ -56,7 +56,7 @@ namespace Couchbase.Lite.Support
         }
 
         /// <summary>
-        /// Enables text based logging for debugging.  Logs will be written to
+        /// [DEPRECATED] Enables text based logging for debugging.  Logs will be written to
         /// a file in the "Logs" folder inside of the application package's
         /// local files directory
         /// </summary>

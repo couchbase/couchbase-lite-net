@@ -22,6 +22,7 @@ namespace Couchbase.Lite.Logging
         private int _maxRotateCount;
         private long _maxSize;
         private bool _usePlaintext;
+        private bool _hasConfigChanges;
 
         [NotNull]
         private readonly Dictionary<LogDomain,IntPtr> _domainObjects = new Dictionary<LogDomain, IntPtr>();
@@ -33,7 +34,12 @@ namespace Couchbase.Lite.Logging
         public string Directory
         {
             get => _directory;
-            set => SetAndReact(ref _directory, value ?? DefaultDirectory());
+            set {
+                SetAndReact(ref _directory, value ?? DefaultDirectory());
+
+                // This one should update immediately since it won't affect rotation
+                UpdateConfig();
+            } 
         }
 
         public int MaxRotateCount
@@ -57,7 +63,7 @@ namespace Couchbase.Lite.Logging
         public LogLevel Level
         {
             get => (LogLevel)Native.c4log_binaryFileLevel();
-            set => Native.c4log_setBinaryFileLevel((C4LogLevel)value);
+            set => Native.c4log_setBinaryFileLevel((C4LogLevel) value);
         }
 
         #endregion
@@ -70,7 +76,7 @@ namespace Couchbase.Lite.Logging
             _maxSize = 1024;
             SetupDomainObjects();
             Level = LogLevel.Info;
-            SetAndReact(ref _directory, DefaultDirectory());
+            _directory = DefaultDirectory();
         }
 
         private unsafe void SetupDomainObjects()
@@ -86,20 +92,32 @@ namespace Couchbase.Lite.Logging
 
             bytes = (byte *)Marshal.StringToHGlobalAnsi("Sync");
             _domainObjects[LogDomain.Replicator] = (IntPtr)Native.c4log_getDomain(bytes, true);
+
+            foreach (var domain in _domainObjects) {
+                Native.c4log_setLevel((C4LogDomain *)domain.Value.ToPointer(),
+                    C4LogLevel.Debug);
+            }
         }
 
         #endregion
 
         #region Private Methods
 
-        private unsafe void SetAndReact<T>(ref T storage, T value)
+        private void SetAndReact<T>(ref T storage, T value)
         {
             if (storage?.Equals(value) == true) {
                 return;
             }
 
             storage = value;
-            using (var dir = new C4String(Path.Combine(Directory, "cbl_"))) {
+            // Defer the actual config change to later to avoid excess
+            // log rotation on essentially empty logs
+            _hasConfigChanges = true;
+        }
+
+        private unsafe void UpdateConfig()
+        {
+            using (var dir = new C4String(Path.Combine(Directory, "cbl"))) {
                 var options = new C4LogFileOptions
                 {
                     base_path = dir.AsFLSlice(),
@@ -109,11 +127,13 @@ namespace Couchbase.Lite.Logging
                     use_plaintext = UsePlaintext
                 };
                 LiteCoreBridge.Check(err => Native.c4log_writeToBinaryFile(options, err));
+                _hasConfigChanges = false;
             }
         }
 
         private static string DefaultDirectory()
         {
+            Console.WriteLine(Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory());
             return Path.Combine(Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory(),
                 "Logs");
         }
@@ -124,6 +144,12 @@ namespace Couchbase.Lite.Logging
 
         public unsafe void Log(LogLevel level, LogDomain domain, string message)
         {
+            if (_hasConfigChanges) {
+                // Log is only called in one place in the codebase, and it will
+                // handle the potential exception here
+                UpdateConfig();
+            }
+
             if (level < Level || !_domainObjects.ContainsKey(domain)) {
                 return;
             }

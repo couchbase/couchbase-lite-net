@@ -38,16 +38,6 @@ namespace Couchbase.Lite.Support
 
         #endregion
 
-        #region Private Methods
-
-        private string MakeMessage(string msg)
-        {
-            var dateTime = DateTime.Now.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
-            return $"[{Environment.CurrentManagedThreadId}] {dateTime} {msg}";
-        }
-
-        #endregion
-
         #region ILogger
 
         public void Log(LogLevel level, LogDomain domain, string message)
@@ -55,11 +45,10 @@ namespace Couchbase.Lite.Support
             if (level < Level || !Domains.HasFlag(domain)) {
                 return;
             }
-
-            var finalStr = MakeMessage($"{domain.ToString()} {message}");
-            Console.WriteLine(finalStr);
+            
+            Console.WriteLine($"{level.ToString().ToUpperInvariant()}) {domain} {message}");
             if (Debugger.IsAttached) {
-                Debug.WriteLine(finalStr);
+                Debug.WriteLine($"{level.ToString().ToUpperInvariant()}) {domain} {message}");
             }
         }
 

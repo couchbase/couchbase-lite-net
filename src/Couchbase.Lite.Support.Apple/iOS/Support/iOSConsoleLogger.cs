@@ -27,7 +27,7 @@ namespace Couchbase.Lite.Support
     {
         #region Properties
 
-        public IList<LogDomain> Domains { get; set; }
+        public LogDomain Domains { get; set; }
         public LogLevel Level { get; set; }
 
         #endregion
@@ -46,7 +46,7 @@ namespace Couchbase.Lite.Support
 
         public void Log(LogLevel level, LogDomain domain, string message)
         {
-            if (level > Level || !Domains.Contains(domain)) {
+            if (level < Level || !Domains.HasFlag(domain)) {
                 return;
             }
 

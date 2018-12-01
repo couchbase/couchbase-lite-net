@@ -60,7 +60,7 @@ namespace Couchbase.Lite.Support
 		}
 
 	    /// <summary>
-		/// Enables text based logging for debugging purposes.  Log statements will
+		/// [DEPRECATED] Enables text based logging for debugging purposes.  Log statements will
 		/// be written to NSLog
 		/// </summary>
 	    [Obsolete("This has been superceded by Database.Log.Console.  It is a no-op now")]

@@ -51,6 +51,10 @@ namespace Test.Util
 
         public void Log(LogLevel level, LogDomain domain, string message)
         {
+            if (level < Level) {
+                return;
+            }
+
             try {
                 _output.WriteLine($"{level.ToString().ToUpperInvariant()}) {domain} {message}");
             } catch (Exception) {
@@ -87,9 +91,13 @@ namespace Test.Util
 
         #endregion
 
-        public void Log(LogLevel logLevel, string category, string message)
+        public void Log(LogLevel level, LogDomain domain, string message)
         {
-            _output.WriteLine($"{logLevel.ToString().ToUpperInvariant()}) {category} {message}");
+            if (level < Level) {
+                return;
+            }
+
+            _output.WriteLine($"{level.ToString().ToUpperInvariant()}) {domain} {message}");
         }
     }
 }
