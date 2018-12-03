@@ -1860,16 +1860,16 @@ namespace Test
         public void TestSetExpirationOnDoc()
         {
             var dto3 = DateTimeOffset.UtcNow.AddSeconds(3);
-            using (var doc1a = new MutableDocument("doc1")) {
+            using (var doc1a = new MutableDocument("doc_to_expired")) {
                 doc1a.SetInt("answer", 12);
                 doc1a.SetValue("options", new[] { 1, 2, 3 });
                 Db.Save(doc1a);
 
-                Db.SetDocumentExpiration("doc1", dto3).Should().Be(true);
+                Db.SetDocumentExpiration("doc_to_expired", dto3).Should().Be(true);
 
             }
-            Thread.Sleep(4000);
-            var doc = Db.GetDocument("doc1").Should().BeNull();
+            Thread.Sleep(5000);
+            var doc = Db.GetDocument("doc_to_expired").Should().BeNull();
         }
 
         [Fact]

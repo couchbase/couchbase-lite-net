@@ -957,7 +957,7 @@ namespace Couchbase.Lite
         {
             var nextExpiration = Native.c4db_nextDocExpiration(_c4db);
             if (nextExpiration > 0) {
-                var delta = (DateTimeOffset.FromUnixTimeMilliseconds((long)nextExpiration) - DateTimeOffset.UtcNow).Add(TimeSpan.FromSeconds(0));
+                var delta = DateTimeOffset.FromUnixTimeMilliseconds((long)nextExpiration) - DateTimeOffset.UtcNow;
                 var expirationTimeSpan = delta > delay ? delta : delay;
                 if (expirationTimeSpan.TotalMilliseconds >= UInt32.MaxValue) {
                     _expirePurgeTimer.Change(TimeSpan.FromMilliseconds(UInt32.MaxValue - 1), TimeSpan.FromMilliseconds(-1));
