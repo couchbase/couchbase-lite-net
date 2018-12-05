@@ -19,6 +19,7 @@
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 using Couchbase.Lite.Interop;
 using Couchbase.Lite.Logging;
@@ -97,10 +98,15 @@ namespace Couchbase.Lite.Internal.Logging
         {
             var effectiveLevel = (LogLevel)Math.Min((int) Database.Log.Console.Level,
                 (int?) Database.Log.Custom?.Level ?? (int) LogLevel.Error);
-            if (effectiveLevel != _CurrentLevel) {
-                Native.c4log_writeToCallback((C4LogLevel)effectiveLevel, LogCallback, true);
-                _CurrentLevel = effectiveLevel;
+            if (effectiveLevel == _CurrentLevel) {
+                return;
             }
+
+            _CurrentLevel = effectiveLevel;
+            Task.Factory.StartNew(() =>
+            {
+                Native.c4log_writeToCallback((C4LogLevel) effectiveLevel, LogCallback, true);
+            });
         }
 
         #endregion

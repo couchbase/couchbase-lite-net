@@ -18,7 +18,7 @@ namespace Couchbase.Lite.Logging
     {
         #region Variables
 
-        private string _directory;
+        [NotNull]private string _directory;
         private int _maxRotateCount;
         private long _maxSize;
         private bool _usePlaintext;
@@ -36,6 +36,7 @@ namespace Couchbase.Lite.Logging
             get => _directory;
             set {
                 SetAndReact(ref _directory, value ?? DefaultDirectory());
+                System.IO.Directory.CreateDirectory(_directory);
 
                 // This one should update immediately since it won't affect rotation
                 UpdateConfig();
@@ -117,7 +118,7 @@ namespace Couchbase.Lite.Logging
 
         private unsafe void UpdateConfig()
         {
-            using (var dir = new C4String(Path.Combine(Directory, "cbl"))) {
+            using (var dir = new C4String(Directory)) {
                 var options = new C4LogFileOptions
                 {
                     base_path = dir.AsFLSlice(),
@@ -131,6 +132,7 @@ namespace Couchbase.Lite.Logging
             }
         }
 
+        [NotNull]
         private static string DefaultDirectory()
         {
             Console.WriteLine(Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory());
