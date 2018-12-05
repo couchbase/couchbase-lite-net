@@ -140,6 +140,29 @@ namespace Test
         }
 
         [Fact]
+        public void TestPushDeletedDocWithFilter()
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetString("name", "donotpass");
+                Db.Save(doc1);
+
+                doc2.SetString("name", "pass");
+                Db.Save(doc2);
+
+                Db.Delete(doc2);
+            }
+
+            var config = CreateConfig(true, false, false);
+            config.PushFilter = _replicator__filterCallback;
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue();
+            _otherDB.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
+            _otherDB.GetDocument("doc2").Should().BeNull("because doc2 is deleted");
+            _isFilteredCallback = false;
+        }
+
+        [Fact]
         public void TestPushDoc()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -381,7 +404,7 @@ namespace Test
 
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
-            var token1 = _repl.AddReplicationListener(DocumentEndedUpdate);
+            var token1 = _repl.AddDocumentReplicationListener(DocumentEndedUpdate);
             var token = _repl.AddChangeListener((sender, args) =>
             {
                 _waitAssert.RunConditionalAssert(() =>
@@ -403,7 +426,7 @@ namespace Test
                 throw;
             } finally {
                 _repl.RemoveChangeListener(token);
-                _repl.RemoveReplicationListener(token1);
+                _repl.RemoveChangeListener(token1);
             }
 
             _replicationEvents.Count().Should().Be(2);
@@ -1000,10 +1023,10 @@ namespace Test
         }
 #endif
 
-        private bool _replicator__filterCallback(Document doc)
+        private bool _replicator__filterCallback(ReplicationFilter filter)
         {
             _isFilteredCallback = true;
-            var name = doc.GetString("name");
+            var name = filter.Doc.GetString("name");
             return name == "pass";
         }
 

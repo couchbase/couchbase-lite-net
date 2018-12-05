@@ -74,6 +74,12 @@ namespace Couchbase.Lite.Sync
         PerAttachment // >=2
     }
 
+    public class ReplicationFilter
+    {
+        public Document Doc { get; set; }
+        public bool IsDeleted { get; set; }
+    }
+
     /// <summary>
     /// A class representing configuration options for a <see cref="Replicator"/>
     /// </summary>
@@ -91,8 +97,8 @@ namespace Couchbase.Lite.Sync
         private Authenticator _authenticator;
         private bool _continuous;
         private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
-        private Func<Document, bool> _pushFilter;
-        private Func<Document, bool> _pullValidator;
+        private Func<ReplicationFilter, bool> _pushFilter;
+        private Func<ReplicationFilter, bool> _pullValidator;
         private Uri _remoteUrl;
         private Database _otherDb;
         private C4SocketFactory _socketFactory;
@@ -157,7 +163,7 @@ namespace Couchbase.Lite.Sync
         /// Document push will be allowed if output is true, othewise, Document push 
         /// will not be allowed
         /// </summary>
-        public Func<Document, bool> PushFilter
+        public Func<ReplicationFilter, bool> PushFilter
         {
             get => _pushFilter;
             set => _freezer.PerformAction(() => _pushFilter = value);
@@ -168,7 +174,7 @@ namespace Couchbase.Lite.Sync
         /// Document pull will be allowed if output is true, othewise, Document pull 
         /// will not be allowed
         /// </summary>
-        public Func<Document, bool> PullFilter
+        public Func<ReplicationFilter, bool> PullFilter
         {
             get => _pullValidator;
             set => _freezer.PerformAction(() => _pullValidator = value);
