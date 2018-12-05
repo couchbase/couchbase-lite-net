@@ -135,11 +135,11 @@ namespace Couchbase.Lite.Sync
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
         [ContractAnnotation("null => halt")]
-        public ListenerToken AddReplicationListener(EventHandler<DocumentReplicatedEventArgs> handler)
+        public ListenerToken AddDocumentReplicationListener(EventHandler<DocumentReplicatedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(handler), handler);
 
-            return AddReplicationListener(null, handler);
+            return AddDocumentReplicationListener(null, handler);
         }
 
         /// <summary>
@@ -152,7 +152,7 @@ namespace Couchbase.Lite.Sync
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
         [ContractAnnotation("handler:null => halt")]
-        public ListenerToken AddReplicationListener([CanBeNull]TaskScheduler scheduler,
+        public ListenerToken AddDocumentReplicationListener([CanBeNull]TaskScheduler scheduler,
             EventHandler<DocumentReplicatedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(handler), handler);
@@ -160,16 +160,6 @@ namespace Couchbase.Lite.Sync
             var cbHandler = new CouchbaseEventHandler<DocumentReplicatedEventArgs>(handler, scheduler);
             _documentEndedUpdate.Add(cbHandler);
             return new ListenerToken(cbHandler, "repl");
-        }
-
-        /// <summary>
-        /// Removes a previously added documents ended listener via its <see cref="ListenerToken"/>
-        /// </summary>
-        /// <param name="token">The token received from <see cref="AddReplicationListener(TaskScheduler, EventHandler{DocumentReplicatedEventArgs})"/></param>
-        public void RemoveReplicationListener(ListenerToken token)
-        {
-            Config.Options.ProgressLevel = ReplicatorProgressLevel.Overall;
-            _documentEndedUpdate.Remove(token);
         }
 
         /// <summary>
@@ -206,12 +196,16 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// Removes a previously added change listener via its <see cref="ListenerToken"/>
+        /// Removes a previously added change listener via its <see cref="ListenerToken"/> and/or
+        /// Removes a previously added documents ended listener via its <see cref="ListenerToken"/>
         /// </summary>
-        /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{ReplicatorStatusChangedEventArgs})"/></param>
+        /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{ReplicatorStatusChangedEventArgs})"/>
+        /// and/or The token received from <see cref="AddReplicationListener(TaskScheduler, EventHandler{DocumentReplicatedEventArgs})"/></param>
         public void RemoveChangeListener(ListenerToken token)
         {
             _statusChanged.Remove(token);
+            if(_documentEndedUpdate.Remove(token)==0)
+                Config.Options.ProgressLevel = ReplicatorProgressLevel.Overall;
         }
 
         /// <summary>
