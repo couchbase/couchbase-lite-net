@@ -275,9 +275,8 @@ namespace Couchbase.Lite.Sync
             return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
         }
 
-
         [MonoPInvokeCallback(typeof(C4ReplicatorDocumentEndedCallback))]
-        private static void OnDocEnded(C4Replicator* repl, bool pushing, FLSlice docID, C4Error error, bool transient, void* context)
+        private static void OnDocEnded(C4Replicator* repl, bool pushing, FLSlice docID, FLSlice revID, C4RevisionFlags flags, C4Error error, bool transient, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             var docIDStr = docID.CreateString();
