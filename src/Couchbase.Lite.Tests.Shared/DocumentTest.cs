@@ -1931,7 +1931,7 @@ namespace Test
                 Db.Save(doc);
 
                 Db.GetDocumentExpiration("doc").Should().BeNull();
-                Db.SetDocumentExpiration("doc", new DateTimeOffset(DateTime.UtcNow.AddDays(60)));
+                Db.SetDocumentExpiration("doc", DateTimeOffset.UtcNow.AddDays(60));
 
                 var exp = Db.GetDocumentExpiration("doc");
                 exp.Should().NotBeNull();
