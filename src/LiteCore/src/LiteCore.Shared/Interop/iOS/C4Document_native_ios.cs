@@ -163,14 +163,14 @@ namespace LiteCore.Interop
             }
         }
 
-        public static bool c4doc_setExpiration(C4Database* db, string docId, ulong timestamp, C4Error* outError)
+        public static bool c4doc_setExpiration(C4Database* db, string docId, long timestamp, C4Error* outError)
         {
             using(var docId_ = new C4String(docId)) {
                 return NativeRaw.c4doc_setExpiration(db, docId_.AsFLSlice(), timestamp, outError);
             }
         }
 
-        public static ulong c4doc_getExpiration(C4Database* db, string docId)
+        public static long c4doc_getExpiration(C4Database* db, string docId)
         {
             using(var docId_ = new C4String(docId)) {
                 return NativeRaw.c4doc_getExpiration(db, docId_.AsFLSlice());
@@ -256,10 +256,10 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_setExpiration(C4Database* db, FLSlice docId, ulong timestamp, C4Error* outError);
+        public static extern bool c4doc_setExpiration(C4Database* db, FLSlice docId, long timestamp, C4Error* outError);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern ulong c4doc_getExpiration(C4Database* db, FLSlice docId);
+        public static extern long c4doc_getExpiration(C4Database* db, FLSlice docId);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Document* c4doc_put(C4Database* database, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError);

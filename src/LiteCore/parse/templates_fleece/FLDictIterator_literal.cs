@@ -6,10 +6,12 @@
         private uint _private2;
         private byte _private3;
 
-        // _private4[3]
-        private void* _private4;
-        private void* _private5;
-        private void* _private6;
+        // _private4[4]
+        private void* _private4a;
+        private void* _private4b;
+        private void* _private4c;
+        private void* _private4d;
+        private int _private5;
 
         #pragma warning restore CS0169
     }

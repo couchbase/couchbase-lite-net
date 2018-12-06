@@ -35,7 +35,7 @@ namespace LiteCore.Interop
         }
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4query_free(C4Query* x);
+        public static extern void c4query_free(C4Query* query);
 
         public static string c4query_explain(C4Query* query)
         {
@@ -46,6 +46,9 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint c4query_columnCount(C4Query* query);
+
+        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSlice c4query_columnTitle(C4Query* query, uint column);
 
         public static C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, string encodedParameters, C4Error* outError)
         {

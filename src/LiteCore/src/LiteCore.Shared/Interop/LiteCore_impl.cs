@@ -21,6 +21,7 @@ namespace LiteCore.Interop
 {
     internal sealed unsafe partial class LiteCoreImpl : ILiteCore
     {
+        public long c4_now() => Native.c4_now();
         public string c4error_getMessage(C4Error error) => Native.c4error_getMessage(error);
         public byte[] c4error_getDescription(C4Error error) => Native.c4error_getDescription(error);
         public string c4error_getDescriptionC(C4Error error, char[] buffer, ulong bufferSize) => Native.c4error_getDescriptionC(error, buffer, bufferSize);
@@ -77,7 +78,7 @@ namespace LiteCore.Interop
         public C4DatabaseConfig* c4db_getConfig(C4Database* db) => Native.c4db_getConfig(db);
         public ulong c4db_getDocumentCount(C4Database* database) => Native.c4db_getDocumentCount(database);
         public ulong c4db_getLastSequence(C4Database* database) => Native.c4db_getLastSequence(database);
-        public ulong c4db_nextDocExpiration(C4Database* database) => Native.c4db_nextDocExpiration(database);
+        public long c4db_nextDocExpiration(C4Database* database) => Native.c4db_nextDocExpiration(database);
         public long c4db_purgeExpiredDocs(C4Database* db, C4Error* outError) => Native.c4db_purgeExpiredDocs(db, outError);
         public uint c4db_getMaxRevTreeDepth(C4Database* database) => Native.c4db_getMaxRevTreeDepth(database);
         public void c4db_setMaxRevTreeDepth(C4Database* database, uint maxRevTreeDepth) => Native.c4db_setMaxRevTreeDepth(database, maxRevTreeDepth);
@@ -99,7 +100,7 @@ namespace LiteCore.Interop
         public FLDoc* c4doc_createFleeceDoc(C4Document* x) => Native.c4doc_createFleeceDoc(x);
         public bool c4doc_isOldMetaProperty(string prop) => Native.c4doc_isOldMetaProperty(prop);
         public bool c4doc_hasOldMetaProperties(FLDict* doc) => Native.c4doc_hasOldMetaProperties(doc);
-        public byte[] c4doc_encodeStrippingOldMetaProperties(FLDict* doc, FLSharedKeys* sk) => Native.c4doc_encodeStrippingOldMetaProperties(doc, sk);
+        public byte[] c4doc_encodeStrippingOldMetaProperties(FLDict* doc, FLSharedKeys* sk, C4Error* outError) => Native.c4doc_encodeStrippingOldMetaProperties(doc, sk, outError);
         public bool c4doc_getDictBlobKey(FLDict* dict, C4BlobKey* outKey) => Native.c4doc_getDictBlobKey(dict, outKey);
         public bool c4doc_dictIsBlob(FLDict* dict, C4BlobKey* outKey) => Native.c4doc_dictIsBlob(dict, outKey);
         public bool c4doc_dictContainsBlobs(FLDict* dict) => Native.c4doc_dictContainsBlobs(dict);
@@ -133,8 +134,8 @@ namespace LiteCore.Interop
         public int c4doc_purgeRevision(C4Document* doc, string revID, C4Error* outError) => Native.c4doc_purgeRevision(doc, revID, outError);
         public bool c4doc_resolveConflict(C4Document* doc, string winningRevID, string losingRevID, byte[] mergedBody, C4RevisionFlags mergedFlags, C4Error* error) => Native.c4doc_resolveConflict(doc, winningRevID, losingRevID, mergedBody, mergedFlags, error);
         public bool c4db_purgeDoc(C4Database* database, string docID, C4Error* outError) => Native.c4db_purgeDoc(database, docID, outError);
-        public bool c4doc_setExpiration(C4Database* db, string docId, ulong timestamp, C4Error* outError) => Native.c4doc_setExpiration(db, docId, timestamp, outError);
-        public ulong c4doc_getExpiration(C4Database* db, string docId) => Native.c4doc_getExpiration(db, docId);
+        public bool c4doc_setExpiration(C4Database* db, string docId, long timestamp, C4Error* outError) => Native.c4doc_setExpiration(db, docId, timestamp, outError);
+        public long c4doc_getExpiration(C4Database* db, string docId) => Native.c4doc_getExpiration(db, docId);
         public C4Document* c4doc_put(C4Database *database, C4DocPutRequest *request, ulong* outCommonAncestorIndex, C4Error *outError) => Native.c4doc_put(database, request, outCommonAncestorIndex, outError);
         public C4Document* c4doc_create(C4Database* db, string docID, byte[] body, C4RevisionFlags revisionFlags, C4Error* error) => Native.c4doc_create(db, docID, body, revisionFlags, error);
         public C4Document* c4doc_update(C4Document* doc, byte[] revisionBody, C4RevisionFlags revisionFlags, C4Error* error) => Native.c4doc_update(doc, revisionBody, revisionFlags, error);
@@ -151,9 +152,10 @@ namespace LiteCore.Interop
         public C4DocumentObserver* c4docobs_create(C4Database* database, string docID, C4DocumentObserverCallback callback, void* context) => Native.c4docobs_create(database, docID, callback, context);
         public void c4docobs_free(C4DocumentObserver* observer) => Native.c4docobs_free(observer);
         public C4Query* c4query_new(C4Database* database, string expression, C4Error* error) => Native.c4query_new(database, expression, error);
-        public void c4query_free(C4Query* x) => Native.c4query_free(x);
+        public void c4query_free(C4Query* query) => Native.c4query_free(query);
         public string c4query_explain(C4Query* query) => Native.c4query_explain(query);
         public uint c4query_columnCount(C4Query* query) => Native.c4query_columnCount(query);
+        public FLSlice c4query_columnTitle(C4Query* query, uint column) => Native.c4query_columnTitle(query, column);
         public C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, string encodedParameters, C4Error* outError) => Native.c4query_run(query, options, encodedParameters, outError);
         public string c4query_fullTextMatched(C4Query* query, C4FullTextMatch* term, C4Error* outError) => Native.c4query_fullTextMatched(query, term, outError);
         public bool c4queryenum_next(C4QueryEnumerator* e, C4Error* outError) => Native.c4queryenum_next(e, outError);
@@ -214,6 +216,7 @@ namespace LiteCore.Interop
         public float FLValue_AsFloat(FLValue* value) => Native.FLValue_AsFloat(value);
         public double FLValue_AsDouble(FLValue* value) => Native.FLValue_AsDouble(value);
         public string FLValue_AsString(FLValue* value) => Native.FLValue_AsString(value);
+        public long FLValue_AsTimestamp(FLValue* value) => Native.FLValue_AsTimestamp(value);
         public byte[] FLValue_AsData(FLValue* value) => Native.FLValue_AsData(value);
         public FLArray* FLValue_AsArray(FLValue* value) => Native.FLValue_AsArray(value);
         public FLDict* FLValue_AsDict(FLValue* value) => Native.FLValue_AsDict(value);
@@ -327,6 +330,7 @@ namespace LiteCore.Interop
         public bool FLEncoder_WriteFloat(FLEncoder* encoder, float f) => Native.FLEncoder_WriteFloat(encoder, f);
         public bool FLEncoder_WriteDouble(FLEncoder* encoder, double d) => Native.FLEncoder_WriteDouble(encoder, d);
         public bool FLEncoder_WriteString(FLEncoder* encoder, string str) => Native.FLEncoder_WriteString(encoder, str);
+        public bool FLEncoder_WriteDateString(FLEncoder* encoder, long ts, bool asUTC) => Native.FLEncoder_WriteDateString(encoder, ts, asUTC);
         public bool FLEncoder_WriteData(FLEncoder* encoder, byte[] slice) => Native.FLEncoder_WriteData(encoder, slice);
         public bool FLEncoder_WriteRaw(FLEncoder* encoder, byte[] slice) => Native.FLEncoder_WriteRaw(encoder, slice);
         public bool FLEncoder_BeginArray(FLEncoder* encoder, ulong reserveCount) => Native.FLEncoder_BeginArray(encoder, reserveCount);
@@ -380,7 +384,7 @@ namespace LiteCore.Interop
         public C4RawDocument* c4raw_get(C4Database* database, FLSlice storeName, FLSlice docID, C4Error* outError) => NativeRaw.c4raw_get(database, storeName, docID, outError);
         public bool c4raw_put(C4Database* database, FLSlice storeName, FLSlice key, FLSlice meta, FLSlice body, C4Error* outError) => NativeRaw.c4raw_put(database, storeName, key, meta, body, outError);
         public bool c4doc_isOldMetaProperty(FLSlice prop) => NativeRaw.c4doc_isOldMetaProperty(prop);
-        public FLSliceResult c4doc_encodeStrippingOldMetaProperties(FLDict* doc, FLSharedKeys* sk) => NativeRaw.c4doc_encodeStrippingOldMetaProperties(doc, sk);
+        public FLSliceResult c4doc_encodeStrippingOldMetaProperties(FLDict* doc, FLSharedKeys* sk, C4Error* outError) => NativeRaw.c4doc_encodeStrippingOldMetaProperties(doc, sk, outError);
         public FLSliceResult c4doc_bodyAsJSON(C4Document* doc, bool canonical, C4Error* outError) => NativeRaw.c4doc_bodyAsJSON(doc, canonical, outError);
         public FLSliceResult c4db_encodeJSON(C4Database* db, FLSlice jsonData, C4Error* outError) => NativeRaw.c4db_encodeJSON(db, jsonData, outError);
         public C4Document* c4doc_get(C4Database* database, FLSlice docID, bool mustExist, C4Error* outError) => NativeRaw.c4doc_get(database, docID, mustExist, outError);
@@ -396,8 +400,8 @@ namespace LiteCore.Interop
         public int c4doc_purgeRevision(C4Document* doc, FLSlice revID, C4Error* outError) => NativeRaw.c4doc_purgeRevision(doc, revID, outError);
         public bool c4doc_resolveConflict(C4Document* doc, FLSlice winningRevID, FLSlice losingRevID, FLSlice mergedBody, C4RevisionFlags mergedFlags, C4Error* error) => NativeRaw.c4doc_resolveConflict(doc, winningRevID, losingRevID, mergedBody, mergedFlags, error);
         public bool c4db_purgeDoc(C4Database* database, FLSlice docID, C4Error* outError) => NativeRaw.c4db_purgeDoc(database, docID, outError);
-        public bool c4doc_setExpiration(C4Database* db, FLSlice docId, ulong timestamp, C4Error* outError) => NativeRaw.c4doc_setExpiration(db, docId, timestamp, outError);
-        public ulong c4doc_getExpiration(C4Database* db, FLSlice docId) => NativeRaw.c4doc_getExpiration(db, docId);
+        public bool c4doc_setExpiration(C4Database* db, FLSlice docId, long timestamp, C4Error* outError) => NativeRaw.c4doc_setExpiration(db, docId, timestamp, outError);
+        public long c4doc_getExpiration(C4Database* db, FLSlice docId) => NativeRaw.c4doc_getExpiration(db, docId);
         public C4Document* c4doc_put(C4Database* database, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError) => NativeRaw.c4doc_put(database, request, outCommonAncestorIndex, outError);
         public C4Document* c4doc_create(C4Database* db, FLSlice docID, FLSlice body, C4RevisionFlags revisionFlags, C4Error* error) => NativeRaw.c4doc_create(db, docID, body, revisionFlags, error);
         public C4Document* c4doc_update(C4Document* doc, FLSlice revisionBody, C4RevisionFlags revisionFlags, C4Error* error) => NativeRaw.c4doc_update(doc, revisionBody, revisionFlags, error);

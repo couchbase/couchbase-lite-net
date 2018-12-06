@@ -771,8 +771,8 @@ namespace Couchbase.Lite
                 if (timestamp == null) {
                     succeed = Native.c4doc_setExpiration(_c4db, docId, 0, null);
                 } else {
-                    var Timestamp = timestamp?.ToUnixTimeMilliseconds();
-                    succeed = Native.c4doc_setExpiration(_c4db, docId, (ulong)Timestamp, err);
+                    var millisSinceEpoch = timestamp.Value.ToUnixTimeMilliseconds();
+                    succeed = Native.c4doc_setExpiration(_c4db, docId, millisSinceEpoch, err);
                 }
                 return succeed;
             });

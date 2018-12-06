@@ -23,6 +23,7 @@ namespace Couchbase.Lite.Interop
 {
     internal static unsafe partial class Native
     {
+        public static long c4_now() => Impl.c4_now();
         public static string c4error_getMessage(C4Error error) => Impl.c4error_getMessage(error);
         public static byte[] c4error_getDescription(C4Error error) => Impl.c4error_getDescription(error);
         public static string c4error_getDescriptionC(C4Error error, char[] buffer, ulong bufferSize) => Impl.c4error_getDescriptionC(error, buffer, bufferSize);
@@ -79,7 +80,7 @@ namespace Couchbase.Lite.Interop
         public static C4DatabaseConfig* c4db_getConfig(C4Database* db) => Impl.c4db_getConfig(db);
         public static ulong c4db_getDocumentCount(C4Database* database) => Impl.c4db_getDocumentCount(database);
         public static ulong c4db_getLastSequence(C4Database* database) => Impl.c4db_getLastSequence(database);
-        public static ulong c4db_nextDocExpiration(C4Database* database) => Impl.c4db_nextDocExpiration(database);
+        public static long c4db_nextDocExpiration(C4Database* database) => Impl.c4db_nextDocExpiration(database);
         public static long c4db_purgeExpiredDocs(C4Database* db, C4Error* outError) => Impl.c4db_purgeExpiredDocs(db, outError);
         public static uint c4db_getMaxRevTreeDepth(C4Database* database) => Impl.c4db_getMaxRevTreeDepth(database);
         public static void c4db_setMaxRevTreeDepth(C4Database* database, uint maxRevTreeDepth) => Impl.c4db_setMaxRevTreeDepth(database, maxRevTreeDepth);
@@ -101,7 +102,7 @@ namespace Couchbase.Lite.Interop
         public static FLDoc* c4doc_createFleeceDoc(C4Document* x) => Impl.c4doc_createFleeceDoc(x);
         public static bool c4doc_isOldMetaProperty(string prop) => Impl.c4doc_isOldMetaProperty(prop);
         public static bool c4doc_hasOldMetaProperties(FLDict* doc) => Impl.c4doc_hasOldMetaProperties(doc);
-        public static byte[] c4doc_encodeStrippingOldMetaProperties(FLDict* doc, FLSharedKeys* sk) => Impl.c4doc_encodeStrippingOldMetaProperties(doc, sk);
+        public static byte[] c4doc_encodeStrippingOldMetaProperties(FLDict* doc, FLSharedKeys* sk, C4Error* outError) => Impl.c4doc_encodeStrippingOldMetaProperties(doc, sk, outError);
         public static bool c4doc_getDictBlobKey(FLDict* dict, C4BlobKey* outKey) => Impl.c4doc_getDictBlobKey(dict, outKey);
         public static bool c4doc_dictIsBlob(FLDict* dict, C4BlobKey* outKey) => Impl.c4doc_dictIsBlob(dict, outKey);
         public static bool c4doc_dictContainsBlobs(FLDict* dict) => Impl.c4doc_dictContainsBlobs(dict);
@@ -135,8 +136,8 @@ namespace Couchbase.Lite.Interop
         public static int c4doc_purgeRevision(C4Document* doc, string revID, C4Error* outError) => Impl.c4doc_purgeRevision(doc, revID, outError);
         public static bool c4doc_resolveConflict(C4Document* doc, string winningRevID, string losingRevID, byte[] mergedBody, C4RevisionFlags mergedFlags, C4Error* error) => Impl.c4doc_resolveConflict(doc, winningRevID, losingRevID, mergedBody, mergedFlags, error);
         public static bool c4db_purgeDoc(C4Database* database, string docID, C4Error* outError) => Impl.c4db_purgeDoc(database, docID, outError);
-        public static bool c4doc_setExpiration(C4Database* db, string docId, ulong timestamp, C4Error* outError) => Impl.c4doc_setExpiration(db, docId, timestamp, outError);
-        public static ulong c4doc_getExpiration(C4Database* db, string docId) => Impl.c4doc_getExpiration(db, docId);
+        public static bool c4doc_setExpiration(C4Database* db, string docId, long timestamp, C4Error* outError) => Impl.c4doc_setExpiration(db, docId, timestamp, outError);
+        public static long c4doc_getExpiration(C4Database* db, string docId) => Impl.c4doc_getExpiration(db, docId);
         public static C4Document* c4doc_put(C4Database *database, C4DocPutRequest *request, ulong* outCommonAncestorIndex, C4Error *outError) => Impl.c4doc_put(database, request, outCommonAncestorIndex, outError);
         public static C4Document* c4doc_create(C4Database* db, string docID, byte[] body, C4RevisionFlags revisionFlags, C4Error* error) => Impl.c4doc_create(db, docID, body, revisionFlags, error);
         public static C4Document* c4doc_update(C4Document* doc, byte[] revisionBody, C4RevisionFlags revisionFlags, C4Error* error) => Impl.c4doc_update(doc, revisionBody, revisionFlags, error);
@@ -153,9 +154,10 @@ namespace Couchbase.Lite.Interop
         public static C4DocumentObserver* c4docobs_create(C4Database* database, string docID, C4DocumentObserverCallback callback, void* context) => Impl.c4docobs_create(database, docID, callback, context);
         public static void c4docobs_free(C4DocumentObserver* observer) => Impl.c4docobs_free(observer);
         public static C4Query* c4query_new(C4Database* database, string expression, C4Error* error) => Impl.c4query_new(database, expression, error);
-        public static void c4query_free(C4Query* x) => Impl.c4query_free(x);
+        public static void c4query_free(C4Query* query) => Impl.c4query_free(query);
         public static string c4query_explain(C4Query* query) => Impl.c4query_explain(query);
         public static uint c4query_columnCount(C4Query* query) => Impl.c4query_columnCount(query);
+        public static FLSlice c4query_columnTitle(C4Query* query, uint column) => Impl.c4query_columnTitle(query, column);
         public static C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, string encodedParameters, C4Error* outError) => Impl.c4query_run(query, options, encodedParameters, outError);
         public static string c4query_fullTextMatched(C4Query* query, C4FullTextMatch* term, C4Error* outError) => Impl.c4query_fullTextMatched(query, term, outError);
         public static bool c4queryenum_next(C4QueryEnumerator* e, C4Error* outError) => Impl.c4queryenum_next(e, outError);
@@ -216,6 +218,7 @@ namespace Couchbase.Lite.Interop
         public static float FLValue_AsFloat(FLValue* value) => Impl.FLValue_AsFloat(value);
         public static double FLValue_AsDouble(FLValue* value) => Impl.FLValue_AsDouble(value);
         public static string FLValue_AsString(FLValue* value) => Impl.FLValue_AsString(value);
+        public static long FLValue_AsTimestamp(FLValue* value) => Impl.FLValue_AsTimestamp(value);
         public static byte[] FLValue_AsData(FLValue* value) => Impl.FLValue_AsData(value);
         public static FLArray* FLValue_AsArray(FLValue* value) => Impl.FLValue_AsArray(value);
         public static FLDict* FLValue_AsDict(FLValue* value) => Impl.FLValue_AsDict(value);
@@ -329,6 +332,7 @@ namespace Couchbase.Lite.Interop
         public static bool FLEncoder_WriteFloat(FLEncoder* encoder, float f) => Impl.FLEncoder_WriteFloat(encoder, f);
         public static bool FLEncoder_WriteDouble(FLEncoder* encoder, double d) => Impl.FLEncoder_WriteDouble(encoder, d);
         public static bool FLEncoder_WriteString(FLEncoder* encoder, string str) => Impl.FLEncoder_WriteString(encoder, str);
+        public static bool FLEncoder_WriteDateString(FLEncoder* encoder, long ts, bool asUTC) => Impl.FLEncoder_WriteDateString(encoder, ts, asUTC);
         public static bool FLEncoder_WriteData(FLEncoder* encoder, byte[] slice) => Impl.FLEncoder_WriteData(encoder, slice);
         public static bool FLEncoder_WriteRaw(FLEncoder* encoder, byte[] slice) => Impl.FLEncoder_WriteRaw(encoder, slice);
         public static bool FLEncoder_BeginArray(FLEncoder* encoder, ulong reserveCount) => Impl.FLEncoder_BeginArray(encoder, reserveCount);
@@ -382,7 +386,7 @@ namespace Couchbase.Lite.Interop
         public static C4RawDocument* c4raw_get(C4Database* database, FLSlice storeName, FLSlice docID, C4Error* outError) => Impl.c4raw_get(database, storeName, docID, outError);
         public static bool c4raw_put(C4Database* database, FLSlice storeName, FLSlice key, FLSlice meta, FLSlice body, C4Error* outError) => Impl.c4raw_put(database, storeName, key, meta, body, outError);
         public static bool c4doc_isOldMetaProperty(FLSlice prop) => Impl.c4doc_isOldMetaProperty(prop);
-        public static FLSliceResult c4doc_encodeStrippingOldMetaProperties(FLDict* doc, FLSharedKeys* sk) => Impl.c4doc_encodeStrippingOldMetaProperties(doc, sk);
+        public static FLSliceResult c4doc_encodeStrippingOldMetaProperties(FLDict* doc, FLSharedKeys* sk, C4Error* outError) => Impl.c4doc_encodeStrippingOldMetaProperties(doc, sk, outError);
         public static FLSliceResult c4doc_bodyAsJSON(C4Document* doc, bool canonical, C4Error* outError) => Impl.c4doc_bodyAsJSON(doc, canonical, outError);
         public static FLSliceResult c4db_encodeJSON(C4Database* db, FLSlice jsonData, C4Error* outError) => Impl.c4db_encodeJSON(db, jsonData, outError);
         public static C4Document* c4doc_get(C4Database* database, FLSlice docID, bool mustExist, C4Error* outError) => Impl.c4doc_get(database, docID, mustExist, outError);
@@ -398,8 +402,8 @@ namespace Couchbase.Lite.Interop
         public static int c4doc_purgeRevision(C4Document* doc, FLSlice revID, C4Error* outError) => Impl.c4doc_purgeRevision(doc, revID, outError);
         public static bool c4doc_resolveConflict(C4Document* doc, FLSlice winningRevID, FLSlice losingRevID, FLSlice mergedBody, C4RevisionFlags mergedFlags, C4Error* error) => Impl.c4doc_resolveConflict(doc, winningRevID, losingRevID, mergedBody, mergedFlags, error);
         public static bool c4db_purgeDoc(C4Database* database, FLSlice docID, C4Error* outError) => Impl.c4db_purgeDoc(database, docID, outError);
-        public static bool c4doc_setExpiration(C4Database* db, FLSlice docId, ulong timestamp, C4Error* outError) => Impl.c4doc_setExpiration(db, docId, timestamp, outError);
-        public static ulong c4doc_getExpiration(C4Database* db, FLSlice docId) => Impl.c4doc_getExpiration(db, docId);
+        public static bool c4doc_setExpiration(C4Database* db, FLSlice docId, long timestamp, C4Error* outError) => Impl.c4doc_setExpiration(db, docId, timestamp, outError);
+        public static long c4doc_getExpiration(C4Database* db, FLSlice docId) => Impl.c4doc_getExpiration(db, docId);
         public static C4Document* c4doc_put(C4Database* database, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError) => Impl.c4doc_put(database, request, outCommonAncestorIndex, outError);
         public static C4Document* c4doc_create(C4Database* db, FLSlice docID, FLSlice body, C4RevisionFlags revisionFlags, C4Error* error) => Impl.c4doc_create(db, docID, body, revisionFlags, error);
         public static C4Document* c4doc_update(C4Document* doc, FLSlice revisionBody, C4RevisionFlags revisionFlags, C4Error* error) => Impl.c4doc_update(doc, revisionBody, revisionFlags, error);

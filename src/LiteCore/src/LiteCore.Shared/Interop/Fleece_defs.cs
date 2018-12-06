@@ -101,7 +101,6 @@ namespace LiteCore.Interop
         private void* _private4b;
         private void* _private4c;
         private void* _private4d;
-
         private int _private5;
 
         #pragma warning restore CS0169

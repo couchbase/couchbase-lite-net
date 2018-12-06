@@ -92,7 +92,7 @@ namespace LiteCore.Interop
         public static extern ulong c4db_getLastSequence(C4Database* database);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern ulong c4db_nextDocExpiration(C4Database* database);
+        public static extern long c4db_nextDocExpiration(C4Database* database);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern long c4db_purgeExpiredDocs(C4Database* db, C4Error* outError);

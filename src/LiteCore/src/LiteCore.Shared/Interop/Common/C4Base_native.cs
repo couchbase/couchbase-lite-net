@@ -27,6 +27,9 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern long c4_now();
+
         public static string c4error_getMessage(C4Error error)
         {
             using(var retVal = NativeRaw.c4error_getMessage(error)) {

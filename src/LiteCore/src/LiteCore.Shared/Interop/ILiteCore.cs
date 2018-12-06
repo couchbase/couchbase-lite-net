@@ -23,6 +23,7 @@ namespace LiteCore.Interop
 {
     internal unsafe partial interface ILiteCore
     {
+        long c4_now();
         string c4error_getMessage(C4Error error);
         byte[] c4error_getDescription(C4Error error);
         string c4error_getDescriptionC(C4Error error, char[] buffer, ulong bufferSize);
@@ -79,7 +80,7 @@ namespace LiteCore.Interop
         C4DatabaseConfig* c4db_getConfig(C4Database* db);
         ulong c4db_getDocumentCount(C4Database* database);
         ulong c4db_getLastSequence(C4Database* database);
-        ulong c4db_nextDocExpiration(C4Database* database);
+        long c4db_nextDocExpiration(C4Database* database);
         long c4db_purgeExpiredDocs(C4Database* db, C4Error* outError);
         uint c4db_getMaxRevTreeDepth(C4Database* database);
         void c4db_setMaxRevTreeDepth(C4Database* database, uint maxRevTreeDepth);
@@ -101,7 +102,7 @@ namespace LiteCore.Interop
         FLDoc* c4doc_createFleeceDoc(C4Document* x);
         bool c4doc_isOldMetaProperty(string prop);
         bool c4doc_hasOldMetaProperties(FLDict* doc);
-        byte[] c4doc_encodeStrippingOldMetaProperties(FLDict* doc, FLSharedKeys* sk);
+        byte[] c4doc_encodeStrippingOldMetaProperties(FLDict* doc, FLSharedKeys* sk, C4Error* outError);
         bool c4doc_getDictBlobKey(FLDict* dict, C4BlobKey* outKey);
         bool c4doc_dictIsBlob(FLDict* dict, C4BlobKey* outKey);
         bool c4doc_dictContainsBlobs(FLDict* dict);
@@ -135,8 +136,8 @@ namespace LiteCore.Interop
         int c4doc_purgeRevision(C4Document* doc, string revID, C4Error* outError);
         bool c4doc_resolveConflict(C4Document* doc, string winningRevID, string losingRevID, byte[] mergedBody, C4RevisionFlags mergedFlags, C4Error* error);
         bool c4db_purgeDoc(C4Database* database, string docID, C4Error* outError);
-        bool c4doc_setExpiration(C4Database* db, string docId, ulong timestamp, C4Error* outError);
-        ulong c4doc_getExpiration(C4Database* db, string docId);
+        bool c4doc_setExpiration(C4Database* db, string docId, long timestamp, C4Error* outError);
+        long c4doc_getExpiration(C4Database* db, string docId);
         C4Document* c4doc_put(C4Database *database, C4DocPutRequest *request, ulong* outCommonAncestorIndex, C4Error *outError);
         C4Document* c4doc_create(C4Database* db, string docID, byte[] body, C4RevisionFlags revisionFlags, C4Error* error);
         C4Document* c4doc_update(C4Document* doc, byte[] revisionBody, C4RevisionFlags revisionFlags, C4Error* error);
@@ -153,9 +154,10 @@ namespace LiteCore.Interop
         C4DocumentObserver* c4docobs_create(C4Database* database, string docID, C4DocumentObserverCallback callback, void* context);
         void c4docobs_free(C4DocumentObserver* observer);
         C4Query* c4query_new(C4Database* database, string expression, C4Error* error);
-        void c4query_free(C4Query* x);
+        void c4query_free(C4Query* query);
         string c4query_explain(C4Query* query);
         uint c4query_columnCount(C4Query* query);
+        FLSlice c4query_columnTitle(C4Query* query, uint column);
         C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, string encodedParameters, C4Error* outError);
         string c4query_fullTextMatched(C4Query* query, C4FullTextMatch* term, C4Error* outError);
         bool c4queryenum_next(C4QueryEnumerator* e, C4Error* outError);
@@ -216,6 +218,7 @@ namespace LiteCore.Interop
         float FLValue_AsFloat(FLValue* value);
         double FLValue_AsDouble(FLValue* value);
         string FLValue_AsString(FLValue* value);
+        long FLValue_AsTimestamp(FLValue* value);
         byte[] FLValue_AsData(FLValue* value);
         FLArray* FLValue_AsArray(FLValue* value);
         FLDict* FLValue_AsDict(FLValue* value);
@@ -329,6 +332,7 @@ namespace LiteCore.Interop
         bool FLEncoder_WriteFloat(FLEncoder* encoder, float f);
         bool FLEncoder_WriteDouble(FLEncoder* encoder, double d);
         bool FLEncoder_WriteString(FLEncoder* encoder, string str);
+        bool FLEncoder_WriteDateString(FLEncoder* encoder, long ts, bool asUTC);
         bool FLEncoder_WriteData(FLEncoder* encoder, byte[] slice);
         bool FLEncoder_WriteRaw(FLEncoder* encoder, byte[] slice);
         bool FLEncoder_BeginArray(FLEncoder* encoder, ulong reserveCount);
@@ -382,7 +386,7 @@ namespace LiteCore.Interop
         C4RawDocument* c4raw_get(C4Database* database, FLSlice storeName, FLSlice docID, C4Error* outError);
         bool c4raw_put(C4Database* database, FLSlice storeName, FLSlice key, FLSlice meta, FLSlice body, C4Error* outError);
         bool c4doc_isOldMetaProperty(FLSlice prop);
-        FLSliceResult c4doc_encodeStrippingOldMetaProperties(FLDict* doc, FLSharedKeys* sk);
+        FLSliceResult c4doc_encodeStrippingOldMetaProperties(FLDict* doc, FLSharedKeys* sk, C4Error* outError);
         FLSliceResult c4doc_bodyAsJSON(C4Document* doc, bool canonical, C4Error* outError);
         FLSliceResult c4db_encodeJSON(C4Database* db, FLSlice jsonData, C4Error* outError);
         C4Document* c4doc_get(C4Database* database, FLSlice docID, bool mustExist, C4Error* outError);
@@ -398,8 +402,8 @@ namespace LiteCore.Interop
         int c4doc_purgeRevision(C4Document* doc, FLSlice revID, C4Error* outError);
         bool c4doc_resolveConflict(C4Document* doc, FLSlice winningRevID, FLSlice losingRevID, FLSlice mergedBody, C4RevisionFlags mergedFlags, C4Error* error);
         bool c4db_purgeDoc(C4Database* database, FLSlice docID, C4Error* outError);
-        bool c4doc_setExpiration(C4Database* db, FLSlice docId, ulong timestamp, C4Error* outError);
-        ulong c4doc_getExpiration(C4Database* db, FLSlice docId);
+        bool c4doc_setExpiration(C4Database* db, FLSlice docId, long timestamp, C4Error* outError);
+        long c4doc_getExpiration(C4Database* db, FLSlice docId);
         C4Document* c4doc_put(C4Database* database, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError);
         C4Document* c4doc_create(C4Database* db, FLSlice docID, FLSlice body, C4RevisionFlags revisionFlags, C4Error* error);
         C4Document* c4doc_update(C4Document* doc, FLSlice revisionBody, C4RevisionFlags revisionFlags, C4Error* error);

@@ -4,7 +4,8 @@ import glob
 import re
 from datetime import date
 
-type_map = {"uint32_t":"uint","int32_t":"int","uint8_t":"byte","uint64_t":"ulong","uint16_t":"ushort","int8_t":"sbyte","unsigned":"uint"}
+type_map = {"uint32_t":"uint","int32_t":"int","uint8_t":"byte","uint64_t":"ulong","uint16_t":"ushort","int8_t":"sbyte",
+            "unsigned":"uint","int64_t":"long"}
 def parse_enum(filename):
     fin = open(filename, "r")
     name_to_type = {}

@@ -172,6 +172,9 @@ namespace LiteCore.Interop
             return NativeRaw.FLValue_AsString(value).CreateString();
         }
 
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern long FLValue_AsTimestamp(FLValue* value);
+
         public static byte[] FLValue_AsData(FLValue* value)
         {
             return (NativeRaw.FLValue_AsData(value)).ToArrayFast();
@@ -652,6 +655,10 @@ namespace LiteCore.Interop
                 return NativeRaw.FLEncoder_WriteString(encoder, (FLSlice)str_.AsFLSlice());
             }
         }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool FLEncoder_WriteDateString(FLEncoder* encoder, long ts, [MarshalAs(UnmanagedType.U1)]bool asUTC);
 
         public static bool FLEncoder_WriteData(FLEncoder* encoder, byte[] slice)
         {

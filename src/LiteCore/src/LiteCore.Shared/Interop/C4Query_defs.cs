@@ -35,7 +35,7 @@ namespace LiteCore.Interop
         ValueIndex,
         FullTextIndex,
         ArrayIndex,
-        GeoIndex,
+        PredictiveIndex,
     }
 
 	internal unsafe struct C4Query
