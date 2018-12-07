@@ -61,6 +61,46 @@ namespace Test
 #endif
 
         [Fact]
+        public void TestQueryDocumentExpirationAfterDocsExpired()
+        {
+            var dto2 = DateTimeOffset.Now.AddSeconds(2);
+            var dto3 = DateTimeOffset.Now.AddSeconds(3);
+            var dto4 = DateTimeOffset.Now.AddSeconds(4);
+            var dto6InMS = DateTimeOffset.Now.AddSeconds(6).ToUnixTimeMilliseconds();
+
+            using (var doc1a = new MutableDocument("doc1"))
+            using (var doc1b = new MutableDocument("doc2"))
+            using (var doc1c = new MutableDocument("doc3")) {
+                doc1a.SetInt("answer", 42);
+                doc1a.SetString("a", "string");
+                Db.Save(doc1a);
+
+                doc1b.SetInt("answer", 42);
+                doc1b.SetString("b", "string");
+                Db.Save(doc1b);
+
+                doc1c.SetInt("answer", 42);
+                doc1c.SetString("c", "string");
+                Db.Save(doc1c);
+
+                Db.SetDocumentExpiration("doc1", dto2).Should().Be(true);
+                Db.SetDocumentExpiration("doc2", dto3).Should().Be(true);
+                Db.SetDocumentExpiration("doc3", dto4).Should().Be(true);
+            }
+
+            Thread.Sleep(6000);
+
+            using (var r = QueryBuilder.Select(DocID, Expiration)
+                .From(DataSource.Database(Db))
+                .Where(Meta.Expiration
+                .LessThan(Expression.Long(dto6InMS)))) {
+
+                var b = r.Execute().AllResults();
+                b.Count().Should().Be(0);
+            }
+        }
+
+        [Fact]
         public void TestQueryDocumentExpiration()
         {
             var dto20 = DateTimeOffset.Now.AddSeconds(20);
@@ -87,14 +127,15 @@ namespace Test
                 Db.SetDocumentExpiration("doc2", dto30).Should().Be(true);
                 Db.SetDocumentExpiration("doc3", dto40).Should().Be(true);
             }
-            
-            var r = QueryBuilder.Select(DocID, Expiration)
+
+            using (var r = QueryBuilder.Select(DocID, Expiration)
                 .From(DataSource.Database(Db))
                 .Where(Meta.Expiration
-                .LessThan(Expression.Long(dto60InMS)));
+                .LessThan(Expression.Long(dto60InMS)))) {
 
-            var b = r.Execute().AllResults();
-            b.Count().Should().Be(3);
+                var b = r.Execute().AllResults();
+                b.Count().Should().Be(3);
+            }
         }
 
         [Fact]
@@ -106,12 +147,13 @@ namespace Test
                 Db.Save(doc1a);
             }
 
-            var q = QueryBuilder.Select(DocID, IsDeleted)
+            using (var q = QueryBuilder.Select(DocID, IsDeleted)
                  .From(DataSource.Database(Db))
                  .Where(Meta.ID.EqualTo(Expression.String("doc1"))
-                 .And(Meta.IsDeleted.EqualTo(Expression.Boolean(false))));
-            q.Execute().AllResults().FirstOrDefault().GetString(0).Should().Be("doc1");
-            q.Execute().AllResults().FirstOrDefault().GetBoolean(1).Should().BeFalse();
+                 .And(Meta.IsDeleted.EqualTo(Expression.Boolean(false))))) {
+                q.Execute().AllResults().FirstOrDefault().GetString(0).Should().Be("doc1");
+                q.Execute().AllResults().FirstOrDefault().GetBoolean(1).Should().BeFalse();
+            }
         }
 
         [Fact]
@@ -123,11 +165,12 @@ namespace Test
                 Db.Save(doc1a);
             }
             Db.Delete(Db.GetDocument("doc1"));
-            var q = QueryBuilder.Select(DocID, IsDeleted)
+            using (var q = QueryBuilder.Select(DocID, IsDeleted)
                  .From(DataSource.Database(Db))
                  .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(true))
-                 .And(Meta.ID.EqualTo(Expression.String("doc1"))));
-            q.Execute().AllResults().Count().Should().Be(1);
+                 .And(Meta.ID.EqualTo(Expression.String("doc1"))))) {
+                q.Execute().AllResults().Count().Should().Be(1);
+            }
         }
 
         [Fact]

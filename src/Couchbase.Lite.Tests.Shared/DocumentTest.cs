@@ -1444,6 +1444,26 @@ namespace Test
         }
 
         [Fact]
+        public void TestPurgeDocumentById()
+        {
+            var doc = new MutableDocument("doc1");
+            doc.SetString("type", "profile");
+            doc.SetString("name", "Scott");
+            doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
+
+            Db.Invoking(db => db.Purge("doc1")).ShouldThrow<CouchbaseLiteException>().Where(e =>
+                e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
+
+            // Save:
+            SaveDocument(doc);
+
+            // Purge should not throw:
+            Db.Purge("doc1");
+
+            Db.GetDocument("doc1").Should().BeNull();
+        }
+
+        [Fact]
         public void TestReopenDB()
         {
             var doc = new MutableDocument("doc1");
@@ -1808,21 +1828,21 @@ namespace Test
         [Fact]
         public void TestSetAndGetExpirationFromDoc()
         {
-            var dto30 = DateTimeOffset.Now.AddSeconds(30);
-            var dto0 = DateTimeOffset.Now;
+            var dto30 = DateTimeOffset.UtcNow.AddSeconds(30);
+            var dto0 = DateTimeOffset.UtcNow;
 
             using (var doc1a = new MutableDocument("doc1"))
             using (var doc1b = new MutableDocument("doc2"))
             using (var doc1c = new MutableDocument("doc3")) {
-                doc1a.SetInt("answer", 42);
+                doc1a.SetInt("answer", 12);
                 doc1a.SetValue("options", new[] { 1, 2, 3 });
                 Db.Save(doc1a);
 
-                doc1b.SetInt("answer", 42);
+                doc1b.SetInt("answer", 22);
                 doc1b.SetValue("options", new[] { 1, 2, 3 });
                 Db.Save(doc1b);
 
-                doc1c.SetInt("answer", 42);
+                doc1c.SetInt("answer", 32);
                 doc1c.SetValue("options", new[] { 1, 2, 3 });
                 Db.Save(doc1c);
 
@@ -1834,6 +1854,55 @@ namespace Test
             v.Should().BeSameDateAs(dto30.DateTime);
             Db.GetDocumentExpiration("doc2").Should().Be(null);
             Db.GetDocumentExpiration("doc3").Should().Be(null);
+        }
+
+        [Fact]
+        public void TestSetExpirationOnDoc()
+        {
+            var dto3 = DateTimeOffset.UtcNow.AddSeconds(3);
+            using (var doc1a = new MutableDocument("doc_to_expired")) {
+                doc1a.SetInt("answer", 12);
+                doc1a.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1a);
+
+                Db.SetDocumentExpiration("doc_to_expired", dto3).Should().Be(true);
+
+            }
+            Thread.Sleep(5000);
+            var doc = Db.GetDocument("doc_to_expired").Should().BeNull();
+        }
+
+        [Fact]
+        public void TestSetExpirationOnDeletedDoc()
+        {
+            var dto3 = DateTimeOffset.Now.AddSeconds(3);
+            using (var doc1a = new MutableDocument("deleted_doc1")) {
+                doc1a.SetInt("answer", 12);
+                doc1a.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1a);
+                Db.Delete(doc1a);
+
+                Db.SetDocumentExpiration("deleted_doc1", dto3).Should().BeTrue();
+                Thread.Sleep(4000);
+
+                Action badAction = (() => Db.SetDocumentExpiration("deleted_doc1", dto3));
+                badAction.ShouldThrow<CouchbaseLiteException>("Cannot find the document.");
+            }
+        }
+
+        [Fact]
+        public void TestGetExpirationFromDeletedDoc()
+        {
+            DateTimeOffset dto3 = DateTimeOffset.UtcNow.AddSeconds(3);
+            using (var doc1a = new MutableDocument("deleted_doc")) {
+                doc1a.SetInt("answer", 12);
+                doc1a.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1a);
+                Db.SetDocumentExpiration("deleted_doc", dto3).Should().Be(true);
+                Db.Delete(doc1a);  
+            }
+            var exp = Db.GetDocumentExpiration("deleted_doc");
+            exp.Should().BeSameDateAs(dto3);
         }
 
         [Fact]
@@ -1850,6 +1919,77 @@ namespace Test
             var dto30 = DateTimeOffset.Now.AddSeconds(30);
             Action badAction = (() => Db.GetDocumentExpiration("not_exist"));
             badAction.ShouldThrow<CouchbaseLiteException>("Cannot find the document.");
+        }
+
+        [Fact]
+        public void TestLongExpiration()
+        {
+            var now = DateTime.UtcNow;
+            using (var doc = new MutableDocument("doc")) {
+                doc.SetInt("answer", 42);
+                doc.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc);
+
+                Db.GetDocumentExpiration("doc").Should().BeNull();
+                Db.SetDocumentExpiration("doc", DateTimeOffset.UtcNow.AddDays(60));
+
+                var exp = Db.GetDocumentExpiration("doc");
+                exp.Should().NotBeNull();
+                (Math.Abs((exp.Value - now).TotalDays - 60.0) < 1.0).Should().BeTrue();
+            }
+        }
+
+        [Fact]
+        public void TestSetAndUnsetExpirationOnDoc()
+        {
+            var dto3 = DateTimeOffset.UtcNow.AddSeconds(3);
+            using (var doc1a = new MutableDocument("doc_to_expired")) {
+                doc1a.SetInt("answer", 12);
+                doc1a.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1a);
+
+                Db.SetDocumentExpiration("doc_to_expired", dto3).Should().Be(true);
+
+            }
+            Db.SetDocumentExpiration("doc_to_expired", null).Should().Be(true);
+
+            Thread.Sleep(5000);
+            var doc = Db.GetDocument("doc_to_expired").Should().NotBeNull();
+        }
+
+        [Fact]
+        public void TestDocumentExpirationAfterDocsExpired()
+        {
+            var dto2 = DateTimeOffset.Now.AddSeconds(2);
+            var dto3 = DateTimeOffset.Now.AddSeconds(3);
+            var dto4 = DateTimeOffset.Now.AddSeconds(4);
+            var dto60InMS = DateTimeOffset.Now.AddSeconds(60).ToUnixTimeMilliseconds();
+
+            using (var doc1a = new MutableDocument("doc1"))
+            using (var doc1b = new MutableDocument("doc2"))
+            using (var doc1c = new MutableDocument("doc3")) {
+                doc1a.SetInt("answer", 42);
+                doc1a.SetString("a", "string");
+                Db.Save(doc1a);
+
+                doc1b.SetInt("answer", 42);
+                doc1b.SetString("b", "string");
+                Db.Save(doc1b);
+
+                doc1c.SetInt("answer", 42);
+                doc1c.SetString("c", "string");
+                Db.Save(doc1c);
+
+                Db.SetDocumentExpiration("doc1", dto2).Should().Be(true);
+                Db.SetDocumentExpiration("doc2", dto3).Should().Be(true);
+                Db.SetDocumentExpiration("doc3", dto4).Should().Be(true);
+            }
+
+            Thread.Sleep(6000);
+
+            Db.GetDocument("doc1").Should().BeNull();
+            Db.GetDocument("doc2").Should().BeNull();
+            Db.GetDocument("doc3").Should().BeNull();
         }
 
         private void PopulateData(MutableDocument doc)
