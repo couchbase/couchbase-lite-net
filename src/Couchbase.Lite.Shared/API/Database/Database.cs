@@ -1441,7 +1441,7 @@ namespace Couchbase.Lite
         public void Dispose()
         {
             GC.SuppressFinalize(this);
-
+            _expirePurgeTimer.Dispose();
             ThreadSafety.DoLocked(() =>
             {
                 ThrowIfActiveItems();
