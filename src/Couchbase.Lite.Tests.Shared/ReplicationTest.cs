@@ -1023,10 +1023,10 @@ namespace Test
         }
 #endif
 
-        private bool _replicator__filterCallback(ReplicationFilter filter)
+        private bool _replicator__filterCallback(Document document, bool isDeleted)
         {
             _isFilteredCallback = true;
-            var name = filter.Doc.GetString("name");
+            var name = document.GetString("name");
             return name == "pass";
         }
 

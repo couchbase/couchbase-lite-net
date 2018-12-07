@@ -331,13 +331,10 @@ namespace Couchbase.Lite.Sync
             return filterCallback(Config.PullFilter, docID, value, isDeleted);
         }
 
-        private bool filterCallback(Func<ReplicationFilter, bool> filterFunction, string docID, FLDict* value, bool isDeleted)
+        private bool filterCallback(Func<Document, bool, bool> filterFunction, string docID, FLDict* value, bool isDeleted)
         {
             var d = FLValueConverter.ToCouchbaseObject((FLValue*)value, Config.Database, true) as IDictionary<string, object>;
-            var filter = new ReplicationFilter();
-            filter.IsDeleted = isDeleted;
-            filter.Doc = new MutableDocument(docID, d);
-            return filterFunction(filter);
+            return filterFunction(new MutableDocument(docID, d), isDeleted);
         }
 
         private void ClearRepl()
