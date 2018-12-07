@@ -34,8 +34,9 @@ namespace LiteCore.Interop
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate void C4ReplicatorDocumentEndedCallback(C4Replicator* replicator,
-            [MarshalAs(UnmanagedType.U1)]bool pushing, FLSlice docID, C4Error error, 
-            [MarshalAs(UnmanagedType.U1)]bool transient, void* context);
+            [MarshalAs(UnmanagedType.U1)]bool pushing, FLSlice docID, FLSlice revID, 
+            C4RevisionFlags flags, C4Error error, [MarshalAs(UnmanagedType.U1)]bool transient, 
+            void* context);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate void C4ReplicatorBlobProgressCallback(C4Replicator* replicator,
@@ -45,8 +46,8 @@ namespace LiteCore.Interop
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     [return: MarshalAs(UnmanagedType.U1)]
-    internal unsafe delegate bool C4ReplicatorFilterFunction(FLSlice docID, FLDict* body,
-        void* context);
+    internal unsafe delegate bool C4ReplicatorValidationFunction(FLSlice docID, 
+        C4RevisionFlags revisionFlags, FLDict* body, void* context);
 }
 
 namespace Couchbase.Lite.Interop
@@ -55,8 +56,8 @@ namespace Couchbase.Lite.Interop
     {
         private C4ReplicatorParameters _c4Params;
         private C4ReplicatorStatusChangedCallback _onStatusChanged;
-        private C4ReplicatorFilterFunction _pushFilter;
-        private C4ReplicatorFilterFunction _validation;
+        private C4ReplicatorValidationFunction _pushFilter;
+        private C4ReplicatorValidationFunction _validation;
         private C4ReplicatorDocumentEndedCallback _onDocumentEnded;
 
         public C4ReplicatorParameters C4Params => _c4Params;
@@ -98,7 +99,7 @@ namespace Couchbase.Lite.Interop
             }
         }
 
-        public C4ReplicatorFilterFunction PushFilter
+        public C4ReplicatorValidationFunction PushFilter
         {
             get => _pushFilter;
             set {
@@ -107,7 +108,7 @@ namespace Couchbase.Lite.Interop
             }
         }
 
-        public C4ReplicatorFilterFunction PullFilter
+        public C4ReplicatorValidationFunction PullFilter
         {
             get => _validation;
             set {

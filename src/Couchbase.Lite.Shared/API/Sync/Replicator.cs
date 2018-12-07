@@ -135,11 +135,11 @@ namespace Couchbase.Lite.Sync
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
         [ContractAnnotation("null => halt")]
-        public ListenerToken AddReplicationListener(EventHandler<DocumentReplicatedEventArgs> handler)
+        public ListenerToken AddDocumentReplicationListener(EventHandler<DocumentReplicatedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(handler), handler);
 
-            return AddReplicationListener(null, handler);
+            return AddDocumentReplicationListener(null, handler);
         }
 
         /// <summary>
@@ -152,7 +152,7 @@ namespace Couchbase.Lite.Sync
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
         [ContractAnnotation("handler:null => halt")]
-        public ListenerToken AddReplicationListener([CanBeNull]TaskScheduler scheduler,
+        public ListenerToken AddDocumentReplicationListener([CanBeNull]TaskScheduler scheduler,
             EventHandler<DocumentReplicatedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(handler), handler);
@@ -160,16 +160,6 @@ namespace Couchbase.Lite.Sync
             var cbHandler = new CouchbaseEventHandler<DocumentReplicatedEventArgs>(handler, scheduler);
             _documentEndedUpdate.Add(cbHandler);
             return new ListenerToken(cbHandler, "repl");
-        }
-
-        /// <summary>
-        /// Removes a previously added documents ended listener via its <see cref="ListenerToken"/>
-        /// </summary>
-        /// <param name="token">The token received from <see cref="AddReplicationListener(TaskScheduler, EventHandler{DocumentReplicatedEventArgs})"/></param>
-        public void RemoveReplicationListener(ListenerToken token)
-        {
-            Config.Options.ProgressLevel = ReplicatorProgressLevel.Overall;
-            _documentEndedUpdate.Remove(token);
         }
 
         /// <summary>
@@ -206,12 +196,16 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// Removes a previously added change listener via its <see cref="ListenerToken"/>
+        /// Removes a previously added change listener via its <see cref="ListenerToken"/> and/or
+        /// Removes a previously added documents ended listener via its <see cref="ListenerToken"/>
         /// </summary>
-        /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{ReplicatorStatusChangedEventArgs})"/></param>
+        /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{ReplicatorStatusChangedEventArgs})"/>
+        /// and/or The token received from <see cref="AddReplicationListener(TaskScheduler, EventHandler{DocumentReplicatedEventArgs})"/></param>
         public void RemoveChangeListener(ListenerToken token)
         {
             _statusChanged.Remove(token);
+            if(_documentEndedUpdate.Remove(token)==0)
+                Config.Options.ProgressLevel = ReplicatorProgressLevel.Overall;
         }
 
         /// <summary>
@@ -281,9 +275,8 @@ namespace Couchbase.Lite.Sync
             return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
         }
 
-
         [MonoPInvokeCallback(typeof(C4ReplicatorDocumentEndedCallback))]
-        private static void OnDocEnded(C4Replicator* repl, bool pushing, FLSlice docID, C4Error error, bool transient, void* context)
+        private static void OnDocEnded(C4Replicator* repl, bool pushing, FLSlice docID, FLSlice revID, C4RevisionFlags flags, C4Error error, bool transient, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             var docIDStr = docID.CreateString();
@@ -310,36 +303,38 @@ namespace Couchbase.Lite.Sync
             });
         }
 
-        [MonoPInvokeCallback(typeof(C4ReplicatorFilterFunction))]
-        private static bool PushFilterCallback(FLSlice docID, FLDict* dict, void* context)
-        { 
+        [MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
+        private static bool PushFilterCallback(FLSlice docID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
+        {
+            var isDeletedFlag = revisionFlags.HasFlag(C4RevisionFlags.Deleted);
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             var docIDStr = docID.CreateString();
-            return replicator.PushFilterCallback(docIDStr, dict);
+            return replicator.PushFilterCallback(docIDStr, dict, isDeletedFlag);
         }
 
-        private bool PushFilterCallback(string docID, FLDict* value)
+        private bool PushFilterCallback(string docID, FLDict* value, bool isDeleted)
         {
-            var d = FLValueConverter.ToCouchbaseObject((FLValue*)value, Config.Database, true) as IDictionary<string, object>;
-            var f = Config.PushFilter;
-            var v = f(new MutableDocument(docID, d));
-            return v;
+            return filterCallback(Config.PushFilter, docID, value, isDeleted);
         }
 
-        [MonoPInvokeCallback(typeof(C4ReplicatorFilterFunction))]
-        private static bool PullValidateCallback(FLSlice docID, FLDict* dict, void* context)
+        [MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
+        private static bool PullValidateCallback(FLSlice docID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
+            var isDeletedFlag = revisionFlags.HasFlag(C4RevisionFlags.Deleted);
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             var docIDStr = docID.CreateString();
-            return replicator.PullValidateCallback(docIDStr, dict);
+            return replicator.PullValidateCallback(docIDStr, dict, isDeletedFlag);
         }
 
-        private bool PullValidateCallback(string docID, FLDict* value)
+        private bool PullValidateCallback(string docID, FLDict* value, bool isDeleted)
+        {
+            return filterCallback(Config.PullFilter, docID, value, isDeleted);
+        }
+
+        private bool filterCallback(Func<Document, bool, bool> filterFunction, string docID, FLDict* value, bool isDeleted)
         {
             var d = FLValueConverter.ToCouchbaseObject((FLValue*)value, Config.Database, true) as IDictionary<string, object>;
-            var f = Config.PullFilter;
-            var v = f(new MutableDocument(docID, d));
-            return v;
+            return filterFunction(new MutableDocument(docID, d), isDeleted);
         }
 
         private void ClearRepl()
