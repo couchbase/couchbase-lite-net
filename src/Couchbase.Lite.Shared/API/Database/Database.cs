@@ -963,7 +963,7 @@ namespace Couchbase.Lite
                     _expirePurgeTimer.Change(TimeSpan.FromMilliseconds(UInt32.MaxValue - 1), TimeSpan.FromMilliseconds(-1));
                     Log.To.Database.I(Tag, "{0:F3} seconds is too far in the future to schedule a document expiration," +
                                            " will run again at the maximum value of {0:F3} seconds", expirationTimeSpan.TotalSeconds, (UInt32.MaxValue - 1) / 1000);
-                } else if (expirationTimeSpan.TotalSeconds <= Double.Epsilon) {
+                } else if (expirationTimeSpan.TotalMilliseconds <= Double.Epsilon) {
                     _expirePurgeTimer.Change(Timeout.Infinite, Timeout.Infinite);
                     PurgeExpired(null);
                 } else {

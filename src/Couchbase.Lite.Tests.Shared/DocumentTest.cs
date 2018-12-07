@@ -1939,6 +1939,59 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestSetAndUnsetExpirationOnDoc()
+        {
+            var dto3 = DateTimeOffset.UtcNow.AddSeconds(3);
+            using (var doc1a = new MutableDocument("doc_to_expired")) {
+                doc1a.SetInt("answer", 12);
+                doc1a.SetValue("options", new[] { 1, 2, 3 });
+                Db.Save(doc1a);
+
+                Db.SetDocumentExpiration("doc_to_expired", dto3).Should().Be(true);
+
+            }
+            Db.SetDocumentExpiration("doc_to_expired", null).Should().Be(true);
+
+            Thread.Sleep(5000);
+            var doc = Db.GetDocument("doc_to_expired").Should().NotBeNull();
+        }
+
+        [Fact]
+        public void TestDocumentExpirationAfterDocsExpired()
+        {
+            var dto2 = DateTimeOffset.Now.AddSeconds(2);
+            var dto3 = DateTimeOffset.Now.AddSeconds(3);
+            var dto4 = DateTimeOffset.Now.AddSeconds(4);
+            var dto60InMS = DateTimeOffset.Now.AddSeconds(60).ToUnixTimeMilliseconds();
+
+            using (var doc1a = new MutableDocument("doc1"))
+            using (var doc1b = new MutableDocument("doc2"))
+            using (var doc1c = new MutableDocument("doc3")) {
+                doc1a.SetInt("answer", 42);
+                doc1a.SetString("a", "string");
+                Db.Save(doc1a);
+
+                doc1b.SetInt("answer", 42);
+                doc1b.SetString("b", "string");
+                Db.Save(doc1b);
+
+                doc1c.SetInt("answer", 42);
+                doc1c.SetString("c", "string");
+                Db.Save(doc1c);
+
+                Db.SetDocumentExpiration("doc1", dto2).Should().Be(true);
+                Db.SetDocumentExpiration("doc2", dto3).Should().Be(true);
+                Db.SetDocumentExpiration("doc3", dto4).Should().Be(true);
+            }
+
+            Thread.Sleep(6000);
+
+            Db.GetDocument("doc1").Should().BeNull();
+            Db.GetDocument("doc2").Should().BeNull();
+            Db.GetDocument("doc3").Should().BeNull();
+        }
+
         private void PopulateData(MutableDocument doc)
         {
             var date = DateTimeOffset.Now;
