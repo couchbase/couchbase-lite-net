@@ -25,7 +25,7 @@ using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
-    public class LinuxProxy : IProxy
+    internal sealed class LinuxProxy : IProxy
     {
         #region Constants
 

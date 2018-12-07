@@ -78,7 +78,7 @@ namespace Couchbase.Lite.Support
             IntPtr handle);
     }
 
-    public sealed class WindowsProxy : IProxy
+    internal sealed class WindowsProxy : IProxy
     {
         private const string Tag = nameof(WindowsProxy);
 
