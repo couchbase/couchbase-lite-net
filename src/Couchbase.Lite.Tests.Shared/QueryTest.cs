@@ -90,15 +90,14 @@ namespace Test
 
             Thread.Sleep(6000);
 
-            var r = QueryBuilder.Select(DocID, Expiration)
+            using (var r = QueryBuilder.Select(DocID, Expiration)
                 .From(DataSource.Database(Db))
                 .Where(Meta.Expiration
-                .LessThan(Expression.Long(dto6InMS)));
+                .LessThan(Expression.Long(dto6InMS)))) {
 
-            var b = r.Execute().AllResults();
-            b.Count().Should().Be(0);
-
-            r.Dispose();
+                var b = r.Execute().AllResults();
+                b.Count().Should().Be(0);
+            }
         }
 
         [Fact]
@@ -128,16 +127,15 @@ namespace Test
                 Db.SetDocumentExpiration("doc2", dto30).Should().Be(true);
                 Db.SetDocumentExpiration("doc3", dto40).Should().Be(true);
             }
-            
-            var r = QueryBuilder.Select(DocID, Expiration)
+
+            using (var r = QueryBuilder.Select(DocID, Expiration)
                 .From(DataSource.Database(Db))
                 .Where(Meta.Expiration
-                .LessThan(Expression.Long(dto60InMS)));
+                .LessThan(Expression.Long(dto60InMS)))) {
 
-            var b = r.Execute().AllResults();
-            b.Count().Should().Be(3);
-
-            r.Dispose();
+                var b = r.Execute().AllResults();
+                b.Count().Should().Be(3);
+            }
         }
 
         [Fact]
@@ -149,14 +147,13 @@ namespace Test
                 Db.Save(doc1a);
             }
 
-            var q = QueryBuilder.Select(DocID, IsDeleted)
+            using (var q = QueryBuilder.Select(DocID, IsDeleted)
                  .From(DataSource.Database(Db))
                  .Where(Meta.ID.EqualTo(Expression.String("doc1"))
-                 .And(Meta.IsDeleted.EqualTo(Expression.Boolean(false))));
-            q.Execute().AllResults().FirstOrDefault().GetString(0).Should().Be("doc1");
-            q.Execute().AllResults().FirstOrDefault().GetBoolean(1).Should().BeFalse();
-
-            q.Dispose();
+                 .And(Meta.IsDeleted.EqualTo(Expression.Boolean(false))))) {
+                q.Execute().AllResults().FirstOrDefault().GetString(0).Should().Be("doc1");
+                q.Execute().AllResults().FirstOrDefault().GetBoolean(1).Should().BeFalse();
+            }
         }
 
         [Fact]
@@ -168,13 +165,12 @@ namespace Test
                 Db.Save(doc1a);
             }
             Db.Delete(Db.GetDocument("doc1"));
-            var q = QueryBuilder.Select(DocID, IsDeleted)
+            using (var q = QueryBuilder.Select(DocID, IsDeleted)
                  .From(DataSource.Database(Db))
                  .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(true))
-                 .And(Meta.ID.EqualTo(Expression.String("doc1"))));
-            q.Execute().AllResults().Count().Should().Be(1);
-
-            q.Dispose();
+                 .And(Meta.ID.EqualTo(Expression.String("doc1"))))) {
+                q.Execute().AllResults().Count().Should().Be(1);
+            }
         }
 
         [Fact]
