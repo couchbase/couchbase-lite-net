@@ -1414,7 +1414,7 @@ namespace Couchbase.Lite
 
         private void StopExpirePurgeTimer()
         {
-            bool? success = _expirePurgeTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+            _expirePurgeTimer?.Change(Timeout.Infinite, Timeout.Infinite);
             _expirePurgeTimer?.Dispose();
             _expirePurgeTimer = null;
         }
