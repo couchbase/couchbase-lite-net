@@ -1992,6 +1992,26 @@ namespace Test
             Db.GetDocument("doc3").Should().BeNull();
         }
 
+        [Fact]
+        public void TestPurgeEvent()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("directory", "garbage");
+                Db.Save(doc1);
+            }
+            
+            var mre = new ManualResetEventSlim();
+            Db.AddChangeListener((sender, args) => mre.Set());
+
+            Db.Purge("doc1");
+            Thread.Sleep(1000);
+            try {
+                mre.Wait(TimeSpan.FromSeconds(1)).Should().BeTrue("because purge should fire a changed event");
+            } finally {
+                mre.Dispose();
+            }
+        }
+
         private void PopulateData(MutableDocument doc)
         {
             var date = DateTimeOffset.Now;
