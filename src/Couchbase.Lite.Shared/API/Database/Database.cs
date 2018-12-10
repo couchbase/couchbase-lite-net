@@ -1412,6 +1412,13 @@ namespace Couchbase.Lite
             SchedulePurgeExpired(TimeSpan.FromSeconds(1));
         }
 
+        private void StopExpirePurgeTimer()
+        {
+            bool? success = _expirePurgeTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+            _expirePurgeTimer?.Dispose();
+            _expirePurgeTimer = null;
+        }
+
         #endregion
 
         /// <inheritdoc />
@@ -1441,7 +1448,7 @@ namespace Couchbase.Lite
         public void Dispose()
         {
             GC.SuppressFinalize(this);
-            _expirePurgeTimer.Dispose();
+            StopExpirePurgeTimer();
             ThreadSafety.DoLocked(() =>
             {
                 ThrowIfActiveItems();

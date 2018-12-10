@@ -1955,6 +1955,7 @@ namespace Test
 
             Thread.Sleep(5000);
             var doc = Db.GetDocument("doc_to_expired").Should().NotBeNull();
+            Db.Delete();
         }
 
         [Fact]
