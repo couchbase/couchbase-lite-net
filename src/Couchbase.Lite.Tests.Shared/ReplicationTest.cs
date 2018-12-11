@@ -35,6 +35,7 @@ using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
 
+using Test.Util;
 #if COUCHBASE_ENTERPRISE
 using Couchbase.Lite.P2P;
 using ProtocolType = Couchbase.Lite.P2P.ProtocolType;
@@ -479,12 +480,13 @@ namespace Test
                 _repl.RemoveChangeListener(token1);
             }
 
-            _replicationEvents.Count().Should().Be(2);
+            _replicationEvents.Should().HaveCount(2);
             var push = _replicationEvents.FirstOrDefault(g => g.Status.Pushing && g.Status.Completed);
             push.Status.DocID.Should().Be("doc1");
             var pull = _replicationEvents.FirstOrDefault(g => !g.Status.Pushing && g.Status.Completed);
             pull.Status.DocID.Should().Be("doc2");
         }
+
 
         [Fact]
         public void TestDocumentIDs()
@@ -849,6 +851,29 @@ namespace Test
             statuses.Count.Should().Be(0);
         }
 
+        [Fact]
+        public void TestPushAndForget()
+        {
+            for (int i = 0; i < 10; i++) {
+                using (var mdoc = new MutableDocument()) {
+                    mdoc.SetInt("id", i);
+                    Db.Save(mdoc);
+                }
+            }
+
+            var config = CreateConfig(true, false, false);
+            RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
+            {
+                using (var doc = Db.GetDocument(args.Status.DocID)) {
+                    Db.Purge(doc);
+                }
+            });
+
+            var success = Try.Condition(() => Db.Count == 0).Times(5).Go();
+            success.Should().BeTrue("because push and forget should purge docs");
+            _otherDB.Count.Should().Be(10, "because the documents should have been pushed");
+        }
+
         private ReplicatorConfiguration CreateFailureP2PConfiguration(ProtocolType protocolType, MockConnectionLifecycleLocation location, bool recoverable)
         {
             var errorLocation = TestErrorLogic.FailWhen(location);
@@ -1115,7 +1140,8 @@ namespace Test
             }
         }
 
-        private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, CouchbaseLiteErrorType expectedErrDomain, bool reset = false)
+        private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, CouchbaseLiteErrorType expectedErrDomain, bool reset = false,
+            EventHandler<DocumentReplicatedEventArgs> documentReplicated = null)
         {
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
@@ -1135,6 +1161,10 @@ namespace Test
 
             if (reset) {
                 _repl.ResetCheckpoint();
+            }
+
+            if (documentReplicated != null) {
+                _repl.AddDocumentReplicationListener(documentReplicated);
             }
             
             _repl.Start();
