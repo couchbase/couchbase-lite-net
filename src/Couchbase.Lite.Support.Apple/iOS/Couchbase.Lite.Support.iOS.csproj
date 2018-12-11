@@ -126,6 +126,7 @@
     <Compile Include="Support\IOSProxy.cs" />
     <Compile Include="Support\iOSRuntimePlatform.cs" />
     <Compile Include="Support\MainThreadTaskScheduler.cs" />
+    <Compile Include="Support\iOSReachability.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Couchbase.Lite\Properties\version">

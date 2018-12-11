@@ -423,6 +423,7 @@ Transfer-Encoding: chunked";
         {
             TestRoundTrip(42);
             TestRoundTrip(Int64.MinValue);
+            TestRoundTrip((ulong)Int64.MaxValue);
             TestRoundTrip("Fleece");
             TestRoundTrip(new Dictionary<string, object>
             {
@@ -634,7 +635,23 @@ Transfer-Encoding: chunked";
             var runtimeException = new RuntimeException("runtime exception");
         }
 
-#if !NETCOREAPP2_0
+        [Fact]
+        [ForIssue("couchbase-lite-net/1048")]
+        public void TestDictionaryWithULong()
+        {
+            using (var doc = new MutableDocument("test_ulong")) {
+                var dict = new MutableDictionaryObject();
+                dict.SetValue("high_value", UInt64.MaxValue);
+                doc.SetDictionary("nested", dict);
+                Db.Save(doc);
+            }
+
+            using (var doc = Db.GetDocument("test_ulong")) {
+                doc["nested"]["high_value"].Value.Should().Be(UInt64.MaxValue);
+            }
+        }
+
+        #if !NETCOREAPP2_0
 
         [Fact]
         public async Task TestMainThreadScheduler()

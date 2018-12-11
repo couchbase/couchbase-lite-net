@@ -136,6 +136,7 @@ namespace Couchbase.Lite.Internal.Doc
                 case uint ui:
                 case int i:
                 case long l:
+                case ulong ul:
                 case string str:
                 case bool bl:
                 case float f:

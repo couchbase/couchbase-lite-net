@@ -25,6 +25,7 @@ using Couchbase.Lite.Logging;
 using JetBrains.Annotations;
 
 using LiteCore.Interop;
+using System.Collections.Concurrent;
 
 namespace Couchbase.Lite.Sync
 {
@@ -35,7 +36,7 @@ namespace Couchbase.Lite.Sync
         private const string Tag = nameof(WebSocketTransport);
 
         [NotNull]
-        private static readonly Dictionary<int, WebSocketWrapper> Sockets = new Dictionary<int, WebSocketWrapper>();
+        private static readonly ConcurrentDictionary<int, WebSocketWrapper> Sockets = new ConcurrentDictionary<int, WebSocketWrapper>();
 
         #endregion
 
@@ -81,7 +82,7 @@ namespace Couchbase.Lite.Sync
         private static void DoDispose(C4Socket* socket)
         {
             var id = (int) socket->nativeHandle;
-            Sockets.Remove(id);
+            Sockets.TryRemove(id, out var tmp);
         }
 
         private static void DoError(C4Socket* socket, Exception e)
@@ -119,7 +120,7 @@ namespace Couchbase.Lite.Sync
             var id = Interlocked.Increment(ref _NextID);
             socket->nativeHandle = (void*)id;
             var socketWrapper = new WebSocketWrapper(uri, socket, replicationOptions);
-            Sockets[id] = socketWrapper;
+            Sockets.AddOrUpdate(id, socketWrapper, (k, v) => socketWrapper);
             socketWrapper.Start();
         }
 

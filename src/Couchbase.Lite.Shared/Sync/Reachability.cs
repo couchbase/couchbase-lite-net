@@ -64,7 +64,13 @@ namespace Couchbase.Lite.Sync
         public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
 
         internal static bool AllowLoopback = false; // For unit tests
-        
+
+        #endregion
+
+        #region Properties
+
+        public Uri Url { get; set; }
+
         #endregion
 
         #region Internal Methods

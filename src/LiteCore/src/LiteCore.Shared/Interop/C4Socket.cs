@@ -47,17 +47,18 @@ namespace LiteCore.Interop
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate void SocketCompletedReceiveDelegate(C4Socket* socket, UIntPtr byteCount);
+    
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    internal unsafe delegate void SocketDisposeDelegate(C4Socket* socket);
 
     internal unsafe delegate void SocketRequestCloseDelegateManaged(C4Socket* socket, int status, string message);
 
     internal unsafe delegate void SocketWriteDelegateManaged(C4Socket* socket, byte[] allocatedData);
     
     internal unsafe delegate void SocketCompletedReceiveDelegateManaged(C4Socket* socket, ulong byteCount);
-
+   
     internal unsafe delegate void SocketErrorDelegate(C4Socket* socket, Exception e);
-
-    internal unsafe delegate void SocketDisposeDelegate(C4Socket* socket);
-
+    
     internal static unsafe class SocketFactory
     {
         private static readonly SocketOpenDelegate _open;

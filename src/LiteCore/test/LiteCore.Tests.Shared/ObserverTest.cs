@@ -16,6 +16,10 @@
 //  limitations under the License.
 // 
 
+#if __IOS__
+extern alias ios;
+#endif
+
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -63,7 +67,8 @@ namespace LiteCore.Tests
             RunTestVariants(() =>
             {
                 var handle = GCHandle.Alloc(this);
-                try {
+                try
+                {
                     _dbObserver = Native.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     CreateRev("A", FLSlice.Constant("1-aa"), Body);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
@@ -83,7 +88,9 @@ namespace LiteCore.Tests
 
                     CreateRev("A", FLSlice.Constant("2-aaaa"), Body);
                     _dbCallbackCalls.Should().Be(2, "because the observer was disposed");
-                } finally {
+                }
+                finally
+                {
                     handle.Free();
                 }
             });
@@ -92,7 +99,8 @@ namespace LiteCore.Tests
         [Fact]
         public void TestDocObserver()
         {
-            RunTestVariants(() => {
+            RunTestVariants(() =>
+            {
                 var handle = GCHandle.Alloc(this);
                 try {
                     CreateRev("A", FLSlice.Constant("1-aa"), Body);
@@ -102,7 +110,9 @@ namespace LiteCore.Tests
                     CreateRev("A", FLSlice.Constant("2-bb"), Body);
                     CreateRev("B", FLSlice.Constant("1-bb"), Body);
                     _docCallbackCalls.Should().Be(1, "because there was only one update to the doc in question");
-                } finally {
+                }
+                finally
+                {
                     handle.Free();
                 }
             });
@@ -111,9 +121,11 @@ namespace LiteCore.Tests
         [Fact]
         public void TestMultiDbObserver()
         {
-            RunTestVariants(() => {
+            RunTestVariants(() =>
+            {
                 var handle = GCHandle.Alloc(this);
-                try {
+                try
+                {
                     _dbObserver = Native.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     CreateRev("A", FLSlice.Constant("1-aa"), Body);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
@@ -123,8 +135,8 @@ namespace LiteCore.Tests
                     CheckChanges(new[] { "A", "B" }, new[] { "1-aa", "1-bb" });
 
                     // Open another database on the same file
-                    var otherdb = (C4Database*) LiteCoreBridge.Check(err =>
-                        Native.c4db_open(DatabasePath(), Native.c4db_getConfig(Db), err));
+                    var otherdb = (C4Database*)LiteCoreBridge.Check(err =>
+                       Native.c4db_open(DatabasePath(), Native.c4db_getConfig(Db), err));
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(otherdb, err));
                     try {
                         CreateRev(otherdb, "C", FLSlice.Constant("1-cc"), Body);
@@ -145,7 +157,9 @@ namespace LiteCore.Tests
 
                     LiteCoreBridge.Check(err => Native.c4db_close(otherdb, err));
                     Native.c4db_free(otherdb);
-                } finally {
+                }
+                finally
+                {
                     handle.Free();
                 }
             });
@@ -157,7 +171,8 @@ namespace LiteCore.Tests
             bool external;
             var changeCount = Native.c4dbobs_getChanges(_dbObserver, changes, 100, &external);
             changeCount.Should().Be((uint)expectedDocIDs.Count, "because otherwise we didn't get the correct number of changes");
-            for(int i = 0; i < changeCount; i++) {
+            for (int i = 0; i < changeCount; i++)
+            {
                 changes[i].docID.CreateString().Should().Be(expectedDocIDs[i], "because otherwise we have an invalid document ID");
                 changes[i].revID.CreateString().Should().Be(expectedRevIDs[i], "because otherwise we have an invalid document revision ID");
             }
@@ -166,12 +181,19 @@ namespace LiteCore.Tests
             external.Should().Be(expectedExternal, "because otherwise the external parameter was wrong");
         }
 
+
+#if __IOS__
+        [ios::ObjCRuntime.MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
+#endif
         private static void DBObserverCallback(C4DatabaseObserver* obs, void* context)
         {
             var obj = GCHandle.FromIntPtr((IntPtr) context).Target as ObserverTest;
             obj.DbObserverCalled(obs);
         }
 
+#if __IOS__
+        [ios::ObjCRuntime.MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
+#endif
         private static void DocObserverCallback(C4DocumentObserver* obs, FLSlice docId, ulong sequence, void* context)
         {
             var obj = GCHandle.FromIntPtr((IntPtr) context).Target as ObserverTest;

@@ -28,6 +28,12 @@ namespace Couchbase.Lite.DI
 
         #endregion
 
+        #region Properties
+
+        Uri Url { get; set; }
+
+        #endregion
+
         #region Public Methods
 
         void Start();
