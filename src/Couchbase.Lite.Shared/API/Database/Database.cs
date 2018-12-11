@@ -960,14 +960,14 @@ namespace Couchbase.Lite
                 var delta = DateTimeOffset.FromUnixTimeMilliseconds((long)nextExpiration) - DateTimeOffset.UtcNow;
                 var expirationTimeSpan = delta > delay ? delta : delay;
                 if (expirationTimeSpan.TotalMilliseconds >= UInt32.MaxValue) {
-                    _expirePurgeTimer.Change(TimeSpan.FromMilliseconds(UInt32.MaxValue - 1), TimeSpan.FromMilliseconds(-1));
+                    _expirePurgeTimer?.Change(TimeSpan.FromMilliseconds(UInt32.MaxValue - 1), TimeSpan.FromMilliseconds(-1));
                     Log.To.Database.I(Tag, "{0:F3} seconds is too far in the future to schedule a document expiration," +
                                            " will run again at the maximum value of {0:F3} seconds", expirationTimeSpan.TotalSeconds, (UInt32.MaxValue - 1) / 1000);
                 } else if (expirationTimeSpan.TotalMilliseconds <= Double.Epsilon) {
-                    _expirePurgeTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                    _expirePurgeTimer?.Change(Timeout.Infinite, Timeout.Infinite);
                     PurgeExpired(null);
                 } else {
-                    _expirePurgeTimer.Change(expirationTimeSpan, TimeSpan.FromMilliseconds(-1));
+                    _expirePurgeTimer?.Change(expirationTimeSpan, TimeSpan.FromMilliseconds(-1));
                     Log.To.Database.I(Tag, "Scheduling next doc expiration in {0:F3} seconds", expirationTimeSpan.TotalSeconds);
                 }
             } else {
@@ -1367,6 +1367,21 @@ namespace Couchbase.Lite
                 rawDoc->revID.CreateString());
         }
 
+        private void StopExpirePurgeTimer()
+        {
+            var timer = Interlocked.Exchange(ref _expirePurgeTimer, null);
+            if (timer == null) {
+                return;
+            }
+
+            var mre = new ManualResetEvent(false); // Slim variant does not work                
+            timer.Change(Timeout.Infinite, Timeout.Infinite);
+            timer.Dispose(mre);
+            if (!mre.WaitOne(TimeSpan.FromSeconds(5))) {
+                Log.To.Database.W(Tag, "Unable to stop purge timer!");
+            }
+        }
+
         private void ThrowIfActiveItems()
         {
             if (ActiveReplications.Any()) {
@@ -1401,15 +1416,29 @@ namespace Couchbase.Lite
 
         private void PurgeExpired(object state)
         {
+            // Don't throw exceptions here because they can bring down
+            // the whole process since they are on a timer thread
             var cnt = 0L;
-            LiteCoreBridge.Check(err =>
+            var open = true;
+            ThreadSafety.DoLocked(() =>
             {
-                CheckOpen();
-                cnt = Native.c4db_purgeExpiredDocs(_c4db, err);
-                Log.To.Database.I(Tag, "{0} purged {1} expired documents", this, cnt);
-                return err->code == 0;
+                open = _c4db != null;
+                if (!open) {
+                    return;
+                }
+
+                C4Error err;
+                cnt = Native.c4db_purgeExpiredDocs(_c4db, &err);
+                if (err.code != 0) {
+                    Log.To.Database.W(Tag, "Error received while purging docs: {0}/{1}", err.domain, err.code);
+                } else {
+                    Log.To.Database.I(Tag, "{0} purged {1} expired documents", this, cnt);
+                }
             });
-            SchedulePurgeExpired(TimeSpan.FromSeconds(1));
+
+            if (open) {
+                SchedulePurgeExpired(TimeSpan.FromSeconds(1));
+            }
         }
 
         #endregion
@@ -1441,7 +1470,11 @@ namespace Couchbase.Lite
         public void Dispose()
         {
             GC.SuppressFinalize(this);
-            _expirePurgeTimer.Dispose();
+
+            // Do this here because otherwise if a purge job runs there will
+            // be a deadlock while the purge job waits for the lock that is held
+            // by the disposal which is waiting for timer callbacks to finish
+            StopExpirePurgeTimer(); 
             ThreadSafety.DoLocked(() =>
             {
                 ThrowIfActiveItems();
