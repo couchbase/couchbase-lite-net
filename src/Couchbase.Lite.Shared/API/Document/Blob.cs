@@ -82,7 +82,18 @@ namespace Couchbase.Lite
                     }
 
                     //TODO: If data is large, can get the file path & memory-map it
-                    var content = Native.c4blob_getContents(blobStore, key, null);
+                    C4Error err;
+                    var content = Native.c4blob_getContents(blobStore, key, &err);
+                    if (err.domain == C4ErrorDomain.LiteCoreDomain && err.code == (int)C4ErrorCode.NotFound) {
+                        Log.To.Database.W(Tag,
+                            "Blob in database has no data (are you calling Blob.Content from a pull filter function?), returning null...");
+                        return null;
+                    }
+
+                    if (err.code > 0) {
+                        throw CouchbaseException.Create(err);
+                    }
+
                     if (content?.Length <= MaxCachedContentLength) {
                         _content = content;
                     }

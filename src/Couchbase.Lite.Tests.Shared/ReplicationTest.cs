@@ -163,6 +163,56 @@ namespace Test
         }
 
         [Fact]
+        public void TestBlobAccessInFilter()
+        {
+            var content1 = new byte[] { 1, 2, 3 };
+            var content2 = new byte[] { 4, 5, 6 };
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                var mutableDictionary = new MutableDictionaryObject();
+                mutableDictionary.SetBlob("inner_blob", new Blob("text/plaintext", content1));
+                doc1.SetDictionary("outer_dict", mutableDictionary);
+
+                var mutableArray = new MutableArrayObject();
+                mutableArray.AddBlob(new Blob("text/plaintext", content2));
+                doc2.SetArray("outer_arr", mutableArray);
+                Db.Save(doc1);
+                _otherDB.Save(doc2);
+            }
+
+            var config = CreateConfig(true, true, false);
+            var exceptions = new List<Exception>();
+            config.PullFilter = (doc, isPush) =>
+            {
+                try {
+                    var nestedBlob = doc.GetArray("outer_arr")?.GetBlob(0);
+                    nestedBlob.Should().NotBeNull("because the actual blob object should be intact");
+                    var gotContent = nestedBlob.Content;
+                    gotContent.Should().BeNull("because the blob is not yet available");
+                } catch (Exception e) {
+                    exceptions.Add(e);
+                }
+
+                return true;
+            };
+
+            config.PushFilter = (doc, isPush) =>
+            {
+                try {
+                    var gotContent = doc.GetDictionary("outer_dict")?.GetBlob("inner_blob")?.Content;
+                    gotContent.Should().NotBeNull("because the nested blob should be intact in the push");
+                    gotContent.Should().ContainInOrder(content1, "because the nested blob should be intact in the push");
+                } catch (Exception e) {
+                    exceptions.Add(e);
+                }
+                
+                return true;
+            };
+            RunReplication(config, 0, 0);
+            exceptions.Should().BeEmpty("because there should be no errors");
+        }
+
+        [Fact]
         public void TestPushDoc()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -388,7 +438,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestReplicationListenerForDocumentEndedStatus()
+        public void TestDocumentEndedEvent()
         {
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Tiger");
@@ -430,9 +480,9 @@ namespace Test
             }
 
             _replicationEvents.Count().Should().Be(2);
-            var push = _replicationEvents.Where(g => g.Status.Pushing == true && g.Status.Completed == true).FirstOrDefault();
+            var push = _replicationEvents.FirstOrDefault(g => g.Status.Pushing && g.Status.Completed);
             push.Status.DocID.Should().Be("doc1");
-            var pull = _replicationEvents.Where(g => g.Status.Pushing == false && g.Status.Completed == true).FirstOrDefault();
+            var pull = _replicationEvents.FirstOrDefault(g => !g.Status.Pushing && g.Status.Completed);
             pull.Status.DocID.Should().Be("doc2");
         }
 
@@ -1134,7 +1184,8 @@ namespace Test
 
             base.Dispose(disposing);
 
-            _otherDB.Delete();
+            _otherDB?.Delete();
+            _otherDB?.Dispose();
             _otherDB = null;
         }
     }
