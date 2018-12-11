@@ -18,6 +18,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -44,7 +45,7 @@ namespace Couchbase.Lite.Internal.Serialization
                 switch (Native.FLValue_GetType(value)) {
                     case FLValueType.Array: {
                         if(dotNetTypes) {
-                            return ToObject(value, 0, hintType1);
+                            return ToObject(value, database, 0, hintType1);
                         }
 
                         var array = new ArrayObject(new MArray(new MValue(value), null), false);
@@ -57,13 +58,12 @@ namespace Couchbase.Lite.Internal.Serialization
                             return new DictionaryObject(new MDict(new MValue(value), null), false);
                         }
 
-                        var result = ToObject(value, 0, hintType1) as IDictionary<string, object>;
-                        return ConvertDictionary(result, database);
+                        return ToObject(value, database, 0, hintType1);
                     }
                     case FLValueType.Undefined:
                         return null;
                     default:
-                        return ToObject(value);
+                        return ToObject(value, database);
                 }
         }
 
@@ -104,19 +104,23 @@ namespace Couchbase.Lite.Internal.Serialization
 
         private static object ConvertDictionary(IDictionary<string, object> dict, Database database)
         {
+            if (dict == null) {
+                return null;
+            }
+
             var type = dict.GetCast<string>(Constants.ObjectTypeProperty);
             if (type == null) {
                 if(IsOldAttachment(dict)) {
                     return new Blob(database, dict);
                 }
-
+                
                 return dict;
             }
 
             if(type == Constants.ObjectTypeBlob) {
                 return new Blob(database, dict);
             }
-
+            
             return dict;
         }
 
@@ -129,7 +133,7 @@ namespace Couchbase.Lite.Internal.Serialization
             return digest != null && length != null && stub != null && revpos != null;
         }
 
-        private static object ToObject(FLValue* value, int level = 0, Type hintType1 = null)
+        private static object ToObject(FLValue* value, Database db, int level = 0, Type hintType1 = null)
         {
             if (value == null) {
                 return null;
@@ -151,7 +155,7 @@ namespace Couchbase.Lite.Internal.Serialization
                     var i = default(FLArrayIterator);
                     Native.FLArrayIterator_Begin(arr, &i);
                     do {
-                        retVal.Add(ToObject(Native.FLArrayIterator_GetValue(&i), level + 1, hintType1));
+                        retVal.Add(ToObject(Native.FLArrayIterator_GetValue(&i), db, level + 1, hintType1));
                     } while (Native.FLArrayIterator_Next(&i));
 
                     return retVal;
@@ -161,6 +165,7 @@ namespace Couchbase.Lite.Internal.Serialization
                 case FLValueType.Data:
                     return Native.FLValue_AsData(value);
                 case FLValueType.Dict: {
+
                     var dict = Native.FLValue_AsDict(value);
                     var hintType = level == 0 && hintType1 != null ? hintType1 : typeof(object);
                     var count = (int)Native.FLDict_Count(dict);
@@ -173,10 +178,10 @@ namespace Couchbase.Lite.Internal.Serialization
                     Native.FLDictIterator_Begin(dict, &i);
                     do {
                         var key = Native.FLDictIterator_GetKeyString(&i);
-                        retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), level + 1, hintType1);
+                        retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), db, level + 1, hintType1);
                     } while (Native.FLDictIterator_Next(&i));
 
-                    return retVal;
+                    return ConvertDictionary(retVal as IDictionary<string, object>, db) ?? retVal;
                 }
                 case FLValueType.Null:
                     return null;
