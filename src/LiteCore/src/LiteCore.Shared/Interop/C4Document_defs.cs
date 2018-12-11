@@ -54,6 +54,7 @@ namespace LiteCore.Interop
         KeepBody       = 0x10,
         IsConflict     = 0x20,
         Closed         = 0x40,
+        Purged         = 0x80,
     }
 
 	internal unsafe struct C4Revision

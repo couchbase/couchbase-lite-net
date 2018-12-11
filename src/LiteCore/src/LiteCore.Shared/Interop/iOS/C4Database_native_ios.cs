@@ -49,8 +49,7 @@ namespace LiteCore.Interop
         public static extern C4Database* c4db_retain(C4Database* db);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_free(C4Database* database);
+        public static extern void c4db_free(C4Database* database);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

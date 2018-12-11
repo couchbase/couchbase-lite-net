@@ -51,6 +51,7 @@ namespace LiteCore.Interop
         public FLHeapSlice revID;
         public ulong sequence;
         public ulong bodySize;
+        public long expiration;
     }
 
 	internal unsafe struct C4DocEnumerator

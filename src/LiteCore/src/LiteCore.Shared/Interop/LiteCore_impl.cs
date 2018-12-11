@@ -68,7 +68,7 @@ namespace LiteCore.Interop
         public C4Database* c4db_openAgain(C4Database* db, C4Error* outError) => Native.c4db_openAgain(db, outError);
         public bool c4db_copy(string sourcePath, string destinationPath, C4DatabaseConfig* config, C4Error* error) => Native.c4db_copy(sourcePath, destinationPath, config, error);
         public C4Database* c4db_retain(C4Database* db) => Native.c4db_retain(db);
-        public bool c4db_free(C4Database* database) => Native.c4db_free(database);
+        public void c4db_free(C4Database* database) => Native.c4db_free(database);
         public bool c4db_close(C4Database* database, C4Error* outError) => Native.c4db_close(database, outError);
         public bool c4db_delete(C4Database* database, C4Error* outError) => Native.c4db_delete(database, outError);
         public bool c4db_deleteAtPath(string dbPath, C4Error* outError) => Native.c4db_deleteAtPath(dbPath, outError);
@@ -167,6 +167,7 @@ namespace LiteCore.Interop
         public bool c4db_createIndex(C4Database* database, string name, string expressionsJSON, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError) => Native.c4db_createIndex(database, name, expressionsJSON, indexType, indexOptions, outError);
         public bool c4db_deleteIndex(C4Database* database, string name, C4Error* outError) => Native.c4db_deleteIndex(database, name, outError);
         public byte[] c4db_getIndexes(C4Database* database, C4Error* outError) => Native.c4db_getIndexes(database, outError);
+        public byte[] c4db_getIndexesInfo(C4Database* database, C4Error* outError) => Native.c4db_getIndexesInfo(database, outError);
         public bool c4repl_isValidDatabaseName(string dbName) => Native.c4repl_isValidDatabaseName(dbName);
         public bool c4address_fromURL(string url, C4Address* address, FLSlice* dbName) => Native.c4address_fromURL(url, address, dbName);
         public string c4address_toURL(C4Address address) => Native.c4address_toURL(address);
@@ -187,7 +188,6 @@ namespace LiteCore.Interop
         public void c4socket_completedWrite(C4Socket* socket, ulong byteCount) => Native.c4socket_completedWrite(socket, byteCount);
         public void c4socket_received(C4Socket* socket, byte[] data) => Native.c4socket_received(socket, data);
         public C4Socket* c4socket_fromNative(C4SocketFactory factory, void* nativeHandle, C4Address* address) => Native.c4socket_fromNative(factory, nativeHandle, address);
-        public FLDoc* FLDoc_FromData(byte[] data, FLTrust x, FLSharedKeys* shared, byte[] externData) => Native.FLDoc_FromData(data, x, shared, externData);
         public FLDoc* FLDoc_FromResultData(FLSliceResult data, FLTrust x, FLSharedKeys* shared, FLSlice externData) => Native.FLDoc_FromResultData(data, x, shared, externData);
         public FLDoc* FLDoc_FromJSON(byte[] json, FLError* outError) => Native.FLDoc_FromJSON(json, outError);
         public void FLDoc_Release(FLDoc* x) => Native.FLDoc_Release(x);
@@ -221,6 +221,7 @@ namespace LiteCore.Interop
         public FLArray* FLValue_AsArray(FLValue* value) => Native.FLValue_AsArray(value);
         public FLDict* FLValue_AsDict(FLValue* value) => Native.FLValue_AsDict(value);
         public string FLValue_ToString(FLValue* value) => Native.FLValue_ToString(value);
+        public bool FLValue_IsEqual(FLValue* v1, FLValue* v2) => Native.FLValue_IsEqual(v1, v2);
         public FLValue* FLValue_Retain(FLValue* value) => Native.FLValue_Retain(value);
         public void FLValue_Release(FLValue* value) => Native.FLValue_Release(value);
         public uint FLArray_Count(FLArray* array) => Native.FLArray_Count(array);
@@ -416,6 +417,7 @@ namespace LiteCore.Interop
         public bool c4db_createIndex(C4Database* database, FLSlice name, FLSlice expressionsJSON, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError) => NativeRaw.c4db_createIndex(database, name, expressionsJSON, indexType, indexOptions, outError);
         public bool c4db_deleteIndex(C4Database* database, FLSlice name, C4Error* outError) => NativeRaw.c4db_deleteIndex(database, name, outError);
         public FLSliceResult c4db_getIndexes(C4Database* database, C4Error* outError) => NativeRaw.c4db_getIndexes(database, outError);
+        public FLSliceResult c4db_getIndexesInfo(C4Database* database, C4Error* outError) => NativeRaw.c4db_getIndexesInfo(database, outError);
         public bool c4repl_isValidDatabaseName(FLSlice dbName) => NativeRaw.c4repl_isValidDatabaseName(dbName);
         public bool c4address_fromURL(FLSlice url, C4Address* address, FLSlice* dbName) => NativeRaw.c4address_fromURL(url, address, dbName);
         public FLSliceResult c4address_toURL(C4Address address) => NativeRaw.c4address_toURL(address);
@@ -424,7 +426,6 @@ namespace LiteCore.Interop
         public void c4socket_closeRequested(C4Socket* socket, int status, FLSlice message) => NativeRaw.c4socket_closeRequested(socket, status, message);
         public void c4socket_completedWrite(C4Socket* socket, UIntPtr byteCount) => NativeRaw.c4socket_completedWrite(socket, byteCount);
         public void c4socket_received(C4Socket* socket, FLSlice data) => NativeRaw.c4socket_received(socket, data);
-        public FLDoc* FLDoc_FromData(FLSlice data, FLTrust x, FLSharedKeys* shared, FLSlice externData) => NativeRaw.FLDoc_FromData(data, x, shared, externData);
         public FLDoc* FLDoc_FromJSON(FLSlice json, FLError* outError) => NativeRaw.FLDoc_FromJSON(json, outError);
         public FLSlice FLDoc_GetData(FLDoc* x) => NativeRaw.FLDoc_GetData(x);
         public FLSliceResult FLDoc_GetAllocedData(FLDoc* x) => NativeRaw.FLDoc_GetAllocedData(x);

@@ -27,14 +27,6 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        public static FLDoc* FLDoc_FromData(byte[] data, FLTrust x, FLSharedKeys* shared, byte[] externData)
-        {
-            fixed(byte *data_ = data)
-            fixed(byte *externData_ = externData) {
-                return NativeRaw.FLDoc_FromData(new FLSlice(data_, (ulong)data.Length), x, shared, new FLSlice(externData_, (ulong)externData.Length));
-            }
-        }
-
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLDoc* FLDoc_FromResultData(FLSliceResult data, FLTrust x, FLSharedKeys* shared, FLSlice externData);
 
@@ -192,6 +184,10 @@ namespace LiteCore.Interop
                 return ((FLSlice)retVal).CreateString();
             }
         }
+
+        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool FLValue_IsEqual(FLValue* v1, FLValue* v2);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValue* FLValue_Retain(FLValue* value);
@@ -763,9 +759,6 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class NativeRaw
     {
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLDoc* FLDoc_FromData(FLSlice data, FLTrust x, FLSharedKeys* shared, FLSlice externData);
-
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLDoc* FLDoc_FromJSON(FLSlice json, FLError* outError);
 

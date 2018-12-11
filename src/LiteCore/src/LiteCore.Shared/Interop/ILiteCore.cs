@@ -70,7 +70,7 @@ namespace LiteCore.Interop
         C4Database* c4db_openAgain(C4Database* db, C4Error* outError);
         bool c4db_copy(string sourcePath, string destinationPath, C4DatabaseConfig* config, C4Error* error);
         C4Database* c4db_retain(C4Database* db);
-        bool c4db_free(C4Database* database);
+        void c4db_free(C4Database* database);
         bool c4db_close(C4Database* database, C4Error* outError);
         bool c4db_delete(C4Database* database, C4Error* outError);
         bool c4db_deleteAtPath(string dbPath, C4Error* outError);
@@ -169,6 +169,7 @@ namespace LiteCore.Interop
         bool c4db_createIndex(C4Database* database, string name, string expressionsJSON, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError);
         bool c4db_deleteIndex(C4Database* database, string name, C4Error* outError);
         byte[] c4db_getIndexes(C4Database* database, C4Error* outError);
+        byte[] c4db_getIndexesInfo(C4Database* database, C4Error* outError);
         bool c4repl_isValidDatabaseName(string dbName);
         bool c4address_fromURL(string url, C4Address* address, FLSlice* dbName);
         string c4address_toURL(C4Address address);
@@ -189,7 +190,6 @@ namespace LiteCore.Interop
         void c4socket_completedWrite(C4Socket* socket, ulong byteCount);
         void c4socket_received(C4Socket* socket, byte[] data);
         C4Socket* c4socket_fromNative(C4SocketFactory factory, void* nativeHandle, C4Address* address);
-        FLDoc* FLDoc_FromData(byte[] data, FLTrust x, FLSharedKeys* shared, byte[] externData);
         FLDoc* FLDoc_FromResultData(FLSliceResult data, FLTrust x, FLSharedKeys* shared, FLSlice externData);
         FLDoc* FLDoc_FromJSON(byte[] json, FLError* outError);
         void FLDoc_Release(FLDoc* x);
@@ -223,6 +223,7 @@ namespace LiteCore.Interop
         FLArray* FLValue_AsArray(FLValue* value);
         FLDict* FLValue_AsDict(FLValue* value);
         string FLValue_ToString(FLValue* value);
+        bool FLValue_IsEqual(FLValue* v1, FLValue* v2);
         FLValue* FLValue_Retain(FLValue* value);
         void FLValue_Release(FLValue* value);
         uint FLArray_Count(FLArray* array);
@@ -418,6 +419,7 @@ namespace LiteCore.Interop
         bool c4db_createIndex(C4Database* database, FLSlice name, FLSlice expressionsJSON, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError);
         bool c4db_deleteIndex(C4Database* database, FLSlice name, C4Error* outError);
         FLSliceResult c4db_getIndexes(C4Database* database, C4Error* outError);
+        FLSliceResult c4db_getIndexesInfo(C4Database* database, C4Error* outError);
         bool c4repl_isValidDatabaseName(FLSlice dbName);
         bool c4address_fromURL(FLSlice url, C4Address* address, FLSlice* dbName);
         FLSliceResult c4address_toURL(C4Address address);
@@ -426,7 +428,6 @@ namespace LiteCore.Interop
         void c4socket_closeRequested(C4Socket* socket, int status, FLSlice message);
         void c4socket_completedWrite(C4Socket* socket, UIntPtr byteCount);
         void c4socket_received(C4Socket* socket, FLSlice data);
-        FLDoc* FLDoc_FromData(FLSlice data, FLTrust x, FLSharedKeys* shared, FLSlice externData);
         FLDoc* FLDoc_FromJSON(FLSlice json, FLError* outError);
         FLSlice FLDoc_GetData(FLDoc* x);
         FLSliceResult FLDoc_GetAllocedData(FLDoc* x);

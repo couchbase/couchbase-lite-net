@@ -106,6 +106,13 @@ namespace LiteCore.Interop
             }
         }
 
+        public static byte[] c4db_getIndexesInfo(C4Database* database, C4Error* outError)
+        {
+            using(var retVal = NativeRaw.c4db_getIndexesInfo(database, outError)) {
+                return ((FLSlice)retVal).ToArrayFast();
+            }
+        }
+
 
     }
 
@@ -133,6 +140,9 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult c4db_getIndexes(C4Database* database, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4db_getIndexesInfo(C4Database* database, C4Error* outError);
 
 
     }

@@ -70,7 +70,7 @@ namespace Couchbase.Lite.Interop
         public static C4Database* c4db_openAgain(C4Database* db, C4Error* outError) => Impl.c4db_openAgain(db, outError);
         public static bool c4db_copy(string sourcePath, string destinationPath, C4DatabaseConfig* config, C4Error* error) => Impl.c4db_copy(sourcePath, destinationPath, config, error);
         public static C4Database* c4db_retain(C4Database* db) => Impl.c4db_retain(db);
-        public static bool c4db_free(C4Database* database) => Impl.c4db_free(database);
+        public static void c4db_free(C4Database* database) => Impl.c4db_free(database);
         public static bool c4db_close(C4Database* database, C4Error* outError) => Impl.c4db_close(database, outError);
         public static bool c4db_delete(C4Database* database, C4Error* outError) => Impl.c4db_delete(database, outError);
         public static bool c4db_deleteAtPath(string dbPath, C4Error* outError) => Impl.c4db_deleteAtPath(dbPath, outError);
@@ -169,6 +169,7 @@ namespace Couchbase.Lite.Interop
         public static bool c4db_createIndex(C4Database* database, string name, string expressionsJSON, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError) => Impl.c4db_createIndex(database, name, expressionsJSON, indexType, indexOptions, outError);
         public static bool c4db_deleteIndex(C4Database* database, string name, C4Error* outError) => Impl.c4db_deleteIndex(database, name, outError);
         public static byte[] c4db_getIndexes(C4Database* database, C4Error* outError) => Impl.c4db_getIndexes(database, outError);
+        public static byte[] c4db_getIndexesInfo(C4Database* database, C4Error* outError) => Impl.c4db_getIndexesInfo(database, outError);
         public static bool c4repl_isValidDatabaseName(string dbName) => Impl.c4repl_isValidDatabaseName(dbName);
         public static bool c4address_fromURL(string url, C4Address* address, FLSlice* dbName) => Impl.c4address_fromURL(url, address, dbName);
         public static string c4address_toURL(C4Address address) => Impl.c4address_toURL(address);
@@ -189,7 +190,6 @@ namespace Couchbase.Lite.Interop
         public static void c4socket_completedWrite(C4Socket* socket, ulong byteCount) => Impl.c4socket_completedWrite(socket, byteCount);
         public static void c4socket_received(C4Socket* socket, byte[] data) => Impl.c4socket_received(socket, data);
         public static C4Socket* c4socket_fromNative(C4SocketFactory factory, void* nativeHandle, C4Address* address) => Impl.c4socket_fromNative(factory, nativeHandle, address);
-        public static FLDoc* FLDoc_FromData(byte[] data, FLTrust x, FLSharedKeys* shared, byte[] externData) => Impl.FLDoc_FromData(data, x, shared, externData);
         public static FLDoc* FLDoc_FromResultData(FLSliceResult data, FLTrust x, FLSharedKeys* shared, FLSlice externData) => Impl.FLDoc_FromResultData(data, x, shared, externData);
         public static FLDoc* FLDoc_FromJSON(byte[] json, FLError* outError) => Impl.FLDoc_FromJSON(json, outError);
         public static void FLDoc_Release(FLDoc* x) => Impl.FLDoc_Release(x);
@@ -223,6 +223,7 @@ namespace Couchbase.Lite.Interop
         public static FLArray* FLValue_AsArray(FLValue* value) => Impl.FLValue_AsArray(value);
         public static FLDict* FLValue_AsDict(FLValue* value) => Impl.FLValue_AsDict(value);
         public static string FLValue_ToString(FLValue* value) => Impl.FLValue_ToString(value);
+        public static bool FLValue_IsEqual(FLValue* v1, FLValue* v2) => Impl.FLValue_IsEqual(v1, v2);
         public static FLValue* FLValue_Retain(FLValue* value) => Impl.FLValue_Retain(value);
         public static void FLValue_Release(FLValue* value) => Impl.FLValue_Release(value);
         public static uint FLArray_Count(FLArray* array) => Impl.FLArray_Count(array);
@@ -418,6 +419,7 @@ namespace Couchbase.Lite.Interop
         public static bool c4db_createIndex(C4Database* database, FLSlice name, FLSlice expressionsJSON, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError) => Impl.c4db_createIndex(database, name, expressionsJSON, indexType, indexOptions, outError);
         public static bool c4db_deleteIndex(C4Database* database, FLSlice name, C4Error* outError) => Impl.c4db_deleteIndex(database, name, outError);
         public static FLSliceResult c4db_getIndexes(C4Database* database, C4Error* outError) => Impl.c4db_getIndexes(database, outError);
+        public static FLSliceResult c4db_getIndexesInfo(C4Database* database, C4Error* outError) => Impl.c4db_getIndexesInfo(database, outError);
         public static bool c4repl_isValidDatabaseName(FLSlice dbName) => Impl.c4repl_isValidDatabaseName(dbName);
         public static bool c4address_fromURL(FLSlice url, C4Address* address, FLSlice* dbName) => Impl.c4address_fromURL(url, address, dbName);
         public static FLSliceResult c4address_toURL(C4Address address) => Impl.c4address_toURL(address);
@@ -426,7 +428,6 @@ namespace Couchbase.Lite.Interop
         public static void c4socket_closeRequested(C4Socket* socket, int status, FLSlice message) => Impl.c4socket_closeRequested(socket, status, message);
         public static void c4socket_completedWrite(C4Socket* socket, UIntPtr byteCount) => Impl.c4socket_completedWrite(socket, byteCount);
         public static void c4socket_received(C4Socket* socket, FLSlice data) => Impl.c4socket_received(socket, data);
-        public static FLDoc* FLDoc_FromData(FLSlice data, FLTrust x, FLSharedKeys* shared, FLSlice externData) => Impl.FLDoc_FromData(data, x, shared, externData);
         public static FLDoc* FLDoc_FromJSON(FLSlice json, FLError* outError) => Impl.FLDoc_FromJSON(json, outError);
         public static FLSlice FLDoc_GetData(FLDoc* x) => Impl.FLDoc_GetData(x);
         public static FLSliceResult FLDoc_GetAllocedData(FLDoc* x) => Impl.FLDoc_GetAllocedData(x);
