@@ -147,6 +147,8 @@ namespace LiteCore.Interop
         void c4dbobs_free(C4DatabaseObserver* observer);
         C4DocumentObserver* c4docobs_create(C4Database* database, string docID, C4DocumentObserverCallback callback, void* context);
         void c4docobs_free(C4DocumentObserver* observer);
+        void c4pred_registerModel(string name, C4PredictiveModel x);
+        bool c4pred_unregisterModel(string name);
         C4Query* c4query_new(C4Database* database, string expression, C4Error* error);
         void c4query_free(C4Query* query);
         string c4query_explain(C4Query* query);

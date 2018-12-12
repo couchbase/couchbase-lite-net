@@ -48,7 +48,7 @@ ForEach-Object {
         }
 
         if($line.Contains("public static")) {
-            $convertedLine = $line.Replace("public static ", "").Replace("extern ", "").Replace("[MarshalAs(UnmanagedType.U1)]", "").Replace("[Out]", "")
+            $convertedLine = $line.Replace("public static ", "").Replace("extern ", "").Replace("[MarshalAs(UnmanagedType.U1)]", "").Replace("[Out]", "").Replace("[MarshalAs(UnmanagedType.LPStr)]", "")
             if(-Not $convertedLine.EndsWith(";")) {
                 $convertedLine += ";"
             }
