@@ -16,6 +16,8 @@
 // limitations under the License.
 // 
 
+using LiteCore.Interop;
+
 namespace Couchbase.Lite.Sync
 {
     /// <summary>
@@ -45,17 +47,19 @@ namespace Couchbase.Lite.Sync
     /// A struct describing the current <see cref="Document"/> ended progress 
     /// of a <see cref="Replicator"/>
     /// </summary>
-    public struct DocumentReplicatedStatus
+    public struct DocumentReplication
     {
-        public bool Completed { get; }
-        public bool Pushing { get; }
-        public string DocID { get; }
+        public bool IsDeleted { get; }
+        public bool IsPush { get; }
+        public string DocumentID { get; }
+        public CouchbaseLiteException Error { get; }
 
-        internal DocumentReplicatedStatus(string docID, bool pushing, bool completed)
+        internal DocumentReplication(string docID, bool pushing, bool deleted, C4Error error)
         {
-            DocID = docID;
-            Completed = completed;
-            Pushing = pushing;
+            DocumentID = docID;
+            IsDeleted = deleted;
+            IsPush = pushing;
+            Error = error.code != 0 ? new CouchbaseLiteException(error) : null;
         }
     }
 }

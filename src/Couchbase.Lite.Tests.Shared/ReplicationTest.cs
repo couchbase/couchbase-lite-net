@@ -60,7 +60,7 @@ namespace Test
         private Replicator _repl;
         private WaitAssert _waitAssert;
         private bool _isFilteredCallback;
-        private List<DocumentReplicatedEventArgs> _replicationEvents = new List<DocumentReplicatedEventArgs>();
+        private List<DocumentReplicationEventArgs> _replicationEvents = new List<DocumentReplicationEventArgs>();
         #if COUCHBASE_ENTERPRISE
         private IMockConnectionErrorLogic _p2PErrorLogic;
         #endif
@@ -1178,7 +1178,7 @@ namespace Test
             }
         }
 
-        private void DocumentEndedUpdate(object sender, DocumentReplicatedEventArgs args)
+        private void DocumentEndedUpdate(object sender, DocumentReplicationEventArgs args)
         {
             _replicationEvents.Add(args);
         }

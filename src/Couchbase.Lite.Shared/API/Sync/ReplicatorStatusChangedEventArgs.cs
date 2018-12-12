@@ -46,22 +46,22 @@ namespace Couchbase.Lite.Sync
     }
 
     /// <summary>
-    /// Event arguments for the <see cref="Replicator.AddReplicationListener(EventHandler{DocumentReplicatedEventArgs})" /> event
+    /// Event arguments for the <see cref="Replicator.AddReplicationListener(EventHandler{DocumentReplicationEventArgs})" /> event
     /// </summary>
-    public sealed class DocumentReplicatedEventArgs : EventArgs
+    public sealed class DocumentReplicationEventArgs : EventArgs
     {
         #region Properties
 
         /// <summary>
         /// The new status for the <see cref="Replicator"/> in question.
         /// </summary>
-        public DocumentReplicatedStatus Status { get; }
+        public DocumentReplication Status { get; }
 
         #endregion
 
         #region Constructors
 
-        internal DocumentReplicatedEventArgs(DocumentReplicatedStatus status)
+        internal DocumentReplicationEventArgs(DocumentReplication status)
         {
             Status = status;
         }
