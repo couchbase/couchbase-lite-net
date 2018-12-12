@@ -59,7 +59,7 @@ namespace Couchbase.Lite.Sync
             DocumentID = docID;
             IsDeleted = deleted;
             IsPush = pushing;
-            Error = error.code != 0 ? new CouchbaseLiteException(error) : null;
+            Error = (CouchbaseLiteException)CouchbaseException.Create(error);
         }
     }
 }
