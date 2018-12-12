@@ -287,7 +287,7 @@ namespace Couchbase.Lite.Sync
             var docIDStr = docID.CreateString();
             replicator?.DispatchQueue.DispatchAsync(() =>
             {
-                replicator.OnDocEnded(error, pushing, docIDStr ?? "", transient);
+                replicator.OnDocEnded(error, pushing, docIDStr ?? "", transient, flags);
             });
 
         }
@@ -416,7 +416,7 @@ namespace Couchbase.Lite.Sync
             return true;
         }
 
-        private void OnDocEnded(C4Error error, bool pushing, [NotNull]string docID, bool transient)
+        private void OnDocEnded(C4Error error, bool pushing, [NotNull]string docID, bool transient, C4RevisionFlags flags)
         {
             if (_disposed) {
                 return;
@@ -438,11 +438,9 @@ namespace Couchbase.Lite.Sync
                 Log.To.Sync.I(Tag,
                     $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
             }
-
-            if (error.domain == 0 && error.code == 0) {
-                var status = new DocumentReplication(docID, pushing, true, error);
-                _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(status));
-            }
+            
+            var status = new DocumentReplication(docID, pushing, flags, error);
+            _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(status));
         }
 
         private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)

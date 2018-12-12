@@ -16,6 +16,8 @@
 // limitations under the License.
 // 
 
+using JetBrains.Annotations;
+
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Sync
@@ -49,17 +51,44 @@ namespace Couchbase.Lite.Sync
     /// </summary>
     public struct DocumentReplication
     {
-        public bool IsDeleted { get; }
-        public bool IsPush { get; }
-        public string DocumentID { get; }
-        public CouchbaseLiteException Error { get; }
+        /// <summary>
+        /// Gets whether or not the document's access has been lost
+        /// via removal from all Sync Gateway channels that a user
+        /// has access to
+        /// </summary>
+        public bool IsAccessRemoved { get; }
 
-        internal DocumentReplication(string docID, bool pushing, bool deleted, C4Error error)
+        /// <summary>
+        /// Gets whether or not the document that was replicated
+        /// was deleted
+        /// </summary>
+        public bool IsDeleted { get; }
+
+        /// <summary>
+        /// Gets whether or not the replicated document was in
+        /// a push replication (<c>false</c> means pull)
+        /// </summary>
+        public bool IsPush { get; }
+
+        /// <summary>
+        /// Gets the document ID of the document that was replicated
+        /// </summary>
+        [NotNull]
+        public string DocumentID { get; }
+
+        /// <summary>
+        /// Gets the error that occurred during replication, if any.
+        /// </summary>
+        [CanBeNull]
+        public CouchbaseException Error { get; }
+
+        internal DocumentReplication([NotNull]string docID, bool pushing, C4RevisionFlags flags, C4Error error)
         {
             DocumentID = docID;
-            IsDeleted = deleted;
+            IsDeleted = flags.HasFlag(C4RevisionFlags.Deleted);
+            IsAccessRemoved = flags.HasFlag(C4RevisionFlags.Purged);
             IsPush = pushing;
-            Error = (CouchbaseLiteException)CouchbaseException.Create(error);
+            Error = CouchbaseException.Create(error);
         }
     }
 }
