@@ -22,6 +22,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Document_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer_defs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4PredictiveQuery_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Private.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Query.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Query_defs.cs" />

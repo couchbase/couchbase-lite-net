@@ -24,7 +24,7 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// A class for creating <see cref="IExpression"/> instances that represent functions
     /// </summary>
-    public static class Function
+    public static partial class Function
     {
         #region Public Methods
 

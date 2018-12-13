@@ -17,6 +17,8 @@
 // 
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 
 using Couchbase.Lite.Internal.Query;
 
@@ -35,9 +37,12 @@ namespace Couchbase.Lite.Query
         /// Returns an expression to represent '*' in things like COUNT(*) and
         /// SELECT *
         /// </summary>
-        /// <returns>The expressoin representing '*'</returns>
+        /// <returns>The expression representing '*'</returns>
         [NotNull]
         public static IPropertyExpression All() => new QueryTypeExpression("", ExpressionType.KeyPath);
+
+        [NotNull]
+        public static IExpression Array(IList value) => new QueryCollectionExpression(value);
 
         /// <summary>
         /// Returns an expression to represent a fixed <see cref="bool"/> value
@@ -54,6 +59,9 @@ namespace Couchbase.Lite.Query
         /// <returns>An expression representing the fixed value</returns>
         [NotNull]
         public static IExpression Date(DateTimeOffset value) => new QueryConstantExpression<string>(value.ToString("o")); //#1052 workaround
+
+        [NotNull]
+        public static IExpression Dictionary(IDictionary<string, object> value) => new QueryCollectionExpression(value);
 
         /// <summary>
         /// Returns an expression to represent a fixed <see cref="double"/> value

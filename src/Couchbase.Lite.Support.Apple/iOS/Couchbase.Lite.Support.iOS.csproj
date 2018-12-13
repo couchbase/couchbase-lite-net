@@ -84,6 +84,9 @@
     <Compile Include="..\..\LiteCore\src\LiteCore.Shared\Interop\iOS\C4Observer_native_ios.cs">
       <Link>Support\LiteCore\C4Observer_native_ios.cs</Link>
     </Compile>
+    <Compile Include="..\..\LiteCore\src\LiteCore.Shared\Interop\iOS\C4PredictiveQuery_native_ios.cs">
+      <Link>Support\LiteCore\C4PredictiveQuery_native_ios.cs</Link>
+    </Compile>
     <Compile Include="..\..\LiteCore\src\LiteCore.Shared\Interop\iOS\C4Query_native_ios.cs">
       <Link>Support\LiteCore\C4Query_native_ios.cs</Link>
     </Compile>

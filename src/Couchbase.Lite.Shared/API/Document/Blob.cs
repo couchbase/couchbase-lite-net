@@ -275,6 +275,7 @@ namespace Couchbase.Lite
         {
             var extra = Native.FLEncoder_GetExtraInfo(enc);
             if (extra != null) {
+                // This blob is attached to a document, so save the full metadata
                 var document = GCHandle.FromIntPtr((IntPtr) extra).Target as MutableDocument;
                 var database = document.Database;
                 try {
@@ -283,12 +284,13 @@ namespace Couchbase.Lite
                     Log.To.Database.W(Tag, "Error installing blob to database, throwing...");
                     throw;
                 }
-            } else {
-                Log.To.Database.W(Tag, "Couldn't find database for blob, not installing!");
-            }
 
-            var dict = JsonRepresentation;
-            dict.FLEncode(enc);
+                var dict = JsonRepresentation;
+                dict.FLEncode(enc);
+            } else {
+                // Independent blob, write bytes only
+                ((IEnumerable<byte>)Content).FLEncode(enc);
+            }
         }
 
         #endregion

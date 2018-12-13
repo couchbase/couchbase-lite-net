@@ -76,7 +76,7 @@ namespace Couchbase.Lite
     /// <see cref="Document"/> instances.  It is portable between platforms if the file is retrieved,
     /// and can be seeded with prepopulated data if desired.
     /// </summary>
-    public sealed unsafe class Database : IDisposable
+    public sealed unsafe partial class Database : IDisposable
     {
         #region Constants
 
@@ -879,35 +879,7 @@ namespace Couchbase.Lite
                 }
             });
         }
-#endif
-
-#if COUCHBASE_ENTERPRISE
-		/// <summary>
-		/// Sets the encryption key for the database.  If null, encryption is
-		/// removed.
-		/// </summary>
-		/// <param name="key">The new key to encrypt the database with, or <c>null</c>
-		/// to remove encryption</param>
-		public void ChangeEncryptionKey([CanBeNull]EncryptionKey key)
-		{
-			ThreadSafety.DoLockedBridge(err =>
-			{
-				var newKey = new C4EncryptionKey
-				{
-					algorithm = key == null ? C4EncryptionAlgorithm.None : C4EncryptionAlgorithm.AES256
-				};
-
-			    if (key != null) {
-			        var i = 0;
-			        foreach (var b in key.KeyData) {
-			            newKey.bytes[i++] = b;
-			        }
-			    }
-
-			    return Native.c4db_rekey(c4db, &newKey, err);
-			});
-		}
-#endif
+        #endif
 
         #endregion
 

@@ -115,6 +115,7 @@
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Document+Fleece_native.cs" Link="Support\LiteCore\C4Document+Fleece_native.cs" />
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Document_native.cs" Link="Support\LiteCore\C4Document_native.cs" />
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Observer_native.cs" Link="Support\LiteCore\C4Observer_native.cs" />
+    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4PredictiveQuery_native.cs" Link="Support\LiteCore\C4PredictiveQuery_native.cs" />
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Query_native.cs" Link="Support\LiteCore\C4Query_native.cs" />
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Replicator_native.cs" Link="Support\LiteCore\C4Replicator_native.cs" />
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Socket_native.cs" Link="Support\LiteCore\C4Socket_native.cs" />

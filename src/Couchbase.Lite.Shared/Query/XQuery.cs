@@ -441,7 +441,7 @@ namespace Couchbase.Lite.Internal.Query
             }
             
             var options = C4QueryOptions.Default;
-            var paramJson = Parameters.ToString();
+            var paramJson = Parameters.FLEncode();
 
             var e = (C4QueryEnumerator*) fromImpl.ThreadSafety.DoLockedBridge(err =>
             {
@@ -454,8 +454,10 @@ namespace Couchbase.Lite.Internal.Query
                 }
 
                 var localOpts = options;
-                return Native.c4query_run(_c4Query, &localOpts, paramJson, err);
+                return NativeRaw.c4query_run(_c4Query, &localOpts, (FLSlice)paramJson, err);
             });
+
+            paramJson.Dispose();
 
             if (e == null) {
                 return new NullResultSet();
