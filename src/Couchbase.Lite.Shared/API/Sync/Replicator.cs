@@ -68,8 +68,8 @@ namespace Couchbase.Lite.Sync
         [NotNull]private readonly ThreadSafety _databaseThreadSafety;
         [NotNull]private readonly Event<ReplicatorStatusChangedEventArgs> _statusChanged =
             new Event<ReplicatorStatusChangedEventArgs>();
-        [NotNull]private readonly Event<DocumentReplicatedEventArgs> _documentEndedUpdate =
-            new Event<DocumentReplicatedEventArgs>();
+        [NotNull]private readonly Event<DocumentReplicationEventArgs> _documentEndedUpdate =
+            new Event<DocumentReplicationEventArgs>();
 
         private string _desc;
         private bool _disposed;
@@ -135,7 +135,7 @@ namespace Couchbase.Lite.Sync
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
         [ContractAnnotation("null => halt")]
-        public ListenerToken AddDocumentReplicationListener(EventHandler<DocumentReplicatedEventArgs> handler)
+        public ListenerToken AddDocumentReplicationListener(EventHandler<DocumentReplicationEventArgs> handler)
         {
             CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(handler), handler);
 
@@ -153,11 +153,11 @@ namespace Couchbase.Lite.Sync
         /// <returns>A token to remove the handler later</returns>
         [ContractAnnotation("handler:null => halt")]
         public ListenerToken AddDocumentReplicationListener([CanBeNull]TaskScheduler scheduler,
-            EventHandler<DocumentReplicatedEventArgs> handler)
+            EventHandler<DocumentReplicationEventArgs> handler)
         {
             CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(handler), handler);
             Config.Options.ProgressLevel = ReplicatorProgressLevel.PerDocument;
-            var cbHandler = new CouchbaseEventHandler<DocumentReplicatedEventArgs>(handler, scheduler);
+            var cbHandler = new CouchbaseEventHandler<DocumentReplicationEventArgs>(handler, scheduler);
             _documentEndedUpdate.Add(cbHandler);
             return new ListenerToken(cbHandler, "repl");
         }
@@ -200,7 +200,7 @@ namespace Couchbase.Lite.Sync
         /// Removes a previously added documents ended listener via its <see cref="ListenerToken"/>
         /// </summary>
         /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{ReplicatorStatusChangedEventArgs})"/>
-        /// and/or The token received from <see cref="AddReplicationListener(TaskScheduler, EventHandler{DocumentReplicatedEventArgs})"/></param>
+        /// and/or The token received from <see cref="AddReplicationListener(TaskScheduler, EventHandler{DocumentReplicationEventArgs})"/></param>
         public void RemoveChangeListener(ListenerToken token)
         {
             _statusChanged.Remove(token);
@@ -287,7 +287,7 @@ namespace Couchbase.Lite.Sync
             var docIDStr = docID.CreateString();
             replicator?.DispatchQueue.DispatchAsync(() =>
             {
-                replicator.OnDocEnded(error, pushing, docIDStr ?? "", transient);
+                replicator.OnDocEnded(error, pushing, docIDStr ?? "", transient, flags);
             });
 
         }
@@ -416,7 +416,7 @@ namespace Couchbase.Lite.Sync
             return true;
         }
 
-        private void OnDocEnded(C4Error error, bool pushing, [NotNull]string docID, bool transient)
+        private void OnDocEnded(C4Error error, bool pushing, [NotNull]string docID, bool transient, C4RevisionFlags flags)
         {
             if (_disposed) {
                 return;
@@ -438,11 +438,9 @@ namespace Couchbase.Lite.Sync
                 Log.To.Sync.I(Tag,
                     $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
             }
-
-            if (error.domain == 0 && error.code == 0) {
-                var status = new DocumentReplicatedStatus(docID, pushing, true);
-                _documentEndedUpdate.Fire(this, new DocumentReplicatedEventArgs(status));
-            }
+            
+            var status = new DocumentReplication(docID, pushing, flags, error);
+            _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(status));
         }
 
         private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)

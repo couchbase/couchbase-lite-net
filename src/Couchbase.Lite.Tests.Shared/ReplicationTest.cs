@@ -60,7 +60,7 @@ namespace Test
         private Replicator _repl;
         private WaitAssert _waitAssert;
         private bool _isFilteredCallback;
-        private List<DocumentReplicatedEventArgs> _replicationEvents = new List<DocumentReplicatedEventArgs>();
+        private List<DocumentReplicationEventArgs> _replicationEvents = new List<DocumentReplicationEventArgs>();
         #if COUCHBASE_ENTERPRISE
         private IMockConnectionErrorLogic _p2PErrorLogic;
         #endif
@@ -481,12 +481,104 @@ namespace Test
             }
 
             _replicationEvents.Should().HaveCount(2);
-            var push = _replicationEvents.FirstOrDefault(g => g.Status.Pushing && g.Status.Completed);
-            push.Status.DocID.Should().Be("doc1");
-            var pull = _replicationEvents.FirstOrDefault(g => !g.Status.Pushing && g.Status.Completed);
-            pull.Status.DocID.Should().Be("doc2");
+            var push = _replicationEvents.FirstOrDefault(g => g.Status.IsPush);
+            push.Status.DocumentID.Should().Be("doc1");
+            var pull = _replicationEvents.FirstOrDefault(g => !g.Status.IsPush);
+            pull.Status.DocumentID.Should().Be("doc2");
         }
 
+        [Fact]
+        public void TestDocumentErrorEvent()
+        {
+            // NOTE: Only push, need to think of a case that can force an error
+            // for pull
+            using (var doc1 = new MutableDocument("doc1"))
+            {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1);
+            }
+
+            using (var doc1 = new MutableDocument("doc1"))
+            {
+                doc1.SetString("name", "Tiger");
+                _otherDB.Save(doc1);
+            }
+
+
+            // Force a conflict
+            using (var doc1a = Db.GetDocument("doc1"))
+            using (var doc1aMutable = doc1a.ToMutable())
+            {
+                doc1aMutable.SetString("name", "Liger");
+                Db.Save(doc1aMutable);
+            }
+
+            using (var doc1b = _otherDB.GetDocument("doc1"))
+            using (var doc1bMutable = doc1b.ToMutable())
+            {
+                doc1bMutable.SetString("name", "Lion");
+                _otherDB.Save(doc1bMutable);
+            }
+
+            var config = CreateConfig(true, false, false);
+            using (var repl = new Replicator(config))
+            {
+                var wa = new WaitAssert();
+                repl.AddDocumentReplicationListener((sender, args) =>
+                {
+                    if (args.Status.DocumentID == "doc1")
+                    {
+                        wa.RunAssert(() =>
+                        {
+                            args.Status.Error.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+                            args.Status.Error.Error.Should().Be((int)CouchbaseLiteError.HTTPConflict);
+                        });
+                    }
+                });
+
+                repl.Start();
+
+                wa.WaitForResult(TimeSpan.FromSeconds(10));
+                repl.Stop();
+                Try.Condition(() => repl.Status.Activity == ReplicatorActivityLevel.Stopped)
+                    .Times(5)
+                    .Delay(TimeSpan.FromMilliseconds(500))
+                    .Go().Should().BeTrue();
+            }
+        }
+
+        [Fact]
+        public void TestDocumentDeletedEvent()
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            {
+                doc1.SetString("name", "test1");
+                Db.Save(doc1);
+                Db.Delete(doc1);
+            }
+
+            using (var doc2 = new MutableDocument("doc2"))
+            {
+                doc2.SetString("name", "test2");
+                _otherDB.Save(doc2);
+                _otherDB.Delete(doc2);
+            }
+
+            var config = CreateConfig(true, true, false);
+            var receivedPullDelete = false;
+            var receivedPushDelete = false;
+            RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
+            {
+                if (args.Status.IsPush && args.Status.IsDeleted) {
+                    receivedPushDelete = true;
+                } else if (args.Status.IsDeleted) {
+                    receivedPullDelete = true;
+                }
+            });
+
+            receivedPushDelete.Should().BeTrue("because an event should be received for a pushed deletion");
+            receivedPullDelete.Should().BeTrue("because an event should be received from a pulled deletion");
+        }
 
         [Fact]
         public void TestDocumentIDs()
@@ -864,7 +956,7 @@ namespace Test
             var config = CreateConfig(true, false, false);
             RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
             {
-                using (var doc = Db.GetDocument(args.Status.DocID)) {
+                using (var doc = Db.GetDocument(args.Status.DocumentID)) {
                     Db.Purge(doc);
                 }
             });
@@ -1141,7 +1233,7 @@ namespace Test
         }
 
         private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, CouchbaseLiteErrorType expectedErrDomain, bool reset = false,
-            EventHandler<DocumentReplicatedEventArgs> documentReplicated = null)
+            EventHandler<DocumentReplicationEventArgs> documentReplicated = null)
         {
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
@@ -1178,7 +1270,7 @@ namespace Test
             }
         }
 
-        private void DocumentEndedUpdate(object sender, DocumentReplicatedEventArgs args)
+        private void DocumentEndedUpdate(object sender, DocumentReplicationEventArgs args)
         {
             _replicationEvents.Add(args);
         }
