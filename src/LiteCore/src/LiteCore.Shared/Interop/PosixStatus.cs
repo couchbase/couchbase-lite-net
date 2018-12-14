@@ -226,6 +226,9 @@ namespace Couchbase.Lite
         }
     }
 
+    /// <summary>
+    /// POSIX codes that are specific to Windows
+    /// </summary>
     public sealed class PosixWindows : PosixBase
     {
         /// <summary>
