@@ -41,10 +41,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="desktop.targets">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -126,5 +122,8 @@
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\FLSlice_native.cs" Link="Support\LiteCore\FLSlice_native.cs" />
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\Misc_native.cs" Link="Support\LiteCore\Misc_native.cs" />
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\LiteCore_impl.cs" Link="Support\LiteCore\LiteCore_impl.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj" />
   </ItemGroup>
 </Project>
