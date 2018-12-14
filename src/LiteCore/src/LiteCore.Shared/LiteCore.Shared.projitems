@@ -20,8 +20,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4DocEnumerator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4DocEnumerator_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Document_defs.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4ExpiryEnumerator_defs.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Listener_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Private.cs" />
