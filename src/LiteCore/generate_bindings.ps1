@@ -6,6 +6,18 @@ Copy-Item $PSScriptRoot\parse\parse_API.py .
 Copy-Item $PSScriptRoot\parse\parse_structs.py .
 Copy-Item $PSScriptRoot\parse\parse_enums.py .
 Copy-Item $PSScriptRoot\parse\config_fleece.py .
+Get-ChildItem -Path $PSScriptRoot\src\LiteCore.Shared\Interop\* -Filter "*_defs.cs" -Exclude "LiteCore_Shell_defs.cs" | foreach($_) {
+    Remove-Item $_.FullName
+}
+
+Get-ChildItem $PSScriptRoot\src\LiteCore.Shared\Interop\Common\* -Exclude "Misc_native.cs" |  foreach($_) {
+    Remove-Item $_.FullName
+}
+
+Get-ChildItem $PSScriptRoot\src\LiteCore.Shared\Interop\iOS\* -Exclude "Misc_native.cs" |  foreach($_) {
+    Remove-Item $_.FullName
+}
+
 Copy-Item -Recurse $PSScriptRoot\parse\templates_fleece templates
 python parse_API.py -c config_fleece -v
 python parse_structs.py

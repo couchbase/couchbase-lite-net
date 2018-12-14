@@ -139,12 +139,6 @@ namespace LiteCore.Interop
         public C4Document* c4doc_put(C4Database *database, C4DocPutRequest *request, ulong* outCommonAncestorIndex, C4Error *outError) => Native.c4doc_put(database, request, outCommonAncestorIndex, outError);
         public C4Document* c4doc_create(C4Database* db, string docID, byte[] body, C4RevisionFlags revisionFlags, C4Error* error) => Native.c4doc_create(db, docID, body, revisionFlags, error);
         public C4Document* c4doc_update(C4Document* doc, byte[] revisionBody, C4RevisionFlags revisionFlags, C4Error* error) => Native.c4doc_update(doc, revisionBody, revisionFlags, error);
-        public C4ListenerAPIs c4listener_availableAPIs() => Native.c4listener_availableAPIs();
-        public C4Listener* c4listener_start(C4ListenerConfig* config, C4Error* error) => Native.c4listener_start(config, error);
-        public void c4listener_free(C4Listener* listener) => Native.c4listener_free(listener);
-        public bool c4listener_shareDB(C4Listener* listener, string name, C4Database* db) => Native.c4listener_shareDB(listener, name, db);
-        public bool c4listener_unshareDB(C4Listener* listener, string name) => Native.c4listener_unshareDB(listener, name);
-        public string c4db_URINameFromPath(string path) => Native.c4db_URINameFromPath(path);
         public C4DatabaseObserver* c4dbobs_create(C4Database* database, C4DatabaseObserverCallback callback, void* context) => Native.c4dbobs_create(database, callback, context);
         public uint c4dbobs_getChanges(C4DatabaseObserver* observer, C4DatabaseChange[] outChanges, uint maxChanges, bool* outExternal) => Native.c4dbobs_getChanges(observer, outChanges, maxChanges, outExternal);
         public void c4dbobs_releaseChanges(C4DatabaseChange[] changes, uint numChanges) => Native.c4dbobs_releaseChanges(changes, numChanges);
@@ -406,9 +400,6 @@ namespace LiteCore.Interop
         public C4Document* c4doc_put(C4Database* database, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError) => NativeRaw.c4doc_put(database, request, outCommonAncestorIndex, outError);
         public C4Document* c4doc_create(C4Database* db, FLSlice docID, FLSlice body, C4RevisionFlags revisionFlags, C4Error* error) => NativeRaw.c4doc_create(db, docID, body, revisionFlags, error);
         public C4Document* c4doc_update(C4Document* doc, FLSlice revisionBody, C4RevisionFlags revisionFlags, C4Error* error) => NativeRaw.c4doc_update(doc, revisionBody, revisionFlags, error);
-        public bool c4listener_shareDB(C4Listener* listener, FLSlice name, C4Database* db) => NativeRaw.c4listener_shareDB(listener, name, db);
-        public bool c4listener_unshareDB(C4Listener* listener, FLSlice name) => NativeRaw.c4listener_unshareDB(listener, name);
-        public FLSliceResult c4db_URINameFromPath(FLSlice path) => NativeRaw.c4db_URINameFromPath(path);
         public C4DocumentObserver* c4docobs_create(C4Database* database, FLSlice docID, C4DocumentObserverCallback callback, void* context) => NativeRaw.c4docobs_create(database, docID, callback, context);
         public C4Query* c4query_new(C4Database* database, FLSlice expression, C4Error* error) => NativeRaw.c4query_new(database, expression, error);
         public FLSliceResult c4query_explain(C4Query* query) => NativeRaw.c4query_explain(query);

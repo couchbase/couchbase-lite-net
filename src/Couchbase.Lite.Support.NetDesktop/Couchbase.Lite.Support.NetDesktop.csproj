@@ -118,8 +118,6 @@
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4DocEnumerator_native.cs" Link="Support\LiteCore\C4DocEnumerator_native.cs" />
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Document+Fleece_native.cs" Link="Support\LiteCore\C4Document+Fleece_native.cs" />
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Document_native.cs" Link="Support\LiteCore\C4Document_native.cs" />
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4ExpiryEnumerator_native.cs" Link="Support\LiteCore\C4ExpiryEnumerator_native.cs" />
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Listener_native.cs" Link="Support\LiteCore\C4Listener_native.cs" />
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Observer_native.cs" Link="Support\LiteCore\C4Observer_native.cs" />
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Query_native.cs" Link="Support\LiteCore\C4Query_native.cs" />
     <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Replicator_native.cs" Link="Support\LiteCore\C4Replicator_native.cs" />

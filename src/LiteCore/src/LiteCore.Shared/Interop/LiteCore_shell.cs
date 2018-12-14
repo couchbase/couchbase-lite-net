@@ -141,12 +141,6 @@ namespace Couchbase.Lite.Interop
         public static C4Document* c4doc_put(C4Database *database, C4DocPutRequest *request, ulong* outCommonAncestorIndex, C4Error *outError) => Impl.c4doc_put(database, request, outCommonAncestorIndex, outError);
         public static C4Document* c4doc_create(C4Database* db, string docID, byte[] body, C4RevisionFlags revisionFlags, C4Error* error) => Impl.c4doc_create(db, docID, body, revisionFlags, error);
         public static C4Document* c4doc_update(C4Document* doc, byte[] revisionBody, C4RevisionFlags revisionFlags, C4Error* error) => Impl.c4doc_update(doc, revisionBody, revisionFlags, error);
-        public static C4ListenerAPIs c4listener_availableAPIs() => Impl.c4listener_availableAPIs();
-        public static C4Listener* c4listener_start(C4ListenerConfig* config, C4Error* error) => Impl.c4listener_start(config, error);
-        public static void c4listener_free(C4Listener* listener) => Impl.c4listener_free(listener);
-        public static bool c4listener_shareDB(C4Listener* listener, string name, C4Database* db) => Impl.c4listener_shareDB(listener, name, db);
-        public static bool c4listener_unshareDB(C4Listener* listener, string name) => Impl.c4listener_unshareDB(listener, name);
-        public static string c4db_URINameFromPath(string path) => Impl.c4db_URINameFromPath(path);
         public static C4DatabaseObserver* c4dbobs_create(C4Database* database, C4DatabaseObserverCallback callback, void* context) => Impl.c4dbobs_create(database, callback, context);
         public static uint c4dbobs_getChanges(C4DatabaseObserver* observer, C4DatabaseChange[] outChanges, uint maxChanges, bool* outExternal) => Impl.c4dbobs_getChanges(observer, outChanges, maxChanges, outExternal);
         public static void c4dbobs_releaseChanges(C4DatabaseChange[] changes, uint numChanges) => Impl.c4dbobs_releaseChanges(changes, numChanges);
@@ -408,9 +402,6 @@ namespace Couchbase.Lite.Interop
         public static C4Document* c4doc_put(C4Database* database, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError) => Impl.c4doc_put(database, request, outCommonAncestorIndex, outError);
         public static C4Document* c4doc_create(C4Database* db, FLSlice docID, FLSlice body, C4RevisionFlags revisionFlags, C4Error* error) => Impl.c4doc_create(db, docID, body, revisionFlags, error);
         public static C4Document* c4doc_update(C4Document* doc, FLSlice revisionBody, C4RevisionFlags revisionFlags, C4Error* error) => Impl.c4doc_update(doc, revisionBody, revisionFlags, error);
-        public static bool c4listener_shareDB(C4Listener* listener, FLSlice name, C4Database* db) => Impl.c4listener_shareDB(listener, name, db);
-        public static bool c4listener_unshareDB(C4Listener* listener, FLSlice name) => Impl.c4listener_unshareDB(listener, name);
-        public static FLSliceResult c4db_URINameFromPath(FLSlice path) => Impl.c4db_URINameFromPath(path);
         public static C4DocumentObserver* c4docobs_create(C4Database* database, FLSlice docID, C4DocumentObserverCallback callback, void* context) => Impl.c4docobs_create(database, docID, callback, context);
         public static C4Query* c4query_new(C4Database* database, FLSlice expression, C4Error* error) => Impl.c4query_new(database, expression, error);
         public static FLSliceResult c4query_explain(C4Query* query) => Impl.c4query_explain(query);

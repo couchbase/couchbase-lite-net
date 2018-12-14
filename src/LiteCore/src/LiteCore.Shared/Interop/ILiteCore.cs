@@ -141,12 +141,6 @@ namespace LiteCore.Interop
         C4Document* c4doc_put(C4Database *database, C4DocPutRequest *request, ulong* outCommonAncestorIndex, C4Error *outError);
         C4Document* c4doc_create(C4Database* db, string docID, byte[] body, C4RevisionFlags revisionFlags, C4Error* error);
         C4Document* c4doc_update(C4Document* doc, byte[] revisionBody, C4RevisionFlags revisionFlags, C4Error* error);
-        C4ListenerAPIs c4listener_availableAPIs();
-        C4Listener* c4listener_start(C4ListenerConfig* config, C4Error* error);
-        void c4listener_free(C4Listener* listener);
-        bool c4listener_shareDB(C4Listener* listener, string name, C4Database* db);
-        bool c4listener_unshareDB(C4Listener* listener, string name);
-        string c4db_URINameFromPath(string path);
         C4DatabaseObserver* c4dbobs_create(C4Database* database, C4DatabaseObserverCallback callback, void* context);
         uint c4dbobs_getChanges(C4DatabaseObserver* observer, C4DatabaseChange[] outChanges, uint maxChanges, bool* outExternal);
         void c4dbobs_releaseChanges(C4DatabaseChange[] changes, uint numChanges);
@@ -408,9 +402,6 @@ namespace LiteCore.Interop
         C4Document* c4doc_put(C4Database* database, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError);
         C4Document* c4doc_create(C4Database* db, FLSlice docID, FLSlice body, C4RevisionFlags revisionFlags, C4Error* error);
         C4Document* c4doc_update(C4Document* doc, FLSlice revisionBody, C4RevisionFlags revisionFlags, C4Error* error);
-        bool c4listener_shareDB(C4Listener* listener, FLSlice name, C4Database* db);
-        bool c4listener_unshareDB(C4Listener* listener, FLSlice name);
-        FLSliceResult c4db_URINameFromPath(FLSlice path);
         C4DocumentObserver* c4docobs_create(C4Database* database, FLSlice docID, C4DocumentObserverCallback callback, void* context);
         C4Query* c4query_new(C4Database* database, FLSlice expression, C4Error* error);
         FLSliceResult c4query_explain(C4Query* query);
