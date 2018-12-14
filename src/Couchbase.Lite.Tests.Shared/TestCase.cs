@@ -27,6 +27,7 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 
 using FluentAssertions;
@@ -134,7 +135,17 @@ namespace Test
                 }
             });
         }
-
+        protected int VerifyQuery(IQuery query, Action<int, Result> block)
+        {
+            var result = query.Execute();
+            using (var e = result.GetEnumerator()) {
+                var n = 0;
+                while (e.MoveNext()) {
+                    block?.Invoke(++n, e.Current);
+                }
+                return n;
+            }
+        }
 
         protected void OpenDB(int count)
         {

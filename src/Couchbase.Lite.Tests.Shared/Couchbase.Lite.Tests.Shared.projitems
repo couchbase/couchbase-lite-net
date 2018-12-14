@@ -24,6 +24,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)MigrationTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)NotificationTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PerfTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PredictiveQueryTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)QueryTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ReplicationTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TestCase.cs" />
@@ -32,6 +33,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\ForIssueAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\IMockConnectionErrorLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\MockConnection.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Try.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ZipFileExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\WaitAssert.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\XunitLogger.cs" />

@@ -126,6 +126,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Query\NullResultSet.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\QueryBinaryExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\QueryCollation.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Query\QueryCollectionExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\QueryCompoundExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\QueryConstantExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\QueryExpression.cs" />

@@ -25,12 +25,12 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal class QueryCompoundExpression : QueryExpression, IFullTextExpression
+    internal partial class QueryCompoundExpression : QueryExpression, IFullTextExpression
     {
         #region Variables
 
         private readonly string _operation;
-        private readonly IExpression[] _subpredicates;
+        private IExpression[] _subpredicates;
 
         #endregion
 

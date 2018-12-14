@@ -147,6 +147,8 @@ namespace Couchbase.Lite.Interop
         public static void c4dbobs_free(C4DatabaseObserver* observer) => Impl.c4dbobs_free(observer);
         public static C4DocumentObserver* c4docobs_create(C4Database* database, string docID, C4DocumentObserverCallback callback, void* context) => Impl.c4docobs_create(database, docID, callback, context);
         public static void c4docobs_free(C4DocumentObserver* observer) => Impl.c4docobs_free(observer);
+        public static void c4pred_registerModel(string name, C4PredictiveModel x) => Impl.c4pred_registerModel(name, x);
+        public static bool c4pred_unregisterModel(string name) => Impl.c4pred_unregisterModel(name);
         public static C4Query* c4query_new(C4Database* database, string expression, C4Error* error) => Impl.c4query_new(database, expression, error);
         public static void c4query_free(C4Query* query) => Impl.c4query_free(query);
         public static string c4query_explain(C4Query* query) => Impl.c4query_explain(query);

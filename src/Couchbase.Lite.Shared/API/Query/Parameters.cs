@@ -26,6 +26,8 @@ using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
 
+using LiteCore.Interop;
+
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Query
@@ -84,6 +86,20 @@ namespace Couchbase.Lite.Query
         /// <param name="key">The key to lookup</param>
         /// <returns>The value of the key, or <c>null</c> if it does not exist</returns>
         public object GetValue(string key) => _params.TryGetValue(key, out var existing) ? existing : null;
+
+        /// <summary>
+        /// Sets a <see cref="Blob"/> value in the parameters
+        /// </summary>
+        /// <param name="name">The name of the key to set</param>
+        /// <param name="value">The value to set</param>
+        /// <returns>The parameters object for further processing</returns>
+        [NotNull]
+        [ContractAnnotation("name:null => halt")]
+        public Parameters SetBlob(string name, Blob value)
+        {
+            SetValue(name, value);
+            return this;
+        }
 
         /// <summary>
         /// Sets a <see cref="bool"/> value in the parameters
@@ -216,6 +232,11 @@ namespace Couchbase.Lite.Query
             var retVal = new Parameters(this);
             retVal._freezer.Freeze("Cannot modify a Parameters class while it is in use");
             return retVal;
+        }
+
+        internal FLSliceResult FLEncode()
+        {
+            return _params.FLEncode();
         }
 
         #endregion
