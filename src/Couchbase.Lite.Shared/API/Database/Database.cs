@@ -759,21 +759,21 @@ namespace Couchbase.Lite
         /// will be purged from the database.
         /// </summary>
         /// <param name="docId"> The ID of the <see cref="Document"/> </param> 
-        /// <param name="timestamp"> Nullable expiration timestamp as a 
+        /// <param name="expiration"> Nullable expiration timestamp as a 
         /// <see cref="DateTimeOffset"/>, set timestamp to <c>null</c> 
         /// to remove expiration date time from doc.</param>
         /// <returns>Whether succesfully sets an expiration date on the document</returns>
         /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
         /// doesn't exist</exception>
-        public bool SetDocumentExpiration(string docId, DateTimeOffset? timestamp)
+        public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)
         {
             var succeed = false;
             ThreadSafety.DoLockedBridge(err =>
             {
-                if (timestamp == null) {
+                if (expiration == null) {
                     succeed = Native.c4doc_setExpiration(_c4db, docId, 0, null);
                 } else {
-                    var millisSinceEpoch = timestamp.Value.ToUnixTimeMilliseconds();
+                    var millisSinceEpoch = expiration.Value.ToUnixTimeMilliseconds();
                     succeed = Native.c4doc_setExpiration(_c4db, docId, millisSinceEpoch, err);
                 }
                 SchedulePurgeExpired(TimeSpan.Zero);
