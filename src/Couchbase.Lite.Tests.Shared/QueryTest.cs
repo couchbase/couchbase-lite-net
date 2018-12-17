@@ -2146,6 +2146,165 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestStringToMillis()
+        {
+            CreateDateDocs();
+
+            var selections = new ISelectResult[]
+            {
+                SelectResult.Expression(Function.StringToMillis(Expression.Property("local"))),
+                SelectResult.Expression(Function.StringToMillis(Expression.Property("JST"))),
+                SelectResult.Expression(Function.StringToMillis(Expression.Property("JST2"))),
+                SelectResult.Expression(Function.StringToMillis(Expression.Property("PST"))),
+                SelectResult.Expression(Function.StringToMillis(Expression.Property("PST2"))),
+                SelectResult.Expression(Function.StringToMillis(Expression.Property("UTC")))
+            };
+
+            var expectedJST = new[] { 0L, 499105260000, 499105290000, 499105290500, 499105290550, 499105290555 };
+            var expectedPST = new[] { 0L, 499166460000, 499166490000, 499166490500, 499166490550, 499166490555 };
+            var expectedUTC = new[] { 0L, 499137660000, 499137690000, 499137690500, 499137690550, 499137690555 };
+            var expectedLocal = new List<long>();
+
+            var offset = (long)TimeZoneInfo.Local.BaseUtcOffset.TotalMilliseconds;
+            expectedLocal.Add(499132800000 - offset); // 499132800000 is 2018-10-26T00:00:00Z
+            foreach (var entry in expectedUTC.Skip(1)) {
+                expectedLocal.Add(entry - offset);
+            }
+
+            var i = 0;
+            using (var q = QueryBuilder.Select(selections)
+                .From(DataSource.Database(Db))
+                .OrderBy(Ordering.Property("local").Ascending())) {
+                foreach (var result in q.Execute()) {
+                    result.GetLong(0).Should().Be(expectedLocal[i]);
+                    result.GetLong(1).Should().Be(expectedJST[i]);
+                    result.GetLong(2).Should().Be(expectedJST[i]);
+                    result.GetLong(3).Should().Be(expectedPST[i]);
+                    result.GetLong(4).Should().Be(expectedPST[i]);
+                    result.GetLong(5).Should().Be(expectedUTC[i]);
+                    i++;
+                }
+            }
+        }
+
+        [Fact]
+        public void TestStringToUTC()
+        {
+            CreateDateDocs();
+
+            var selections = new ISelectResult[]
+            {
+                SelectResult.Expression(Function.StringToUTC(Expression.Property("local"))),
+                SelectResult.Expression(Function.StringToUTC(Expression.Property("JST"))),
+                SelectResult.Expression(Function.StringToUTC(Expression.Property("JST2"))),
+                SelectResult.Expression(Function.StringToUTC(Expression.Property("PST"))),
+                SelectResult.Expression(Function.StringToUTC(Expression.Property("PST2"))),
+                SelectResult.Expression(Function.StringToUTC(Expression.Property("UTC")))
+            };
+
+            var expectedJST = new[] { null, "1985-10-25T16:21:00Z", "1985-10-25T16:21:30Z", "1985-10-25T16:21:30.500Z", 
+                "1985-10-25T16:21:30.550Z", "1985-10-25T16:21:30.555Z" };
+            var expectedPST = new[] { null, "1985-10-26T09:21:00Z", "1985-10-26T09:21:30Z", "1985-10-26T09:21:30.500Z", 
+                "1985-10-26T09:21:30.550Z", "1985-10-26T09:21:30.555Z" };
+            var expectedUTC = new[] { null, "1985-10-26T01:21:00Z", "1985-10-26T01:21:30Z", "1985-10-26T01:21:30.500Z",
+                "1985-10-26T01:21:30.550Z", "1985-10-26T01:21:30.555Z" };
+            var expectedLocal = (new[]
+            {
+                "1985-10-26", "1985-10-26 01:21", "1985-10-26 01:21:30", "1985-10-26 01:21:30.5",
+                "1985-10-26 01:21:30.55", "1985-10-26 01:21:30.555"
+            }).Select(x => DateTimeOffset.Parse(x).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ").Replace(".000",""));
+
+            var i = 0;
+            using (var q = QueryBuilder.Select(selections)
+                .From(DataSource.Database(Db))
+                .OrderBy(Ordering.Property("local").Ascending())) {
+                foreach (var result in q.Execute()) {
+                    result.GetString(0).Should().Be(expectedLocal.ElementAt(i));
+                    result.GetString(1).Should().Be(expectedJST[i]);
+                    result.GetString(2).Should().Be(expectedJST[i]);
+                    result.GetString(3).Should().Be(expectedPST[i]);
+                    result.GetString(4).Should().Be(expectedPST[i]);
+                    result.GetString(5).Should().Be(expectedUTC[i]);
+                    i++;
+                }
+            }
+        }
+
+        [Fact]
+        public void TestMillisConversion()
+        {
+            var millisToUse = new[] { 499132800000, 499137660000, 499137690000, 499137690500, 499137690550, 499137690555 };
+            foreach (var millis in millisToUse) {
+                using (var doc = new MutableDocument()) {
+                    doc.SetLong("timestamp", millis);
+                    Db.Save(doc);
+                }
+            }
+
+            var expectedUTC = new[]
+            {
+                "1985-10-26T00:00:00Z", "1985-10-26T01:21:00Z", "1985-10-26T01:21:30Z", 
+                "1985-10-26T01:21:30.500Z", "1985-10-26T01:21:30.550Z", "1985-10-26T01:21:30.555Z"
+            };
+
+            var expectedLocal = millisToUse.Select(x =>
+            {
+                var date = DateTimeOffset.FromUnixTimeMilliseconds(x).ToLocalTime();
+                if (date.Offset == TimeSpan.Zero) {
+                    return date.ToString("yyyy-MM-ddTHH:mm:ss.fffZ").Replace(".000", "");
+                }
+
+
+                var almost = date.ToString("yyyy-MM-ddTHH:mm:ss.fffzzz").Replace(".000", "");
+                return almost.Remove(almost.Length - 3, 1); // Remove colon since formatting cannot do it
+            });
+
+            var selections = new ISelectResult[]
+            {
+                SelectResult.Expression(Function.MillisToString(Expression.Property("timestamp"))),
+                SelectResult.Expression(Function.MillisToUTC(Expression.Property("timestamp"))),
+            };
+
+            var i = 0;
+            using (var q = QueryBuilder.Select(selections)
+                .From(DataSource.Database(Db))
+                .OrderBy(Ordering.Property("timestamp").Ascending())) {
+                foreach (var result in q.Execute()) {
+                    result.GetString(0).Should().Be(expectedLocal.ElementAt(i));
+                    result.GetString(1).Should().Be(expectedUTC[i]);
+                    i++;
+                }
+            }
+        }
+
+        private void CreateDateDocs()
+        {
+            using (var doc = new MutableDocument()) {
+                doc.SetString("local", "1985-10-26");
+                Db.Save(doc);
+            }
+
+            var dateTimeFormats = new[]
+            {
+                "1985-10-26 01:21", "1985-10-26T01:21:30", "1985-10-26T01:21:30.5",
+                "1985-10-26 01:21:30.55", "1985-10-26 01:21:30.555"
+            };
+
+            
+            foreach (var format in dateTimeFormats) {
+                using (var doc = new MutableDocument()) {
+                    doc.SetString("local", format);
+                    doc.SetString("JST", format + "+09:00");
+                    doc.SetString("JST2", format + "+0900");
+                    doc.SetString("PST", format + "-08:00");
+                    doc.SetString("PST2", format + "-0800");
+                    doc.SetString("UTC", format + "Z");
+                    Db.Save(doc);
+                }
+            }
+        }
+
         private Document CreateTaskDocument(string title, bool complete)
         {
             var doc = new MutableDocument();

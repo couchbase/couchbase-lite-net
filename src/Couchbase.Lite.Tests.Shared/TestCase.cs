@@ -102,9 +102,9 @@ namespace Test
         protected void WriteLine(string line)
         {
 #if !WINDOWS_UWP
-            _output.WriteLine(line);
+            _output.WriteLine(line ?? "<null>");
 #else
-            TestContext.WriteLine(line);
+            TestContext.WriteLine(line ?? "<null>");
 #endif
         }
 

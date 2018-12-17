@@ -221,6 +221,26 @@ namespace Couchbase.Lite.Query
         public static IExpression Max(IExpression expression) => new QueryCompoundExpression("MAX()", expression);
 
         /// <summary>
+        /// Creates a function that will convert a numeric input representing
+        /// milliseconds since the Unix epoch into a full ISO8601 date and time
+        /// string in the device local time zone.
+        /// </summary>
+        /// <param name="expression">The expression to take data from when converting</param>
+        /// <returns>A function that will convert the timestamp to a string</returns>
+        [NotNull]
+        public static IExpression MillisToString(IExpression expression) => new QueryCompoundExpression("MILLIS_TO_STR()", expression);
+
+        /// <summary>
+        /// Creates a function that will convert a numeric input representing
+        /// milliseconds since the Unix epoch into a full ISO8601 date and time
+        /// string in UTC time.
+        /// </summary>
+        /// <param name="expression">The expression to take data from when converting</param>
+        /// <returns>A function that will convert the timestamp to a string</returns>
+        [NotNull]
+        public static IExpression MillisToUTC(IExpression expression) => new QueryCompoundExpression("MILLIS_TO_UTC()", expression);
+
+        /// <summary>
         /// Creates a function that will calculate the min value of the
         /// expression in question across the results in a particular query
         /// </summary>
@@ -311,6 +331,54 @@ namespace Couchbase.Lite.Query
         /// <returns>A function that returns the square root of the expression in question</returns>
         [NotNull]
         public static IExpression Sqrt(IExpression expression) => new QueryCompoundExpression("SQRT()", expression);
+
+        /// <summary>
+        /// Creates a function that will convert an ISO8601 datetime string
+        /// into the number of milliseconds since the unix epoch.
+        /// </summary>
+        /// <param name="expression">The expression to take data from when converting</param>
+        /// <returns>A function that will convert the string to a timestamp</returns>
+        /// <remarks>
+        /// Valid date strings must start with a date in the form YYYY-MM-DD (time
+        /// only strings are not supported).
+        ///
+        /// Times can be of the form HH:MM, HH:MM:SS, or HH:MM:SS.FFF.  Leading zero is
+        /// not optional (i.e. 02 is ok, 2 is not).  Hours are in 24-hour format.  FFF
+        /// represents milliseconds, and *trailing* zeros are optional (i.e. 5 == 500).
+        ///
+        /// Time zones can be in one of three forms:
+        /// (+/-)HH:MM
+        /// (+/-)HHMM
+        /// Z (which represents UTC)
+        ///
+        /// No time zone present will default to the device local time zone
+        /// </remarks>
+        [NotNull]
+        public static IExpression StringToMillis(IExpression expression) => new QueryCompoundExpression("STR_TO_MILLIS()", expression);
+
+        /// <summary>
+        /// Creates a function that will convert an ISO8601 datetime string
+        /// into a full ISO8601 UTC datetime string.
+        /// </summary>
+        /// <param name="expression">The expression to take data from when converting</param>
+        /// <returns>A function that will convert the string to a timestamp</returns>
+        /// <remarks>
+        /// Valid date strings must start with a date in the form YYYY-MM-DD (time
+        /// only strings are not supported).
+        ///
+        /// Times can be of the form HH:MM, HH:MM:SS, or HH:MM:SS.FFF.  Leading zero is
+        /// not optional (i.e. 02 is ok, 2 is not).  Hours are in 24-hour format.  FFF
+        /// represents milliseconds, and *trailing* zeros are optional (i.e. 5 == 500).
+        ///
+        /// Time zones can be in one of three forms:
+        /// (+/-)HH:MM
+        /// (+/-)HHMM
+        /// Z (which represents UTC)
+        ///
+        /// No time zone present will default to the device local time zone
+        /// </remarks>
+        [NotNull]
+        public static IExpression StringToUTC(IExpression expression) => new QueryCompoundExpression("STR_TO_UTC()", expression);
 
         /// <summary>
         /// Creates a function that will calculate the sum of the
