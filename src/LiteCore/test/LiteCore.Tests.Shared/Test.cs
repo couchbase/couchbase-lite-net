@@ -331,6 +331,18 @@ namespace LiteCore.Tests
             });
         }
 
+        protected void ReopenDBReadOnly()
+        {
+            var config = C4DatabaseConfig.Get(Native.c4db_getConfig(Db));
+            LiteCoreBridge.Check(err => Native.c4db_close(Db, err));
+            Native.c4db_free(Db);
+            config.flags = (config.flags & ~C4DatabaseFlags.Create) | C4DatabaseFlags.ReadOnly;
+            Db = (C4Database *)LiteCoreBridge.Check(err => {
+                var localConfig = config;
+                return Native.c4db_open(DatabasePath(), &localConfig, err);
+            });
+        }
+
         internal C4BlobKey[] AddDocWithAttachments(FLSlice docID, List<string> atts, string contentType)
         {
             var keys = new List<C4BlobKey>();

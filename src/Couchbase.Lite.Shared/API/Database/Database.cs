@@ -771,7 +771,7 @@ namespace Couchbase.Lite
             ThreadSafety.DoLockedBridge(err =>
             {
                 if (expiration == null) {
-                    succeed = Native.c4doc_setExpiration(_c4db, docId, 0, null);
+                    succeed = Native.c4doc_setExpiration(_c4db, docId, 0, err);
                 } else {
                     var millisSinceEpoch = expiration.Value.ToUnixTimeMilliseconds();
                     succeed = Native.c4doc_setExpiration(_c4db, docId, millisSinceEpoch, err);

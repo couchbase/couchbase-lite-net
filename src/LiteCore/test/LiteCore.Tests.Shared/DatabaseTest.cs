@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
@@ -137,6 +138,26 @@ namespace LiteCore.Tests
                 Native.c4enum_free(e);
                 error.code.Should().Be(0, "because otherwise an error occurred somewhere");
                 i.Should().Be(100, "because all docs should be iterated, even deleted ones");
+            });
+        }
+
+        [Fact]
+        public void TestCancelExpire()
+        {
+            RunTestVariants(() =>
+            {
+                var docID = "expire_me";
+                CreateRev(docID, RevID, FleeceBody);
+                var expire = Native.c4_now() + 2000;
+                C4Error err;
+                Native.c4doc_setExpiration(Db, docID, expire, &err).Should().BeTrue();
+                Native.c4doc_getExpiration(Db, docID).Should().Be(expire);
+                Native.c4db_nextDocExpiration(Db).Should().Be(expire);
+
+                Native.c4doc_setExpiration(Db, docID, 0, &err).Should().BeTrue();
+                Native.c4doc_getExpiration(Db, docID).Should().Be(0);
+                Native.c4db_nextDocExpiration(Db).Should().Be(0);
+                Native.c4db_purgeExpiredDocs(Db, &err).Should().Be(0);
             });
         }
 
@@ -278,6 +299,23 @@ namespace LiteCore.Tests
         }
 
         [Fact]
+        public void TestDeletionLock()
+        {
+            RunTestVariants(() =>
+            {
+                C4Error err;
+                Native.c4db_deleteAtPath(DatabasePath(), &err).Should().BeFalse("because the database is open");
+                err.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
+                err.code.Should().Be((int) C4ErrorCode.Busy);
+
+                var equivalentPath = DatabasePath() + Path.DirectorySeparatorChar;
+                Native.c4db_deleteAtPath(equivalentPath, &err).Should().BeFalse("because the database is open");
+                err.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
+                err.code.Should().Be((int) C4ErrorCode.Busy);
+            });
+        }
+
+        [Fact]
         public void TestDatabaseInfo()
         {
             RunTestVariants(() => {
@@ -337,7 +375,87 @@ namespace LiteCore.Tests
             AssertMessage((C4ErrorDomain)666, -1234, "unknown error domain");
         }
 
-       
+        [Fact]
+        public void TestExpired()
+        {
+            RunTestVariants(() =>
+            {
+                C4Error err;
+                Native.c4db_nextDocExpiration(Db).Should().Be(0L);
+                Native.c4db_purgeExpiredDocs(Db, &err).Should().Be(0L);
+
+                var docID = "expire_me";
+                CreateRev(docID, RevID, FleeceBody);
+                var expire = Native.c4_now() + 1000; //1000ms = 1 sec;
+                Native.c4doc_setExpiration(Db, docID, expire, &err).Should()
+                    .BeTrue("because otherwise the 1 second expiration failed to set");
+
+                expire = Native.c4_now() + 2000;
+                Native.c4doc_setExpiration(Db, docID, expire, &err).Should()
+                    .BeTrue("because otherwise the 2 second expiration failed to set");
+                Native.c4doc_setExpiration(Db, docID, expire, &err).Should()
+                    .BeTrue("because setting to the same time twice should also work");
+
+                var docID2 = "expire_me_too";
+                CreateRev(docID2, RevID, FleeceBody);
+                Native.c4doc_setExpiration(Db, docID2, expire, &err).Should()
+                    .BeTrue("because otherwise the 2 second expiration failed to set");
+
+                var docID3 = "dont_expire_me";
+                CreateRev(docID3, RevID, Body);
+
+                var docID4 = "expire_me_later";
+                CreateRev(docID4, RevID, Body);
+                Native.c4doc_setExpiration(Db, docID4, expire + 100_000, &err).Should()
+                    .BeTrue("because otherwise the 100 second expiration failed to set");
+
+                Native.c4doc_setExpiration(Db, "nonexistent", expire + 50_000, &err).Should()
+                    .BeFalse("because the document is nonexistent");
+                err.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
+                err.code.Should().Be((int) C4ErrorCode.NotFound);
+
+                Native.c4doc_getExpiration(Db, docID).Should().Be(expire);
+                Native.c4doc_getExpiration(Db, docID2).Should().Be(expire);
+                Native.c4doc_getExpiration(Db, docID3).Should().Be(0L);
+                Native.c4doc_getExpiration(Db, docID4).Should().Be(expire + 100_000);
+                Native.c4doc_getExpiration(Db, "nonexistent").Should().Be(0L);
+                Native.c4db_nextDocExpiration(Db).Should().Be(expire);
+
+                WriteLine("--- Wait till expiration time...");
+                Thread.Sleep(TimeSpan.FromSeconds(2));
+                Native.c4_now().Should().BeGreaterOrEqualTo(expire);
+
+                WriteLine("--- Purge expired docs");
+                Native.c4db_purgeExpiredDocs(Db, &err).Should().Be(2, "because there are two expired documents");
+
+                Native.c4db_nextDocExpiration(Db).Should().Be(expire + 100_000);
+
+                WriteLine("--- Purge expired docs (again)");
+                Native.c4db_purgeExpiredDocs(Db, &err).Should().Be(0, "because there are no expired documents");
+            });
+        }
+
+        [Fact]
+        public void TestExpiredMultipleInstances()
+        {
+            RunTestVariants(() =>
+            {
+                C4Error error;
+                var db2 = Native.c4db_open(DatabasePath(), Native.c4db_getConfig(Db), &error);
+                ((long) db2).Should().NotBe(0);
+
+                Native.c4db_nextDocExpiration(Db).Should().Be(0);
+                Native.c4db_nextDocExpiration(db2).Should().Be(0);
+
+                var docID = "expire_me";
+                CreateRev(docID, RevID, FleeceBody);
+                var expire = Native.c4_now() + 1000;
+                Native.c4doc_setExpiration(Db, docID, expire, &error);
+
+                Native.c4db_nextDocExpiration(db2).Should().Be(expire);
+                Native.c4db_free(db2);
+            });
+        }
 
         [Fact]
         public void TestOpenBundle()
@@ -380,6 +498,19 @@ namespace LiteCore.Tests
                 NativePrivate.c4log_warnOnErrors(true);
 
                 config.Dispose();
+            });
+        }
+
+        [Fact]
+        public void TestReadonlyUUIDs()
+        {
+            RunTestVariants(() =>
+            {
+                ReopenDBReadOnly();
+                C4Error err;
+                C4UUID publicUUID, privateUUID;
+                Native.c4db_getUUIDs(Db, &publicUUID, &privateUUID, &err).Should()
+                    .BeTrue("because the UUID should still be available in a read-only db");
             });
         }
 

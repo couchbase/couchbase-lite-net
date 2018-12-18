@@ -2173,7 +2173,8 @@ namespace Test
             }
 
             var i = 0;
-            using (var q = QueryBuilder.Select(selections)
+            using (
+                var q = QueryBuilder.Select(selections)
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Property("local").Ascending())) {
                 foreach (var result in q.Execute()) {
@@ -2287,8 +2288,8 @@ namespace Test
 
             var dateTimeFormats = new[]
             {
-                "1985-10-26 01:21", "1985-10-26T01:21:30", "1985-10-26T01:21:30.5",
-                "1985-10-26 01:21:30.55", "1985-10-26 01:21:30.555"
+                "1985-10-26T01:21", "1985-10-26T01:21:30", "1985-10-26T01:21:30.5",
+                "1985-10-26T01:21:30.55", "1985-10-26T01:21:30.555"
             };
 
             

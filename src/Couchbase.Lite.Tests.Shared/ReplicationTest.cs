@@ -565,19 +565,16 @@ namespace Test
             }
 
             var config = CreateConfig(true, true, false);
-            var receivedPullDelete = false;
-            var receivedPushDelete = false;
+            var pullWait = new WaitAssert();
+            var pushWait = new WaitAssert();
             RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
             {
-                if (args.Status.IsPush && args.Status.IsDeleted) {
-                    receivedPushDelete = true;
-                } else if (args.Status.IsDeleted) {
-                    receivedPullDelete = true;
-                }
+                pushWait.RunConditionalAssert(() => args.Status.IsPush && args.Status.IsDeleted);
+                pullWait.RunConditionalAssert(() => !args.Status.IsPush && args.Status.IsDeleted);
             });
 
-            receivedPushDelete.Should().BeTrue("because an event should be received for a pushed deletion");
-            receivedPullDelete.Should().BeTrue("because an event should be received from a pulled deletion");
+            pushWait.WaitForResult(TimeSpan.FromSeconds(5));
+            pullWait.WaitForResult(TimeSpan.FromSeconds(1));
         }
 
         [Fact]

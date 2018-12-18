@@ -1883,7 +1883,7 @@ namespace Test
                 Db.Delete(doc1a);
 
                 Db.SetDocumentExpiration("deleted_doc1", dto3).Should().BeTrue();
-                Thread.Sleep(4000);
+                Thread.Sleep(3100);
 
                 Action badAction = (() => Db.SetDocumentExpiration("deleted_doc1", dto3));
                 badAction.ShouldThrow<CouchbaseLiteException>("Cannot find the document.");
