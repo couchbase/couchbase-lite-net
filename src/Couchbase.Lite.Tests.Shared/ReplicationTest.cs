@@ -963,6 +963,24 @@ namespace Test
             _otherDB.Count.Should().Be(10, "because the documents should have been pushed");
         }
 
+        [Fact]
+        public void TestExpiredNotPushed()
+        {
+            const string docId = "byebye";
+            using (var doc1 = new MutableDocument(docId)) {
+                doc1.SetString("expire_me", "now");
+                Db.Save(doc1);
+            }
+            
+            Db.SetDocumentExpiration(docId, DateTimeOffset.Now);
+            var config = CreateConfig(true, false, false);
+            var callbackCount = 0;
+            RunReplication(config, 0, 0, documentReplicated:(status, args) => { callbackCount++; });
+            _otherDB.Count.Should().Be(0);
+            callbackCount.Should().Be(0);
+            _repl.Status.Progress.Total.Should().Be(0UL);
+        }
+
         private ReplicatorConfiguration CreateFailureP2PConfiguration(ProtocolType protocolType, MockConnectionLifecycleLocation location, bool recoverable)
         {
             var errorLocation = TestErrorLogic.FailWhen(location);

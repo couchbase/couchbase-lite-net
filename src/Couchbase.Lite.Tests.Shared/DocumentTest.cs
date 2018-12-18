@@ -1829,7 +1829,6 @@ namespace Test
         public void TestSetAndGetExpirationFromDoc()
         {
             var dto30 = DateTimeOffset.UtcNow.AddSeconds(30);
-            var dto0 = DateTimeOffset.UtcNow;
 
             using (var doc1a = new MutableDocument("doc1"))
             using (var doc1b = new MutableDocument("doc2"))
@@ -1868,8 +1867,8 @@ namespace Test
                 Db.SetDocumentExpiration("doc_to_expired", dto3).Should().Be(true);
 
             }
-            Thread.Sleep(5000);
-            var doc = Db.GetDocument("doc_to_expired").Should().BeNull();
+            Thread.Sleep(3100);
+            Db.GetDocument("doc_to_expired").Should().BeNull();
         }
 
         [Fact]
@@ -1916,7 +1915,6 @@ namespace Test
         [Fact]
         public void TestGetExpirationFromNoneExistDoc()
         {
-            var dto30 = DateTimeOffset.Now.AddSeconds(30);
             Action badAction = (() => Db.GetDocumentExpiration("not_exist"));
             badAction.ShouldThrow<CouchbaseLiteException>("Cannot find the document.");
         }
@@ -1953,8 +1951,8 @@ namespace Test
             }
             Db.SetDocumentExpiration("doc_to_expired", null).Should().Be(true);
 
-            Thread.Sleep(5000);
-            var doc = Db.GetDocument("doc_to_expired").Should().NotBeNull();
+            Thread.Sleep(3100);
+            Db.GetDocument("doc_to_expired").Should().NotBeNull();
         }
 
         [Fact]
@@ -1963,7 +1961,6 @@ namespace Test
             var dto2 = DateTimeOffset.Now.AddSeconds(2);
             var dto3 = DateTimeOffset.Now.AddSeconds(3);
             var dto4 = DateTimeOffset.Now.AddSeconds(4);
-            var dto60InMS = DateTimeOffset.Now.AddSeconds(60).ToUnixTimeMilliseconds();
 
             using (var doc1a = new MutableDocument("doc1"))
             using (var doc1b = new MutableDocument("doc2"))
@@ -1985,11 +1982,25 @@ namespace Test
                 Db.SetDocumentExpiration("doc3", dto4).Should().Be(true);
             }
 
-            Thread.Sleep(6000);
+            Thread.Sleep(4100);
 
             Db.GetDocument("doc1").Should().BeNull();
             Db.GetDocument("doc2").Should().BeNull();
             Db.GetDocument("doc3").Should().BeNull();
+        }
+
+        [Fact]
+        public void TestExpireNow()
+        {
+            const string docId = "byebye";
+            using (var doc1 = new MutableDocument(docId)) {
+                doc1.SetString("expire_me", "now");
+                Db.Save(doc1);
+            }
+            
+            Db.GetDocument(docId).Should().NotBeNull("because the expiration has not been set yet");
+            Db.SetDocumentExpiration(docId, DateTimeOffset.Now);
+            Db.GetDocument(docId).Should().BeNull("because the purge should happen immediately");
         }
 
         [Fact]

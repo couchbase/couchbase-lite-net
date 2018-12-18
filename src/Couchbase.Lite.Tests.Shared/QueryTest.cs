@@ -31,6 +31,8 @@ using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Query;
 
 using FluentAssertions;
+using FluentAssertions.Execution;
+
 using Newtonsoft.Json;
 #if !WINDOWS_UWP
 using Xunit;
@@ -88,7 +90,7 @@ namespace Test
                 Db.SetDocumentExpiration("doc3", dto4).Should().Be(true);
             }
 
-            Thread.Sleep(6000);
+            Thread.Sleep(4100);
 
             using (var r = QueryBuilder.Select(DocID, Expiration)
                 .From(DataSource.Database(Db))
@@ -134,42 +136,93 @@ namespace Test
                 .LessThan(Expression.Long(dto60InMS)))) {
 
                 var b = r.Execute().AllResults();
-                b.Count().Should().Be(3);
+                b.Should().HaveCount(3);
             }
         }
 
         [Fact]
         public void TestQueryDocumentIsNotDeleted()
         {
-            using (var doc1a = new MutableDocument("doc1")){
-                doc1a.SetInt("answer", 42);
-                doc1a.SetString("a", "string");
-                Db.Save(doc1a);
+            using (var doc1 = new MutableDocument("doc1")){
+                doc1.SetInt("answer", 42);
+                doc1.SetString("a", "string");
+                Db.Save(doc1);
             }
 
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetInt("answer", 42);
+                doc2.SetString("a", "string");
+                Db.Save(doc2);
+                Db.Delete(doc2);
+            }
+            
             using (var q = QueryBuilder.Select(DocID, IsDeleted)
                  .From(DataSource.Database(Db))
-                 .Where(Meta.ID.EqualTo(Expression.String("doc1"))
-                 .And(Meta.IsDeleted.EqualTo(Expression.Boolean(false))))) {
-                q.Execute().AllResults().FirstOrDefault().GetString(0).Should().Be("doc1");
-                q.Execute().AllResults().FirstOrDefault().GetBoolean(1).Should().BeFalse();
+                 .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(false)))) {
+                var count = VerifyQuery(q, (n, r) =>
+                {
+                    r.GetString(0).Should().Be("doc1");
+                    r.GetBoolean(1).Should().BeFalse();
+                });
+                count.Should().Be(1);
             }
         }
 
         [Fact]
         public void TestQueryDocumentIsDeleted()
         {
-            using (var doc1a = new MutableDocument("doc1")) {
-                doc1a.SetInt("answer", 42);
-                doc1a.SetString("a", "string");
-                Db.Save(doc1a);
+            using (var doc1 = new MutableDocument("doc1")){
+                doc1.SetInt("answer", 42);
+                doc1.SetString("a", "string");
+                Db.Save(doc1);
             }
-            Db.Delete(Db.GetDocument("doc1"));
+
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetInt("answer", 42);
+                doc2.SetString("a", "string");
+                Db.Save(doc2);
+                Db.Delete(doc2);
+            }
+
             using (var q = QueryBuilder.Select(DocID, IsDeleted)
                  .From(DataSource.Database(Db))
-                 .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(true))
-                 .And(Meta.ID.EqualTo(Expression.String("doc1"))))) {
-                q.Execute().AllResults().Count().Should().Be(1);
+                 .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(true)))) {
+                var count = VerifyQuery(q, (n, r) =>
+                {
+                    r.GetString(0).Should().Be("doc2");
+                    r.GetBoolean(1).Should().BeTrue();
+                });
+                count.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public void TestExpiredNotInQuery()
+        {
+            const string docId = "byebye";
+            using (var doc1 = new MutableDocument(docId)) {
+                doc1.SetString("expire_me", "now");
+                Db.Save(doc1);
+            }
+            
+            Db.SetDocumentExpiration(docId, DateTimeOffset.Now);
+
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("expire_me", "never");
+                Db.Save(doc2);
+            }
+
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
+                .From(DataSource.Database(Db))) {
+                var count = VerifyQuery(q, (n, r) => { r.GetString(0).Should().Be("doc2"); });
+                count.Should().Be(1);
+            }
+
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
+                .From(DataSource.Database(Db))
+                .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(true)))) {
+                var count = VerifyQuery(q, (n, r) => throw new AssertionFailedException("No results should be present"));
+                count.Should().Be(0);
             }
         }
 
