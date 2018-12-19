@@ -22,10 +22,9 @@ using System.Threading.Tasks;
 
 using Windows.ApplicationModel.Core;
 using Windows.UI.Core;
-using Windows.UI.Xaml;
 
 using Couchbase.Lite.DI;
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 
 using JetBrains.Annotations;
 
@@ -65,7 +64,7 @@ namespace Couchbase.Lite.Support
             var t =_dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
                 if (!TryExecuteTask(task)) {
-                    Log.To.Couchbase.W(Tag, "Failed to execute task");
+                    WriteLog.To.Couchbase.W(Tag, "Failed to execute task");
                 }
             });
         }

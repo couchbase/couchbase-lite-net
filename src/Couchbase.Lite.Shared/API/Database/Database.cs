@@ -151,6 +151,10 @@ namespace Couchbase.Lite
         [NotNull]
         public DocumentFragment this[string id] => new DocumentFragment(GetDocument(id));
 
+        /// <summary>
+        /// Gets the object that stores the available logging methods
+        /// for Couchbase Lite
+        /// </summary>
         [NotNull]
         public static Log Log { get; } = new Log();
 

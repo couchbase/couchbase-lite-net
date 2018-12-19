@@ -76,7 +76,7 @@ namespace Couchbase.Lite.Internal.Serialization
             if(Native.FLValue_GetType(_currentValue) == FLValueType.Number) {
                 key = _stringCache.GetKey((int)Native.FLValue_AsInt(_currentValue));
                 if(key == null) {
-                    Log.To.Database.W(Tag, "Corrupt key found during deserialization, skipping...");
+                    WriteLog.To.Database.W(Tag, "Corrupt key found during deserialization, skipping...");
                 }
             } else {
                 key = Native.FLValue_AsString(_currentValue);

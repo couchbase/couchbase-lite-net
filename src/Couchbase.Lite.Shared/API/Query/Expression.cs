@@ -60,6 +60,11 @@ namespace Couchbase.Lite.Query
         [NotNull]
         public static IExpression Date(DateTimeOffset value) => new QueryConstantExpression<string>(value.ToString("o")); //#1052 workaround
 
+        /// <summary>
+        /// Returns an expression to represent a fixed <see cref="IDictionary{TKey,TValue}"/> value
+        /// </summary>
+        /// <param name="value">The value to use</param>
+        /// <returns>An expression representing the fixed value</returns>
         [NotNull]
         public static IExpression Dictionary(IDictionary<string, object> value) => new QueryCollectionExpression(value);
 

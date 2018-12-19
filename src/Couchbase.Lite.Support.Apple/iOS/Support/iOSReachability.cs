@@ -18,21 +18,20 @@
 
 using System;
 using System.Net;
-using Couchbase.Lite.DI;
-using Couchbase.Lite.Logging;
-using Couchbase.Lite.Sync;
-using Couchbase.Lite.Util;
+
+using SystemConfiguration;
 
 using CoreFoundation;
-using Foundation;
-using SystemConfiguration;
+
+using Couchbase.Lite.DI;
+using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Sync;
 
 namespace Couchbase.Lite.Support
 {
     [CouchbaseDependency(Lazy = true, Transient = true)]
     internal sealed class iOSReachability : IReachability
     {
-
         #region Constants
 
         private const string Tag = nameof(iOSReachability);
@@ -41,8 +40,9 @@ namespace Couchbase.Lite.Support
 
         #region Variables
 
-        private NetworkReachability _ref;
         private DispatchQueue _queue;
+
+        private NetworkReachability _ref;
         private bool _started;
 
         public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
@@ -51,11 +51,11 @@ namespace Couchbase.Lite.Support
 
         #region Properties
 
-        public Uri Url { get; set; }
+        public NetworkReachabilityFlags ReachabilityFlags { get; private set; }
 
         public bool ReachabilityKnown { get; private set; }
 
-        public NetworkReachabilityFlags ReachabilityFlags { get; private set; }
+        public Uri Url { get; set; }
 
         #endregion
 
@@ -81,7 +81,7 @@ namespace Couchbase.Lite.Support
             {
                 ReachabilityFlags = flags;
                 ReachabilityKnown = true;
-                Log.To.Sync.I(Tag, $"{this}: flags <-- {flags}");
+                WriteLog.To.Sync.I(Tag, $"{this}: flags <-- {flags}");
                 var status = flags.HasFlag(NetworkReachabilityFlags.Reachable) && !flags.HasFlag(NetworkReachabilityFlags.InterventionRequired) ?
                                   NetworkReachabilityStatus.Reachable : NetworkReachabilityStatus.Unreachable;
                 StatusChanged?.Invoke(this, new NetworkReachabilityChangeEventArgs(status));
@@ -123,12 +123,12 @@ namespace Couchbase.Lite.Support
                 _ref.SetNotification(ClientCallback);
                 if (_ref.GetFlags(out var flags) == StatusCode.OK)
                 {
-                    Log.To.Sync.I(Tag, $"{this}: flags={flags}; starting...");
+                    WriteLog.To.Sync.I(Tag, $"{this}: flags={flags}; starting...");
                     NotifyFlagsChanged(flags);
                 }
                 else
                 {
-                    Log.To.Sync.I(Tag, $"{this}: starting...");
+                    WriteLog.To.Sync.I(Tag, $"{this}: starting...");
                 }
             });
         }
@@ -149,6 +149,6 @@ namespace Couchbase.Lite.Support
             });
         }
 
-        #endregion 
+        #endregion
     }
 }
