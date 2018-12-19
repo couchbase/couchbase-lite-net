@@ -482,9 +482,9 @@ namespace Test
 
             _replicationEvents.Should().HaveCount(2);
             var push = _replicationEvents.FirstOrDefault(g => g.Documents.Any(x => x.IsPush));
-            push.Documents.First(x => x.IsPush).DocumentID.Should().Be("doc1");
+            push.Documents.First(x => x.IsPush).Id.Should().Be("doc1");
             var pull = _replicationEvents.FirstOrDefault(g => g.Documents.Any(x => !x.IsPush));
-            pull.Documents.First(x => !x.IsPush).DocumentID.Should().Be("doc2");
+            pull.Documents.First(x => !x.IsPush).Id.Should().Be("doc2");
         }
 
         [Fact]
@@ -526,7 +526,7 @@ namespace Test
                 var wa = new WaitAssert();
                 repl.AddDocumentReplicationListener((sender, args) =>
                 {
-                    if (args.Documents[0].DocumentID == "doc1")
+                    if (args.Documents[0].Id == "doc1")
                     {
                         wa.RunAssert(() =>
                         {
@@ -953,7 +953,7 @@ namespace Test
             var config = CreateConfig(true, false, false);
             RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
             {
-                foreach (var docID in args.Documents.Select(x => x.DocumentID)) {
+                foreach (var docID in args.Documents.Select(x => x.Id)) {
                     Db.Purge(docID);
                 }
             });
