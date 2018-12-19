@@ -56,15 +56,15 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// The new status for the <see cref="Replicator"/> in question.
         /// </summary>
-        public IReadOnlyList<DocumentReplication> Statuses { get; }
+        public IReadOnlyList<ReplicatedDocument> Documents { get; }
 
         #endregion
 
         #region Constructors
 
-        internal DocumentReplicationEventArgs(IReadOnlyList<DocumentReplication> statuses)
+        internal DocumentReplicationEventArgs(IReadOnlyList<ReplicatedDocument> documents)
         {
-            Statuses = statuses;
+            Documents = documents;
         }
 
         #endregion

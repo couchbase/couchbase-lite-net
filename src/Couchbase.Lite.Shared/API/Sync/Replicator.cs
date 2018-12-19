@@ -289,10 +289,10 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
-            var documentReplications = new DocumentReplication[(int)numDocs];
+            var documentReplications = new ReplicatedDocument[(int)numDocs];
             for (int i = 0; i < (int) numDocs; i++) {
                 var current = docs[i];
-                documentReplications[i] = new DocumentReplication(current->docID.CreateString() ?? "", pushing, 
+                documentReplications[i] = new ReplicatedDocument(current->docID.CreateString() ?? "", pushing, 
                     current->flags, current->error, current->errorIsTransient);
             }
 
@@ -428,7 +428,7 @@ namespace Couchbase.Lite.Sync
             return true;
         }
 
-        private void OnDocEnded(DocumentReplication[] replications)
+        private void OnDocEnded(ReplicatedDocument[] replications)
         {
             if (_disposed) {
                 return;

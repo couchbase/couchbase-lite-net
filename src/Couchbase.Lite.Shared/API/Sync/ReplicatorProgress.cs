@@ -49,7 +49,7 @@ namespace Couchbase.Lite.Sync
     /// A struct describing the current <see cref="Document"/> ended progress 
     /// of a <see cref="Replicator"/>
     /// </summary>
-    public struct DocumentReplication
+    public struct ReplicatedDocument
     {
         /// <summary>
         /// Gets whether or not the document's access has been lost
@@ -86,7 +86,7 @@ namespace Couchbase.Lite.Sync
 
         internal C4Error NativeError { get; }
 
-        internal DocumentReplication([NotNull]string docID, bool pushing, C4RevisionFlags flags, C4Error error,
+        internal ReplicatedDocument([NotNull]string docID, bool pushing, C4RevisionFlags flags, C4Error error,
             bool isTransient)
         {
             DocumentID = docID;
