@@ -175,16 +175,16 @@ namespace Test
                 foreach (var file in Directory.EnumerateFiles(logPath)) {
                     if (file.Contains(LogLevel.Verbose.ToString().ToLowerInvariant())) {
                         ReadAllLines(file).Should()
-                            .HaveCount(3, "because there should be 1 log line and 2 meta lines");
+                            .HaveCount(2, "because there should be 1 log line and 1 meta line");
                     } else if (file.Contains(LogLevel.Info.ToString().ToLowerInvariant())) {
                         ReadAllLines(file).Should()
-                            .HaveCount(4, "because there should be 2 log lines and 2 meta lines");
+                            .HaveCount(3, "because there should be 2 log lines and 1 meta line");
                     } else if (file.Contains(LogLevel.Warning.ToString().ToLowerInvariant())) {
                         ReadAllLines(file).Should()
-                            .HaveCount(5, "because there should be 3 log lines and 2 meta lines");
+                            .HaveCount(4, "because there should be 3 log lines and 1 meta line");
                     } else if (file.Contains(LogLevel.Error.ToString().ToLowerInvariant())) {
                         ReadAllLines(file).Should()
-                            .HaveCount(6, "because there should be 4 log lines and 2 meta lines");
+                            .HaveCount(5, "because there should be 4 log lines and 1 meta line");
                     }
                 }
             } finally {

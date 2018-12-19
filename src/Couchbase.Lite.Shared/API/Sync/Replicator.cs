@@ -283,13 +283,23 @@ namespace Couchbase.Lite.Sync
         }
 
         [MonoPInvokeCallback(typeof(C4ReplicatorDocumentEndedCallback))]
-        private static void OnDocEnded(C4Replicator* repl, bool pushing, FLSlice docID, FLSlice revID, C4RevisionFlags flags, C4Error error, bool transient, void* context)
+        private static void OnDocEnded(C4Replicator* repl, bool pushing, IntPtr numDocs, C4DocumentEnded** docs, void* context)
         {
+            if (docs == null || numDocs == IntPtr.Zero) {
+                return;
+            }
+
+            var documentReplications = new DocumentReplication[(int)numDocs];
+            for (int i = 0; i < (int) numDocs; i++) {
+                var current = docs[i];
+                documentReplications[i] = new DocumentReplication(current->docID.CreateString() ?? "", pushing, 
+                    current->flags, current->error, current->errorIsTransient);
+            }
+
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
-            var docIDStr = docID.CreateString();
             replicator?.DispatchQueue.DispatchAsync(() =>
             {
-                replicator.OnDocEnded(error, pushing, docIDStr ?? "", transient, flags);
+                replicator.OnDocEnded(documentReplications);
             });
 
         }
@@ -418,31 +428,37 @@ namespace Couchbase.Lite.Sync
             return true;
         }
 
-        private void OnDocEnded(C4Error error, bool pushing, [NotNull]string docID, bool transient, C4RevisionFlags flags)
+        private void OnDocEnded(DocumentReplication[] replications)
         {
             if (_disposed) {
                 return;
             }
-            
-            var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
-            if (!pushing && error.domain == C4ErrorDomain.LiteCoreDomain && error.code == (int) C4ErrorCode.Conflict) {
-                // Conflict pulling a document -- the revision was added but app needs to resolve it:
-                var safeDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
-                WriteLog.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
-                try {
-                    Config.Database.ResolveConflict(docID);
-                } catch (Exception e) {
-                    WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{logDocID}' failed", e);
+
+            foreach (var replication in replications) {
+                var docID = replication.DocumentID;
+                var pushing = replication.IsPush;
+                var error = replication.NativeError;
+                var transient = replication.IsTransient;
+                var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
+                if (!pushing && error.domain == C4ErrorDomain.LiteCoreDomain &&
+                    error.code == (int) C4ErrorCode.Conflict) {
+                    // Conflict pulling a document -- the revision was added but app needs to resolve it:
+                    var safeDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
+                    WriteLog.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
+                    try {
+                        Config.Database.ResolveConflict(docID);
+                    } catch (Exception e) {
+                        WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{logDocID}' failed", e);
+                    }
+                } else {
+                    var transientStr = transient ? "transient " : String.Empty;
+                    var dirStr = pushing ? "pushing" : "pulling";
+                    WriteLog.To.Sync.I(Tag,
+                        $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
                 }
-            } else {
-                var transientStr = transient ? "transient " : String.Empty;
-                var dirStr = pushing ? "pushing" : "pulling";
-                WriteLog.To.Sync.I(Tag,
-                    $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
             }
-            
-            var status = new DocumentReplication(docID, pushing, flags, error);
-            _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(status));
+
+            _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(replications));
         }
 
         private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)

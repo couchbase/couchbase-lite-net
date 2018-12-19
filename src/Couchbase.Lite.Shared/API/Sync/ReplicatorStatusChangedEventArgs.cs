@@ -16,6 +16,7 @@
 // limitations under the License.
 // 
 using System;
+using System.Collections.Generic;
 
 using JetBrains.Annotations;
 
@@ -55,15 +56,15 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// The new status for the <see cref="Replicator"/> in question.
         /// </summary>
-        public DocumentReplication Status { get; }
+        public IReadOnlyList<DocumentReplication> Statuses { get; }
 
         #endregion
 
         #region Constructors
 
-        internal DocumentReplicationEventArgs(DocumentReplication status)
+        internal DocumentReplicationEventArgs(IReadOnlyList<DocumentReplication> statuses)
         {
-            Status = status;
+            Statuses = statuses;
         }
 
         #endregion

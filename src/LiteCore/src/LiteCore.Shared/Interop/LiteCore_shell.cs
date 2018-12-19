@@ -323,6 +323,7 @@ namespace Couchbase.Lite.Interop
         public static UIntPtr FLEncoder_BytesWritten(FLEncoder* encoder) => Impl.FLEncoder_BytesWritten(encoder);
         public static UIntPtr FLEncoder_GetNextWritePos(FLEncoder* encoder) => Impl.FLEncoder_GetNextWritePos(encoder);
         public static bool FLEncoder_WriteNull(FLEncoder* encoder) => Impl.FLEncoder_WriteNull(encoder);
+        public static bool FLEncoder_WriteUndefined(FLEncoder* encoder) => Impl.FLEncoder_WriteUndefined(encoder);
         public static bool FLEncoder_WriteBool(FLEncoder* encoder, bool b) => Impl.FLEncoder_WriteBool(encoder, b);
         public static bool FLEncoder_WriteInt(FLEncoder* encoder, long l) => Impl.FLEncoder_WriteInt(encoder, l);
         public static bool FLEncoder_WriteUInt(FLEncoder* encoder, ulong u) => Impl.FLEncoder_WriteUInt(encoder, u);

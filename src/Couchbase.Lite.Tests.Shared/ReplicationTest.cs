@@ -481,10 +481,10 @@ namespace Test
             }
 
             _replicationEvents.Should().HaveCount(2);
-            var push = _replicationEvents.FirstOrDefault(g => g.Status.IsPush);
-            push.Status.DocumentID.Should().Be("doc1");
-            var pull = _replicationEvents.FirstOrDefault(g => !g.Status.IsPush);
-            pull.Status.DocumentID.Should().Be("doc2");
+            var push = _replicationEvents.FirstOrDefault(g => g.Statuses.Any(x => x.IsPush));
+            push.Statuses.First(x => x.IsPush).DocumentID.Should().Be("doc1");
+            var pull = _replicationEvents.FirstOrDefault(g => g.Statuses.Any(x => !x.IsPush));
+            pull.Statuses.First(x => !x.IsPush).DocumentID.Should().Be("doc2");
         }
 
         [Fact]
@@ -526,12 +526,12 @@ namespace Test
                 var wa = new WaitAssert();
                 repl.AddDocumentReplicationListener((sender, args) =>
                 {
-                    if (args.Status.DocumentID == "doc1")
+                    if (args.Statuses[0].DocumentID == "doc1")
                     {
                         wa.RunAssert(() =>
                         {
-                            args.Status.Error.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
-                            args.Status.Error.Error.Should().Be((int)CouchbaseLiteError.HTTPConflict);
+                            args.Statuses[0].Error.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+                            args.Statuses[0].Error.Error.Should().Be((int)CouchbaseLiteError.HTTPConflict);
                         });
                     }
                 });
@@ -569,8 +569,8 @@ namespace Test
             var pushWait = new WaitAssert();
             RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
             {
-                pushWait.RunConditionalAssert(() => args.Status.IsPush && args.Status.IsDeleted);
-                pullWait.RunConditionalAssert(() => !args.Status.IsPush && args.Status.IsDeleted);
+                pushWait.RunConditionalAssert(() => args.Statuses.Any(x => x.IsPush && x.IsDeleted));
+                pullWait.RunConditionalAssert(() => args.Statuses.Any(x => !x.IsPush && x.IsDeleted));
             });
 
             pushWait.WaitForResult(TimeSpan.FromSeconds(5));
@@ -953,8 +953,8 @@ namespace Test
             var config = CreateConfig(true, false, false);
             RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
             {
-                using (var doc = Db.GetDocument(args.Status.DocumentID)) {
-                    Db.Purge(doc);
+                foreach (var docID in args.Statuses.Select(x => x.DocumentID)) {
+                    Db.Purge(docID);
                 }
             });
 

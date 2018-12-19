@@ -323,6 +323,7 @@ namespace LiteCore.Interop
         UIntPtr FLEncoder_BytesWritten(FLEncoder* encoder);
         UIntPtr FLEncoder_GetNextWritePos(FLEncoder* encoder);
         bool FLEncoder_WriteNull(FLEncoder* encoder);
+        bool FLEncoder_WriteUndefined(FLEncoder* encoder);
         bool FLEncoder_WriteBool(FLEncoder* encoder, bool b);
         bool FLEncoder_WriteInt(FLEncoder* encoder, long l);
         bool FLEncoder_WriteUInt(FLEncoder* encoder, ulong u);

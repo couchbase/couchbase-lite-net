@@ -34,8 +34,7 @@ namespace LiteCore.Interop
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate void C4ReplicatorDocumentEndedCallback(C4Replicator* replicator,
-            [MarshalAs(UnmanagedType.U1)]bool pushing, FLSlice docID, FLSlice revID, 
-            C4RevisionFlags flags, C4Error error, [MarshalAs(UnmanagedType.U1)]bool transient, 
+            [MarshalAs(UnmanagedType.U1)]bool pushing, IntPtr numDocs, C4DocumentEnded**docs,
             void* context);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
