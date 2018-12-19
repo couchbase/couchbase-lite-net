@@ -31,6 +31,11 @@ namespace Couchbase.Lite.Logging
         #region Properties
 
         /// <summary>
+        /// A default value meaning "no domains"
+        /// </summary>
+        None = 0,
+
+        /// <summary>
         /// Gets all the logging interfaces so logic can be applied to
         /// all of them
         /// </summary>

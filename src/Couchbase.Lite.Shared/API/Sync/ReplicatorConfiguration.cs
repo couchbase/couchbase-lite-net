@@ -20,7 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
@@ -90,13 +90,13 @@ namespace Couchbase.Lite.Sync
         [NotNull]private readonly Freezer _freezer = new Freezer();
         private Authenticator _authenticator;
         private bool _continuous;
-        private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
         private Func<Document, bool, bool> _pushFilter;
         private Func<Document, bool, bool> _pullValidator;
-        private Uri _remoteUrl;
         private Database _otherDb;
-        private C4SocketFactory _socketFactory;
         private ReplicatorProgressLevel _progressLevel = ReplicatorProgressLevel.Overall;
+        private Uri _remoteUrl;
+        private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
+        private C4SocketFactory _socketFactory;
 
         #endregion
 
@@ -124,18 +124,6 @@ namespace Couchbase.Lite.Sync
             set => _freezer.PerformAction(() => Options.Channels = value);
         }
 
-        internal TimeSpan CheckpointInterval
-        {
-            get => Options.CheckpointInterval;
-            set => _freezer.PerformAction(() => Options.CheckpointInterval = value);
-        }
-
-        internal ReplicatorProgressLevel ProgressLevel
-        {
-            get => Options.ProgressLevel;
-            set => _freezer.PerformAction(() => Options.ProgressLevel = value);
-        }
-
         /// <summary>
         /// Gets or sets whether or not the <see cref="Replicator"/> should stay
         /// active indefinitely.  The default is <c>false</c>
@@ -151,28 +139,6 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         [NotNull]
         public Database Database { get; }
-
-        /// <summary>
-        /// Func delegate that takes Document input parameter and bool output parameter
-        /// Document push will be allowed if output is true, othewise, Document push 
-        /// will not be allowed
-        /// </summary>
-        public Func<Document, bool, bool> PushFilter
-        {
-            get => _pushFilter;
-            set => _freezer.PerformAction(() => _pushFilter = value);
-        }
-
-        /// <summary>
-        /// Func delegate that takes Document input parameter and bool output parameter
-        /// Document pull will be allowed if output is true, othewise, Document pull 
-        /// will not be allowed
-        /// </summary>
-        public Func<Document, bool, bool> PullFilter
-        {
-            get => _pullValidator;
-            set => _freezer.PerformAction(() => _pullValidator = value);
-        }
 
         /// <summary>
         /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
@@ -192,23 +158,7 @@ namespace Couchbase.Lite.Sync
         public IDictionary<string, string> Headers
         {
             get => Options.Headers;
-            set => _freezer.PerformAction(() => Options.Headers = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(Headers), value));
-        }
-
-        [NotNull]
-        internal ReplicatorOptionsDictionary Options { get; set; } = new ReplicatorOptionsDictionary();
-
-        [CanBeNull]
-        internal Database OtherDB
-        {
-            get => _otherDb;
-            set => _freezer.SetValue(ref _otherDb, value);
-        }
-
-        internal C4SocketFactory SocketFactory
-        {
-            get => _socketFactory.open != IntPtr.Zero ? _socketFactory : LiteCore.Interop.SocketFactory.InternalFactory;
-            set => _freezer.SetValue(ref _socketFactory, value);
+            set => _freezer.PerformAction(() => Options.Headers = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(Headers), value));
         }
 
         /// <summary>
@@ -222,11 +172,26 @@ namespace Couchbase.Lite.Sync
             set => _freezer.PerformAction(() => Options.PinnedServerCertificate = value);
         }
 
-        [CanBeNull]
-        internal Uri RemoteUrl
+        /// <summary>
+        /// Func delegate that takes Document input parameter and bool output parameter
+        /// Document pull will be allowed if output is true, othewise, Document pull 
+        /// will not be allowed
+        /// </summary>
+        public Func<Document, bool, bool> PullFilter
         {
-            get => _remoteUrl;
-            set => _freezer.SetValue(ref _remoteUrl, value);
+            get => _pullValidator;
+            set => _freezer.PerformAction(() => _pullValidator = value);
+        }
+
+        /// <summary>
+        /// Func delegate that takes Document input parameter and bool output parameter
+        /// Document push will be allowed if output is true, othewise, Document push 
+        /// will not be allowed
+        /// </summary>
+        public Func<Document, bool, bool> PushFilter
+        {
+            get => _pushFilter;
+            set => _freezer.PerformAction(() => _pushFilter = value);
         }
 
         /// <summary>
@@ -246,6 +211,41 @@ namespace Couchbase.Lite.Sync
         [NotNull]
         public IEndpoint Target { get; }
 
+        internal TimeSpan CheckpointInterval
+        {
+            get => Options.CheckpointInterval;
+            set => _freezer.PerformAction(() => Options.CheckpointInterval = value);
+        }
+
+        [NotNull]
+        internal ReplicatorOptionsDictionary Options { get; set; } = new ReplicatorOptionsDictionary();
+
+        [CanBeNull]
+        internal Database OtherDB
+        {
+            get => _otherDb;
+            set => _freezer.SetValue(ref _otherDb, value);
+        }
+
+        internal ReplicatorProgressLevel ProgressLevel
+        {
+            get => Options.ProgressLevel;
+            set => _freezer.PerformAction(() => Options.ProgressLevel = value);
+        }
+
+        [CanBeNull]
+        internal Uri RemoteUrl
+        {
+            get => _remoteUrl;
+            set => _freezer.SetValue(ref _remoteUrl, value);
+        }
+
+        internal C4SocketFactory SocketFactory
+        {
+            get => _socketFactory.open != IntPtr.Zero ? _socketFactory : LiteCore.Interop.SocketFactory.InternalFactory;
+            set => _freezer.SetValue(ref _socketFactory, value);
+        }
+
         #endregion
 
         #region Constructors
@@ -259,8 +259,8 @@ namespace Couchbase.Lite.Sync
         /// is provided as <paramref name="target"/></exception>
         public ReplicatorConfiguration([NotNull] Database database, [NotNull] IEndpoint target)
         {
-            Database = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(database), database);
-            Target = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(target), target);
+            Database = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(database), database);
+            Target = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(target), target);
 
             var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
             castTarget.Visit(this);

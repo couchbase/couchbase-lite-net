@@ -1,5 +1,5 @@
 ﻿// 
-// AndroidDefaultLogger.cs
+// AndroidConsoleLogger.cs
 // 
 // Copyright (c) 2017 Couchbase, Inc All rights reserved.
 // 
@@ -15,15 +15,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using System;
 
-using Couchbase.Lite.DI;
+using System;
+using System.Collections.Generic;
+
 using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
-    internal sealed class AndroidDefaultLogger : ILogger
+    internal sealed class AndroidConsoleLogger : IConsoleLogger
     {
+        #region Properties
+
+        public LogDomain Domains { get; set; }
+
+        public LogLevel Level { get; set; }
+
+        #endregion
+
         #region Private Methods
 
         private string MakeMessage(string msg)
@@ -36,20 +45,14 @@ namespace Couchbase.Lite.Support
 
         #region ILogger
 
-        public IDisposable BeginScope<TState>(TState state)
+        public void Log(LogLevel level, LogDomain domain, string message)
         {
-            throw new NotImplementedException();
-        }
+            if (level < Level || !Domains.HasFlag(domain)) {
+                return;
+            }
 
-        public bool IsEnabled(LogLevel logLevel)
-        {
-            return true;
-        }
-
-        public void Log(LogLevel logLevel, string category, string message)
-        {
-            var finalStr = MakeMessage($"{category} {message}");
-            switch (logLevel) {
+            var finalStr = MakeMessage($"{domain.ToString()} {message}");
+            switch (level) {
                 case LogLevel.Error:
                     global::Android.Util.Log.Error("CouchbaseLite", finalStr);
                     break;
@@ -59,7 +62,7 @@ namespace Couchbase.Lite.Support
                 case LogLevel.Info:
                     global::Android.Util.Log.Info("CouchbaseLite", finalStr);
                     break;
-                 case LogLevel.Verbose:
+                case LogLevel.Verbose:
                 case LogLevel.Debug:
                     global::Android.Util.Log.Verbose("CouchbaseLite", finalStr);
                     break;

@@ -68,12 +68,9 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4log_writeToCallback(C4LogLevel level, C4LogCallback callback, [MarshalAs(UnmanagedType.U1)]bool preformatted);
 
-        public static bool c4log_writeToBinaryFile(C4LogLevel level, string path, C4Error* error)
-        {
-            using(var path_ = new C4String(path)) {
-                return NativeRaw.c4log_writeToBinaryFile(level, path_.AsFLSlice(), error);
-            }
-        }
+        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4log_writeToBinaryFile(C4LogFileOptions options, C4Error* error);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4LogLevel c4log_callbackLevel();
@@ -142,10 +139,6 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Error c4error_make(C4ErrorDomain domain, int code, FLSlice message);
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4log_writeToBinaryFile(C4LogLevel level, FLSlice path, C4Error* error);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte* c4log_getDomainName(C4LogDomain* x);

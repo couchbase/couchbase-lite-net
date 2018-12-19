@@ -52,6 +52,10 @@ namespace LiteCore.Interop
         Busy
     }
 
+	internal unsafe struct C4Replicator
+    {
+    }
+
     internal unsafe partial struct C4ReplicatorParameters
     {
         public C4ReplicatorMode push;
@@ -74,8 +78,24 @@ namespace LiteCore.Interop
         public ulong documentCount;
     }
 
-	internal unsafe struct C4Replicator
+	internal unsafe struct C4DocumentEnded
     {
+        public FLHeapSlice docID;
+        public FLHeapSlice revID;
+        public C4RevisionFlags flags;
+        public ulong sequence;
+        public C4Error error;
+        private byte _errorIsTransient;
+
+        public bool errorIsTransient
+        {
+            get {
+                return Convert.ToBoolean(_errorIsTransient);
+            }
+            set {
+                _errorIsTransient = Convert.ToByte(value);
+            }
+        }
     }
 
 	internal unsafe struct C4ReplicatorStatus

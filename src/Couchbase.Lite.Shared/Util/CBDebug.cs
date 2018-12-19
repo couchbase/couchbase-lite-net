@@ -19,7 +19,7 @@
 using System;
 using System.Diagnostics;
 
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 
 using JetBrains.Annotations;
 

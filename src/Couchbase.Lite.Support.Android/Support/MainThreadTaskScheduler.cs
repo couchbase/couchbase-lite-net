@@ -25,7 +25,7 @@ using Android.Content;
 using Android.OS;
 
 using Couchbase.Lite.DI;
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 
 using JetBrains.Annotations;
 
@@ -63,12 +63,17 @@ namespace Couchbase.Lite.Support
 
         #region Overrides
 
+        protected override IEnumerable<Task> GetScheduledTasks()
+        {
+            throw new NotSupportedException();
+        }
+
         protected override void QueueTask(Task task)
         {
             _Handler.Post(() =>
             {
                 if (!TryExecuteTask(task)) {
-                    Log.To.Couchbase.W(Tag, "Failed to execute a task in MainThreadTaskScheduler");
+                    WriteLog.To.Couchbase.W(Tag, "Failed to execute a task in MainThreadTaskScheduler");
                 }
             });
         }
@@ -80,11 +85,6 @@ namespace Couchbase.Lite.Support
             }
 
             return TryExecuteTask(task);
-        }
-
-        protected override IEnumerable<Task> GetScheduledTasks()
-        {
-            throw new NotSupportedException();
         }
 
         #endregion

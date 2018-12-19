@@ -15,13 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Interop;
-using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
@@ -32,14 +33,18 @@ namespace Couchbase.Lite.Internal.Serialization
 {
     internal sealed unsafe class MDict : MCollection
     {
+        #region Constants
 
         private const string Tag = nameof(MDict);
 
+        #endregion
+
         #region Variables
+
+        private readonly List<string> _newKeys = new List<string>();
 
         private FLDict* _dict;
         private Dictionary<string, MValue> _map = new Dictionary<string, MValue>();
-        private readonly List<string> _newKeys = new List<string>();
 
         #endregion
 
@@ -92,7 +97,7 @@ namespace Couchbase.Lite.Internal.Serialization
         [NotNull]
         public MValue Get([NotNull]string key)
         {
-            CBDebug.MustNotBeNull(Log.To.Couchbase, Tag, nameof(key), key);
+            CBDebug.MustNotBeNull(WriteLog.To.Couchbase, Tag, nameof(key), key);
 
             if (_map.ContainsKey(key)) {
                 return _map[key];
@@ -225,27 +230,6 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Overrides
 
-        public override void InitAsCopyOf(MCollection original, bool isMutable)
-        {
-            base.InitAsCopyOf(original, isMutable);
-            var d = original as MDict;
-            _dict = d != null ? d._dict : null;
-            _map = d?._map;
-            Count = d?.Count ?? 0;
-        }
-
-        protected override void InitInSlot(MValue slot, MCollection parent, bool isMutable)
-        {
-            base.InitInSlot(slot, parent, isMutable);
-            Debug.Assert(_dict == null);
-            _dict = Native.FLValue_AsDict(slot.Value);
-            Count = (int)Native.FLDict_Count(_dict);
-        }
-
-        #endregion
-
-        #region IFLEncodable
-
         public override void FLEncode(FLEncoder* enc)
         {
             if (!IsMutated) {
@@ -283,6 +267,23 @@ namespace Couchbase.Lite.Internal.Serialization
 
                 Native.FLEncoder_EndDict(enc);
             }
+        }
+
+        public override void InitAsCopyOf(MCollection original, bool isMutable)
+        {
+            base.InitAsCopyOf(original, isMutable);
+            var d = original as MDict;
+            _dict = d != null ? d._dict : null;
+            _map = d?._map;
+            Count = d?.Count ?? 0;
+        }
+
+        protected override void InitInSlot(MValue slot, MCollection parent, bool isMutable)
+        {
+            base.InitInSlot(slot, parent, isMutable);
+            Debug.Assert(_dict == null);
+            _dict = Native.FLValue_AsDict(slot.Value);
+            Count = (int)Native.FLDict_Count(_dict);
         }
 
         #endregion

@@ -1,7 +1,7 @@
 ﻿// 
 //  ILogger.cs
 // 
-//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
+//  Copyright (c) 2018 Couchbase, Inc All rights reserved.
 // 
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -15,13 +15,20 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
-
-using Couchbase.Lite.Logging;
-
-namespace Couchbase.Lite.DI
+namespace Couchbase.Lite.Logging
 {
-    internal interface ILogger
+    public interface ILogger
     {
-        void Log(LogLevel level, string category, string message);
+        #region Properties
+
+        LogLevel Level { get; }
+
+        #endregion
+
+        #region Public Methods
+
+        void Log(LogLevel level, LogDomain domain, string message);
+
+        #endregion
     }
 }

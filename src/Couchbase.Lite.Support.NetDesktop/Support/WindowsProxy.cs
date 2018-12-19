@@ -21,9 +21,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
-using System.Threading;
+
 using Couchbase.Lite.DI;
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 
 using Microsoft.Win32.SafeHandles;
 
@@ -31,11 +31,21 @@ namespace Couchbase.Lite.Support
 {
     internal class SafeWinHttpHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
+        #region Variables
+
         private SafeWinHttpHandle _parentHandle = null;
-            
+
+        #endregion
+
+        #region Constructors
+
         public SafeWinHttpHandle() : base(true)
         {
         }
+
+        #endregion
+
+        #region Public Methods
 
         public static void DisposeAndClearHandle(ref SafeWinHttpHandle safeHandle)
         {
@@ -57,7 +67,20 @@ namespace Couchbase.Lite.Support
                 
             _parentHandle = parentHandle;
         }
-            
+
+        #endregion
+
+        #region Private Methods
+
+        [DllImport("winhttp.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool WinHttpCloseHandle(
+            IntPtr handle);
+
+        #endregion
+
+        #region Overrides
+
         // Important: WinHttp API calls should not happen while another WinHttp call for the same handle did not 
         // return. During finalization that was not initiated by the Dispose pattern we don't expect any other WinHttp
         // calls in progress.
@@ -72,71 +95,51 @@ namespace Couchbase.Lite.Support
             return WinHttpCloseHandle(handle);
         }
 
-        [DllImport("winhttp.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool WinHttpCloseHandle(
-            IntPtr handle);
+        #endregion
     }
 
     internal sealed class WindowsProxy : IProxy
     {
-        private const string Tag = nameof(WindowsProxy);
+        #region Constants
 
         private const uint ERROR_WINHTTP_AUTODETECTION_FAILED = 12180;
-
-        private const string WINHTTP_NO_PROXY_NAME = null;
-        private const string WINHTTP_NO_PROXY_BYPASS = null;
-
-        private const uint WINHTTP_OPTION_PROXY = 38;
-        private const uint WINHTTP_ACCESS_TYPE_DEFAULT_PROXY = 0;
-        private const uint WINHTTP_ACCESS_TYPE_NO_PROXY = 1;
-        private const uint WINHTTP_ACCESS_TYPE_NAMED_PROXY = 3;
+        private const string Tag = nameof(WindowsProxy);
         private const uint WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY = 4;
+        private const uint WINHTTP_ACCESS_TYPE_DEFAULT_PROXY = 0;
+        private const uint WINHTTP_ACCESS_TYPE_NAMED_PROXY = 3;
+        private const uint WINHTTP_ACCESS_TYPE_NO_PROXY = 1;
+
+        private const uint WINHTTP_AUTO_DETECT_TYPE_DHCP = 0x00000001;
+        private const uint WINHTTP_AUTO_DETECT_TYPE_DNS_A = 0x00000002;
 
         private const uint WINHTTP_AUTOPROXY_AUTO_DETECT = 0x00000001;
         private const uint WINHTTP_AUTOPROXY_CONFIG_URL = 0x00000002;
         private const uint WINHTTP_AUTOPROXY_HOST_KEEPCASE = 0x00000004;
         private const uint WINHTTP_AUTOPROXY_HOST_LOWERCASE = 0x00000008;
-        private const uint WINHTTP_AUTOPROXY_RUN_INPROCESS = 0x00010000;
-        private const uint WINHTTP_AUTOPROXY_RUN_OUTPROCESS_ONLY = 0x00020000;
-        private const uint WINHTTP_AUTOPROXY_NO_DIRECTACCESS = 0x00040000;
         private const uint WINHTTP_AUTOPROXY_NO_CACHE_CLIENT = 0x00080000;
         private const uint WINHTTP_AUTOPROXY_NO_CACHE_SVC = 0x00100000;
+        private const uint WINHTTP_AUTOPROXY_NO_DIRECTACCESS = 0x00040000;
+        private const uint WINHTTP_AUTOPROXY_RUN_INPROCESS = 0x00010000;
+        private const uint WINHTTP_AUTOPROXY_RUN_OUTPROCESS_ONLY = 0x00020000;
         private const uint WINHTTP_AUTOPROXY_SORT_RESULTS = 0x00400000;
+        private const string WINHTTP_NO_PROXY_BYPASS = null;
 
-        private const uint WINHTTP_AUTO_DETECT_TYPE_DHCP = 0x00000001;
-        private const uint WINHTTP_AUTO_DETECT_TYPE_DNS_A = 0x00000002;
+        private const string WINHTTP_NO_PROXY_NAME = null;
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        public struct WINHTTP_AUTOPROXY_OPTIONS
-        {
-            public uint Flags;
-            public uint AutoDetectFlags;
-            [MarshalAs(UnmanagedType.LPWStr)]
-            public string AutoConfigUrl;
-            public IntPtr Reserved1;
-            public uint Reserved2;
-            [MarshalAs(UnmanagedType.Bool)]
-            public bool AutoLoginIfChallenged;
-        }
+        private const uint WINHTTP_OPTION_PROXY = 38;
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        public struct WINHTTP_PROXY_INFO
-        {
-            public uint AccessType;
-            public IntPtr Proxy;
-            public IntPtr ProxyBypass;
-        }
+        #endregion
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        public struct WINHTTP_CURRENT_USER_IE_PROXY_CONFIG
-        {
-            [MarshalAs(UnmanagedType.Bool)]
-            public bool AutoDetect;
-            public IntPtr AutoConfigUrl;
-            public IntPtr Proxy;
-            public IntPtr ProxyBypass;
-        }
+        #region Public Methods
+
+        [DllImport("winhttp.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool WinHttpGetIEProxyConfigForCurrentUser(
+            out WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig);
+
+        #endregion
+
+        #region Private Methods
 
         [DllImport("winhttp.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -145,16 +148,15 @@ namespace Couchbase.Lite.Support
             ref WINHTTP_AUTOPROXY_OPTIONS autoProxyOptions,
             out WINHTTP_PROXY_INFO proxyInfo);
 
-        [DllImport("winhttp.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool WinHttpGetIEProxyConfigForCurrentUser(
-            out WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig);
-
         [DllImport("winhttp.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true)]
         private static extern SafeWinHttpHandle WinHttpOpen([In] [Optional] [MarshalAs(UnmanagedType.LPWStr)]
             string pwszUserAgent,
             [In] uint dwAccessType, [In] [MarshalAs(UnmanagedType.LPWStr)] string pwszProxyName,
             [In] [MarshalAs(UnmanagedType.LPWStr)] string pwszProxyBypass, [In] uint dwFlags);
+
+        #endregion
+
+        #region IProxy
 
         public IWebProxy CreateProxy(Uri destination)
         {
@@ -169,7 +171,7 @@ namespace Couchbase.Lite.Support
             var session = WinHttpOpen(null, WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME,
                 WINHTTP_NO_PROXY_BYPASS, 0);
             if (session.IsInvalid) {
-                Log.To.Sync.W(Tag,
+                WriteLog.To.Sync.W(Tag,
                     $"Unable to open WinHttp session to query for proxy (error code: {Marshal.GetLastWin32Error()})");
                 return null;
             }
@@ -196,10 +198,10 @@ namespace Couchbase.Lite.Support
             if (!success) {
                 var lastErr = Marshal.GetLastWin32Error();
                 if (lastErr != ERROR_WINHTTP_AUTODETECTION_FAILED) {
-                    Log.To.Sync.W(Tag,
+                    WriteLog.To.Sync.W(Tag,
                         $"Call to WinHttpGetProxyForUrl failed (error code: {lastErr})");
                 } else {
-                    Log.To.Sync.W(Tag, "Call to WinHttpGetProxyForUrl failed (possible direct connection)...");
+                    WriteLog.To.Sync.W(Tag, "Call to WinHttpGetProxyForUrl failed (possible direct connection)...");
                 }
 
                 return null;
@@ -209,5 +211,42 @@ namespace Couchbase.Lite.Support
             var bypass = Marshal.PtrToStringUni(info.ProxyBypass)?.Split(';', ' ', '\t', '\r', '\n');
             return new WebProxy(new Uri($"http://{url}"), bypass?.Contains("<local>") ?? false, bypass);
         }
+
+        #endregion
+
+        #region Nested
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        public struct WINHTTP_AUTOPROXY_OPTIONS
+        {
+            public uint Flags;
+            public uint AutoDetectFlags;
+            [MarshalAs(UnmanagedType.LPWStr)]
+            public string AutoConfigUrl;
+            public IntPtr Reserved1;
+            public uint Reserved2;
+            [MarshalAs(UnmanagedType.Bool)]
+            public bool AutoLoginIfChallenged;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        public struct WINHTTP_CURRENT_USER_IE_PROXY_CONFIG
+        {
+            [MarshalAs(UnmanagedType.Bool)]
+            public bool AutoDetect;
+            public IntPtr AutoConfigUrl;
+            public IntPtr Proxy;
+            public IntPtr ProxyBypass;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        public struct WINHTTP_PROXY_INFO
+        {
+            public uint AccessType;
+            public IntPtr Proxy;
+            public IntPtr ProxyBypass;
+        }
+
+        #endregion
     }
 }

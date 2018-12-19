@@ -16,10 +16,10 @@
 //  limitations under the License.
 // 
 
+using System;
 using System.Reflection;
 
 using Couchbase.Lite.DI;
-using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
 using LiteCore.Interop;
@@ -52,16 +52,18 @@ namespace Couchbase.Lite.Support
             Service.Register<ILiteCore>(new LiteCoreImpl());
             Service.Register<ILiteCoreRaw>(new LiteCoreRawImpl());
             Service.Register<IProxy>(new UWPProxy());
+            Database.Log.Console = new UwpConsoleLogger();
         }
 
         /// <summary>
-        /// Enables text based logging for debugging.  Logs will be written to
+        /// [DEPRECATED] Enables text based logging for debugging.  Logs will be written to
         /// a file in the "Logs" folder inside of the application package's
         /// local files directory
         /// </summary>
+        [Obsolete("This has been superceded by Database.Log.Console.  It is a no-op now")]
         public static void EnableTextLogging()
         {
-            Log.EnableTextLogging(new UwpDefaultLogger());
+
         }
 
         #endregion

@@ -124,6 +124,25 @@ namespace LiteCore.Interop
         public int internal_info;
     }
 
+	internal unsafe struct C4LogFileOptions
+    {
+        public C4LogLevel log_level;
+        public FLSlice base_path;
+        public long max_size_bytes;
+        public int max_rotate_count;
+        private byte _use_plaintext;
+
+        public bool use_plaintext
+        {
+            get {
+                return Convert.ToBoolean(_use_plaintext);
+            }
+            set {
+                _use_plaintext = Convert.ToByte(value);
+            }
+        }
+    }
+
 	internal unsafe struct C4LogDomain
     {
     }

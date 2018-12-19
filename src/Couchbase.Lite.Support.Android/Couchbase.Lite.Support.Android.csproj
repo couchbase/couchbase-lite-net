@@ -117,7 +117,7 @@
       <Link>Support\LiteCore\LiteCore_impl.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Support\AndroidDefaultLogger.cs" />
+    <Compile Include="Support\AndroidConsoleLogger.cs" />
     <Compile Include="Support\DefaultDirectoryResolver.cs" />
     <Compile Include="Activate.cs" />
     <Compile Include="Support\AndroidRuntimePlatform.cs" />

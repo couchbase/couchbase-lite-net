@@ -16,10 +16,12 @@
 //  limitations under the License.
 // 
 
-using Couchbase.Lite.Logging;
-using JetBrains.Annotations;
 using System;
 using System.Diagnostics;
+
+using Couchbase.Lite.Internal.Logging;
+
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Doc
 {
@@ -27,10 +29,10 @@ namespace Couchbase.Lite.Internal.Doc
     {
         #region Constants
 
+        private const string Tag = nameof(Fragment);
+
         [NotNull]
         public static readonly Fragment Null = new Fragment(null, null);
-
-        private const string Tag = nameof(Fragment);
 
         #endregion
 
@@ -44,13 +46,9 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Properties
 
-        public bool Exists => Value != null;
-
         IFragment IArrayFragment.this[int index] => GetForIndex(index);
 
         IFragment IDictionaryFragment.this[string key] => GetForKey(key);
-
-        ArrayObject IFragment.Array => Value as ArrayObject;
 
         public Blob Blob
         {
@@ -71,13 +69,13 @@ namespace Couchbase.Lite.Internal.Doc
             set => Value = value;
         }
 
-        DictionaryObject IFragment.Dictionary => Value as DictionaryObject;
-
         public double Double
         {
             get => DataOps.ConvertToDouble(Value);
             set => Value = value;
         }
+
+        public bool Exists => Value != null;
 
         public float Float
         {
@@ -120,7 +118,7 @@ namespace Couchbase.Lite.Internal.Doc
                 }
 
                 if (_parent == null) {
-                    Log.To.Database.W(Tag, "Attempt to set value on a parentless fragment, ignoring...");
+                    WriteLog.To.Database.W(Tag, "Attempt to set value on a parentless fragment, ignoring...");
                     return;
                 }
 
@@ -132,6 +130,10 @@ namespace Couchbase.Lite.Internal.Doc
             }
 
         }
+
+        ArrayObject IFragment.Array => Value as ArrayObject;
+
+        DictionaryObject IFragment.Dictionary => Value as DictionaryObject;
 
         IMutableFragment IMutableArrayFragment.this[int index] => GetForIndex(index);
 

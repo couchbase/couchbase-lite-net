@@ -18,7 +18,7 @@
 
 using System.Diagnostics;
 
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
@@ -91,7 +91,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IWhere Where(IExpression expression)
         {
-            CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(expression), expression);
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
             return new Where(this, expression);
         }
 

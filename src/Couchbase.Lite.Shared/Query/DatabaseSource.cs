@@ -18,7 +18,7 @@
 
 using System.Collections.Generic;
 
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
@@ -43,8 +43,6 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Properties
 
-        internal Database Database => Source as Database;
-
         internal override string ColumnName
         {
             get {
@@ -55,6 +53,8 @@ namespace Couchbase.Lite.Internal.Query
                 return Database?.Name;
             }
         }
+
+        internal Database Database => Source as Database;
 
         #endregion
 
@@ -86,7 +86,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IDataSource As(string alias)
         {
-            CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(alias), alias);
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
 
             _as = alias;
             return this;

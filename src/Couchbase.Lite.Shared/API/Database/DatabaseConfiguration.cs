@@ -17,7 +17,7 @@
 // 
 
 using Couchbase.Lite.DI;
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
@@ -58,7 +58,7 @@ namespace Couchbase.Lite
         public string Directory
         {
             get => _directory;
-            set => _freezer.SetValue(ref _directory, CBDebug.MustNotBeNull(Log.To.Database, Tag, "Directory", value));
+            set => _freezer.SetValue(ref _directory, CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value));
         }
 
         #if COUCHBASE_ENTERPRISE

@@ -24,10 +24,9 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Interop;
-using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
-using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
@@ -50,6 +49,7 @@ namespace Couchbase.Lite.Internal.Query
         #region Variables
 
         [NotNull]private readonly Event<QueryChangedEventArgs> _changed = new Event<QueryChangedEventArgs>();
+        [NotNull] private readonly DisposalWatchdog _disposalWatchdog = new DisposalWatchdog(nameof(IQuery));
         private readonly TimeSpan _updateInterval;
 
         private unsafe C4Query* _c4Query;
@@ -60,7 +60,6 @@ namespace Couchbase.Lite.Internal.Query
         private int _observingCount = 0;
         [NotNull]private Parameters _queryParameters = new Parameters();
         private AtomicBool _willUpdate = false;
-        [NotNull] private readonly DisposalWatchdog _disposalWatchdog = new DisposalWatchdog(nameof(IQuery));
 
         #endregion
 
@@ -87,7 +86,7 @@ namespace Couchbase.Lite.Internal.Query
         protected IExpression SkipValue { get; set; }
 
         protected QueryExpression WhereImpl { get; set; }
-        
+
         public Parameters Parameters
         {
             get => _queryParameters;
@@ -158,12 +157,12 @@ namespace Couchbase.Lite.Internal.Query
         {
             if (param.Length == 0) {
                 var message = $"{tag} expressions must contain at least one element";
-                CBDebug.LogAndThrow(Log.To.Query, new InvalidOperationException(message), Tag, message, true);
+                CBDebug.LogAndThrow(WriteLog.To.Query, new InvalidOperationException(message), Tag, message, true);
             }
 
             if (param.Any(x => x == null)) {
                 var message = $"{tag} expressions may not contain null elements";
-                CBDebug.LogAndThrow(Log.To.Query, new InvalidOperationException(message), Tag, message, true);
+                CBDebug.LogAndThrow(WriteLog.To.Query, new InvalidOperationException(message), Tag, message, true);
             }
         }
 
@@ -181,7 +180,7 @@ namespace Couchbase.Lite.Internal.Query
                 _columnNames = CreateColumnNames();
             }
 
-            Log.To.Query.I(Tag, $"Query encoded as {jsonData}");
+            WriteLog.To.Query.I(Tag, $"Query encoded as {jsonData}");
 
             from.ThreadSafety.DoLockedBridge(err =>
             {
@@ -308,7 +307,7 @@ namespace Couchbase.Lite.Internal.Query
 
         private void Update()
         {
-            Log.To.Query.I(Tag, $"{this}: Querying...");
+            WriteLog.To.Query.I(Tag, $"{this}: Querying...");
             var oldEnum = _history.LastOrDefault();
             QueryResultSet newEnum = null;
             Exception error = null;
@@ -336,13 +335,13 @@ namespace Couchbase.Lite.Internal.Query
             var changed = true;
             if (newEnum != null) {
                 if (oldEnum != null) {
-                    Log.To.Query.I(Tag, $"{this}: Changed!");
+                    WriteLog.To.Query.I(Tag, $"{this}: Changed!");
                 }
             } else if (error != null) {
-                Log.To.Query.E(Tag, $"{this}: Update failed: {error}");
+                WriteLog.To.Query.E(Tag, $"{this}: Update failed: {error}");
             } else {
                 changed = false;
-                Log.To.Query.V(Tag, $"{this}: ...no change");
+                WriteLog.To.Query.V(Tag, $"{this}: ...no change");
             }
 
             if (changed) {
@@ -378,21 +377,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IQuery
 
-        public unsafe string Explain()
-        {
-            _disposalWatchdog.CheckDisposed();
-
-            // Used for debugging
-            if (_c4Query == null) {
-                Check();
-            }
-
-            return FromImpl?.ThreadSafety?.DoLocked(() => Native.c4query_explain(_c4Query)) ?? "(Unable to explain)";
-        }
-
         public ListenerToken AddChangeListener(TaskScheduler scheduler, EventHandler<QueryChangedEventArgs> handler)
         {
-            CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(handler), handler);
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(handler), handler);
             _disposalWatchdog.CheckDisposed();
 
             var cbHandler = new CouchbaseEventHandler<QueryChangedEventArgs>(handler, scheduler);
@@ -403,7 +390,7 @@ namespace Couchbase.Lite.Internal.Query
                 if (Database != null) {
                     _databaseChangedToken = Database.AddChangeListener(OnDatabaseChanged);
                 } else {
-                    Log.To.Query.W(Tag, @"Attempting to add a change listener onto a query with a null Database.  
+                    WriteLog.To.Query.W(Tag, @"Attempting to add a change listener onto a query with a null Database.  
                                         Changed events will not continue to fire");
                 }
 
@@ -416,17 +403,6 @@ namespace Couchbase.Lite.Internal.Query
         public ListenerToken AddChangeListener(EventHandler<QueryChangedEventArgs> handler)
         {
             return AddChangeListener(null, handler);
-        }
-
-        public void RemoveChangeListener(ListenerToken token)
-        {
-            _disposalWatchdog.CheckDisposed();
-            _changed.Remove(token);
-            if (Interlocked.Decrement(ref _observingCount) == 0) {
-                Stop();
-            }
-
-            _willUpdate.Set(false);
         }
 
         public unsafe IResultSet Execute()
@@ -466,6 +442,29 @@ namespace Couchbase.Lite.Internal.Query
             var retVal = new QueryResultSet(this, fromImpl.ThreadSafety, e, _columnNames);
             _history.Add(retVal);
             return retVal;
+        }
+
+        public unsafe string Explain()
+        {
+            _disposalWatchdog.CheckDisposed();
+
+            // Used for debugging
+            if (_c4Query == null) {
+                Check();
+            }
+
+            return FromImpl?.ThreadSafety?.DoLocked(() => Native.c4query_explain(_c4Query)) ?? "(Unable to explain)";
+        }
+
+        public void RemoveChangeListener(ListenerToken token)
+        {
+            _disposalWatchdog.CheckDisposed();
+            _changed.Remove(token);
+            if (Interlocked.Decrement(ref _observingCount) == 0) {
+                Stop();
+            }
+
+            _willUpdate.Set(false);
         }
 
         #endregion

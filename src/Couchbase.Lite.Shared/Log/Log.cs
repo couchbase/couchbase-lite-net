@@ -17,11 +17,12 @@
 // 
 
 using System;
-using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
-using Couchbase.Lite.DI;
 using Couchbase.Lite.Interop;
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
 
@@ -31,69 +32,31 @@ using LiteCore.Interop;
 
 using ObjCRuntime;
 
-namespace Couchbase.Lite.Logging
+namespace Couchbase.Lite.Internal.Logging
 {
     /// <summary>
     /// Centralized logging facility.
     /// </summary>
-    internal static unsafe class Log
+    internal static unsafe class WriteLog
     {
         #region Constants
 
+        // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
         [NotNull]
         private static readonly LogTo _To;
 
         internal static readonly C4LogDomain* LogDomainBLIP = c4log_getDomain("BLIP", false);
-
         internal static readonly C4LogDomain* LogDomainWebSocket = c4log_getDomain("WS", false);
-
         internal static readonly C4LogDomain* LogDomainSyncBusy = c4log_getDomain("SyncBusy", false);
+        private static LogLevel _CurrentLevel = LogLevel.Warning;
+        private static AtomicBool _Initialized = new AtomicBool(false);
+
+        private static readonly C4LogCallback LogCallback = LiteCoreLog;
+        // ReSharper restore PrivateFieldCanBeConvertedToLocalVariable
 
         #endregion
 
         #region Variables
-
-        private static AtomicBool _Initialized = new AtomicBool(false);
-        private static string _BinaryLogDirectory;
-        private static ILogger TextLogger;
-
-        // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
-        private static readonly C4LogCallback _LogCallback = LiteCoreLog;
-        // ReSharper restore PrivateFieldCanBeConvertedToLocalVariable
-
-        internal static string BinaryLogDirectory
-        {
-            get => _BinaryLogDirectory;
-            set {
-                if (_BinaryLogDirectory == value) {
-                    return;
-                }
-
-                _BinaryLogDirectory = value ?? DefaultBinaryLogDirectory();
-                try {
-                    Directory.CreateDirectory(_BinaryLogDirectory);
-                } catch(Exception e) {
-                    Console.WriteLine($"COUCHBASE LITE WARNING: FAILED TO CREATE BINARY LOGGING DIRECTORY {_BinaryLogDirectory}: {e}");
-                    return;
-                }
-
-                C4Error err;
-                #if DEBUG
-                var defaultLevel = C4LogLevel.Debug;
-                #else
-                var defaultLevel = C4LogLevel.Verbose;
-                #endif
-
-                var success = Native.c4log_writeToBinaryFile(defaultLevel, 
-                    Path.Combine(_BinaryLogDirectory, 
-                        $"log-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"), 
-                    &err);
-                if(!success) {
-                    Console.WriteLine($"COUCHBASE LITE WARNING: FAILED TO INITIALIZE LOGGING FILE IN {_BinaryLogDirectory}");
-                    Console.WriteLine($"ERROR {err.domain} / {err.code}");
-                }
-            }
-        }
 
         #endregion
 
@@ -104,16 +67,15 @@ namespace Couchbase.Lite.Logging
         {
             get {
                 if (!_Initialized.Set(true)) {
-                    if (BinaryLogDirectory == null) {
-                        BinaryLogDirectory = DefaultBinaryLogDirectory();
-                    }
-
-                    var oldLevel = Database.GetLogLevels(LogDomain.Couchbase)[LogDomain.Couchbase];
-                    Database.SetLogLevel(LogDomain.Couchbase, LogLevel.Info);
-                    To.Couchbase.I("Startup", HTTPLogic.UserAgent);
-                    Database.SetLogLevel(LogDomain.Couchbase, oldLevel);
+                    var oldLevel = Database.Log.Console.Level;
+                    Database.Log.Console.Level = LogLevel.Info;
+                    _To.Couchbase.I("Startup", HTTPLogic.UserAgent);
+                    Database.Log.Console.Level = oldLevel;
                 }
 
+                // Not the best place to do this, but otherwise we have to require the developer
+                // To signal us when they change the log level
+                RecalculateLevel();
                 return _To;
             }
         }
@@ -122,38 +84,34 @@ namespace Couchbase.Lite.Logging
 
         #region Constructors
 
-        static Log()
+        static WriteLog()
         {
             _To = new LogTo();
+            Native.c4log_writeToCallback(C4LogLevel.Warning, LogCallback, true);
         }
 
         #endregion
 
         #region Internal Methods
 
-        internal static void EnableTextLogging(ILogger textLogger)
+        internal static void RecalculateLevel()
         {
-            Native.c4log_writeToCallback(C4LogLevel.Debug, _LogCallback, true);
-            TextLogger = textLogger;
-        }
+            var effectiveLevel = (LogLevel)Math.Min((int) Database.Log.Console.Level,
+                (int?) Database.Log.Custom?.Level ?? (int) LogLevel.Error);
+            if (effectiveLevel == _CurrentLevel) {
+                return;
+            }
 
-        internal static void DisableTextLogging()
-        {
-            Native.c4log_writeToCallback(C4LogLevel.Debug, null, true);
-            IDisposable loggerOld = TextLogger as IDisposable;
-            TextLogger = null;
-            loggerOld?.Dispose();
+            _CurrentLevel = effectiveLevel;
+            Task.Factory.StartNew(() =>
+            {
+                Native.c4log_writeToCallback((C4LogLevel) effectiveLevel, LogCallback, true);
+            });
         }
 
         #endregion
 
         #region Private Methods
-
-        private static string DefaultBinaryLogDirectory()
-        {
-            var dir = Service.GetRequiredInstance<IDefaultDirectoryResolver>();
-            return Path.Combine(dir.DefaultDirectory(), "Logs");
-        }
 
         private static C4LogDomain* c4log_getDomain(string name, bool create)
         {
@@ -164,15 +122,14 @@ namespace Couchbase.Lite.Logging
         [MonoPInvokeCallback(typeof(C4LogCallback))]
         private static void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, string message, IntPtr ignored)
         {
-            var domainName = Native.c4log_getDomainName(domain);
-            foreach (var logger in To.All) {
-                if (logger.Domain == domainName) {
-                    logger.QuickWrite(level, message, TextLogger);
-                    return;
-                }
-            }
+            // Not the best place to do this, but otherwise we have to require the developer
+            // To signal us when they change the log level
+            RecalculateLevel();
 
-            To.LiteCore.QuickWrite(level, message, TextLogger);
+            var domainName = Native.c4log_getDomainName(domain);
+            var logger = To.All.FirstOrDefault(x => x.Subdomain == domainName) ?? To.LiteCore;
+            Database.Log.Console.Log((LogLevel)level, logger.Domain, message);
+            Database.Log.Custom?.Log((LogLevel)level, logger.Domain, message);
         }
 
         #endregion

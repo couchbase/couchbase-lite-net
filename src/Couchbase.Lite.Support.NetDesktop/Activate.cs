@@ -112,27 +112,31 @@ namespace Couchbase.Lite.Support
             } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
                 Service.Register<IProxy>(new LinuxProxy());
             }
+
+            Database.Log.Console = new DesktopConsoleLogger();
         }
 
         /// <summary>
-        /// Turns on text based logging for debugging purposes.  The logs will be written 
+        /// [DEPRECATED] Turns on text based logging for debugging purposes.  The logs will be written 
         /// to the directory specified in <paramref name="directoryPath"/>
         /// </summary>
         /// <param name="directoryPath">The directory to write logs to</param>
+        [Obsolete("This has been superseded by Database.Log.Console.  It is a no-op now")]
         [ContractAnnotation("null => halt")]
         public static void EnableTextLogging(string directoryPath)
         {
-            Log.EnableTextLogging(new FileLogger(directoryPath));
+            
         }
 
         /// <summary>
-        /// Directs the binary log files to write to the specified directory.  Useful if
+        /// [DEPRECATED] Directs the binary log files to write to the specified directory.  Useful if
         /// the default directory does not have write permission.
         /// </summary>
         /// <param name="directoryPath">The path to write binary logs to</param>
+        [Obsolete("This has been superseded by Database.Log.File.Directory.")]
         public static void SetBinaryLogDirectory(string directoryPath)
         {
-            Log.BinaryLogDirectory = directoryPath;
+            Database.Log.File.Directory = directoryPath;
         }
 
         #endregion

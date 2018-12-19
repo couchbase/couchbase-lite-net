@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
@@ -30,12 +31,12 @@ namespace Couchbase.Lite.Internal.Query
 
         public QueryCollectionExpression([NotNull]IDictionary<string, object> content)
         {
-            _dictContent = EvaluateDictionary(CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(content), content));
+            _dictContent = EvaluateDictionary(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(content), content));
         }
 
         public QueryCollectionExpression(IList content)
         {
-            _arrayContent = EvaluateList(CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(content), content));
+            _arrayContent = EvaluateList(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(content), content));
         }
 
         #endregion

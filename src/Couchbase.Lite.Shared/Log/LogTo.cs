@@ -15,185 +15,122 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
-using System.Runtime.InteropServices;
 using System.Threading;
 
-using Couchbase.Lite.DI;
-using Couchbase.Lite.Interop;
+using Couchbase.Lite.Logging;
 
 using JetBrains.Annotations;
 
-using LiteCore;
-using LiteCore.Interop;
-
-namespace Couchbase.Lite.Logging
+namespace Couchbase.Lite.Internal.Logging
 {
-    internal sealed unsafe class DomainLogger
+    internal sealed class DomainLogger
     {
-        #region Variables
-
-        private readonly string _domain;
-		private readonly C4LogDomain* _domainObj;
-		private LogLevel _level;
-
-        #endregion
-
         #region Properties
 
-        public string Domain => _domain;
+        public LogDomain Domain { get; }
 
-        public LogLevel Level
-		{
-			get => _level;
-			set {
-				if(_level != value) {
-					Native.c4log_setLevel(_domainObj, (C4LogLevel)value);
-					_level = value;
-				}
-			}
-		}
+        public string Subdomain { get; }
 
         #endregion
 
         #region Constructors
 
-        internal DomainLogger(string domain)
+        internal DomainLogger(string domainStr, LogDomain domain)
         {
-            _domain = domain ?? "Default";
-            var bytes = Marshal.StringToHGlobalAnsi(_domain);
-            _domainObj = Native.c4log_getDomain((byte*) bytes, true);
-            Level = LogLevel.Warning;
+            Subdomain = domainStr ?? "Default";
+            Domain = domain;
         }
 
         #endregion
 
         #region Internal Methods
 
-        [System.Diagnostics.Conditional("DEBUG")]
+        [Conditional("DEBUG")]
         internal void D([NotNull]string tag, [NotNull]string msg)
         {
-            if (ShouldLog(LogLevel.Debug)) {
-				LogToLiteCore(C4LogLevel.Debug, FormatMessage(tag, msg));
-            }
+            SendToLoggers(LogLevel.Debug, FormatMessage(tag, msg));
         }
 
-        [System.Diagnostics.Conditional("DEBUG")]
+        [Conditional("DEBUG")]
         internal void D([NotNull]string tag, [NotNull]string msg, [NotNull]Exception tr)
         {
-            if (ShouldLog(LogLevel.Debug)) {
-                LogToLiteCore(C4LogLevel.Debug, FormatMessage(tag, msg, tr));
-            }
+            SendToLoggers(LogLevel.Debug, FormatMessage(tag, msg, tr));
         }
 
-        [System.Diagnostics.Conditional("DEBUG")]
+        [Conditional("DEBUG")]
         [StringFormatMethod("format")]
         internal void D([NotNull]string tag, [NotNull]string format, params object[] args)
         {
-            if (ShouldLog(LogLevel.Debug)) {
-                LogToLiteCore(C4LogLevel.Debug, String.Format(FormatMessage(tag, format), args));
-            }
+            SendToLoggers(LogLevel.Debug, String.Format(FormatMessage(tag, format), args));
         }
 
         internal void E([NotNull]string tag, [NotNull]string msg)
         {
-            if (ShouldLog(LogLevel.Error)) {
-                LogToLiteCore(C4LogLevel.Error, FormatMessage(tag, msg));
-            }
+            SendToLoggers(LogLevel.Error, FormatMessage(tag, msg));
         }
 
         internal void E([NotNull]string tag, [NotNull]string msg, [NotNull]Exception tr)
         {
-            if (ShouldLog(LogLevel.Error)) {
-                LogToLiteCore(C4LogLevel.Error, FormatMessage(tag, msg, tr));
-            }
+            SendToLoggers(LogLevel.Error, FormatMessage(tag, msg, tr));
         }
 
         [StringFormatMethod("format")]
         internal void E([NotNull]string tag, [NotNull]string format, params object[] args)
         {
-            if (ShouldLog(LogLevel.Error)) {
-                LogToLiteCore(C4LogLevel.Error, String.Format(FormatMessage(tag, format), args));
-            }
+            SendToLoggers(LogLevel.Error, String.Format(FormatMessage(tag, format), args));
         }
 
         internal void I([NotNull]string tag, [NotNull]string msg)
         {
-            if (ShouldLog(LogLevel.Info)) {
-                LogToLiteCore(C4LogLevel.Info, FormatMessage(tag, msg));
-            }
+            SendToLoggers(LogLevel.Info, FormatMessage(tag, msg));
         }
 
         internal void I([NotNull]string tag, [NotNull]string msg, [NotNull]Exception tr)
         {
-            if (ShouldLog(LogLevel.Info)) {
-                LogToLiteCore(C4LogLevel.Info, FormatMessage(tag, msg, tr));
-            }
+            SendToLoggers(LogLevel.Info, FormatMessage(tag, msg, tr));
         }
 
         [StringFormatMethod("format")]
         internal void I([NotNull]string tag, [NotNull]string format, params object[] args)
         {
-            if (ShouldLog(LogLevel.Info)) {
-				LogToLiteCore(C4LogLevel.Info, String.Format(FormatMessage(tag, format), args));
-            }
+            SendToLoggers(LogLevel.Info, String.Format(FormatMessage(tag, format), args));
         }
 
-		internal void QuickWrite(C4LogLevel level, [NotNull]string msg, ILogger textLogger)
-		{
-			var cblLevel = (LogLevel)level;
-			if(ShouldLog(cblLevel)) {
-			    var finalMessage =
-			        $"{DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture)} {msg}";
-			    textLogger?.Log(cblLevel, Domain, finalMessage);
-			}
-		}
 
         internal void V([NotNull]string tag, [NotNull]string msg)
         {
-            if (ShouldLog(LogLevel.Verbose)) {
-               LogToLiteCore(C4LogLevel.Verbose, FormatMessage(tag, msg));
-            }
+           SendToLoggers(LogLevel.Verbose, FormatMessage(tag, msg));
         }
 
         internal void V([NotNull]string tag, [NotNull]string msg, [NotNull]Exception tr)
         {
-            if (ShouldLog(LogLevel.Verbose)) {
-                LogToLiteCore(C4LogLevel.Verbose, FormatMessage(tag, msg, tr));
-            }
+            SendToLoggers(LogLevel.Verbose, FormatMessage(tag, msg, tr));
         }
 
         [StringFormatMethod("format")]
         internal void V([NotNull]string tag, [NotNull]string format, params object[] args)
         {
-            if (ShouldLog(LogLevel.Verbose)) {
-                LogToLiteCore(C4LogLevel.Verbose, String.Format(FormatMessage(tag, format), args));
-            }
+            SendToLoggers(LogLevel.Verbose, String.Format(FormatMessage(tag, format), args));
         }
 
         internal void W([NotNull]string tag, [NotNull]string msg)
         {
-            if (ShouldLog(LogLevel.Warning)) {
-                LogToLiteCore(C4LogLevel.Warning, FormatMessage(tag, msg));
-            }
+            SendToLoggers(LogLevel.Warning, FormatMessage(tag, msg));
         }
 
         internal void W([NotNull]string tag, [NotNull]string msg, [NotNull]Exception tr)
         {
-            if (ShouldLog(LogLevel.Warning)) {
-                LogToLiteCore(C4LogLevel.Warning, FormatMessage(tag, msg, tr));
-            }
+            SendToLoggers(LogLevel.Warning, FormatMessage(tag, msg, tr));
         }
 
         [StringFormatMethod("format")]
         internal void W([NotNull]string tag, [NotNull]string format, params object[] args)
         {
-            if (ShouldLog(LogLevel.Warning)) {
-                LogToLiteCore(C4LogLevel.Warning, String.Format(FormatMessage(tag, format), args));
-            }
+            SendToLoggers(LogLevel.Warning, String.Format(FormatMessage(tag, format), args));
         }
 
         #endregion
@@ -224,19 +161,25 @@ namespace Couchbase.Lite.Logging
             return $"({tag}) [{threadId}] {message}: {e}";
         }
 
-		private void LogToLiteCore(C4LogLevel level, [NotNull]string msg)
+        private void SendToLoggers(LogLevel level, [NotNull]string msg)
 		{
-			Native.c4slog(_domainObj, level, msg);
+            Database.Log.Console.Log(level, Domain, msg);
+		    var fileSucceeded = false;
+		    try {
+		        Database.Log.File.Log(level, Domain, msg);
+		        fileSucceeded = true;
+		        Database.Log.Custom?.Log(level, Domain, msg);
+		    } catch (Exception e) {
+		        var logType = fileSucceeded
+		            ? Database.Log.Custom?.GetType().Name
+		            : "log file";
+		        var errMsg = FormatMessage("FILELOG", $"Error writing to {logType}", e);
+                Database.Log.Console.Log(LogLevel.Error, LogDomain.None, errMsg);
+		        if (!fileSucceeded) {
+		            Database.Log.Custom?.Log(LogLevel.Error, LogDomain.None, errMsg);
+		        }
+		    }
 		}
-
-        private bool ShouldLog(LogLevel level)
-        {
-            if (Level == LogLevel.None) {
-                return false;
-            }
-
-            return Level <= level;
-        }
 
         #endregion
 
@@ -249,12 +192,12 @@ namespace Couchbase.Lite.Logging
                 return false;
             }
 
-            return other._domain == _domain;
+            return other.Domain == Domain;
         }
 
         public override int GetHashCode()
         {
-            return _domain.GetHashCode();
+            return Domain.GetHashCode();
         }
 
         #endregion
@@ -266,27 +209,27 @@ namespace Couchbase.Lite.Logging
 
         private readonly DomainLogger[] _allLoggers;
 
-		#endregion
+        #endregion
 
-		#region Properties
+        #region Properties
+
+        [NotNull]
+        internal IEnumerable<DomainLogger> All => _allLoggers;
 
         [NotNull]
         internal DomainLogger Couchbase => _allLoggers[3];
-        
+
         [NotNull]
         internal DomainLogger Database => _allLoggers[0];
-        
+
         [NotNull]
         internal DomainLogger LiteCore => _allLoggers[4];
-        
+
         [NotNull]
         internal DomainLogger Query => _allLoggers[1];
-        
+
         [NotNull]
         internal DomainLogger Sync => _allLoggers[2];
-        
-        [NotNull]
-        internal IEnumerable<DomainLogger> All => _allLoggers;
 
         #endregion
 
@@ -294,13 +237,18 @@ namespace Couchbase.Lite.Logging
 
         internal LogTo()
         {
-            var domains = new[] {
+            var domainStrings = new[] {
                 "DB", "Query", "Sync", "Couchbase", "LiteCore"
             };
+
+            var domains = new[] {
+                LogDomain.Database, LogDomain.Query, LogDomain.Replicator, 
+                LogDomain.Couchbase, LogDomain.Couchbase
+            };
+
             _allLoggers = new DomainLogger[domains.Length];
-            int i = 0;
-            foreach (var domain in domains) {
-                CreateAndAddLogger(domain, i++);
+            for(int i = 0; i < 5; i++) {
+                CreateAndAddLogger(domainStrings[i], domains[i], i);
             }
         }
 
@@ -308,10 +256,10 @@ namespace Couchbase.Lite.Logging
 
         #region Private Methods
 
-        [ContractAnnotation("domain:null => halt")]
-        private void CreateAndAddLogger(string domain, int index)
+        [ContractAnnotation("domainStr:null => halt")]
+        private void CreateAndAddLogger(string domainStr, LogDomain domain, int index)
         {
-            var logger = new DomainLogger(domain) { Level = LogLevel.Warning };
+            var logger = new DomainLogger(domainStr, domain);
             _allLoggers[index] = logger;
         }
 

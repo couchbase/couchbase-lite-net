@@ -18,7 +18,7 @@
 
 using System.Net;
 
-using Couchbase.Lite.Logging;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
@@ -63,8 +63,8 @@ namespace Couchbase.Lite.Sync
         /// <param name="cookieName"><see cref="CookieName"/></param>
         public SessionAuthenticator([NotNull]string sessionID, [NotNull]string cookieName)
         {
-            SessionID = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(sessionID), sessionID);
-            CookieName = CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(cookieName), cookieName);
+            SessionID = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(sessionID), sessionID);
+            CookieName = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(cookieName), cookieName);
         }
 
         /// <summary>
@@ -82,7 +82,7 @@ namespace Couchbase.Lite.Sync
 
         internal override void Authenticate(ReplicatorOptionsDictionary options)
         {
-            CBDebug.MustNotBeNull(Log.To.Sync, Tag, nameof(options), options);
+            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(options), options);
 
             var cookie = new Cookie(CookieName, SessionID);
             options.Cookies.Add(cookie);

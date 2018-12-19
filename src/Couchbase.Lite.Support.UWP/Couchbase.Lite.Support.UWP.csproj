@@ -164,7 +164,7 @@
     <Compile Include="Support\DefaultDirectoryResolver.cs" />
     <Compile Include="Support\MainThreadTaskScheduler.cs" />
     <Compile Include="Support\Reachability.cs" />
-    <Compile Include="Support\UwpDefaultLogger.cs" />
+    <Compile Include="Support\UwpConsoleLogger.cs" />
     <Compile Include="Support\UWPProxy.cs" />
     <Compile Include="Support\UwpRuntimePlatform.cs" />
   </ItemGroup>

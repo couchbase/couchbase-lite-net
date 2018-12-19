@@ -32,7 +32,8 @@ namespace Couchbase.Lite.Support
 
         public string DefaultDirectory()
         {
-            return Path.Combine(AppContext.BaseDirectory, "CouchbaseLite");
+            var dllDirectory = Path.GetDirectoryName(typeof(DefaultDirectoryResolver).Assembly.Location);
+            return Path.Combine(dllDirectory, "CouchbaseLite");
         }
 
         #endregion

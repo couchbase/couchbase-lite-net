@@ -16,8 +16,8 @@
 //  limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
-using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
@@ -47,7 +47,7 @@ namespace Couchbase.Lite.Query
         [ContractAnnotation("null => halt")]
         public static IDataSourceAs Database(Database database)
         {
-            var db = CBDebug.MustNotBeNull(Log.To.Query, Tag, nameof(database), database);
+            var db = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(database), database);
 
             return new DatabaseSource(database, db.ThreadSafety);
         }

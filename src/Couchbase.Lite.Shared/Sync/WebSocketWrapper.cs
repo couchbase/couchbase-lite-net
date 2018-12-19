@@ -32,8 +32,8 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Interop;
-using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
@@ -138,11 +138,11 @@ namespace Couchbase.Lite.Sync
                 _c4Queue.DispatchAsync(() =>
                 {
                     if (_closed) {
-                        Log.To.Sync.W(Tag, "Double close detected, ignoring...");
+                        WriteLog.To.Sync.W(Tag, "Double close detected, ignoring...");
                         return;
                     }
 
-                    Log.To.Sync.I(Tag, "Closing socket normally due to request from LiteCore");
+                    WriteLog.To.Sync.I(Tag, "Closing socket normally due to request from LiteCore");
                     Native.c4socket_closed(_socket, new C4Error(0, 0));
                     _closed = true;
                 });
@@ -155,7 +155,7 @@ namespace Couchbase.Lite.Sync
             _queue.DispatchAsync(() =>
             {
                 if (_closed) {
-                    Log.To.Sync.V(Tag, "Already closed, ignoring call to CompletedReceive...");
+                    WriteLog.To.Sync.V(Tag, "Already closed, ignoring call to CompletedReceive...");
                     return;
                 }
 
@@ -171,7 +171,7 @@ namespace Couchbase.Lite.Sync
             _queue.DispatchAsync(() =>
             {
                 if (_client != null) {
-                    Log.To.Sync.W(Tag, "Ignoring duplicate call to Start...");
+                    WriteLog.To.Sync.W(Tag, "Ignoring duplicate call to Start...");
                     return;
                 }
 
@@ -196,7 +196,7 @@ namespace Couchbase.Lite.Sync
                 try {
                     _client.Client.DualMode = true;
                 } catch(ArgumentException) {
-                    Log.To.Sync.I(Tag, "IPv4/IPv6 dual mode not supported on this device, falling back to IPv4");
+                    WriteLog.To.Sync.I(Tag, "IPv4/IPv6 dual mode not supported on this device, falling back to IPv4");
                     _client = new TcpClient(AddressFamily.InterNetwork)
                     {
                         SendTimeout = (int)IdleTimeout.TotalMilliseconds,
@@ -234,7 +234,7 @@ namespace Couchbase.Lite.Sync
             try {
                 _writeQueue?.Add(data);
             } catch (InvalidOperationException) {
-                Log.To.Sync.I(Tag, "Attempt to write after closing socket, ignore...");
+                WriteLog.To.Sync.I(Tag, "Attempt to write after closing socket, ignore...");
             }
         }
 
@@ -264,7 +264,7 @@ namespace Couchbase.Lite.Sync
         private unsafe void Connected()
         {
             // STEP 8: We have web socket connectivity!  Start the read and write threads.
-            Log.To.Sync.I(Tag, "WebSocket CONNECTED!");
+            WriteLog.To.Sync.I(Tag, "WebSocket CONNECTED!");
             var socket = _socket;
             _c4Queue.DispatchAsync(() =>
             {
@@ -272,6 +272,22 @@ namespace Couchbase.Lite.Sync
                 Task.Factory.StartNew(PerformWrite);
                 Task.Factory.StartNew(PerformRead);
             });
+        }
+
+        private async void connectProxyAsync(string proxyServer, int proxyPort, string user, string password)
+        {
+            try {
+                //create remote endpoint
+                IPAddress add = IPAddress.Parse(proxyServer);
+                //connect remote proxy endpoint
+                await _client.ConnectAsync(add, proxyPort).ConfigureAwait(false);
+                NetworkStream = _client.GetStream();
+                var proxyRequest = _logic.ProxyRequest();
+                NetworkStream.Write(proxyRequest, 0, proxyRequest.Length);
+                await WaitForResponse(NetworkStream).ConfigureAwait(false);
+            } catch (Exception E) {
+                Console.WriteLine(E.Message);
+            }
         }
 
         private unsafe void DidClose(C4WebSocketCloseCode closeCode, string reason)
@@ -283,12 +299,12 @@ namespace Couchbase.Lite.Sync
 
             ResetConnections();
 
-            Log.To.Sync.I(Tag, $"WebSocket CLOSED WITH STATUS {closeCode} \"{reason}\"");
+            WriteLog.To.Sync.I(Tag, $"WebSocket CLOSED WITH STATUS {closeCode} \"{reason}\"");
             var c4Err = Native.c4error_make(C4ErrorDomain.WebSocketDomain, (int)closeCode, reason);
             _c4Queue.DispatchAsync(() =>
             {
                 if (_closed) {
-                    Log.To.Sync.W(Tag, "Double close detected, ignoring...");
+                    WriteLog.To.Sync.W(Tag, "Double close detected, ignoring...");
                     return;
                 }
                 
@@ -303,10 +319,10 @@ namespace Couchbase.Lite.Sync
 
             C4Error c4err;
             if (e != null && !(e is ObjectDisposedException) && !(e.InnerException is ObjectDisposedException)) {
-                Log.To.Sync.I(Tag, $"WebSocket CLOSED WITH ERROR: {e}");
+                WriteLog.To.Sync.I(Tag, $"WebSocket CLOSED WITH ERROR: {e}");
                 Status.ConvertNetworkError(e, &c4err);
             } else {
-                Log.To.Sync.I(Tag, "WebSocket CLOSED");
+                WriteLog.To.Sync.I(Tag, "WebSocket CLOSED");
                 c4err = new C4Error();
             }
 
@@ -314,7 +330,7 @@ namespace Couchbase.Lite.Sync
             _c4Queue.DispatchAsync(() =>
             {
                 if (_closed) {
-                    Log.To.Sync.W(Tag, "Double close detected, ignoring...");
+                    WriteLog.To.Sync.W(Tag, "Double close detected, ignoring...");
                     return;
                 }
                 
@@ -326,7 +342,7 @@ namespace Couchbase.Lite.Sync
         private async void HandleHTTPResponse()
         {
             // STEP 6: Read and parse the HTTP response
-            Log.To.Sync.V(Tag, "WebSocket sent HTTP request...");
+            WriteLog.To.Sync.V(Tag, "WebSocket sent HTTP request...");
             try {
                 using (var streamReader = new StreamReader(NetworkStream, Encoding.ASCII, false, 5, true)) {
                     var parser = new HttpMessageParser(await streamReader.ReadLineAsync().ConfigureAwait(false));
@@ -344,7 +360,7 @@ namespace Couchbase.Lite.Sync
                     ReceivedHttpResponse(parser);
                 }
             } catch (Exception e) {
-                Log.To.Sync.I(Tag, "Error reading HTTP response of websocket handshake", e);
+                WriteLog.To.Sync.I(Tag, "Error reading HTTP response of websocket handshake", e);
                 DidClose(e);
             }
         }
@@ -371,7 +387,7 @@ namespace Couchbase.Lite.Sync
             var cts = new CancellationTokenSource();
             cts.CancelAfter(IdleTimeout);
             if (NetworkStream == null) {
-                Log.To.Sync.E(Tag, "Socket reported ready, but no network stream available!");
+                WriteLog.To.Sync.E(Tag, "Socket reported ready, but no network stream available!");
                 DidClose(C4WebSocketCloseCode.WebSocketCloseAbnormal, "Unexpected error in client logic");
                 return;
             }
@@ -388,12 +404,50 @@ namespace Couchbase.Lite.Sync
             }, cts.Token);
         }
 
+        private void OpenConnectionToRemote()
+        {
+            // STEP 2: Open the socket connection to the remote host
+            var cts = new CancellationTokenSource(ConnectTimeout);
+            var tok = cts.Token;
+
+            if(_logic.HasProxy) {
+                _queue.DispatchAsync(StartInternal);
+            }
+            else if (_client != null && !_client.Connected) {
+                try {
+                    _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port)
+                    .ContinueWith(t =>
+                    {
+                        if (!NetworkTaskSuccessful(t)) {
+                            return;
+                        }
+                        _queue.DispatchAsync(StartInternal);
+
+                    }, tok);
+                } catch (Exception e) {
+                    // Yes, unfortunately exceptions can either be thrown here or in the task...
+                    DidClose(e);
+                }
+            }
+            var cancelCallback = default(CancellationTokenRegistration);
+            cancelCallback = tok.Register(() =>
+            {
+                if (_client != null && !_client.Connected) {
+                    // TODO: Should this be transient?
+                    DidClose(new OperationCanceledException());
+                }
+
+                cancelCallback.Dispose();
+                cts.Dispose();
+            });
+        }
+
         // Run in a dedicated thread
         private async void PerformRead()
         {
             var original = _readWriteCancellationTokenSource;
             if (original == null) {
-                Log.To.Sync.V(Tag, "_readWriteCancellationTokenSource is null, cancelling read...");
+                WriteLog.To.Sync.V(Tag, "_readWriteCancellationTokenSource is null, cancelling read...");
                 return;
             }
 
@@ -419,7 +473,7 @@ namespace Couchbase.Lite.Sync
                     var received = await stream.ReadAsync(_buffer, 0, _buffer.Length, cancelSource.Token).ConfigureAwait(false);
                     if (received == 0) {
                         if (zeroByteCount++ >= 10) {
-                            Log.To.Sync.I(Tag, "Failed to read from stream too many times, signaling closed...");
+                            WriteLog.To.Sync.I(Tag, "Failed to read from stream too many times, signaling closed...");
                             DidClose(new CouchbasePosixException(PosixBase.GetCode(nameof(PosixWindows.ECONNRESET))));
                             return;
                         }
@@ -513,7 +567,7 @@ namespace Couchbase.Lite.Sync
             _queue.DispatchAsync(() =>
             {
                 _receivedBytesPending += (uint)data.Length;
-                Log.To.Sync.V(Tag, $"<<< received {data.Length} bytes [now {_receivedBytesPending} pending]");
+                WriteLog.To.Sync.V(Tag, $"<<< received {data.Length} bytes [now {_receivedBytesPending} pending]");
                 var socket = _socket;
                 _c4Queue.DispatchAsync(() =>
                 {
@@ -521,7 +575,7 @@ namespace Couchbase.Lite.Sync
                     if (!_closed) {
                         Native.c4socket_received(socket, data);
                         if (_receivedBytesPending >= MaxReceivedBytesPending) {
-                            Log.To.Sync.V(Tag, "Too much pending data, throttling Receive...");
+                            WriteLog.To.Sync.V(Tag, "Too much pending data, throttling Receive...");
                             _receivePause?.Reset();
                         }
                     }
@@ -591,7 +645,7 @@ namespace Couchbase.Lite.Sync
                 }
 
                 if (_writeQueue != null && !_writeQueue.IsCompleted) {
-                    Log.To.Sync.W(Tag, "Timed out waiting for _writeQueue to finish, forcing Dispose...");
+                    WriteLog.To.Sync.W(Tag, "Timed out waiting for _writeQueue to finish, forcing Dispose...");
                 }
 
                 lock (_writeQueueLock) {
@@ -612,92 +666,10 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        private bool ValidateServerCert(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
-        {
-            if (_options.PinnedServerCertificate != null) {
-                var retVal = certificate.Equals(_options.PinnedServerCertificate);
-                if (!retVal) {
-                    Log.To.Sync.W(Tag, "Server certificate did not match the pinned one!");
-                }
-
-                return retVal;
-            }
-
-            if (sslPolicyErrors != SslPolicyErrors.None) {
-                Log.To.Sync.W(Tag, $"Error validating TLS chain: {sslPolicyErrors}");
-                if (chain?.ChainStatus != null) {
-                    for (var i = 0; i < chain.ChainStatus.Length; i++) {
-                        var element = chain.ChainElements[i];
-                        var status = chain.ChainStatus[i];
-                        if (status.Status != X509ChainStatusFlags.NoError) {
-                            Log.To.Sync.V(Tag,
-                                $"Error {status.Status} ({status.StatusInformation}) for certificate:{Environment.NewLine}{element.Certificate}");
-                        }
-                    }
-                }
-            }
-
-            return sslPolicyErrors == SslPolicyErrors.None;
-        }
-
-        private async void connectProxyAsync(string proxyServer, int proxyPort, string user, string password)
-        {
-            try {
-                //create remote endpoint
-                IPAddress add = IPAddress.Parse(proxyServer);
-                //connect remote proxy endpoint
-                await _client.ConnectAsync(add, proxyPort).ConfigureAwait(false);
-                NetworkStream = _client.GetStream();
-                var proxyRequest = _logic.ProxyRequest();
-                NetworkStream.Write(proxyRequest, 0, proxyRequest.Length);
-                await WaitForResponse(NetworkStream).ConfigureAwait(false);
-            } catch (Exception E) {
-                Console.WriteLine(E.Message);
-            }
-        }
-
-        private void OpenConnectionToRemote()
-        {
-            // STEP 2: Open the socket connection to the remote host
-            var cts = new CancellationTokenSource(ConnectTimeout);
-            var tok = cts.Token;
-
-            if(_logic.HasProxy) {
-                _queue.DispatchAsync(StartInternal);
-            }
-            else if (_client != null && !_client.Connected) {
-                try {
-                    _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port)
-                    .ContinueWith(t =>
-                    {
-                        if (!NetworkTaskSuccessful(t)) {
-                            return;
-                        }
-                        _queue.DispatchAsync(StartInternal);
-
-                    }, tok);
-                } catch (Exception e) {
-                    // Yes, unfortunately exceptions can either be thrown here or in the task...
-                    DidClose(e);
-                }
-            }
-            var cancelCallback = default(CancellationTokenRegistration);
-            cancelCallback = tok.Register(() =>
-            {
-                if (_client != null && !_client.Connected) {
-                    // TODO: Should this be transient?
-                    DidClose(new OperationCanceledException());
-                }
-
-                cancelCallback.Dispose();
-                cts.Dispose();
-            });
-        }
-
         private void StartInternal()
         {
             // STEP 3: Create the WebSocket Upgrade HTTP request
-            Log.To.Sync.I(Tag, $"WebSocket connecting to {_logic.UrlRequest?.Host}:{_logic.UrlRequest?.Port}");
+            WriteLog.To.Sync.I(Tag, $"WebSocket connecting to {_logic.UrlRequest?.Host}:{_logic.UrlRequest?.Port}");
             var rng = RandomNumberGenerator.Create() ?? throw new RuntimeException("Failed to create RandomNumberGenerator");
             var nonceBytes = new byte[16];
             rng.GetBytes(nonceBytes);
@@ -729,7 +701,7 @@ namespace Couchbase.Lite.Sync
             if (_logic.UseTls) {
                 var baseStream = _client?.GetStream();
                 if (baseStream == null) {
-                    Log.To.Sync.W(Tag, "Failed to get network stream (already closed?).  Aborting start...");
+                    WriteLog.To.Sync.W(Tag, "Failed to get network stream (already closed?).  Aborting start...");
                     DidClose(C4WebSocketCloseCode.WebSocketCloseAbnormal, "Unexpected error in client logic");
                     return;
                 }
@@ -755,6 +727,34 @@ namespace Couchbase.Lite.Sync
                 NetworkStream = _client?.GetStream();
                 OnSocketReady();
             }
+        }
+
+        private bool ValidateServerCert(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            if (_options.PinnedServerCertificate != null) {
+                var retVal = certificate.Equals(_options.PinnedServerCertificate);
+                if (!retVal) {
+                    WriteLog.To.Sync.W(Tag, "Server certificate did not match the pinned one!");
+                }
+
+                return retVal;
+            }
+
+            if (sslPolicyErrors != SslPolicyErrors.None) {
+                WriteLog.To.Sync.W(Tag, $"Error validating TLS chain: {sslPolicyErrors}");
+                if (chain?.ChainStatus != null) {
+                    for (var i = 0; i < chain.ChainStatus.Length; i++) {
+                        var element = chain.ChainElements[i];
+                        var status = chain.ChainStatus[i];
+                        if (status.Status != X509ChainStatusFlags.NoError) {
+                            WriteLog.To.Sync.V(Tag,
+                                $"Error {status.Status} ({status.StatusInformation}) for certificate:{Environment.NewLine}{element.Certificate}");
+                        }
+                    }
+                }
+            }
+
+            return sslPolicyErrors == SslPolicyErrors.None;
         }
 
         private async Task WaitForResponse(Stream stream)

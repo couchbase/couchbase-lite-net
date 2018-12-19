@@ -16,6 +16,8 @@
 //  limitations under the License.
 // 
 
+using System;
+
 using Android.Content;
 
 using Couchbase.Lite.DI;
@@ -58,15 +60,17 @@ namespace Couchbase.Lite.Support
             Service.Register<ILiteCore>(new LiteCoreImpl());
             Service.Register<ILiteCoreRaw>(new LiteCoreRawImpl());
             Service.Register<IProxy>(new XamarinAndroidProxy());
+            Database.Log.Console = new AndroidConsoleLogger();
         }
 
         /// <summary>
-		/// Enables text based logging for debugging purposes.  Log statements will
+		/// [DEPRECATED] Enables text based logging for debugging purposes.  Log statements will
 		/// be printed to logcat under the CouchbaseLite tag.
 		/// </summary>
+		[Obsolete("This has been superceded by Database.Log.Console.  It is a no-op now")]
 		public static void EnableTextLogging()
 		{
-			Log.EnableTextLogging(new AndroidDefaultLogger());
+			
 		}
 
         #endregion

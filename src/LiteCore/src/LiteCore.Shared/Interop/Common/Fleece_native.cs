@@ -627,6 +627,10 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool FLEncoder_WriteUndefined(FLEncoder* encoder);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool FLEncoder_WriteBool(FLEncoder* encoder, [MarshalAs(UnmanagedType.U1)]bool b);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]

@@ -31,7 +31,7 @@ namespace Couchbase.Lite.Interop
         public static bool c4error_mayBeTransient(C4Error err) => Impl.c4error_mayBeTransient(err);
         public static bool c4error_mayBeNetworkDependent(C4Error err) => Impl.c4error_mayBeNetworkDependent(err);
         public static void c4log_writeToCallback(C4LogLevel level, C4LogCallback callback, bool preformatted) => Impl.c4log_writeToCallback(level, callback, preformatted);
-        public static bool c4log_writeToBinaryFile(C4LogLevel level, string path, C4Error* error) => Impl.c4log_writeToBinaryFile(level, path, error);
+        public static bool c4log_writeToBinaryFile(C4LogFileOptions options, C4Error* error) => Impl.c4log_writeToBinaryFile(options, error);
         public static C4LogLevel c4log_callbackLevel() => Impl.c4log_callbackLevel();
         public static void c4log_setCallbackLevel(C4LogLevel level) => Impl.c4log_setCallbackLevel(level);
         public static C4LogLevel c4log_binaryFileLevel() => Impl.c4log_binaryFileLevel();
@@ -323,6 +323,7 @@ namespace Couchbase.Lite.Interop
         public static UIntPtr FLEncoder_BytesWritten(FLEncoder* encoder) => Impl.FLEncoder_BytesWritten(encoder);
         public static UIntPtr FLEncoder_GetNextWritePos(FLEncoder* encoder) => Impl.FLEncoder_GetNextWritePos(encoder);
         public static bool FLEncoder_WriteNull(FLEncoder* encoder) => Impl.FLEncoder_WriteNull(encoder);
+        public static bool FLEncoder_WriteUndefined(FLEncoder* encoder) => Impl.FLEncoder_WriteUndefined(encoder);
         public static bool FLEncoder_WriteBool(FLEncoder* encoder, bool b) => Impl.FLEncoder_WriteBool(encoder, b);
         public static bool FLEncoder_WriteInt(FLEncoder* encoder, long l) => Impl.FLEncoder_WriteInt(encoder, l);
         public static bool FLEncoder_WriteUInt(FLEncoder* encoder, ulong u) => Impl.FLEncoder_WriteUInt(encoder, u);
@@ -362,7 +363,6 @@ namespace Couchbase.Lite.Interop
         public static FLSliceResult c4error_getDescription(C4Error error) => Impl.c4error_getDescription(error);
         public static byte* c4error_getDescriptionC(C4Error error, char[] buffer, UIntPtr bufferSize) => Impl.c4error_getDescriptionC(error, buffer, bufferSize);
         public static C4Error c4error_make(C4ErrorDomain domain, int code, FLSlice message) => Impl.c4error_make(domain, code, message);
-        public static bool c4log_writeToBinaryFile(C4LogLevel level, FLSlice path, C4Error* error) => Impl.c4log_writeToBinaryFile(level, path, error);
         public static byte* c4log_getDomainName(C4LogDomain* x) => Impl.c4log_getDomainName(x);
         public static void c4slog(C4LogDomain* domain, C4LogLevel level, FLSlice msg) => Impl.c4slog(domain, level, msg);
         public static FLSliceResult c4_getBuildInfo() => Impl.c4_getBuildInfo();
