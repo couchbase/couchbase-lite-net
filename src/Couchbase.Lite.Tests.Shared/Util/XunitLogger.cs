@@ -34,7 +34,7 @@ namespace Test.Util
 
         #region Properties
 
-        public LogLevel Level { get; set; }
+        public LogLevel Level { get; set; } = LogLevel.Warning;
 
         #endregion
 
@@ -82,6 +82,12 @@ namespace Test.Util
 
         #endregion
 
+        #region Properties
+
+        public LogLevel Level { get; set; } = LogLevel.Warning;
+
+        #endregion
+
         #region Constructors
 
         public MSTestLogger(TestContext output)
@@ -91,6 +97,8 @@ namespace Test.Util
 
         #endregion
 
+        #region ILogger
+
         public void Log(LogLevel level, LogDomain domain, string message)
         {
             if (level < Level) {
@@ -99,6 +107,8 @@ namespace Test.Util
 
             _output.WriteLine($"{level.ToString().ToUpperInvariant()}) {domain} {message}");
         }
+
+        #endregion
     }
 }
 #endif
