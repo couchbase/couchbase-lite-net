@@ -74,7 +74,7 @@ namespace Couchbase.Lite.Sync
         /// Gets the document ID of the document that was replicated
         /// </summary>
         [NotNull]
-        public string DocumentID { get; }
+        public string Id { get; }
 
         /// <summary>
         /// Gets the error that occurred during replication, if any.
@@ -89,7 +89,7 @@ namespace Couchbase.Lite.Sync
         internal ReplicatedDocument([NotNull]string docID, bool pushing, C4RevisionFlags flags, C4Error error,
             bool isTransient)
         {
-            DocumentID = docID;
+            Id = docID;
             IsDeleted = flags.HasFlag(C4RevisionFlags.Deleted);
             IsAccessRemoved = flags.HasFlag(C4RevisionFlags.Purged);
             IsPush = pushing;

@@ -435,7 +435,7 @@ namespace Couchbase.Lite.Sync
             }
 
             foreach (var replication in replications) {
-                var docID = replication.DocumentID;
+                var docID = replication.Id;
                 var pushing = replication.IsPush;
                 var error = replication.NativeError;
                 var transient = replication.IsTransient;
