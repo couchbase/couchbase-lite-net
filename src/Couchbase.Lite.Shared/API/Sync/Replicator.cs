@@ -434,7 +434,8 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
-            foreach (var replication in replications) {
+            for (int i = 0; i < replications.Length; i++) {
+                var replication = replications[i];
                 var docID = replication.Id;
                 var error = replication.NativeError;
                 var transient = replication.IsTransient;
@@ -446,6 +447,7 @@ namespace Couchbase.Lite.Sync
                     WriteLog.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
                     try {
                         Config.Database.ResolveConflict(docID);
+                        replications[i] = replication.ClearError();
                     } catch (Exception e) {
                         WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{logDocID}' failed", e);
                     }

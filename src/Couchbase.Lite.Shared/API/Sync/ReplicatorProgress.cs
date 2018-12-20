@@ -90,5 +90,21 @@ namespace Couchbase.Lite.Sync
             Error = error.domain == 0 ? null : CouchbaseException.Create(error);
             IsTransient = isTransient;
         }
+
+        private ReplicatedDocument([NotNull] string docID, bool isAccessRemoved, bool isDeleted, C4Error error,
+            bool isTransient)
+        {
+            Id = docID;
+            IsAccessRemoved = isAccessRemoved;
+            IsDeleted = isDeleted;
+            NativeError = error;
+            Error = error.domain == 0 ? null : CouchbaseException.Create(error);
+            IsTransient = isTransient;
+        }
+
+        internal ReplicatedDocument ClearError()
+        {
+            return new ReplicatedDocument(Id, IsAccessRemoved, IsDeleted, new C4Error(), IsTransient);
+        }
     }
 }
