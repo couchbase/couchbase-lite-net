@@ -292,14 +292,14 @@ namespace Couchbase.Lite.Sync
             var documentReplications = new ReplicatedDocument[(int)numDocs];
             for (int i = 0; i < (int) numDocs; i++) {
                 var current = docs[i];
-                documentReplications[i] = new ReplicatedDocument(current->docID.CreateString() ?? "", pushing, 
+                documentReplications[i] = new ReplicatedDocument(current->docID.CreateString() ?? "", 
                     current->flags, current->error, current->errorIsTransient);
             }
 
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             replicator?.DispatchQueue.DispatchAsync(() =>
             {
-                replicator.OnDocEnded(documentReplications);
+                replicator.OnDocEnded(documentReplications, pushing);
             });
 
         }
@@ -428,7 +428,7 @@ namespace Couchbase.Lite.Sync
             return true;
         }
 
-        private void OnDocEnded(ReplicatedDocument[] replications)
+        private void OnDocEnded(ReplicatedDocument[] replications, bool pushing)
         {
             if (_disposed) {
                 return;
@@ -436,7 +436,6 @@ namespace Couchbase.Lite.Sync
 
             foreach (var replication in replications) {
                 var docID = replication.Id;
-                var pushing = replication.IsPush;
                 var error = replication.NativeError;
                 var transient = replication.IsTransient;
                 var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
@@ -458,7 +457,7 @@ namespace Couchbase.Lite.Sync
                 }
             }
 
-            _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(replications));
+            _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(replications, pushing));
         }
 
         private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)

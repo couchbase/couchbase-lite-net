@@ -58,13 +58,20 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public IReadOnlyList<ReplicatedDocument> Documents { get; }
 
+        /// <summary>
+        /// Gets whether or not the replicated document was in
+        /// a push replication (<c>false</c> means pull)
+        /// </summary>
+        public bool IsPush { get; }
+
         #endregion
 
         #region Constructors
 
-        internal DocumentReplicationEventArgs(IReadOnlyList<ReplicatedDocument> documents)
+        internal DocumentReplicationEventArgs(IReadOnlyList<ReplicatedDocument> documents, bool isPush)
         {
             Documents = documents;
+            IsPush = isPush;
         }
 
         #endregion

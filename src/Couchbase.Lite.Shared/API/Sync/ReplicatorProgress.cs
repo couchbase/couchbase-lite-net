@@ -65,12 +65,6 @@ namespace Couchbase.Lite.Sync
         public bool IsDeleted { get; }
 
         /// <summary>
-        /// Gets whether or not the replicated document was in
-        /// a push replication (<c>false</c> means pull)
-        /// </summary>
-        public bool IsPush { get; }
-
-        /// <summary>
         /// Gets the document ID of the document that was replicated
         /// </summary>
         [NotNull]
@@ -86,13 +80,12 @@ namespace Couchbase.Lite.Sync
 
         internal C4Error NativeError { get; }
 
-        internal ReplicatedDocument([NotNull]string docID, bool pushing, C4RevisionFlags flags, C4Error error,
+        internal ReplicatedDocument([NotNull]string docID, C4RevisionFlags flags, C4Error error,
             bool isTransient)
         {
             Id = docID;
             IsDeleted = flags.HasFlag(C4RevisionFlags.Deleted);
             IsAccessRemoved = flags.HasFlag(C4RevisionFlags.Purged);
-            IsPush = pushing;
             NativeError = error;
             Error = error.domain == 0 ? null : CouchbaseException.Create(error);
             IsTransient = isTransient;

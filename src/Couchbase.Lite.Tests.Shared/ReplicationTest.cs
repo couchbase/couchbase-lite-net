@@ -481,10 +481,10 @@ namespace Test
             }
 
             _replicationEvents.Should().HaveCount(2);
-            var push = _replicationEvents.FirstOrDefault(g => g.Documents.Any(x => x.IsPush));
-            push.Documents.First(x => x.IsPush).Id.Should().Be("doc1");
-            var pull = _replicationEvents.FirstOrDefault(g => g.Documents.Any(x => !x.IsPush));
-            pull.Documents.First(x => !x.IsPush).Id.Should().Be("doc2");
+            var push = _replicationEvents.FirstOrDefault(g => g.IsPush);
+            push.Documents.First().Id.Should().Be("doc1");
+            var pull = _replicationEvents.FirstOrDefault(g => !g.IsPush);
+            pull.Documents.First().Id.Should().Be("doc2");
         }
 
         [Fact]
@@ -569,8 +569,8 @@ namespace Test
             var pushWait = new WaitAssert();
             RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
             {
-                pushWait.RunConditionalAssert(() => args.Documents.Any(x => x.IsPush && x.IsDeleted));
-                pullWait.RunConditionalAssert(() => args.Documents.Any(x => !x.IsPush && x.IsDeleted));
+                pushWait.RunConditionalAssert(() => args.IsPush);
+                pullWait.RunConditionalAssert(() => !args.IsPush);
             });
 
             pushWait.WaitForResult(TimeSpan.FromSeconds(5));
