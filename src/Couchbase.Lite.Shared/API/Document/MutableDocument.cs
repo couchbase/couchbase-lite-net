@@ -192,7 +192,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override MutableDocument ToMutable() => new MutableDocument(this); // MutableDocument constructor is different, so this override is needed
 
-        internal override byte[] Encode()
+        internal override FLSliceResult Encode()
         {
             Debug.Assert(Database != null);
 
@@ -231,9 +231,7 @@ namespace Couchbase.Lite
                 }
             });
 
-            var retVal = ((FLSlice)body).ToArrayFast();
-            Native.FLSliceResult_Release(body);
-            return retVal;
+            return body;
         }
 
         /// <inheritdoc />

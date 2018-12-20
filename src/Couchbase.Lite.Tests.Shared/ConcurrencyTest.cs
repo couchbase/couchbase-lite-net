@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+// The tests simply take too much time in debug mode
+#if !DEBUG
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -483,3 +485,4 @@ namespace Test
         }
     }
 }
+#endif

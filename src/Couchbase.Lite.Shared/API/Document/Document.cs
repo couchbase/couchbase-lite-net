@@ -199,10 +199,14 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        internal virtual byte[] Encode()
+        internal virtual FLSliceResult Encode()
         {
             _disposalWatchdog.CheckDisposed();
-            return c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.body.ToArrayFast() : new byte[0];
+            if (c4Doc?.HasValue == true) {
+                return Native.FLSlice_Copy(c4Doc.RawDoc->selectedRev.body);
+            }
+
+            return (FLSliceResult) FLSlice.Null;
         }
 
         internal void ReplaceC4Doc(C4DocumentWrapper newDoc)

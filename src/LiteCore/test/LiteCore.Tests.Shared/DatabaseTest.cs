@@ -90,7 +90,7 @@ namespace LiteCore.Tests
                     doc->selectedRev.sequence.Should().Be((ulong)i, "because the sequences should come in order");
                     doc->selectedRev.body.Equals(FLSlice.Null).Should().BeTrue("because the body is not loaded yet");
                     LiteCoreBridge.Check(err => Native.c4doc_loadRevisionBody(doc, err));
-                    doc->selectedRev.body.Equals(Body).Should().BeTrue("because the loaded body should be correct");
+                    doc->selectedRev.body.Equals(FleeceBody).Should().BeTrue("because the loaded body should be correct");
 
                     C4DocumentInfo info;
                     Native.c4enum_getDocumentInfo(e, &info).Should().BeTrue("because otherwise the doc info load failed");
@@ -216,14 +216,14 @@ namespace LiteCore.Tests
                 var meta = FLSlice.Constant("meta");
                 LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
                 LiteCoreBridge.Check(err => NativeRaw.c4raw_put(Db, FLSlice.Constant("test"), key, meta, 
-                    Body, err));
+                    FleeceBody, err));
                 LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
 
                 var doc = (C4RawDocument *)LiteCoreBridge.Check(err => NativeRaw.c4raw_get(Db,
                     FLSlice.Constant("test"), key, err));
                 doc->key.Equals(key).Should().BeTrue("because the key should not change");
                 doc->meta.Equals(meta).Should().BeTrue("because the meta should not change");
-                doc->body.Equals(Body).Should().BeTrue("because the body should not change");
+                doc->body.Equals(FleeceBody).Should().BeTrue("because the body should not change");
                 Native.c4raw_free(doc);
 
                 // Nonexistent:
@@ -402,10 +402,10 @@ namespace LiteCore.Tests
                     .BeTrue("because otherwise the 2 second expiration failed to set");
 
                 var docID3 = "dont_expire_me";
-                CreateRev(docID3, RevID, Body);
+                CreateRev(docID3, RevID, FleeceBody);
 
                 var docID4 = "expire_me_later";
-                CreateRev(docID4, RevID, Body);
+                CreateRev(docID4, RevID, FleeceBody);
                 Native.c4doc_setExpiration(Db, docID4, expire + 100_000, &err).Should()
                     .BeTrue("because otherwise the 100 second expiration failed to set");
 
@@ -531,7 +531,7 @@ namespace LiteCore.Tests
 
                 LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
                 Native.c4db_isInTransaction(Db).Should().BeTrue("because a transaction has started");
-                CreateRev(DocID.CreateString(), RevID, Body);
+                CreateRev(DocID.CreateString(), RevID, FleeceBody);
                 LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, false, err));
                 Native.c4db_isInTransaction(Db).Should().BeFalse("because all transactions have ended");
                 Native.c4db_getDocumentCount(Db).Should().Be(0, "because the transaction was aborted");
@@ -546,8 +546,8 @@ namespace LiteCore.Tests
                 var doc1ID = "doc001";
                 var doc2ID = "doc002";
 
-                CreateRev(doc1ID, RevID, Body);
-                CreateRev(doc2ID, RevID, Body);
+                CreateRev(doc1ID, RevID, FleeceBody);
+                CreateRev(doc2ID, RevID, FleeceBody);
 
                 var srcPath = Native.c4db_getPath(Db);
                 var destPath = Path.Combine(Path.GetTempPath(), $"nudb.cblite2{Path.DirectorySeparatorChar}");
@@ -584,7 +584,7 @@ namespace LiteCore.Tests
                 });
 
                 try {
-                    CreateRev(nudb, doc1ID, RevID, Body);
+                    CreateRev(nudb, doc1ID, RevID, FleeceBody);
                     Native.c4db_getDocumentCount(nudb).Should().Be(1L, "because a document was inserted");
                 }
                 finally {

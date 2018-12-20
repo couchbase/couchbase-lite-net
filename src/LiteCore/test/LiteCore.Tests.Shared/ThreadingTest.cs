@@ -79,7 +79,7 @@ namespace LiteCore.Tests
                 }
 
                 var docID = $"doc-{i:D5}";
-                CreateRev(docID, RevID, Body);
+                CreateRev(docID, RevID, FleeceBody);
             }
             WriteLine();
         }

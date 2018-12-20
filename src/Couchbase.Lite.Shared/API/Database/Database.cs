@@ -1215,7 +1215,7 @@ namespace Couchbase.Lite
                 revFlags = C4RevisionFlags.Deleted;
             }
 
-            byte[] body = null;
+            var body = (FLSliceResult)FLSlice.Null;
             if (!deletion && !doc.IsEmpty) {
                 try {
                     body = doc.Encode();
@@ -1224,34 +1224,20 @@ namespace Couchbase.Lite
                     return;
                 }
 
-                // https://github.com/couchbase/couchbase-lite-net/issues/997
-                // body must not move while root / rootDict are being used
-                fixed (byte* b = body) {
-                    var root = Native.FLValue_FromData(body, FLTrust.Trusted);
-                    if (root == null) {
-                        WriteLog.To.Database.E(Tag, "Failed to encode document body properly.  Aborting save of document!");
-                        return;
+                FLDoc* fleeceDoc = Native.FLDoc_FromResultData(body,
+                    FLTrust.Trusted,
+                    Native.c4db_getFLSharedKeys(_c4db), FLSlice.Null);
+                ThreadSafety.DoLocked(() =>
+                {
+                    if (Native.c4doc_dictContainsBlobs((FLDict *)fleeceDoc)) {
+                        revFlags |= C4RevisionFlags.HasAttachments;
                     }
-
-                    var rootDict = Native.FLValue_AsDict(root);
-                    if (rootDict == null) {
-                        WriteLog.To.Database.E(Tag, "Failed to encode document body properly.  Aborting save of document!");
-                        return;
-                    }
-
-                    ThreadSafety.DoLocked(() =>
-                    {
-                        if (Native.c4doc_dictContainsBlobs(rootDict)) {
-                            revFlags |= C4RevisionFlags.HasAttachments;
-                        }
-                    });
-                }
-
+                });
             } else if (doc.IsEmpty) {
                 FLEncoder* encoder = SharedEncoder;
                 Native.FLEncoder_BeginDict(encoder, 0);
                 Native.FLEncoder_EndDict(encoder);
-                body = Native.FLEncoder_Finish(encoder, null);
+                body = NativeRaw.FLEncoder_Finish(encoder, null);
                 Native.FLEncoder_Reset(encoder);
             }
 
@@ -1264,17 +1250,21 @@ namespace Couchbase.Lite
                     {
                         *outDoc = (C4Document*)NativeHandler.Create()
                             .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                err => Native.c4doc_update(rawDoc, body, revFlags, err));
+                                err => NativeRaw.c4doc_update(rawDoc, (FLSlice)body, revFlags, err));
                     });
                 });
             } else {
                 ThreadSafety.DoLocked(() =>
                 {
-                    *outDoc = (C4Document*)NativeHandler.Create()
-                        .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                            err => Native.c4doc_create(_c4db, doc.Id, body, revFlags, err));
+                    using (var docID_ = new C4String(doc.Id)) {
+                        *outDoc = (C4Document*) NativeHandler.Create()
+                            .AllowError((int) C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
+                                err => NativeRaw.c4doc_create(_c4db, docID_.AsFLSlice(), (FLSlice)body, revFlags, err));
+                    }
                 });
             }
+
+            Native.FLSliceResult_Release(body);
         }
 
         // Must be called in transaction
@@ -1288,7 +1278,7 @@ namespace Couchbase.Lite
             var winningRevID = remoteDoc.RevID;
             var losingRevID = localDoc.RevID;
 
-            byte[] mergedBody = null;
+            FLSliceResult mergedBody = (FLSliceResult)FLSlice.Null;
             if (!ReferenceEquals(resolved, remoteDoc)) {
                 // Unless the remote revision is being used as-is, we need a new revision:
                 try {
@@ -1304,8 +1294,19 @@ namespace Couchbase.Lite
             // Tell LiteCore to do the resolution:
             C4Document* rawDoc = localDoc.c4Doc != null ? localDoc.c4Doc.RawDoc : null;
             var flags = resolved.c4Doc != null ? resolved.c4Doc.RawDoc->selectedRev.flags : 0;
-            LiteCoreBridge.Check(
-                err => Native.c4doc_resolveConflict(rawDoc, winningRevID, losingRevID, mergedBody, flags, err));
+            using(var winningRevID_ = new C4String(winningRevID))
+            using (var losingRevID_ = new C4String(losingRevID)) {
+
+                LiteCoreBridge.Check(
+                    err =>
+                    {
+                        var retVal = NativeRaw.c4doc_resolveConflict(rawDoc, winningRevID_.AsFLSlice(),
+                            losingRevID_.AsFLSlice(), (FLSlice) mergedBody, flags, err);
+                        Native.FLSliceResult_Release(mergedBody);
+                        return retVal;
+                    });
+            }
+
             LiteCoreBridge.Check(err => Native.c4doc_save(rawDoc, 0, err));
 
             WriteLog.To.Database.I(Tag, "Conflict resolved as doc '{0}' rev {1}",

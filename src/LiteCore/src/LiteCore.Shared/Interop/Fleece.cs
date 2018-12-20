@@ -109,11 +109,19 @@ namespace LiteCore.Interop
 
         public override bool Equals(object obj)
         {
-            if(!(obj is FLSlice)) {
-                return false;
+            var other = Null;
+            switch (obj) {
+                case FLSlice slice:
+                    other = slice;
+                    break;
+                case FLSliceResult sliceResult:
+                    other = (FLSlice) sliceResult;
+                    break;
+                default:
+                    return false;
             }
 
-            return Native.FLSlice_Compare(this, (FLSlice)obj) == 0;
+            return Native.FLSlice_Compare(this, other) == 0;
         }
 
         public static explicit operator FLSliceResult(FLSlice input)

@@ -56,8 +56,6 @@ namespace LiteCore.Tests
         public static readonly string TestDir = Path.GetTempPath();
 #endif
 
-        internal static readonly FLSlice Body = FLSlice.Constant("{\"name\":007}");
-
         internal static readonly FLSlice FleeceBody;
         
         #if COUCHBASE_ENTERPRISE
@@ -104,6 +102,29 @@ namespace LiteCore.Tests
         internal static C4Document* c4enum_nextDocument(C4DocEnumerator* e, C4Error* outError)
         {
             return Native.c4enum_next(e, outError) ? Native.c4enum_getDocument(e, outError) : null;
+        }
+
+        internal FLSliceResult JSON2Fleece(string body)
+        {
+            using (var body_ = new C4String(body)) {
+                return JSON2Fleece(body_.AsFLSlice());
+            }
+        }
+
+        internal FLSliceResult JSON2Fleece(FLSlice body)
+        {
+            FLError err;
+            var jsonStr = NativeRaw.FLJSON5_ToJSON(body, &err);
+            LiteCoreBridge.Check(c4err => Native.c4db_beginTransaction(Db, c4err));
+            var success = false;
+            try {
+                var encodedBody = NativeRaw.c4db_encodeJSON(Db, (FLSlice)jsonStr, null);
+                ((long) encodedBody.buf).Should().NotBe(0);
+                success = true;
+                return encodedBody;
+            } finally {
+                LiteCoreBridge.Check(c4err => Native.c4db_endTransaction(Db, success, c4err));
+            }
         }
 
         protected bool IsRevTrees()
@@ -202,7 +223,7 @@ namespace LiteCore.Tests
         {
             for (int i = 1; i < 100; i++) {
                 var docID = $"doc-{i:D3}";
-                CreateRev(docID, RevID, Body);
+                CreateRev(docID, RevID, FleeceBody);
             }
         }
 
@@ -253,11 +274,15 @@ namespace LiteCore.Tests
 #endif
 
             return true;
-        } 
+        }
 
         protected uint ImportJSONLines(string path)
         {
+            #if DEBUG
+            return ImportJSONLines(path, TimeSpan.FromSeconds(60), false);
+            #else
             return ImportJSONLines(path, TimeSpan.FromSeconds(15), false);
+            #endif
         }
 
         // Read a file that contains a JSON document per line. Every line becomes a document.
