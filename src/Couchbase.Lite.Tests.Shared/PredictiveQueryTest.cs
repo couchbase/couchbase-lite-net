@@ -129,7 +129,6 @@ namespace Test
         [Fact]
         public void TestQueryWithBlobProperty()
         {
-            Database.Log.Console.Level = LogLevel.Verbose;
             var texts = new[]
             {
                 "Knox on fox in socks in box.  Socks on Knox and Knox in box.",
@@ -148,7 +147,7 @@ namespace Test
             
             var input = Expression.Dictionary(new Dictionary<string, object>
             {
-                ["text"] = Expression.Property("text")
+                ["text"] = new List<object> { "BLOB", ".text" }
             });
             var prediction = Function.Prediction(textModel.Name, input).Property("wc");
             using (var q = QueryBuilder
