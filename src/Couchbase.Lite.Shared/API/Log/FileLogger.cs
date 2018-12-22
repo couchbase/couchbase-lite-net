@@ -74,7 +74,7 @@ namespace Couchbase.Lite.Logging
         public FileLogger()
         {
             _maxRotateCount = 1;
-            _maxSize = 1024;
+            _maxSize = 1024 * 500;
             SetupDomainObjects();
             Level = LogLevel.Info;
             _directory = DefaultDirectory();
