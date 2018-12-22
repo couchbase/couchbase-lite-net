@@ -205,6 +205,27 @@ namespace Couchbase.Lite.Internal.Logging
 
     internal sealed class LogTo
     {
+        #region Constants
+
+        [NotNull] private static readonly Dictionary<string, LogDomain> DomainMap = new Dictionary<string, LogDomain>
+        {
+            ["DB"] = LogDomain.Database,
+            ["SQL"] = LogDomain.Database,
+            ["Blob"] = LogDomain.Database,
+            ["Sync"] = LogDomain.Replicator,
+            ["SyncBusy"] = LogDomain.Replicator,
+            ["Actor"] = LogDomain.Replicator,
+            ["Changes"] = LogDomain.Replicator,
+            ["Query"] = LogDomain.Query,
+            ["Enum"] = LogDomain.Query,
+            ["WS"] = LogDomain.Network,
+            ["BLIP"] = LogDomain.Network,
+            ["BLIPMessages"] = LogDomain.Network,
+            ["Zip"] = LogDomain.Network
+        };
+
+        #endregion
+
         #region Variables
 
         private readonly DomainLogger[] _allLoggers;
@@ -217,13 +238,7 @@ namespace Couchbase.Lite.Internal.Logging
         internal IEnumerable<DomainLogger> All => _allLoggers;
 
         [NotNull]
-        internal DomainLogger Couchbase => _allLoggers[3];
-
-        [NotNull]
         internal DomainLogger Database => _allLoggers[0];
-
-        [NotNull]
-        internal DomainLogger LiteCore => _allLoggers[4];
 
         [NotNull]
         internal DomainLogger Query => _allLoggers[1];
@@ -238,18 +253,30 @@ namespace Couchbase.Lite.Internal.Logging
         internal LogTo()
         {
             var domainStrings = new[] {
-                "DB", "Query", "Sync", "Couchbase", "LiteCore"
+                "DB", "Query", "Sync"
             };
 
             var domains = new[] {
-                LogDomain.Database, LogDomain.Query, LogDomain.Replicator, 
-                LogDomain.Couchbase, LogDomain.Couchbase
+                LogDomain.Database, LogDomain.Query, LogDomain.Replicator
             };
 
             _allLoggers = new DomainLogger[domains.Length];
-            for(int i = 0; i < 5; i++) {
+            for(int i = 0; i < 3; i++) {
                 CreateAndAddLogger(domainStrings[i], domains[i], i);
             }
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        internal LogDomain DomainForString(string domainStr)
+        {
+            if (DomainMap.TryGetValue(domainStr, out var domain)) {
+                return domain;
+            }
+
+            return LogDomain.Database;
         }
 
         #endregion

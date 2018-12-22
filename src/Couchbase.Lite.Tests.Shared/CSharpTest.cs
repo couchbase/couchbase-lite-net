@@ -677,7 +677,7 @@ Transfer-Encoding: chunked";
             }
 
             Database.Log.File.Directory = testDir;
-            Couchbase.Lite.Internal.Logging.WriteLog.To.Couchbase.E("TEST LOG", "TEST MESSAGE");
+            Couchbase.Lite.Internal.Logging.WriteLog.To.Database.E("TEST LOG", "TEST MESSAGE");
             Database.Log.File.Directory = null;
             System.IO.Directory.EnumerateFiles(testDir).Count().Should().Be(5);
         }

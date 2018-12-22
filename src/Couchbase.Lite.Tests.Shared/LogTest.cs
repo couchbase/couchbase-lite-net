@@ -51,21 +51,21 @@ namespace Test
         [Fact]
         public void TestConsoleLoggingLevels()
         {
-            WriteLog.To.Couchbase.I("IGNORE", "IGNORE"); // Skip initial message
+            WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
             Database.Log.Console.Level = LogLevel.None;
             var stringWriter = new StringWriter();
             Console.SetOut(stringWriter);
-            WriteLog.To.Couchbase.E("TEST", "TEST ERROR");
+            WriteLog.To.Database.E("TEST", "TEST ERROR");
             stringWriter.Flush();
             stringWriter.ToString().Should().BeEmpty("because logging is disabled");
 
             Database.Log.Console.Level = LogLevel.Verbose;
             stringWriter = new StringWriter();
             Console.SetOut(stringWriter);
-            WriteLog.To.Couchbase.V("TEST", "TEST VERBOSE");
-            WriteLog.To.Couchbase.I("TEST", "TEST INFO");
-            WriteLog.To.Couchbase.W("TEST", "TEST WARNING");
-            WriteLog.To.Couchbase.E("TEST", "TEST ERROR");
+            WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+            WriteLog.To.Database.I("TEST", "TEST INFO");
+            WriteLog.To.Database.W("TEST", "TEST WARNING");
+            WriteLog.To.Database.E("TEST", "TEST ERROR");
             stringWriter.Flush();
             stringWriter.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Should()
                 .HaveCount(4, "because all levels should be logged");
@@ -76,10 +76,10 @@ namespace Test
                 Database.Log.Console.Level = level;
                 stringWriter = new StringWriter();
                 Console.SetOut(stringWriter);
-                WriteLog.To.Couchbase.V("TEST", "TEST VERBOSE");
-                WriteLog.To.Couchbase.I("TEST", "TEST INFO");
-                WriteLog.To.Couchbase.W("TEST", "TEST WARNING");
-                WriteLog.To.Couchbase.E("TEST", "TEST ERROR");
+                WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+                WriteLog.To.Database.I("TEST", "TEST INFO");
+                WriteLog.To.Database.W("TEST", "TEST WARNING");
+                WriteLog.To.Database.E("TEST", "TEST ERROR");
                 stringWriter.Flush();
                 stringWriter.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Should()
                     .HaveCount(currentCount, "because {0} levels should be logged for {1}", currentCount, level);
@@ -92,7 +92,7 @@ namespace Test
         [Fact]
         public void TestConsoleLoggingDomains()
         {
-            WriteLog.To.Couchbase.I("IGNORE", "IGNORE"); // Skip initial message
+            WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
             Database.Log.Console.Domains = LogDomain.None;
             Database.Log.Console.Level = LogLevel.Info;
             var stringWriter = new StringWriter();
@@ -122,18 +122,18 @@ namespace Test
         public void TestCustomLoggingLevels()
         {
             var customLogger = new LogTestLogger();
-            WriteLog.To.Couchbase.I("IGNORE", "IGNORE"); // Skip initial message
+            WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
             Database.Log.Custom = customLogger;
             customLogger.Level = LogLevel.None;
-            WriteLog.To.Couchbase.E("TEST", "TEST ERROR");
+            WriteLog.To.Database.E("TEST", "TEST ERROR");
             customLogger.Lines.Should().BeEmpty("because logging level is set to None");
             
 
             customLogger.Level = LogLevel.Verbose;
-            WriteLog.To.Couchbase.V("TEST", "TEST VERBOSE");
-            WriteLog.To.Couchbase.I("TEST", "TEST INFO");
-            WriteLog.To.Couchbase.W("TEST", "TEST WARNING");
-            WriteLog.To.Couchbase.E("TEST", "TEST ERROR");
+            WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+            WriteLog.To.Database.I("TEST", "TEST INFO");
+            WriteLog.To.Database.W("TEST", "TEST WARNING");
+            WriteLog.To.Database.E("TEST", "TEST ERROR");
             customLogger.Lines.Should().HaveCount(4, "because all levels should be logged");
             customLogger.Reset();;
 
@@ -141,10 +141,10 @@ namespace Test
             foreach (var level in new[] { LogLevel.Error, LogLevel.Warning, 
                 LogLevel.Info}) {
                 customLogger.Level = level;
-                WriteLog.To.Couchbase.V("TEST", "TEST VERBOSE");
-                WriteLog.To.Couchbase.I("TEST", "TEST INFO");
-                WriteLog.To.Couchbase.W("TEST", "TEST WARNING");
-                WriteLog.To.Couchbase.E("TEST", "TEST ERROR");
+                WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+                WriteLog.To.Database.I("TEST", "TEST INFO");
+                WriteLog.To.Database.W("TEST", "TEST WARNING");
+                WriteLog.To.Database.E("TEST", "TEST ERROR");
                 customLogger.Lines.Should()
                     .HaveCount(currentCount, "because {0} levels should be logged for {1}", currentCount, level);
                 currentCount++;
@@ -155,7 +155,7 @@ namespace Test
         [Fact]
         public void TestPlaintextLoggingLevels()
         {
-            WriteLog.To.Couchbase.I("IGNORE", "IGNORE"); // Skip initial message
+            WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
             var logPath = Path.Combine(Path.GetTempPath(), "LogTestLogs");
             Directory.CreateDirectory(logPath);
             Database.Log.File.UsePlaintext = true;
@@ -165,10 +165,10 @@ namespace Test
             foreach (var level in new[]
             { LogLevel.None, LogLevel.Error, LogLevel.Warning, LogLevel.Info, LogLevel.Verbose }) {
                 Database.Log.File.Level = level;
-                WriteLog.To.Couchbase.V("TEST", "TEST VERBOSE");
-                WriteLog.To.Couchbase.I("TEST", "TEST INFO");
-                WriteLog.To.Couchbase.W("TEST", "TEST WARNING");
-                WriteLog.To.Couchbase.E("TEST", "TEST ERROR");
+                WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+                WriteLog.To.Database.I("TEST", "TEST INFO");
+                WriteLog.To.Database.W("TEST", "TEST WARNING");
+                WriteLog.To.Database.E("TEST", "TEST ERROR");
             }
 
             try {

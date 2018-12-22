@@ -97,7 +97,7 @@ namespace Couchbase.Lite.Internal.Serialization
         [NotNull]
         public MValue Get([NotNull]string key)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Couchbase, Tag, nameof(key), key);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(key), key);
 
             if (_map.ContainsKey(key)) {
                 return _map[key];

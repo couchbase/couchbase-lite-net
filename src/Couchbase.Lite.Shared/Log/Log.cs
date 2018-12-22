@@ -69,7 +69,7 @@ namespace Couchbase.Lite.Internal.Logging
                 if (!_Initialized.Set(true)) {
                     var oldLevel = Database.Log.Console.Level;
                     Database.Log.Console.Level = LogLevel.Info;
-                    _To.Couchbase.I("Startup", HTTPLogic.UserAgent);
+                    _To.Database.I("Startup", HTTPLogic.UserAgent);
                     Database.Log.Console.Level = oldLevel;
                 }
 
@@ -127,9 +127,9 @@ namespace Couchbase.Lite.Internal.Logging
             RecalculateLevel();
 
             var domainName = Native.c4log_getDomainName(domain);
-            var logger = To.All.FirstOrDefault(x => x.Subdomain == domainName) ?? To.LiteCore;
-            Database.Log.Console.Log((LogLevel)level, logger.Domain, message);
-            Database.Log.Custom?.Log((LogLevel)level, logger.Domain, message);
+            var logDomain = To.DomainForString(domainName);
+            Database.Log.Console.Log((LogLevel)level, logDomain, message);
+            Database.Log.Custom?.Log((LogLevel)level, logDomain, message);
         }
 
         #endregion

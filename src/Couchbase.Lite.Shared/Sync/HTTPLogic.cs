@@ -214,7 +214,7 @@ namespace Couchbase.Lite.Sync
 			}
 			catch (Exception e)
 			{
-				WriteLog.To.Couchbase.W(Tag, "Error getting commit information", e);
+				WriteLog.To.Database.W(Tag, "Error getting commit information", e);
 			}
 
 			var runtimePlatform = Service.GetInstance<IRuntimePlatform>();

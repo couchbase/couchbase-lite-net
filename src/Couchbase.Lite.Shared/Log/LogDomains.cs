@@ -42,8 +42,7 @@ namespace Couchbase.Lite.Logging
         All = Couchbase | Database | Query | Replicator | Network,
 
 		/// <summary>
-		/// Gets the logging domain for overall information that doesn't fit into
-		/// a more specific category.
+		/// Internal Use Only, has no effect from the outside
 		/// </summary>
 		Couchbase = 1 << 0,
 

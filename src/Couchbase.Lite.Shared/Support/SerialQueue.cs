@@ -154,7 +154,7 @@ namespace Couchbase.Lite.Support
                     _currentProcessingThread = Environment.CurrentManagedThreadId;
                     a();
                 } catch(Exception e) {
-					WriteLog.To.Couchbase.W(Tag, "Exception during DispatchSync", e);
+					WriteLog.To.Database.W(Tag, "Exception during DispatchSync", e);
                     throw; // Synchronous, so let the caller handle it
                 } finally {
                     _currentProcessingThread = oldThread;
@@ -191,7 +191,7 @@ namespace Couchbase.Lite.Support
                             item.Tcs.SetResult(true);
                         }, next);
                     } catch(Exception e) {
-                        WriteLog.To.Couchbase.W(Tag, "Exception during DispatchAsync", e);
+                        WriteLog.To.Database.W(Tag, "Exception during DispatchAsync", e);
                         next.SyncContext.Post(s =>
                         {
                             var item = (SerialQueueItem)s;

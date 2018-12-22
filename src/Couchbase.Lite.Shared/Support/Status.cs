@@ -113,7 +113,7 @@ namespace Couchbase.Lite
 
             if (c4err.code == (int) C4ErrorCode.UnexpectedError &&
                 c4err.domain == C4ErrorDomain.LiteCoreDomain) {
-                WriteLog.To.Couchbase.W(Tag, $"No mapping for {e.GetType().Name}; interpreting as 'UnexpectedError'");
+                WriteLog.To.Database.W(Tag, $"No mapping for {e.GetType().Name}; interpreting as 'UnexpectedError'");
                 if(message == null && e is AggregateException ae) {
                     message = ae.InnerExceptions.Select(x => x.Message).Aggregate((x, y) => $"{x}; {y}");
                 }
