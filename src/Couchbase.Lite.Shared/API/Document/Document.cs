@@ -149,7 +149,7 @@ namespace Couchbase.Lite
         }
 
         internal Document([CanBeNull]Database database, [NotNull]string id)
-            : this(database, id, null)
+            : this(database, id, default(C4DocumentWrapper))
         {
             database.ThreadSafety.DoLocked(() =>
             {
@@ -158,6 +158,13 @@ namespace Couchbase.Lite
 
                 c4Doc = new C4DocumentWrapper(doc);
             });
+        }
+
+        internal Document([CanBeNull] Database database, [NotNull] string id, FLDict* body)
+            : this(database, id, default(C4DocumentWrapper))
+        {
+            Data = body;
+            UpdateDictionary();
         }
 
         internal Document([NotNull]Document other)

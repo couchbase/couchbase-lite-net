@@ -325,13 +325,24 @@ namespace Couchbase.Lite.Sync
         {
             var isDeletedFlag = revisionFlags.HasFlag(C4RevisionFlags.Deleted);
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            if (replicator == null) {
+                WriteLog.To.Database.E(Tag, "Push filter context pointing to invalid object {0}, aborting and returning true...",
+                    replicator);
+                return true;
+            }
+
             var docIDStr = docID.CreateString();
+            if (docIDStr == null) {
+                WriteLog.To.Database.E(Tag, "Null document ID received in push filter, rejecting...");
+                return false;
+            }
+
             return replicator.PushFilterCallback(docIDStr, dict, isDeletedFlag);
         }
 
-        private bool PushFilterCallback(string docID, FLDict* value, bool isDeleted)
+        private bool PushFilterCallback([NotNull]string docID, FLDict* value, bool isDeleted)
         {
-            return filterCallback(Config.PushFilter, docID, value, isDeleted);
+            return Config.PushFilter(new Document(Config.Database, docID, value), isDeleted);
         }
 
         [MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
@@ -339,7 +350,18 @@ namespace Couchbase.Lite.Sync
         {
             var isDeletedFlag = revisionFlags.HasFlag(C4RevisionFlags.Deleted);
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            if (replicator == null) {
+                WriteLog.To.Database.E(Tag, "Pull filter context pointing to invalid object {0}, aborting and returning true...",
+                    replicator);
+                return true;
+            }
+
             var docIDStr = docID.CreateString();
+            if (docIDStr == null) {
+                WriteLog.To.Database.E(Tag, "Null document ID received in pull filter, rejecting...");
+                return false;
+            }
+
             return replicator.PullValidateCallback(docIDStr, dict, isDeletedFlag);
         }
 
@@ -350,8 +372,7 @@ namespace Couchbase.Lite.Sync
 
         private bool filterCallback(Func<Document, bool, bool> filterFunction, string docID, FLDict* value, bool isDeleted)
         {
-            var d = FLValueConverter.ToCouchbaseObject((FLValue*)value, Config.Database, true) as IDictionary<string, object>;
-            return filterFunction(new MutableDocument(docID, d), isDeleted);
+             return filterFunction(new Document(Config.Database, docID, value), isDeleted);
         }
 
         private void ClearRepl()
