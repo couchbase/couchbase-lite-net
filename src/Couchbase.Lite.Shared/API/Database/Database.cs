@@ -356,18 +356,10 @@ namespace Couchbase.Lite
 		/// </summary>
 		/// <param name="domains">The log domain(s)</param>
 		/// <param name="level">The log level</param>
-		[Obsolete("This has been superseded by Database.Log.Console.  The ability to set independent levels" +
-		          "per domain has been removed, and so this function will now only reflect 'None' or 'Not None'")]
+		[Obsolete("This has been superseded by Database.Log.Console.  This function is now a no-op")]
 		public static void SetLogLevel(LogDomain domains, LogLevel level)
 		{
-		    var current = Log.Console.Domains;
-		    if (level == LogLevel.None) {
-		        current &= ~domains;
-		    } else {
-		        current |= domains;
-		    }
-
-		    Log.Console.Domains = current;
+		    WriteLog.To.Database.W(Tag, "Database.SetLogLevel is deprecated, use Database.Log.Console instead.");
 		}
         
         /// <summary>
