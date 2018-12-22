@@ -73,7 +73,7 @@ namespace Couchbase.Lite.Support
             _Handler.Post(() =>
             {
                 if (!TryExecuteTask(task)) {
-                    WriteLog.To.Couchbase.W(Tag, "Failed to execute a task in MainThreadTaskScheduler");
+                    WriteLog.To.Database.W(Tag, "Failed to execute a task in MainThreadTaskScheduler");
                 }
             });
         }

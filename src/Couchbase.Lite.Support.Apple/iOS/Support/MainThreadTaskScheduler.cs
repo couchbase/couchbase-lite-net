@@ -54,7 +54,7 @@ namespace Couchbase.Lite.Support
             NSRunLoop.Main.BeginInvokeOnMainThread(() =>
             {
                 if (!TryExecuteTask(task)) {
-                    WriteLog.To.Couchbase.W(Tag, "Failed to execute task");
+                    WriteLog.To.Database.W(Tag, "Failed to execute task");
                 }
             });
         }

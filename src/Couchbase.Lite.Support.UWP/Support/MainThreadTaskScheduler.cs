@@ -64,7 +64,7 @@ namespace Couchbase.Lite.Support
             var t =_dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
                 if (!TryExecuteTask(task)) {
-                    WriteLog.To.Couchbase.W(Tag, "Failed to execute task");
+                    WriteLog.To.Database.W(Tag, "Failed to execute task");
                 }
             });
         }
