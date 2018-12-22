@@ -24,6 +24,7 @@ using System.Text;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Enterprise.Query;
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 
 using FluentAssertions;
@@ -67,13 +68,12 @@ namespace Test
             CreateDocumentWithNumbers(6, 7, 8, 9, 10);
 
             var aggregateModel = new AggregateModel();
-            var model = Expression.String(aggregateModel.Name);
             var input = Expression.Dictionary(new Dictionary<string, object>
             {
                 ["numbers"] = Expression.Property("numbers")
             });
             using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
-                    SelectResult.Expression(Function.Prediction(model, input)))
+                    SelectResult.Expression(Function.Prediction(aggregateModel.Name, input)))
                 .From(DataSource.Database(Db))) {
                 Action badAction = () => q.Execute();
                 badAction.ShouldThrow<CouchbaseSQLiteException>().Which.Error.Should().Be((int) SQLiteStatus.Error);
@@ -105,13 +105,12 @@ namespace Test
 
             var aggregateModel = new AggregateModel();
             aggregateModel.RegisterModel();
-            var model = Expression.String(aggregateModel.Name);
             var input = Expression.Dictionary(new Dictionary<string, object>
             {
                 ["numbers"] = Expression.Property("numbers")
             });
             using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
-                    SelectResult.Expression(Function.Prediction(model, input).Property("sum")).As("sum"))
+                    SelectResult.Expression(Function.Prediction(aggregateModel.Name, input).Property("sum")).As("sum"))
                 .From(DataSource.Database(Db))) {
                 var numRows = VerifyQuery(q, (i, result) =>
                 {
@@ -130,6 +129,7 @@ namespace Test
         [Fact]
         public void TestQueryWithBlobProperty()
         {
+            Database.Log.Console.Level = LogLevel.Verbose;
             var texts = new[]
             {
                 "Knox on fox in socks in box.  Socks on Knox and Knox in box.",
@@ -145,13 +145,12 @@ namespace Test
 
             var textModel = new TextModel();
             textModel.RegisterModel();
-
-            var model = Expression.String(textModel.Name);
+            
             var input = Expression.Dictionary(new Dictionary<string, object>
             {
-                ["text"] = new List<object> { "BLOB", ".text" }
+                ["text"] = Expression.Property("text")
             });
-            var prediction = Function.Prediction(model, input).Property("wc");
+            var prediction = Function.Prediction(textModel.Name, input).Property("wc");
             using (var q = QueryBuilder
                 .Select(SelectResult.Property("text"), SelectResult.Expression(prediction).As("wc"))
                 .From(DataSource.Database(Db))
@@ -171,13 +170,12 @@ namespace Test
 
             var textModel = new TextModel();
             textModel.RegisterModel();
-
-            var model = Expression.String(textModel.Name);
+            
             var input = Expression.Dictionary(new Dictionary<string, object>
             {
                 ["text"] = Expression.Parameter("text")
             });
-            var prediction = Function.Prediction(model, input).Property("wc");
+            var prediction = Function.Prediction(textModel.Name, input).Property("wc");
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction).As("wc"))
                 .From(DataSource.Database(Db))) {
                 var parameters = new Parameters();
@@ -202,12 +200,11 @@ namespace Test
 
             var aggregateModel = new AggregateModel();
             aggregateModel.RegisterModel();
-            var model = Expression.String(aggregateModel.Name);
             var input = Expression.Dictionary(new Dictionary<string, object>
             {
                 ["numbers"] = Expression.Property("numbers")
             });
-            var sumPrediction = Function.Prediction(model, input).Property("sum");
+            var sumPrediction = Function.Prediction(aggregateModel.Name, input).Property("sum");
 
             var index = IndexBuilder.ValueIndex(ValueIndexItem.Expression(sumPrediction));
             Db.CreateIndex("SumIndex", index);
@@ -239,13 +236,12 @@ namespace Test
 
             var aggregateModel = new AggregateModel();
             aggregateModel.RegisterModel();
-            var model = Expression.String(aggregateModel.Name);
             var input = Expression.Dictionary(new Dictionary<string, object>
             {
                 ["numbers"] = Expression.Property("numbers")
             });
-            var sumPrediction = Function.Prediction(model, input).Property("sum");
-            var avgPrediction = Function.Prediction(model, input).Property("avg");
+            var sumPrediction = Function.Prediction(aggregateModel.Name, input).Property("sum");
+            var avgPrediction = Function.Prediction(aggregateModel.Name, input).Property("avg");
 
             var sumIndex = IndexBuilder.ValueIndex(ValueIndexItem.Expression(sumPrediction));
             Db.CreateIndex("SumIndex", sumIndex);
@@ -276,13 +272,12 @@ namespace Test
 
             var aggregateModel = new AggregateModel();
             aggregateModel.RegisterModel();
-            var model = Expression.String(aggregateModel.Name);
             var input = Expression.Dictionary(new Dictionary<string, object>
             {
                 ["numbers"] = Expression.Property("numbers")
             });
-            var sumPrediction = Function.Prediction(model, input).Property("sum");
-            var avgPrediction = Function.Prediction(model, input).Property("avg");
+            var sumPrediction = Function.Prediction(aggregateModel.Name, input).Property("sum");
+            var avgPrediction = Function.Prediction(aggregateModel.Name, input).Property("avg");
 
             var index = IndexBuilder.ValueIndex(ValueIndexItem.Expression(sumPrediction),
                 ValueIndexItem.Expression(avgPrediction));
