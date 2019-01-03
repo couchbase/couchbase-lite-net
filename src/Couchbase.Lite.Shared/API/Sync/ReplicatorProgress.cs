@@ -106,5 +106,15 @@ namespace Couchbase.Lite.Sync
         {
             return new ReplicatedDocument(Id, IsAccessRemoved, IsDeleted, new C4Error(), IsTransient);
         }
+
+        public override string ToString()
+        {
+            return $"ReplicatedDocument[ Doc ID: {Id}; " +
+                   $"IsDeleted: { IsDeleted }; " +
+                   $"IsAccessRemoved: { IsAccessRemoved }; " +
+                   $"Error domain: { Error.Domain }; " +
+                   $"Error code: { Error.Error }; " +
+                   $"IsTransient: { IsTransient } ]";
+        }
     }
 }
