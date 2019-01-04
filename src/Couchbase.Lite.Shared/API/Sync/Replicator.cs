@@ -21,25 +21,21 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Interop;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using ObjCRuntime;
 
 using JetBrains.Annotations;
 
-using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
-using Couchbase.Lite.Internal.Serialization;
-using System.Collections.Generic;
 
-using Couchbase.Lite.Internal.Logging;
+using ObjCRuntime;
 
 namespace Couchbase.Lite.Sync
 {
@@ -66,22 +62,24 @@ namespace Couchbase.Lite.Sync
         #endregion
 
         #region Variables
-        
+
         [NotNull]private readonly ThreadSafety _databaseThreadSafety;
-        [NotNull]private readonly Event<ReplicatorStatusChangedEventArgs> _statusChanged =
-            new Event<ReplicatorStatusChangedEventArgs>();
+
         [NotNull]private readonly Event<DocumentReplicationEventArgs> _documentEndedUpdate =
             new Event<DocumentReplicationEventArgs>();
 
+        [NotNull]private readonly Event<ReplicatorStatusChangedEventArgs> _statusChanged =
+            new Event<ReplicatorStatusChangedEventArgs>();
+
         private string _desc;
         private bool _disposed;
-        private bool _stopping;
 
         private ReplicatorParameters _nativeParams;
         private C4ReplicatorStatus _rawStatus;
         private IReachability _reachability;
         private C4Replicator* _repl;
         private int _retryCount;
+        private bool _stopping;
 
         #endregion
 
@@ -132,39 +130,6 @@ namespace Couchbase.Lite.Sync
         #region Public Methods
 
         /// <summary>
-        /// Adds a documents ended listener on this replication object (similar to a C# event)
-        /// </summary>
-        /// <param name="handler">The logic to run during the callback</param>
-        /// <returns>A token to remove the handler later</returns>
-        [ContractAnnotation("null => halt")]
-        public ListenerToken AddDocumentReplicationListener(EventHandler<DocumentReplicationEventArgs> handler)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
-
-            return AddDocumentReplicationListener(null, handler);
-        }
-
-        /// <summary>
-        /// Adds a document ended listener on this replication object (similar to a C# event, but
-        /// with the ability to specify a <see cref="TaskScheduler"/> to schedule the 
-        /// handler to run on)
-        /// </summary>
-        /// <param name="scheduler">The <see cref="TaskScheduler"/> to run the <c>handler</c> on
-        /// (<c>null</c> for default)</param>
-        /// <param name="handler">The logic to run during the callback</param>
-        /// <returns>A token to remove the handler later</returns>
-        [ContractAnnotation("handler:null => halt")]
-        public ListenerToken AddDocumentReplicationListener([CanBeNull]TaskScheduler scheduler,
-            EventHandler<DocumentReplicationEventArgs> handler)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
-            Config.Options.ProgressLevel = ReplicatorProgressLevel.PerDocument;
-            var cbHandler = new CouchbaseEventHandler<DocumentReplicationEventArgs>(handler, scheduler);
-            _documentEndedUpdate.Add(cbHandler);
-            return new ListenerToken(cbHandler, "repl");
-        }
-
-        /// <summary>
         /// Adds a change listener on this replication object (similar to a C# event)
         /// </summary>
         /// <param name="handler">The logic to run during the callback</param>
@@ -194,6 +159,39 @@ namespace Couchbase.Lite.Sync
 
             var cbHandler = new CouchbaseEventHandler<ReplicatorStatusChangedEventArgs>(handler, scheduler);
             _statusChanged.Add(cbHandler);
+            return new ListenerToken(cbHandler, "repl");
+        }
+
+        /// <summary>
+        /// Adds a documents ended listener on this replication object (similar to a C# event)
+        /// </summary>
+        /// <param name="handler">The logic to run during the callback</param>
+        /// <returns>A token to remove the handler later</returns>
+        [ContractAnnotation("null => halt")]
+        public ListenerToken AddDocumentReplicationListener(EventHandler<DocumentReplicationEventArgs> handler)
+        {
+            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
+
+            return AddDocumentReplicationListener(null, handler);
+        }
+
+        /// <summary>
+        /// Adds a document ended listener on this replication object (similar to a C# event, but
+        /// with the ability to specify a <see cref="TaskScheduler"/> to schedule the 
+        /// handler to run on)
+        /// </summary>
+        /// <param name="scheduler">The <see cref="TaskScheduler"/> to run the <c>handler</c> on
+        /// (<c>null</c> for default)</param>
+        /// <param name="handler">The logic to run during the callback</param>
+        /// <returns>A token to remove the handler later</returns>
+        [ContractAnnotation("handler:null => halt")]
+        public ListenerToken AddDocumentReplicationListener([CanBeNull]TaskScheduler scheduler,
+            EventHandler<DocumentReplicationEventArgs> handler)
+        {
+            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
+            Config.Options.ProgressLevel = ReplicatorProgressLevel.PerDocument;
+            var cbHandler = new CouchbaseEventHandler<DocumentReplicationEventArgs>(handler, scheduler);
+            _documentEndedUpdate.Add(cbHandler);
             return new ListenerToken(cbHandler, "repl");
         }
 
@@ -277,6 +275,20 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods
 
+        private static DocumentFlags FromRevisionFlags(C4RevisionFlags flags)
+        {
+            var retVal = (DocumentFlags)0;
+            if (flags.HasFlag(C4RevisionFlags.Deleted)) {
+                retVal &= DocumentFlags.Deleted;
+            }
+
+            if (flags.HasFlag(C4RevisionFlags.Purged)) {
+                retVal &= DocumentFlags.AccessRemoved;
+            }
+
+            return retVal;
+        }
+
         private static C4ReplicatorMode Mkmode(bool active, bool continuous)
         {
             return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
@@ -304,6 +316,46 @@ namespace Couchbase.Lite.Sync
 
         }
 
+        [MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
+        private static bool PullValidateCallback(FLSlice docID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
+        {
+            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            if (replicator == null) {
+                WriteLog.To.Database.E(Tag, "Pull filter context pointing to invalid object {0}, aborting and returning true...",
+                    replicator);
+                return true;
+            }
+
+            var docIDStr = docID.CreateString();
+            if (docIDStr == null) {
+                WriteLog.To.Database.E(Tag, "Null document ID received in pull filter, rejecting...");
+                return false;
+            }
+
+            var flags = FromRevisionFlags(revisionFlags);
+            return replicator.PullValidateCallback(docIDStr, dict, flags);
+        }
+
+        [MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
+        private static bool PushFilterCallback(FLSlice docID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
+        {
+            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            if (replicator == null) {
+                WriteLog.To.Database.E(Tag, "Push filter context pointing to invalid object {0}, aborting and returning true...",
+                    replicator);
+                return true;
+            }
+
+            var docIDStr = docID.CreateString();
+            if (docIDStr == null) {
+                WriteLog.To.Database.E(Tag, "Null document ID received in push filter, rejecting...");
+                return false;
+            }
+            
+            var flags = FromRevisionFlags(revisionFlags);
+            return replicator.PushFilterCallback(docIDStr, dict, flags);
+        }
+
         private static TimeSpan RetryDelay(int retryCount)
         {
             var delaySecs = 1 << Math.Min(retryCount, 30);
@@ -318,61 +370,6 @@ namespace Couchbase.Lite.Sync
             {
                 replicator.StatusChangedCallback(status);
             });
-        }
-
-        [MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
-        private static bool PushFilterCallback(FLSlice docID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
-        {
-            var isDeletedFlag = revisionFlags.HasFlag(C4RevisionFlags.Deleted);
-            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
-            if (replicator == null) {
-                WriteLog.To.Database.E(Tag, "Push filter context pointing to invalid object {0}, aborting and returning true...",
-                    replicator);
-                return true;
-            }
-
-            var docIDStr = docID.CreateString();
-            if (docIDStr == null) {
-                WriteLog.To.Database.E(Tag, "Null document ID received in push filter, rejecting...");
-                return false;
-            }
-
-            return replicator.PushFilterCallback(docIDStr, dict, isDeletedFlag);
-        }
-
-        private bool PushFilterCallback([NotNull]string docID, FLDict* value, bool isDeleted)
-        {
-            return Config.PushFilter(new Document(Config.Database, docID, value), isDeleted);
-        }
-
-        [MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
-        private static bool PullValidateCallback(FLSlice docID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
-        {
-            var isDeletedFlag = revisionFlags.HasFlag(C4RevisionFlags.Deleted);
-            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
-            if (replicator == null) {
-                WriteLog.To.Database.E(Tag, "Pull filter context pointing to invalid object {0}, aborting and returning true...",
-                    replicator);
-                return true;
-            }
-
-            var docIDStr = docID.CreateString();
-            if (docIDStr == null) {
-                WriteLog.To.Database.E(Tag, "Null document ID received in pull filter, rejecting...");
-                return false;
-            }
-
-            return replicator.PullValidateCallback(docIDStr, dict, isDeletedFlag);
-        }
-
-        private bool PullValidateCallback(string docID, FLDict* value, bool isDeleted)
-        {
-            return filterCallback(Config.PullFilter, docID, value, isDeleted);
-        }
-
-        private bool filterCallback(Func<Document, bool, bool> filterFunction, string docID, FLDict* value, bool isDeleted)
-        {
-             return filterFunction(new Document(Config.Database, docID, value), isDeleted);
         }
 
         private void ClearRepl()
@@ -407,6 +404,11 @@ namespace Couchbase.Lite.Sync
                 _repl = null;
                 _disposed = true;
             });
+        }
+
+        private bool filterCallback(Func<Document, DocumentFlags, bool> filterFunction, string docID, FLDict* value, DocumentFlags flags)
+        {
+             return filterFunction(new Document(Config.Database, docID, value), flags);
         }
 
         private bool HandleError(C4Error error)
@@ -481,6 +483,16 @@ namespace Couchbase.Lite.Sync
             }
 
             _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(replications, pushing));
+        }
+
+        private bool PullValidateCallback(string docID, FLDict* value, DocumentFlags flags)
+        {
+            return filterCallback(Config.PullFilter, docID, value, flags);
+        }
+
+        private bool PushFilterCallback([NotNull]string docID, FLDict* value, DocumentFlags flags)
+        {
+            return Config.PushFilter(new Document(Config.Database, docID, value), flags);
         }
 
         private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)

@@ -53,6 +53,27 @@ namespace Couchbase.Lite.Sync
     }
 
     /// <summary>
+    /// A set of flags describing the properties of a replicated
+    /// document.
+    /// </summary>
+    [Flags]
+    public enum DocumentFlags
+    {
+        /// <summary>
+        /// The replication action represents a deletion of the
+        /// document in question
+        /// </summary>
+        Deleted = 1 << 0,
+
+        /// <summary>
+        /// The replication action represents a loss of access from
+        /// the server for the document in question (i.e. no more access
+        /// granted from the sync function)
+        /// </summary>
+        AccessRemoved = 1 << 1
+    }
+
+    /// <summary>
     /// An enum representing level of opt in on progress of replication
     /// </summary>
     [Flags]
@@ -90,10 +111,9 @@ namespace Couchbase.Lite.Sync
         [NotNull]private readonly Freezer _freezer = new Freezer();
         private Authenticator _authenticator;
         private bool _continuous;
-        private Func<Document, bool, bool> _pushFilter;
-        private Func<Document, bool, bool> _pullValidator;
+        private Func<Document, DocumentFlags, bool> _pushFilter;
+        private Func<Document, DocumentFlags, bool> _pullValidator;
         private Database _otherDb;
-        private ReplicatorProgressLevel _progressLevel = ReplicatorProgressLevel.Overall;
         private Uri _remoteUrl;
         private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
         private C4SocketFactory _socketFactory;
@@ -177,7 +197,7 @@ namespace Couchbase.Lite.Sync
         /// Document pull will be allowed if output is true, othewise, Document pull 
         /// will not be allowed
         /// </summary>
-        public Func<Document, bool, bool> PullFilter
+        public Func<Document, DocumentFlags, bool> PullFilter
         {
             get => _pullValidator;
             set => _freezer.PerformAction(() => _pullValidator = value);
@@ -188,7 +208,7 @@ namespace Couchbase.Lite.Sync
         /// Document push will be allowed if output is true, othewise, Document push 
         /// will not be allowed
         /// </summary>
-        public Func<Document, bool, bool> PushFilter
+        public Func<Document, DocumentFlags, bool> PushFilter
         {
             get => _pushFilter;
             set => _freezer.PerformAction(() => _pushFilter = value);

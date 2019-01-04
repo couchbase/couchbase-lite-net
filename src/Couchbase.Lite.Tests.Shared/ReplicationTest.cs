@@ -1205,7 +1205,7 @@ namespace Test
         }
 #endif
 
-        private bool _replicator__filterCallback(Document document, bool isDeleted)
+        private bool _replicator__filterCallback(Document document, DocumentFlags flags)
         {
             _isFilteredCallback = true;
             var name = document.GetString("name");
