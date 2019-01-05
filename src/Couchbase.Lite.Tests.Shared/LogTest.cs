@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Logging;
@@ -47,6 +48,48 @@ namespace Test
             Couchbase.Lite.Support.NetDesktop.Activate();
         }
 #endif
+
+        [Fact]
+        public void TestDefaultLogLocation()
+        {
+            var logDirectory = Database.Log.File.Directory;
+            WriteLog.To.Database.I("TEST", "MESSAGE");
+            Directory.EnumerateFiles(logDirectory, "*.cbllog").Count().Should()
+                .BeGreaterOrEqualTo(5, "because there should be at least 5 log entries in the folder");
+        }
+
+        [Fact]
+        public void TestDefaultLogFormat()
+        {
+            // Can't test all files because there might be some plaintext ones leftover from previous runs
+            // and/or tests
+            var logDirectory = Database.Log.File.Directory;
+            WriteLog.To.Database.I("TEST", "MESSAGE");
+            var logFilePath = Directory.EnumerateFiles(logDirectory, "cbl_info_*").LastOrDefault();
+            logFilePath.Should().NotBeNullOrEmpty();
+            var logContent = ReadAllBytes(logFilePath);
+            logContent.Should().StartWith(new byte[] { 0xcf, 0xb2, 0xab, 0x1b },
+                "because the log should be in binary format");
+        }
+
+        [Fact]
+        public void TestPlaintext()
+        {
+            try {
+                // Can't test all files because there might be some plaintext ones leftover from previous runs
+                // and/or tests
+                var logDirectory = Database.Log.File.Directory;
+                Database.Log.File.UsePlaintext = true;
+                WriteLog.To.Database.I("TEST", "MESSAGE");
+                var logFilePath = Directory.EnumerateFiles(logDirectory, "cbl_info_*").LastOrDefault();
+                logFilePath.Should().NotBeNullOrEmpty();
+                var logContent = ReadAllLines(logFilePath);
+                logContent.Any(x => x.Contains("MESSAGE") && x.Contains("TEST"))
+                    .Should().BeTrue("because the message should show up in plaintext");
+            } finally {
+                Database.Log.File.UsePlaintext = false;
+            }
+        }
 
         [Fact]
         public void TestConsoleLoggingLevels()
@@ -206,6 +249,16 @@ namespace Test
             }
 
             return lines.ToArray();
+        }
+
+        private static byte[] ReadAllBytes(string path)
+        {
+            using(var fin = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var reader = new BinaryReader(fin)) {
+                var retVal = new byte[fin.Length];
+                reader.Read(retVal, 0, retVal.Length);
+                return retVal;
+            }
         }
 
         private class LogTestLogger : ILogger

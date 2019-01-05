@@ -78,6 +78,7 @@ namespace Couchbase.Lite.Logging
             SetupDomainObjects();
             Level = LogLevel.Info;
             _directory = DefaultDirectory();
+            UpdateConfig();
         }
 
         private unsafe void SetupDomainObjects()
@@ -135,9 +136,8 @@ namespace Couchbase.Lite.Logging
         [NotNull]
         private static string DefaultDirectory()
         {
-            Console.WriteLine(Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory());
             return Path.Combine(Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory(),
-                "Logs");
+                "Logs") + Path.DirectorySeparatorChar;
         }
 
         #endregion
