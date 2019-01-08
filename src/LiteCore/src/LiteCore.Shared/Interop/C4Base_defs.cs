@@ -131,6 +131,7 @@ namespace LiteCore.Interop
         public long max_size_bytes;
         public int max_rotate_count;
         private byte _use_plaintext;
+        public FLSlice header;
 
         public bool use_plaintext
         {

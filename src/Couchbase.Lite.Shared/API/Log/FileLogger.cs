@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Interop;
+using Couchbase.Lite.Sync;
 
 using JetBrains.Annotations;
 
@@ -119,14 +120,16 @@ namespace Couchbase.Lite.Logging
 
         private unsafe void UpdateConfig()
         {
-            using (var dir = new C4String(Directory)) {
+            using (var dir = new C4String(Directory))
+            using (var header = new C4String(HTTPLogic.UserAgent)) {
                 var options = new C4LogFileOptions
                 {
                     base_path = dir.AsFLSlice(),
                     log_level = (C4LogLevel) Level,
                     max_rotate_count = MaxRotateCount,
                     max_size_bytes = MaxSize,
-                    use_plaintext = UsePlaintext
+                    use_plaintext = UsePlaintext,
+                    header = header.AsFLSlice()
                 };
                 LiteCoreBridge.Check(err => Native.c4log_writeToBinaryFile(options, err));
                 _hasConfigChanges = false;

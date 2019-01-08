@@ -20,6 +20,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Logging;
@@ -87,6 +89,149 @@ namespace Test
                 logContent.Any(x => x.Contains("MESSAGE") && x.Contains("TEST"))
                     .Should().BeTrue("because the message should show up in plaintext");
             } finally {
+                Database.Log.File.UsePlaintext = false;
+            }
+        }
+
+        [Fact]
+        public void TestMaxSize()
+        {
+            var old = Database.Log.File.MaxSize;
+            try {
+                // Can't test all files because there might be some plaintext ones leftover from previous runs
+                // and/or tests
+                var logDirectory = Database.Log.File.Directory;
+                Database.Log.File.UsePlaintext = true;
+                Database.Log.File.MaxSize = 1024;
+                Database.Log.File.Level = LogLevel.Debug;
+
+                // Write more than 2048 bytes, with a break to make sure the writes don't happen
+                // too quickly to skip a filesystem flush
+                for (int i = 0; i < 45; i++) {
+                    if (i == 22) {
+                        Thread.Sleep(1000);
+                    }
+
+                    WriteLog.To.Database.E("TEST", $"MESSAGE {i}");
+                    WriteLog.To.Database.W("TEST", $"MESSAGE {i}");
+                    WriteLog.To.Database.I("TEST", $"MESSAGE {i}");
+                    WriteLog.To.Database.V("TEST", $"MESSAGE {i}");
+                    WriteLog.To.Database.D("TEST", $"MESSAGE {i}");
+                }
+                
+                var totalCount = (Database.Log.File.MaxRotateCount + 1) * 5;
+                #if !DEBUG
+                totalCount -= 1; // Non-debug builds won't log debug files
+                #endif
+
+                Directory.EnumerateFiles(logDirectory).Should()
+                    .HaveCount(totalCount, "because old log files should be getting pruned");
+            } finally {
+                Database.Log.File.UsePlaintext = false;
+                Database.Log.File.Level = LogLevel.Info;
+                Database.Log.File.MaxSize = old;
+            }
+        }
+
+        [Fact]
+        public void TestDisableLogging()
+        {
+            try {
+                // Can't test all files because there might be some plaintext ones leftover from previous runs
+                // and/or tests
+                var sentinel = Guid.NewGuid().ToString();
+                var logDirectory = Database.Log.File.Directory;
+                Database.Log.File.Level = LogLevel.None;
+                Database.Log.File.UsePlaintext = true;
+                WriteLog.To.Database.E("TEST", sentinel);
+                WriteLog.To.Database.W("TEST", sentinel);
+                WriteLog.To.Database.I("TEST", sentinel);
+                WriteLog.To.Database.V("TEST", sentinel);
+                WriteLog.To.Database.D("TEST", sentinel);
+                foreach (var file in Directory.EnumerateFiles(logDirectory)) {
+                    foreach (var line in ReadAllLines(file)) {
+                        line.Should().NotContain(sentinel);
+                    }
+                }
+            } finally {
+                Database.Log.File.Level = LogLevel.Info;
+                Database.Log.File.UsePlaintext = false;
+            }
+        }
+
+        [Fact]
+        public void TestReEnableLogging()
+        {
+            TestDisableLogging();
+            var sentinel = Guid.NewGuid().ToString();
+            var logDirectory = Database.Log.File.Directory;
+            Database.Log.File.Level = LogLevel.Verbose;
+            Database.Log.File.UsePlaintext = true;
+            WriteLog.To.Database.E("TEST", sentinel);
+            WriteLog.To.Database.W("TEST", sentinel);
+            WriteLog.To.Database.I("TEST", sentinel);
+            WriteLog.To.Database.V("TEST", sentinel);
+            try {
+                foreach (var file in Directory.EnumerateFiles(logDirectory)) {
+                    if (file.Contains("debug")) {
+                        continue;
+                    }
+
+                    var found = false;
+                    foreach (var line in ReadAllLines(file)) {
+                        if (line.Contains(sentinel)) {
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    found.Should().BeTrue();
+                }
+            } finally {
+                Database.Log.File.UsePlaintext = false;
+                Database.Log.File.Level = LogLevel.Info;
+            }
+        }
+
+        [Fact]
+        public void TestLogFilename()
+        {
+            var allFiles = Directory.EnumerateFiles(Database.Log.File.Directory, "*.cbllog").ToArray();
+            var regex = new Regex($"cbl_(debug|verbose|info|warning|error)_\\d+\\.cbllog");
+            allFiles.Any(x => !regex.IsMatch(x)).Should().BeFalse("because all files should match the pattern");
+        }
+
+        [Fact]
+        public void TestLogHeader()
+        {
+            var old = Database.Log.File.MaxSize;
+            var logDirectory = Database.Log.File.Directory;
+            Database.Log.File.UsePlaintext = true;
+            Database.Log.File.MaxSize = 1024;
+            Database.Log.File.Level = LogLevel.Verbose;
+
+            // Write more than 2048 bytes, with a break to make sure the writes don't happen
+            // too quickly to skip a filesystem flush
+            for (int i = 0; i < 45; i++) {
+                if (i == 22) {
+                    Thread.Sleep(1000);
+                }
+
+                WriteLog.To.Database.E("TEST", $"MESSAGE {i}");
+                WriteLog.To.Database.W("TEST", $"MESSAGE {i}");
+                WriteLog.To.Database.I("TEST", $"MESSAGE {i}");
+                WriteLog.To.Database.V("TEST", $"MESSAGE {i}");
+            }
+
+            try {
+                foreach (var file in Directory.EnumerateFiles(logDirectory, "*.cbllog")) {
+                    var lines = ReadAllLines(file);
+                    lines[0].Should().Contain("CouchbaseLite/").And.Subject.Should().Contain("Build/")
+                        .And.Subject.Should().Contain("Commit/");
+                }
+            } finally {
+                Database.Log.File.MaxSize = old;
+                Database.Log.File.Level = LogLevel.Info;
                 Database.Log.File.UsePlaintext = false;
             }
         }
