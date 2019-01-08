@@ -79,6 +79,7 @@ namespace Couchbase.Lite.Logging
             SetupDomainObjects();
             Level = LogLevel.Info;
             _directory = DefaultDirectory();
+            System.IO.Directory.CreateDirectory(_directory);
             UpdateConfig();
         }
 

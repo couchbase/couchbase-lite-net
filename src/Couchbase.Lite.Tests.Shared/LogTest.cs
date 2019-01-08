@@ -164,9 +164,11 @@ namespace Test
         {
             TestDisableLogging();
             var sentinel = Guid.NewGuid().ToString();
-            var logDirectory = Database.Log.File.Directory;
+            var logDirectory = Path.Combine(Path.GetTempPath(), "ReEnableLogs");
+            Directory.Delete(logDirectory, true);
             Database.Log.File.Level = LogLevel.Verbose;
             Database.Log.File.UsePlaintext = true;
+            Database.Log.File.Directory = logDirectory;
             WriteLog.To.Database.E("TEST", sentinel);
             WriteLog.To.Database.W("TEST", sentinel);
             WriteLog.To.Database.I("TEST", sentinel);
@@ -190,6 +192,7 @@ namespace Test
             } finally {
                 Database.Log.File.UsePlaintext = false;
                 Database.Log.File.Level = LogLevel.Info;
+                Database.Log.File.Directory = null;
             }
         }
 

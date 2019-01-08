@@ -17,16 +17,30 @@
 // 
 namespace Couchbase.Lite.Logging
 {
+    /// <summary>
+    /// An interface for implementing a class that can accept
+    /// logging messages from Couchbase Lite
+    /// </summary>
     public interface ILogger
     {
         #region Properties
 
+        /// <summary>
+        /// Gets the level that the logger is currently
+        /// logging
+        /// </summary>
         LogLevel Level { get; }
 
         #endregion
 
         #region Public Methods
 
+        /// <summary>
+        /// Performs the actual logging to the log storage
+        /// </summary>
+        /// <param name="level">The level of the message being logged</param>
+        /// <param name="domain">The domain of the message being logged</param>
+        /// <param name="message">The content of the message being logged</param>
         void Log(LogLevel level, LogDomain domain, string message);
 
         #endregion
