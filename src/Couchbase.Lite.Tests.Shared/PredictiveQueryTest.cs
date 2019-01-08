@@ -402,7 +402,7 @@ namespace Test
 
         #region IPredictiveModel
 
-        public DictionaryObject Prediction(DictionaryObject input)
+        public DictionaryObject Predict(DictionaryObject input)
         {
             NumberOfCalls++;
             return DoPrediction(input);
