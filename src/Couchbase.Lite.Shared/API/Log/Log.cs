@@ -20,15 +20,27 @@ using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Logging
 {
+    /// <summary>
+    /// The class that stores the three available logging facilities in Couchbase Lite
+    /// </summary>
     public sealed class Log
     {
         #region Properties
 
+        /// <summary>
+        /// Gets the logging facility that logs to a debugging console
+        /// </summary>
         [NotNull]
         public IConsoleLogger Console { get; internal set; }
 
+        /// <summary>
+        /// Gets or sets the user defined logging facility
+        /// </summary>
         public ILogger Custom { get; set; }
 
+        /// <summary>
+        /// Gets the logging facility that logs to files on the disk
+        /// </summary>
         [NotNull]
         public FileLogger File { get; } = new FileLogger();
 

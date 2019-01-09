@@ -41,6 +41,11 @@ namespace Couchbase.Lite.Query
         [NotNull]
         public static IPropertyExpression All() => new QueryTypeExpression("", ExpressionType.KeyPath);
 
+        /// <summary>
+        /// Returns an expression to represent a fixed array value
+        /// </summary>
+        /// <param name="value">The value to use</param>
+        /// <returns>An expression representing the fixed value</returns>
         [NotNull]
         public static IExpression Array(IList value) => new QueryCollectionExpression(value);
 

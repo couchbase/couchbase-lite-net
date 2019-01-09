@@ -472,6 +472,9 @@ namespace Couchbase.Lite
         public static readonly int EWOULDBLOCK = 140;
     }
 
+    /// <summary>
+    /// A class containing POSIX codes that are unique to macOS
+    /// </summary>
     public sealed class PosixMac : PosixBase
     {
         /// <summary>
@@ -855,6 +858,9 @@ namespace Couchbase.Lite
         public static readonly int EQFULL = 106;
     }
 
+    /// <summary>
+    /// A class containing POSIX codes that are unique to the Linux kernel
+    /// </summary>
     public sealed class PosixLinux : PosixBase
     {
         /// <summary>
