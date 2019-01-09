@@ -2220,6 +2220,11 @@ namespace Test
             var expectedLocal = new List<long>();
 
             var offset = (long)TimeZoneInfo.Local.BaseUtcOffset.TotalMilliseconds;
+            var dto = DateTimeOffset.FromUnixTimeMilliseconds(499132800000);
+            if (TimeZoneInfo.Local.IsDaylightSavingTime(dto)) {
+                offset += 3600000;
+            }
+
             expectedLocal.Add(499132800000 - offset); // 499132800000 is 2018-10-26T00:00:00Z
             foreach (var entry in expectedUTC.Skip(1)) {
                 expectedLocal.Add(entry - offset);

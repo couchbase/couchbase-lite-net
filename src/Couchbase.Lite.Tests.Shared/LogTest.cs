@@ -165,7 +165,10 @@ namespace Test
             TestDisableLogging();
             var sentinel = Guid.NewGuid().ToString();
             var logDirectory = Path.Combine(Path.GetTempPath(), "ReEnableLogs");
-            Directory.Delete(logDirectory, true);
+            if (Directory.Exists(logDirectory)) {
+                Directory.Delete(logDirectory, true);
+            }
+
             Database.Log.File.Level = LogLevel.Verbose;
             Database.Log.File.UsePlaintext = true;
             Database.Log.File.Directory = logDirectory;
