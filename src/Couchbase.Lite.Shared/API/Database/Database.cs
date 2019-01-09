@@ -1221,7 +1221,7 @@ namespace Couchbase.Lite
                     Native.c4db_getFLSharedKeys(_c4db), FLSlice.Null);
                 ThreadSafety.DoLocked(() =>
                 {
-                    if (Native.c4doc_dictContainsBlobs((FLDict *)fleeceDoc)) {
+                    if (Native.c4doc_dictContainsBlobs((FLDict *)Native.FLDoc_GetRoot(fleeceDoc))) {
                         revFlags |= C4RevisionFlags.HasAttachments;
                     }
                 });
