@@ -16,6 +16,8 @@
 // limitations under the License.
 // 
 
+using Couchbase.Lite.Util;
+
 using JetBrains.Annotations;
 
 using LiteCore.Interop;
@@ -52,17 +54,9 @@ namespace Couchbase.Lite.Sync
     public struct ReplicatedDocument
     {
         /// <summary>
-        /// Gets whether or not the document's access has been lost
-        /// via removal from all Sync Gateway channels that a user
-        /// has access to
+        /// Gets the special flags, if any, for this replicated document
         /// </summary>
-        public bool IsAccessRemoved { get; }
-
-        /// <summary>
-        /// Gets whether or not the document that was replicated
-        /// was deleted
-        /// </summary>
-        public bool IsDeleted { get; }
+        public DocumentFlags Flags { get; }
 
         /// <summary>
         /// Gets the document ID of the document that was replicated
@@ -84,19 +78,17 @@ namespace Couchbase.Lite.Sync
             bool isTransient)
         {
             Id = docID;
-            IsDeleted = flags.HasFlag(C4RevisionFlags.Deleted);
-            IsAccessRemoved = flags.HasFlag(C4RevisionFlags.Purged);
+            Flags = flags.ToDocumentFlags();
             NativeError = error;
             Error = error.domain == 0 ? null : CouchbaseException.Create(error);
             IsTransient = isTransient;
         }
 
-        private ReplicatedDocument([NotNull] string docID, bool isAccessRemoved, bool isDeleted, C4Error error,
+        private ReplicatedDocument([NotNull] string docID, DocumentFlags flags, C4Error error,
             bool isTransient)
         {
             Id = docID;
-            IsAccessRemoved = isAccessRemoved;
-            IsDeleted = isDeleted;
+            Flags = flags;
             NativeError = error;
             Error = error.domain == 0 ? null : CouchbaseException.Create(error);
             IsTransient = isTransient;
@@ -104,14 +96,13 @@ namespace Couchbase.Lite.Sync
 
         internal ReplicatedDocument ClearError()
         {
-            return new ReplicatedDocument(Id, IsAccessRemoved, IsDeleted, new C4Error(), IsTransient);
+            return new ReplicatedDocument(Id, Flags, new C4Error(), IsTransient);
         }
 
         public override string ToString()
         {
             return $"ReplicatedDocument[ Doc ID: {Id}; " +
-                   $"IsDeleted: { IsDeleted }; " +
-                   $"IsAccessRemoved: { IsAccessRemoved }; " +
+                   $"Flags: { Flags };" + 
                    $"Error domain: { Error.Domain }; " +
                    $"Error code: { Error.Error }; " +
                    $"IsTransient: { IsTransient } ]";

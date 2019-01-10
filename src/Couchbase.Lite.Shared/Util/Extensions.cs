@@ -23,6 +23,10 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
+using Couchbase.Lite.Sync;
+
+using LiteCore.Interop;
+
 namespace Couchbase.Lite.Util
 {
     /// <summary>
@@ -31,6 +35,20 @@ namespace Couchbase.Lite.Util
     internal static class Extensions
     {
         #region Public Methods
+
+        public static DocumentFlags ToDocumentFlags(this C4RevisionFlags flags)
+        {
+            var retVal = (DocumentFlags)0;
+            if (flags.HasFlag(C4RevisionFlags.Deleted)) {
+                retVal |= DocumentFlags.Deleted;
+            }
+
+            if (flags.HasFlag(C4RevisionFlags.Purged)) {
+                retVal |= DocumentFlags.AccessRemoved;
+            }
+
+            return retVal;
+        }
 
         /// <summary>
         /// Attempts to cast an object to a given type, and returning a default value if not successful

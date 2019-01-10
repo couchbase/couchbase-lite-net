@@ -275,20 +275,6 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods
 
-        private static DocumentFlags FromRevisionFlags(C4RevisionFlags flags)
-        {
-            var retVal = (DocumentFlags)0;
-            if (flags.HasFlag(C4RevisionFlags.Deleted)) {
-                retVal |= DocumentFlags.Deleted;
-            }
-
-            if (flags.HasFlag(C4RevisionFlags.Purged)) {
-                retVal |= DocumentFlags.AccessRemoved;
-            }
-
-            return retVal;
-        }
-
         private static C4ReplicatorMode Mkmode(bool active, bool continuous)
         {
             return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
@@ -332,7 +318,7 @@ namespace Couchbase.Lite.Sync
                 return false;
             }
 
-            var flags = FromRevisionFlags(revisionFlags);
+            var flags = revisionFlags.ToDocumentFlags();
             return replicator.PullValidateCallback(docIDStr, dict, flags);
         }
 
@@ -351,8 +337,8 @@ namespace Couchbase.Lite.Sync
                 WriteLog.To.Database.E(Tag, "Null document ID received in push filter, rejecting...");
                 return false;
             }
-            
-            var flags = FromRevisionFlags(revisionFlags);
+
+            var flags = revisionFlags.ToDocumentFlags();
             return replicator.PushFilterCallback(docIDStr, dict, flags);
         }
 
