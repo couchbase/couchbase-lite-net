@@ -259,7 +259,6 @@ namespace Couchbase.Lite
             _properties = new Dictionary<string, object>(CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, 
                 nameof(properties), properties));
             ContentType = properties.GetCast<string>(ContentTypeKey);
-            _blobStore = _db.BlobStore;
             if(Digest == null) {
                 WriteLog.To.Database.W(Tag, "Blob read from database has missing digest");
             }

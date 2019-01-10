@@ -143,7 +143,7 @@ namespace Couchbase.Lite.Internal.Serialization
                 case FLValueType.Boolean:
                     return Native.FLValue_AsBool(value);
                 case FLValueType.Data:
-                    return Native.FLValue_AsData(value);
+                    return new Blob("application/octet-stream", Native.FLValue_AsData(value));
                 case FLValueType.Dict: {
                     var dict = Native.FLValue_AsDict(value);
                     return convertDelegate(dict);
@@ -225,7 +225,7 @@ namespace Couchbase.Lite.Internal.Serialization
                 case FLValueType.Boolean:
                     return Native.FLValue_AsBool(value);
                 case FLValueType.Data:
-                    return Native.FLValue_AsData(value);
+                    return new Blob("application/octet-stream", Native.FLValue_AsData(value));
                 case FLValueType.Dict: {
 
                     var dict = Native.FLValue_AsDict(value);
