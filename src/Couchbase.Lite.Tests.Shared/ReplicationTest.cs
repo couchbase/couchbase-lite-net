@@ -649,12 +649,33 @@ namespace Test
             var pushWait = new WaitAssert();
             RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
             {
-                pushWait.RunConditionalAssert(() => args.IsPush);
-                pullWait.RunConditionalAssert(() => !args.IsPush);
+                pushWait.RunConditionalAssert(() => args.IsPush && args.Documents.Any(x => x.Flags.HasFlag(DocumentFlags.Deleted)));
+                pullWait.RunConditionalAssert(() => !args.IsPush && args.Documents.Any(x => x.Flags.HasFlag(DocumentFlags.Deleted)));
             });
 
             pushWait.WaitForResult(TimeSpan.FromSeconds(5));
             pullWait.WaitForResult(TimeSpan.FromSeconds(1));
+        }
+
+        [Fact]
+        public void TestChannelRemovedEvent()
+        {
+            using (var doc2 = new MutableDocument("doc2"))
+            {
+                doc2.SetString("name", "test2");
+                _otherDB.Save(doc2);
+                doc2.SetData(new Dictionary<string, object> { ["_removed"] = true });
+                _otherDB.Save(doc2);
+            }
+
+            var config = CreateConfig(true, true, false);
+            var pullWait = new WaitAssert();
+            RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
+            {
+                pullWait.RunConditionalAssert(() => !args.IsPush && args.Documents.Any(x => x.Flags.HasFlag(DocumentFlags.AccessRemoved)));
+            });
+            
+            pullWait.WaitForResult(TimeSpan.FromSeconds(5));
         }
 
         [Fact]
