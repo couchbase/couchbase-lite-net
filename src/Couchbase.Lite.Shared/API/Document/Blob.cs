@@ -56,6 +56,7 @@ namespace Couchbase.Lite
         #region Variables
 
         private readonly Dictionary<string, object> _properties;
+        private readonly C4BlobStore* _blobStore; // Used when DB is not available
         private byte[] _content;
         private Database _db;
         private Stream _initialContentStream;
@@ -76,7 +77,7 @@ namespace Couchbase.Lite
                     return _content;
                 }
 
-                if (_db != null) {
+                if (_db != null || _blobStore != null) {
                     C4BlobStore* blobStore;
                     C4BlobKey key;
                     if (!GetBlobStore(&blobStore, &key)) {
@@ -253,20 +254,25 @@ namespace Couchbase.Lite
 
         internal Blob([NotNull]Database db, [NotNull]IDictionary<string, object> properties)
         {
-            if(properties == null) {
-                throw new ArgumentNullException(nameof(properties));
-            }
-
+            SetupProperties(properties);
             _db = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(db), db);
-            _properties = new Dictionary<string, object>(CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(properties), properties));
-            _properties.Remove(Constants.ObjectTypeProperty);
-
-            Length = properties.GetCast<int>(LengthKey);
-            Digest = properties.GetCast<string>(DigestKey);
+            _properties = new Dictionary<string, object>(CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, 
+                nameof(properties), properties));
             ContentType = properties.GetCast<string>(ContentTypeKey);
+            _blobStore = _db.BlobStore;
             if(Digest == null) {
                 WriteLog.To.Database.W(Tag, "Blob read from database has missing digest");
             }
+        }
+
+        internal Blob(C4BlobStore* blobStore, [NotNull] IDictionary<string, object> properties)
+        {
+            SetupProperties(properties);
+            _blobStore = (C4BlobStore *)CBDebug.MustNotBeNullPointer(WriteLog.To.Database, Tag, 
+                nameof(blobStore), blobStore);
+            _properties = new Dictionary<string, object>(CBDebug.MustNotBeNull(WriteLog.To.Database, Tag,
+                nameof(properties), properties));
+            ContentType = properties.GetCast<string>(ContentTypeKey);
         }
 
         #endregion
@@ -299,10 +305,18 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
+        private void SetupProperties([NotNull] IDictionary<string, object> properties)
+        {
+            properties.Remove(Constants.ObjectTypeProperty);
+
+            Length = properties.GetCast<int>(LengthKey);
+            Digest = properties.GetCast<string>(DigestKey);
+        }
+
         private bool GetBlobStore(C4BlobStore** outBlobStore, C4BlobKey* outKey)
         {
             try {
-                *outBlobStore = _db.BlobStore;
+                *outBlobStore = _blobStore != null ? _blobStore : _db.BlobStore;
                 return Digest != null && Native.c4blob_keyFromString(Digest, outKey);
             } catch(InvalidOperationException) {
                 return false;

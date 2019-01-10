@@ -16,22 +16,31 @@
 // limitations under the License.
 //
 
+using JetBrains.Annotations;
+
 namespace LiteCore
 {
     internal static class Constants
     {
+        [NotNull]
         internal const string DllName = "LiteCore";
-
+        
+        [NotNull]
         internal const string DllNameIos = "@rpath/LiteCore.framework/LiteCore";
-
+        
+        [NotNull]
         internal static readonly string ObjectTypeProperty = "@type";
-
+        
+        [NotNull]
         internal static readonly string ObjectTypeBlob = "blob";
-
+        
+        [NotNull]
         internal static readonly string C4LanguageDefault = null;
         
+        [NotNull]
         internal static readonly string C4LanguageNone = "";
         
+        [NotNull]
         internal static readonly string C4PlaceholderValue = "*";
     }
 }

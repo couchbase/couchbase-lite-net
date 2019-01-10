@@ -147,7 +147,7 @@ namespace Test
             
             var input = Expression.Dictionary(new Dictionary<string, object>
             {
-                ["text"] = new List<object> { "BLOB", ".text" }
+                ["text"] = new List<object> { ".text" }
             });
             var prediction = Function.Prediction(textModel.Name, input).Property("wc");
             using (var q = QueryBuilder

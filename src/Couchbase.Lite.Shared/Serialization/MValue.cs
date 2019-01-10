@@ -117,7 +117,7 @@ namespace Couchbase.Lite.Internal.Serialization
         private static object CreateSpecialObject(string type, FLDict* properties, DocContext context)
         {
             Debug.Assert(context != null);
-            return type == ObjectTypeBlob || FLValueConverter.IsOldAttachment(context.Db, properties)
+            return type == ObjectTypeBlob || FLValueConverter.IsOldAttachment(properties)
                 ? context.ToObject((FLValue*) properties, true)
                 : null;
         }

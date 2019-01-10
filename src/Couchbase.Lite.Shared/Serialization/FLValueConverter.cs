@@ -15,16 +15,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 
 using Couchbase.Lite.Interop;
-using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
+
+using JetBrains.Annotations;
+
 using LiteCore;
 using LiteCore.Interop;
 
@@ -35,6 +37,13 @@ namespace Couchbase.Lite.Internal.Serialization
         #region Constants
 
         private const string Tag = nameof(FLValueConverter);
+
+        #endregion
+
+        #region Variables
+
+        [NotNull]
+        public delegate object ObjectConvertDelegate(FLDict* dict);
 
         #endregion
 
@@ -54,7 +63,7 @@ namespace Couchbase.Lite.Internal.Serialization
                     case FLValueType.Dict: {
                         var dict = Native.FLValue_AsDict(value);
                         var type = TypeForDict(dict);
-                        if (!dotNetTypes && type.buf == null && !IsOldAttachment(database, dict)) {
+                        if (!dotNetTypes && type.buf == null && !IsOldAttachment(dict)) {
                             return new DictionaryObject(new MDict(new MValue(value), null), false);
                         }
 
@@ -88,7 +97,7 @@ namespace Couchbase.Lite.Internal.Serialization
             }
         }
 
-        internal static bool IsOldAttachment(Database db, FLDict* dict)
+        internal static bool IsOldAttachment(FLDict* dict)
         {
             var flDigest = Native.FLDict_Get(dict, Encoding.UTF8.GetBytes("digest"));
             var flLength =  Native.FLDict_Get(dict, Encoding.UTF8.GetBytes("length"));
@@ -96,6 +105,68 @@ namespace Couchbase.Lite.Internal.Serialization
             var flRevPos =  Native.FLDict_Get(dict, Encoding.UTF8.GetBytes("revpos"));
 
             return flDigest != null && flLength != null && flStub != null && flRevPos != null;
+        }
+
+        internal static bool IsOldAttachment(IDictionary<string, object> dict)
+        {
+            var digest = dict.Get("digest");
+            var length = dict.Get("length");
+            var stub = dict.Get("stub");
+            var revpos = dict.Get("revpos");
+            return digest != null && length != null && stub != null && revpos != null;
+        }
+
+        internal static object ToObject(FLValue* value, [NotNull]ObjectConvertDelegate convertDelegate)
+        {
+            if (value == null) {
+                return null;
+            }
+
+            switch (Native.FLValue_GetType(value)) {
+                case FLValueType.Array: {
+                    var arr = Native.FLValue_AsArray(value);
+                    var count = (int)Native.FLArray_Count(arr);
+                    if (count == 0) {
+                        return new List<object>();
+                    }
+
+                    var retVal = new MutableArrayObject();
+
+                    var i = default(FLArrayIterator);
+                    Native.FLArrayIterator_Begin(arr, &i);
+                    do {
+                        retVal.AddValue(ToObject(Native.FLArrayIterator_GetValue(&i), convertDelegate));
+                    } while (Native.FLArrayIterator_Next(&i));
+
+                    return retVal.ToImmutable();
+                }
+                case FLValueType.Boolean:
+                    return Native.FLValue_AsBool(value);
+                case FLValueType.Data:
+                    return Native.FLValue_AsData(value);
+                case FLValueType.Dict: {
+                    var dict = Native.FLValue_AsDict(value);
+                    return convertDelegate(dict);
+                }
+                case FLValueType.Null:
+                    return null;
+                case FLValueType.Number:
+                    if(Native.FLValue_IsInteger(value)) {
+                        if(Native.FLValue_IsUnsigned(value)) {
+                            return Native.FLValue_AsUnsigned(value);
+                        }
+
+                        return Native.FLValue_AsInt(value);
+                    } else if(Native.FLValue_IsDouble(value)) {
+                        return Native.FLValue_AsDouble(value);
+                    }
+
+                    return Native.FLValue_AsFloat(value);
+                case FLValueType.String:
+                    return Native.FLValue_AsString(value);
+                default:
+                    return null;
+            }
         }
 
         #endregion
@@ -122,15 +193,6 @@ namespace Couchbase.Lite.Internal.Serialization
             }
             
             return dict;
-        }
-
-        private static bool IsOldAttachment(IDictionary<string, object> dict)
-        {
-            var digest = dict.Get("digest");
-            var length = dict.Get("length");
-            var stub = dict.Get("stub");
-            var revpos = dict.Get("revpos");
-            return digest != null && length != null && stub != null && revpos != null;
         }
 
         private static object ToObject(FLValue* value, Database db, int level = 0, Type hintType1 = null)
