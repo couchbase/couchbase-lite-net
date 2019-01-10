@@ -144,22 +144,32 @@ namespace Test
         public void TestPushDeletedDocWithFilter()
         {
             using (var doc1 = new MutableDocument("doc1"))
-            using (var doc2 = new MutableDocument("doc2")) {
-                doc1.SetString("name", "donotpass");
+            using (var doc2 = new MutableDocument("pass")) {
+                doc1.SetString("name", "pass");
                 Db.Save(doc1);
 
                 doc2.SetString("name", "pass");
                 Db.Save(doc2);
-
-                Db.Delete(doc2);
             }
 
             var config = CreateConfig(true, false, false);
             config.PushFilter = _replicator__filterCallback;
             RunReplication(config, 0, 0);
             _isFilteredCallback.Should().BeTrue();
-            _otherDB.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
-            _otherDB.GetDocument("doc2").Should().BeNull("because doc2 is deleted");
+            _otherDB.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
+            _otherDB.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
+            _isFilteredCallback = false;
+
+            using (var doc1 = Db.GetDocument("doc1"))
+            using (var doc2 = Db.GetDocument("pass")) {
+                Db.Delete(doc1);
+                Db.Delete(doc2);
+            }
+
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue();
+            _otherDB.GetDocument("doc1").Should().NotBeNull("because doc1's deletion should be rejected");
+            _otherDB.GetDocument("pass").Should().NotBeNull("because the next document's deletion is not rejected");
             _isFilteredCallback = false;
         }
 
@@ -277,6 +287,76 @@ namespace Test
             _isFilteredCallback.Should().BeTrue();
             Db.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
             Db.GetDocument("doc2").Should().NotBeNull("because doc2 is filtered in in the callback");
+            _isFilteredCallback = false;
+        }
+
+        [Fact]
+        public void TestPullDeletedDocWithFilter()
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("pass")) {
+                doc1.SetString("name", "pass");
+                _otherDB.Save(doc1);
+
+                doc2.SetString("name", "pass");
+                _otherDB.Save(doc2);
+            }
+
+            var config = CreateConfig(false, true, false);
+            config.PullFilter = _replicator__filterCallback;
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue();
+            Db.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
+            Db.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
+            _isFilteredCallback = false;
+
+            using (var doc1 = _otherDB.GetDocument("doc1"))
+            using (var doc2 = _otherDB.GetDocument("pass")) {
+                _otherDB.Delete(doc1);
+                _otherDB.Delete(doc2);
+            }
+
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue();
+            Db.GetDocument("doc1").Should().NotBeNull("because doc1's deletion should be rejected");
+            Db.GetDocument("pass").Should().BeNull("because the next document's deletion is not rejected");
+            _isFilteredCallback = false;
+        }
+
+        [Fact]
+        public void TestPullRemovedDocWithFilter()
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("pass")) {
+                doc1.SetString("name", "pass");
+                _otherDB.Save(doc1);
+
+                doc2.SetString("name", "pass");
+                _otherDB.Save(doc2);
+            }
+
+            var config = CreateConfig(false, true, false);
+            config.PullFilter = _replicator__filterCallback;
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue();
+            Db.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
+            Db.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
+            _isFilteredCallback = false;
+
+            using (var doc1 = _otherDB.GetDocument("doc1"))
+            using (var doc2 = _otherDB.GetDocument("pass"))
+            using (var doc1Mutable = doc1.ToMutable()) 
+            using (var doc2Mutable = doc2.ToMutable()) {
+                doc1Mutable.SetData(new Dictionary<string, object> { ["_removed"] = true });
+                doc2Mutable.SetData(new Dictionary<string, object> { ["_removed"] = true });
+                _otherDB.Save(doc1Mutable);
+                _otherDB.Save(doc2Mutable);
+            }
+
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue();
+            Db.GetDocument("doc1").Should().NotBeNull("because doc1's removal should be rejected");
+            Db.GetDocument("pass").Should().BeNull("because the next document's removal is not rejected");
             _isFilteredCallback = false;
         }
 
@@ -1208,6 +1288,10 @@ namespace Test
         private bool _replicator__filterCallback(Document document, DocumentFlags flags)
         {
             _isFilteredCallback = true;
+            if (flags != 0) {
+                return document.Id == "pass";
+            }
+
             var name = document.GetString("name");
             return name == "pass";
         }

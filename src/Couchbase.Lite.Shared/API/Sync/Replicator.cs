@@ -279,11 +279,11 @@ namespace Couchbase.Lite.Sync
         {
             var retVal = (DocumentFlags)0;
             if (flags.HasFlag(C4RevisionFlags.Deleted)) {
-                retVal &= DocumentFlags.Deleted;
+                retVal |= DocumentFlags.Deleted;
             }
 
             if (flags.HasFlag(C4RevisionFlags.Purged)) {
-                retVal &= DocumentFlags.AccessRemoved;
+                retVal |= DocumentFlags.AccessRemoved;
             }
 
             return retVal;
