@@ -262,6 +262,14 @@ namespace Couchbase.Lite
             
         }
 
+        // Used for predictive query callback
+        internal Database(C4Database* c4db)
+        {
+            Name = "tmp";
+            Config = new DatabaseConfiguration(true);
+            _c4db = c4db;
+        }
+
         /// <summary>
         /// Finalizer
         /// </summary>
