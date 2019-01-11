@@ -152,8 +152,6 @@ namespace Test
             const uint nRounds = 100;
             const string tag = "Update";
 
-            var locker = new object();
-
             var docIDs = CreateDocs(nDocs, "Create").Select(x => x.Id).ToList();
 
             var t1 = Task.Factory.StartNew(() => ReadDocs(docIDs, nRounds));
@@ -170,7 +168,7 @@ namespace Test
             docs.Count.Should().Be(nDocs);
 
             var delete1 = new WaitAssert();
-            delete1.RunAssertAsync(() =>
+            var ignore = delete1.RunAssertAsync(() =>
             {
                 foreach (var doc in docs) {
                     Db.Delete(doc);
@@ -178,7 +176,7 @@ namespace Test
             });
 
             var delete2 = new WaitAssert();
-            delete2.RunAssertAsync(() =>
+            ignore = delete2.RunAssertAsync(() =>
             {
                 foreach (var doc in docs) {
                     Db.Delete(doc);
@@ -260,10 +258,9 @@ namespace Test
         public void TestConcurrentCreateAndCloseDB()
         {
             const int nDocs = 1000;
-
-            var tag1 = "Create";
+            
             var exp1 = new WaitAssert();
-            exp1.RunAssertAsync(() =>
+            var ignore = exp1.RunAssertAsync(() =>
             {
                 Action a = () => CreateDocs(nDocs, "Create").ToList();
                 a.ShouldThrow<InvalidOperationException>();
@@ -277,10 +274,9 @@ namespace Test
         public void TestConcurrentCreateAndDeleteDB()
         {
             const int nDocs = 1000;
-
-            var tag1 = "Create";
+            
             var exp1 = new WaitAssert();
-            exp1.RunAssertAsync(() =>
+            var ignore = exp1.RunAssertAsync(() =>
             {
                 Action a = () => CreateDocs(nDocs, "Create").ToList();
                 a.ShouldThrow<InvalidOperationException>();
@@ -294,10 +290,9 @@ namespace Test
         public void TestConcurrentCreateNCompactDB()
         {
             const int nDocs = 1000;
-
-            var tag1 = "Create";
+            
             var exp1 = new WaitAssert();
-            exp1.RunAssertAsync(() =>
+            var ignore = exp1.RunAssertAsync(() =>
             {
                 CreateDocs(nDocs, "Create").ToList();
             });
@@ -310,10 +305,9 @@ namespace Test
         public void TestConcurrentCreateNCreateIndexDB()
         {
             const int nDocs = 1000;
-
-            var tag1 = "Create";
+            
             var exp1 = new WaitAssert();
-            exp1.RunAssertAsync(() =>
+            var ignore = exp1.RunAssertAsync(() =>
             {
                 CreateDocs(nDocs, "Create").ToList();
             });
@@ -335,7 +329,7 @@ namespace Test
                 });
             });
 
-            exp1.RunAssertAsync(() =>
+            var ignore = exp1.RunAssertAsync(() =>
             {
                 Db.Save(new MutableDocument("doc1"));
             });
@@ -359,7 +353,7 @@ namespace Test
             });
 
             WriteLine("Triggering async save");
-            exp1.RunAssertAsync(() =>
+            var ignore = exp1.RunAssertAsync(() =>
             {
                 WriteLine("Running async save");
                 Db.Save(new MutableDocument("doc1"));
@@ -476,7 +470,7 @@ namespace Test
             var expectations = new WaitAssert[nRuns];
             for (uint i = 0; i < nRuns; i++) {
                 expectations[i] = new WaitAssert();
-                expectations[i].RunAssertAsync(block, i);
+                var ignore = expectations[i].RunAssertAsync(block, i);
             }
 
             foreach (var exp in expectations) {

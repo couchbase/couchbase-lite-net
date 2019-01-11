@@ -200,7 +200,7 @@ namespace Couchbase.Lite.Sync
         /// Removes a previously added documents ended listener via its <see cref="ListenerToken"/>
         /// </summary>
         /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{ReplicatorStatusChangedEventArgs})"/>
-        /// and/or The token received from <see cref="AddReplicationListener(TaskScheduler, EventHandler{DocumentReplicationEventArgs})"/></param>
+        /// and/or The token received from <see cref="AddDocumentReplicationListener(TaskScheduler, EventHandler{DocumentReplicationEventArgs})"/></param>
         public void RemoveChangeListener(ListenerToken token)
         {
             _statusChanged.Remove(token);

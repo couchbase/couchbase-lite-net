@@ -24,7 +24,7 @@ using JetBrains.Annotations;
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// An interface representing a writeable collection of objects
+    /// An interface representing a writable collection of objects
     /// </summary>
     public interface IMutableArray : IArray, IMutableArrayFragment
     {

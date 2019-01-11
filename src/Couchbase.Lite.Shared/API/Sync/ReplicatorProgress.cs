@@ -99,6 +99,7 @@ namespace Couchbase.Lite.Sync
             return new ReplicatedDocument(Id, Flags, new C4Error(), IsTransient);
         }
 
+        /// <inheritdoc />
         public override string ToString()
         {
             return $"ReplicatedDocument[ Doc ID: {Id}; " +

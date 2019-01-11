@@ -112,14 +112,16 @@ namespace Test
 
         protected virtual void SetUp()
         {
-            Database.SetLogLevel(LogDomain.All, LogLevel.None);
+            Database.Log.Console.Level = LogLevel.None;
+            Database.Log.File.Level = LogLevel.None;
         }
 
         protected abstract void Test();
 
         protected virtual void TearDown()
         {
-            Database.SetLogLevel(LogDomain.All, LogLevel.Warning);
+            Database.Log.Console.Level = LogLevel.Warning;
+            Database.Log.File.Level = LogLevel.Info;
             Db?.Dispose();
             Db = null;
             Database.Log.Custom = null;

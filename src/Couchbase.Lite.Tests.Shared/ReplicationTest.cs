@@ -61,9 +61,6 @@ namespace Test
         private WaitAssert _waitAssert;
         private bool _isFilteredCallback;
         private List<DocumentReplicationEventArgs> _replicationEvents = new List<DocumentReplicationEventArgs>();
-        #if COUCHBASE_ENTERPRISE
-        private IMockConnectionErrorLogic _p2PErrorLogic;
-        #endif
 
 #if !WINDOWS_UWP
         public ReplicatorTest(ITestOutputHelper output) : base(output)
@@ -1210,88 +1207,6 @@ namespace Test
         }
 
 #endif
-
-        // The below tests are disabled because they require orchestration and should be moved
-        // to the functional test suite
-#if HAVE_SG
-        [Fact] 
-#endif
-        public void TestAuthenticationFailure()
-        {
-            var config = CreateConfig(false, true, false, new URLEndpoint(new Uri("ws://localhost/seekrit")));
-            _repl = new Replicator(config);
-            RunReplication(config, (int)CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
-        }
-
-#if HAVE_SG
-        [Fact] 
-#endif
-        public void TestAuthenticatedPull()
-        {
-            var config = CreateConfig(false, true, false, new URLEndpoint(new Uri("ws://localhost/seekrit")));
-            config.Authenticator = new SessionAuthenticator("78376efd8cc74dadfc395f4049a115b7cd0ef5e3");
-            RunReplication(config, 0, 0);
-        }
-
-#if HAVE_SG
-        [Fact]
-#endif
-        public void TestSelfSignedSSLFailure()
-        {
-            var config = CreateConfig(false, true, false, new URLEndpoint(new Uri("wss://localhost/db")));
-            RunReplication(config, (int)CouchbaseLiteError.TLSCertUntrusted, CouchbaseLiteErrorType.CouchbaseLite);
-        }
-
-#if HAVE_SG
-        [Fact]
-#endif
-        public async Task TestSelfSignedSSLPinned()
-        {
-            var config = CreateConfig(false, true, false,  new URLEndpoint(new Uri("wss://localhost/db")));
-#if WINDOWS_UWP
-            var installedLocation = Windows.ApplicationModel.Package.Current.InstalledLocation;
-            var file = await installedLocation.GetFileAsync("Assets\\localhost-wrong.cert");
-            var bytes = File.ReadAllBytes(file.Path);
-            config.PinnedServerCertificate = new X509Certificate2(bytes);
-#else
-            config.PinnedServerCertificate = new X509Certificate2("localhost-wrong.cert");
-#endif
-            RunReplication(config, 0, 0);
-        }
-
-#if HAVE_SG
-        [Fact] 
-#endif
-        public void TestChannelPull()
-        {
-            _otherDB.Count.Should().Be(0);
-            Db.InBatch(() =>
-            {
-                for (int i = 0; i < 5; i++) {
-                    using (var doc = new MutableDocument($"doc-{i}")) {
-                        doc["foo"].Value = "bar";
-                        Db.Save(doc);
-                    }
-                }
-
-                for (int i = 0; i < 10; i++) {
-                    using (var doc = new MutableDocument($"doc-{i+5}")) {
-                        doc["channels"].Value = "my_channel";
-                        Db.Save(doc);
-                    }
-                }
-            });
-
-            
-            var config = CreateConfig(true, false, false,  new URLEndpoint(new Uri("ws://localhost/db")));
-            RunReplication(config, 0, 0);
-
-            config = new ReplicatorConfiguration(_otherDB, new URLEndpoint(new Uri("ws://localhost/db")));
-            ModifyConfig(config, false, true, false);
-            config.Channels = new[] {"my_channel"};
-            RunReplication(config, 0, 0);
-            _otherDB.Count.Should().Be(10, "because 10 documents should be in the given channel");
-        }
 
 #if COUCHBASE_ENTERPRISE
         private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous)

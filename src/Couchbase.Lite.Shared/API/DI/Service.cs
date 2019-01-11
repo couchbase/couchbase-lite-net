@@ -60,7 +60,7 @@ namespace Couchbase.Lite.DI
         /// <param name="assembly"></param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="assembly"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if an invalid type is found inside of the assembly (i.e.
-        /// one that does not implement any interfaces and/or does not have a parameterless constructor)</exception>
+        /// one that does not implement any interfaces and/or does not have a parameter-less constructor)</exception>
         [ContractAnnotation("null => halt")]
         public static void AutoRegister(Assembly assembly)
         {

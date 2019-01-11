@@ -374,7 +374,9 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns><c>true</c> if the specified object is equal to the current object; otherwise, <c>false</c>.</returns>
         /// <param name="obj">The object to compare with the current object. </param>
+#pragma warning disable 659
         public override bool Equals(object obj)
+#pragma warning restore 659
         {
             if (obj is Blob other) {
                 if (Digest != null && other.Digest != null) {
@@ -414,7 +416,6 @@ namespace Couchbase.Lite
         /// Returns a string that represents the current object.
         /// </summary>
         /// <returns>A string that represents the current object.</returns>
-        [NotNull]
         public override string ToString()
         {
             return $"Blob[{ContentType}; {(Length + 512) / 1024} KB]";

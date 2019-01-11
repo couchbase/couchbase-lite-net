@@ -74,7 +74,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A Couchbase Lite database.  This class is responsible for CRUD operations revolving around
     /// <see cref="Document"/> instances.  It is portable between platforms if the file is retrieved,
-    /// and can be seeded with prepopulated data if desired.
+    /// and can be seeded with pre-populated data if desired.
     /// </summary>
     public sealed unsafe partial class Database : IDisposable
     {
@@ -292,7 +292,7 @@ namespace Couchbase.Lite
         /// Copies a canned database from the given path to a new database with the given name and
         /// the configuration.  The new database will be created at the directory specified in the
         /// configuration.  Without given the database configuration, the default configuration that
-        /// is equivalent to setting all properties in the configuration to <c>null</c> wlil be used.
+        /// is equivalent to setting all properties in the configuration to <c>null</c> will be used.
         /// </summary>
         /// <param name="path">The source database path (i.e. path to the cblite2 folder)</param>
         /// <param name="name">The name of the new database to be created</param>
@@ -734,7 +734,7 @@ namespace Couchbase.Lite
         /// <param name="expiration"> Nullable expiration timestamp as a 
         /// <see cref="DateTimeOffset"/>, set timestamp to <c>null</c> 
         /// to remove expiration date time from doc.</param>
-        /// <returns>Whether succesfully sets an expiration date on the document</returns>
+        /// <returns>Whether successfully sets an expiration date on the document</returns>
         /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
         /// doesn't exist</exception>
         public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)

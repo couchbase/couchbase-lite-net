@@ -540,7 +540,7 @@ Transfer-Encoding: chunked";
             var queue = new SerialQueue();
             var now = DateTime.Now;
             var then = now;
-            queue.DispatchAfter(() => then = DateTime.Now, TimeSpan.FromSeconds(1));
+            var ignore = queue.DispatchAfter(() => then = DateTime.Now, TimeSpan.FromSeconds(1));
             await Task.Delay(250);
             then.Should().Be(now);
             await Task.Delay(800);

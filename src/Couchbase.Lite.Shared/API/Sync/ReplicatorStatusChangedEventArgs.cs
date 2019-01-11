@@ -47,7 +47,7 @@ namespace Couchbase.Lite.Sync
     }
 
     /// <summary>
-    /// Event arguments for the <see cref="Replicator.AddReplicationListener(EventHandler{DocumentReplicationEventArgs})" /> event
+    /// Event arguments for the <see cref="Replicator.AddDocumentReplicationListener(EventHandler{DocumentReplicationEventArgs})" /> event
     /// </summary>
     public sealed class DocumentReplicationEventArgs : EventArgs
     {

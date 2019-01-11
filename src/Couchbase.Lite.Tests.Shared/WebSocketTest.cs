@@ -114,15 +114,6 @@ namespace Test
         }
 
         [Fact]
-        public void TestDidClose()
-        {
-            C4WebSocketCloseCode closeCode = C4WebSocketCloseCode.WebSocketCloseAbnormal;
-            string reason = "Unexpected error in client logic";
-            var method = webSocketWrapper.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Instance).Where(m => m.Name == "DidClose");
-            //var res = method.ElementAt(0).Invoke(webSocketWrapper, new object[2] { closeCode, reason });
-        }
-
-        [Fact]
         public void TestBase64Digest()
         {
             string input = "test coverage";

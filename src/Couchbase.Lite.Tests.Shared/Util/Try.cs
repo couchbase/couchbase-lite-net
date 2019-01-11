@@ -109,7 +109,7 @@ namespace Test.Util
                     try {
                         _assertion();
                         return true;
-                    } catch (AssertionFailedException e) {
+                    } catch (AssertionFailedException) {
                         if (count == _count) {
                             throw;
                         }
