@@ -116,59 +116,6 @@ namespace Couchbase.Lite.Internal.Serialization
             return digest != null && length != null && stub != null && revpos != null;
         }
 
-        internal static object ToObject(FLValue* value, [NotNull]ObjectConvertDelegate convertDelegate)
-        {
-            if (value == null) {
-                return null;
-            }
-
-            switch (Native.FLValue_GetType(value)) {
-                case FLValueType.Array: {
-                    var arr = Native.FLValue_AsArray(value);
-                    var count = (int)Native.FLArray_Count(arr);
-                    if (count == 0) {
-                        return new List<object>();
-                    }
-
-                    var retVal = new MutableArrayObject();
-
-                    var i = default(FLArrayIterator);
-                    Native.FLArrayIterator_Begin(arr, &i);
-                    do {
-                        retVal.AddValue(ToObject(Native.FLArrayIterator_GetValue(&i), convertDelegate));
-                    } while (Native.FLArrayIterator_Next(&i));
-
-                    return retVal.ToImmutable();
-                }
-                case FLValueType.Boolean:
-                    return Native.FLValue_AsBool(value);
-                case FLValueType.Data:
-                    return new Blob("application/octet-stream", Native.FLValue_AsData(value));
-                case FLValueType.Dict: {
-                    var dict = Native.FLValue_AsDict(value);
-                    return convertDelegate(dict);
-                }
-                case FLValueType.Null:
-                    return null;
-                case FLValueType.Number:
-                    if(Native.FLValue_IsInteger(value)) {
-                        if(Native.FLValue_IsUnsigned(value)) {
-                            return Native.FLValue_AsUnsigned(value);
-                        }
-
-                        return Native.FLValue_AsInt(value);
-                    } else if(Native.FLValue_IsDouble(value)) {
-                        return Native.FLValue_AsDouble(value);
-                    }
-
-                    return Native.FLValue_AsFloat(value);
-                case FLValueType.String:
-                    return Native.FLValue_AsString(value);
-                default:
-                    return null;
-            }
-        }
-
         #endregion
 
         #region Private Methods
