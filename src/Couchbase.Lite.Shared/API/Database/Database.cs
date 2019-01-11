@@ -21,7 +21,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -229,6 +228,8 @@ namespace Couchbase.Lite
         
         private bool InTransaction => ThreadSafety.DoLocked(() => _c4db != null && Native.c4db_isInTransaction(_c4db));
 
+        private bool IsShell { get; }
+
         #endregion
 
         #region Constructors
@@ -267,7 +268,8 @@ namespace Couchbase.Lite
         {
             Name = "tmp";
             Config = new DatabaseConfiguration(true);
-            _c4db = c4db;
+            _c4db = Native.c4db_retain(_c4db);
+            IsShell = true;
         }
 
         /// <summary>
@@ -998,7 +1000,10 @@ namespace Couchbase.Lite
             }
 
             WriteLog.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(_c4db)}");
-            LiteCoreBridge.Check(err => Native.c4db_close(_c4db, err));
+            if (!IsShell) {
+                LiteCoreBridge.Check(err => Native.c4db_close(_c4db, err));
+            }
+
             Native.c4db_free(_c4db);
             _c4db = null;
         }
