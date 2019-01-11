@@ -27,6 +27,8 @@ using Couchbase.Lite;
 using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
+
+using Test.Util;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -1885,7 +1887,8 @@ namespace Test
                 Thread.Sleep(3100);
 
                 Action badAction = (() => Db.SetDocumentExpiration("deleted_doc1", dto3));
-                badAction.ShouldThrow<CouchbaseLiteException>("Cannot find the document.");
+                Try.Assertion(() => badAction.ShouldThrow<CouchbaseLiteException>("Cannot find the document."))
+                    .Times(5).Delay(TimeSpan.FromMilliseconds(500)).Go().Should().BeTrue();
             }
         }
 

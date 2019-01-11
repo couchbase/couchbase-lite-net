@@ -120,24 +120,33 @@ namespace Test
         }
 
         [Fact]
-        public void TestPushDocWithFilter()
+        public void TestPushDocWithFilterOneShot() => TestPushDocWithFilter(false);
+
+        [Fact]
+        public void TestPushDocWithFilterContinuous() => TestPushDocWithFilter(true);
+
+        [Fact]
+        public void TestPushPullKeepsFilter()
         {
-            using (var doc1 = new MutableDocument("doc1"))
-            using (var doc2 = new MutableDocument("doc2")) {
+            var config = CreateConfig(true, true, false);
+            config.PullFilter = _replicator__filterCallback;
+            config.PushFilter = _replicator__filterCallback;
+
+            using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "donotpass");
                 Db.Save(doc1);
-
-                doc2.SetString("name", "pass");
-                Db.Save(doc2);
             }
 
-            var config = CreateConfig(true, false, false);
-            config.PushFilter = _replicator__filterCallback;
-            RunReplication(config, 0, 0);
-            _isFilteredCallback.Should().BeTrue();
-            _otherDB.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
-            _otherDB.GetDocument("doc2").Should().NotBeNull("because doc2 is filtered in in the callback");
-            _isFilteredCallback = false;
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("name", "donotpass");
+                _otherDB.Save(doc2);
+            }
+
+            for (int i = 0; i < 2; i++) {
+                RunReplication(config, 0, 0);
+                Db.Count.Should().Be(1, "because the pull should have rejected the other document");
+                _otherDB.Count.Should().Be(1, "because the push should have rejected the local document");
+            }
         }
 
         [Fact]
@@ -1393,6 +1402,26 @@ namespace Test
         private void DocumentEndedUpdate(object sender, DocumentReplicationEventArgs args)
         {
             _replicationEvents.Add(args);
+        }
+
+        private void TestPushDocWithFilter(bool continuous)
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetString("name", "donotpass");
+                Db.Save(doc1);
+
+                doc2.SetString("name", "pass");
+                Db.Save(doc2);
+            }
+
+            var config = CreateConfig(true, false, continuous);
+            config.PushFilter = _replicator__filterCallback;
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue();
+            _otherDB.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
+            _otherDB.GetDocument("doc2").Should().NotBeNull("because doc2 is filtered in in the callback");
+            _isFilteredCallback = false;
         }
 
 #if COUCHBASE_ENTERPRISE
