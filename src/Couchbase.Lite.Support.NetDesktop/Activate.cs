@@ -136,7 +136,11 @@ namespace Couchbase.Lite.Support
         [Obsolete("This has been superseded by Database.Log.File.Directory.")]
         public static void SetBinaryLogDirectory(string directoryPath)
         {
-            Database.Log.File.Directory = directoryPath;
+            if (directoryPath == null) {
+                Database.Log.File.Config = null;
+            } else {
+                Database.Log.File.Config = new LogFileConfiguration(directoryPath, Database.Log.File.Config);
+            }
         }
 
         #endregion

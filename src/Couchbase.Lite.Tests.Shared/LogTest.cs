@@ -52,59 +52,57 @@ namespace Test
 #endif
 
         [Fact]
-        public void TestDefaultLogLocation()
-        {
-            var logDirectory = Database.Log.File.Directory;
-            WriteLog.To.Database.I("TEST", "MESSAGE");
-            Directory.EnumerateFiles(logDirectory, "*.cbllog").Count().Should()
-                .BeGreaterOrEqualTo(5, "because there should be at least 5 log entries in the folder");
-        }
-
-        [Fact]
         public void TestDefaultLogFormat()
         {
-            // Can't test all files because there might be some plaintext ones leftover from previous runs
-            // and/or tests
-            var logDirectory = Database.Log.File.Directory;
-            WriteLog.To.Database.I("TEST", "MESSAGE");
-            var logFilePath = Directory.EnumerateFiles(logDirectory, "cbl_info_*").LastOrDefault();
-            logFilePath.Should().NotBeNullOrEmpty();
-            var logContent = ReadAllBytes(logFilePath);
-            logContent.Should().StartWith(new byte[] { 0xcf, 0xb2, 0xab, 0x1b },
-                "because the log should be in binary format");
+            var logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestDefaultLogFormat"));
+            TestWithConfiguration(LogLevel.Info, new LogFileConfiguration(logDirectory), () =>
+            {
+                WriteLog.To.Database.I("TEST", "MESSAGE");
+                var logFilePath = Directory.EnumerateFiles(logDirectory, "cbl_info_*").LastOrDefault();
+                logFilePath.Should().NotBeNullOrEmpty();
+                var logContent = ReadAllBytes(logFilePath);
+                logContent.Should().StartWith(new byte[] { 0xcf, 0xb2, 0xab, 0x1b },
+                    "because the log should be in binary format");
+            });
         }
 
         [Fact]
         public void TestPlaintext()
         {
-            try {
-                // Can't test all files because there might be some plaintext ones leftover from previous runs
-                // and/or tests
-                var logDirectory = Database.Log.File.Directory;
-                Database.Log.File.UsePlaintext = true;
+            var logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestPlaintext"));
+            var config = new LogFileConfiguration(logDirectory, Database.Log.File.Config)
+            {
+                UsePlaintext = true
+            };
+
+            TestWithConfiguration(LogLevel.Info, config, () =>
+            {
+                Database.Log.File.Config = new LogFileConfiguration(logDirectory, Database.Log.File.Config)
+                {
+                    UsePlaintext = true
+                };
+
                 WriteLog.To.Database.I("TEST", "MESSAGE");
                 var logFilePath = Directory.EnumerateFiles(logDirectory, "cbl_info_*").LastOrDefault();
                 logFilePath.Should().NotBeNullOrEmpty();
                 var logContent = ReadAllLines(logFilePath);
                 logContent.Any(x => x.Contains("MESSAGE") && x.Contains("TEST"))
                     .Should().BeTrue("because the message should show up in plaintext");
-            } finally {
-                Database.Log.File.UsePlaintext = false;
-            }
+            });
         }
 
         [Fact]
         public void TestMaxSize()
         {
-            var old = Database.Log.File.MaxSize;
-            try {
-                // Can't test all files because there might be some plaintext ones leftover from previous runs
-                // and/or tests
-                var logDirectory = Database.Log.File.Directory;
-                Database.Log.File.UsePlaintext = true;
-                Database.Log.File.MaxSize = 1024;
-                Database.Log.File.Level = LogLevel.Debug;
+            var logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestMaxSize"));
+            var config = new LogFileConfiguration(logDirectory)
+            {
+                UsePlaintext = true,
+                MaxSize = 1024
+            };
 
+            TestWithConfiguration(LogLevel.Debug, config, () =>
+            {
                 // Write more than 2048 bytes, with a break to make sure the writes don't happen
                 // too quickly to skip a filesystem flush
                 for (int i = 0; i < 45; i++) {
@@ -119,30 +117,28 @@ namespace Test
                     WriteLog.To.Database.D("TEST", $"MESSAGE {i}");
                 }
                 
-                var totalCount = (Database.Log.File.MaxRotateCount + 1) * 5;
-                #if !DEBUG
+                var totalCount = (Database.Log.File.Config.MaxRotateCount + 1) * 5;
+#if !DEBUG
                 totalCount -= 1; // Non-debug builds won't log debug files
-                #endif
+#endif
 
                 Directory.EnumerateFiles(logDirectory).Should()
                     .HaveCount(totalCount, "because old log files should be getting pruned");
-            } finally {
-                Database.Log.File.UsePlaintext = false;
-                Database.Log.File.Level = LogLevel.Info;
-                Database.Log.File.MaxSize = old;
-            }
+            });
         }
 
         [Fact]
         public void TestDisableLogging()
         {
-            try {
-                // Can't test all files because there might be some plaintext ones leftover from previous runs
-                // and/or tests
+            var logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestDisableLogging"));
+            var config = new LogFileConfiguration(logDirectory)
+            {
+                UsePlaintext = true
+            };
+
+            TestWithConfiguration(LogLevel.None, config, () =>
+            {
                 var sentinel = Guid.NewGuid().ToString();
-                var logDirectory = Database.Log.File.Directory;
-                Database.Log.File.Level = LogLevel.None;
-                Database.Log.File.UsePlaintext = true;
                 WriteLog.To.Database.E("TEST", sentinel);
                 WriteLog.To.Database.W("TEST", sentinel);
                 WriteLog.To.Database.I("TEST", sentinel);
@@ -153,10 +149,7 @@ namespace Test
                         line.Should().NotContain(sentinel);
                     }
                 }
-            } finally {
-                Database.Log.File.Level = LogLevel.Info;
-                Database.Log.File.UsePlaintext = false;
-            }
+            });
         }
 
         [Fact]
@@ -164,19 +157,19 @@ namespace Test
         {
             TestDisableLogging();
             var sentinel = Guid.NewGuid().ToString();
-            var logDirectory = Path.Combine(Path.GetTempPath(), "ReEnableLogs");
-            if (Directory.Exists(logDirectory)) {
-                Directory.Delete(logDirectory, true);
-            }
+            var logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "ReEnableLogs"));
+            var config = new LogFileConfiguration(logDirectory)
+            {
+                UsePlaintext = true
+            };
 
-            Database.Log.File.Level = LogLevel.Verbose;
-            Database.Log.File.UsePlaintext = true;
-            Database.Log.File.Directory = logDirectory;
-            WriteLog.To.Database.E("TEST", sentinel);
-            WriteLog.To.Database.W("TEST", sentinel);
-            WriteLog.To.Database.I("TEST", sentinel);
-            WriteLog.To.Database.V("TEST", sentinel);
-            try {
+            TestWithConfiguration(LogLevel.Verbose, config, () =>
+            {
+                WriteLog.To.Database.E("TEST", sentinel);
+                WriteLog.To.Database.W("TEST", sentinel);
+                WriteLog.To.Database.I("TEST", sentinel);
+                WriteLog.To.Database.V("TEST", sentinel);
+
                 foreach (var file in Directory.EnumerateFiles(logDirectory)) {
                     if (file.Contains("debug")) {
                         continue;
@@ -192,54 +185,53 @@ namespace Test
 
                     found.Should().BeTrue();
                 }
-            } finally {
-                Database.Log.File.UsePlaintext = false;
-                Database.Log.File.Level = LogLevel.Info;
-                Database.Log.File.Directory = null;
-            }
+            });
         }
 
         [Fact]
         public void TestLogFilename()
         {
-            var allFiles = Directory.EnumerateFiles(Database.Log.File.Directory, "*.cbllog").ToArray();
-            var regex = new Regex($"cbl_(debug|verbose|info|warning|error)_\\d+\\.cbllog");
-            allFiles.Any(x => !regex.IsMatch(x)).Should().BeFalse("because all files should match the pattern");
+            var logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestLogFilename"));
+            var config = new LogFileConfiguration(logDirectory);
+            TestWithConfiguration(LogLevel.Info, config, () =>
+            {
+                var allFiles = Directory.EnumerateFiles(logDirectory, "*.cbllog").ToArray();
+                var regex = new Regex($"cbl_(debug|verbose|info|warning|error)_\\d+\\.cbllog");
+                allFiles.Any(x => !regex.IsMatch(x)).Should().BeFalse("because all files should match the pattern");
+            });
         }
 
         [Fact]
         public void TestLogHeader()
         {
-            var old = Database.Log.File.MaxSize;
-            var logDirectory = Database.Log.File.Directory;
-            Database.Log.File.UsePlaintext = true;
-            Database.Log.File.MaxSize = 1024;
-            Database.Log.File.Level = LogLevel.Verbose;
+            var logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestLogHeader"));
+            var config = new LogFileConfiguration(logDirectory)
+            {
+                UsePlaintext = true,
+                MaxSize = 1024
+            };
 
-            // Write more than 2048 bytes, with a break to make sure the writes don't happen
-            // too quickly to skip a filesystem flush
-            for (int i = 0; i < 45; i++) {
-                if (i == 22) {
-                    Thread.Sleep(1000);
+            TestWithConfiguration(LogLevel.Verbose, config, () =>
+            {
+                // Write more than 2048 bytes, with a break to make sure the writes don't happen
+                // too quickly to skip a filesystem flush
+                for (int i = 0; i < 45; i++) {
+                    if (i == 22) {
+                        Thread.Sleep(1000);
+                    }
+
+                    WriteLog.To.Database.E("TEST", $"MESSAGE {i}");
+                    WriteLog.To.Database.W("TEST", $"MESSAGE {i}");
+                    WriteLog.To.Database.I("TEST", $"MESSAGE {i}");
+                    WriteLog.To.Database.V("TEST", $"MESSAGE {i}");
                 }
 
-                WriteLog.To.Database.E("TEST", $"MESSAGE {i}");
-                WriteLog.To.Database.W("TEST", $"MESSAGE {i}");
-                WriteLog.To.Database.I("TEST", $"MESSAGE {i}");
-                WriteLog.To.Database.V("TEST", $"MESSAGE {i}");
-            }
-
-            try {
                 foreach (var file in Directory.EnumerateFiles(logDirectory, "*.cbllog")) {
                     var lines = ReadAllLines(file);
                     lines[0].Should().Contain("CouchbaseLite/").And.Subject.Should().Contain("Build/")
                         .And.Subject.Should().Contain("Commit/");
                 }
-            } finally {
-                Database.Log.File.MaxSize = old;
-                Database.Log.File.Level = LogLevel.Info;
-                Database.Log.File.UsePlaintext = false;
-            }
+            });
         }
 
         [Fact]
@@ -281,6 +273,7 @@ namespace Test
             }
 
             Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
+            Database.Log.Console.Level = LogLevel.Warning;
         }
 
         [Fact]
@@ -310,6 +303,7 @@ namespace Test
             }
 
             Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
+            Database.Log.Console.Level = LogLevel.Warning;
         }
 
         [Fact]
@@ -350,23 +344,26 @@ namespace Test
         public void TestPlaintextLoggingLevels()
         {
             WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
-            var logPath = Path.Combine(Path.GetTempPath(), "LogTestLogs");
-            Directory.CreateDirectory(logPath);
-            Database.Log.File.UsePlaintext = true;
-            Database.Log.File.Directory = logPath;
-            Database.Log.File.MaxRotateCount = 0;
 
-            foreach (var level in new[]
-            { LogLevel.None, LogLevel.Error, LogLevel.Warning, LogLevel.Info, LogLevel.Verbose }) {
-                Database.Log.File.Level = level;
-                WriteLog.To.Database.V("TEST", "TEST VERBOSE");
-                WriteLog.To.Database.I("TEST", "TEST INFO");
-                WriteLog.To.Database.W("TEST", "TEST WARNING");
-                WriteLog.To.Database.E("TEST", "TEST ERROR");
-            }
+            var logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestPlaintextLoggingLevels"));
+            var config = new LogFileConfiguration(logDirectory)
+            {
+                UsePlaintext = true,
+                MaxRotateCount = 0
+            };
 
-            try {
-                foreach (var file in Directory.EnumerateFiles(logPath)) {
+            TestWithConfiguration(LogLevel.Info, config, () =>
+            {
+                foreach (var level in new[]
+                    { LogLevel.None, LogLevel.Error, LogLevel.Warning, LogLevel.Info, LogLevel.Verbose }) {
+                    Database.Log.File.Level = level;
+                    WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+                    WriteLog.To.Database.I("TEST", "TEST INFO");
+                    WriteLog.To.Database.W("TEST", "TEST WARNING");
+                    WriteLog.To.Database.E("TEST", "TEST ERROR");
+                }
+
+                foreach (var file in Directory.EnumerateFiles(logDirectory)) {
                     if (file.Contains(LogLevel.Verbose.ToString().ToLowerInvariant())) {
                         ReadAllLines(file).Should()
                             .HaveCount(2, "because there should be 1 log line and 1 meta line");
@@ -381,11 +378,34 @@ namespace Test
                             .HaveCount(5, "because there should be 4 log lines and 1 meta line");
                     }
                 }
+            });
+        }
+
+        private void TestWithConfiguration(LogLevel level, LogFileConfiguration config, [NotNull]Action a)
+        {
+            var old = Database.Log.File.Config;
+            Database.Log.File.Level = level;
+            Database.Log.File.Config = config;
+            try {
+                a();
             } finally {
-                Database.Log.File.UsePlaintext = false;
-                Database.Log.File.Directory = null;
-                Directory.Delete(logPath, true);
+                Database.Log.File.Level = LogLevel.Info;
+                Database.Log.File.Config = old;
             }
+        }
+
+        [NotNull]
+        private static string EmptyDirectory(string path)
+        {
+            if (String.IsNullOrEmpty(path)) {
+                throw new ArgumentOutOfRangeException(nameof(path), "Failed to create path string!");
+            }
+
+            if (Directory.Exists(path)) {
+                Directory.Delete(path, true);
+            }
+
+            return path;
         }
 
         private static string[] ReadAllLines(string path)

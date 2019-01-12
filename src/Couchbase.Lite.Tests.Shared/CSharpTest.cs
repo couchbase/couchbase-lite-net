@@ -668,20 +668,6 @@ Transfer-Encoding: chunked";
 
 #else
 
-        [Fact]
-        public void TestChangeBinaryLogDirectory()
-        {
-            var testDir = Path.Combine(Environment.CurrentDirectory, "TestLog");
-            if (System.IO.Directory.Exists(testDir)) {
-                System.IO.Directory.Delete(testDir, true);
-            }
-
-            Database.Log.File.Directory = testDir;
-            Couchbase.Lite.Internal.Logging.WriteLog.To.Database.E("TEST LOG", "TEST MESSAGE");
-            Database.Log.File.Directory = null;
-            System.IO.Directory.EnumerateFiles(testDir).Count().Should().Be(5);
-        }
-
         #endif
 
         

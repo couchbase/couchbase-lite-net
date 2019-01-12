@@ -21,9 +21,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 
-using Couchbase.Lite.DI;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Interop;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Sync;
+using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
 
@@ -33,6 +35,127 @@ using LiteCore.Util;
 
 namespace Couchbase.Lite.Logging
 {
+    /// <summary>
+    /// A class that describes the file configuration for the <see cref="FileLogger"/>
+    /// class.  These options must be set atomically so they won't take effect unless
+    /// a new configuration object is set on the logger.  Attempting to modify an in-use
+    /// configuration object will result in an exception being thrown.
+    /// </summary>
+    public sealed class LogFileConfiguration
+    {
+        #region Constants
+
+        private const string Tag = nameof(LogFileConfiguration);
+
+        #endregion
+
+        #region Variables
+
+        [NotNull]
+        private readonly Freezer _freezer = new Freezer();
+
+        private int _maxRotateCount = 1;
+        private long _maxSize = 1024 * 500;
+        private bool _usePlaintext;
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Gets the directory that the log files are stored in.
+        /// </summary>
+        [NotNull]
+        public string Directory { get; }
+
+        /// <summary>
+        /// Gets or sets the number of rotated logs that are saved (i.e.
+        /// if the value is 1, then 2 logs will be present:  the 'current'
+        /// and the 'rotated')
+        /// </summary>
+        public int MaxRotateCount
+        {
+            get => _maxRotateCount;
+            set => _freezer.SetValue(ref _maxRotateCount, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the max size of the log files in bytes.  If a log file
+        /// passes this size then a new log file will be started.  This
+        /// number is a best effort and the actual size may go over slightly.
+        /// </summary>
+        public long MaxSize
+        {
+            get => _maxSize;
+            set => _freezer.SetValue(ref _maxSize, value);
+        }
+
+        /// <summary>
+        /// Gets or sets whether or not to log in plaintext.  The default is
+        /// to log in a binary encoded format that is more CPU and I/O friendly
+        /// and enabling plaintext is not recommended in production.
+        /// </summary>
+        public bool UsePlaintext
+        {
+            get => _usePlaintext;
+            set => _freezer.SetValue(ref _usePlaintext, value);
+        }
+
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Constructs a file configuration object with the given directory
+        /// </summary>
+        /// <param name="directory">The directory that logs will be written to</param>
+        public LogFileConfiguration([NotNull]string directory)
+        {
+            Directory = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(directory), directory);
+        }
+
+        /// <summary>
+        /// Constructs a file configuration object based on another one so
+        /// that it may be modified
+        /// </summary>
+        /// <param name="other">The other configuration to copy settings from</param>
+        public LogFileConfiguration([NotNull]LogFileConfiguration other)
+        {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(other), other);
+            Directory = other.Directory;
+            MaxRotateCount = other.MaxRotateCount;
+            MaxSize = other.MaxSize;
+            UsePlaintext = other.UsePlaintext;
+        }
+
+        /// <summary>
+        /// Constructs a file configuration object based on another one but changing
+        /// the directory
+        /// </summary>
+        /// <param name="directory">The directory that logs will be written to</param>
+        /// <param name="other">The other configuration to copy the other settings from</param>
+        public LogFileConfiguration([NotNull]string directory, LogFileConfiguration other)
+            : this(directory)
+        {
+            if (other != null) {
+                MaxRotateCount = other.MaxRotateCount;
+                MaxSize = other.MaxSize;
+                UsePlaintext = other.UsePlaintext;
+            }
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        internal void Freeze()
+        {
+            _freezer.Freeze("Cannot modify a FileConfiguration that is currently in use");
+        }
+
+        #endregion
+    }
+
     /// <summary>
     /// A class that controls the file logging facility of
     /// Couchbase Lite
@@ -44,62 +167,25 @@ namespace Couchbase.Lite.Logging
         [NotNull]
         private readonly Dictionary<LogDomain,IntPtr> _domainObjects = new Dictionary<LogDomain, IntPtr>();
 
-        [NotNull]private string _directory;
-        private bool _hasConfigChanges;
-        private int _maxRotateCount;
-        private long _maxSize;
-        private bool _usePlaintext;
+        private LogFileConfiguration _config;
 
         #endregion
 
         #region Properties
 
         /// <summary>
-        /// Gets or sets the directory that the log files are stored in
+        /// Gets or sets the configuration currently in use on the file logger.
+        /// Note that once it is set, it can no longer be modified and doing so
+        /// will throw an exception.
         /// </summary>
-        public string Directory
+        public LogFileConfiguration Config
         {
-            get => _directory;
+            get => _config;
             set {
-                SetAndReact(ref _directory, value ?? DefaultDirectory());
-                System.IO.Directory.CreateDirectory(_directory);
-
-                // This one should update immediately since it won't affect rotation
+                value?.Freeze();
+                _config = value;
                 UpdateConfig();
-            } 
-        }
-
-        /// <summary>
-        /// Gets or sets the number of rotated logs that are saved (i.e.
-        /// if the value is 1, then 2 logs will be present:  the 'current'
-        /// and the 'rotated')
-        /// </summary>
-        public int MaxRotateCount
-        {
-            get => _maxRotateCount;
-            set => SetAndReact(ref _maxRotateCount, value);
-        }
-
-        /// <summary>
-        /// Gets or sets the max size of the log files in bytes.  If a log file
-        /// passes this size then a new log file will be started.  This
-        /// number is a best effort and the actual size may go over slightly.
-        /// </summary>
-        public long MaxSize
-        {
-            get => _maxSize;
-            set => SetAndReact(ref _maxSize, value);
-        }
-
-        /// <summary>
-        /// Gets or sets whether or not to log in plaintext.  The default is
-        /// to log in a binary encoded format that is more CPU and I/O friendly
-        /// and enabling plaintext is not recommended in production.
-        /// </summary>
-        public bool UsePlaintext
-        {
-            get => _usePlaintext;
-            set => SetAndReact(ref _usePlaintext, value);
+            }
         }
 
         /// <summary>
@@ -110,7 +196,13 @@ namespace Couchbase.Lite.Logging
         public LogLevel Level
         {
             get => (LogLevel)Native.c4log_binaryFileLevel();
-            set => Native.c4log_setBinaryFileLevel((C4LogLevel) value);
+            set {
+                if (Config == null) {
+                    throw new InvalidOperationException("Cannot set logging level without a configuration");
+                }
+
+                Native.c4log_setBinaryFileLevel((C4LogLevel) value);
+            }
         }
 
         #endregion
@@ -122,37 +214,13 @@ namespace Couchbase.Lite.Logging
         /// </summary>
         public FileLogger()
         {
-            _maxRotateCount = 1;
-            _maxSize = 1024 * 500;
             SetupDomainObjects();
-            Level = LogLevel.Info;
-            _directory = DefaultDirectory();
-            System.IO.Directory.CreateDirectory(_directory);
-            UpdateConfig();
+            Native.c4log_setBinaryFileLevel(C4LogLevel.None);
         }
 
         #endregion
 
         #region Private Methods
-
-        [NotNull]
-        private static string DefaultDirectory()
-        {
-            return Path.Combine(Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory(),
-                "Logs") + Path.DirectorySeparatorChar;
-        }
-
-        private void SetAndReact<T>(ref T storage, T value)
-        {
-            if (storage?.Equals(value) == true) {
-                return;
-            }
-
-            storage = value;
-            // Defer the actual config change to later to avoid excess
-            // log rotation on essentially empty logs
-            _hasConfigChanges = true;
-        }
 
         private unsafe void SetupDomainObjects()
         {
@@ -176,19 +244,22 @@ namespace Couchbase.Lite.Logging
 
         private unsafe void UpdateConfig()
         {
-            using (var dir = new C4String(Directory))
+            if (_config != null) {
+                Directory.CreateDirectory(_config.Directory);
+            }
+
+            using (var dir = new C4String(_config?.Directory))
             using (var header = new C4String(HTTPLogic.UserAgent)) {
                 var options = new C4LogFileOptions
                 {
                     base_path = dir.AsFLSlice(),
                     log_level = (C4LogLevel) Level,
-                    max_rotate_count = MaxRotateCount,
-                    max_size_bytes = MaxSize,
-                    use_plaintext = UsePlaintext,
+                    max_rotate_count = _config?.MaxRotateCount ?? 1,
+                    max_size_bytes = _config?.MaxSize ?? 1024 * 500L,
+                    use_plaintext = _config?.UsePlaintext ?? false,
                     header = header.AsFLSlice()
                 };
                 LiteCoreBridge.Check(err => Native.c4log_writeToBinaryFile(options, err));
-                _hasConfigChanges = false;
             }
         }
 
@@ -199,12 +270,6 @@ namespace Couchbase.Lite.Logging
         /// <inheritdoc />
         public unsafe void Log(LogLevel level, LogDomain domain, string message)
         {
-            if (_hasConfigChanges) {
-                // Log is only called in one place in the codebase, and it will
-                // handle the potential exception here
-                UpdateConfig();
-            }
-
             if (level < Level || !_domainObjects.ContainsKey(domain)) {
                 return;
             }
