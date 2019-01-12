@@ -1,7 +1,7 @@
 //
 // C4Base_native.cs
 //
-// Copyright (c) 2018 Couchbase, Inc All rights reserved.
+// Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,19 +35,6 @@ namespace LiteCore.Interop
             using(var retVal = NativeRaw.c4error_getMessage(error)) {
                 return ((FLSlice)retVal).CreateString();
             }
-        }
-
-        public static byte[] c4error_getDescription(C4Error error)
-        {
-            using(var retVal = NativeRaw.c4error_getDescription(error)) {
-                return ((FLSlice)retVal).ToArrayFast();
-            }
-        }
-
-        public static string c4error_getDescriptionC(C4Error error, char[] buffer, ulong bufferSize)
-        {
-            var retVal = NativeRaw.c4error_getDescriptionC(error, buffer, (UIntPtr)bufferSize);
-            return Marshal.PtrToStringAnsi((IntPtr)retVal);
         }
 
         public static C4Error c4error_make(C4ErrorDomain domain, int code, string message)
@@ -103,13 +90,6 @@ namespace LiteCore.Interop
             }
         }
 
-        public static string c4_getBuildInfo()
-        {
-            using(var retVal = NativeRaw.c4_getBuildInfo()) {
-                return ((FLSlice)retVal).CreateString();
-            }
-        }
-
         public static string c4_getVersion()
         {
             using(var retVal = NativeRaw.c4_getVersion()) {
@@ -120,9 +100,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern int c4_getObjectCount();
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4_dumpInstances();
-
 
     }
 
@@ -132,12 +109,6 @@ namespace LiteCore.Interop
         public static extern FLSliceResult c4error_getMessage(C4Error error);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4error_getDescription(C4Error error);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern byte* c4error_getDescriptionC(C4Error error, char[] buffer, UIntPtr bufferSize);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Error c4error_make(C4ErrorDomain domain, int code, FLSlice message);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
@@ -145,9 +116,6 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4slog(C4LogDomain* domain, C4LogLevel level, FLSlice msg);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4_getBuildInfo();
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult c4_getVersion();

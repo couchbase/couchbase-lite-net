@@ -1,7 +1,7 @@
 //
 // C4Replicator_native_ios.cs
 //
-// Copyright (c) 2018 Couchbase, Inc All rights reserved.
+// Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,27 +27,6 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        public static bool c4repl_isValidDatabaseName(string dbName)
-        {
-            using(var dbName_ = new C4String(dbName)) {
-                return NativeRaw.c4repl_isValidDatabaseName(dbName_.AsFLSlice());
-            }
-        }
-
-        public static bool c4address_fromURL(string url, C4Address* address, FLSlice* dbName)
-        {
-            using(var url_ = new C4String(url)) {
-                return NativeRaw.c4address_fromURL(url_.AsFLSlice(), address, dbName);
-            }
-        }
-
-        public static string c4address_toURL(C4Address address)
-        {
-            using(var retVal = NativeRaw.c4address_toURL(address)) {
-                return ((FLSlice)retVal).CreateString();
-            }
-        }
-
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Replicator* c4repl_new(C4Database* db, C4Address remoteAddress, FLSlice remoteDatabaseName, C4Database* otherLocalDB, C4ReplicatorParameters @params, C4Error* outError);
 
@@ -63,51 +42,11 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4ReplicatorStatus c4repl_getStatus(C4Replicator* repl);
 
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSlice c4repl_getResponseHeaders(C4Replicator* repl);
-
-        public static bool c4db_setCookie(C4Database* db, string setCookieHeader, string fromHost, string fromPath, C4Error* outError)
-        {
-            using(var setCookieHeader_ = new C4String(setCookieHeader))
-            using(var fromHost_ = new C4String(fromHost))
-            using(var fromPath_ = new C4String(fromPath)) {
-                return NativeRaw.c4db_setCookie(db, setCookieHeader_.AsFLSlice(), fromHost_.AsFLSlice(), fromPath_.AsFLSlice(), outError);
-            }
-        }
-
-        public static string c4db_getCookies(C4Database* db, C4Address request, C4Error* error)
-        {
-            using(var retVal = NativeRaw.c4db_getCookies(db, request, error)) {
-                return ((FLSlice)retVal).CreateString();
-            }
-        }
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4db_clearCookies(C4Database* db);
-
 
     }
 
     internal unsafe static partial class NativeRaw
     {
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4repl_isValidDatabaseName(FLSlice dbName);
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4address_fromURL(FLSlice url, C4Address* address, FLSlice* dbName);
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4address_toURL(C4Address address);
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_setCookie(C4Database* db, FLSlice setCookieHeader, FLSlice fromHost, FLSlice fromPath, C4Error* outError);
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4db_getCookies(C4Database* db, C4Address request, C4Error* error);
-
 
     }
 }

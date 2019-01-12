@@ -19,7 +19,7 @@ Get-ChildItem $PSScriptRoot\src\LiteCore.Shared\Interop\iOS\* -Exclude "Misc_nat
 }
 
 Copy-Item -Recurse $PSScriptRoot\parse\templates_fleece templates
-python parse_API.py -c config_fleece -v
+python parse_API.py -c config_fleece -v -l $PSScriptRoot\..\..\vendor\couchbase-lite-core\C\c4.def
 python parse_structs.py
 Move-Item -Force *.template $PSScriptRoot\src\LiteCore.Shared\Interop
 Move-Item -Force *.cs $PSScriptRoot\src\LiteCore.Shared\Interop
@@ -34,7 +34,7 @@ Copy-Item $PSScriptRoot\parse\parse_structs.py .
 Copy-Item $PSScriptRoot\parse\parse_enums.py .
 Copy-Item $PSScriptRoot\parse\config_c4.py .
 Copy-Item -Recurse $PSScriptRoot\parse\templates_c4 templates
-python parse_API.py -c config_c4 -v
+python parse_API.py -c config_c4 -v -l $PSScriptRoot\..\..\vendor\couchbase-lite-core\C\c4.def
 python parse_structs.py
 Move-Item -Force *.template $PSScriptRoot\src\LiteCore.Shared\Interop
 Move-Item -Force *.cs $PSScriptRoot\src\LiteCore.Shared\Interop

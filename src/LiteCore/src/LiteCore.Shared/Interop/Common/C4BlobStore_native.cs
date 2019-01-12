@@ -1,7 +1,7 @@
 //
 // C4BlobStore_native.cs
 //
-// Copyright (c) 2018 Couchbase, Inc All rights reserved.
+// Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -52,9 +52,6 @@ namespace LiteCore.Interop
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4blob_freeStore(C4BlobStore* store);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4blob_deleteStore(C4BlobStore* store, C4Error* outError);
 
@@ -72,13 +69,6 @@ namespace LiteCore.Interop
         {
             using(var retVal = NativeRaw.c4blob_getFilePath(store, key, outError)) {
                 return ((FLSlice)retVal).CreateString();
-            }
-        }
-
-        public static C4BlobKey c4blob_computeKey(byte[] contents)
-        {
-            fixed(byte *contents_ = contents) {
-                return NativeRaw.c4blob_computeKey(new FLSlice(contents_, contents == null ? 0 : (ulong)contents.Length));
             }
         }
 
@@ -151,9 +141,6 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult c4blob_getFilePath(C4BlobStore* store, C4BlobKey key, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4BlobKey c4blob_computeKey(FLSlice contents);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

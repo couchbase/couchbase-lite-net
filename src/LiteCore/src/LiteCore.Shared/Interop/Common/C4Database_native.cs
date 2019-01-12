@@ -1,7 +1,7 @@
 //
 // C4Database_native.cs
 //
-// Copyright (c) 2018 Couchbase, Inc All rights reserved.
+// Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,9 +33,6 @@ namespace LiteCore.Interop
                 return NativeRaw.c4db_open(path_.AsFLSlice(), config, outError);
             }
         }
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Database* c4db_openAgain(C4Database* db, C4Error* outError);
 
         public static bool c4db_copy(string sourcePath, string destinationPath, C4DatabaseConfig* config, C4Error* error)
         {

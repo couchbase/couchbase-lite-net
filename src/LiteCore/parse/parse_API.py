@@ -30,12 +30,22 @@ if __name__ == "__main__":
 
     parser.add_argument("-o", "--output-dir", help="The directory to store the output files in (default current directory)")
     parser.add_argument("-c", "--config", help="A configuration file with data to help customize the parsing")
+    parser.add_argument("-l", "--symbol-list", help="A list of symbols for inclusion")
     parser.add_argument("-v", "--verbose", help="Enable verbose output", action='store_true')
     args = parser.parse_args()
     output_dir = args.output_dir if args.output_dir is not None else ""
     config_module = {}
     if args.config is not None:
         config_module = importlib.import_module(args.config)
+
+
+    symbol_list = []
+    if args.symbol_list is not None:
+        symbol_file = open(args.symbol_list, "r")
+        symbol_list = symbol_file.read().splitlines()
+        end_index = symbol_list.index("; C4Tests")
+        symbol_list = symbol_list[:end_index]
+        symbol_file.close()
 
     skip_files = []
     if hasattr(config_module, "skip_files"):
@@ -75,7 +85,7 @@ if __name__ == "__main__":
 
         for function in cppHeader.functions:
             fn_name = function["name"]
-            if fn_name in excluded:
+            if fn_name in excluded or (symbol_list and not fn_name in symbol_list):
                 continue
 
             if fn_name in literals:

@@ -152,12 +152,5 @@ namespace Couchbase.Lite.Interop
                 return c4repl_new(db, remoteAddress, remoteDatabaseName_.AsFLSlice(), otherDb, @params, err);
             }
         }
-
-        public static IDictionary<string, object> bridge_c4repl_getResponseHeaders(C4Replicator* repl)
-        {
-            var result = c4repl_getResponseHeaders(repl);
-            return FLSliceExtensions.ToObject(NativeRaw.FLValue_FromData(result, FLTrust.Trusted)) as
-                IDictionary<string, object>;
-        }
     }
 }

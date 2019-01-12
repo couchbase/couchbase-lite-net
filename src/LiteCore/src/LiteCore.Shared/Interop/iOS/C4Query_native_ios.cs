@@ -1,7 +1,7 @@
 //
 // C4Query_native_ios.cs
 //
-// Copyright (c) 2018 Couchbase, Inc All rights reserved.
+// Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -57,19 +57,9 @@ namespace LiteCore.Interop
             }
         }
 
-        public static string c4query_fullTextMatched(C4Query* query, C4FullTextMatch* term, C4Error* outError)
-        {
-            using(var retVal = NativeRaw.c4query_fullTextMatched(query, term, outError)) {
-                return ((FLSlice)retVal).CreateString();
-            }
-        }
-
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4queryenum_next(C4QueryEnumerator* e, C4Error* outError);
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern long c4queryenum_getRowCount(C4QueryEnumerator* e, C4Error* outError);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -106,13 +96,6 @@ namespace LiteCore.Interop
             }
         }
 
-        public static byte[] c4db_getIndexesInfo(C4Database* database, C4Error* outError)
-        {
-            using(var retVal = NativeRaw.c4db_getIndexesInfo(database, outError)) {
-                return ((FLSlice)retVal).ToArrayFast();
-            }
-        }
-
 
     }
 
@@ -128,9 +111,6 @@ namespace LiteCore.Interop
         public static extern C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, FLSlice encodedParameters, C4Error* outError);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4query_fullTextMatched(C4Query* query, C4FullTextMatch* term, C4Error* outError);
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_createIndex(C4Database* database, FLSlice name, FLSlice expressionsJSON, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError);
 
@@ -140,9 +120,6 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult c4db_getIndexes(C4Database* database, C4Error* outError);
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4db_getIndexesInfo(C4Database* database, C4Error* outError);
 
 
     }

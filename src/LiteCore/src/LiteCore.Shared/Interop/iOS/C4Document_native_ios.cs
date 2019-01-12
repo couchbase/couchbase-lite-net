@@ -1,7 +1,7 @@
 //
 // C4Document_native_ios.cs
 //
-// Copyright (c) 2018 Couchbase, Inc All rights reserved.
+// Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -59,13 +59,6 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_loadRevisionBody(C4Document* doc, C4Error* outError);
 
-        public static string c4doc_detachRevisionBody(C4Document* doc)
-        {
-            using(var retVal = NativeRaw.c4doc_detachRevisionBody(doc)) {
-                return ((FLSlice)retVal).CreateString();
-            }
-        }
-
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_hasRevisionBody(C4Document* doc);
@@ -104,41 +97,12 @@ namespace LiteCore.Interop
             }
         }
 
-        public static uint c4db_getRemoteDBID(C4Database* db, string remoteAddress, bool canCreate, C4Error* outError)
-        {
-            using(var remoteAddress_ = new C4String(remoteAddress)) {
-                return NativeRaw.c4db_getRemoteDBID(db, remoteAddress_.AsFLSlice(), canCreate, outError);
-            }
-        }
-
-        public static byte[] c4db_getRemoteDBAddress(C4Database* db, uint remoteID)
-        {
-            using(var retVal = NativeRaw.c4db_getRemoteDBAddress(db, remoteID)) {
-                return ((FLSlice)retVal).ToArrayFast();
-            }
-        }
-
-        public static byte[] c4doc_getRemoteAncestor(C4Document* doc, uint remoteDatabase)
-        {
-            using(var retVal = NativeRaw.c4doc_getRemoteAncestor(doc, remoteDatabase)) {
-                return ((FLSlice)retVal).ToArrayFast();
-            }
-        }
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_setRemoteAncestor(C4Document* doc, uint remoteDatabase, C4Error* error);
-
         public static uint c4rev_getGeneration(string revID)
         {
             using(var revID_ = new C4String(revID)) {
                 return NativeRaw.c4rev_getGeneration(revID_.AsFLSlice());
             }
         }
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_removeRevisionBody(C4Document* doc);
 
         public static int c4doc_purgeRevision(C4Document* doc, string revID, C4Error* outError)
         {
@@ -217,9 +181,6 @@ namespace LiteCore.Interop
         public static extern bool c4doc_selectRevision(C4Document* doc, FLSlice revID, [MarshalAs(UnmanagedType.U1)]bool withBody, C4Error* outError);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4doc_detachRevisionBody(C4Document* doc);
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_selectFirstPossibleAncestorOf(C4Document* doc, FLSlice revID);
 
@@ -230,15 +191,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_selectCommonAncestorRevision(C4Document* doc, FLSlice rev1ID, FLSlice rev2ID);
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint c4db_getRemoteDBID(C4Database* db, FLSlice remoteAddress, [MarshalAs(UnmanagedType.U1)]bool canCreate, C4Error* outError);
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4db_getRemoteDBAddress(C4Database* db, uint remoteID);
-
-        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4doc_getRemoteAncestor(C4Document* doc, uint remoteDatabase);
 
         [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint c4rev_getGeneration(FLSlice revID);
