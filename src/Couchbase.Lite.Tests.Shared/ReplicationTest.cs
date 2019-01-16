@@ -171,11 +171,11 @@ namespace Test
                 Db.Delete(doc1);
                 Db.Delete(doc2);
             }
-
+            
             RunReplication(config, 0, 0);
             _isFilteredCallback.Should().BeTrue();
             _otherDB.GetDocument("doc1").Should().NotBeNull("because doc1's deletion should be rejected");
-            _otherDB.GetDocument("pass").Should().NotBeNull("because the next document's deletion is not rejected");
+            _otherDB.GetDocument("pass").Should().BeNull("because the next document's deletion is not rejected");
             _isFilteredCallback = false;
         }
 

@@ -384,8 +384,8 @@ namespace Test
         private void TestWithConfiguration(LogLevel level, LogFileConfiguration config, [NotNull]Action a)
         {
             var old = Database.Log.File.Config;
-            Database.Log.File.Level = level;
             Database.Log.File.Config = config;
+            Database.Log.File.Level = level;
             try {
                 a();
             } finally {
