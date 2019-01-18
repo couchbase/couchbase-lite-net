@@ -148,9 +148,11 @@ namespace Couchbase.Lite.Logging
 
         #region Internal Methods
 
-        internal void Freeze()
+        internal LogFileConfiguration Freeze()
         {
-            _freezer.Freeze("Cannot modify a FileConfiguration that is currently in use");
+            var retVal = new LogFileConfiguration(this);
+            retVal._freezer.Freeze("Cannot modify a FileConfiguration that is currently in use");
+            return retVal;
         }
 
         #endregion
@@ -182,8 +184,7 @@ namespace Couchbase.Lite.Logging
         {
             get => _config;
             set {
-                value?.Freeze();
-                _config = value;
+                _config = value?.Freeze();
                 UpdateConfig();
             }
         }

@@ -117,15 +117,28 @@ namespace Couchbase.Lite.Support
         }
 
         /// <summary>
-        /// [DEPRECATED] Turns on text based logging for debugging purposes.  The logs will be written 
-        /// to the directory specified in <paramref name="directoryPath"/>
+        /// <para>[DEPRECATED] Turns on text based logging for debugging purposes.  The logs will be written 
+        /// to the directory specified in <paramref name="directoryPath"/>.  It is equivalent to setting
+        /// a configuration with <c>UsePlaintext</c> set to <c>true</c> on <c>Database.Log.File.Config</c></para>
+        ///
+        /// <para>This will override binary
+        /// logging.  It is not recommended to use this method anymore, but to use <c>Database.Log.Console</c>
+        /// to get information to the console, or <c>Database.Log.Custom</c> to set up custom logging logic
+        /// </para>
         /// </summary>
         /// <param name="directoryPath">The directory to write logs to</param>
-        [Obsolete("This has been superseded by Database.Log.Console.  It is a no-op now")]
+        [Obsolete("This has been superseded by new logging logic.  See doc comments for details.")]
         [ContractAnnotation("null => halt")]
         public static void EnableTextLogging(string directoryPath)
         {
-            
+            if (directoryPath == null) {
+                Database.Log.File.Config = null;
+            } else {
+                Database.Log.File.Config = new LogFileConfiguration(directoryPath, Database.Log.File.Config)
+                {
+                    UsePlaintext = true
+                };
+            }
         }
 
         /// <summary>
