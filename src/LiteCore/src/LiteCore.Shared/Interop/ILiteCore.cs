@@ -94,7 +94,6 @@ namespace LiteCore.Interop
         bool c4enum_getDocumentInfo(C4DocEnumerator* e, C4DocumentInfo* outInfo);
         bool c4doc_isOldMetaProperty(string prop);
         bool c4doc_dictContainsBlobs(FLDict* dict);
-        byte[] c4doc_getBlobData(FLDict* dict, C4BlobStore* blobStore, C4Error* outError);
         FLEncoder* c4db_getSharedFleeceEncoder(C4Database* db);
         byte[] c4db_encodeJSON(C4Database* db, string jsonData, C4Error* outError);
         FLSharedKeys* c4db_getFLSharedKeys(C4Database* db);
@@ -246,7 +245,6 @@ namespace LiteCore.Interop
         C4RawDocument* c4raw_get(C4Database* database, FLSlice storeName, FLSlice docID, C4Error* outError);
         bool c4raw_put(C4Database* database, FLSlice storeName, FLSlice key, FLSlice meta, FLSlice body, C4Error* outError);
         bool c4doc_isOldMetaProperty(FLSlice prop);
-        FLSliceResult c4doc_getBlobData(FLDict* dict, C4BlobStore* blobStore, C4Error* outError);
         FLSliceResult c4db_encodeJSON(C4Database* db, FLSlice jsonData, C4Error* outError);
         C4Document* c4doc_get(C4Database* database, FLSlice docID, bool mustExist, C4Error* outError);
         bool c4doc_selectRevision(C4Document* doc, FLSlice revID, bool withBody, C4Error* outError);
