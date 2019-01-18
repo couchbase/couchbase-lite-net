@@ -172,7 +172,7 @@ namespace Couchbase.Lite.Internal.Serialization
                 case FLValueType.Boolean:
                     return Native.FLValue_AsBool(value);
                 case FLValueType.Data:
-                    return new Blob("application/octet-stream", Native.FLValue_AsData(value));
+                    return Native.FLValue_AsData(value);
                 case FLValueType.Dict: {
 
                     var dict = Native.FLValue_AsDict(value);
@@ -190,7 +190,9 @@ namespace Couchbase.Lite.Internal.Serialization
                         retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), db, level + 1, hintType1);
                     } while (Native.FLDictIterator_Next(&i));
 
-                    return ConvertDictionary(retVal as IDictionary<string, object>, db) ?? retVal;
+                    return (string)retVal["@type"] == "blob" 
+                            ? ConvertDictionary((IDictionary<string, object>)retVal, db)
+                            : ConvertDictionary(retVal as IDictionary<string, object>, db) ?? retVal;
                 }
                 case FLValueType.Null:
                     return null;
