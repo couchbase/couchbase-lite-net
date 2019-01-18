@@ -1870,7 +1870,10 @@ namespace Test
 
             }
             Thread.Sleep(3100);
-            Db.GetDocument("doc_to_expired").Should().BeNull();
+            Try.Condition(() => Db.GetDocument("doc_to_expired") == null)
+                .Times(5)
+                .Delay(TimeSpan.FromMilliseconds(500))
+                .Go().Should().BeTrue();
         }
 
         [Fact]

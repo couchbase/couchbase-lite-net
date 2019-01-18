@@ -34,6 +34,8 @@ using FluentAssertions;
 using FluentAssertions.Execution;
 
 using Newtonsoft.Json;
+
+using Test.Util;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -92,14 +94,17 @@ namespace Test
 
             Thread.Sleep(4100);
 
-            using (var r = QueryBuilder.Select(DocID, Expiration)
-                .From(DataSource.Database(Db))
-                .Where(Meta.Expiration
-                .LessThan(Expression.Long(dto6InMS)))) {
+            Try.Assertion(() =>
+            {
+                using (var r = QueryBuilder.Select(DocID, Expiration)
+                    .From(DataSource.Database(Db))
+                    .Where(Meta.Expiration
+                        .LessThan(Expression.Long(dto6InMS)))) {
 
-                var b = r.Execute().AllResults();
-                b.Count().Should().Be(0);
-            }
+                    var b = r.Execute().AllResults();
+                    b.Count.Should().Be(0);
+                }
+            }).Times(5).Delay(TimeSpan.FromMilliseconds(500)).Go().Should().BeTrue();
         }
 
         [Fact]
