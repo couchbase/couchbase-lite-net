@@ -190,9 +190,7 @@ namespace Couchbase.Lite.Internal.Serialization
                         retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), db, level + 1, hintType1);
                     } while (Native.FLDictIterator_Next(&i));
 
-                    return (string)retVal["@type"] == "blob" 
-                            ? ConvertDictionary((IDictionary<string, object>)retVal, db)
-                            : ConvertDictionary(retVal as IDictionary<string, object>, db) ?? retVal;
+                    return ConvertDictionary(retVal as IDictionary<string, object>, db) ?? retVal;
                 }
                 case FLValueType.Null:
                     return null;
