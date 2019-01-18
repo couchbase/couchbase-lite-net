@@ -92,7 +92,6 @@ namespace LiteCore.Interop
         public bool c4enum_getDocumentInfo(C4DocEnumerator* e, C4DocumentInfo* outInfo) => Native.c4enum_getDocumentInfo(e, outInfo);
         public bool c4doc_isOldMetaProperty(string prop) => Native.c4doc_isOldMetaProperty(prop);
         public bool c4doc_dictContainsBlobs(FLDict* dict) => Native.c4doc_dictContainsBlobs(dict);
-        public byte[] c4doc_getBlobData(FLDict* dict, C4BlobStore* blobStore, C4Error* outError) => Native.c4doc_getBlobData(dict, blobStore, outError);
         public FLEncoder* c4db_getSharedFleeceEncoder(C4Database* db) => Native.c4db_getSharedFleeceEncoder(db);
         public byte[] c4db_encodeJSON(C4Database* db, string jsonData, C4Error* outError) => Native.c4db_encodeJSON(db, jsonData, outError);
         public FLSharedKeys* c4db_getFLSharedKeys(C4Database* db) => Native.c4db_getFLSharedKeys(db);
@@ -244,7 +243,6 @@ namespace LiteCore.Interop
         public C4RawDocument* c4raw_get(C4Database* database, FLSlice storeName, FLSlice docID, C4Error* outError) => NativeRaw.c4raw_get(database, storeName, docID, outError);
         public bool c4raw_put(C4Database* database, FLSlice storeName, FLSlice key, FLSlice meta, FLSlice body, C4Error* outError) => NativeRaw.c4raw_put(database, storeName, key, meta, body, outError);
         public bool c4doc_isOldMetaProperty(FLSlice prop) => NativeRaw.c4doc_isOldMetaProperty(prop);
-        public FLSliceResult c4doc_getBlobData(FLDict* dict, C4BlobStore* blobStore, C4Error* outError) => NativeRaw.c4doc_getBlobData(dict, blobStore, outError);
         public FLSliceResult c4db_encodeJSON(C4Database* db, FLSlice jsonData, C4Error* outError) => NativeRaw.c4db_encodeJSON(db, jsonData, outError);
         public C4Document* c4doc_get(C4Database* database, FLSlice docID, bool mustExist, C4Error* outError) => NativeRaw.c4doc_get(database, docID, mustExist, outError);
         public bool c4doc_selectRevision(C4Document* doc, FLSlice revID, bool withBody, C4Error* outError) => NativeRaw.c4doc_selectRevision(doc, revID, withBody, outError);

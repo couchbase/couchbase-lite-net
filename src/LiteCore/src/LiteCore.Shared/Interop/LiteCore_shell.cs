@@ -94,7 +94,6 @@ namespace Couchbase.Lite.Interop
         public static bool c4enum_getDocumentInfo(C4DocEnumerator* e, C4DocumentInfo* outInfo) => Impl.c4enum_getDocumentInfo(e, outInfo);
         public static bool c4doc_isOldMetaProperty(string prop) => Impl.c4doc_isOldMetaProperty(prop);
         public static bool c4doc_dictContainsBlobs(FLDict* dict) => Impl.c4doc_dictContainsBlobs(dict);
-        public static byte[] c4doc_getBlobData(FLDict* dict, C4BlobStore* blobStore, C4Error* outError) => Impl.c4doc_getBlobData(dict, blobStore, outError);
         public static FLEncoder* c4db_getSharedFleeceEncoder(C4Database* db) => Impl.c4db_getSharedFleeceEncoder(db);
         public static byte[] c4db_encodeJSON(C4Database* db, string jsonData, C4Error* outError) => Impl.c4db_encodeJSON(db, jsonData, outError);
         public static FLSharedKeys* c4db_getFLSharedKeys(C4Database* db) => Impl.c4db_getFLSharedKeys(db);
@@ -246,7 +245,6 @@ namespace Couchbase.Lite.Interop
         public static C4RawDocument* c4raw_get(C4Database* database, FLSlice storeName, FLSlice docID, C4Error* outError) => Impl.c4raw_get(database, storeName, docID, outError);
         public static bool c4raw_put(C4Database* database, FLSlice storeName, FLSlice key, FLSlice meta, FLSlice body, C4Error* outError) => Impl.c4raw_put(database, storeName, key, meta, body, outError);
         public static bool c4doc_isOldMetaProperty(FLSlice prop) => Impl.c4doc_isOldMetaProperty(prop);
-        public static FLSliceResult c4doc_getBlobData(FLDict* dict, C4BlobStore* blobStore, C4Error* outError) => Impl.c4doc_getBlobData(dict, blobStore, outError);
         public static FLSliceResult c4db_encodeJSON(C4Database* db, FLSlice jsonData, C4Error* outError) => Impl.c4db_encodeJSON(db, jsonData, outError);
         public static C4Document* c4doc_get(C4Database* database, FLSlice docID, bool mustExist, C4Error* outError) => Impl.c4doc_get(database, docID, mustExist, outError);
         public static bool c4doc_selectRevision(C4Document* doc, FLSlice revID, bool withBody, C4Error* outError) => Impl.c4doc_selectRevision(doc, revID, withBody, outError);
