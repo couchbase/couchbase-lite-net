@@ -135,13 +135,10 @@ namespace Couchbase.Lite
                 if(_db != null) {
                     C4BlobStore* blobStore;
                     C4BlobKey key;
-                    if(!GetBlobStore(&blobStore, &key)) {
-                        return null;
+                    if(GetBlobStore(&blobStore, &key)) {
+                        return new BlobReadStream(blobStore, key);
                     }
-
-                    return new BlobReadStream(blobStore, key);
                 }
-
                 return _content != null ? new MemoryStream(_content) : null;
             }
         }
