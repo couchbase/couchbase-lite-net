@@ -46,6 +46,7 @@ namespace Couchbase.Lite
         private const string ContentTypeKey = "content_type";
         private const string DigestKey = "digest";
         private const string LengthKey = "length";
+        private const string DataKey = "data";
 
         private const uint MaxCachedContentLength = 8 * 1024;
         private const int ReadBufferSize = 8 * 1024;
@@ -172,13 +173,15 @@ namespace Couchbase.Lite
         internal IReadOnlyDictionary<string, object> JsonRepresentation
         {
             get {
-                if (_db == null) {
-                    throw new InvalidOperationException("Blob hasn't been saved in the database yet");
-                }
-
                 var json = new Dictionary<string, object>(MutableProperties) {
-                    [Constants.ObjectTypeProperty] = Constants.ObjectTypeBlob
+                    [Constants.ObjectTypeProperty] = Constants.ObjectTypeBlob,
+                    [LengthKey] = Length > 0 ? (object)Length : null
                 };
+                if (Digest != null) {
+                    json[DigestKey] = Digest;
+                } else {
+                    json[DataKey] = Content;
+                }
 
                 return json;
             }
@@ -257,9 +260,10 @@ namespace Couchbase.Lite
             _db = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(db), db);
             _properties = new Dictionary<string, object>(CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, 
                 nameof(properties), properties));
+            _content = properties.GetCast<byte[]>(DataKey);
             ContentType = properties.GetCast<string>(ContentTypeKey);
-            if(Digest == null) {
-                WriteLog.To.Database.W(Tag, "Blob read from database has missing digest");
+            if(Digest == null && _content == null) {
+                WriteLog.To.Database.W(Tag, "Blob read from database has missing digest and contents.");
             }
         }
 
@@ -280,12 +284,9 @@ namespace Couchbase.Lite
                     WriteLog.To.Database.W(Tag, "Error installing blob to database, throwing...");
                     throw;
                 }
-
-                var dict = JsonRepresentation;
-                dict.FLEncode(enc);
+                JsonRepresentation.FLEncode(enc);
             } else {
-                // Independent blob, write bytes only
-                ((IEnumerable<byte>)Content).FLEncode(enc);
+                JsonRepresentation.FLEncode(enc);
             }
         }
 

@@ -229,7 +229,7 @@ namespace LiteCore.Interop
                 case FLValueType.Boolean:
                     return Native.FLValue_AsBool(value);
                 case FLValueType.Data:
-                    return new Blob("application/octet-stream", Native.FLValue_AsData(value));
+                    return Native.FLValue_AsData(value);
                 case FLValueType.Dict:
                 {
                     var dict = Native.FLValue_AsDict(value);
