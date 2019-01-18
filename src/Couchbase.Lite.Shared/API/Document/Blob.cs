@@ -260,7 +260,7 @@ namespace Couchbase.Lite
             _content = properties.GetCast<byte[]>(DataKey);
             ContentType = properties.GetCast<string>(ContentTypeKey);
             if(Digest == null && _content == null) {
-                WriteLog.To.Database.W(Tag, "Blob read from database has missing digest and contents.");
+                WriteLog.To.Database.W(Tag, "Blob read from database has neither digest nor data.");
             }
         }
 
@@ -281,10 +281,8 @@ namespace Couchbase.Lite
                     WriteLog.To.Database.W(Tag, "Error installing blob to database, throwing...");
                     throw;
                 }
-                JsonRepresentation.FLEncode(enc);
-            } else {
-                JsonRepresentation.FLEncode(enc);
             }
+            JsonRepresentation.FLEncode(enc);
         }
 
         #endregion
