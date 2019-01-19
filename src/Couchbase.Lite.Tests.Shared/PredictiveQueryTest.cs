@@ -159,6 +159,7 @@ namespace Test
                 }
             }
 
+            textModel.ContentType.Should().Be("text/plain");
             Database.Prediction.UnregisterModel(textModel.Name);
         }
 
@@ -187,6 +188,7 @@ namespace Test
                         r.GetLong(0).Should().Be(14, "because that is the word count of the sentence in the parameter");
                     });
                 numRows.Should().Be(1);
+                textModel.ContentType.Should().Be("text/plain");
                 textModel.UnregisterModel();
             }
         }
@@ -416,6 +418,7 @@ namespace Test
         #region Properties
 
         public override string Name => nameof(TextModel);
+        public string ContentType = "";
 
         #endregion
 
@@ -427,6 +430,8 @@ namespace Test
             if (blob == null) {
                 return null;
             }
+
+            ContentType = blob.ContentType;
 
             var text = Encoding.UTF8.GetString(blob.Content);
             var wc = text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
