@@ -25,7 +25,7 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// A factory class for creating <see cref="IIndex"/> instances
     /// </summary>
-    public static class IndexBuilder
+    public static partial class IndexBuilder
     {
         /// <summary>
         /// Starts the creation of an index based on a simple property

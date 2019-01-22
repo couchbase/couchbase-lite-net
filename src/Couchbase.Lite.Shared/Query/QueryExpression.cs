@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -23,6 +24,8 @@ using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
+
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -46,6 +49,10 @@ namespace Couchbase.Lite.Internal.Query
         {
             return EncodeExpressions(expressions);
         }
+
+        public IExpression Match(IExpression expression) => GetOperator(BinaryOpType.Matches, expression);
+
+        public IExpression NotIn(params IExpression[] expressions) => Expression.Negated(In(expressions));
 
         #endregion
 
@@ -125,6 +132,15 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
+        #region Overrides
+
+        public override string ToString()
+        {
+            return $"[{GetType().Name}] => {JsonConvert.SerializeObject(ConvertToJSON())}";
+        }
+
+        #endregion
+
         #region IExpression
 
         public IExpression Add(IExpression expression) => GetOperator(BinaryOpType.Add, expression);
@@ -183,15 +199,11 @@ namespace Couchbase.Lite.Internal.Query
 
         public IExpression Like(IExpression expression) => GetOperator(BinaryOpType.Like, expression);
 
-        public IExpression Match(IExpression expression) => GetOperator(BinaryOpType.Matches, expression);
-
         public IExpression Modulo(IExpression expression) => GetOperator(BinaryOpType.Modulus, expression);
 
         public IExpression Multiply(IExpression expression) => GetOperator(BinaryOpType.Multiply, expression);
 
         public IExpression NotEqualTo(IExpression expression) => GetOperator(BinaryOpType.NotEqualTo, expression);
-
-        public IExpression NotIn(params IExpression[] expressions) => Expression.Negated(In(expressions));
 
         public IExpression NotNullOrMissing() => Expression.Not(IsNullOrMissing());
 

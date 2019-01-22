@@ -145,11 +145,6 @@ namespace Couchbase.Lite.Internal.Query
             return obj;
         }
 
-        public override string ToString()
-        {
-            return JsonConvert.SerializeObject(ConvertToJSON());
-        }
-
         #endregion
     }
 }

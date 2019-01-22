@@ -47,7 +47,7 @@ namespace Couchbase.Lite.Query
         /// <param name="value">The value to use</param>
         /// <returns>An expression representing the fixed value</returns>
         [NotNull]
-        public static IExpression Array(IList value) => new QueryCollectionExpression(value);
+        public static IExpression Array(IList value) => new QueryConstantExpression<IList>(value);
 
         /// <summary>
         /// Returns an expression to represent a fixed <see cref="bool"/> value
@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Query
         /// <param name="value">The value to use</param>
         /// <returns>An expression representing the fixed value</returns>
         [NotNull]
-        public static IExpression Dictionary(IDictionary<string, object> value) => new QueryCollectionExpression(value);
+        public static IExpression Dictionary(IDictionary<string, object> value) => new QueryConstantExpression<IDictionary<string, object>>(value);
 
         /// <summary>
         /// Returns an expression to represent a fixed <see cref="double"/> value

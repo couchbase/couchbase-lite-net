@@ -18,12 +18,14 @@
 
 using System.Globalization;
 using System.Linq;
+
 using Couchbase.Lite.Query;
+
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal sealed class QueryIndex : IValueIndex, IFullTextIndex
+    internal abstract class QueryIndexBase : IValueIndex, IFullTextIndex
     {
         #region Variables
 
@@ -32,11 +34,15 @@ namespace Couchbase.Lite.Internal.Query
         private string _locale = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
         private readonly IValueIndexItem[] _valueItems;
 
+        #if COUCHBASE_ENTERPRISE
+        private readonly string[] _predictiveItems;
+        #endif
+
         #endregion
 
         #region Properties
 
-        internal C4IndexType IndexType => _ftsItems != null ? C4IndexType.FullTextIndex : C4IndexType.ValueIndex;
+        internal C4IndexType IndexType { get; }
 
         internal C4IndexOptions Options
         {
@@ -56,13 +62,14 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Internal Methods
 
-        internal object ToJSON()
+        internal virtual object ToJSON()
         {
-            object jsonObj;
+            object jsonObj = null;
             if (_ftsItems != null) {
                 jsonObj = QueryExpression.EncodeToJSON(_ftsItems.OfType<QueryIndexItem>().Select(x => x.Expression)
                     .ToList());
-            } else {
+            } 
+            else if(_valueItems != null) {
                 jsonObj = QueryExpression.EncodeToJSON(_valueItems.OfType<QueryIndexItem>().Select(x => x.Expression)
                     .ToList());
             }
@@ -72,15 +79,26 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
-        public QueryIndex(params IFullTextIndexItem[] items)
+        #region Constructors
+
+        protected QueryIndexBase(params IFullTextIndexItem[] items)
+            : this(C4IndexType.FullTextIndex)
         {
             _ftsItems = items;
         }
 
-        public QueryIndex(params IValueIndexItem[] items)
+        protected QueryIndexBase(params IValueIndexItem[] items)
+            : this(C4IndexType.ValueIndex)
         {
             _valueItems = items;
         }
+
+        protected QueryIndexBase(C4IndexType indexType)
+        {
+            IndexType = indexType;
+        }
+
+        #endregion
 
         #region IFullTextIndex
 
@@ -98,4 +116,25 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
     }
+
+    #if !COUCHBASE_ENTERPRISE
+
+    internal sealed class QueryIndex : QueryIndexBase
+    {
+        #region Constructors
+
+        public QueryIndex(params IFullTextIndexItem[] items)
+            : base(items)
+        {
+        }
+
+        public QueryIndex(params IValueIndexItem[] items)
+            :base(items)
+        {
+        }
+
+        #endregion
+    }
+
+    #endif
 }

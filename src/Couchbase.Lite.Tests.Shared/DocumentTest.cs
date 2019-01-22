@@ -1990,9 +1990,12 @@ namespace Test
 
             Thread.Sleep(4100);
 
-            Db.GetDocument("doc1").Should().BeNull();
-            Db.GetDocument("doc2").Should().BeNull();
-            Db.GetDocument("doc3").Should().BeNull();
+            Try.Assertion(() =>
+            {
+                Db.GetDocument("doc1").Should().BeNull();
+                Db.GetDocument("doc2").Should().BeNull();
+                Db.GetDocument("doc3").Should().BeNull();
+            }).Times(5).Delay(TimeSpan.FromMilliseconds(500)).Go().Should().BeTrue();
         }
 
         [Fact]

@@ -57,8 +57,6 @@ namespace Couchbase.Lite.Internal.Query
             return obj;
         }
 
-        public override string ToString() => JsonConvert.SerializeObject(ConvertToJSON());
-
         #endregion
 
         #region IFullTextExpression

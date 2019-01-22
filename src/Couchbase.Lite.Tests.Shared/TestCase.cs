@@ -88,7 +88,7 @@ namespace Test
 #if !WINDOWS_UWP
         public TestCase(ITestOutputHelper output)
         {
-            Database.Log.Custom = new XunitLogger(output);
+            Database.Log.Custom = new XunitLogger(output) { Level = LogLevel.Info };
             _output = output;
 #else
         public TestCase()

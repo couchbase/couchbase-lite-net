@@ -122,8 +122,6 @@ namespace Couchbase.Lite.Internal.Query
             return null;
         }
 
-        public override string ToString() => JsonConvert.SerializeObject(ConvertToJSON());
-
         public IExpression From(string alias)
         {
             _from = alias;
