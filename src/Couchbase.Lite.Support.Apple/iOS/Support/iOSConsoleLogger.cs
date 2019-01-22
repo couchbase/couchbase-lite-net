@@ -27,8 +27,9 @@ namespace Couchbase.Lite.Support
     {
         #region Properties
 
-        public LogDomain Domains { get; set; }
-        public LogLevel Level { get; set; }
+        public LogDomain Domains { get; set; } = LogDomain.All;
+
+        public LogLevel Level { get; set; } = LogLevel.Warning;
 
         #endregion
 
