@@ -50,7 +50,7 @@ namespace Test
             get => _output;
             set {
                 _output = value;
-                Database.Log.Custom = new MSTestLogger(_testContext);
+                Database.Log.Custom = new MSTestLogger(value);
             }
         }
 #endif

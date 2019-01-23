@@ -22,7 +22,11 @@ using System.Threading;
 
 using FluentAssertions.Execution;
 
+#if !WINDOWS_UWP
 using Xunit.Sdk;
+#else
+using XunitException = Microsoft.VisualStudio.TestTools.UnitTesting.AssertFailedException;
+#endif
 
 namespace Test.Util
 {

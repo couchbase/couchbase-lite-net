@@ -16,7 +16,6 @@
 //  limitations under the License.
 // 
 #if COUCHBASE_ENTERPRISE
-#if !WINDOWS_UWP
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,9 +33,9 @@ using LiteCore.Interop;
 
 using Newtonsoft.Json;
 
+#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-
 #else
 using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
 #endif
