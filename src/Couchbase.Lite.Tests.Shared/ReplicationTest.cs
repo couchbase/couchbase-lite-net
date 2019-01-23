@@ -1365,14 +1365,29 @@ namespace Test
 
         protected override void Dispose(bool disposing)
         {
-            _repl?.Dispose();
-            _repl = null;
+            Exception ex = null;
+            var success = Try.Condition(() =>
+            {
+                try {
+                    _repl?.Dispose();
+                    _repl = null;
 
-            base.Dispose(disposing);
+                    base.Dispose(disposing);
 
-            _otherDB?.Delete();
-            _otherDB?.Dispose();
-            _otherDB = null;
+                    _otherDB?.Delete();
+                    _otherDB?.Dispose();
+                    _otherDB = null;
+                } catch (Exception e) {
+                    ex = e;
+                    return false;
+                }
+
+                return true;
+            }).Times(5).Delay(TimeSpan.FromSeconds(1)).WriteProgress(WriteLine).Go();
+
+            if (!success) {
+                throw ex;
+            }
         }
     }
 
