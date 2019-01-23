@@ -10,7 +10,7 @@ if (-NOT (Test-Path $sourceProjectFile)) {
 
     $content = [System.IO.File]::ReadAllLines("Couchbase.Lite.Tests.UWP.csproj")
 
-    $regex = New-Object -TypeName "System.Text.RegularExpressions.Regex" ".*?<Version>([0-9]\.[0-9]\.[0-9]-b[0-9]{4})<.*?"
+    $regex = New-Object -TypeName "System.Text.RegularExpressions.Regex" ".*?Version=`"([0-9]\.[0-9]\.[0-9]-b[0-9]{4}).*?"
     for($i = 0; $i -lt $content.Length; $i++) {
         $line = $content[$i]
         $matches = $regex.Matches($line)
