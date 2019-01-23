@@ -17,9 +17,12 @@
 // 
 
 using System;
+using System.Reflection;
 using System.Threading;
 
 using FluentAssertions.Execution;
+
+using Xunit.Sdk;
 
 namespace Test.Util
 {
@@ -93,7 +96,7 @@ namespace Test.Util
                         return true;
                     }
 
-                    _progressHandler?.Invoke($"Condition false on attempt {count + 1} of {_count}, waiting for {_delay}...");
+                    _progressHandler?.Invoke($"Condition false on attempt {count} of {_count}, waiting for {_delay}...");
                     Thread.Sleep(_delay);
                 }
 
@@ -114,19 +117,20 @@ namespace Test.Util
             public override bool Go()
             {
                 var count = 0;
-                while (count++ < _count) {
+                while (count++ <= _count) {
                     try {
                         _assertion();
                         return true;
-                    } catch (AssertionFailedException) {
+                    } catch (XunitException) {
+                        _progressHandler?.Invoke($"Assertion failed on attempt {count} of {_count}");
                         if (count == _count) {
                             _progressHandler?.Invoke("Out of retry attempts!");
                             throw;
                         }
 
-                        _progressHandler?.Invoke($"Assertion failed on attempt {count + 1} of {_count}, waiting for {_delay}...");
                     }
 
+                    _progressHandler?.Invoke($"Will try assertion again in {_delay}...");
                     Thread.Sleep(_delay);
                 }
 
