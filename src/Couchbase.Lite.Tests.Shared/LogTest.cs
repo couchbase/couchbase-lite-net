@@ -222,6 +222,7 @@ namespace Test
             });
         }
 
+#if !__ANDROID__
         [Fact]
         public void TestConsoleLoggingLevels()
         {
@@ -291,8 +292,10 @@ namespace Test
             }
 
             Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
+            Database.Log.Console.Domains = LogDomain.All;
             Database.Log.Console.Level = LogLevel.Warning;
         }
+#endif
 
         [Fact]
         public void TestCustomLoggingLevels()
