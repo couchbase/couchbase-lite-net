@@ -311,11 +311,8 @@ namespace Test
 
             var textModel = new TextModel();
             textModel.RegisterModel();
-            
-            var input = Expression.Dictionary(new Dictionary<string, object>
-            {
-                ["text"] = new List<object> { ".text" }
-            });
+
+            var input = TextModel.CreateInput("text");
             var prediction = Function.Prediction(textModel.Name, input).Property("wc");
             using (var q = QueryBuilder
                 .Select(SelectResult.Property("text"), SelectResult.Expression(prediction).As("wc"))
@@ -862,7 +859,7 @@ namespace Test
 
             for (int i = 0; i < 2; i++) {
                 aggregateModel.Reset();
-                aggregateModel.AllowCalls = false;
+                aggregateModel.AllowCalls = i == 1;
 
                 using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
                     .From(DataSource.Database(Db))
