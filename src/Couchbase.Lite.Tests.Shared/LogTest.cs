@@ -103,13 +103,7 @@ namespace Test
 
             TestWithConfiguration(LogLevel.Debug, config, () =>
             {
-                // Write more than 2048 bytes, with a break to make sure the writes don't happen
-                // too quickly to skip a filesystem flush
                 for (int i = 0; i < 45; i++) {
-                    if (i == 22) {
-                        Thread.Sleep(1000);
-                    }
-
                     WriteLog.To.Database.E("TEST", $"MESSAGE {i}");
                     WriteLog.To.Database.W("TEST", $"MESSAGE {i}");
                     WriteLog.To.Database.I("TEST", $"MESSAGE {i}");
@@ -213,13 +207,7 @@ namespace Test
 
             TestWithConfiguration(LogLevel.Verbose, config, () =>
             {
-                // Write more than 2048 bytes, with a break to make sure the writes don't happen
-                // too quickly to skip a filesystem flush
                 for (int i = 0; i < 45; i++) {
-                    if (i == 22) {
-                        Thread.Sleep(1000);
-                    }
-
                     WriteLog.To.Database.E("TEST", $"MESSAGE {i}");
                     WriteLog.To.Database.W("TEST", $"MESSAGE {i}");
                     WriteLog.To.Database.I("TEST", $"MESSAGE {i}");

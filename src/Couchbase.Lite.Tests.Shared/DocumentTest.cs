@@ -1872,6 +1872,7 @@ namespace Test
             Thread.Sleep(3100);
             Try.Condition(() => Db.GetDocument("doc_to_expired") == null)
                 .Times(5)
+                .WriteProgress(WriteLine)
                 .Delay(TimeSpan.FromMilliseconds(500))
                 .Go().Should().BeTrue();
         }
@@ -1891,7 +1892,7 @@ namespace Test
 
                 Action badAction = (() => Db.SetDocumentExpiration("deleted_doc1", dto3));
                 Try.Assertion(() => badAction.ShouldThrow<CouchbaseLiteException>("Cannot find the document."))
-                    .Times(5).Delay(TimeSpan.FromMilliseconds(500)).Go().Should().BeTrue();
+                    .Times(5).WriteProgress(WriteLine).Delay(TimeSpan.FromMilliseconds(500)).Go().Should().BeTrue();
             }
         }
 
@@ -1995,7 +1996,7 @@ namespace Test
                 Db.GetDocument("doc1").Should().BeNull();
                 Db.GetDocument("doc2").Should().BeNull();
                 Db.GetDocument("doc3").Should().BeNull();
-            }).Times(5).Delay(TimeSpan.FromMilliseconds(500)).Go().Should().BeTrue();
+            }).Times(5).WriteProgress(WriteLine).Delay(TimeSpan.FromMilliseconds(500)).Go().Should().BeTrue();
         }
 
         [Fact]

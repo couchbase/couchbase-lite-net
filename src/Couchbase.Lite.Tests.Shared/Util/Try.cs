@@ -29,6 +29,7 @@ namespace Test.Util
 
         protected int _count = 1;
         protected TimeSpan _delay = TimeSpan.FromMilliseconds(100);
+        protected Action<string> _progressHandler;
 
         #endregion
 
@@ -46,6 +47,12 @@ namespace Test.Util
         public Try Times(int count)
         {
             _count = count;
+            return this;
+        }
+
+        public Try WriteProgress(Action<string> progressHandler)
+        {
+            _progressHandler = progressHandler;
             return this;
         }
 
@@ -86,9 +93,11 @@ namespace Test.Util
                         return true;
                     }
 
+                    _progressHandler?.Invoke($"Condition false on attempt {count + 1} of {_count}, waiting for {_delay}...");
                     Thread.Sleep(_delay);
                 }
 
+                _progressHandler?.Invoke("Out of retry attempts!");
                 return false;
             }
         }
@@ -111,8 +120,11 @@ namespace Test.Util
                         return true;
                     } catch (AssertionFailedException) {
                         if (count == _count) {
+                            _progressHandler?.Invoke("Out of retry attempts!");
                             throw;
                         }
+
+                        _progressHandler?.Invoke($"Assertion failed on attempt {count + 1} of {_count}, waiting for {_delay}...");
                     }
 
                     Thread.Sleep(_delay);
