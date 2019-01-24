@@ -337,6 +337,14 @@ namespace Test
             Database.Log.File.Config = null;
             sw.ToString().Contains("file logging is disabled").Should().BeTrue();
             Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
+
+            sw.Dispose();
+            sw = new StringWriter();
+            Console.SetOut(sw);
+            using (var db = new Database("tmp")) {
+                sw.ToString().Contains("file logging is disabled").Should().BeFalse();
+                db.Delete();
+            }
         }
 #endif
 

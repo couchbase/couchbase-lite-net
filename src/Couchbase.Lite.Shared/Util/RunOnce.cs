@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Reflection;
 
 using Couchbase.Lite.Internal.Logging;
 
@@ -24,7 +25,7 @@ namespace Couchbase.Lite.Util
         private readonly string _id;
 
         [NotNull]
-        private readonly ConcurrentDictionary<Action, bool> _seen = new ConcurrentDictionary<Action, bool>();
+        private readonly ConcurrentDictionary<MethodInfo, bool> _seen = new ConcurrentDictionary<MethodInfo, bool>();
 
         #endregion
 
@@ -46,7 +47,8 @@ namespace Couchbase.Lite.Util
 
         public void Run([NotNull]Action a)
         {
-            if (_seen.TryAdd(a, false)) {
+
+            if (_seen.TryAdd(a.Method, false)) {
                 WriteLog.To.Database.V(Tag, "Executing logic for {0}", _id);
                 a();
             }
