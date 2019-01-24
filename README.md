@@ -1,4 +1,4 @@
-Couchbase Lite for .NET [![GitHub release](https://img.shields.io/github/release/couchbase/couchbase-lite-net.svg?style=plastic)]() [![Coverity Scan Build Status](https://img.shields.io/coverity/scan/14247.svg?style=plastic)]()
+Couchbase Lite for .NET [![GitHub release](https://img.shields.io/nuget/v/Couchbase.Lite.svg?style=plastic)]() 
 ==================
 
 Couchbase Lite is a lightweight embedded NoSQL database that has built-in sync to larger backend structures, such as Couchbase Server.
