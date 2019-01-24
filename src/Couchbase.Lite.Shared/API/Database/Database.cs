@@ -225,8 +225,6 @@ namespace Couchbase.Lite
 
         [NotNull]
         internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
-        
-        private bool InTransaction => ThreadSafety.DoLocked(() => _c4db != null && Native.c4db_isInTransaction(_c4db));
 
         private bool IsShell { get; }
 
@@ -1072,7 +1070,7 @@ namespace Couchbase.Lite
         {
 			ThreadSafety.DoLocked(() =>
 			{
-				if (_obs == null || _c4db == null || InTransaction) {
+				if (_obs == null || _c4db == null) {
 					return;
 				}
 
