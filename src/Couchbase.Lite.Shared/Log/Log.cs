@@ -19,6 +19,7 @@
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.Interop;
@@ -120,7 +121,7 @@ namespace Couchbase.Lite.Internal.Logging
         }
 
         [MonoPInvokeCallback(typeof(C4LogCallback))]
-        private static void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, string message, IntPtr ignored)
+        private static void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, IntPtr message, IntPtr ignored)
         {
             // Not the best place to do this, but otherwise we have to require the developer
             // To signal us when they change the log level
@@ -128,8 +129,9 @@ namespace Couchbase.Lite.Internal.Logging
 
             var domainName = Native.c4log_getDomainName(domain);
             var logDomain = To.DomainForString(domainName);
-            Database.Log.Console.Log((LogLevel)level, logDomain, message);
-            Database.Log.Custom?.Log((LogLevel)level, logDomain, message);
+            var actualMessage = message.ToUTF8String();
+            Database.Log.Console.Log((LogLevel)level, logDomain, actualMessage);
+            Database.Log.Custom?.Log((LogLevel)level, logDomain, actualMessage);
         }
 
         #endregion

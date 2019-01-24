@@ -30,8 +30,8 @@ namespace LiteCore.Interop
 {
     using Couchbase.Lite.Interop;
 
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-    internal unsafe delegate void C4LogCallback(C4LogDomain* domain, C4LogLevel level, string message, IntPtr args);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    internal unsafe delegate void C4LogCallback(C4LogDomain* domain, C4LogLevel level, IntPtr message, IntPtr args);
 
     internal partial struct C4Error
     {

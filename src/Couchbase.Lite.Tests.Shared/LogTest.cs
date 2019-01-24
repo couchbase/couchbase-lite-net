@@ -26,6 +26,7 @@ using System.Threading;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Logging;
+using Couchbase.Lite.Query;
 
 using FluentAssertions;
 
@@ -412,6 +413,34 @@ namespace Test
                     }
                 }
             });
+        }
+
+        [Fact]
+        public void TestNonAscii()
+        {
+            var customLogger = new LogTestLogger { Level = LogLevel.Verbose };
+            Database.Log.Custom = customLogger;
+            Database.Log.Console.Level = LogLevel.Verbose;
+            try {
+                var hebrew = "מזג האוויר נחמד היום"; // The weather is nice today.
+                Database.Delete("test_non_ascii", null);
+                using(var db = new Database("test_non_ascii"))
+                using (var doc = new MutableDocument()) {
+                    doc.SetString("hebrew", hebrew);
+                    db.Save(doc);
+
+                    using (var q = QueryBuilder.Select(SelectResult.All())
+                        .From(DataSource.Database(db))) {
+                        q.Execute().Count().Should().Be(1);
+                    }
+
+                    var expectedHebrew = "[{\"hebrew\":\"" + hebrew + "\"}]";
+                    customLogger.Lines.Any(x => x.Contains(expectedHebrew)).Should().BeTrue();
+                }
+            } finally {
+                Database.Log.Custom = null;
+                Database.Log.Console.Level = LogLevel.Warning;
+            }
         }
 
         private void TestWithConfiguration(LogLevel level, LogFileConfiguration config, [NotNull]Action a)

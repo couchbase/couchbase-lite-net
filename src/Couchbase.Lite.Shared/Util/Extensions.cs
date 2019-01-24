@@ -36,6 +36,17 @@ namespace Couchbase.Lite.Util
     {
         #region Public Methods
 
+        public static unsafe string ToUTF8String(this IntPtr ptr)
+        {
+            var utf8Bytes = (sbyte*) ptr.ToPointer();
+            var size = 0;
+            while (utf8Bytes[size] != 0) {
+                size++;
+            }
+
+            return new string(utf8Bytes, 0, size, Encoding.UTF8);
+        }
+
         public static DocumentFlags ToDocumentFlags(this C4RevisionFlags flags)
         {
             var retVal = (DocumentFlags)0;
