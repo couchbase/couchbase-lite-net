@@ -113,15 +113,14 @@ namespace Test
             long tmp;
             using (var stream = new BlobWriteStream(Db.BlobStore)) {
                 stream.CanSeek.Should().BeFalse();
-                stream.Invoking(s => tmp = s.Length).ShouldThrow<NotSupportedException>();
-                stream.Invoking(s => tmp = s.Position).ShouldThrow<NotSupportedException>();
                 stream.Invoking(s => s.Position = 10).ShouldThrow<NotSupportedException>();
                 stream.Invoking(s => s.Read(bytes, 0, bytes.Length)).ShouldThrow<NotSupportedException>();
                 stream.Invoking(s => s.SetLength(100)).ShouldThrow<NotSupportedException>();
                 stream.Write(bytes, 0, bytes.Length);
+                stream.Length.Should().Be(bytes.Length);
+                stream.Position.Should().Be(bytes.Length);
                 stream.Flush();
                 key = stream.Key;
-                var canread = stream.CanRead;
             }
 
             using (var stream = new BlobReadStream(Db.BlobStore, key)) {
@@ -142,6 +141,30 @@ namespace Test
                 stream.Position.Should().Be(bytes.Length - 2); // ReadByte advanced the stream
                 stream.ReadByte().Should().Be(bytes[bytes.Length - 2]);
                 stream.Flush();
+            }
+        }
+
+        [Fact]
+        public unsafe void TestBlobStreamCopyTo()
+        {
+            byte[] bytes = null;
+            using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("iTunesMusicLibrary.json"))
+            using (var sr = new BinaryReader(stream)) {
+                bytes = sr.ReadBytes((int)stream.Length);
+            }
+
+            C4BlobKey key;
+            using (var stream = typeof(BlobTest).GetTypeInfo().Assembly
+                .GetManifestResourceStream("iTunesMusicLibrary.json")) {
+                using (var writeStream = new BlobWriteStream(Db.BlobStore)) {
+                    stream.CopyTo(writeStream);
+                    writeStream.Flush();
+                    key = writeStream.Key;
+                }
+            }
+
+            using (var stream = new BlobReadStream(Db.BlobStore, key)) {
+                stream.Length.Should().Be(bytes.Length);
             }
         }
     }

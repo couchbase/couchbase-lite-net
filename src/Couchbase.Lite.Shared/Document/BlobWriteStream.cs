@@ -19,6 +19,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 
 using Couchbase.Lite.Interop;
 using Couchbase.Lite.Util;
@@ -35,6 +36,7 @@ namespace Couchbase.Lite.Internal.Doc
         #region Variables
 
         private C4WriteStream* _writeStream;
+        private long _totalBytes;
 
         #endregion
 
@@ -48,11 +50,11 @@ namespace Couchbase.Lite.Internal.Doc
 
         public C4BlobKey Key { get; private set; }
 
-        public override long Length => throw new NotSupportedException();
+        public override long Length => _totalBytes;
 
         public override long Position
         {
-            get => throw new NotSupportedException();
+            get => _totalBytes;
             set => throw new NotSupportedException();
         }
 
@@ -102,7 +104,9 @@ namespace Couchbase.Lite.Internal.Doc
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            LiteCoreBridge.Check(err => Native.c4stream_write(_writeStream, buffer, err));
+            _totalBytes += count;
+            var actualBytes = buffer.Skip(offset).Take(count).ToArray();
+            LiteCoreBridge.Check(err => Native.c4stream_write(_writeStream, actualBytes, err));
         }
 
         #endregion

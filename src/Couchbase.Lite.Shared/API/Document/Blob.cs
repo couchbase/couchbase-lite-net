@@ -339,6 +339,7 @@ namespace Couchbase.Lite
                 using(var blobOut = new BlobWriteStream(store)) {
                     contentStream.CopyTo(blobOut, ReadBufferSize);
                     blobOut.Flush();
+                    Length = blobOut.Length > Int32.MaxValue ? 0 : (int) blobOut.Length;
                     key = blobOut.Key;
                 }
 
