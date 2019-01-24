@@ -36,6 +36,7 @@ using Test.Util;
 using Xunit;
 using Xunit.Abstractions;
 #else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
 #endif
 
