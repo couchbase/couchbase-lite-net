@@ -252,7 +252,15 @@ namespace Couchbase.Lite
         {
             Name = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
             Config = configuration?.Freeze() ?? new DatabaseConfiguration(true);
+            RunOnce.GetInstance(nameof(Database)).Run(CheckFileLogger);
             Open();
+        }
+
+        private void CheckFileLogger()
+        {
+            if (Log.File.Config == null) {
+                WriteLog.To.Database.W("Logging", "Database.Log.File.Config is null, meaning file logging is disabled.  Log files required for product support are not being generated.");
+            }
         }
 
         internal Database([NotNull]Database other)

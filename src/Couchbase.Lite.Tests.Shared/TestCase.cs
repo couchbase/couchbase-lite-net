@@ -66,7 +66,7 @@ namespace Test
             get => _testContext;
             set {
                 _testContext = value;
-                Database.Log.Custom = new MSTestLogger(_testContext);
+                Database.Log.Custom = new MSTestLogger(_testContext) { Level = LogLevel.Info };
             }
         }
 #endif

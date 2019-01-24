@@ -175,5 +175,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\NonNullDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\OptionsDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\RefCountedDisposable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\RunOnce.cs" />
   </ItemGroup>
 </Project>

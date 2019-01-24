@@ -50,7 +50,7 @@ namespace Test
             get => _output;
             set {
                 _output = value;
-                Database.Log.Custom = new MSTestLogger(value);
+                Database.Log.Custom = new MSTestLogger(value) { Level = LogLevel.Info };
             }
         }
 #endif
@@ -71,7 +71,7 @@ namespace Test
         protected PerfTest(ITestOutputHelper output)
         {
             _output = output;
-            Database.Log.Custom = new XunitLogger(output);
+            Database.Log.Custom = new XunitLogger(output) { Level = LogLevel.Info };
         }
 #endif
 

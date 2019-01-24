@@ -184,6 +184,10 @@ namespace Couchbase.Lite.Logging
         {
             get => _config;
             set {
+                if (value == null) {
+                    WriteLog.To.Database.W("Logging", "Database.Log.File.Config is now null, meaning file logging is disabled.  Log files required for product support are not being generated.");
+                }
+
                 _config = value?.Freeze();
                 UpdateConfig();
             }

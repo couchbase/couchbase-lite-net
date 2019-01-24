@@ -30,6 +30,8 @@ using Couchbase.Lite.Logging;
 using FluentAssertions;
 
 using JetBrains.Annotations;
+
+using Test.Util;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -48,6 +50,25 @@ namespace Test
         static LogTest()
         {
             Couchbase.Lite.Support.NetDesktop.Activate();
+        }
+#endif
+
+#if !WINDOWS_UWP
+        public LogTest(ITestOutputHelper output)
+        {
+            Database.Log.Custom = new XunitLogger(output) { Level = LogLevel.Info };
+        }
+#endif
+
+#if WINDOWS_UWP
+        private TestContext _testContext;
+        public TestContext TestContext
+        {
+            get => _testContext;
+            set {
+                _testContext = value;
+                Database.Log.Custom = new MSTestLogger(_testContext) { Level = LogLevel.Info };
+            }
         }
 #endif
 
@@ -294,6 +315,26 @@ namespace Test
             Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
             Database.Log.Console.Domains = LogDomain.All;
             Database.Log.Console.Level = LogLevel.Warning;
+        }
+
+        [Fact]
+        public void TestFileLogDisabledWarning()
+        {
+            Database.Log.File.Config.Should().BeNull();
+            var sw = new StringWriter();
+            Console.SetOut(sw);
+            using (var db = new Database("tmp")) {
+                sw.ToString().Contains("file logging is disabled").Should().BeTrue();
+                db.Delete();
+            }
+
+            sw.Dispose();
+            sw = new StringWriter();
+            Console.SetOut(sw);
+            Database.Log.File.Config = new LogFileConfiguration("foo");
+            Database.Log.File.Config = null;
+            sw.ToString().Contains("file logging is disabled").Should().BeTrue();
+            Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
         }
 #endif
 
