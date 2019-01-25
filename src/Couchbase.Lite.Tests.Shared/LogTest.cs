@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
 
@@ -27,6 +28,7 @@ using Couchbase.Lite;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Util;
 
 using FluentAssertions;
 
@@ -323,28 +325,39 @@ namespace Test
         public void TestFileLogDisabledWarning()
         {
             Database.Log.File.Config.Should().BeNull();
-            var sw = new StringWriter();
-            Console.SetOut(sw);
-            using (var db = new Database("tmp")) {
+            
+            // There is a helper method in debug builds that can clear the "run once"
+            // logic.  Otherwise there has to be a guarantee that this method will run
+            // first.
+#if DEBUG
+            RunOnce.GetInstance(nameof(Database)).Clear(typeof(Database).GetMethod("CheckFileLogger", BindingFlags.NonPublic|BindingFlags.Instance));
+            using (var sw = new StringWriter()) {
+                Console.SetOut(sw);
+                using (var db = new Database("tmp")) {
+                    sw.ToString().Contains("file logging is disabled").Should().BeTrue();
+                    db.Delete();
+                }
+            }
+#endif
+
+            using (var sw = new StringWriter()) {
+                Console.SetOut(sw);
+                Database.Log.File.Config = new LogFileConfiguration("foo");
+                Database.Log.File.Config = null;
                 sw.ToString().Contains("file logging is disabled").Should().BeTrue();
-                db.Delete();
             }
 
-            sw.Dispose();
-            sw = new StringWriter();
-            Console.SetOut(sw);
-            Database.Log.File.Config = new LogFileConfiguration("foo");
-            Database.Log.File.Config = null;
-            sw.ToString().Contains("file logging is disabled").Should().BeTrue();
+#if DEBUG
+            using (var sw = new StringWriter()) {
+                Console.SetOut(sw);
+                using (var db = new Database("tmp")) {
+                    sw.ToString().Contains("file logging is disabled").Should().BeFalse();
+                    db.Delete();
+                }
+            }
+#endif
+            
             Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
-
-            sw.Dispose();
-            sw = new StringWriter();
-            Console.SetOut(sw);
-            using (var db = new Database("tmp")) {
-                sw.ToString().Contains("file logging is disabled").Should().BeFalse();
-                db.Delete();
-            }
         }
 #endif
 

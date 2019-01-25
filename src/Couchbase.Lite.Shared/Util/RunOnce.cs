@@ -56,6 +56,15 @@ namespace Couchbase.Lite.Util
 
         #endregion
 
+        #if DEBUG
+
+        internal void Clear([NotNull] MethodInfo mi)
+        {
+            _seen.TryRemove(mi, out var ignore);
+        }
+
+        #endif
+
         #region Overrides
 
         public override string ToString()
