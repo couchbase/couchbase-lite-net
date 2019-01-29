@@ -252,7 +252,7 @@ namespace Couchbase.Lite
         {
             Name = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
             Config = configuration?.Freeze() ?? new DatabaseConfiguration(true);
-            RunOnce.GetInstance(nameof(Database)).Run(CheckFileLogger);
+            Run.Once(nameof(CheckFileLogger), CheckFileLogger);
             Open();
         }
 

@@ -330,7 +330,7 @@ namespace Test
             // logic.  Otherwise there has to be a guarantee that this method will run
             // first.
 #if DEBUG
-            RunOnce.GetInstance(nameof(Database)).Clear(typeof(Database).GetMethod("CheckFileLogger", BindingFlags.NonPublic|BindingFlags.Instance));
+            Run.Clear("CheckFileLogger");
             using (var sw = new StringWriter()) {
                 Console.SetOut(sw);
                 using (var db = new Database("tmp")) {

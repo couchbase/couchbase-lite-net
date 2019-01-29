@@ -1,76 +1,44 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Reflection;
-
-using Couchbase.Lite.Internal.Logging;
+using System.Diagnostics;
 
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Util
 {
-    internal sealed class RunOnce
+    internal static class Run
     {
         #region Constants
 
-        private const string Tag = nameof(RunOnce);
-
-        [NotNull] private static readonly ConcurrentDictionary<string, RunOnce> Instances =
-            new ConcurrentDictionary<string, RunOnce>();
-
-        #endregion
-
-        #region Variables
-
-        [NotNull]
-        private readonly string _id;
-
-        [NotNull]
-        private readonly ConcurrentDictionary<MethodInfo, bool> _seen = new ConcurrentDictionary<MethodInfo, bool>();
-
-        #endregion
-
-        #region Constructors
-
-        private RunOnce([NotNull]string identifier)
-        {
-            _id = identifier;
-        }
+        [NotNull] private static readonly ConcurrentDictionary<string, byte> Instances =
+            new ConcurrentDictionary<string, byte>();
 
         #endregion
 
         #region Public Methods
 
-        public static RunOnce GetInstance([NotNull]string identifier)
+        public static void Once([NotNull]string identifier, [NotNull] Action a)
         {
-            return Instances.GetOrAdd(identifier, k => new RunOnce(k));
-        }
+            Debug.Assert(identifier != null);
+            Debug.Assert(a != null);
 
-        public void Run([NotNull]Action a)
-        {
-
-            if (_seen.TryAdd(a.Method, false)) {
-                WriteLog.To.Database.V(Tag, "Executing logic for {0}", _id);
+            if (Instances.TryAdd(identifier, 0)) {
                 a();
             }
         }
 
         #endregion
 
-        #if DEBUG
+        #region Internal Methods
 
-        internal void Clear([NotNull] MethodInfo mi)
+#if DEBUG
+
+        internal static void Clear([NotNull] string identifier)
         {
-            _seen.TryRemove(mi, out var ignore);
+            Instances.TryRemove(identifier, out var tmp);
         }
 
-        #endif
-
-        #region Overrides
-
-        public override string ToString()
-        {
-            return $"RunOnce => [{_id}]";
-        }
+#endif
 
         #endregion
     }
