@@ -1366,17 +1366,20 @@ namespace Test
         protected override void Dispose(bool disposing)
         {
             Exception ex = null;
+            _repl?.Dispose();
+            _repl = null;
+
+            base.Dispose(disposing);
+            var name = _otherDB?.Name;
+            _otherDB?.Dispose();
+            _otherDB = null;
+
             var success = Try.Condition(() =>
             {
                 try {
-                    _repl?.Dispose();
-                    _repl = null;
-
-                    base.Dispose(disposing);
-
-                    _otherDB?.Delete();
-                    _otherDB?.Dispose();
-                    _otherDB = null;
+                    if (name != null) {
+                        Database.Delete(name, Directory);
+                    }
                 } catch (Exception e) {
                     ex = e;
                     return false;
