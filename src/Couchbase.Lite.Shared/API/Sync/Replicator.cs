@@ -388,7 +388,6 @@ namespace Couchbase.Lite.Sync
                 Stop();
                 Native.c4repl_free(_repl);
                 _repl = null;
-                GCHandle.FromIntPtr((IntPtr)Config.SocketFactory.context).Free();
                 _disposed = true;
             });
         }
