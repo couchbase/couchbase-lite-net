@@ -16,6 +16,7 @@
 // limitations under the License.
 // 
 using Couchbase.Lite.Query;
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -23,7 +24,7 @@ namespace Couchbase.Lite.Internal.Query
     {
         #region Constructors
 
-        public Where(XQuery query, IExpression expression)
+        internal Where(XQuery query, IExpression expression)
         {
             Copy(query);
             WhereImpl = expression as QueryExpression;
@@ -33,7 +34,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IGroupByRouter
 
-        public IGroupBy GroupBy(params IExpression[] expressions)
+        public IGroupBy GroupBy([NotNull]params IExpression[] expressions)
         {
             return new QueryGroupBy(this, expressions);
         }
@@ -42,7 +43,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        public IOrderBy OrderBy(params IOrdering[] orderings)
+        public IOrderBy OrderBy([NotNull]params IOrdering[] orderings)
         {
             return new QueryOrderBy(this, orderings);
         }

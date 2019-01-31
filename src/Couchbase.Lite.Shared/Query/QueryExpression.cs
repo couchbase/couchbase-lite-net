@@ -45,14 +45,14 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Public Methods
 
-        public static object EncodeToJSON(IList expressions)
+        public static object EncodeToJSON([NotNull]IList expressions)
         {
             return EncodeExpressions(expressions);
         }
 
-        public IExpression Match(IExpression expression) => GetOperator(BinaryOpType.Matches, expression);
+        public IExpression Match([NotNull]IExpression expression) => GetOperator(BinaryOpType.Matches, expression);
 
-        public IExpression NotIn(params IExpression[] expressions) => Expression.Negated(In(expressions));
+        public IExpression NotIn([NotNull]params IExpression[] expressions) => Expression.Negated(In(expressions));
 
         #endregion
 

@@ -111,7 +111,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to evaluate</param>
         /// <returns>The negated result of the expression</returns>
         [NotNull]
-        public static IExpression Negated(IExpression expression) => new QueryCompoundExpression("NOT", expression);
+        [ContractAnnotation("null => halt")]
+        public static IExpression Negated([NotNull]IExpression expression) => new QueryCompoundExpression("NOT", expression);
 
         /// <summary>
         /// Returns an expression representing the negated result of an expression
@@ -119,7 +120,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to evaluate</param>
         /// <returns>The negated result of the expression</returns>
         [NotNull]
-        public static IExpression Not(IExpression expression) => Negated(expression);
+        [ContractAnnotation("null => halt")]
+        public static IExpression Not([NotNull]IExpression expression) => Negated(expression);
 
         /// <summary>
         /// Gets an expression representing a named parameter (as set in
@@ -128,7 +130,8 @@ namespace Couchbase.Lite.Query
         /// <param name="name">The name of the parameter in the parameter set</param>
         /// <returns>The expression representing the parameter</returns>
         [NotNull]
-        public static IExpression Parameter(string name) => new QueryTypeExpression(name, ExpressionType.Parameter);
+        [ContractAnnotation("null => halt")]
+        public static IExpression Parameter([NotNull]string name) => new QueryTypeExpression(name, ExpressionType.Parameter);
 
         /// <summary>
         /// Returns an expression representing the value of a named property
@@ -136,7 +139,8 @@ namespace Couchbase.Lite.Query
         /// <param name="property">The name of the property to fetch</param>
         /// <returns>An expression representing the value of a named property</returns>
         [NotNull]
-        public static IPropertyExpression Property(string property) => new QueryTypeExpression(property, ExpressionType.KeyPath);
+        [ContractAnnotation("null => halt")]
+        public static IPropertyExpression Property([NotNull]string property) => new QueryTypeExpression(property, ExpressionType.KeyPath);
 
         /// <summary>
         /// Returns an expression to represent a fixed <see cref="string"/> value

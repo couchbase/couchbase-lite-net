@@ -45,7 +45,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The source of data for the <see cref="IQuery" /></returns>
         [NotNull]
         [ContractAnnotation("null => halt")]
-        public static IDataSourceAs Database(Database database)
+        public static IDataSourceAs Database([NotNull]Database database)
         {
             var db = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(database), database);
 

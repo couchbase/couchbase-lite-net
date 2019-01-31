@@ -34,6 +34,7 @@ namespace Couchbase.Lite.Query
         /// <param name="indexName">The FTS index name to use when performing the calculation</param>
         /// <returns>A function that will perform the ranking</returns>
         [NotNull]
-        public static IExpression Rank(string indexName) => new QueryCompoundExpression("RANK()", Expression.String(indexName));
+        [ContractAnnotation("null => halt")]
+        public static IExpression Rank([NotNull]string indexName) => new QueryCompoundExpression("RANK()", Expression.String(indexName));
     }
 }

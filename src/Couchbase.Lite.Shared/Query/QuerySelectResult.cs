@@ -18,6 +18,7 @@
 
 using System;
 using Couchbase.Lite.Query;
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -49,13 +50,13 @@ namespace Couchbase.Lite.Internal.Query
             Expression = expression;
         }
 
-        public ISelectResult As(string alias)
+        public ISelectResult As([NotNull]string alias)
         {
             _alias = alias;
             return this;
         }
 
-        public ISelectResult From(string alias)
+        public ISelectResult From([NotNull]string alias)
         {
             _from = $"{alias}.";
             (Expression as QueryTypeExpression).From(alias);

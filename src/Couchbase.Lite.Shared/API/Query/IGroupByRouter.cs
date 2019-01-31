@@ -34,7 +34,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expressions">The clauses to group by</param>
         /// <returns>The query grouped by the given clauses for further processing</returns>
         [NotNull]
-        IGroupBy GroupBy(params IExpression[] expressions);
+        [ContractAnnotation("null => halt")]
+        IGroupBy GroupBy([NotNull]params IExpression[] expressions);
 
         #endregion
     }

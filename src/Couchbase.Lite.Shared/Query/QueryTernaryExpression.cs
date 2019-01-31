@@ -18,6 +18,7 @@
 
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -61,7 +62,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IArrayExpressionIn
 
-        public IArrayExpressionSatisfies In(IExpression expression)
+        public IArrayExpressionSatisfies In([NotNull]IExpression expression)
         {
             _in = expression;
             return this;
@@ -71,7 +72,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IArrayExpressionSatisfies
 
-        public IExpression Satisfies(IExpression expression)
+        public IExpression Satisfies([NotNull]IExpression expression)
         {
             _predicate = Misc.TryCast<IExpression, QueryExpression>(expression);
             return this;

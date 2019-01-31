@@ -18,6 +18,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Lite.Query;
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -68,7 +69,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IHavingRouter
 
-        public IHaving Having(IExpression expression)
+        public IHaving Having([NotNull]IExpression expression)
         {
             return new Having(this, expression);
         }
@@ -77,7 +78,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        public IOrderBy OrderBy(params IOrdering[] orderings)
+        public IOrderBy OrderBy([NotNull]params IOrdering[] orderings)
         {
             return new QueryOrderBy(this, orderings);
         }

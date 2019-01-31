@@ -60,7 +60,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        public DatabaseSource(Database database, [NotNull]ThreadSafety threadSafety) : base(database, threadSafety)
+        public DatabaseSource([NotNull]Database database, [NotNull]ThreadSafety threadSafety) : base(database, threadSafety)
         {
             
         }

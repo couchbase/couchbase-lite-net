@@ -34,7 +34,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The query for further processing</returns>
         [NotNull]
         [ContractAnnotation("null => halt")]
-        ILimit Limit(IExpression limit);
+        ILimit Limit([NotNull]IExpression limit);
 
         /// <summary>
         /// Limits a query to the given count and also offsets it by
@@ -44,8 +44,8 @@ namespace Couchbase.Lite.Query
         /// <param name="offset">The amount to offset the query by</param>
         /// <returns>The query for further processing</returns>
         [NotNull]
-        [ContractAnnotation("limit:null => halt;offset:null => halt")]
-        ILimit Limit(IExpression limit, IExpression offset);
+        [ContractAnnotation("limit:null => halt")]
+        ILimit Limit([NotNull]IExpression limit, IExpression offset);
 
         #endregion
     }

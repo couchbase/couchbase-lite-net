@@ -377,7 +377,8 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IQuery
 
-        public ListenerToken AddChangeListener(TaskScheduler scheduler, EventHandler<QueryChangedEventArgs> handler)
+        [NotNull]
+        public ListenerToken AddChangeListener(TaskScheduler scheduler, [NotNull]EventHandler<QueryChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(handler), handler);
             _disposalWatchdog.CheckDisposed();
@@ -400,7 +401,8 @@ namespace Couchbase.Lite.Internal.Query
             return new ListenerToken(cbHandler, "query");
         }
 
-        public ListenerToken AddChangeListener(EventHandler<QueryChangedEventArgs> handler)
+        [NotNull]
+        public ListenerToken AddChangeListener([NotNull]EventHandler<QueryChangedEventArgs> handler)
         {
             return AddChangeListener(null, handler);
         }
@@ -456,7 +458,7 @@ namespace Couchbase.Lite.Internal.Query
             return FromImpl?.ThreadSafety?.DoLocked(() => Native.c4query_explain(_c4Query)) ?? "(Unable to explain)";
         }
 
-        public void RemoveChangeListener(ListenerToken token)
+        public void RemoveChangeListener([NotNull]ListenerToken token)
         {
             _disposalWatchdog.CheckDisposed();
             _changed.Remove(token);

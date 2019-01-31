@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Query
         /// <param name="alias">The name of the data source</param>
         /// <returns>The expression with the alias added</returns>
         [NotNull]
-        IExpression From(string alias);
+        IExpression From([NotNull]string alias);
 
         #endregion
     }

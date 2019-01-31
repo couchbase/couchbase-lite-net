@@ -61,7 +61,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IFromRouter
 
-        public IFrom From(IDataSource dataSource)
+        public IFrom From([NotNull]IDataSource dataSource)
         {
             return new From(this, dataSource);
         }
@@ -70,7 +70,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IJoinRouter
 
-        public IJoin Join(params IJoin[] joins)
+        public IJoin Join([NotNull]params IJoin[] joins)
         {
             return new QueryJoin(this, joins);
         }

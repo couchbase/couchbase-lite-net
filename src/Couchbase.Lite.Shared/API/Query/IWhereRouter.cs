@@ -36,7 +36,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The next WHERE portion of the query</returns>
         [NotNull]
         [ContractAnnotation("null => halt")]
-        IWhere Where(IExpression expression);
+        IWhere Where([NotNull]IExpression expression);
 
         #endregion
     }

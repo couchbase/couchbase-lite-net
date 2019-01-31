@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Query
         /// ORDER BY portion of the query</param>
         /// <returns>The next ORDER BY portion of the query</returns>
         [NotNull]
-        IOrderBy OrderBy(params IOrdering[] orderings);
+        IOrderBy OrderBy([NotNull]params IOrdering[] orderings);
 
         #endregion
     }

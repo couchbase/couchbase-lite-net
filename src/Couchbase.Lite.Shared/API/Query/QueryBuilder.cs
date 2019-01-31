@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Query
         /// <param name="results">The results to select</param>
         /// <returns>The initial SELECT portion of the query</returns>
         [NotNull]
-        public static ISelect Select(params ISelectResult[] results)
+        public static ISelect Select([NotNull]params ISelectResult[] results)
         {
             return new Select(results, false);
         }
@@ -47,7 +47,7 @@ namespace Couchbase.Lite.Query
         /// <param name="results">The results to select</param>
         /// <returns>The initial SELECT portion of the query</returns>
         [NotNull]
-        public static ISelect SelectDistinct(params ISelectResult[] results)
+        public static ISelect SelectDistinct([NotNull]params ISelectResult[] results)
         {
             return new Select(results, true);
         }

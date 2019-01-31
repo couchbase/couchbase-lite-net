@@ -25,7 +25,7 @@ namespace Couchbase.Lite.Internal.Query
     {
         public readonly QueryExpression Expression;
 
-        public QueryIndexItem(IExpression expression)
+        internal QueryIndexItem(IExpression expression)
         {
             Expression = Misc.TryCast<IExpression, QueryExpression>(expression);
         }

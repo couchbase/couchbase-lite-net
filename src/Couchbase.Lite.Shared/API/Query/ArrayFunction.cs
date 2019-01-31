@@ -40,7 +40,8 @@ namespace Couchbase.Lite.Query
         /// <returns>A function that will return true if the array contains the element, or false
         /// if it does not</returns>
         [NotNull]
-        public static IExpression Contains(IExpression expression, IExpression value) => new QueryCompoundExpression("ARRAY_CONTAINS()", expression, value);
+        [ContractAnnotation("expression:null => halt;value:null => halt")]
+        public static IExpression Contains([NotNull]IExpression expression, [NotNull]IExpression value) => new QueryCompoundExpression("ARRAY_CONTAINS()", expression, value);
 
         /// <summary>
         /// Creates a function that will get the length of an array
@@ -50,7 +51,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will get the length of the array in question</returns>
         [NotNull]
-        public static IExpression Length(IExpression expression) => new QueryCompoundExpression("ARRAY_LENGTH()", expression);
+        [ContractAnnotation("null => halt")]
+        public static IExpression Length([NotNull]IExpression expression) => new QueryCompoundExpression("ARRAY_LENGTH()", expression);
 
         #endregion
     }

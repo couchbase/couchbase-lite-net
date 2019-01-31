@@ -36,7 +36,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to add</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression Add(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression Add([NotNull]IExpression expression);
 
         /// <summary>
         /// Logically "ands" the given expression with the current expression
@@ -44,7 +45,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to "and"</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression And(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression And([NotNull]IExpression expression);
 
         /// <summary>
         /// Determines if the result is between the two given expressions
@@ -53,7 +55,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression2">The expression to use as the second bound</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression Between(IExpression expression1, IExpression expression2);
+        [ContractAnnotation("expression1:null => halt;expression2:null => halt")]
+        IExpression Between([NotNull]IExpression expression1, [NotNull]IExpression expression2);
 
         /// <summary>
         /// Collates the previous expression using the given collation instance (normally 
@@ -64,7 +67,8 @@ namespace Couchbase.Lite.Query
         /// <param name="collation">The collation instance to use when collating</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression Collate(ICollation collation);
+        [ContractAnnotation("null => halt")]
+        IExpression Collate([NotNull]ICollation collation);
 
         /// <summary>
         /// Matehematically divides the current and given expressions
@@ -72,7 +76,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to divide</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression Divide(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression Divide([NotNull]IExpression expression);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -81,7 +86,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression EqualTo(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression EqualTo([NotNull]IExpression expression);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -90,7 +96,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression GreaterThan(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression GreaterThan([NotNull]IExpression expression);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -99,7 +106,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression GreaterThanOrEqualTo(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression GreaterThanOrEqualTo([NotNull]IExpression expression);
 
         /// <summary>
         /// Returns an expression to test whether or not the given expression is contained
@@ -108,7 +116,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expressions">The list of expressions to check</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression In(params IExpression[] expressions);
+        [ContractAnnotation("null => halt")]
+        IExpression In([NotNull]params IExpression[] expressions);
 
         /// <summary>
         /// Returns an expression to test whether or not the given expression is
@@ -117,7 +126,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to compare to</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression Is(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression Is([NotNull]IExpression expression);
 
         /// <summary>
         /// Returns an expression to test whether or not the given expression is
@@ -126,7 +136,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to compare to</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression IsNot(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression IsNot([NotNull]IExpression expression);
 
         /// <summary>
         /// Gets an expression representing if the current expression is null
@@ -143,7 +154,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression LessThan(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression LessThan([NotNull]IExpression expression);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -152,7 +164,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression LessThanOrEqualTo(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression LessThanOrEqualTo([NotNull]IExpression expression);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -161,7 +174,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression Like(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression Like([NotNull]IExpression expression);
 
         /// <summary>
         /// Returns an modulo math expression using the current and given expressions
@@ -170,7 +184,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to mod with the current one</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression Modulo(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression Modulo([NotNull]IExpression expression);
 
         /// <summary>
         /// Returns a multiply expression using the current and given expressions as 
@@ -179,7 +194,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to multiply with the current one</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression Multiply(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression Multiply([NotNull]IExpression expression);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -188,7 +204,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression NotEqualTo(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression NotEqualTo([NotNull]IExpression expression);
 
         /// <summary>
         /// Gets an expression representing if the current expression is neither null
@@ -204,7 +221,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to "and"</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression Or(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression Or([NotNull]IExpression expression);
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -213,7 +231,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to compare with the current one</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression Regex(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression Regex([NotNull]IExpression expression);
 
         /// <summary>
         /// Mathematically subtracts the given expression to the current expression
@@ -221,7 +240,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to subtract</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression Subtract(IExpression expression);
+        [ContractAnnotation("null => halt")]
+        IExpression Subtract([NotNull]IExpression expression);
 
         #endregion
     }

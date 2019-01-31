@@ -57,7 +57,8 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        public IOrderBy OrderBy(params IOrdering[] orderings)
+        [ContractAnnotation("null => halt")]
+        public IOrderBy OrderBy([NotNull]params IOrdering[] orderings)
         {
             ValidateParams(orderings);
             return new QueryOrderBy(this, orderings);

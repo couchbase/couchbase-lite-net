@@ -85,7 +85,7 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="key">The key to lookup</param>
         /// <returns>The value of the key, or <c>null</c> if it does not exist</returns>
-        public object GetValue(string key) => _params.TryGetValue(key, out var existing) ? existing : null;
+        public object GetValue([NotNull]string key) => _params.TryGetValue(key, out var existing) ? existing : null;
 
         /// <summary>
         /// Sets a <see cref="Blob"/> value in the parameters
@@ -95,7 +95,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
-        public Parameters SetBlob(string name, Blob value)
+        public Parameters SetBlob([NotNull]string name, Blob value)
         {
             SetValue(name, value);
             return this;
@@ -109,7 +109,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
-        public Parameters SetBoolean(string name, bool value)
+        public Parameters SetBoolean([NotNull]string name, bool value)
         {
             SetValue(name, value);
             return this;
@@ -123,7 +123,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
-        public Parameters SetDate(string name, DateTimeOffset value)
+        public Parameters SetDate([NotNull]string name, DateTimeOffset value)
         {
             SetValue(name, value);
             return this;
@@ -137,7 +137,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
-        public Parameters SetDouble(string name, double value)
+        public Parameters SetDouble([NotNull]string name, double value)
         {
             SetValue(name, value);
             return this;
@@ -151,7 +151,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
-        public Parameters SetFloat(string name, float value)
+        public Parameters SetFloat([NotNull]string name, float value)
         {
             SetValue(name, value);
             return this;
@@ -165,7 +165,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
-        public Parameters SetInt(string name, int value)
+        public Parameters SetInt([NotNull]string name, int value)
         {
             SetValue(name, value);
             return this;
@@ -179,7 +179,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
-        public Parameters SetLong(string name, long value)
+        public Parameters SetLong([NotNull]string name, long value)
         {
             SetValue(name, value);
             return this;
@@ -193,7 +193,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
-        public Parameters SetString(string name, string value)
+        public Parameters SetString([NotNull]string name, string value)
         {
             SetValue(name, value);
             return this;
@@ -207,7 +207,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The parameters object for further processing</returns>
         [NotNull]
         [ContractAnnotation("name:null => halt")]
-        public Parameters SetValue(string name, object value)
+        public Parameters SetValue([NotNull]string name, object value)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
 

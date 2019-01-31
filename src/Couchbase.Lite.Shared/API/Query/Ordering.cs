@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to use when sorting</param>
         /// <returns>The object that will perform the sort</returns>
         [NotNull]
-        public static ISortOrder Expression(IExpression expression) => new SortOrder(expression);
+        public static ISortOrder Expression([NotNull]IExpression expression) => new SortOrder(expression);
 
         /// <summary>
         /// Creates an object that will sort based on the value in the given
@@ -45,7 +45,7 @@ namespace Couchbase.Lite.Query
         /// to sort the results of the query</param>
         /// <returns>The object that will perform the sort</returns>
         [NotNull]
-        public static ISortOrder Property(string property) => Expression(Lite.Query.Expression.Property(property));
+        public static ISortOrder Property([NotNull]string property) => Expression(Lite.Query.Expression.Property(property));
 
         #endregion
     }
