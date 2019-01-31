@@ -16,8 +16,9 @@
 // limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
-
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
@@ -27,6 +28,11 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public static class ValueIndexItem
     {
+        #region Constants
+
+        private const string Tag = nameof(ValueIndexItem);
+
+        #endregion
 
         /// <summary>
         /// Creates a value index item based on a given property path
@@ -43,7 +49,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to base the index item on</param>
         /// <returns>The created index item</returns>
         [NotNull]
-        public static IValueIndexItem Expression([NotNull]IExpression expression) => new QueryIndexItem(expression);
+        public static IValueIndexItem Expression([NotNull]IExpression expression) => 
+            new QueryIndexItem(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
     }
 
     /// <summary>

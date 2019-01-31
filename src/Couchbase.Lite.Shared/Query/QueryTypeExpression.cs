@@ -19,9 +19,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
-
+using JetBrains.Annotations;
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
@@ -36,6 +37,12 @@ namespace Couchbase.Lite.Internal.Query
 
     internal sealed class QueryTypeExpression : QueryExpression, IPropertyExpression, IMetaExpression, IVariableExpression
     {
+        #region Constants
+
+        private const string Tag = nameof(QueryTypeExpression);
+
+        #endregion
+
         #region Variables
 
         private readonly IList<IExpression> _subpredicates;
@@ -122,8 +129,10 @@ namespace Couchbase.Lite.Internal.Query
             return null;
         }
 
-        public IExpression From(string alias)
+        [NotNull]
+        public IExpression From([NotNull]string alias)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
             _from = alias;
             Reset();
             return this;

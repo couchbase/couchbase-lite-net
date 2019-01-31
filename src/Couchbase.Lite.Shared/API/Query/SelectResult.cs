@@ -16,8 +16,9 @@
 // limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
-
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
@@ -28,6 +29,12 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public static class SelectResult
     {
+        #region Constants
+
+        private const string Tag = nameof(SelectResult);
+
+        #endregion
+
         /// <summary>
         /// Creates an instance based on the given expression
         /// </summary>
@@ -35,7 +42,8 @@ namespace Couchbase.Lite.Query
         /// query (e.g. <see cref="Lite.Query.Expression.Property(string)"/>)</param>
         /// <returns>The instantiated instance</returns>
         [NotNull]
-        public static ISelectResultAs Expression([NotNull]IExpression expression) => new QuerySelectResult(expression);
+        public static ISelectResultAs Expression([NotNull]IExpression expression) => 
+            new QuerySelectResult(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates an instanced based on a given property path

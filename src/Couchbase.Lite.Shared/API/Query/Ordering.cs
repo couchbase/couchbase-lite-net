@@ -16,8 +16,9 @@
 // limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
-
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
@@ -27,6 +28,12 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public static class Ordering
     {
+        #region Constants
+
+        private const string Tag = nameof(Ordering);
+
+        #endregion
+
         #region Public Methods
 
         /// <summary>
@@ -35,7 +42,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to use when sorting</param>
         /// <returns>The object that will perform the sort</returns>
         [NotNull]
-        public static ISortOrder Expression([NotNull]IExpression expression) => new SortOrder(expression);
+        public static ISortOrder Expression([NotNull]IExpression expression) => 
+            new SortOrder(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates an object that will sort based on the value in the given

@@ -17,15 +17,23 @@
 // 
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
     internal sealed class QueryGroupBy : LimitedQuery, IGroupBy
     {
+        #region Constants
+
+        private const string Tag = nameof(QueryGroupBy);
+
+        #endregion
+
         #region Variables
-        
+
         private readonly IList<IExpression> _expressions;
 
         #endregion
@@ -69,8 +77,10 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IHavingRouter
 
+        [NotNull]
         public IHaving Having([NotNull]IExpression expression)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
             return new Having(this, expression);
         }
 
@@ -78,8 +88,10 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
+        [NotNull]
         public IOrderBy OrderBy([NotNull]params IOrdering[] orderings)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
             return new QueryOrderBy(this, orderings);
         }
 

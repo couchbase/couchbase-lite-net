@@ -33,6 +33,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region ILimitRouter
 
+        [NotNull]
         [ContractAnnotation("null => halt")]
         public ILimit Limit([NotNull]IExpression limit)
         {
@@ -42,6 +43,7 @@ namespace Couchbase.Lite.Internal.Query
             return this;
         }
 
+        [NotNull]
         [ContractAnnotation("limit:null => halt")]
         public ILimit Limit([NotNull]IExpression limit, IExpression offset)
         {

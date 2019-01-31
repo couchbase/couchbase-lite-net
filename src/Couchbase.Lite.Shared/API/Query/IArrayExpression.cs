@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Query
         /// of the collection</returns>
         [NotNull]
         [ContractAnnotation("null => halt")]
-        IArrayExpressionSatisfies In([NotNull]IExpression expression);
+        IArrayExpressionSatisfies In(IExpression expression);
     }
 
     /// <summary>
@@ -52,6 +52,6 @@ namespace Couchbase.Lite.Query
         /// <returns>The overall expression for further processing</returns>
         [NotNull]
         [ContractAnnotation("null => halt")]
-        IExpression Satisfies([NotNull]IExpression expression);
+        IExpression Satisfies(IExpression expression);
     }
 }

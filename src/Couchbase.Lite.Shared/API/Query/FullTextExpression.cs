@@ -39,8 +39,7 @@ namespace Couchbase.Lite.Query
         /// check against</param>
         /// <returns>The generated query expression</returns>
         [NotNull]
-        [ContractAnnotation("null => halt")]
-        public static IFullTextExpression Index([NotNull]string name) =>
+        public static IFullTextExpression Index(string name) =>
             new QueryCompoundExpression("MATCH", Expression.String(name), Expression.String(String.Empty));
 
         #endregion

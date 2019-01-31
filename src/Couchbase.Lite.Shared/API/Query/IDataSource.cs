@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The datasource, for further operations</returns>
         [NotNull]
         [ContractAnnotation("null => halt")]
-        IDataSource As([NotNull]string alias);
+        IDataSource As(string alias);
 
         #endregion
     }

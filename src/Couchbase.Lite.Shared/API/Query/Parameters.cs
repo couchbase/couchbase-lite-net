@@ -85,7 +85,8 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="key">The key to lookup</param>
         /// <returns>The value of the key, or <c>null</c> if it does not exist</returns>
-        public object GetValue([NotNull]string key) => _params.TryGetValue(key, out var existing) ? existing : null;
+        public object GetValue([NotNull]string key) => 
+            _params.TryGetValue(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key), out var existing) ? existing : null;
 
         /// <summary>
         /// Sets a <see cref="Blob"/> value in the parameters
@@ -97,6 +98,7 @@ namespace Couchbase.Lite.Query
         [ContractAnnotation("name:null => halt")]
         public Parameters SetBlob([NotNull]string name, Blob value)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
             SetValue(name, value);
             return this;
         }
@@ -111,6 +113,7 @@ namespace Couchbase.Lite.Query
         [ContractAnnotation("name:null => halt")]
         public Parameters SetBoolean([NotNull]string name, bool value)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
             SetValue(name, value);
             return this;
         }
@@ -125,6 +128,7 @@ namespace Couchbase.Lite.Query
         [ContractAnnotation("name:null => halt")]
         public Parameters SetDate([NotNull]string name, DateTimeOffset value)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
             SetValue(name, value);
             return this;
         }
@@ -139,6 +143,7 @@ namespace Couchbase.Lite.Query
         [ContractAnnotation("name:null => halt")]
         public Parameters SetDouble([NotNull]string name, double value)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
             SetValue(name, value);
             return this;
         }
@@ -153,6 +158,7 @@ namespace Couchbase.Lite.Query
         [ContractAnnotation("name:null => halt")]
         public Parameters SetFloat([NotNull]string name, float value)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
             SetValue(name, value);
             return this;
         }
@@ -167,6 +173,7 @@ namespace Couchbase.Lite.Query
         [ContractAnnotation("name:null => halt")]
         public Parameters SetInt([NotNull]string name, int value)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
             SetValue(name, value);
             return this;
         }
@@ -181,6 +188,7 @@ namespace Couchbase.Lite.Query
         [ContractAnnotation("name:null => halt")]
         public Parameters SetLong([NotNull]string name, long value)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
             SetValue(name, value);
             return this;
         }
@@ -195,6 +203,7 @@ namespace Couchbase.Lite.Query
         [ContractAnnotation("name:null => halt")]
         public Parameters SetString([NotNull]string name, string value)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
             SetValue(name, value);
             return this;
         }

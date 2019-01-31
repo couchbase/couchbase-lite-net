@@ -17,16 +17,22 @@
 // 
 
 using System.Collections.Generic;
-
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
-
+using JetBrains.Annotations;
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
 {
     internal partial class QueryCompoundExpression : QueryExpression, IFullTextExpression
     {
+        #region Constants
+
+        private const string Tag = nameof(QueryCompoundExpression);
+
+        #endregion
+
         #region Variables
 
         private readonly string _operation;
@@ -61,8 +67,10 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IFullTextExpression
 
-        public IExpression Match(string query)
+        [NotNull]
+        public IExpression Match([NotNull]string query)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(query), query);
             _subpredicates[_subpredicates.Length - 1] = Expression.String(query);
             return this;
         }

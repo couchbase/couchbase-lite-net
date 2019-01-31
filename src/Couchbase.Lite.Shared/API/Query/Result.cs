@@ -22,10 +22,11 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Couchbase.Lite.Internal.Doc;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Interop;
-
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 using LiteCore.Interop;
@@ -38,6 +39,12 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public sealed unsafe class Result : IArray, IDictionaryObject
     {
+        #region Constants
+
+        private const string Tag = nameof(Result);
+
+        #endregion
+
         #region Variables
 
         [NotNull]private readonly Dictionary<string, int> _columnNames;
@@ -214,12 +221,14 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public bool Contains([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             return IndexForColumnName(key) >= 0;
         }
 
         /// <inheritdoc />
         public ArrayObject GetArray([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetArray(index) : null;
         }
@@ -227,6 +236,7 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public Blob GetBlob([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetBlob(index) : null;
         }
@@ -234,6 +244,7 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public bool GetBoolean([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 && GetBoolean(index);
         }
@@ -241,6 +252,7 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public DateTimeOffset GetDate([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetDate(index) : DateTimeOffset.MinValue;
         }
@@ -248,6 +260,7 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public DictionaryObject GetDictionary([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetDictionary(index) : null;
         }
@@ -255,6 +268,7 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public double GetDouble([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetDouble(index) : 0.0;
         }
@@ -262,6 +276,7 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public float GetFloat([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetFloat(index) : 0.0f;
         }
@@ -269,6 +284,7 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public int GetInt([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetInt(index) : 0;
         }
@@ -276,6 +292,7 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public long GetLong([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetLong(index) : 0L;
         }
@@ -283,6 +300,7 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public object GetValue([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetValue(index) : null;
         }
@@ -290,6 +308,7 @@ namespace Couchbase.Lite.Query
         /// <inheritdoc />
         public string GetString([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetString(index) : null;
         }

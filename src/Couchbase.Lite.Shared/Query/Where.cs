@@ -15,13 +15,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
     internal sealed class Where : LimitedQuery, IWhere
     {
+        #region Constants
+
+        private const string Tag = nameof(Where);
+
+        #endregion
+
         #region Constructors
 
         internal Where(XQuery query, IExpression expression)
@@ -34,8 +42,10 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IGroupByRouter
 
+        [NotNull]
         public IGroupBy GroupBy([NotNull]params IExpression[] expressions)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions);
             return new QueryGroupBy(this, expressions);
         }
 
@@ -43,8 +53,10 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
+        [NotNull]
         public IOrderBy OrderBy([NotNull]params IOrdering[] orderings)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
             return new QueryOrderBy(this, orderings);
         }
 

@@ -100,6 +100,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IJoinOn
 
+        [NotNull]
         public IJoin On([NotNull]IExpression expression)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
@@ -112,8 +113,10 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
+        [NotNull]
         public IOrderBy OrderBy([NotNull]params IOrdering[] orderings)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
             ValidateParams(orderings);
             return new QueryOrderBy(this, orderings);
         }
@@ -122,6 +125,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IWhereRouter
 
+        [NotNull]
         public IWhere Where([NotNull]IExpression expression)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);

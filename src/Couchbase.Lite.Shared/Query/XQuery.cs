@@ -407,6 +407,7 @@ namespace Couchbase.Lite.Internal.Query
             return AddChangeListener(null, handler);
         }
 
+        [NotNull]
         public unsafe IResultSet Execute()
         {
             if (Database == null) {
@@ -446,6 +447,7 @@ namespace Couchbase.Lite.Internal.Query
             return retVal;
         }
 
+        [NotNull]
         public unsafe string Explain()
         {
             _disposalWatchdog.CheckDisposed();

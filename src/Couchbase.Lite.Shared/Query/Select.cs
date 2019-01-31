@@ -17,14 +17,21 @@
 // 
 
 using System.Linq;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
-
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
     internal sealed class Select : XQuery, ISelect
     {
+        #region Constants
+
+        private const string Tag = nameof(Select);
+
+        #endregion
+
         #region Variables
 
         private readonly QueryExpression _select;
@@ -61,8 +68,10 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IFromRouter
 
+        [NotNull]
         public IFrom From([NotNull]IDataSource dataSource)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(dataSource), dataSource);
             return new From(this, dataSource);
         }
 
@@ -70,8 +79,10 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IJoinRouter
 
+        [NotNull]
         public IJoin Join([NotNull]params IJoin[] joins)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(joins), joins);
             return new QueryJoin(this, joins);
         }
 

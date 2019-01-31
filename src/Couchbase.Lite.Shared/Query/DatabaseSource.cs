@@ -84,7 +84,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IDataSourceAs
 
-        public IDataSource As(string alias)
+        public IDataSource As([NotNull]string alias)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
 
