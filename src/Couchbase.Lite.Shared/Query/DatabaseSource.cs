@@ -17,7 +17,7 @@
 // 
 
 using System.Collections.Generic;
-
+using System.Diagnostics;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
@@ -62,7 +62,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public DatabaseSource([NotNull]Database database, [NotNull]ThreadSafety threadSafety) : base(database, threadSafety)
         {
-            
+            Debug.Assert(database != null);
         }
 
         #endregion

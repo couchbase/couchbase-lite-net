@@ -97,7 +97,6 @@ namespace Couchbase.Lite.Query
         [NotNull]
         public Parameters SetBlob([NotNull]string name, Blob value)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
             SetValue(name, value);
             return this;
         }
