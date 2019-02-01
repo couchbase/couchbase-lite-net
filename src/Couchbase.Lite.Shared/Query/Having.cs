@@ -64,7 +64,6 @@ namespace Couchbase.Lite.Internal.Query
         #region IOrderByRouter
 
         [NotNull]
-        [ContractAnnotation("null => halt")]
         public IOrderBy OrderBy([NotNull]params IOrdering[] orderings)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);

@@ -59,7 +59,6 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IGroupByRouter
 
-        [ContractAnnotation("null => halt")]
         public IGroupBy GroupBy([NotNull]params IExpression[] expressions)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions);
@@ -71,7 +70,6 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IJoinRouter
 
-        [ContractAnnotation("null => halt")]
         public IJoins Join([NotNull]params IJoin[] joins)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(joins), joins);
@@ -83,7 +81,6 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        [ContractAnnotation("null => halt")]
         public IOrderBy OrderBy([NotNull]params IOrdering[] orderings)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
@@ -96,7 +93,6 @@ namespace Couchbase.Lite.Internal.Query
         #region IWhereRouter
 
         [NotNull]
-        [ContractAnnotation("null => halt")]
         public IWhere Where([NotNull]IExpression expression)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);

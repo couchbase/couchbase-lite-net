@@ -36,7 +36,6 @@ namespace Couchbase.Lite.Util
             logger.W(tag, message);
         }
 
-        [ContractAnnotation("=> halt")]
         public static void LogAndThrow([NotNull]DomainLogger logger, [NotNull]Exception e, [NotNull]string tag, [NotNull]string message, bool fatal)
         {
             if (fatal) {

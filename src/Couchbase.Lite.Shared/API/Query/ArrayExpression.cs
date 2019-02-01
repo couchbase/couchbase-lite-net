@@ -45,7 +45,6 @@ namespace Couchbase.Lite.Query
         /// via <see cref="Variable"/></param>
         /// <returns>The first portion of the completed expression for further modification</returns>
         [NotNull]
-        [ContractAnnotation("null => halt")]
         public static IArrayExpressionIn Any([NotNull]IVariableExpression variable) => 
             new QueryTernaryExpression("ANY",
                 CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(variable), variable));
@@ -61,7 +60,6 @@ namespace Couchbase.Lite.Query
         /// via <see cref="Variable"/></param>
         /// <returns>The first portion of the completed expression for further modification</returns>
         [NotNull]
-        [ContractAnnotation("null => halt")]
         public static IArrayExpressionIn AnyAndEvery([NotNull]IVariableExpression variable) => 
             new QueryTernaryExpression("ANY AND EVERY",
                 CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(variable), variable));
@@ -77,7 +75,6 @@ namespace Couchbase.Lite.Query
         /// via <see cref="Variable"/></param>
         /// <returns>The first portion of the completed expression for further modification</returns>
         [NotNull]
-        [ContractAnnotation("null => halt")]
         public static IArrayExpressionIn Every([NotNull]IVariableExpression variable) => 
             new QueryTernaryExpression("EVERY",
                 CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(variable), variable));
@@ -89,7 +86,6 @@ namespace Couchbase.Lite.Query
         /// <param name="name">The name of the variable</param>
         /// <returns>An expression representing the value of a named variable</returns>
         [NotNull]
-        [ContractAnnotation("null => halt")]
         public static IVariableExpression Variable([NotNull]string name) => 
             new QueryTypeExpression(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name), 
                 ExpressionType.Variable);

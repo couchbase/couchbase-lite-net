@@ -53,7 +53,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="key">The key to check for</param>
         /// <returns><c>true</c> if the dictionary contains the key, else <c>false</c></returns>
-        [ContractAnnotation("null => halt")]
         bool Contains(string key);
 
         /// <summary>
@@ -61,7 +60,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        [ContractAnnotation("null => halt")]
         [CanBeNull]
         ArrayObject GetArray(string key);
 
@@ -70,7 +68,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        [ContractAnnotation("null => halt")]
         [CanBeNull]
         Blob GetBlob(string key);
 
@@ -81,7 +78,6 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or its converted equivalent</returns>
         /// <remarks>Any non-zero object will be treated as true, so don't rely on 
         /// any sort of parsing</remarks>
-        [ContractAnnotation("null => halt")]
         bool GetBoolean(string key);
 
         /// <summary>
@@ -89,7 +85,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or a default value</returns>
-        [ContractAnnotation("null => halt")]
         DateTimeOffset GetDate(string key);
 
         /// <summary>
@@ -97,7 +92,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        [ContractAnnotation("null => halt")]
         [CanBeNull]
         DictionaryObject GetDictionary(string key);
 
@@ -108,7 +102,6 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or its converted equivalent</returns>
         /// <remarks><c>true</c> will be converted to 1.0, and everything else that
         /// is non-numeric will be 0.0</remarks>
-        [ContractAnnotation("null => halt")]
         double GetDouble(string key);
 
         /// <summary>
@@ -118,7 +111,6 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or its converted equivalent</returns>
         /// <remarks><c>true</c> will be converted to 1.0f, and everything else that
         /// is non-numeric will be 0.0f</remarks>
-        [ContractAnnotation("null => halt")]
         float GetFloat(string key);
 
         /// <summary>
@@ -128,7 +120,6 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or its converted equivalent</returns>
         /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
         /// will be rounded, and everything else non-numeric will be 0</remarks>
-        [ContractAnnotation("null => halt")]
         int GetInt(string key);
 
         /// <summary>
@@ -138,7 +129,6 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or its converted equivalent</returns>
         /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
         /// will be rounded, and everything else non-numeric will be 0</remarks>
-        [ContractAnnotation("null => halt")]
         long GetLong(string key);
 
         /// <summary>
@@ -149,7 +139,6 @@ namespace Couchbase.Lite
         /// <remarks>This method should be avoided for numeric types, whose
         /// underlying representation is subject to change and thus
         /// <see cref="InvalidCastException"/>s </remarks>
-        [ContractAnnotation("null => halt")]
         [CanBeNull]
         object GetValue(string key);
 
@@ -158,7 +147,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        [ContractAnnotation("null => halt")]
         [CanBeNull]
         string GetString(string key);
 

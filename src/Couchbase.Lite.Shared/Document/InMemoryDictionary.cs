@@ -81,7 +81,6 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Private Methods
 
-        [ContractAnnotation("key:null => halt")]
         private void SetObject(string key, object value)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(key), key);

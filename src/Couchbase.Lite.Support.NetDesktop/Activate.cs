@@ -128,7 +128,6 @@ namespace Couchbase.Lite.Support
         /// </summary>
         /// <param name="directoryPath">The directory to write logs to</param>
         [Obsolete("This has been superseded by new logging logic.  See doc comments for details.")]
-        [ContractAnnotation("null => halt")]
         public static void EnableTextLogging(string directoryPath)
         {
             if (directoryPath == null) {

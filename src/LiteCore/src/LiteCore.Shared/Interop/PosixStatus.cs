@@ -191,7 +191,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name">The name of the code to get the value for (e.g. ECONNREFUSED)</param>
         /// <returns>The correct code for the given error, or 0 if the name does not exist</returns>
-        [ContractAnnotation("name:null => halt")]
         public static int GetCode(string name)
         {
             if (name == null) {
@@ -218,7 +217,6 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the code to get the value for (e.g. ECONNREFUSED)</param>
         /// <param name="code">The code to check</param>
         /// <returns><c>true</c> if the code matches, otherwise <c>false</c></returns>
-        [ContractAnnotation("name:null => halt")]
         public static bool IsError(string name, int code)
         {
             var codeForName = GetCode(name);

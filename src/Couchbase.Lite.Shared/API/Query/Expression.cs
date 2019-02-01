@@ -117,7 +117,6 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to evaluate</param>
         /// <returns>The negated result of the expression</returns>
         [NotNull]
-        [ContractAnnotation("null => halt")]
         public static IExpression Negated([NotNull]IExpression expression) => 
             new QueryCompoundExpression("NOT", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
@@ -127,7 +126,6 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to evaluate</param>
         /// <returns>The negated result of the expression</returns>
         [NotNull]
-        [ContractAnnotation("null => halt")]
         public static IExpression Not([NotNull]IExpression expression) => 
             Negated(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
@@ -138,7 +136,6 @@ namespace Couchbase.Lite.Query
         /// <param name="name">The name of the parameter in the parameter set</param>
         /// <returns>The expression representing the parameter</returns>
         [NotNull]
-        [ContractAnnotation("null => halt")]
         public static IExpression Parameter([NotNull]string name) => 
             new QueryTypeExpression(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name), 
                 ExpressionType.Parameter);
@@ -149,7 +146,6 @@ namespace Couchbase.Lite.Query
         /// <param name="property">The name of the property to fetch</param>
         /// <returns>An expression representing the value of a named property</returns>
         [NotNull]
-        [ContractAnnotation("null => halt")]
         public static IPropertyExpression Property([NotNull]string property) => 
             new QueryTypeExpression(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(property), property), 
                 ExpressionType.KeyPath);
