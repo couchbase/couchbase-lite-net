@@ -110,7 +110,6 @@ namespace Couchbase.Lite.Query
         [NotNull]
         public Parameters SetBoolean([NotNull]string name, bool value)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
             SetValue(name, value);
             return this;
         }
@@ -124,7 +123,6 @@ namespace Couchbase.Lite.Query
         [NotNull]
         public Parameters SetDate([NotNull]string name, DateTimeOffset value)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
             SetValue(name, value);
             return this;
         }
@@ -138,7 +136,6 @@ namespace Couchbase.Lite.Query
         [NotNull]
         public Parameters SetDouble([NotNull]string name, double value)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
             SetValue(name, value);
             return this;
         }
@@ -152,7 +149,6 @@ namespace Couchbase.Lite.Query
         [NotNull]
         public Parameters SetFloat([NotNull]string name, float value)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
             SetValue(name, value);
             return this;
         }
@@ -166,7 +162,6 @@ namespace Couchbase.Lite.Query
         [NotNull]
         public Parameters SetInt([NotNull]string name, int value)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
             SetValue(name, value);
             return this;
         }
@@ -180,7 +175,6 @@ namespace Couchbase.Lite.Query
         [NotNull]
         public Parameters SetLong([NotNull]string name, long value)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
             SetValue(name, value);
             return this;
         }
@@ -194,7 +188,6 @@ namespace Couchbase.Lite.Query
         [NotNull]
         public Parameters SetString([NotNull]string name, string value)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
             SetValue(name, value);
             return this;
         }
