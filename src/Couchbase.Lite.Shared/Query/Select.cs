@@ -80,7 +80,7 @@ namespace Couchbase.Lite.Internal.Query
         #region IJoinRouter
 
         [NotNull]
-        public IJoin Join([NotNull]params IJoin[] joins)
+        public IJoin Join([ItemNotNull]params IJoin[] joins)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(joins), joins);
             return new QueryJoin(this, joins);

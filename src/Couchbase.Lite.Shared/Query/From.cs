@@ -59,7 +59,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IGroupByRouter
 
-        public IGroupBy GroupBy([NotNull]params IExpression[] expressions)
+        public IGroupBy GroupBy([ItemNotNull]params IExpression[] expressions)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions);
             ValidateParams(expressions);
@@ -70,7 +70,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IJoinRouter
 
-        public IJoins Join([NotNull]params IJoin[] joins)
+        public IJoins Join([ItemNotNull]params IJoin[] joins)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(joins), joins);
             ValidateParams(joins);
@@ -81,7 +81,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        public IOrderBy OrderBy([NotNull]params IOrdering[] orderings)
+        public IOrderBy OrderBy([ItemNotNull]params IOrdering[] orderings)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
             ValidateParams(orderings);

@@ -55,7 +55,7 @@ namespace Couchbase.Lite.Internal.Query
         public IExpression Match([NotNull]IExpression expression) => 
             GetOperator(BinaryOpType.Matches, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
-        public IExpression NotIn([NotNull]params IExpression[] expressions) => Expression.Negated(In(expressions));
+        public IExpression NotIn([ItemNotNull]params IExpression[] expressions) => Expression.Negated(In(expressions));
 
         #endregion
 
@@ -197,7 +197,7 @@ namespace Couchbase.Lite.Internal.Query
             GetOperator(BinaryOpType.GreaterThanOrEqualTo, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         [NotNull]
-        public IExpression In([NotNull]params IExpression[] expressions)
+        public IExpression In([ItemNotNull]params IExpression[] expressions)
         {
             if (!(this is QueryTypeExpression lhs)) {
                 throw new NotSupportedException();

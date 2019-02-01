@@ -42,7 +42,7 @@ namespace Couchbase.Lite.Query
         /// <param name="results">The results to select</param>
         /// <returns>The initial SELECT portion of the query</returns>
         [NotNull]
-        public static ISelect Select([NotNull]params ISelectResult[] results)
+        public static ISelect Select([ItemNotNull]params ISelectResult[] results)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(results), results);
             return new Select(results, false);
@@ -55,7 +55,7 @@ namespace Couchbase.Lite.Query
         /// <param name="results">The results to select</param>
         /// <returns>The initial SELECT portion of the query</returns>
         [NotNull]
-        public static ISelect SelectDistinct([NotNull]params ISelectResult[] results)
+        public static ISelect SelectDistinct([ItemNotNull]params ISelectResult[] results)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(results), results);
             return new Select(results, true);

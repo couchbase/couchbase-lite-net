@@ -108,7 +108,7 @@ namespace Couchbase.Lite.Query
         /// <param name="expressions">The list of expressions to check</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression In([NotNull]params IExpression[] expressions);
+        IExpression In([ItemNotNull]params IExpression[] expressions);
 
         /// <summary>
         /// Returns an expression to test whether or not the given expression is
