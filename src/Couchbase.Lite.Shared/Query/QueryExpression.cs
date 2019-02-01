@@ -111,7 +111,7 @@ namespace Couchbase.Lite.Internal.Query
         }
 
         [NotNull]
-        private QueryExpression GetBetweenExpression(IExpression expression)
+        private QueryExpression GetBetweenExpression([NotNull]IExpression expression)
         {
             switch (expression) {
                 case QueryTypeExpression e:

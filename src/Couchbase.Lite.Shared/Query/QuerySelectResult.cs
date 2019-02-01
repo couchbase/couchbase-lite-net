@@ -53,7 +53,7 @@ namespace Couchbase.Lite.Internal.Query
             }
         }
 
-        public QuerySelectResult(IExpression expression)
+        public QuerySelectResult([NotNull]IExpression expression)
         {
             Expression = expression;
         }

@@ -915,7 +915,7 @@ namespace Test
             TestDistanceFunction(Function.CosineDistance(Expression.Property("v1"), Expression.Property("v2")), tests);
         }
 
-        private void TestDistanceFunction(IExpression distance, string testData)
+        private void TestDistanceFunction([NotNull]IExpression distance, string testData)
         {
             var tests = JsonConvert.DeserializeObject<IList<IList<object>>>(testData);
 
@@ -1031,7 +1031,7 @@ namespace Test
             return CreateInput(Expression.Property(propertyName));
         }
 
-        public static IExpression CreateInput(IExpression expression)
+        public static IExpression CreateInput([NotNull]IExpression expression)
         {
             return Expression.Dictionary(new Dictionary<string, object>
             {

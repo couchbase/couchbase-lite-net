@@ -70,7 +70,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        public SortOrder(IExpression expression) : base(null)
+        public SortOrder([NotNull]IExpression expression) : base(null)
         {
             IsAscending = true;
             Expression = expression;

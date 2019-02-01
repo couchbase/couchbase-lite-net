@@ -41,7 +41,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal QueryUnaryExpression(IExpression argument, UnaryOpType type)
+        internal QueryUnaryExpression([NotNull]IExpression argument, UnaryOpType type)
         {
             _argument = argument;
             _type = type;

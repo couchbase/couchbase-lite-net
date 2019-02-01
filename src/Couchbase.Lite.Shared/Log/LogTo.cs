@@ -283,7 +283,7 @@ namespace Couchbase.Lite.Internal.Logging
 
         #region Private Methods
 
-        private void CreateAndAddLogger(string domainStr, LogDomain domain, int index)
+        private void CreateAndAddLogger([NotNull]string domainStr, LogDomain domain, int index)
         {
             var logger = new DomainLogger(domainStr, domain);
             _allLoggers[index] = logger;

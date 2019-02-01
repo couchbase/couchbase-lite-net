@@ -53,7 +53,7 @@ namespace Couchbase.Lite.Internal.Query
             GroupByImpl = this;
         }
 
-        internal QueryGroupBy(IExpression expression)
+        internal QueryGroupBy([NotNull]IExpression expression)
         {
             _expressions = new[] {expression};
             GroupByImpl = this;
