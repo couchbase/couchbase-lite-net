@@ -42,7 +42,6 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IGroupByRouter
 
-        [NotNull]
         public IGroupBy GroupBy([ItemNotNull]params IExpression[] expressions)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions);
@@ -53,7 +52,6 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        [NotNull]
         public IOrderBy OrderBy([ItemNotNull]params IOrdering[] orderings)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);

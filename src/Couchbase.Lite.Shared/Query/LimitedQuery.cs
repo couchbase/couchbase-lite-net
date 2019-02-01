@@ -33,7 +33,6 @@ namespace Couchbase.Lite.Internal.Query
 
         #region ILimitRouter
 
-        [NotNull]
         public ILimit Limit([NotNull]IExpression limit)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(limit), limit);
@@ -42,7 +41,6 @@ namespace Couchbase.Lite.Internal.Query
             return this;
         }
 
-        [NotNull]
         public ILimit Limit([NotNull]IExpression limit, IExpression offset)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(limit), limit);

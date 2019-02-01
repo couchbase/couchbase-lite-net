@@ -91,8 +91,6 @@ namespace Couchbase.Lite.Internal.Query
         #endregion
 
         #region IWhereRouter
-
-        [NotNull]
         public IWhere Where([NotNull]IExpression expression)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);

@@ -63,7 +63,6 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        [NotNull]
         public IOrderBy OrderBy([ItemNotNull]params IOrdering[] orderings)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);

@@ -377,7 +377,6 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IQuery
 
-        [NotNull]
         public ListenerToken AddChangeListener(TaskScheduler scheduler, [NotNull]EventHandler<QueryChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(handler), handler);
@@ -401,13 +400,11 @@ namespace Couchbase.Lite.Internal.Query
             return new ListenerToken(cbHandler, "query");
         }
 
-        [NotNull]
         public ListenerToken AddChangeListener([NotNull]EventHandler<QueryChangedEventArgs> handler)
         {
             return AddChangeListener(null, handler);
         }
 
-        [NotNull]
         public unsafe IResultSet Execute()
         {
             if (Database == null) {
@@ -446,8 +443,6 @@ namespace Couchbase.Lite.Internal.Query
             _history.Add(retVal);
             return retVal;
         }
-
-        [NotNull]
         public unsafe string Explain()
         {
             _disposalWatchdog.CheckDisposed();

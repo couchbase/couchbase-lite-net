@@ -58,7 +58,6 @@ namespace Couchbase.Lite.Internal.Query
             Expression = expression;
         }
 
-        [NotNull]
         public ISelectResult As([NotNull]string alias)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
@@ -66,7 +65,6 @@ namespace Couchbase.Lite.Internal.Query
             return this;
         }
 
-        [NotNull]
         public ISelectResult From([NotNull]string alias)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);

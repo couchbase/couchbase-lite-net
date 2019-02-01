@@ -129,7 +129,6 @@ namespace Couchbase.Lite.Internal.Query
             return null;
         }
 
-        [NotNull]
         public IExpression From([NotNull]string alias)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);

@@ -67,7 +67,6 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IFullTextExpression
 
-        [NotNull]
         public IExpression Match([NotNull]string query)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(query), query);

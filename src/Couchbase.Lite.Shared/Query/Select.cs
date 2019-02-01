@@ -68,7 +68,6 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IFromRouter
 
-        [NotNull]
         public IFrom From([NotNull]IDataSource dataSource)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(dataSource), dataSource);
