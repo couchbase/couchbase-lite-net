@@ -245,6 +245,14 @@ namespace Couchbase.Lite.Logging
                 Native.c4log_setLevel((C4LogDomain *)domain.Value.ToPointer(),
                     C4LogLevel.Debug);
             }
+
+            foreach (var domain in new[] { 
+                WriteLog.LogDomainBLIP, 
+                WriteLog.LogDomainSyncBusy, 
+                WriteLog.LogDomainWebSocket
+            }) {
+                Native.c4log_setLevel(domain, C4LogLevel.Debug);
+            }
         }
 
         private unsafe void UpdateConfig()
