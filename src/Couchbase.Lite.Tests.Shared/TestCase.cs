@@ -264,23 +264,24 @@ namespace Test
             var name = Db?.Name;
             Db = null;
             Database.Log.Custom = null;
+            Exception ex = null;
 
-            if (name != null) {
-                var count = 0;
-                do {
-                    try {
+            var success = Try.Condition(() =>
+            {
+                try {
+                    if (name != null) {
                         Database.Delete(name, Directory);
-                        count = 5;
-                    } catch (Exception e) {
-                        WriteLine($"Error deleting database: {e.Message}");
-                        if (count < 5) {
-                            Thread.Sleep(500);                            
-                            WriteLine("Retrying...");
-                        } else {
-                            throw;
-                        }
                     }
-                } while (count++ < 5);
+                } catch (Exception e) {
+                    ex = e;
+                    return false;
+                }
+
+                return true;
+            }).Times(5).Delay(TimeSpan.FromSeconds(1)).WriteProgress(WriteLine).Go();
+
+            if (!success) {
+                throw ex;
             }
         }
 
