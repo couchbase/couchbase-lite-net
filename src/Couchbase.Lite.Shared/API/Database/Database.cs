@@ -541,18 +541,13 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         public void Delete()
         {
+            StopExpirePurgeTimer(); 
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 ThrowIfActiveItems();
                 LiteCoreBridge.Check(err => Native.c4db_delete(_c4db, err));
-                Native.c4db_free(_c4db);
-                _c4db = null;
-                Native.c4dbobs_free(_obs);
-                _obs = null;
-                if (_obsContext.IsAllocated) {
-                    _obsContext.Free();
-                }
+                Dispose();
             });
         }
 
