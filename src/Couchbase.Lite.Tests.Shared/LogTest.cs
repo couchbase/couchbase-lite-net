@@ -25,6 +25,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 
 using Couchbase.Lite;
+using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
@@ -342,7 +343,8 @@ namespace Test
 
             using (var sw = new StringWriter()) {
                 Console.SetOut(sw);
-                Database.Log.File.Config = new LogFileConfiguration("foo");
+                var fakePath = Path.Combine(Service.GetInstance<IDefaultDirectoryResolver>().DefaultDirectory(), "foo");
+                Database.Log.File.Config = new LogFileConfiguration(fakePath);
                 Database.Log.File.Config = null;
                 sw.ToString().Contains("file logging is disabled").Should().BeTrue();
             }

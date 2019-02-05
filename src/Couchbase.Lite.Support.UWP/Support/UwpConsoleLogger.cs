@@ -19,16 +19,10 @@
 // Define DEBUG just for this file (#define in C# only operates per file
 // as opposed to C / C++ which defines from that point onward) to be able
 // to use Debug.WriteLine even in a release build
-#define DEBUG 
+#define DEBUG
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using Windows.Storage;
 
-using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
@@ -62,9 +56,15 @@ namespace Couchbase.Lite.Support
             }
 
             var finalStr = MakeMessage($"{domain.ToString()} {message}");
-            Console.WriteLine(finalStr);
-            if (Debugger.IsAttached) {
-                Debug.WriteLine(finalStr);
+            try {
+                if (Debugger.IsAttached) {
+                    Debug.WriteLine(finalStr);
+                }
+
+                Console.WriteLine(finalStr);
+            } catch (ObjectDisposedException) {
+                // On UWP the console can be disposed which means it is no longer 
+                // available to write to.  Nothing we can do except ignore.
             }
         }
 
