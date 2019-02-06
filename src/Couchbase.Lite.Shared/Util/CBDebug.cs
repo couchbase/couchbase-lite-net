@@ -17,6 +17,7 @@
 // 
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 using Couchbase.Lite.Internal.Logging;
@@ -52,12 +53,29 @@ namespace Couchbase.Lite.Util
         {
             Debug.Assert(argumentValue != null);
             if (argumentValue == null) {
-                var ex = new ArgumentNullException(argumentName);
-                logger.E(tag, ex.ToString() ?? "");
-                throw ex;
+                throwArgumentNullException(logger, tag, argumentName);
             }
 
             return argumentValue;
+        }
+
+        [NotNull]
+        public static IEnumerable<T> ItemsMustNotBeNull<T>([NotNull]DomainLogger logger, [NotNull]string tag, [NotNull]string argumentName, IEnumerable<T> argumentValues) where T : class
+        {
+            Debug.Assert(argumentValues != null);
+            if (argumentValues == null) {
+                throwArgumentNullException(logger, tag, argumentName);
+            } else {
+                int index = 0;
+                foreach(var item in argumentValues) {
+                    if (item == null) {
+                        throwArgumentNullException(logger, tag, $"{argumentName}[{index}]");
+                    }
+                    index++;
+                }
+            }
+
+            return argumentValues;
         }
 
         [NotNull]
@@ -65,12 +83,17 @@ namespace Couchbase.Lite.Util
         {
             Debug.Assert(argumentValue != null);
             if (argumentValue == null) {
-                var ex = new ArgumentNullException(argumentName);
-                logger.E(tag, ex.ToString() ?? "");
-                throw ex;
+                throwArgumentNullException(logger, tag, argumentName);
             }
 
             return argumentValue;
+        }
+    
+        private static void throwArgumentNullException(DomainLogger logger, string tag, string message)
+        {
+            var ex = new ArgumentNullException(message);
+            logger.E(tag, ex.ToString() ?? "");
+            throw ex;
         }
     }
 }

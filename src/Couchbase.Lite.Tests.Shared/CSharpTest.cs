@@ -45,6 +45,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using Extensions = Couchbase.Lite.Util.Extensions;
+using Couchbase.Lite.Internal.Logging;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -670,7 +671,21 @@ Transfer-Encoding: chunked";
 
         #endif
 
-        
+        [Fact]
+        public void TestCBDebugItemsMustNotBeNull()
+        {
+            List<object> list = new List<object>();
+            list.Add("couchbase");
+            list.Add(null);
+            list.Add("debug");
+            Action badAction = (() =>
+            CBDebug.ItemsMustNotBeNull(
+                WriteLog.To.Query, 
+                nameof(CSharpTest), 
+                nameof(TestCBDebugItemsMustNotBeNull), 
+                list));
+            badAction.ShouldThrow<ArgumentNullException>("because the item in enumeration cannot be null.");
+        }
 
         private unsafe void TestRoundTrip<T>(T item)
         {
