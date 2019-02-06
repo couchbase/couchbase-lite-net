@@ -191,7 +191,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name">The name of the code to get the value for (e.g. ECONNREFUSED)</param>
         /// <returns>The correct code for the given error, or 0 if the name does not exist</returns>
-        public static int GetCode(string name)
+        public static int GetCode([NotNull]string name)
         {
             if (name == null) {
                 throw new ArgumentNullException(nameof(name));
@@ -217,7 +217,7 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the code to get the value for (e.g. ECONNREFUSED)</param>
         /// <param name="code">The code to check</param>
         /// <returns><c>true</c> if the code matches, otherwise <c>false</c></returns>
-        public static bool IsError(string name, int code)
+        public static bool IsError([NotNull]string name, int code)
         {
             var codeForName = GetCode(name);
             return code == codeForName;

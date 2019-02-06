@@ -134,7 +134,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        public ListenerToken AddChangeListener(EventHandler<ReplicatorStatusChangedEventArgs> handler)
+        public ListenerToken AddChangeListener([NotNull]EventHandler<ReplicatorStatusChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
 
@@ -151,7 +151,7 @@ namespace Couchbase.Lite.Sync
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
         public ListenerToken AddChangeListener([CanBeNull]TaskScheduler scheduler,
-            EventHandler<ReplicatorStatusChangedEventArgs> handler)
+            [NotNull]EventHandler<ReplicatorStatusChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
 
@@ -165,7 +165,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        public ListenerToken AddDocumentReplicationListener(EventHandler<DocumentReplicationEventArgs> handler)
+        public ListenerToken AddDocumentReplicationListener([NotNull]EventHandler<DocumentReplicationEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
 
@@ -182,7 +182,7 @@ namespace Couchbase.Lite.Sync
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
         public ListenerToken AddDocumentReplicationListener([CanBeNull]TaskScheduler scheduler,
-            EventHandler<DocumentReplicationEventArgs> handler)
+            [NotNull]EventHandler<DocumentReplicationEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
             Config.Options.ProgressLevel = ReplicatorProgressLevel.PerDocument;

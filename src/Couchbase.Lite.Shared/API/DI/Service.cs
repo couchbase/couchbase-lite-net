@@ -61,7 +61,7 @@ namespace Couchbase.Lite.DI
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="assembly"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if an invalid type is found inside of the assembly (i.e.
         /// one that does not implement any interfaces and/or does not have a parameter-less constructor)</exception>
-        public static void AutoRegister(Assembly assembly)
+        public static void AutoRegister([NotNull]Assembly assembly)
         {
             if (assembly == null) {
                 throw new ArgumentNullException(nameof(assembly));

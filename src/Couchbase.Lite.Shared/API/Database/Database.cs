@@ -580,7 +580,7 @@ namespace Couchbase.Lite
         /// Deletes the index with the given name
         /// </summary>
         /// <param name="name">The name of the index to delete</param>
-        public void DeleteIndex(string name)
+        public void DeleteIndex([NotNull]string name)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
@@ -597,7 +597,7 @@ namespace Couchbase.Lite
         /// <param name="id">The ID to use when creating or getting the document</param>
         /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
         [CanBeNull]
-        public Document GetDocument(string id)
+        public Document GetDocument([NotNull]string id)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
             return ThreadSafety.DoLocked(() => GetDocumentInternal(id));
@@ -639,7 +639,7 @@ namespace Couchbase.Lite
         /// Runs the given batch of operations as an atomic unit
         /// </summary>
         /// <param name="action">The <see cref="Action"/> containing the operations. </param>
-        public void InBatch(Action action)
+        public void InBatch([NotNull]Action action)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(action), action);
 
@@ -673,7 +673,7 @@ namespace Couchbase.Lite
         /// <param name="document">The document to purge</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a database
         /// other than the one it was previously added to</exception>
-        public void Purge(Document document)
+        public void Purge([NotNull]Document document)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
 
@@ -706,7 +706,7 @@ namespace Couchbase.Lite
         /// <param name="docId">The id of the document to purge</param>
         /// <exception cref="C4ErrorCode.NotFound">Throws NOT FOUND error if the document 
         /// of the docId doesn't exist.</exception>
-        public void Purge(string docId)
+        public void Purge([NotNull]string docId)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(docId), docId);
             InBatch(() => PurgeDocById(docId));
@@ -800,7 +800,7 @@ namespace Couchbase.Lite
         /// <param name="document">The document to save</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
         /// other than the one it was previously added to</exception>
-        public void Save(MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
+        public void Save([NotNull]MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
         /// Saves the given <see cref="MutableDocument"/> into this database
@@ -810,7 +810,7 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
         /// other than the one it was previously added to</exception>
         /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
-        public bool Save(MutableDocument document, ConcurrencyControl concurrencyControl)
+        public bool Save([NotNull]MutableDocument document, ConcurrencyControl concurrencyControl)
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             return Save(doc, concurrencyControl, false);
