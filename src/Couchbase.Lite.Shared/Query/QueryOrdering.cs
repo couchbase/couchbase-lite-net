@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Couchbase.Lite.Query;
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
