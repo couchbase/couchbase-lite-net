@@ -18,9 +18,10 @@
 
 using System.Globalization;
 using System.Linq;
-
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
-
+using Couchbase.Lite.Util;
+using JetBrains.Annotations;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Query
@@ -121,16 +122,24 @@ namespace Couchbase.Lite.Internal.Query
 
     internal sealed class QueryIndex : QueryIndexBase
     {
+        #region Constants
+
+        private const string Tag = nameof(QueryIndex);
+
+        #endregion
+
         #region Constructors
 
-        public QueryIndex(params IFullTextIndexItem[] items)
+        public QueryIndex([ItemNotNull]params IFullTextIndexItem[] items)
             : base(items)
         {
+            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(items), items);
         }
 
-        public QueryIndex(params IValueIndexItem[] items)
+        public QueryIndex([ItemNotNull]params IValueIndexItem[] items)
             :base(items)
         {
+            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(items), items);
         }
 
         #endregion

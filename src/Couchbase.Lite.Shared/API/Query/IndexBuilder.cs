@@ -41,7 +41,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The beginning of a value based index</returns>
         [NotNull]
         public static IValueIndex ValueIndex([ItemNotNull]params IValueIndexItem[] items) => 
-            new QueryIndex(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(items), items));
+            new QueryIndex(items);
 
         /// <summary>
         /// Starts the creation of an index based on a full text search
@@ -50,6 +50,6 @@ namespace Couchbase.Lite.Query
         /// <returns>The beginning of an FTS based index</returns>
         [NotNull]
         public static IFullTextIndex FullTextIndex([ItemNotNull]params IFullTextIndexItem[] items) => 
-            new QueryIndex(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(items), items));
+            new QueryIndex(items);
     }
 }

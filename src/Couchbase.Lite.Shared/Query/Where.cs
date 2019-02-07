@@ -44,7 +44,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IGroupBy GroupBy([ItemNotNull]params IExpression[] expressions)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions);
+            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions);
             return new QueryGroupBy(this, expressions);
         }
 
@@ -54,7 +54,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public IOrderBy OrderBy([ItemNotNull]params IOrdering[] orderings)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
+            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
             return new QueryOrderBy(this, orderings);
         }
 

@@ -159,11 +159,6 @@ namespace Couchbase.Lite.Internal.Query
                 var message = $"{tag} expressions must contain at least one element";
                 CBDebug.LogAndThrow(WriteLog.To.Query, new InvalidOperationException(message), Tag, message, true);
             }
-
-            if (param.Any(x => x == null)) {
-                var message = $"{tag} expressions may not contain null elements";
-                CBDebug.LogAndThrow(WriteLog.To.Query, new InvalidOperationException(message), Tag, message, true);
-            }
         }
 
         #endregion

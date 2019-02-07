@@ -44,7 +44,7 @@ namespace Couchbase.Lite.Query
         [NotNull]
         public static ISelect Select([ItemNotNull]params ISelectResult[] results)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(results), results);
+            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(results), results);
             return new Select(results, false);
         }
 
@@ -57,7 +57,7 @@ namespace Couchbase.Lite.Query
         [NotNull]
         public static ISelect SelectDistinct([ItemNotNull]params ISelectResult[] results)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(results), results);
+            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(results), results);
             return new Select(results, true);
         }
 

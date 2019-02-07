@@ -194,7 +194,7 @@ namespace Couchbase.Lite.Internal.Query
                 throw new NotSupportedException();
             }
 
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions);
+            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions);
             var rhs = new QueryTypeExpression(expressions);
             return new QueryBinaryExpression(lhs, rhs, BinaryOpType.In);
         }

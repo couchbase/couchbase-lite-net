@@ -81,7 +81,7 @@ namespace Couchbase.Lite.Internal.Query
         [NotNull]
         public IJoin Join([ItemNotNull]params IJoin[] joins)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(joins), joins);
+            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(joins), joins);
             return new QueryJoin(this, joins);
         }
 

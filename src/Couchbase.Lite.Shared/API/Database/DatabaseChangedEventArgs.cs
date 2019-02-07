@@ -18,7 +18,8 @@
 
 using System;
 using System.Collections.Generic;
-
+using System.Diagnostics;
+using System.Linq;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite
@@ -49,6 +50,9 @@ namespace Couchbase.Lite
 
         internal DatabaseChangedEventArgs([NotNull]Database database, [NotNull][ItemNotNull]IReadOnlyList<string> documentIDs)
         {
+            Debug.Assert(database != null);
+            Debug.Assert(documentIDs != null);
+            Debug.Assert(documentIDs.All(x => x != null));
             Database = database;
             DocumentIDs = documentIDs;
         }
