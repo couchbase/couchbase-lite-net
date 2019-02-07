@@ -136,8 +136,6 @@ namespace Couchbase.Lite.Sync
         /// <returns>A token to remove the handler later</returns>
         public ListenerToken AddChangeListener([NotNull]EventHandler<ReplicatorStatusChangedEventArgs> handler)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
-
             return AddChangeListener(null, handler);
         }
 

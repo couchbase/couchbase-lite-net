@@ -19,7 +19,8 @@
 using System;
 using System.Linq;
 using System.Reflection;
-
+using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 using SimpleInjector;
@@ -63,9 +64,7 @@ namespace Couchbase.Lite.DI
         /// one that does not implement any interfaces and/or does not have a parameter-less constructor)</exception>
         public static void AutoRegister([NotNull]Assembly assembly)
         {
-            if (assembly == null) {
-                throw new ArgumentNullException(nameof(assembly));
-            }
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(assembly), assembly);
 
             foreach (var type in assembly.GetTypes()?.Where(x => x.GetTypeInfo().IsClass)) {
                 var ti = type.GetTypeInfo();

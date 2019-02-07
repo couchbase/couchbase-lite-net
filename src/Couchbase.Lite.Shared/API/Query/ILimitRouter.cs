@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Query
         /// <param name="offset">The amount to offset the query by</param>
         /// <returns>The query for further processing</returns>
         [NotNull]
-        ILimit Limit([NotNull]IExpression limit, IExpression offset);
+        ILimit Limit([NotNull]IExpression limit, [CanBeNull]IExpression offset);
 
         #endregion
     }

@@ -16,6 +16,7 @@
 // limitations under the License.
 // 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
@@ -55,6 +56,7 @@ namespace Couchbase.Lite.Internal.Query
 
         internal QueryGroupBy([NotNull]IExpression expression)
         {
+            Debug.Assert(expression != null);
             _expressions = new[] {expression};
             GroupByImpl = this;
         }

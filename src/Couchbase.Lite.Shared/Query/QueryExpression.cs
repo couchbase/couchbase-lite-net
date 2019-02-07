@@ -19,6 +19,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
@@ -113,6 +114,7 @@ namespace Couchbase.Lite.Internal.Query
         [NotNull]
         private QueryExpression GetBetweenExpression([NotNull]IExpression expression)
         {
+            Debug.Assert(expression != null);
             switch (expression) {
                 case QueryTypeExpression e:
                     return e;

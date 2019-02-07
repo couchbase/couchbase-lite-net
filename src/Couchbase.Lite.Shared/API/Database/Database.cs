@@ -1126,6 +1126,7 @@ namespace Couchbase.Lite
         
         private bool Save([NotNull]Document document, ConcurrencyControl concurrencyControl, bool deletion)
         {
+            Debug.Assert(document != null);
             if (deletion && document.RevID == null) {
                 throw new CouchbaseLiteException(C4ErrorCode.NotFound, "Cannot delete a document that has not yet been saved");
             }

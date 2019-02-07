@@ -285,6 +285,7 @@ namespace Couchbase.Lite.Internal.Logging
 
         private void CreateAndAddLogger([NotNull]string domainStr, LogDomain domain, int index)
         {
+            Debug.Assert(domainStr != null);
             var logger = new DomainLogger(domainStr, domain);
             _allLoggers[index] = logger;
         }

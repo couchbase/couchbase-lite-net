@@ -95,7 +95,7 @@ namespace Couchbase.Lite.Query
         /// <param name="value">The value to set</param>
         /// <returns>The parameters object for further processing</returns>
         [NotNull]
-        public Parameters SetBlob([NotNull]string name, Blob value)
+        public Parameters SetBlob([NotNull]string name, [CanBeNull]Blob value)
         {
             SetValue(name, value);
             return this;
@@ -121,7 +121,7 @@ namespace Couchbase.Lite.Query
         /// <param name="value">The value to set</param>
         /// <returns>The parameters object for further processing</returns>
         [NotNull]
-        public Parameters SetDate([NotNull]string name, DateTimeOffset value)
+        public Parameters SetDate([NotNull]string name, [CanBeNull]DateTimeOffset value)
         {
             SetValue(name, value);
             return this;
@@ -186,7 +186,7 @@ namespace Couchbase.Lite.Query
         /// <param name="value">The value to set</param>
         /// <returns>The parameters object for further processing</returns>
         [NotNull]
-        public Parameters SetString([NotNull]string name, string value)
+        public Parameters SetString([NotNull]string name, [CanBeNull]string value)
         {
             SetValue(name, value);
             return this;
@@ -199,7 +199,7 @@ namespace Couchbase.Lite.Query
         /// <param name="value">The value to set</param>
         /// <returns>The parameters object for further processing</returns>
         [NotNull]
-        public Parameters SetValue([NotNull]string name, object value)
+        public Parameters SetValue([NotNull]string name, [CanBeNull]object value)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
 

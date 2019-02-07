@@ -19,6 +19,7 @@
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 using JetBrains.Annotations;
+using System.Diagnostics;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -28,6 +29,7 @@ namespace Couchbase.Lite.Internal.Query
 
         internal QueryIndexItem([NotNull]IExpression expression)
         {
+            Debug.Assert(expression != null);
             Expression = Misc.TryCast<IExpression, QueryExpression>(expression);
         }
     }

@@ -17,6 +17,7 @@
 // 
 
 using System;
+using System.Diagnostics;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
@@ -53,8 +54,9 @@ namespace Couchbase.Lite.Internal.Query
             }
         }
 
-        public QuerySelectResult([NotNull]IExpression expression)
+        internal QuerySelectResult([NotNull]IExpression expression)
         {
+            Debug.Assert(expression != null);
             Expression = expression;
         }
 

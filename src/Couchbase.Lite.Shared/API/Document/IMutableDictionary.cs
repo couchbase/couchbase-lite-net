@@ -74,7 +74,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        IMutableDictionary SetValue([NotNull]string key, object value);
+        IMutableDictionary SetValue([NotNull]string key, [CanBeNull]object value);
 
         /// <summary>
         /// Replaces the contents of this dictionary with the contents of the
@@ -92,7 +92,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        IMutableDictionary SetString([NotNull]string key, string value);
+        IMutableDictionary SetString([NotNull]string key, [CanBeNull]string value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -146,7 +146,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        IMutableDictionary SetBlob([NotNull]string key, Blob value);
+        IMutableDictionary SetBlob([NotNull]string key, [CanBeNull]Blob value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -155,7 +155,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        IMutableDictionary SetDate([NotNull]string key, DateTimeOffset value);
+        IMutableDictionary SetDate([NotNull]string key, [CanBeNull]DateTimeOffset value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -164,7 +164,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        IMutableDictionary SetArray([NotNull]string key, ArrayObject value);
+        IMutableDictionary SetArray([NotNull]string key, [CanBeNull]ArrayObject value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -173,7 +173,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        IMutableDictionary SetDictionary([NotNull]string key, DictionaryObject value);
+        IMutableDictionary SetDictionary([NotNull]string key, [CanBeNull]DictionaryObject value);
 
         #endregion
     }

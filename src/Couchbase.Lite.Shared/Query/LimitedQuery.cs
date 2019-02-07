@@ -41,7 +41,7 @@ namespace Couchbase.Lite.Internal.Query
             return this;
         }
 
-        public ILimit Limit([NotNull]IExpression limit, IExpression offset)
+        public ILimit Limit([NotNull]IExpression limit, [CanBeNull]IExpression offset)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(limit), limit);
 

@@ -37,6 +37,7 @@ namespace Couchbase.Lite.Util
             logger.W(tag, message);
         }
 
+        [ContractAnnotation("=> halt")]
         public static void LogAndThrow([NotNull]DomainLogger logger, [NotNull]Exception e, [NotNull]string tag, [NotNull]string message, bool fatal)
         {
             if (fatal) {
@@ -53,7 +54,7 @@ namespace Couchbase.Lite.Util
         {
             Debug.Assert(argumentValue != null);
             if (argumentValue == null) {
-                throwArgumentNullException(logger, tag, argumentName);
+                ThrowArgumentNullException(logger, tag, argumentName);
             }
 
             return argumentValue;
@@ -64,12 +65,12 @@ namespace Couchbase.Lite.Util
         {
             Debug.Assert(argumentValues != null);
             if (argumentValues == null) {
-                throwArgumentNullException(logger, tag, argumentName);
+                ThrowArgumentNullException(logger, tag, argumentName);
             } else {
                 int index = 0;
                 foreach(var item in argumentValues) {
                     if (item == null) {
-                        throwArgumentNullException(logger, tag, $"{argumentName}[{index}]");
+                        ThrowArgumentNullException(logger, tag, $"{argumentName}[{index}]");
                     }
                     index++;
                 }
@@ -83,13 +84,13 @@ namespace Couchbase.Lite.Util
         {
             Debug.Assert(argumentValue != null);
             if (argumentValue == null) {
-                throwArgumentNullException(logger, tag, argumentName);
+                ThrowArgumentNullException(logger, tag, argumentName);
             }
 
             return argumentValue;
         }
     
-        private static void throwArgumentNullException(DomainLogger logger, string tag, string message)
+        private static void ThrowArgumentNullException(DomainLogger logger, string tag, string message)
         {
             var ex = new ArgumentNullException(message);
             logger.E(tag, ex.ToString() ?? "");

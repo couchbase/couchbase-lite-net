@@ -125,7 +125,6 @@ namespace Couchbase.Lite.Internal.Query
         public IWhere Where([NotNull]IExpression expression)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
-
             return new Where(this, expression);
         }
 

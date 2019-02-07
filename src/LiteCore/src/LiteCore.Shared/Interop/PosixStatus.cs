@@ -19,7 +19,8 @@
 using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
-
+using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite
@@ -29,6 +30,12 @@ namespace Couchbase.Lite
     /// </summary>
     public abstract class PosixBase
     {
+        #region Constants
+
+        private const string Tag = nameof(PosixBase);
+
+        #endregion
+
         /// <summary>
         /// Operation not permitted 
         /// </summary>
@@ -193,9 +200,7 @@ namespace Couchbase.Lite
         /// <returns>The correct code for the given error, or 0 if the name does not exist</returns>
         public static int GetCode([NotNull]string name)
         {
-            if (name == null) {
-                throw new ArgumentNullException(nameof(name));
-            }
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
 
             Type classType;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
