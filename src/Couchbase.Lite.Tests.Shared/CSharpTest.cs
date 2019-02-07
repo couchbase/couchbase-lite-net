@@ -687,6 +687,24 @@ Transfer-Encoding: chunked";
             badAction.ShouldThrow<ArgumentNullException>("because the item in enumeration cannot be null.");
         }
 
+        [Fact]
+        public void TestCBDebugItemsMustNotBeNull2()
+        {
+            List<object> list = new List<object>();
+            list.Add("couchbase");
+            list.Add("notNull");
+            list.Add("debug");
+
+            var items = CBDebug.ItemsMustNotBeNull(
+                WriteLog.To.Query,
+                nameof(CSharpTest),
+                nameof(TestCBDebugItemsMustNotBeNull2),
+                list);
+
+            items.Count().Should().Be(3);
+            items.ElementAt(1).Should().Be("notNull");
+        }
+
         private unsafe void TestRoundTrip<T>(T item)
         {
             using (var encoded = item.FLEncode()) {
