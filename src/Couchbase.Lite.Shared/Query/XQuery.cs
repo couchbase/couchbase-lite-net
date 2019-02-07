@@ -450,7 +450,7 @@ namespace Couchbase.Lite.Internal.Query
             return FromImpl?.ThreadSafety?.DoLocked(() => Native.c4query_explain(_c4Query)) ?? "(Unable to explain)";
         }
 
-        public void RemoveChangeListener([NotNull]ListenerToken token)
+        public void RemoveChangeListener(ListenerToken token)
         {
             _disposalWatchdog.CheckDisposed();
             _changed.Remove(token);

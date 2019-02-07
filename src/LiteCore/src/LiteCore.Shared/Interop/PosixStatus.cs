@@ -224,6 +224,8 @@ namespace Couchbase.Lite
         /// <returns><c>true</c> if the code matches, otherwise <c>false</c></returns>
         public static bool IsError([NotNull]string name, int code)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
+
             var codeForName = GetCode(name);
             return code == codeForName;
         }

@@ -16,9 +16,9 @@
 // limitations under the License.
 // 
 
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 using JetBrains.Annotations;
@@ -122,24 +122,18 @@ namespace Couchbase.Lite.Internal.Query
 
     internal sealed class QueryIndex : QueryIndexBase
     {
-        #region Constants
-
-        private const string Tag = nameof(QueryIndex);
-
-        #endregion
-
         #region Constructors
 
-        public QueryIndex([ItemNotNull]params IFullTextIndexItem[] items)
+        internal QueryIndex([ItemNotNull]params IFullTextIndexItem[] items)
             : base(items)
         {
-            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(items), items);
+            Debug.Assert(items.All(x => x != null));
         }
 
-        public QueryIndex([ItemNotNull]params IValueIndexItem[] items)
+        internal QueryIndex([ItemNotNull]params IValueIndexItem[] items)
             :base(items)
         {
-            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(items), items);
+            Debug.Assert(items.All(x => x != null));
         }
 
         #endregion
