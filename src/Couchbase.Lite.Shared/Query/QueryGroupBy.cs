@@ -16,15 +16,25 @@
 // limitations under the License.
 // 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Util;
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
     internal sealed class QueryGroupBy : LimitedQuery, IGroupBy
     {
+        #region Constants
+
+        private const string Tag = nameof(QueryGroupBy);
+
+        #endregion
+
         #region Variables
-        
+
         private readonly IList<IExpression> _expressions;
 
         #endregion
@@ -44,8 +54,9 @@ namespace Couchbase.Lite.Internal.Query
             GroupByImpl = this;
         }
 
-        internal QueryGroupBy(IExpression expression)
+        internal QueryGroupBy([NotNull]IExpression expression)
         {
+            Debug.Assert(expression != null);
             _expressions = new[] {expression};
             GroupByImpl = this;
         }
@@ -68,8 +79,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IHavingRouter
 
-        public IHaving Having(IExpression expression)
+        public IHaving Having([NotNull]IExpression expression)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
             return new Having(this, expression);
         }
 
@@ -77,8 +89,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        public IOrderBy OrderBy(params IOrdering[] orderings)
+        public IOrderBy OrderBy([ItemNotNull]params IOrdering[] orderings)
         {
+            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
             return new QueryOrderBy(this, orderings);
         }
 

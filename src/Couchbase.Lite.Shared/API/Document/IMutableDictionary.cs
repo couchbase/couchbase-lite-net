@@ -49,8 +49,7 @@ namespace Couchbase.Lite
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
         [CanBeNull]
-        [ContractAnnotation("null => halt")]
-        new MutableArrayObject GetArray(string key);
+        new MutableArrayObject GetArray([NotNull]string key);
 
         /// <summary>
         /// Gets the value of a given key as a dictionary
@@ -58,8 +57,7 @@ namespace Couchbase.Lite
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
         [CanBeNull]
-        [ContractAnnotation("null => halt")]
-        new MutableDictionaryObject GetDictionary(string key);
+        new MutableDictionaryObject GetDictionary([NotNull]string key);
 
         /// <summary>
         /// Removes the given key from this dictionary
@@ -67,8 +65,7 @@ namespace Couchbase.Lite
         /// <param name="key">The key to remove</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        [ContractAnnotation("null => halt")]
-        IMutableDictionary Remove(string key);
+        IMutableDictionary Remove([NotNull]string key);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -77,8 +74,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        [ContractAnnotation("key:null => halt")]
-        IMutableDictionary SetValue(string key, object value);
+        IMutableDictionary SetValue([NotNull]string key, [CanBeNull]object value);
 
         /// <summary>
         /// Replaces the contents of this dictionary with the contents of the
@@ -96,8 +92,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        [ContractAnnotation("key:null => halt")]
-        IMutableDictionary SetString(string key, string value);
+        IMutableDictionary SetString([NotNull]string key, [CanBeNull]string value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -106,8 +101,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        [ContractAnnotation("key:null => halt")]
-        IMutableDictionary SetInt(string key, int value);
+        IMutableDictionary SetInt([NotNull]string key, int value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -116,8 +110,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        [ContractAnnotation("key:null => halt")]
-        IMutableDictionary SetLong(string key, long value);
+        IMutableDictionary SetLong([NotNull]string key, long value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -126,8 +119,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        [ContractAnnotation("key:null => halt")]
-        IMutableDictionary SetFloat(string key, float value);
+        IMutableDictionary SetFloat([NotNull]string key, float value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -136,8 +128,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        [ContractAnnotation("key:null => halt")]
-        IMutableDictionary SetDouble(string key, double value);
+        IMutableDictionary SetDouble([NotNull]string key, double value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -146,8 +137,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        [ContractAnnotation("key:null => halt")]
-        IMutableDictionary SetBoolean(string key, bool value);
+        IMutableDictionary SetBoolean([NotNull]string key, bool value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -156,8 +146,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        [ContractAnnotation("key:null => halt")]
-        IMutableDictionary SetBlob(string key, Blob value);
+        IMutableDictionary SetBlob([NotNull]string key, [CanBeNull]Blob value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -166,8 +155,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        [ContractAnnotation("key:null => halt")]
-        IMutableDictionary SetDate(string key, DateTimeOffset value);
+        IMutableDictionary SetDate([NotNull]string key, DateTimeOffset value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -176,8 +164,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        [ContractAnnotation("key:null => halt")]
-        IMutableDictionary SetArray(string key, ArrayObject value);
+        IMutableDictionary SetArray([NotNull]string key, [CanBeNull]ArrayObject value);
 
         /// <summary>
         /// Sets the given key to the given value
@@ -186,8 +173,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        [ContractAnnotation("key:null => halt")]
-        IMutableDictionary SetDictionary(string key, DictionaryObject value);
+        IMutableDictionary SetDictionary([NotNull]string key, [CanBeNull]DictionaryObject value);
 
         #endregion
     }

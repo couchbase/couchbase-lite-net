@@ -159,11 +159,6 @@ namespace Couchbase.Lite.Internal.Query
                 var message = $"{tag} expressions must contain at least one element";
                 CBDebug.LogAndThrow(WriteLog.To.Query, new InvalidOperationException(message), Tag, message, true);
             }
-
-            if (param.Any(x => x == null)) {
-                var message = $"{tag} expressions may not contain null elements";
-                CBDebug.LogAndThrow(WriteLog.To.Query, new InvalidOperationException(message), Tag, message, true);
-            }
         }
 
         #endregion
@@ -377,7 +372,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IQuery
 
-        public ListenerToken AddChangeListener(TaskScheduler scheduler, EventHandler<QueryChangedEventArgs> handler)
+        public ListenerToken AddChangeListener(TaskScheduler scheduler, [NotNull]EventHandler<QueryChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(handler), handler);
             _disposalWatchdog.CheckDisposed();
@@ -400,7 +395,7 @@ namespace Couchbase.Lite.Internal.Query
             return new ListenerToken(cbHandler, "query");
         }
 
-        public ListenerToken AddChangeListener(EventHandler<QueryChangedEventArgs> handler)
+        public ListenerToken AddChangeListener([NotNull]EventHandler<QueryChangedEventArgs> handler)
         {
             return AddChangeListener(null, handler);
         }
@@ -443,7 +438,6 @@ namespace Couchbase.Lite.Internal.Query
             _history.Add(retVal);
             return retVal;
         }
-
         public unsafe string Explain()
         {
             _disposalWatchdog.CheckDisposed();

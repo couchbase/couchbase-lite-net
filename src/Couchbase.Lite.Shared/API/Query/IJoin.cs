@@ -48,8 +48,7 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to use as the ON clause</param>
         /// <returns>The query for further processing</returns>
         [NotNull]
-        [ContractAnnotation("null => halt")]
-        IJoin On(IExpression expression);
+        IJoin On([NotNull]IExpression expression);
 
         #endregion
     }

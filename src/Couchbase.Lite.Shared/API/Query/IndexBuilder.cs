@@ -16,8 +16,9 @@
 // limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
-
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
@@ -27,13 +28,20 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public static partial class IndexBuilder
     {
+        #region Constants
+
+        private const string Tag = nameof(IndexBuilder);
+
+        #endregion
+
         /// <summary>
         /// Starts the creation of an index based on a simple property
         /// </summary>
         /// <param name="items">The items to use to create the index</param>
         /// <returns>The beginning of a value based index</returns>
         [NotNull]
-        public static IValueIndex ValueIndex(params IValueIndexItem[] items) => new QueryIndex(items);
+        public static IValueIndex ValueIndex([ItemNotNull]params IValueIndexItem[] items) => 
+            new QueryIndex((IValueIndexItem[])CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(items), items));
 
         /// <summary>
         /// Starts the creation of an index based on a full text search
@@ -41,6 +49,7 @@ namespace Couchbase.Lite.Query
         /// <param name="items">The items to use to create the index</param>
         /// <returns>The beginning of an FTS based index</returns>
         [NotNull]
-        public static IFullTextIndex FullTextIndex(params IFullTextIndexItem[] items) => new QueryIndex(items);
+        public static IFullTextIndex FullTextIndex([ItemNotNull]params IFullTextIndexItem[] items) => 
+            new QueryIndex((IFullTextIndexItem[])CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(items), items));
     }
 }

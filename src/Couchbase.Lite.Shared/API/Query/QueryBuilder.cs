@@ -16,8 +16,9 @@
 // limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
-
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
@@ -27,6 +28,12 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public static class QueryBuilder
     {
+        #region Constants
+
+        private const string Tag = nameof(QueryBuilder);
+
+        #endregion
+
         #region Public Methods
 
         /// <summary>
@@ -35,8 +42,9 @@ namespace Couchbase.Lite.Query
         /// <param name="results">The results to select</param>
         /// <returns>The initial SELECT portion of the query</returns>
         [NotNull]
-        public static ISelect Select(params ISelectResult[] results)
+        public static ISelect Select([ItemNotNull]params ISelectResult[] results)
         {
+            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(results), results);
             return new Select(results, false);
         }
 
@@ -47,8 +55,9 @@ namespace Couchbase.Lite.Query
         /// <param name="results">The results to select</param>
         /// <returns>The initial SELECT portion of the query</returns>
         [NotNull]
-        public static ISelect SelectDistinct(params ISelectResult[] results)
+        public static ISelect SelectDistinct([ItemNotNull]params ISelectResult[] results)
         {
+            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(results), results);
             return new Select(results, true);
         }
 

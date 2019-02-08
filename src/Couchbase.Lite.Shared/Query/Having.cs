@@ -17,15 +17,21 @@
 // 
 
 using System.Diagnostics;
-
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
-
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
     internal sealed class Having : LimitedQuery, IHaving
     {
+        #region Having
+
+        private const string Tag = nameof(IndexBuilder);
+
+        #endregion
+
         #region Variables
 
         private readonly IExpression _expression;
@@ -57,8 +63,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        public IOrderBy OrderBy(params IOrdering[] orderings)
+        public IOrderBy OrderBy([ItemNotNull]params IOrdering[] orderings)
         {
+            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
             ValidateParams(orderings);
             return new QueryOrderBy(this, orderings);
         }

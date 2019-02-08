@@ -306,7 +306,6 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="path"/> or <paramref name="name"/>
         /// are <c>null</c></exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        [ContractAnnotation("name:null => halt; path:null => halt")]
         public static void Copy([NotNull]string path, [NotNull]string name, [CanBeNull]DatabaseConfiguration config)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(path), path);
@@ -341,7 +340,6 @@ namespace Couchbase.Lite
         /// <param name="directory">The directory where the database is located, or <c>null</c> to check the default directory</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> is <c>null</c></exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        [ContractAnnotation("name:null => halt")]
         public static void Delete([NotNull]string name, [CanBeNull]string directory)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
@@ -359,7 +357,6 @@ namespace Couchbase.Lite
         /// <returns><c>true</c> if the database exists in the directory, otherwise <c>false</c></returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> is <c>null</c></exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        [ContractAnnotation("name:null => halt")]
         public static bool Exists([NotNull]string name, [CanBeNull]string directory)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
@@ -389,7 +386,6 @@ namespace Couchbase.Lite
         /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        [ContractAnnotation("handler:null => halt")]
         public ListenerToken AddChangeListener([CanBeNull]TaskScheduler scheduler,
             [NotNull]EventHandler<DatabaseChangedEventArgs> handler)
         {
@@ -418,7 +414,6 @@ namespace Couchbase.Lite
         /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        [ContractAnnotation("null => halt")]
         public ListenerToken AddChangeListener([NotNull]EventHandler<DatabaseChangedEventArgs> handler) => AddChangeListener(null, handler);
 
         /// <summary>
@@ -433,7 +428,6 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
         /// is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        [ContractAnnotation("id:null => halt; handler:null => halt")]
         public ListenerToken AddDocumentChangeListener([NotNull]string id, [CanBeNull]TaskScheduler scheduler,
             [NotNull]EventHandler<DocumentChangedEventArgs> handler)
         {
@@ -467,7 +461,6 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
         /// is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        [ContractAnnotation("id:null => halt; handler:null => halt")]
         public ListenerToken AddDocumentChangeListener([NotNull]string id, [NotNull]EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
 
         /// <summary>
@@ -506,7 +499,6 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
         /// provided ones is used</exception>
-        [ContractAnnotation("name:null => halt; index:null => halt")]
         public void CreateIndex([NotNull]string name, [NotNull]IIndex index)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
@@ -564,7 +556,6 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
         /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        [ContractAnnotation("null => halt")]
         public void Delete([NotNull]Document document) => Delete(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
@@ -579,7 +570,6 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
         /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        [ContractAnnotation("document:null => halt")]
         public bool Delete([NotNull]Document document, ConcurrencyControl concurrencyControl)
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
@@ -590,8 +580,7 @@ namespace Couchbase.Lite
         /// Deletes the index with the given name
         /// </summary>
         /// <param name="name">The name of the index to delete</param>
-        [ContractAnnotation("null => halt")]
-        public void DeleteIndex(string name)
+        public void DeleteIndex([NotNull]string name)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
@@ -608,8 +597,7 @@ namespace Couchbase.Lite
         /// <param name="id">The ID to use when creating or getting the document</param>
         /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
         [CanBeNull]
-        [ContractAnnotation("null => halt")]
-        public Document GetDocument(string id)
+        public Document GetDocument([NotNull]string id)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
             return ThreadSafety.DoLocked(() => GetDocumentInternal(id));
@@ -651,8 +639,7 @@ namespace Couchbase.Lite
         /// Runs the given batch of operations as an atomic unit
         /// </summary>
         /// <param name="action">The <see cref="Action"/> containing the operations. </param>
-        [ContractAnnotation("null => halt")]
-        public void InBatch(Action action)
+        public void InBatch([NotNull]Action action)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(action), action);
 
@@ -686,8 +673,7 @@ namespace Couchbase.Lite
         /// <param name="document">The document to purge</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a database
         /// other than the one it was previously added to</exception>
-        [ContractAnnotation("null => halt")]
-        public void Purge(Document document)
+        public void Purge([NotNull]Document document)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
 
@@ -720,8 +706,7 @@ namespace Couchbase.Lite
         /// <param name="docId">The id of the document to purge</param>
         /// <exception cref="C4ErrorCode.NotFound">Throws NOT FOUND error if the document 
         /// of the docId doesn't exist.</exception>
-        [ContractAnnotation("null => halt")]
-        public void Purge(string docId)
+        public void Purge([NotNull]string docId)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(docId), docId);
             InBatch(() => PurgeDocById(docId));
@@ -815,8 +800,7 @@ namespace Couchbase.Lite
         /// <param name="document">The document to save</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
         /// other than the one it was previously added to</exception>
-        [ContractAnnotation("null => halt")]
-        public void Save(MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
+        public void Save([NotNull]MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
         /// Saves the given <see cref="MutableDocument"/> into this database
@@ -826,8 +810,7 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
         /// other than the one it was previously added to</exception>
         /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
-        [ContractAnnotation("document:null => halt")]
-        public bool Save(MutableDocument document, ConcurrencyControl concurrencyControl)
+        public bool Save([NotNull]MutableDocument document, ConcurrencyControl concurrencyControl)
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             return Save(doc, concurrencyControl, false);
@@ -1143,6 +1126,7 @@ namespace Couchbase.Lite
         
         private bool Save([NotNull]Document document, ConcurrencyControl concurrencyControl, bool deletion)
         {
+            Debug.Assert(document != null);
             if (deletion && document.RevID == null) {
                 throw new CouchbaseLiteException(C4ErrorCode.NotFound, "Cannot delete a document that has not yet been saved");
             }

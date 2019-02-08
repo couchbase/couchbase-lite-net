@@ -16,8 +16,9 @@
 //  limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
-
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
@@ -28,6 +29,12 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public static class ArrayExpression
     {
+        #region Constants
+
+        private const string Tag = nameof(ArrayExpression);
+
+        #endregion
+
         /// <summary>
         /// Returns the start of an expression that will evaluate if any elements
         /// inside of an array match a given predicate
@@ -38,7 +45,9 @@ namespace Couchbase.Lite.Query
         /// via <see cref="Variable"/></param>
         /// <returns>The first portion of the completed expression for further modification</returns>
         [NotNull]
-        public static IArrayExpressionIn Any(IVariableExpression variable) => new QueryTernaryExpression("ANY", variable);
+        public static IArrayExpressionIn Any([NotNull]IVariableExpression variable) => 
+            new QueryTernaryExpression("ANY",
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(variable), variable));
 
         /// <summary>
         /// Returns the start of an expression that will evaluate the following:
@@ -51,7 +60,9 @@ namespace Couchbase.Lite.Query
         /// via <see cref="Variable"/></param>
         /// <returns>The first portion of the completed expression for further modification</returns>
         [NotNull]
-        public static IArrayExpressionIn AnyAndEvery(IVariableExpression variable) => new QueryTernaryExpression("ANY AND EVERY", variable);
+        public static IArrayExpressionIn AnyAndEvery([NotNull]IVariableExpression variable) => 
+            new QueryTernaryExpression("ANY AND EVERY",
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(variable), variable));
 
         /// <summary>
         /// Returns the start of an expression that will evaluate if every element inside
@@ -64,7 +75,9 @@ namespace Couchbase.Lite.Query
         /// via <see cref="Variable"/></param>
         /// <returns>The first portion of the completed expression for further modification</returns>
         [NotNull]
-        public static IArrayExpressionIn Every(IVariableExpression variable) => new QueryTernaryExpression("EVERY", variable);
+        public static IArrayExpressionIn Every([NotNull]IVariableExpression variable) => 
+            new QueryTernaryExpression("EVERY",
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(variable), variable));
 
         /// <summary>
         /// Returns an expression representing the value of a named variable
@@ -73,6 +86,8 @@ namespace Couchbase.Lite.Query
         /// <param name="name">The name of the variable</param>
         /// <returns>An expression representing the value of a named variable</returns>
         [NotNull]
-        public static IVariableExpression Variable(string name) => new QueryTypeExpression(name, ExpressionType.Variable);
+        public static IVariableExpression Variable([NotNull]string name) => 
+            new QueryTypeExpression(CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name), 
+                ExpressionType.Variable);
     }
 }

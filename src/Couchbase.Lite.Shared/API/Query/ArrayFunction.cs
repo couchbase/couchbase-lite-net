@@ -16,8 +16,9 @@
 //  limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
-
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
@@ -28,6 +29,12 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public static class ArrayFunction
     {
+        #region Constants
+
+        private const string Tag = nameof(ArrayFunction);
+
+        #endregion
+
         #region Public Methods
 
         /// <summary>
@@ -40,7 +47,10 @@ namespace Couchbase.Lite.Query
         /// <returns>A function that will return true if the array contains the element, or false
         /// if it does not</returns>
         [NotNull]
-        public static IExpression Contains(IExpression expression, IExpression value) => new QueryCompoundExpression("ARRAY_CONTAINS()", expression, value);
+        public static IExpression Contains([NotNull]IExpression expression, [NotNull]IExpression value) => 
+            new QueryCompoundExpression("ARRAY_CONTAINS()", 
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression),
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(value), value));
 
         /// <summary>
         /// Creates a function that will get the length of an array
@@ -50,7 +60,9 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will get the length of the array in question</returns>
         [NotNull]
-        public static IExpression Length(IExpression expression) => new QueryCompoundExpression("ARRAY_LENGTH()", expression);
+        public static IExpression Length([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("ARRAY_LENGTH()", 
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         #endregion
     }

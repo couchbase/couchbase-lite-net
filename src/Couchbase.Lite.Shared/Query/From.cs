@@ -36,7 +36,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        public From([NotNull]XQuery query, IDataSource impl)
+        internal From([NotNull]XQuery query, IDataSource impl)
         {
             Debug.Assert(query != null);
 
@@ -59,8 +59,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IGroupByRouter
 
-        public IGroupBy GroupBy(params IExpression[] expressions)
+        public IGroupBy GroupBy([ItemNotNull]params IExpression[] expressions)
         {
+            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions);
             ValidateParams(expressions);
             return new QueryGroupBy(this, expressions);
         }
@@ -69,8 +70,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IJoinRouter
 
-        public IJoins Join(params IJoin[] joins)
+        public IJoins Join([ItemNotNull]params IJoin[] joins)
         {
+            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(joins), joins);
             ValidateParams(joins);
             return new QueryJoin(this, joins);
         }
@@ -79,8 +81,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IOrderByRouter
 
-        public IOrderBy OrderBy(params IOrdering[] orderings)
+        public IOrderBy OrderBy([ItemNotNull]params IOrdering[] orderings)
         {
+            CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(orderings), orderings);
             ValidateParams(orderings);
             return new QueryOrderBy(this, orderings);
         }
@@ -88,8 +91,7 @@ namespace Couchbase.Lite.Internal.Query
         #endregion
 
         #region IWhereRouter
-
-        public IWhere Where(IExpression expression)
+        public IWhere Where([NotNull]IExpression expression)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
             return new Where(this, expression);

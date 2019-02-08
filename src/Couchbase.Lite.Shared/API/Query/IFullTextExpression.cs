@@ -33,6 +33,6 @@ namespace Couchbase.Lite.Query
         /// <param name="query">The text to use for the match operation</param>
         /// <returns>The expression representing the new operation</returns>
         [NotNull]
-        IExpression Match(string query);
+        IExpression Match([NotNull]string query);
     }
 }

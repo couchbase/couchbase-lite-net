@@ -17,12 +17,22 @@
 // 
 
 using System;
+using System.Diagnostics;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Util;
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
     internal sealed class QuerySelectResult : ISelectResultAs, ISelectResultFrom
     {
+        #region Constants
+
+        private const string Tag = nameof(QuerySelectResult);
+
+        #endregion
+
         internal readonly IExpression Expression;
         private string _alias;
         private string _from = String.Empty;
@@ -43,20 +53,23 @@ namespace Couchbase.Lite.Internal.Query
                 return $"{_from}{columnName}".TrimEnd('.');
             }
         }
-        
-        public QuerySelectResult(IExpression expression)
+
+        internal QuerySelectResult([NotNull]IExpression expression)
         {
+            Debug.Assert(expression != null);
             Expression = expression;
         }
 
-        public ISelectResult As(string alias)
+        public ISelectResult As([NotNull]string alias)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
             _alias = alias;
             return this;
         }
 
-        public ISelectResult From(string alias)
+        public ISelectResult From([NotNull]string alias)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
             _from = $"{alias}.";
             (Expression as QueryTypeExpression).From(alias);
             return this;

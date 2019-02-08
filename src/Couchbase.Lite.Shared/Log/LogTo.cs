@@ -283,9 +283,9 @@ namespace Couchbase.Lite.Internal.Logging
 
         #region Private Methods
 
-        [ContractAnnotation("domainStr:null => halt")]
-        private void CreateAndAddLogger(string domainStr, LogDomain domain, int index)
+        private void CreateAndAddLogger([NotNull]string domainStr, LogDomain domain, int index)
         {
+            Debug.Assert(domainStr != null);
             var logger = new DomainLogger(domainStr, domain);
             _allLoggers[index] = logger;
         }

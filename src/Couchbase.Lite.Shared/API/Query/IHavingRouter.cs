@@ -34,7 +34,7 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to use in the HAVING clause</param>
         /// <returns>The query with the new clause for further processing</returns>
         [NotNull]
-        IHaving Having(IExpression expression);
+        IHaving Having([NotNull]IExpression expression);
 
         #endregion
     }

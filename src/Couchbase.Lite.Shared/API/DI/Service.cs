@@ -19,7 +19,8 @@
 using System;
 using System.Linq;
 using System.Reflection;
-
+using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 using SimpleInjector;
@@ -61,8 +62,7 @@ namespace Couchbase.Lite.DI
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="assembly"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if an invalid type is found inside of the assembly (i.e.
         /// one that does not implement any interfaces and/or does not have a parameter-less constructor)</exception>
-        [ContractAnnotation("null => halt")]
-        public static void AutoRegister(Assembly assembly)
+        public static void AutoRegister([NotNull]Assembly assembly)
         {
             if (assembly == null) {
                 throw new ArgumentNullException(nameof(assembly));

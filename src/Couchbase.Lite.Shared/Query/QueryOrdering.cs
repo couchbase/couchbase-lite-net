@@ -16,9 +16,11 @@
 // limitations under the License.
 // 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 using Couchbase.Lite.Query;
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -70,8 +72,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        public SortOrder(IExpression expression) : base(null)
+        internal SortOrder([NotNull]IExpression expression) : base(null)
         {
+            Debug.Assert(expression != null);
             IsAscending = true;
             Expression = expression;
         }

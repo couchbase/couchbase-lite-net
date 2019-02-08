@@ -17,7 +17,7 @@
 // 
 
 using System.Collections.Generic;
-
+using System.Diagnostics;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
@@ -60,9 +60,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        public DatabaseSource(Database database, [NotNull]ThreadSafety threadSafety) : base(database, threadSafety)
+        internal DatabaseSource([NotNull]Database database, [NotNull]ThreadSafety threadSafety) : base(database, threadSafety)
         {
-            
+            Debug.Assert(database != null);
         }
 
         #endregion
@@ -84,7 +84,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IDataSourceAs
 
-        public IDataSource As(string alias)
+        public IDataSource As([NotNull]string alias)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(alias), alias);
 

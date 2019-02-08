@@ -53,26 +53,23 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="key">The key to check for</param>
         /// <returns><c>true</c> if the dictionary contains the key, else <c>false</c></returns>
-        [ContractAnnotation("null => halt")]
-        bool Contains(string key);
+        bool Contains([NotNull]string key);
 
         /// <summary>
         /// Gets the value of a given key as an <see cref="IArray"/>
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        [ContractAnnotation("null => halt")]
         [CanBeNull]
-        ArrayObject GetArray(string key);
+        ArrayObject GetArray([NotNull]string key);
 
         /// <summary>
         /// Gets the value of a given key as a <see cref="Blob"/>
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        [ContractAnnotation("null => halt")]
         [CanBeNull]
-        Blob GetBlob(string key);
+        Blob GetBlob([NotNull]string key);
 
         /// <summary>
         /// Gets the value of a given key as a <see cref="Boolean"/>
@@ -81,25 +78,22 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or its converted equivalent</returns>
         /// <remarks>Any non-zero object will be treated as true, so don't rely on 
         /// any sort of parsing</remarks>
-        [ContractAnnotation("null => halt")]
-        bool GetBoolean(string key);
+        bool GetBoolean([NotNull]string key);
 
         /// <summary>
         /// Gets the value of a given key as a <see cref="DateTimeOffset"/>
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or a default value</returns>
-        [ContractAnnotation("null => halt")]
-        DateTimeOffset GetDate(string key);
+        DateTimeOffset GetDate([NotNull]string key);
 
         /// <summary>
         /// Gets the value of a given key as a readonly dictionary
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        [ContractAnnotation("null => halt")]
         [CanBeNull]
-        DictionaryObject GetDictionary(string key);
+        DictionaryObject GetDictionary([NotNull]string key);
 
         /// <summary>
         /// Gets the value of a given key as a <see cref="Double"/>
@@ -108,8 +102,7 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or its converted equivalent</returns>
         /// <remarks><c>true</c> will be converted to 1.0, and everything else that
         /// is non-numeric will be 0.0</remarks>
-        [ContractAnnotation("null => halt")]
-        double GetDouble(string key);
+        double GetDouble([NotNull]string key);
 
         /// <summary>
         /// Gets the value of a given key as a <see cref="Single"/>
@@ -118,8 +111,7 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or its converted equivalent</returns>
         /// <remarks><c>true</c> will be converted to 1.0f, and everything else that
         /// is non-numeric will be 0.0f</remarks>
-        [ContractAnnotation("null => halt")]
-        float GetFloat(string key);
+        float GetFloat([NotNull]string key);
 
         /// <summary>
         /// Gets the value of a given key as an <see cref="Int32"/>
@@ -128,8 +120,7 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or its converted equivalent</returns>
         /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
         /// will be rounded, and everything else non-numeric will be 0</remarks>
-        [ContractAnnotation("null => halt")]
-        int GetInt(string key);
+        int GetInt([NotNull]string key);
 
         /// <summary>
         /// Gets the value of a given key as an <see cref="Int64"/>
@@ -138,8 +129,7 @@ namespace Couchbase.Lite
         /// <returns>The contained value, or its converted equivalent</returns>
         /// <remarks><c>true</c> will be converted to 1, a <see cref="Double"/> value
         /// will be rounded, and everything else non-numeric will be 0</remarks>
-        [ContractAnnotation("null => halt")]
-        long GetLong(string key);
+        long GetLong([NotNull]string key);
 
         /// <summary>
         /// Gets the value of a given key as an untyped object
@@ -149,18 +139,16 @@ namespace Couchbase.Lite
         /// <remarks>This method should be avoided for numeric types, whose
         /// underlying representation is subject to change and thus
         /// <see cref="InvalidCastException"/>s </remarks>
-        [ContractAnnotation("null => halt")]
         [CanBeNull]
-        object GetValue(string key);
+        object GetValue([NotNull]string key);
 
         /// <summary>
         /// Gets the value of a given key as a <see cref="String"/>
         /// </summary>
         /// <param name="key">The key to check the value for</param>
         /// <returns>The contained value, or <c>null</c></returns>
-        [ContractAnnotation("null => halt")]
         [CanBeNull]
-        string GetString(string key);
+        string GetString([NotNull]string key);
 
         /// <summary>
         /// Converts this object to a standard .NET string to object

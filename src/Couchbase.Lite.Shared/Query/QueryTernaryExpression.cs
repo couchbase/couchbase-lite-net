@@ -16,13 +16,21 @@
 //  limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
     internal sealed class QueryTernaryExpression : QueryExpression, IArrayExpressionIn, IArrayExpressionSatisfies
     {
+        #region Constants
+
+        private const string Tag = nameof(QueryTernaryExpression);
+
+        #endregion
+
         #region Variables
 
         private readonly string _function;
@@ -61,8 +69,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IArrayExpressionIn
 
-        public IArrayExpressionSatisfies In(IExpression expression)
+        public IArrayExpressionSatisfies In([NotNull]IExpression expression)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
             _in = expression;
             return this;
         }
@@ -71,8 +80,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region IArrayExpressionSatisfies
 
-        public IExpression Satisfies(IExpression expression)
+        public IExpression Satisfies([NotNull]IExpression expression)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression);
             _predicate = Misc.TryCast<IExpression, QueryExpression>(expression);
             return this;
         }

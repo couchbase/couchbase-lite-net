@@ -22,10 +22,11 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Couchbase.Lite.Internal.Doc;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Interop;
-
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 using LiteCore.Interop;
@@ -38,6 +39,12 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public sealed unsafe class Result : IArray, IDictionaryObject
     {
+        #region Constants
+
+        private const string Tag = nameof(Result);
+
+        #endregion
+
         #region Variables
 
         [NotNull]private readonly Dictionary<string, int> _columnNames;
@@ -212,84 +219,96 @@ namespace Couchbase.Lite.Query
         #region IDictionaryObject
 
         /// <inheritdoc />
-        public bool Contains(string key)
+        public bool Contains([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             return IndexForColumnName(key) >= 0;
         }
 
         /// <inheritdoc />
-        public ArrayObject GetArray(string key)
+        public ArrayObject GetArray([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetArray(index) : null;
         }
 
         /// <inheritdoc />
-        public Blob GetBlob(string key)
+        public Blob GetBlob([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetBlob(index) : null;
         }
 
         /// <inheritdoc />
-        public bool GetBoolean(string key)
+        public bool GetBoolean([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 && GetBoolean(index);
         }
 
         /// <inheritdoc />
-        public DateTimeOffset GetDate(string key)
+        public DateTimeOffset GetDate([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetDate(index) : DateTimeOffset.MinValue;
         }
 
         /// <inheritdoc />
-        public DictionaryObject GetDictionary(string key)
+        public DictionaryObject GetDictionary([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetDictionary(index) : null;
         }
 
         /// <inheritdoc />
-        public double GetDouble(string key)
+        public double GetDouble([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetDouble(index) : 0.0;
         }
 
         /// <inheritdoc />
-        public float GetFloat(string key)
+        public float GetFloat([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetFloat(index) : 0.0f;
         }
 
         /// <inheritdoc />
-        public int GetInt(string key)
+        public int GetInt([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetInt(index) : 0;
         }
 
         /// <inheritdoc />
-        public long GetLong(string key)
+        public long GetLong([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetLong(index) : 0L;
         }
 
         /// <inheritdoc />
-        public object GetValue(string key)
+        public object GetValue([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetValue(index) : null;
         }
 
         /// <inheritdoc />
-        public string GetString(string key)
+        public string GetString([NotNull]string key)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(key), key);
             var index = IndexForColumnName(key);
             return index >= 0 ? GetString(index) : null;
         }

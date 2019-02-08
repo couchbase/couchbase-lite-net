@@ -19,7 +19,8 @@
 using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
-
+using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite
@@ -29,6 +30,12 @@ namespace Couchbase.Lite
     /// </summary>
     public abstract class PosixBase
     {
+        #region Constants
+
+        private const string Tag = nameof(PosixBase);
+
+        #endregion
+
         /// <summary>
         /// Operation not permitted 
         /// </summary>
@@ -191,12 +198,9 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name">The name of the code to get the value for (e.g. ECONNREFUSED)</param>
         /// <returns>The correct code for the given error, or 0 if the name does not exist</returns>
-        [ContractAnnotation("name:null => halt")]
-        public static int GetCode(string name)
+        public static int GetCode([NotNull]string name)
         {
-            if (name == null) {
-                throw new ArgumentNullException(nameof(name));
-            }
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
             Type classType;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
@@ -218,8 +222,7 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the code to get the value for (e.g. ECONNREFUSED)</param>
         /// <param name="code">The code to check</param>
         /// <returns><c>true</c> if the code matches, otherwise <c>false</c></returns>
-        [ContractAnnotation("name:null => halt")]
-        public static bool IsError(string name, int code)
+        public static bool IsError([NotNull]string name, int code)
         {
             var codeForName = GetCode(name);
             return code == codeForName;

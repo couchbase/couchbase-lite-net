@@ -34,7 +34,7 @@ namespace Couchbase.Lite.Query
         /// <param name="dataSource">The data source to use in the FROM portion of the query</param>
         /// <returns>The next FROM portion of the query for further processing</returns>
         [NotNull]
-        IFrom From(IDataSource dataSource);
+        IFrom From([NotNull]IDataSource dataSource);
 
         #endregion
     }

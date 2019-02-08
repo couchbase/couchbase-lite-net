@@ -39,7 +39,7 @@ namespace Couchbase.Lite.Query
         /// <param name="alias">The alias of the data source to select from</param>
         /// <returns>The modified select result</returns>
         [NotNull]
-        ISelectResult From(string alias);
+        ISelectResult From([NotNull]string alias);
     }
 
     /// <summary>
@@ -54,6 +54,6 @@ namespace Couchbase.Lite.Query
         /// <param name="alias">The alias to assign to the select result</param>
         /// <returns>The modified select result</returns>
         [NotNull]
-        ISelectResult As(string alias);
+        ISelectResult As([NotNull]string alias);
     }
 }

@@ -86,8 +86,7 @@ namespace Couchbase.Lite.Query
         /// <param name="scheduler">The scheduler to use when firing events</param>
         /// <param name="handler">The handler to call when the query result set changes</param>
         /// <returns>A token that can be used to remove the listener later</returns>
-        [ContractAnnotation("handler:null => halt")]
-        ListenerToken AddChangeListener([CanBeNull]TaskScheduler scheduler, EventHandler<QueryChangedEventArgs> handler);
+        ListenerToken AddChangeListener([CanBeNull]TaskScheduler scheduler, [NotNull]EventHandler<QueryChangedEventArgs> handler);
 
         /// <summary>
         /// Adds a change listener to track when this query instance has a change in
@@ -95,16 +94,14 @@ namespace Couchbase.Lite.Query
         /// </summary>
         /// <param name="handler">The handler to call when the query result set changes</param>
         /// <returns>A token that can be used to remove the listener later</returns>
-        [ContractAnnotation("null => halt")]
-        ListenerToken AddChangeListener(EventHandler<QueryChangedEventArgs> handler);
+        ListenerToken AddChangeListener([NotNull]EventHandler<QueryChangedEventArgs> handler);
 
         /// <summary>
         /// Removes a changes listener based on the token that was received from
         /// <see cref="AddChangeListener(TaskScheduler, EventHandler{QueryChangedEventArgs})"/>
         /// </summary>
         /// <param name="token">The received token from adding the change listener</param>
-        [ContractAnnotation("null => halt")]
-        void RemoveChangeListener(ListenerToken token);
+        void RemoveChangeListener([NotNull]ListenerToken token);
 
         /// <summary>
         /// Runs the query

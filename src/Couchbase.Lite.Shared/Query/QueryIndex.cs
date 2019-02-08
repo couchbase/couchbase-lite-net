@@ -16,11 +16,12 @@
 // limitations under the License.
 // 
 
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-
 using Couchbase.Lite.Query;
-
+using Couchbase.Lite.Util;
+using JetBrains.Annotations;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Query
@@ -123,14 +124,16 @@ namespace Couchbase.Lite.Internal.Query
     {
         #region Constructors
 
-        public QueryIndex(params IFullTextIndexItem[] items)
+        internal QueryIndex([ItemNotNull]params IFullTextIndexItem[] items)
             : base(items)
         {
+            Debug.Assert(items.All(x => x != null));
         }
 
-        public QueryIndex(params IValueIndexItem[] items)
+        internal QueryIndex([ItemNotNull]params IValueIndexItem[] items)
             :base(items)
         {
+            Debug.Assert(items.All(x => x != null));
         }
 
         #endregion

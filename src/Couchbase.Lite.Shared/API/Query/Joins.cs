@@ -15,8 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
-
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
@@ -26,6 +27,12 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public static class Join
     {
+        #region Constants
+
+        private const string Tag = nameof(Join);
+
+        #endregion
+
         #region Public Methods
 
         /// <summary>
@@ -34,8 +41,9 @@ namespace Couchbase.Lite.Query
         /// <param name="dataSource">The data source to JOIN with</param>
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
         [NotNull]
-        public static IJoin CrossJoin(IDataSource dataSource)
+        public static IJoin CrossJoin([NotNull]IDataSource dataSource)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(dataSource), dataSource);
             return new QueryJoin("CROSS", dataSource);
         }
 
@@ -45,8 +53,9 @@ namespace Couchbase.Lite.Query
         /// <param name="dataSource">The data source to JOIN with</param>
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
         [NotNull]
-        public static IJoinOn InnerJoin(IDataSource dataSource)
+        public static IJoinOn InnerJoin([NotNull]IDataSource dataSource)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(dataSource), dataSource);
             return new QueryJoin(null, dataSource);
         }
 
@@ -56,8 +65,9 @@ namespace Couchbase.Lite.Query
         /// <param name="dataSource">The data source to JOIN with</param>
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
         [NotNull]
-        public static IJoinOn LeftJoin(IDataSource dataSource)
+        public static IJoinOn LeftJoin([NotNull]IDataSource dataSource)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(dataSource), dataSource);
             return LeftOuterJoin(dataSource);
         }
 
@@ -67,8 +77,9 @@ namespace Couchbase.Lite.Query
         /// <param name="dataSource">The data source to JOIN with</param>
         /// <returns>An <see cref="IJoinOn"/> instance for processing</returns>
         [NotNull]
-        public static IJoinOn LeftOuterJoin(IDataSource dataSource)
+        public static IJoinOn LeftOuterJoin([NotNull]IDataSource dataSource)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(dataSource), dataSource);
             return new QueryJoin("LEFT OUTER", dataSource);
         }
 

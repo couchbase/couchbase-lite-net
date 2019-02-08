@@ -16,9 +16,10 @@
 // limitations under the License.
 // 
 using System.Collections.Generic;
-
+using System.Diagnostics;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -41,8 +42,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal QueryUnaryExpression(IExpression argument, UnaryOpType type)
+        internal QueryUnaryExpression([NotNull]IExpression argument, UnaryOpType type)
         {
+            Debug.Assert(argument != null);
             _argument = argument;
             _type = type;
         }

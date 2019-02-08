@@ -15,8 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
-
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Query
@@ -26,6 +27,12 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public static partial class Function
     {
+        #region Constants
+
+        private const string Tag = nameof(Function);
+
+        #endregion
+
         #region Public Methods
 
         /// <summary>
@@ -36,7 +43,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will get the absolute value of the expression in question</returns>
         [NotNull]
-        public static IExpression Abs(IExpression expression) => new QueryCompoundExpression("ABS()", expression);
+        public static IExpression Abs([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("ABS()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will get the inverse cosine of the expression
@@ -46,7 +54,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will get the inverse cosine of the expression in question</returns>
         [NotNull]
-        public static IExpression Acos(IExpression expression) => new QueryCompoundExpression("ACOS()", expression);
+        public static IExpression Acos([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("ACOS()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will get the inverse sin of the expression
@@ -56,7 +65,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will get the inverse sin of the expression in question</returns>
         [NotNull]
-        public static IExpression Asin(IExpression expression) => new QueryCompoundExpression("ASIN()", expression);
+        public static IExpression Asin([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("ASIN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will get the inverse tangent of the expression
@@ -66,7 +76,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will get the  inverse tangent of the expression in question</returns>
         [NotNull]
-        public static IExpression Atan(IExpression expression) => new QueryCompoundExpression("ATAN()", expression);
+        public static IExpression Atan([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("ATAN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will get the arctangent of the point expressed by
@@ -76,7 +87,10 @@ namespace Couchbase.Lite.Query
         /// <param name="expressionY">An expression or literal to evaluate to get the Y coordinate to use</param>
         /// <returns>A function that will get the arctangent of the point in question</returns>
         [NotNull]
-        public static IExpression Atan2(IExpression expressionX, IExpression expressionY) => new QueryCompoundExpression("ATAN2()", expressionX, expressionY);
+        public static IExpression Atan2([NotNull]IExpression expressionX, [NotNull]IExpression expressionY) => 
+            new QueryCompoundExpression("ATAN2()", 
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expressionX), expressionX), 
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expressionY), expressionY));
 
         /// <summary>
         /// Creates a function that will calculate the average of the
@@ -86,7 +100,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will calculate the average</returns>
         [NotNull]
-        public static IExpression Avg(IExpression expression) => new QueryCompoundExpression("AVG()", expression);
+        public static IExpression Avg([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("AVG()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will get the ceiling value of the expression
@@ -96,7 +111,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will get the ceiling value of the expression in question</returns>
         [NotNull]
-        public static IExpression Ceil(IExpression expression) => new QueryCompoundExpression("CEIL()", expression);
+        public static IExpression Ceil([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("CEIL()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will calculate if a given string is inside of another
@@ -106,7 +122,10 @@ namespace Couchbase.Lite.Query
         /// <param name="substring">The string or expression that evaluates to a string to search for</param>
         /// <returns>A function that will return true if the string contains the other, or false if it does not</returns>
         [NotNull]
-        public static IExpression Contains(IExpression expression, IExpression substring) => new QueryCompoundExpression("CONTAINS()", expression, substring);
+        public static IExpression Contains([NotNull]IExpression expression, [NotNull]IExpression substring) => 
+            new QueryCompoundExpression("CONTAINS()", 
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression),
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(substring), substring));
 
         /// <summary>
         /// Creates a function that will get the cosine of the expression
@@ -116,7 +135,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will get the cosine of the expression in question</returns>
         [NotNull]
-        public static IExpression Cos(IExpression expression) => new QueryCompoundExpression("COS()", expression);
+        public static IExpression Cos([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("COS()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will count the occurrences of 
@@ -126,7 +146,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will calculate the count</returns>
         [NotNull]
-        public static IExpression Count(IExpression expression) => new QueryCompoundExpression("COUNT()", expression);
+        public static IExpression Count([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("COUNT()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will convert a numeric expression to degrees from radians
@@ -136,7 +157,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will get the value of the expression in question expressed in degrees</returns>
         [NotNull]
-        public static IExpression Degrees(IExpression expression) => new QueryCompoundExpression("DEGREES()", expression);
+        public static IExpression Degrees([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("DEGREES()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will return the value of the mathemetical constant 'e'
@@ -152,7 +174,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will get the mathematical constant 'e' raised to the given power</returns>
         [NotNull]
-        public static IExpression Exp(IExpression expression) => new QueryCompoundExpression("EXP()", expression);
+        public static IExpression Exp([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("EXP()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will get the floor value of the expression
@@ -162,7 +185,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will get the floor value of the expression in question</returns>
         [NotNull]
-        public static IExpression Floor(IExpression expression) => new QueryCompoundExpression("FLOOR()", expression);
+        public static IExpression Floor([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("FLOOR()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that gets the length of a string
@@ -172,7 +196,8 @@ namespace Couchbase.Lite.Query
         /// the result (must be or evaluate to a string)</param>
         /// <returns>The length of the string in question</returns>
         [NotNull]
-        public static IExpression Length(IExpression expression) => new QueryCompoundExpression("LENGTH()", expression);
+        public static IExpression Length([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("LENGTH()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that gets the natural log of the numerical expression
@@ -181,7 +206,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that gets the natural log of the expression</returns>
         [NotNull]
-        public static IExpression Ln(IExpression expression) => new QueryCompoundExpression("LN()", expression);
+        public static IExpression Ln([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("LN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that gets the base 10 log of the numerical expression
@@ -190,7 +216,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that gets the base 10 log of the expression</returns>
         [NotNull]
-        public static IExpression Log(IExpression expression) => new QueryCompoundExpression("LOG()", expression);
+        public static IExpression Log([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("LOG()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that converts a string to lower case
@@ -199,7 +226,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that converts a string to lower case</returns>
         [NotNull]
-        public static IExpression Lower(IExpression expression) => new QueryCompoundExpression("LOWER()", expression);
+        public static IExpression Lower([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("LOWER()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that removes whitespace from the beginning of a string
@@ -208,7 +236,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that removes whitespace from the beginning of a string</returns>
         [NotNull]
-        public static IExpression Ltrim(IExpression expression) => new QueryCompoundExpression("LTRIM()", expression);
+        public static IExpression Ltrim([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("LTRIM()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will calculate the max value of the
@@ -218,7 +247,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will calculate the max value</returns>
         [NotNull]
-        public static IExpression Max(IExpression expression) => new QueryCompoundExpression("MAX()", expression);
+        public static IExpression Max([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("MAX()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will convert a numeric input representing
@@ -228,7 +258,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to take data from when converting</param>
         /// <returns>A function that will convert the timestamp to a string</returns>
         [NotNull]
-        public static IExpression MillisToString(IExpression expression) => new QueryCompoundExpression("MILLIS_TO_STR()", expression);
+        public static IExpression MillisToString([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("MILLIS_TO_STR()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will convert a numeric input representing
@@ -238,7 +269,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The expression to take data from when converting</param>
         /// <returns>A function that will convert the timestamp to a string</returns>
         [NotNull]
-        public static IExpression MillisToUTC(IExpression expression) => new QueryCompoundExpression("MILLIS_TO_UTC()", expression);
+        public static IExpression MillisToUTC([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("MILLIS_TO_UTC()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will calculate the min value of the
@@ -248,7 +280,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will calculate the min value</returns>
         [NotNull]
-        public static IExpression Min(IExpression expression) => new QueryCompoundExpression("MIN()", expression);
+        public static IExpression Min([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("MIN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will return the value of the mathemetical constant 'π'
@@ -265,7 +298,10 @@ namespace Couchbase.Lite.Query
         /// <param name="exponent">A numeric literal or expression that provides the exponent</param>
         /// <returns>A function that will raise the base to the given exponent</returns>
         [NotNull]
-        public static IExpression Power(IExpression b, IExpression exponent) => new QueryCompoundExpression("POWER()", b, exponent);
+        public static IExpression Power([NotNull]IExpression b, [NotNull]IExpression exponent) => 
+            new QueryCompoundExpression("POWER()",
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(b), b),
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(exponent), exponent));
 
         /// <summary>
         /// Creates a function that will convert a numeric expression to radians from degrees
@@ -275,7 +311,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will get the value of the expression in question expressed in radians</returns>
         [NotNull]
-        public static IExpression Radians(IExpression expression) => new QueryCompoundExpression("RADIANS()", expression);
+        public static IExpression Radians([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("RADIANS()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will round the given expression
@@ -285,7 +322,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will round the expression (using midpoint rounding)</returns>
         [NotNull]
-        public static IExpression Round(IExpression expression) => new QueryCompoundExpression("ROUND()", expression);
+        public static IExpression Round([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("ROUND()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will round the given expression to the number of digits indicated
@@ -296,7 +334,10 @@ namespace Couchbase.Lite.Query
         /// <param name="digits">The number of digits to round to</param>
         /// <returns>A function that will round the expression (using midpoint rounding)</returns>
         [NotNull]
-        public static IExpression Round(IExpression expression, IExpression digits) => new QueryCompoundExpression("ROUND()", expression, digits);
+        public static IExpression Round([NotNull]IExpression expression, [NotNull]IExpression digits) => 
+            new QueryCompoundExpression("ROUND()",
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression),
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(digits), digits));
 
         /// <summary>
         /// Creates a function that removes whitespace from the end of a string
@@ -305,7 +346,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that removes whitespace from the end of a string</returns>
         [NotNull]
-        public static IExpression Rtrim(IExpression expression) => new QueryCompoundExpression("RTRIM()", expression);
+        public static IExpression Rtrim([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("RTRIM()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that returns the sign (positive, negative, or neither) of
@@ -314,7 +356,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The numeric expression to evaluate</param>
         /// <returns>A function that returns the sign of the expression in question</returns>
         [NotNull]
-        public static IExpression Sign(IExpression expression) => new QueryCompoundExpression("SIGN()", expression);
+        public static IExpression Sign([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("SIGN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that returns the sin of the expression in question
@@ -322,7 +365,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The numeric expression to evaluate</param>
         /// <returns>A function that returns the sin of the expression in question</returns>
         [NotNull]
-        public static IExpression Sin(IExpression expression) => new QueryCompoundExpression("SIN()", expression);
+        public static IExpression Sin([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("SIN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that returns the square root of the expression in question
@@ -330,7 +374,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The numeric expression to evaluate</param>
         /// <returns>A function that returns the square root of the expression in question</returns>
         [NotNull]
-        public static IExpression Sqrt(IExpression expression) => new QueryCompoundExpression("SQRT()", expression);
+        public static IExpression Sqrt([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("SQRT()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will convert an ISO8601 datetime string
@@ -354,7 +399,8 @@ namespace Couchbase.Lite.Query
         /// No time zone present will default to the device local time zone
         /// </remarks>
         [NotNull]
-        public static IExpression StringToMillis(IExpression expression) => new QueryCompoundExpression("STR_TO_MILLIS()", expression);
+        public static IExpression StringToMillis([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("STR_TO_MILLIS()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will convert an ISO8601 datetime string
@@ -378,7 +424,8 @@ namespace Couchbase.Lite.Query
         /// No time zone present will default to the device local time zone
         /// </remarks>
         [NotNull]
-        public static IExpression StringToUTC(IExpression expression) => new QueryCompoundExpression("STR_TO_UTC()", expression);
+        public static IExpression StringToUTC([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("STR_TO_UTC()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will calculate the sum of the
@@ -388,7 +435,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will calculate the sum</returns>
         [NotNull]
-        public static IExpression Sum(IExpression expression) => new QueryCompoundExpression("SUM()", expression);
+        public static IExpression Sum([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("SUM()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that returns the tangent of the expression in question
@@ -396,7 +444,8 @@ namespace Couchbase.Lite.Query
         /// <param name="expression">The numeric expression to evaluate</param>
         /// <returns>A function that returns the tangent of the expression in question</returns>
         [NotNull]
-        public static IExpression Tan(IExpression expression) => new QueryCompoundExpression("TAN()", expression);
+        public static IExpression Tan([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("TAN()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that removes whitespace from the start and end of a string
@@ -405,7 +454,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that removes whitespace from the start and end of a string</returns>
         [NotNull]
-        public static IExpression Trim(IExpression expression) => new QueryCompoundExpression("TRIM()", expression);
+        public static IExpression Trim([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("TRIM()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will truncate the given expression (i.e remove all the
@@ -416,7 +466,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will truncate the expressoin</returns>
         [NotNull]
-        public static IExpression Trunc(IExpression expression) => new QueryCompoundExpression("TRUNC()", expression);
+        public static IExpression Trunc([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("TRUNC()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         /// <summary>
         /// Creates a function that will truncate the given expression to the number of digits indicated
@@ -427,7 +478,10 @@ namespace Couchbase.Lite.Query
         /// <param name="digits">The number of digits to truncate to</param>
         /// <returns>A function that will truncate the expression</returns>
         [NotNull]
-        public static IExpression Trunc(IExpression expression, IExpression digits) => new QueryCompoundExpression("TRUNC()", expression, digits);
+        public static IExpression Trunc([NotNull]IExpression expression, [NotNull]IExpression digits) => 
+            new QueryCompoundExpression("TRUNC()",
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression),
+                CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(digits), digits));
 
         /// <summary>
         /// Creates a function that converts a string to upper case
@@ -436,7 +490,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that converts a string to upper case</returns>
         [NotNull]
-        public static IExpression Upper(IExpression expression) => new QueryCompoundExpression("UPPER()", expression);
+        public static IExpression Upper([NotNull]IExpression expression) => 
+            new QueryCompoundExpression("UPPER()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
         #endregion
     }

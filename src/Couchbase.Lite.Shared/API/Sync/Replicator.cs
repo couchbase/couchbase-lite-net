@@ -134,11 +134,8 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        [ContractAnnotation("null => halt")]
-        public ListenerToken AddChangeListener(EventHandler<ReplicatorStatusChangedEventArgs> handler)
+        public ListenerToken AddChangeListener([NotNull]EventHandler<ReplicatorStatusChangedEventArgs> handler)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
-
             return AddChangeListener(null, handler);
         }
 
@@ -151,9 +148,8 @@ namespace Couchbase.Lite.Sync
         /// (<c>null</c> for default)</param>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        [ContractAnnotation("handler:null => halt")]
         public ListenerToken AddChangeListener([CanBeNull]TaskScheduler scheduler,
-            EventHandler<ReplicatorStatusChangedEventArgs> handler)
+            [NotNull]EventHandler<ReplicatorStatusChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
 
@@ -167,8 +163,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        [ContractAnnotation("null => halt")]
-        public ListenerToken AddDocumentReplicationListener(EventHandler<DocumentReplicationEventArgs> handler)
+        public ListenerToken AddDocumentReplicationListener([NotNull]EventHandler<DocumentReplicationEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
 
@@ -184,9 +179,8 @@ namespace Couchbase.Lite.Sync
         /// (<c>null</c> for default)</param>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        [ContractAnnotation("handler:null => halt")]
         public ListenerToken AddDocumentReplicationListener([CanBeNull]TaskScheduler scheduler,
-            EventHandler<DocumentReplicationEventArgs> handler)
+            [NotNull]EventHandler<DocumentReplicationEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
             Config.Options.ProgressLevel = ReplicatorProgressLevel.PerDocument;
