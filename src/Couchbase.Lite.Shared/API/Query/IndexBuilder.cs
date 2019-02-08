@@ -50,6 +50,6 @@ namespace Couchbase.Lite.Query
         /// <returns>The beginning of an FTS based index</returns>
         [NotNull]
         public static IFullTextIndex FullTextIndex([ItemNotNull]params IFullTextIndexItem[] items) => 
-            new QueryIndex((IValueIndexItem[])CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(items), items));
+            new QueryIndex((IFullTextIndexItem[])CBDebug.ItemsMustNotBeNull(WriteLog.To.Query, Tag, nameof(items), items));
     }
 }

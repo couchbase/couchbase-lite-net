@@ -49,7 +49,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public static object EncodeToJSON([NotNull]IList expressions)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expressions), expressions);
+            Debug.Assert(expressions != null);
             return EncodeExpressions(expressions);
         }
 
