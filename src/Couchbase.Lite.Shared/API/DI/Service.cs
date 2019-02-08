@@ -64,6 +64,10 @@ namespace Couchbase.Lite.DI
         /// one that does not implement any interfaces and/or does not have a parameter-less constructor)</exception>
         public static void AutoRegister([NotNull]Assembly assembly)
         {
+            if (assembly == null) {
+                throw new ArgumentNullException(nameof(assembly));
+            }
+
             foreach (var type in assembly.GetTypes()?.Where(x => x.GetTypeInfo().IsClass)) {
                 var ti = type.GetTypeInfo();
 
