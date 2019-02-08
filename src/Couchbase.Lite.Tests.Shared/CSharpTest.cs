@@ -685,24 +685,16 @@ Transfer-Encoding: chunked";
                 nameof(TestCBDebugItemsMustNotBeNull), 
                 list));
             badAction.ShouldThrow<ArgumentNullException>("because the item in enumeration cannot be null.");
-        }
 
-        [Fact]
-        public void TestCBDebugItemsMustNotBeNull2()
-        {
-            List<object> list = new List<object>();
-            list.Add("couchbase");
-            list.Add("notNull");
-            list.Add("debug");
-
+            list.RemoveAt(1);
             var items = CBDebug.ItemsMustNotBeNull(
                 WriteLog.To.Query,
                 nameof(CSharpTest),
-                nameof(TestCBDebugItemsMustNotBeNull2),
+                nameof(TestCBDebugItemsMustNotBeNull),
                 list);
 
-            items.Count().Should().Be(3);
-            items.ElementAt(1).Should().Be("notNull");
+            items.Count().Should().Be(2);
+            items.ElementAt(1).Should().Be("debug");
         }
 
         private unsafe void TestRoundTrip<T>(T item)

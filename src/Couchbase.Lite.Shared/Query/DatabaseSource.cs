@@ -60,9 +60,9 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        public DatabaseSource([NotNull]Database database, [NotNull]ThreadSafety threadSafety) : base(database, threadSafety)
+        internal DatabaseSource([NotNull]Database database, [NotNull]ThreadSafety threadSafety) : base(database, threadSafety)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(database), database);
+            Debug.Assert(database != null);
         }
 
         #endregion

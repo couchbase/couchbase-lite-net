@@ -200,7 +200,7 @@ namespace Couchbase.Lite
         /// <returns>The correct code for the given error, or 0 if the name does not exist</returns>
         public static int GetCode([NotNull]string name)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
             Type classType;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
@@ -224,8 +224,6 @@ namespace Couchbase.Lite
         /// <returns><c>true</c> if the code matches, otherwise <c>false</c></returns>
         public static bool IsError([NotNull]string name, int code)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(name), name);
-
             var codeForName = GetCode(name);
             return code == codeForName;
         }

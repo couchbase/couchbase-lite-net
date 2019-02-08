@@ -155,7 +155,7 @@ namespace Couchbase.Lite
         /// <param name="value">The value to set</param>
         /// <returns>Itself for further processing</returns>
         [NotNull]
-        IMutableDictionary SetDate([NotNull]string key, [CanBeNull]DateTimeOffset value);
+        IMutableDictionary SetDate([NotNull]string key, DateTimeOffset value);
 
         /// <summary>
         /// Sets the given key to the given value
