@@ -267,6 +267,7 @@ namespace LiteCore.Tests
                         docID = DocID,
                         history = history_,
                         historyCount = 2,
+                        allowConflict = true,
                         body = (FLSlice)body3,
                         save = true
                     };
@@ -439,6 +440,7 @@ namespace LiteCore.Tests
                     var conflictRevID = IsRevTrees() ? FLSlice.Constant("2-deadbeef") : FLSlice.Constant("1@binky");
                     tmp = new[] { conflictRevID, expectedRevID };
                     rq.historyCount = 2;
+                    rq.allowConflict = true;
                     fixed(FLSlice* history = tmp) {
                         rq.history = history;
                         doc = (C4Document *)LiteCoreBridge.Check(err => {
@@ -575,6 +577,7 @@ namespace LiteCore.Tests
                             docID = DocID,
                             history = history_,
                             historyCount = 3,
+                            allowConflict = true,
                             body = (FLSlice)body3,
                             save = true,
                             remoteDBID = 1
