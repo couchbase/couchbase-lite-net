@@ -17,6 +17,9 @@
     <copyright>Copyright 2018</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
+    <dependencies>
+      <dependency id="Microsoft.Win32.Registry" version="4.5.0" />
+    </dependencies>
   </metadata>
   <files>
     <file target="build\Couchbase.Lite.Support.NetDesktop.targets" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\desktop.targets" />

@@ -25,9 +25,9 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
-
 using LiteCore.Interop;
+
+using Microsoft.Win32;
 
 namespace Couchbase.Lite.Support
 {
@@ -51,6 +51,14 @@ namespace Couchbase.Lite.Support
         {
             if (_Activated.Set(true)) {
                 return;
+            }
+
+            var version1 = typeof(NetDesktop).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+            var version2 = typeof(Database).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+
+            if (!version1.Equals(version2)) {
+                throw new InvalidOperationException(
+                    $"Mismatch between Couchbase.Lite and Couchbase.Lite.Support.NetDesktop ({version2.InformationalVersion} vs {version1.InformationalVersion})");
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
@@ -96,8 +104,14 @@ namespace Couchbase.Lite.Support
                 const uint loadWithAlteredSearchPath = 8;
                 var ptr = LoadLibraryEx(foundPath, IntPtr.Zero, loadWithAlteredSearchPath);
                 if (ptr == IntPtr.Zero) {
-                    throw new BadImageFormatException("Could not load LiteCore.dll!  Nothing is going to work!\r\n" +
-                                                      $"LiteCore found in: ${foundPath}");
+                    if (CheckVS2015Redist()) {
+                        throw new BadImageFormatException(
+                            "Could not load LiteCore.dll!  Nothing is going to work!\r\n" +
+                            $"LiteCore found in: ${foundPath}");
+                    } 
+
+                    throw new DllNotFoundException("LiteCore.dll failed to load!  Please ensure that the Visual\r\n" +
+                                                   "Studio 2015 C++ runtime is installed from https://www.microsoft.com/en-us/download/details.aspx?id=48145");
                 }
             }
 
@@ -158,6 +172,17 @@ namespace Couchbase.Lite.Support
         #endregion
 
         #region Private Methods
+
+        private static bool CheckVS2015Redist()
+        {
+            // https://github.com/bitbeans/RedistributableChecker/blob/master/RedistributableChecker/RedistributablePackage.cs
+            var id = IntPtr.Size == 4
+                ? "{e2803110-78b3-4664-a479-3611a381656a}"  // vs2015x86
+                : "{d992c12e-cab2-426f-bde3-fb8c53950b0d}"; // vs2015x64
+            var key = Registry.LocalMachine.OpenSubKey($@"SOFTWARE\Classes\Installer\Dependencies\{id}", false);
+            var version = key?.GetValue("Version");
+            return ((string) version)?.StartsWith("14") == true;
+        }
 
         [DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern IntPtr LoadLibraryEx(string lpFileName, IntPtr hFile, uint dwFlags);

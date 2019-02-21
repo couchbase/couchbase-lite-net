@@ -17,6 +17,7 @@
 // 
 
 using System;
+using System.Diagnostics;
 using System.Reflection;
 
 using Couchbase.Lite.DI;
@@ -47,6 +48,14 @@ namespace Couchbase.Lite.Support
             if(_Activated.Set(true)) {
                 return;
             }
+
+            var version1 = typeof(UWP).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+            var version2 = typeof(Database).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+
+            if (!version1.Equals(version2)) {
+                throw new InvalidOperationException(
+                    $"Mismatch between Couchbase.Lite and Couchbase.Lite.Support.UWP ({version2.InformationalVersion} vs {version1.InformationalVersion})");
+            }
             
             Service.AutoRegister(typeof(UWP).GetTypeInfo().Assembly);
             Service.Register<ILiteCore>(new LiteCoreImpl());
@@ -63,7 +72,7 @@ namespace Couchbase.Lite.Support
         [Obsolete("This has been superceded by Database.Log.Console.  It is a no-op now")]
         public static void EnableTextLogging()
         {
-
+            Debug.WriteLine("CouchbaseLite Warning:  EnableTextLogging() is now a no-op");
         }
 
         #endregion

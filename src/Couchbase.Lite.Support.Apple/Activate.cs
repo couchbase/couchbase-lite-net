@@ -17,13 +17,10 @@
 // 
 
 using System;
-using System.IO;
+using System.Reflection;
 
 using Couchbase.Lite.DI;
-using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
-
-using Foundation;
 
 using LiteCore.Interop;
 
@@ -34,21 +31,29 @@ namespace Couchbase.Lite.Support
     /// </summary>
     public static class iOS
 	{
-	    #region Variables
+        #region Variables
 
-	    private static AtomicBool _Activated = false;
+        private static AtomicBool _Activated = false;
 
-	    #endregion
+        #endregion
 
-	    #region Public Methods
+        #region Public Methods
 
-	    /// <summary>
+        /// <summary>
 		/// Activates the Xamarin iOS specific support classes
 		/// </summary>
 		public static void Activate()
 		{
             if(_Activated.Set(true)) {
                 return;
+            }
+
+            var version1 = typeof(iOS).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+            var version2 = typeof(Database).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+
+            if (!version1.Equals(version2)) {
+                throw new InvalidOperationException(
+                    $"Mismatch between Couchbase.Lite and Couchbase.Lite.Support.iOS ({version2.InformationalVersion} vs {version1.InformationalVersion})");
             }
             
 			Console.WriteLine("Loading support items");
@@ -59,16 +64,16 @@ namespace Couchbase.Lite.Support
 		    Database.Log.Console = new iOSConsoleLogger();
 		}
 
-	    /// <summary>
+        /// <summary>
 		/// [DEPRECATED] Enables text based logging for debugging purposes.  Log statements will
 		/// be written to NSLog
 		/// </summary>
 	    [Obsolete("This has been superceded by Database.Log.Console.  It is a no-op now")]
 		public static void EnableTextLogging()
 		{
-			
+			Console.WriteLine("CouchbaseLite Warning:  EnableTextLogging is now a no-op!");
 		}
 
-	    #endregion
-	}
+        #endregion
+    }
 }

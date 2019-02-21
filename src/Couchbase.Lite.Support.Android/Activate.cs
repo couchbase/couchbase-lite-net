@@ -17,6 +17,7 @@
 // 
 
 using System;
+using System.Reflection;
 
 using Android.Content;
 
@@ -54,6 +55,14 @@ namespace Couchbase.Lite.Support
 				return;
 			}
 
+            var version1 = typeof(Droid).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+            var version2 = typeof(Database).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+
+            if (!version1.Equals(version2)) {
+                throw new InvalidOperationException(
+                    $"Mismatch between Couchbase.Lite and Couchbase.Lite.Support.Android ({version2.InformationalVersion} vs {version1.InformationalVersion})");
+            }
+
             Service.AutoRegister(typeof(Droid).Assembly);
             Service.Register<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver(context));
             Service.Register<IMainThreadTaskScheduler>(() => new MainThreadTaskScheduler(context));
@@ -69,9 +78,9 @@ namespace Couchbase.Lite.Support
 		/// </summary>
 		[Obsolete("This has been superceded by Database.Log.Console.  It is a no-op now")]
 		public static void EnableTextLogging()
-		{
-			
-		}
+        {
+            global::Android.Util.Log.Warn("CouchbaseLite", "Call to EnableTextLogging is now a no-op!");
+        }
 
         #endregion
     }
