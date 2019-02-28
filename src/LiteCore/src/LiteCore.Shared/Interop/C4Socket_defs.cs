@@ -1,7 +1,7 @@
 //
 // C4Socket_defs.cs
 //
-// Copyright (c) 2018 Couchbase, Inc All rights reserved.
+// Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,12 +25,7 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum C4WebSocketCloseCode : int
+    internal enum C4WebSocketCloseCode : int
     {
         WebSocketCloseNormal           = 1000,
         WebSocketCloseGoingAway        = 1001,
@@ -47,21 +42,11 @@ namespace LiteCore.Interop
         WebSocketCloseFirstAvailable   = 4000,
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum C4SocketFraming : byte
+    internal enum C4SocketFraming : byte
     {
         WebSocketClientFraming,
         NoFraming,
         WebSocketServerFraming,
-    }
-
-	internal unsafe struct C4Socket
-    {
-        public void* nativeHandle;
     }
 
 	internal unsafe struct C4Address
@@ -70,6 +55,11 @@ namespace LiteCore.Interop
         public FLSlice hostname;
         public ushort port;
         public FLSlice path;
+    }
+
+	internal unsafe struct C4Socket
+    {
+        public void* nativeHandle;
     }
 
     internal unsafe struct C4SocketFactory

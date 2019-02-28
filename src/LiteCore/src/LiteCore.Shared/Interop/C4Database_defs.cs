@@ -1,7 +1,7 @@
 //
 // C4Database_defs.cs
 //
-// Copyright (c) 2018 Couchbase, Inc All rights reserved.
+// Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,12 +26,7 @@ using LiteCore.Util;
 namespace LiteCore.Interop
 {
     [Flags]
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum C4DatabaseFlags : uint
+    internal enum C4DatabaseFlags : uint
     {
         Create        = 1,
         ReadOnly      = 2,
@@ -41,35 +36,26 @@ namespace LiteCore.Interop
         NonObservable = 0x40,
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum C4EncryptionAlgorithm : uint
+    internal enum C4DocumentVersioning : uint
+    {
+        RevisionTrees,
+    }
+
+    internal enum C4EncryptionAlgorithm : uint
     {
         None = 0,
         AES256,
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum C4DocumentVersioning : uint
-    {
-        RevisionTrees,
-    }
-
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum C4EncryptionKeySize : ulong
+    internal enum C4EncryptionKeySize : ulong
     {
         KeySizeAES256 = 32,
+    }
+
+	internal unsafe partial struct C4EncryptionKey
+    {
+        public C4EncryptionAlgorithm algorithm;
+        public fixed byte bytes[32];
     }
 
 	internal unsafe partial struct C4DatabaseConfig
@@ -91,6 +77,10 @@ namespace LiteCore.Interop
         }
     }
 
+	internal unsafe struct C4Database
+    {
+    }
+
 	internal unsafe partial struct C4UUID
     {
         public fixed byte bytes[16];
@@ -101,15 +91,5 @@ namespace LiteCore.Interop
         public FLSlice key;
         public FLSlice meta;
         public FLSlice body;
-    }
-
-	internal unsafe partial struct C4EncryptionKey
-    {
-        public C4EncryptionAlgorithm algorithm;
-        public fixed byte bytes[32];
-    }
-
-	internal unsafe struct C4Database
-    {
     }
 }

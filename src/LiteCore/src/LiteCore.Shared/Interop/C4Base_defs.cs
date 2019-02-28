@@ -25,33 +25,18 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum C4NetworkErrorCode : int
+    internal enum C4ErrorDomain : uint
     {
-        DNSFailure = 1,
-        UnknownHost,
-        Timeout,
-        InvalidURL,
-        TooManyRedirects,
-        TLSHandshakeFailed,
-        TLSCertExpired,
-        TLSCertUntrusted,
-        TLSClientCertRequired,
-        TLSClientCertRejected,
-        TLSCertUnknownRoot,
-        InvalidRedirect,
+        LiteCoreDomain = 1,
+        POSIXDomain,
+        SQLiteDomain,
+        FleeceDomain,
+        NetworkDomain,
+        WebSocketDomain,
+        MaxErrorDomainPlus1
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum C4ErrorCode : int
+    internal enum C4ErrorCode : int
     {
         AssertionFailed = 1,
         Unimplemented,
@@ -88,28 +73,23 @@ namespace LiteCore.Interop
         NumErrorCodesPlus1
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum C4ErrorDomain : uint
+    internal enum C4NetworkErrorCode : int
     {
-        LiteCoreDomain = 1,
-        POSIXDomain,
-        SQLiteDomain,
-        FleeceDomain,
-        NetworkDomain,
-        WebSocketDomain,
-        MaxErrorDomainPlus1
+        DNSFailure = 1,
+        UnknownHost,
+        Timeout,
+        InvalidURL,
+        TooManyRedirects,
+        TLSHandshakeFailed,
+        TLSCertExpired,
+        TLSCertUntrusted,
+        TLSClientCertRequired,
+        TLSClientCertRejected,
+        TLSCertUnknownRoot,
+        InvalidRedirect,
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum C4LogLevel : sbyte
+    internal enum C4LogLevel : sbyte
     {
         Debug,
         Verbose,
@@ -124,6 +104,10 @@ namespace LiteCore.Interop
         public C4ErrorDomain domain;
         public int code;
         public int internal_info;
+    }
+
+	internal unsafe struct C4LogDomain
+    {
     }
 
 	internal unsafe struct C4LogFileOptions
@@ -144,9 +128,5 @@ namespace LiteCore.Interop
                 _use_plaintext = Convert.ToByte(value);
             }
         }
-    }
-
-	internal unsafe struct C4LogDomain
-    {
     }
 }

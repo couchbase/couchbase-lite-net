@@ -1,7 +1,7 @@
 //
 // C4Document_defs.cs
 //
-// Copyright (c) 2018 Couchbase, Inc All rights reserved.
+// Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,12 +26,7 @@ using LiteCore.Util;
 namespace LiteCore.Interop
 {
     [Flags]
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum C4DocumentFlags : uint
+    internal enum C4DocumentFlags : uint
     {
         DocDeleted         = 0x01,
         DocConflicted      = 0x02,
@@ -40,12 +35,7 @@ namespace LiteCore.Interop
     }
 
     [Flags]
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum C4RevisionFlags : byte
+    internal enum C4RevisionFlags : byte
     {
         Deleted        = 0x01,
         Leaf           = 0x02,
@@ -65,7 +55,16 @@ namespace LiteCore.Interop
         public FLSlice body;
     }
 
-	internal unsafe struct C4DocPutRequest
+	internal unsafe struct C4Document
+    {
+        public C4DocumentFlags flags;
+        public FLHeapSlice docID;
+        public FLHeapSlice revID;
+        public ulong sequence;
+        public C4Revision selectedRev;
+    }
+
+	internal unsafe partial struct C4DocPutRequest
     {
         public FLSlice body;
         public FLSlice docID;
@@ -78,6 +77,9 @@ namespace LiteCore.Interop
         public uint maxRevTreeDepth;
         public uint remoteDBID;
         public FLSliceResult allocedBody;
+        private IntPtr _deltaCB;
+        public void* deltaCBContext;
+        public FLSlice deltaSourceRevID;
 
         public bool existingRevision
         {
@@ -118,14 +120,15 @@ namespace LiteCore.Interop
                 _save = Convert.ToByte(value);
             }
         }
-    }
 
-	internal unsafe struct C4Document
-    {
-        public C4DocumentFlags flags;
-        public FLHeapSlice docID;
-        public FLHeapSlice revID;
-        public ulong sequence;
-        public C4Revision selectedRev;
+        public C4DocDeltaApplier deltaCB
+        {
+            get {
+                return  Marshal.GetDelegateForFunctionPointer<C4DocDeltaApplier>(_deltaCB);
+            }
+            set {
+                _deltaCB = Marshal.GetFunctionPointerForDelegate(value);
+            }
+        }
     }
 }

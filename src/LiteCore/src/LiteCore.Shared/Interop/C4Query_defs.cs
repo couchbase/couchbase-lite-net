@@ -1,7 +1,7 @@
 //
 // C4Query_defs.cs
 //
-// Copyright (c) 2018 Couchbase, Inc All rights reserved.
+// Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,12 +25,7 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum C4IndexType : uint
+    internal enum C4IndexType : uint
     {
         ValueIndex,
         FullTextIndex,
@@ -55,6 +50,23 @@ namespace LiteCore.Interop
                 _rankFullText = Convert.ToByte(value);
             }
         }
+    }
+
+	internal unsafe partial struct C4FullTextMatch
+    {
+        public ulong dataSource;
+        public uint property;
+        public uint term;
+        public uint start;
+        public uint length;
+    }
+
+	internal unsafe struct C4QueryEnumerator
+    {
+        public FLArrayIterator columns;
+        public ulong missingColumns;
+        public uint fullTextMatchCount;
+        public C4FullTextMatch* fullTextMatches;
     }
 
 	internal unsafe partial struct C4IndexOptions
@@ -105,22 +117,5 @@ namespace LiteCore.Interop
                 Marshal.FreeHGlobal(old);
             }
         }
-    }
-
-	internal unsafe struct C4QueryEnumerator
-    {
-        public FLArrayIterator columns;
-        public ulong missingColumns;
-        public uint fullTextMatchCount;
-        public C4FullTextMatch* fullTextMatches;
-    }
-
-	internal unsafe partial struct C4FullTextMatch
-    {
-        public ulong dataSource;
-        public uint property;
-        public uint term;
-        public uint start;
-        public uint length;
     }
 }

@@ -38,13 +38,17 @@ def parse_enum(filename):
                 if "/*" in line and not "*/" in line:
                     in_comment += 1
                         
-                stripped = re.search(r'\s*([A-Za-z0-9=\- _]+,?)', line)
+                stripped = re.search(r'\s*([A-Za-z0-9=\- _\(\)\|]+,?)', line)
                 if not stripped:
                     continue
                     
                 entry = stripped.group(1)
                 stripped = re.search("(?:k)?(?:C4|Rev)?(?:FL|Log|DB_|Encryption|Error|NetErr)?(.*)", entry)
-                entries.append(stripped.group(1).rstrip())
+                final_entry = stripped.group(1).rstrip()
+                for prefix in ["kFL"]:
+                    final_entry = final_entry.replace(prefix, "")
+
+                entries.append(final_entry)
         else:
             definition = re.search("typedef C4_(ENUM|OPTIONS)\((.*?), (.*?)\) {", line)
             if definition:
@@ -64,9 +68,9 @@ def parse_enum(filename):
         if name in flags:
             out_text += "    [Flags]\n"
         if name_to_type[name]:
-            out_text += "#if LITECORE_PACKAGED\n    internal\n#else\n    public\n#endif\n    enum {} : {}\n    {{\n".format(name, name_to_type[name])
+            out_text += "    internal enum {} : {}\n    {{\n".format(name, name_to_type[name])
         else:
-            out_text += "#if LITECORE_PACKAGED\n    internal\n#else\n    public\n#endif\n    enum {}\n    {{\n".format(name)
+            out_text += "    internal enum {}\n    {{\n".format(name)
 
         for entry in name_to_entries[name]:
             out_text += "        {}\n".format(entry)

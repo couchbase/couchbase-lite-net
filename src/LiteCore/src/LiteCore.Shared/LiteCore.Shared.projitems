@@ -19,6 +19,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Database_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4DocEnumerator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4DocEnumerator_defs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Document.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Document_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer_defs.cs" />

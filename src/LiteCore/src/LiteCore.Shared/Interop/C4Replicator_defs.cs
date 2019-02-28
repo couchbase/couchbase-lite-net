@@ -1,7 +1,7 @@
 //
 // C4Replicator_defs.cs
 //
-// Copyright (c) 2018 Couchbase, Inc All rights reserved.
+// Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,12 +25,7 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum C4ReplicatorMode : int
+    internal enum C4ReplicatorMode : int
     {
         Disabled,
         Passive,
@@ -38,12 +33,7 @@ namespace LiteCore.Interop
         Continuous
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum C4ReplicatorActivityLevel : int
+    internal enum C4ReplicatorActivityLevel : int
     {
         Stopped,
         Offline,
@@ -52,30 +42,18 @@ namespace LiteCore.Interop
         Busy
     }
 
-	internal unsafe struct C4Replicator
-    {
-    }
-
-    internal unsafe partial struct C4ReplicatorParameters
-    {
-        public C4ReplicatorMode push;
-        public C4ReplicatorMode pull;
-        public FLSlice optionsDictFleece;
-        public IntPtr pushFilter;
-        public IntPtr validationFunc;
-        public IntPtr onStatusChanged;
-        public IntPtr onDocumentEnded;
-        public IntPtr onBlobProgress;
-        public void* callbackContext;
-        public C4SocketFactory* socketFactory;
-    }
-
-
 	internal unsafe struct C4Progress
     {
         public ulong unitsCompleted;
         public ulong unitsTotal;
         public ulong documentCount;
+    }
+
+	internal unsafe struct C4ReplicatorStatus
+    {
+        public C4ReplicatorActivityLevel level;
+        public C4Progress progress;
+        public C4Error error;
     }
 
 	internal unsafe struct C4DocumentEnded
@@ -98,10 +76,22 @@ namespace LiteCore.Interop
         }
     }
 
-	internal unsafe struct C4ReplicatorStatus
+	internal unsafe struct C4Replicator
     {
-        public C4ReplicatorActivityLevel level;
-        public C4Progress progress;
-        public C4Error error;
     }
+
+    internal unsafe partial struct C4ReplicatorParameters
+    {
+        public C4ReplicatorMode push;
+        public C4ReplicatorMode pull;
+        public FLSlice optionsDictFleece;
+        public IntPtr pushFilter;
+        public IntPtr validationFunc;
+        public IntPtr onStatusChanged;
+        public IntPtr onDocumentEnded;
+        public IntPtr onBlobProgress;
+        public void* callbackContext;
+        public C4SocketFactory* socketFactory;
+    }
+
 }

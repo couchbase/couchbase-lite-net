@@ -1,5 +1,5 @@
-//
-// C4BlobStore_defs.cs
+﻿//
+// C4Document.cs
 //
 // Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
@@ -16,31 +16,8 @@
 // limitations under the License.
 //
 
-using System;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Threading;
-
-using LiteCore.Util;
-
 namespace LiteCore.Interop
 {
-
-
-	internal unsafe struct C4BlobStore
-    {
-    }
-
-	internal unsafe partial struct C4BlobKey
-    {
-        public fixed byte bytes[20];
-    }
-
-	internal unsafe struct C4ReadStream
-    {
-    }
-
-	internal unsafe struct C4WriteStream
-    {
-    }
+    internal unsafe delegate FLSliceResult C4DocDeltaApplier(void* context, C4Revision* baseRevision,
+        FLSlice delta, C4Error* outError);
 }

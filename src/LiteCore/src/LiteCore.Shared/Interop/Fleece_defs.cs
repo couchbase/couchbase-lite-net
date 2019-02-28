@@ -1,7 +1,7 @@
 //
 // Fleece_defs.cs
 //
-// Copyright (c) 2018 Couchbase, Inc All rights reserved.
+// Copyright (c) 2019 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,41 +25,7 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum FLEncoderFormat
-    {
-        EncodeFleece,
-        EncodeJSON,
-        EncodeJSON5
-    }
-
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum FLValueType
-    {
-        Undefined = -1,
-        Null = 0,
-        Boolean,
-        Number,
-        String,
-        Data,
-        Array,
-        Dict
-    }
-
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum FLError
+    internal enum FLError
     {
         NoError = 0,
         MemoryError,
@@ -75,17 +41,79 @@ namespace LiteCore.Interop
         Unsupported,
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-    enum FLTrust
+    internal enum FLTrust
     {
         
         Untrusted,
         
         Trusted
+    }
+
+    internal enum FLValueType
+    {
+        Undefined = -1,
+        Null = 0,
+        Boolean,
+        Number,
+        String,
+        Data,
+        Array,
+        Dict
+    }
+
+    internal enum FLCopyFlags
+    {
+        DefaultCopy        = 0,
+        DeepCopy           = 1,
+        CopyImmutables     = 2,
+        DeepCopyImmutables = (DeepCopy | CopyImmutables),
+    }
+
+    internal enum FLEncoderFormat
+    {
+        EncodeFleece,
+        EncodeJSON,
+        EncodeJSON5
+    }
+
+	internal unsafe struct FLValue
+    {
+    }
+
+	internal unsafe struct FLArray
+    {
+    }
+
+	internal unsafe struct FLDict
+    {
+    }
+
+	internal unsafe struct FLMutableArray
+    {
+    }
+
+	internal unsafe struct FLMutableDict
+    {
+    }
+
+	internal unsafe struct FLDoc
+    {
+    }
+
+	internal unsafe struct FLSharedKeys
+    {
+    }
+
+    internal unsafe struct FLArrayIterator
+    {
+        #pragma warning disable CS0169
+
+        private void* _private1;
+        private uint _private2;
+        private byte _private3;
+        private void* _private4;
+
+        #pragma warning restore CS0169
     }
 
     internal unsafe struct FLDictIterator
@@ -106,44 +134,6 @@ namespace LiteCore.Interop
         #pragma warning restore CS0169
     }
 
-	internal unsafe struct FLPathComponent
-    {
-        public FLSlice key;
-        public uint index;
-    }
-
-	internal unsafe struct FLDeepIterator
-    {
-    }
-
-	internal unsafe struct FLKeyPath
-    {
-    }
-
-	internal unsafe struct FLEncoder
-    {
-    }
-
-	internal unsafe struct FLArray
-    {
-    }
-
-	internal unsafe struct FLMutableDict
-    {
-    }
-
-    internal unsafe struct FLArrayIterator
-    {
-        #pragma warning disable CS0169
-
-        private void* _private1;
-        private uint _private2;
-        private byte _private3;
-        private void* _private4;
-
-        #pragma warning restore CS0169
-    }
-
     internal unsafe struct FLDictKey
     {
         #pragma warning disable CS0169
@@ -157,23 +147,21 @@ namespace LiteCore.Interop
         #pragma warning restore CS0169
     }
 
-	internal unsafe struct FLValue
+	internal unsafe struct FLDeepIterator
     {
     }
 
-	internal unsafe struct FLSharedKeys
+	internal unsafe struct FLPathComponent
+    {
+        public FLSlice key;
+        public uint index;
+    }
+
+	internal unsafe struct FLKeyPath
     {
     }
 
-	internal unsafe struct FLDoc
-    {
-    }
-
-	internal unsafe struct FLDict
-    {
-    }
-
-	internal unsafe struct FLMutableArray
+	internal unsafe struct FLEncoder
     {
     }
 }

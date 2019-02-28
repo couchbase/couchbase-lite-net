@@ -87,7 +87,7 @@ def generate_bridge_sig(pieces, bridge_args):
     if(len(pieces) > 2):
         for args in pieces[2:]:
             arg_info = args.split(":")
-	    bridge = transform_bridge(arg_info[0])
+            bridge = transform_bridge(arg_info[0])
             if bridge != arg_info[0]:
                 bridge_args.append(args)
 
