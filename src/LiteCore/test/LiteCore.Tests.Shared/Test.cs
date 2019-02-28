@@ -85,7 +85,7 @@ namespace LiteCore.Tests
             #endif
             var enc = Native.FLEncoder_New();
             Native.FLEncoder_BeginDict(enc, 1);
-            Native.FLEncoder_WriteKey(enc, "answer");
+            Native.FLEncoder_WriteKey(enc, "ans*wer");
             Native.FLEncoder_WriteInt(enc, 42);
             Native.FLEncoder_EndDict(enc);
             var result = NativeRaw.FLEncoder_Finish(enc, null);

@@ -475,7 +475,7 @@ namespace LiteCore.Tests
                 Native.c4doc_free(doc);
 
                 doc = PutDoc("doc", revID2, FLSlice.Null, C4RevisionFlags.Deleted);
-                doc->revID.CreateString().Should().Be("3-b0089cb43d39c6aba5aea3c0bd5e382dc030033d");
+                doc->revID.CreateString().Should().Be("3-3ae8fab29af3a5bfbfa5a4c5fd91c58214cb0c5a");
                 Native.c4doc_free(doc);
             });
         }

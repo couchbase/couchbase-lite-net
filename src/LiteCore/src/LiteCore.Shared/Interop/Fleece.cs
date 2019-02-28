@@ -117,12 +117,17 @@ namespace LiteCore.Interop
                 case FLSliceResult sliceResult:
                     other = (FLSlice) sliceResult;
                     break;
+                case FLHeapSlice heapSlice:
+                    other = heapSlice;
+                    break;
                 default:
                     return false;
             }
 
             return Native.FLSlice_Compare(this, other) == 0;
         }
+
+        public override string ToString() => $"FLSlice[{CreateString()}]";
 
         public static explicit operator FLSliceResult(FLSlice input)
         {
@@ -164,16 +169,25 @@ namespace LiteCore.Interop
 
         public override bool Equals(object obj)
         {
-            if(obj is FLSliceResult f) {
-                return Native.FLSlice_Compare(this, (FLSlice)f) == 0;
+            var other = FLSlice.Null;
+            switch (obj) {
+                case FLSlice slice:
+                    other = slice;
+                    break;
+                case FLSliceResult sliceResult:
+                    other = (FLSlice) sliceResult;
+                    break;
+                case FLHeapSlice heapSlice:
+                    other = heapSlice;
+                    break;
+                default:
+                    return false;
             }
 
-            if (obj is FLSlice f2) {
-                return Native.FLSlice_Compare(this, f2) == 0;
-            }
-
-            return false;
+            return Native.FLSlice_Compare(this, other) == 0;
         }
+
+        public override string ToString() => $"FLHeapSlice[{CreateString()}]";
     }
 
     internal unsafe partial struct FLSliceResult : IDisposable
