@@ -6,7 +6,7 @@
     <version>$version$</version>
     <authors>Jim Borden</authors>
     <owners>Couchbase</owners>
-    <licenseUrl>http://www.couchbase.com/binaries/content/assets/website/legal/ce-license-agreement.pdf</licenseUrl>
+    <license type="file">LICENSE.txt</license>
     <projectUrl>https://github.com/couchbase/couchbase-lite-net</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/couchbase/couchbase-lite-net/master/packaging/nuget/logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -22,11 +22,12 @@
     </dependencies>
   </metadata>
   <files>
+    <file target="" src="packaging\nuget\LICENSE.txt">
     <file target="build\Couchbase.Lite.Support.NetDesktop.targets" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\desktop.targets" />
     <file target="lib\net461\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\Couchbase.Lite.Support.NetDesktop.dll" />
     <file target="lib\net461\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\Couchbase.Lite.Support.NetDesktop.pdb" />
     <file target="lib\net461\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\Couchbase.Lite.Support.NetDesktop.xml" />
-	<file target="lib\netcoreapp2.0\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp2.0\Couchbase.Lite.Support.NetDesktop.dll" />
+	  <file target="lib\netcoreapp2.0\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp2.0\Couchbase.Lite.Support.NetDesktop.dll" />
     <file target="lib\netcoreapp2.0\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp2.0\Couchbase.Lite.Support.NetDesktop.pdb" />
     <file target="lib\netcoreapp2.0\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp2.0\Couchbase.Lite.Support.NetDesktop.xml" />
     <file target="runtimes\win7-x86\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\x86\LiteCore.dll" />

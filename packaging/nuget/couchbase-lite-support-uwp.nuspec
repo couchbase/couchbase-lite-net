@@ -6,7 +6,7 @@
     <version>$version$</version>
     <authors>Jim Borden</authors>
     <owners>Couchbase</owners>
-    <licenseUrl>http://www.couchbase.com/binaries/content/assets/website/legal/ce-license-agreement.pdf</licenseUrl>
+    <license type="file">LICENSE.txt</license>
     <projectUrl>https://github.com/couchbase/couchbase-lite-net</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/couchbase/couchbase-lite-net/master/packaging/nuget/logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -22,6 +22,7 @@
     </dependencies>
   </metadata>
   <files>
+    <file target="" src="packaging\nuget\LICENSE.txt">
     <file target="build\Couchbase.Lite.Support.UWP.targets" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\uwp.targets" />
     <file target="lib\uap10.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.dll" />
     <file target="lib\uap10.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.pdb" />
