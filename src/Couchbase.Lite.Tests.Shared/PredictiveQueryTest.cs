@@ -149,6 +149,7 @@ namespace Test
             using (var doc = new MutableDocument()) {
                 doc.SetString("name", "Daniel");
                 doc.SetInt("number", 2);
+                doc.SetDouble("max", Double.MaxValue);
                 Db.Save(doc);
             }
 
@@ -159,7 +160,14 @@ namespace Test
                 ["null"] = null,
                 ["number1"] = 10,
                 ["number2"] = 10.1,
-                ["boolean"] = true,
+                ["int_min"] = Int32.MinValue,
+                ["int_max"] = Int32.MaxValue,
+                ["int64_min"] = Int64.MinValue,
+                ["int64_max"] = Int64.MaxValue,
+                ["float_min"] = Single.MinValue,
+                ["float_max"] = Single.MaxValue, // NOTE: Double limits are not guaranteed
+                ["boolean_true"] = true,
+                ["boolean_false"] = false,
                 ["string"] = "hello",
                 ["date"] = date,
                 ["expr_property"] = Expression.Property("name"),
@@ -186,7 +194,8 @@ namespace Test
             var model = nameof(EchoModel);
             var prediction = Function.Prediction(model, input);
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Database(Db)))
+            {
                 var rows = VerifyQuery(q, (n, result) =>
                 {
                     var pred = result.GetDictionary(0);
@@ -194,7 +203,14 @@ namespace Test
                         "because all properties should be serialized and recovered correctly");
                     pred.GetInt("number1").Should().Be(10);
                     pred.GetDouble("number2").Should().Be(10.1);
-                    pred.GetBoolean("boolean").Should().BeTrue();
+                    pred.GetInt("int_min").Should().Be(Int32.MinValue);
+                    pred.GetInt("int_max").Should().Be(Int32.MaxValue);
+                    pred.GetLong("int64_min").Should().Be(Int64.MinValue);
+                    pred.GetLong("int64_max").Should().Be(Int64.MaxValue);
+                    pred.GetFloat("float_min").Should().Be(Single.MinValue);
+                    pred.GetFloat("float_max").Should().Be(Single.MaxValue);
+                    pred.GetBoolean("boolean_true").Should().BeTrue();
+                    pred.GetBoolean("boolean_false").Should().BeFalse();
                     pred.GetString("string").Should().Be("hello");
                     pred.GetDate("date").Should().Be(date);
                     pred.GetString("null").Should().BeNull();
