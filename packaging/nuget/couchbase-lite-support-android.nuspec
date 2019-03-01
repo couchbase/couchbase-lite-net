@@ -21,7 +21,7 @@
     </dependencies>
   </metadata>
   <files>
-    <file target="" src="packaging\nuget\LICENSE.txt">
+    <file target="" src="packaging\nuget\LICENSE.txt" />
     <file target="lib\monoandroid41\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.dll" />
     <file target="lib\monoandroid41\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.pdb" />
     <file target="lib\monoandroid41\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.xml" />

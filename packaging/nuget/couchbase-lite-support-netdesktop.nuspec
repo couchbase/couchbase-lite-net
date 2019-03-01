@@ -22,7 +22,7 @@
     </dependencies>
   </metadata>
   <files>
-    <file target="" src="packaging\nuget\LICENSE.txt">
+    <file target="" src="packaging\nuget\LICENSE.txt" />
     <file target="build\Couchbase.Lite.Support.NetDesktop.targets" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\desktop.targets" />
     <file target="lib\net461\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\Couchbase.Lite.Support.NetDesktop.dll" />
     <file target="lib\net461\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\Couchbase.Lite.Support.NetDesktop.pdb" />
