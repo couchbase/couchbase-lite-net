@@ -22,7 +22,7 @@
     </dependencies>
   </metadata>
   <files>
-    <file target="" src="packaging\nuget\LICENSE.txt">
+    <file target="" src="packaging\nuget\LICENSE.txt" />
     <file target="build\Couchbase.Lite.Support.UWP.targets" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\uwp.targets" />
     <file target="lib\uap10.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.dll" />
     <file target="lib\uap10.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.pdb" />

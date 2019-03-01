@@ -50,7 +50,7 @@
     </dependencies>
   </metadata>
   <files>
-    <file target="" src="packaging\nuget\LICENSE.txt">
+    <file target="" src="packaging\nuget\LICENSE.txt" />
     <file target="lib\netstandard2.0\" src="src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.dll" />
     <file target="lib\netstandard2.0\" src="src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.pdb" />
     <file target="lib\netstandard2.0\" src="src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.xml" />
