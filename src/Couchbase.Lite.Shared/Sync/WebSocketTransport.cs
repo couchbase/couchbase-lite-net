@@ -21,7 +21,6 @@ using System.Collections.Generic;
 using System.Threading;
 
 using Couchbase.Lite.Internal.Logging;
-using Couchbase.Lite.Interop;
 
 using JetBrains.Annotations;
 

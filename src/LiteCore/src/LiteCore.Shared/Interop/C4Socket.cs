@@ -20,12 +20,8 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-using ObjCRuntime;
-
 namespace LiteCore.Interop
 {
-    using Couchbase.Lite.Interop;
-
     internal enum C4WebSocketCustomCloseCode
     {
         WebSocketCloseFirstAvailable = C4WebSocketCloseCode.WebSocketCloseFirstAvailable,
@@ -99,7 +95,9 @@ namespace LiteCore.Interop
             Native.c4socket_registerFactory(InternalFactory);
         }
 
-        [MonoPInvokeCallback(typeof(SocketRequestCloseDelegate))]
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(SocketRequestCloseDelegate))]
+        #endif
         private static void SocketRequestClose(C4Socket* socket, int status, FLSlice message)
         {
             try {
@@ -109,7 +107,9 @@ namespace LiteCore.Interop
             }
         }
 
-        [MonoPInvokeCallback(typeof(SocketDisposeDelegate))]
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(SocketDisposeDelegate))]
+        #endif
         private static void SocketDispose(C4Socket* socket)
         {
             try {
@@ -146,7 +146,9 @@ namespace LiteCore.Interop
             _error = doError;
         }
 
-        [MonoPInvokeCallback(typeof(SocketOpenDelegate))]
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(SocketOpenDelegate))]
+        #endif
         private static void SocketOpened(C4Socket* socket, C4Address* address, FLSlice options, void* context)
         {
             try {
@@ -157,7 +159,9 @@ namespace LiteCore.Interop
             }
         }
 
-        [MonoPInvokeCallback(typeof(SocketCloseDelegate))]
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(SocketCloseDelegate))]
+        #endif
         private static void SocketClose(C4Socket* socket)
         {
             try {
@@ -167,7 +171,9 @@ namespace LiteCore.Interop
             }
         }
 
-        [MonoPInvokeCallback(typeof(SocketWriteDelegate))]
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(SocketWriteDelegate))]
+        #endif
         private static void SocketWrittenTo(C4Socket* socket, FLSliceResult allocatedData)
         {
             try {
@@ -180,7 +186,9 @@ namespace LiteCore.Interop
             }
         }
 
-        [MonoPInvokeCallback(typeof(SocketCompletedReceiveDelegate))]
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(SocketCompletedReceiveDelegate))]
+        #endif
         private static void SocketCompletedReceive(C4Socket* socket, UIntPtr byteCount)
         {
             try {
@@ -193,10 +201,8 @@ namespace LiteCore.Interop
     }
 }
 
-namespace Couchbase.Lite.Interop
+namespace LiteCore.Interop
 {
-    using LiteCore.Interop;
-
     internal static unsafe partial class Native
     {
         public static void c4socket_gotHTTPResponse(C4Socket* socket, int httpStatus,

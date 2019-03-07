@@ -20,8 +20,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-using Couchbase.Lite.Interop;
-
 using FluentAssertions;
 using LiteCore.Interop;
 using LiteCore.Util;

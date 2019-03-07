@@ -17,18 +17,11 @@
 // 
 
 using System;
+using System.Linq;
 using System.Reflection;
+using System.Threading;
 
 using Android.Content;
-
-using Couchbase.Lite.DI;
-using Couchbase.Lite.Logging;
-using Couchbase.Lite.Support.Android.Support;
-using Couchbase.Lite.Util;
-
-using JetBrains.Annotations;
-
-using LiteCore.Interop;
 
 namespace Couchbase.Lite.Support
 {
@@ -39,9 +32,11 @@ namespace Couchbase.Lite.Support
     {
         #region Variables
 
-        private static AtomicBool _Activated = false;
+        private static int _Activated;
 
         #endregion
+
+        internal static Context Context { get; private set; }
 
         #region Public Methods
 
@@ -49,27 +44,25 @@ namespace Couchbase.Lite.Support
         /// Activates the support classes for Android
         /// </summary>
         /// <param name="context">The main context of the Android application</param>
-        public static void Activate([NotNull]Context context)
+        public static void Activate(Context context)
         {
-			if(_Activated.Set(true)) {
+            if (Interlocked.Exchange(ref _Activated, 1) == 1) {
 				return;
 			}
 
+            Context = context ?? throw new ArgumentNullException(nameof(context));
             var version1 = typeof(Droid).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-            var version2 = typeof(Database).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+            var cblAssembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(x => x.GetName().Name == "Couchbase.Lite");
+            if (cblAssembly == null) {
+                global::Android.Util.Log.Warn("CouchbaseLite", "Failed to detect loaded Couchbase.Lite, skipping version verification...");
+                return;
+            }
 
+            var version2 = cblAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
             if (!version1.Equals(version2)) {
                 throw new InvalidOperationException(
                     $"Mismatch between Couchbase.Lite and Couchbase.Lite.Support.Android ({version2.InformationalVersion} vs {version1.InformationalVersion})");
             }
-
-            Service.AutoRegister(typeof(Droid).Assembly);
-            Service.Register<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver(context));
-            Service.Register<IMainThreadTaskScheduler>(() => new MainThreadTaskScheduler(context));
-            Service.Register<ILiteCore>(new LiteCoreImpl());
-            Service.Register<ILiteCoreRaw>(new LiteCoreRawImpl());
-            Service.Register<IProxy>(new XamarinAndroidProxy());
-            Database.Log.Console = new AndroidConsoleLogger();
         }
 
         /// <summary>

@@ -28,8 +28,6 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-    using Couchbase.Lite.Interop;
-
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate void C4LogCallback(C4LogDomain* domain, C4LogLevel level, IntPtr message, IntPtr args);
 
@@ -76,32 +74,21 @@ namespace LiteCore.Interop
     }
 }
 
-namespace Couchbase.Lite.Interop
-{
-    using LiteCore.Interop;
-
-    internal static partial class Native
-    {
-        public static unsafe C4LogDomain* c4log_getDomain(byte* name, bool create) =>
-            Service.GetRequiredInstance<ILiteCore>().c4log_getDomain(name, create);
-    }
-}
-
 // EPIC HACK: This is required for iOS callbacks, but not available in .NET Standard
 // So I just reverse engineer it (Although reverse engineer is probably too strong a word)
-namespace ObjCRuntime
-{
-    [AttributeUsage(AttributeTargets.Method)]
-    internal sealed class MonoPInvokeCallbackAttribute : Attribute
-    {
-        #region Constructors
+//namespace ObjCRuntime
+//{
+//    [AttributeUsage(AttributeTargets.Method)]
+//    internal sealed class MonoPInvokeCallbackAttribute : Attribute
+//    {
+//        #region Constructors
 
-        [SuppressMessage("ReSharper", "UnusedParameter.Local", Justification = "This attribute is only used by mtouch.exe")]
-        public MonoPInvokeCallbackAttribute(Type t)
-        {
-        }
+//        [SuppressMessage("ReSharper", "UnusedParameter.Local", Justification = "This attribute is only used by mtouch.exe")]
+//        public MonoPInvokeCallbackAttribute(Type t)
+//        {
+//        }
 
-        #endregion
-    }
-}
+//        #endregion
+//    }
+//}
 

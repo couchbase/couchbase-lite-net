@@ -24,7 +24,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 using Couchbase.Lite;
-using Couchbase.Lite.Interop;
 
 using LiteCore.Util;
 

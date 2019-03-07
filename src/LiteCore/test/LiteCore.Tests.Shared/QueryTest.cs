@@ -18,8 +18,6 @@
 using System.Collections.Generic;
 using System.Text;
 
-using Couchbase.Lite.Interop;
-
 using LiteCore.Interop;
 using FluentAssertions;
 #if !WINDOWS_UWP

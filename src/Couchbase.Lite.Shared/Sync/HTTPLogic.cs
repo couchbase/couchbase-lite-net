@@ -27,7 +27,6 @@ using System.Text.RegularExpressions;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
-using Couchbase.Lite.Interop;
 
 using LiteCore.Interop;
 
@@ -196,25 +195,12 @@ namespace Couchbase.Lite.Sync
 			var version = versionAtt?.InformationalVersion ?? "Unknown";
             var regex = new Regex("([0-9]+\\.[0-9]+\\.[0-9]+)-b([0-9]+)");
 			var build = "0";
-			var commit = "unknown";
+            var commit = ThisAssembly.Git.Commit;
 			if (regex.IsMatch(version))
 			{
 				var match = regex.Match(version);
 				build = match.Groups[2].Value.TrimStart('0');
 				version = match.Groups[1].Value;
-			}
-
-			try
-			{
-				var st = typeof(Database).GetTypeInfo().Assembly.GetManifestResourceStream("version");
-				using (var reader = new StreamReader(st, Encoding.ASCII, false, 32, false))
-				{
-					commit = reader.ReadToEnd().TrimEnd();
-				}
-			}
-			catch (Exception e)
-			{
-				WriteLog.To.Database.W(Tag, "Error getting commit information", e);
 			}
 
 			var runtimePlatform = Service.GetInstance<IRuntimePlatform>();

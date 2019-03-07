@@ -21,8 +21,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-using Couchbase.Lite.Interop;
-
 using FluentAssertions;
 
 using LiteCore.Interop;

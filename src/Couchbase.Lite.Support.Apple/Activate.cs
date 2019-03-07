@@ -18,11 +18,7 @@
 
 using System;
 using System.Reflection;
-
-using Couchbase.Lite.DI;
-using Couchbase.Lite.Util;
-
-using LiteCore.Interop;
+using System.Threading;
 
 namespace Couchbase.Lite.Support
 {
@@ -30,49 +26,26 @@ namespace Couchbase.Lite.Support
     /// Support classes for Xamarin iOS
     /// </summary>
     public static class iOS
-	{
-        #region Variables
-
-        private static AtomicBool _Activated = false;
-
-        #endregion
-
+    {
         #region Public Methods
 
         /// <summary>
-		/// Activates the Xamarin iOS specific support classes
-		/// </summary>
-		public static void Activate()
-		{
-            if(_Activated.Set(true)) {
-                return;
-            }
-
-            var version1 = typeof(iOS).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-            var version2 = typeof(Database).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-
-            if (!version1.Equals(version2)) {
-                throw new InvalidOperationException(
-                    $"Mismatch between Couchbase.Lite and Couchbase.Lite.Support.iOS ({version2.InformationalVersion} vs {version1.InformationalVersion})");
-            }
-            
-			Console.WriteLine("Loading support items");
-            Service.AutoRegister(typeof(iOS).Assembly);
-            Service.Register<ILiteCore>(new LiteCoreImpl());
-            Service.Register<ILiteCoreRaw>(new LiteCoreRawImpl());
-            Service.Register<IProxy>(new IOSProxy());
-		    Database.Log.Console = new iOSConsoleLogger();
-		}
+        /// Activates the Xamarin iOS specific support classes
+        /// </summary>
+        [Obsolete("This call is no longer needed, and will be removed in 3.0")]
+        public static void Activate()
+        {
+        }
 
         /// <summary>
-		/// [DEPRECATED] Enables text based logging for debugging purposes.  Log statements will
-		/// be written to NSLog
-		/// </summary>
-	    [Obsolete("This has been superceded by Database.Log.Console.  It is a no-op now")]
-		public static void EnableTextLogging()
-		{
-			Console.WriteLine("CouchbaseLite Warning:  EnableTextLogging is now a no-op!");
-		}
+        /// [DEPRECATED] Enables text based logging for debugging purposes.  Log statements will
+        /// be written to NSLog
+        /// </summary>
+        [Obsolete("This has been superceded by Database.Log.Console.  It is a no-op now")]
+        public static void EnableTextLogging()
+        {
+            Console.WriteLine("CouchbaseLite Warning:  EnableTextLogging is now a no-op!");
+        }
 
         #endregion
     }

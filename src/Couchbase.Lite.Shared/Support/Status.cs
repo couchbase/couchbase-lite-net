@@ -24,7 +24,6 @@ using System.Net.Sockets;
 using System.Security.Authentication;
 
 using Couchbase.Lite.Internal.Logging;
-using Couchbase.Lite.Interop;
 
 using JetBrains.Annotations;
 

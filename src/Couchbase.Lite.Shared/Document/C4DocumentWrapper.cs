@@ -18,7 +18,6 @@
 
 using System;
 
-using Couchbase.Lite.Interop;
 using Couchbase.Lite.Util;
 
 using LiteCore.Interop;

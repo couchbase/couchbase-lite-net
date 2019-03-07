@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,7 +31,6 @@ using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Internal.Serialization;
-using Couchbase.Lite.Interop;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
@@ -44,8 +44,6 @@ using LiteCore.Interop;
 using LiteCore.Util;
 
 using Newtonsoft.Json;
-
-using ObjCRuntime;
 
 namespace Couchbase.Lite
 {
@@ -235,6 +233,7 @@ namespace Couchbase.Lite
         static Database()
         {
             FLSliceExtensions.RegisterFLEncodeExtension(FLValueConverter.FLEncode);
+            Activate();
         }
 
         /// <summary>
@@ -928,7 +927,9 @@ namespace Couchbase.Lite
             return System.IO.Path.Combine(directoryToUse, $"{name}.{DBExtension}") ?? throw new RuntimeException("Path.Combine failed to return a non-null value!");
         }
 
-        [MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
+        #endif
         private static void DbObserverCallback(C4DatabaseObserver* db, void* context)
         {
             var dbObj = GCHandle.FromIntPtr((IntPtr)context).Target as Database;
@@ -937,7 +938,9 @@ namespace Couchbase.Lite
             });
         }
 
-        [MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
+        #endif
         private static void DocObserverCallback(C4DocumentObserver* obs, FLSlice docId, ulong sequence, void* context)
         {
             if (docId.buf == null) {

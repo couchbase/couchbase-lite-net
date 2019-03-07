@@ -24,8 +24,6 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-using Couchbase.Lite.Interop;
-
 using FluentAssertions;
 using LiteCore.Interop;
 #if !WINDOWS_UWP

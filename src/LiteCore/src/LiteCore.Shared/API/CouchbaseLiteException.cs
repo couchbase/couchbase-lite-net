@@ -25,8 +25,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 
-using Couchbase.Lite.Interop;
-
 using JetBrains.Annotations;
 
 using LiteCore.Interop;

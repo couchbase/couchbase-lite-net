@@ -24,7 +24,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite;
-using Couchbase.Lite.Interop;
 
 using FluentAssertions;
 using LiteCore.Interop;

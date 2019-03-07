@@ -47,7 +47,7 @@ namespace LiteCore.Interop
         C4RevisionFlags revisionFlags, FLDict* body, void* context);
 }
 
-namespace Couchbase.Lite.Interop
+namespace LiteCore.Interop
 {
     internal sealed class ReplicatorParameters : IDisposable
     {

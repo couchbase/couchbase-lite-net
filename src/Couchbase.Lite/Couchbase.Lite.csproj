@@ -1,13 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
-    <MonoPrefix>mono </MonoPrefix>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
-    <MonoPrefix />
-  </PropertyGroup>
+﻿<Project Sdk="MSBuild.Sdk.Extras">
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging</Configurations>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0;netcoreapp2.0;net461;uap10.0.16299;MonoAndroid80;Xamarin.iOS10</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>Couchbase.Lite</AssemblyName>
     <PackageId>Couchbase.Lite</PackageId>
@@ -36,18 +30,37 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DefineConstants>TRACE;RELEASE;LITECORE_PACKAGED</DefineConstants>
   </PropertyGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Properties\version">
-        <LogicalName>version</LogicalName>
-    </EmbeddedResource>
-  </ItemGroup>
+  <PropertyGroup Condition=" $(TargetFramework.StartsWith('uap')) ">
+        <TargetPlatformMinVersion>10.0.16299.0</TargetPlatformMinVersion>
+    </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
     <DotNetCliToolReference Include="dotnet-sourcelink" Version="2.1.2" />
     <PackageReference Include="SimpleInjector" Version="4.0.12" />
     <PackageReference Include="SourceLink.Create.GitHub" Version="2.7.5" PrivateAssets="all" />
+    <PackageReference Include="GitInfo" Version="2.0.20" PrivateAssets="all" />
     <DotNetCliToolReference Include="dotnet-sourcelink-git" Version="2.1.2" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('netcoreapp')) ">
+    <PackageReference Include="Microsoft.Win32.Registry" Version="4.5.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' or $(TargetFramework.StartsWith('netcoreapp')) ">
+    <ProjectReference Include="..\..\src\Couchbase.Lite.Support.NetDesktop\Couchbase.Lite.Support.NetDesktop.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('MonoAndroid')) ">
+    <ProjectReference Include="..\..\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('Xamarin.iOS')) ">
+    <ProjectReference Include="..\..\src\Couchbase.Lite.Support.Apple\iOS\Couchbase.Lite.Support.iOS.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('uap10.0')) ">
+    <ProjectReference Include="..\..\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -76,8 +89,5 @@
   <Import Project="C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\Microsoft\VisualStudio\v15.0\TextTemplating\Microsoft.TextTemplating.targets" Condition="Exists('C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\Microsoft\VisualStudio\v15.0\TextTemplating\Microsoft.TextTemplating.targets')" />
   <Import Project="C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\MSBuild\Microsoft\VisualStudio\v15.0\TextTemplating\Microsoft.TextTemplating.targets" Condition="Exists('C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\MSBuild\Microsoft\VisualStudio\v15.0\TextTemplating\Microsoft.TextTemplating.targets')" />
   <Import Project="C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\MSBuild\Microsoft\VisualStudio\v15.0\TextTemplating\Microsoft.TextTemplating.targets" Condition="Exists('C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\MSBuild\Microsoft\VisualStudio\v15.0\TextTemplating\Microsoft.TextTemplating.targets')" />
-  <Target Condition="!$(NoGitSha)" Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
-    <Exec Command="$(MonoPrefix)$(ProjectDir)..\..\Tools\GitVersion\GitVersion.exe &quot;$(ProjectDir)..\..&quot; &quot;$(ProjectDir)Properties\version&quot;" />
-  </Target>
 
 </Project>

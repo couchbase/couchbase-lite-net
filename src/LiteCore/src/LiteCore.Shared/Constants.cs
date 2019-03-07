@@ -22,11 +22,13 @@ namespace LiteCore
 {
     internal static class Constants
     {
+        #if __IOS__
+        [NotNull]
+        internal const string DllName = "@rpath/LiteCore.framework/LiteCore";
+        #else
         [NotNull]
         internal const string DllName = "LiteCore";
-        
-        [NotNull]
-        internal const string DllNameIos = "@rpath/LiteCore.framework/LiteCore";
+        #endif
         
         [NotNull]
         internal static readonly string ObjectTypeProperty = "@type";

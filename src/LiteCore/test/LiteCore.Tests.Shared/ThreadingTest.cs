@@ -19,12 +19,9 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
-using Couchbase.Lite.Interop;
-
 using FluentAssertions;
 using LiteCore.Interop;
 
-using ObjCRuntime;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -134,7 +131,9 @@ namespace LiteCore.Tests
             }
         }
 
-        [MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
+        #endif
         private static void ObsCallback(C4DatabaseObserver* observer, void* context)
         {
             var obj = GCHandle.FromIntPtr((IntPtr) context).Target as ThreadingTest;

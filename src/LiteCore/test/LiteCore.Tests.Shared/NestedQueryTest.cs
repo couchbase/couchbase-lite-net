@@ -16,8 +16,6 @@
 //  limitations under the License.
 // 
 
-using Couchbase.Lite.Interop;
-
 using FluentAssertions;
 using LiteCore.Interop;
 #if !WINDOWS_UWP

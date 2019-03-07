@@ -22,7 +22,6 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Couchbase.Lite.Internal.Logging;
-using Couchbase.Lite.Interop;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 

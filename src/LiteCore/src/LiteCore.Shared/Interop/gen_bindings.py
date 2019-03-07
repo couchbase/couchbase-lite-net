@@ -43,7 +43,6 @@ namespace LiteCore.Interop
 """
 
 METHOD_DECORATION = "        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]\n"
-METHOD_DECORATION_IOS = "        [DllImport(Constants.DllNameIos, CallingConvention = CallingConvention.Cdecl)]\n"
 bridge_literals = {}
 raw_literals = {}
 bridge_params = []
@@ -170,11 +169,8 @@ def insert_bridge(collection, pieces):
     line += "        }\n\n"
     collection.append(line)
 
-def insert_raw(collection, pieces, ios):
-    if ios:
-        collection.append(METHOD_DECORATION_IOS)
-    else:
-        collection.append(METHOD_DECORATION)
+def insert_raw(collection, pieces):
+    collection.append(METHOD_DECORATION)
 
     if(pieces[1] in raw_literals):
         collection.append(raw_literals[pieces[1]])
@@ -219,9 +215,7 @@ read_literals("bridge_literals.txt", bridge_literals)
 read_literals("raw_literals.txt", raw_literals)
 for filename in glob.iglob("*.template"):
     native = []
-    native_ios = []
     native_raw = []
-    native_raw_ios = []
     out_filename = os.path.splitext(filename)[0]
     outs = open(out_filename, "w")
 
@@ -231,21 +225,10 @@ for filename in glob.iglob("*.template"):
         if(pieces[0] == ".bridge"):
             bridge_params.append(pieces[1:])
             insert_bridge(native, pieces[1:])
-            insert_bridge(native_ios, pieces[1:])
-            insert_raw(native_raw, pieces[1:], False)
-            insert_raw(native_raw_ios, pieces[1:], True)
+            insert_raw(native_raw, pieces[1:])
         else:
-            insert_raw(native, pieces[1:], False)
-            insert_raw(native_ios, pieces[1:], True)
+            insert_raw(native, pieces[1:])
 
     output = TEMPLATE % {"filename":out_filename, "year":date.today().year, "native": ''.join(native), "native_raw": ''.join(native_raw)}
     outs.write(output)
     outs.close()
-
-    out_filename = "{}_ios.cs".format(os.path.splitext(out_filename)[0])
-    outs = open(out_filename, "w")
-    output = TEMPLATE % {"filename":out_filename, "year":date.today().year, "native": ''.join(native_ios), "native_raw": ''.join(native_raw_ios)}
-    outs.write(output)
-    outs.close()
-
-

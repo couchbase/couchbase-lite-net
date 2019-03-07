@@ -16,18 +16,17 @@
 // limitations under the License.
 //
 
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
-
-using Couchbase.Lite.DI;
-
-using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
     internal static class NativePrivate
     {
-        public static void c4log_warnOnErrors(bool warn) =>
-            Service.GetRequiredInstance<ILiteCore>().c4log_warnOnErrors(warn);
+        #region Public Methods
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4log_warnOnErrors(bool warn);
+
+        #endregion
     }
 }

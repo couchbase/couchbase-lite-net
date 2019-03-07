@@ -1214,6 +1214,26 @@ namespace Test
             var target = _otherDB;
             return CreateConfig(push, pull, continuous, target);
         }
+
+        private void TestPushDocWithFilter(bool continuous)
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetString("name", "donotpass");
+                Db.Save(doc1);
+
+                doc2.SetString("name", "pass");
+                Db.Save(doc2);
+            }
+
+            var config = CreateConfig(true, false, continuous);
+            config.PushFilter = _replicator__filterCallback;
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue();
+            _otherDB.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
+            _otherDB.GetDocument("doc2").Should().NotBeNull("because doc2 is filtered in in the callback");
+            _isFilteredCallback = false;
+        }
 #endif
 
         private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous, URLEndpoint endpoint)
@@ -1317,26 +1337,6 @@ namespace Test
         private void DocumentEndedUpdate(object sender, DocumentReplicationEventArgs args)
         {
             _replicationEvents.Add(args);
-        }
-
-        private void TestPushDocWithFilter(bool continuous)
-        {
-            using (var doc1 = new MutableDocument("doc1"))
-            using (var doc2 = new MutableDocument("doc2")) {
-                doc1.SetString("name", "donotpass");
-                Db.Save(doc1);
-
-                doc2.SetString("name", "pass");
-                Db.Save(doc2);
-            }
-
-            var config = CreateConfig(true, false, continuous);
-            config.PushFilter = _replicator__filterCallback;
-            RunReplication(config, 0, 0);
-            _isFilteredCallback.Should().BeTrue();
-            _otherDB.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
-            _otherDB.GetDocument("doc2").Should().NotBeNull("because doc2 is filtered in in the callback");
-            _isFilteredCallback = false;
         }
 
 #if COUCHBASE_ENTERPRISE

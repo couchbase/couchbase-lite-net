@@ -16,7 +16,6 @@
 // limitations under the License.
 // 
 using Couchbase.Lite.Internal.Doc;
-using Couchbase.Lite.Interop;
 
 using LiteCore.Interop;
 

@@ -29,7 +29,6 @@ using LiteCore.Util;
 using System.Collections.Generic;
 using System.Text;
 
-using Couchbase.Lite.Interop;
 #if !WINDOWS_UWP
 using LiteCore.Tests.Util;
 using Xunit;

@@ -22,7 +22,6 @@ using System.Diagnostics;
 using System.Text;
 
 using Couchbase.Lite.Internal.Logging;
-using Couchbase.Lite.Interop;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;

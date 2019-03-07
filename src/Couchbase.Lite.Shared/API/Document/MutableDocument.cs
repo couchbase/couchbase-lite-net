@@ -24,7 +24,6 @@ using System.Linq;
 using System.Runtime.InteropServices;
 
 using Couchbase.Lite.Internal.Doc;
-using Couchbase.Lite.Interop;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 

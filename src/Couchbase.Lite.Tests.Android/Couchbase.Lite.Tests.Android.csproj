@@ -27,7 +27,7 @@
     <DebugType>Full</DebugType>
     <Optimize>False</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;LITECORE_PACKAGED;COUCHBASE_ENTERPRISE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;LITECORE_PACKAGED</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AndroidUseSharedRuntime>True</AndroidUseSharedRuntime>
@@ -99,15 +99,15 @@
       <LogicalName>result_ip</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.5.0-b0027" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
-    <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.5.0-b0027" />
-  </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Couchbase.Lite">
+      <Version>2.6.0-b0001</Version>
+    </PackageReference>
     <PackageReference Include="FluentAssertions">
       <Version>4.19.4</Version>
+    </PackageReference>
+    <PackageReference Include="Newtonsoft.Json">
+      <Version>12.0.1</Version>
     </PackageReference>
     <PackageReference Include="xunit">
       <Version>2.3.1</Version>

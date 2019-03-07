@@ -22,7 +22,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 
-using Couchbase.Lite.Interop;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;

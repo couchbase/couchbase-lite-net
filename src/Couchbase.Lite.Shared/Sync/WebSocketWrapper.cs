@@ -33,7 +33,6 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
-using Couchbase.Lite.Interop;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 

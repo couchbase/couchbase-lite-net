@@ -20,8 +20,6 @@ using FluentAssertions;
 
 using System.Collections.Generic;
 using System.Text;
-
-using Couchbase.Lite.Interop;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;

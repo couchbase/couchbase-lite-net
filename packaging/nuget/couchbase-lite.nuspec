@@ -18,10 +18,6 @@
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-      <group targetFramework="netstandard2.0">
-        <dependency id="Newtonsoft.Json" version="9.0.1" />
-        <dependency id="SimpleInjector" version="4.0.12" />
-      </group>
       <group targetFramework="netcoreapp2.0">
         <dependency id="Newtonsoft.Json" version="9.0.1" />
         <dependency id="SimpleInjector" version="4.0.12" />
@@ -32,7 +28,7 @@
         <dependency id="SimpleInjector" version="4.0.12" />
         <dependency id="Couchbase.Lite.Support.NetDesktop" version="[$version$]" />
       </group>
-      <group targetFramework="uap10.0">
+      <group targetFramework="uap10.0.16299">
         <dependency id="Newtonsoft.Json" version="9.0.1" />
         <dependency id="SimpleInjector" version="4.0.12" />
         <dependency id="Couchbase.Lite.Support.UWP" version="[$version$]" />
@@ -54,5 +50,21 @@
     <file target="lib\netstandard2.0\" src="src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.dll" />
     <file target="lib\netstandard2.0\" src="src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.pdb" />
     <file target="lib\netstandard2.0\" src="src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.xml" />
+    <file target="lib\netcoreapp2.0\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp2.0\Couchbase.Lite.dll" />
+    <file target="lib\netcoreapp2.0\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp2.0\Couchbase.Lite.pdb" />
+    <file target="lib\netcoreapp2.0\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp2.0\Couchbase.Lite.xml" />
+    <file target="lib\monoandroid44\" src="src\Couchbase.Lite\bin\Packaging\monoandroid80\80\Couchbase.Lite.dll" />
+    <file target="lib\monoandroid44\" src="src\Couchbase.Lite\bin\Packaging\monoandroid80\80\Couchbase.Lite.pdb" />
+    <file target="lib\monoandroid44\" src="src\Couchbase.Lite\bin\Packaging\monoandroid80\80\Couchbase.Lite.xml" />
+    <file target="lib\net461\" src="src\Couchbase.Lite\bin\Packaging\net461\Couchbase.Lite.dll" />
+    <file target="lib\net461\" src="src\Couchbase.Lite\bin\Packaging\net461\Couchbase.Lite.pdb" />
+    <file target="lib\net461\" src="src\Couchbase.Lite\bin\Packaging\net461\Couchbase.Lite.xml" />
+    <file target="lib\uap10.0.16299\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.16299\Couchbase.Lite.dll" />
+    <file target="lib\uap10.0.16299\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.16299\Couchbase.Lite.pdb" />
+    <file target="lib\uap10.0.16299\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.16299\Couchbase.Lite.xml" />
+    <file target="lib\uap10.0.16299\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.16299\Couchbase.Lite.pri" />
+    <file target="lib\xamarinios\" src="src\Couchbase.Lite\bin\Packaging\xamarin.ios10\Couchbase.Lite.dll" />
+    <file target="lib\xamarinios\" src="src\Couchbase.Lite\bin\Packaging\xamarin.ios10\Couchbase.Lite.pdb" />
+    <file target="lib\xamarinios\" src="src\Couchbase.Lite\bin\Packaging\xamarin.ios10\Couchbase.Lite.xml" />
   </files>
 </package>

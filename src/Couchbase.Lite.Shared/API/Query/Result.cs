@@ -25,7 +25,6 @@ using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Internal.Serialization;
-using Couchbase.Lite.Interop;
 using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 

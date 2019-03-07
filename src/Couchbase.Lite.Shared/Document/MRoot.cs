@@ -17,7 +17,6 @@
 // 
 using System;
 using Couchbase.Lite.Internal.Serialization;
-using Couchbase.Lite.Interop;
 
 using LiteCore;
 using LiteCore.Interop;

@@ -21,7 +21,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
-using Couchbase.Lite.Interop;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;

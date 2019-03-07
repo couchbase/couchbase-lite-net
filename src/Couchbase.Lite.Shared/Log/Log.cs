@@ -22,7 +22,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-using Couchbase.Lite.Interop;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
@@ -30,8 +29,6 @@ using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 using LiteCore.Interop;
-
-using ObjCRuntime;
 
 namespace Couchbase.Lite.Internal.Logging
 {
@@ -120,7 +117,9 @@ namespace Couchbase.Lite.Internal.Logging
             return Native.c4log_getDomain((byte*) bytes, create);
         }
 
-        [MonoPInvokeCallback(typeof(C4LogCallback))]
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4LogCallback))]
+        #endif
         private static void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, IntPtr message, IntPtr ignored)
         {
             // Not the best place to do this, but otherwise we have to require the developer

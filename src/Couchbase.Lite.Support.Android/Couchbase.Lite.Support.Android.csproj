@@ -71,58 +71,8 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
     </Compile>
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Base_native.cs">
-      <Link>Support\LiteCore\C4Base_native.cs</Link>
-    </Compile>
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4BlobStore_native.cs">
-      <Link>Support\LiteCore\C4BlobStore_native.cs</Link>
-    </Compile>
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Database_native.cs">
-      <Link>Support\LiteCore\C4Database_native.cs</Link>
-    </Compile>
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4DocEnumerator_native.cs">
-      <Link>Support\LiteCore\C4DocEnumerator_native.cs</Link>
-    </Compile>
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Document+Fleece_native.cs">
-      <Link>Support\LiteCore\C4Document+Fleece_native.cs</Link>
-    </Compile>
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Document_native.cs">
-      <Link>Support\LiteCore\C4Document_native.cs</Link>
-    </Compile>
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Observer_native.cs">
-      <Link>Support\LiteCore\C4Observer_native.cs</Link>
-    </Compile>
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4PredictiveQuery_native.cs">
-      <Link>Support\LiteCore\C4PredictiveQuery_native.cs</Link>
-    </Compile>
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Query_native.cs">
-      <Link>Support\LiteCore\C4Query_native.cs</Link>
-    </Compile>
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Replicator_native.cs">
-      <Link>Support\LiteCore\C4Replicator_native.cs</Link>
-    </Compile>
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\C4Socket_native.cs">
-      <Link>Support\LiteCore\C4Socket_native.cs</Link>
-    </Compile>
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\Fleece_native.cs">
-      <Link>Support\LiteCore\Fleece_native.cs</Link>
-    </Compile>
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\FLSlice_native.cs">
-      <Link>Support\LiteCore\FLSlice_native.cs</Link>
-    </Compile>
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\Common\Misc_native.cs">
-      <Link>Support\LiteCore\Misc_native.cs</Link>
-    </Compile>
-    <Compile Include="..\LiteCore\src\LiteCore.Shared\Interop\LiteCore_impl.cs">
-      <Link>Support\LiteCore\LiteCore_impl.cs</Link>
-    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Support\AndroidConsoleLogger.cs" />
-    <Compile Include="Support\DefaultDirectoryResolver.cs" />
     <Compile Include="Activate.cs" />
-    <Compile Include="Support\AndroidRuntimePlatform.cs" />
-    <Compile Include="Support\MainThreadTaskScheduler.cs" />
-    <Compile Include="Support\XamarinAndroidProxy.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Couchbase.Lite\Properties\version">
@@ -139,12 +89,6 @@
     <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\arm64-v8a\libLiteCore.so">
       <Link>arm64-v8a\libLiteCore.so</Link>
     </EmbeddedNativeLibrary>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj">
-      <Project>{1cf95f79-7649-4fda-a888-73b5c69316fc}</Project>
-      <Name>Couchbase.Lite</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Couchbase.Lite\Properties\DynamicAssemblyInfo.tt">

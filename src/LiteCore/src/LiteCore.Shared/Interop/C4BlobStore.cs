@@ -18,12 +18,7 @@
 
 namespace LiteCore.Interop
 {
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-         unsafe partial struct C4BlobKey
+    internal unsafe partial struct C4BlobKey
     {
         public static readonly int Size = _Size;
         // ReSharper disable InconsistentNaming
@@ -63,11 +58,8 @@ namespace LiteCore.Interop
     }
 }
 
-namespace Couchbase.Lite.Interop
+namespace LiteCore.Interop
 {
-
-    using LiteCore.Interop;
-
     internal static unsafe partial class Native
     {
         public static ulong c4stream_read(C4ReadStream *stream, byte[] buffer, C4Error *outError)

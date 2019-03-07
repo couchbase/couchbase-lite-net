@@ -25,7 +25,6 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
-using Couchbase.Lite.Interop;
 using Couchbase.Lite.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
@@ -34,8 +33,6 @@ using JetBrains.Annotations;
 
 using LiteCore.Interop;
 using LiteCore.Util;
-
-using ObjCRuntime;
 
 namespace Couchbase.Lite.Sync
 {
@@ -274,7 +271,9 @@ namespace Couchbase.Lite.Sync
             return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
         }
 
-        [MonoPInvokeCallback(typeof(C4ReplicatorDocumentEndedCallback))]
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorDocumentEndedCallback))]
+        #endif
         private static void OnDocEnded(C4Replicator* repl, bool pushing, IntPtr numDocs, C4DocumentEnded** docs, void* context)
         {
             if (docs == null || numDocs == IntPtr.Zero) {
@@ -296,7 +295,9 @@ namespace Couchbase.Lite.Sync
 
         }
 
-        [MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
+        #endif
         private static bool PullValidateCallback(FLSlice docID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
@@ -316,7 +317,9 @@ namespace Couchbase.Lite.Sync
             return replicator.PullValidateCallback(docIDStr, dict, flags);
         }
 
-        [MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
+        #endif
         private static bool PushFilterCallback(FLSlice docID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
@@ -342,7 +345,9 @@ namespace Couchbase.Lite.Sync
             return TimeSpan.FromSeconds(Math.Min(delaySecs, MaxRetryDelay.TotalSeconds));
         }
 
-        [MonoPInvokeCallback(typeof(C4ReplicatorStatusChangedCallback))]
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorStatusChangedCallback))]
+        #endif
         private static void StatusChangedCallback(C4Replicator* repl, C4ReplicatorStatus status, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;

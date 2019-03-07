@@ -15,15 +15,10 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
-
+#define DEBUG
 using System;
 using System.Diagnostics;
 using System.Reflection;
-
-using Couchbase.Lite.DI;
-using Couchbase.Lite.Util;
-
-using LiteCore.Interop;
 
 namespace Couchbase.Lite.Support
 {
@@ -32,36 +27,15 @@ namespace Couchbase.Lite.Support
     /// </summary>
     public static class UWP
     {
-        #region Variables
-
-        private static AtomicBool _Activated;
-
-        #endregion
-
         #region Public Methods
 
         /// <summary>
         /// Activates the support classes for UWP
         /// </summary>
+        [Obsolete("This call is no longer needed, and will be removed in 3.0")]
         public static void Activate()
         {
-            if(_Activated.Set(true)) {
-                return;
-            }
 
-            var version1 = typeof(UWP).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-            var version2 = typeof(Database).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-
-            if (!version1.Equals(version2)) {
-                throw new InvalidOperationException(
-                    $"Mismatch between Couchbase.Lite and Couchbase.Lite.Support.UWP ({version2.InformationalVersion} vs {version1.InformationalVersion})");
-            }
-            
-            Service.AutoRegister(typeof(UWP).GetTypeInfo().Assembly);
-            Service.Register<ILiteCore>(new LiteCoreImpl());
-            Service.Register<ILiteCoreRaw>(new LiteCoreRawImpl());
-            Service.Register<IProxy>(new UWPProxy());
-            Database.Log.Console = new UwpConsoleLogger();
         }
 
         /// <summary>

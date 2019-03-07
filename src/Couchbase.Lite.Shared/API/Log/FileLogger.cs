@@ -22,7 +22,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 
 using Couchbase.Lite.Internal.Logging;
-using Couchbase.Lite.Interop;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;

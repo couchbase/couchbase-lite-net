@@ -20,12 +20,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
-
-using Couchbase.Lite.DI;
-using Couchbase.Lite.Logging;
-using Couchbase.Lite.Util;
-
-using LiteCore.Interop;
+using System.Threading;
 
 using Microsoft.Win32;
 
@@ -38,7 +33,7 @@ namespace Couchbase.Lite.Support
     {
         #region Variables
 
-        private static AtomicBool _Activated;
+        private static int _Activated;
 
         #endregion
 
@@ -47,35 +42,92 @@ namespace Couchbase.Lite.Support
         /// <summary>
         /// Activates the support classes for .NET Core / .NET Framework
         /// </summary>
+        [Obsolete("This method is no longer needed, and will be removed in 3.0")]
         public static void Activate()
         {
-            if (_Activated.Set(true)) {
+        }
+
+        /// <summary>
+        /// <para>[DEPRECATED] Turns on text based logging for debugging purposes.  The logs will be written 
+        /// to the directory specified in <paramref name="directoryPath"/>.  It is equivalent to setting
+        /// a configuration with <c>UsePlaintext</c> set to <c>true</c> on <c>Database.Log.File.Config</c></para>
+        ///
+        /// <para>This will override binary
+        /// logging.  It is not recommended to use this method anymore, but to use <c>Database.Log.Console</c>
+        /// to get information to the console, or <c>Database.Log.Custom</c> to set up custom logging logic
+        /// </para>
+        /// </summary>
+        /// <param name="directoryPath">The directory to write logs to</param>
+        [Obsolete("This has been superseded by new logging logic.  See doc comments for details.")]
+        public static void EnableTextLogging(string directoryPath)
+        {
+            var dbType = Type.GetType("Couchbase.Lite.Database, Couchbase.Lite");
+            var logType = Type.GetType("Couchbase.Lite.Logging.Log, Couchbase.Lite");
+            var fileLoggerType = Type.GetType("Couchbase.Lite.Logging.FileLogger, Couchbase.Lite");
+
+            var logObject = dbType.GetProperty("Log", BindingFlags.Static | BindingFlags.Public).GetValue(null);
+            var fileLoggerObject = logType.GetProperty("File", BindingFlags.Public | BindingFlags.Instance).GetValue(logObject);
+            var configProperty = fileLoggerType.GetProperty("Config", BindingFlags.Public | BindingFlags.Instance);
+            if (directoryPath == null) {
+                configProperty.SetValue(fileLoggerObject, null);
+            } else {
+                var logFileConfigType = Type.GetType("Couchbase.Lite.Logging.LogFileConfiguration, Couchbase.Lite");
+                var constructor = logFileConfigType.GetConstructor(new[] {typeof(string), logFileConfigType});
+                var oldConfig = configProperty.GetValue(fileLoggerObject);
+                var newConfig = constructor.Invoke(new[] {directoryPath, oldConfig});
+                var usePlaintextProperty = logFileConfigType.GetProperty("UsePlaintext", BindingFlags.Public | BindingFlags.Instance);
+                usePlaintextProperty.SetValue(newConfig, true);
+                configProperty.SetValue(fileLoggerObject, newConfig);
+            }
+        }
+
+        /// <summary>
+        /// [DEPRECATED] Directs the binary log files to write to the specified directory.  Useful if
+        /// the default directory does not have write permission.
+        /// </summary>
+        /// <param name="directoryPath">The path to write binary logs to</param>
+        [Obsolete("This has been superseded by Database.Log.File.Directory.")]
+        public static void SetBinaryLogDirectory(string directoryPath)
+        {
+            var dbType = Type.GetType("Couchbase.Lite.Database, Couchbase.Lite");
+            var logType = Type.GetType("Couchbase.Lite.Logging.Log, Couchbase.Lite");
+            var fileLoggerType = Type.GetType("Couchbase.Lite.Logging.FileLogger, Couchbase.Lite");
+
+            var logObject = dbType.GetProperty("Log", BindingFlags.Static | BindingFlags.Public).GetValue(null);
+            var fileLoggerObject = logType.GetProperty("File", BindingFlags.Public | BindingFlags.Instance).GetValue(logObject);
+            var configProperty = fileLoggerType.GetProperty("Config", BindingFlags.Public | BindingFlags.Instance);
+            if (directoryPath == null) {
+                configProperty.SetValue(fileLoggerObject, null);
+            } else {
+                var logFileConfigType = Type.GetType("Couchbase.Lite.Logging.LogFileConfiguration, Couchbase.Lite");
+                var constructor = logFileConfigType.GetConstructor(new[] {typeof(string), logFileConfigType});
+                var oldConfig = configProperty.GetValue(fileLoggerObject);
+                var newConfig = constructor.Invoke(new[] {directoryPath, oldConfig});
+                configProperty.SetValue(fileLoggerObject, newConfig);
+            }
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        internal static void LoadLiteCore()
+        {
+            if (Interlocked.Exchange(ref _Activated, 1) == 1) {
                 return;
             }
 
-            var version1 = typeof(NetDesktop).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-            var version2 = typeof(Database).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-
-            if (!version1.Equals(version2)) {
-                throw new InvalidOperationException(
-                    $"Mismatch between Couchbase.Lite and Couchbase.Lite.Support.NetDesktop ({version2.InformationalVersion} vs {version1.InformationalVersion})");
-            }
-
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-#if NETCOREAPP2_0 || NET461
                 var codeBase = Path.GetDirectoryName(typeof(NetDesktop).GetTypeInfo().Assembly.Location);
                 if (codeBase == null) {
                     throw new DllNotFoundException(
                         "Couldn't find directory of the loaded support assembly, very weird!");
                 }
-#else
-                var codeBase = AppContext.BaseDirectory;
-#endif
 
                 var architecture = IntPtr.Size == 4
                     ? "x86"
                     : "x64";
-                
+
                 var nugetBase = codeBase;
                 for (int i = 0; i < 2; i++) {
                     nugetBase = Path.GetDirectoryName(nugetBase);
@@ -86,7 +138,7 @@ namespace Couchbase.Lite.Support
                 var dllPathNuget =
                     Path.Combine(nugetBase, "runtimes", $"win7-{architecture}", "native", "LiteCore.dll");
                 var foundPath = default(string);
-                foreach (var path in new[] { dllPathNuget, dllPath, dllPathAsp }) {
+                foreach (var path in new[] {dllPathNuget, dllPath, dllPathAsp}) {
                     foundPath = File.Exists(path) ? path : null;
                     if (foundPath != null) {
                         break;
@@ -108,64 +160,11 @@ namespace Couchbase.Lite.Support
                         throw new BadImageFormatException(
                             "Could not load LiteCore.dll!  Nothing is going to work!\r\n" +
                             $"LiteCore found in: ${foundPath}");
-                    } 
+                    }
 
                     throw new DllNotFoundException("LiteCore.dll failed to load!  Please ensure that the Visual\r\n" +
                                                    "Studio 2015 C++ runtime is installed from https://www.microsoft.com/en-us/download/details.aspx?id=48145");
                 }
-            }
-
-            Service.AutoRegister(typeof(NetDesktop).GetTypeInfo().Assembly);
-
-            Service.Register<ILiteCore>(new LiteCoreImpl());
-            Service.Register<ILiteCoreRaw>(new LiteCoreRawImpl());
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                Service.Register<IProxy>(new WindowsProxy());
-            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-                Service.Register<IProxy>(new MacProxy());
-            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-                Service.Register<IProxy>(new LinuxProxy());
-            }
-
-            Database.Log.Console = new DesktopConsoleLogger();
-        }
-
-        /// <summary>
-        /// <para>[DEPRECATED] Turns on text based logging for debugging purposes.  The logs will be written 
-        /// to the directory specified in <paramref name="directoryPath"/>.  It is equivalent to setting
-        /// a configuration with <c>UsePlaintext</c> set to <c>true</c> on <c>Database.Log.File.Config</c></para>
-        ///
-        /// <para>This will override binary
-        /// logging.  It is not recommended to use this method anymore, but to use <c>Database.Log.Console</c>
-        /// to get information to the console, or <c>Database.Log.Custom</c> to set up custom logging logic
-        /// </para>
-        /// </summary>
-        /// <param name="directoryPath">The directory to write logs to</param>
-        [Obsolete("This has been superseded by new logging logic.  See doc comments for details.")]
-        public static void EnableTextLogging(string directoryPath)
-        {
-            if (directoryPath == null) {
-                Database.Log.File.Config = null;
-            } else {
-                Database.Log.File.Config = new LogFileConfiguration(directoryPath, Database.Log.File.Config)
-                {
-                    UsePlaintext = true
-                };
-            }
-        }
-
-        /// <summary>
-        /// [DEPRECATED] Directs the binary log files to write to the specified directory.  Useful if
-        /// the default directory does not have write permission.
-        /// </summary>
-        /// <param name="directoryPath">The path to write binary logs to</param>
-        [Obsolete("This has been superseded by Database.Log.File.Directory.")]
-        public static void SetBinaryLogDirectory(string directoryPath)
-        {
-            if (directoryPath == null) {
-                Database.Log.File.Config = null;
-            } else {
-                Database.Log.File.Config = new LogFileConfiguration(directoryPath, Database.Log.File.Config);
             }
         }
 
@@ -177,7 +176,7 @@ namespace Couchbase.Lite.Support
         {
             // https://github.com/bitbeans/RedistributableChecker/blob/master/RedistributableChecker/RedistributablePackage.cs
             var id = IntPtr.Size == 4
-                ? "{e2803110-78b3-4664-a479-3611a381656a}"  // vs2015x86
+                ? "{e2803110-78b3-4664-a479-3611a381656a}" // vs2015x86
                 : "{d992c12e-cab2-426f-bde3-fb8c53950b0d}"; // vs2015x64
             var key = Registry.LocalMachine.OpenSubKey($@"SOFTWARE\Classes\Installer\Dependencies\{id}", false);
             var version = key?.GetValue("Version");
