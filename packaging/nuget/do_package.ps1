@@ -19,6 +19,10 @@ if(-Not $env:NUGET_REPO) {
     throw "NUGET_REPO not defined, aborting..."
 }
 
+if($env:WORKSPACE) {
+    Copy-Item "$env:WORKSPACE\product-texts\mobile\couchbase-lite\license\LICENSE_community.txt" "$PSScriptRoot\LICENSE.txt"
+}
+
 Get-ChildItem "." -Filter *.nuspec |
 ForEach-Object {
     ..\..\nuget.exe pack $_.Name /Properties version=$env:NUGET_VERSION /BasePath ..\..\
