@@ -14,9 +14,8 @@ namespace Couchbase.Lite
     {
         private static void Activate()
         {
-            var mainVersion = typeof(Database).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-            AssemblyInformationalVersionAttribute supportVersion = null;
-            #if NETCOREAPP2_0 || NETFRAMEWORK
+            // Windows 2012 doesn't define NETFRAMEWORK for some reason
+            #if NETCOREAPP2_0 || NETFRAMEWORK || NET461
             Service.AutoRegister(typeof(Database).GetTypeInfo().Assembly);
             
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
@@ -28,12 +27,10 @@ namespace Couchbase.Lite
             }
 
             Log.Console = new DesktopConsoleLogger();
-            supportVersion = typeof(NetDesktop).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
             #elif UAP10_0_16299
             Service.AutoRegister(typeof(Database).GetTypeInfo().Assembly);
             Service.Register<IProxy>(new UWPProxy());
             Log.Console = new UwpConsoleLogger();
-            supportVersion = typeof(UWP).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
             #elif __ANDROID__
             if (Droid.Context == null) {
                 throw new RuntimeException(
@@ -45,24 +42,17 @@ namespace Couchbase.Lite
             Service.Register<IMainThreadTaskScheduler>(() => new MainThreadTaskScheduler(Droid.Context));
             Service.Register<IProxy>(new XamarinAndroidProxy());
             Log.Console = new AndroidConsoleLogger();
-            supportVersion = typeof(Droid).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
             #elif __IOS__
             Console.WriteLine("Loading support items");
             Service.AutoRegister(typeof(Database).Assembly);
             Service.Register<IProxy>(new IOSProxy());
             Log.Console = new iOSConsoleLogger();
-            supportVersion = typeof(iOS).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
             #elif NETSTANDARD2_0
             throw new RuntimeException(
                 "Pure .NET Standard variant executed.  This means that Couchbase Lite is running on an unsupported platform");
             #else
             #error Unknown Platform
             #endif
-
-            if (!mainVersion.Equals(supportVersion)) {
-                throw new RuntimeException(
-                    $"Mismatch between Couchbase.Lite package version ({mainVersion.InformationalVersion}) and Couchbase.Lite.Support package ({supportVersion.InformationalVersion}");
-            }
         }
     }
 }

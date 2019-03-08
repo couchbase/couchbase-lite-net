@@ -19,7 +19,9 @@
 // Define DEBUG just for this file (#define in C# only operates per file
 // as opposed to C / C++ which defines from that point onward) to be able
 // to use Debug.WriteLine even in a release build
-#if NETFRAMEWORK || NETCOREAPP
+
+// Windows 2012 doesn't define the more generic variants
+#if NETFRAMEWORK || NET461 || NETCOREAPP || NETCOREAPP2_0
 #define DEBUG 
 using System;
 using System.Collections.Generic;

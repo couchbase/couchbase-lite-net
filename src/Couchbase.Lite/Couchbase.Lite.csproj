@@ -55,14 +55,6 @@
     <ProjectReference Include="..\..\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition=" $(TargetFramework.StartsWith('Xamarin.iOS')) ">
-    <ProjectReference Include="..\..\src\Couchbase.Lite.Support.Apple\iOS\Couchbase.Lite.Support.iOS.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition=" $(TargetFramework.StartsWith('uap10.0')) ">
-    <ProjectReference Include="..\..\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj" />
-  </ItemGroup>
-
   <ItemGroup>
     <None Update="Properties\DynamicAssemblyInfo.tt">
       <Generator>TextTemplatingFileGenerator</Generator>

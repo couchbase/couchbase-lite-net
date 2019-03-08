@@ -18,6 +18,7 @@
 #define DEBUG
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 
 namespace Couchbase.Lite.Support
@@ -32,10 +33,35 @@ namespace Couchbase.Lite.Support
         /// <summary>
         /// Activates the support classes for UWP
         /// </summary>
+        /// <exception cref="InvalidProgramException">Thrown if Couchbase.Lite and Couchbase.Lite.Support.UWP do not match</exception>
         [Obsolete("This call is no longer needed, and will be removed in 3.0")]
         public static void Activate()
         {
+            CheckVersion();
+        }
 
+        /// <summary>
+        /// A sanity check to ensure that the versions of Couchbase.Lite and Couchbase.Lite.Support.UWP match.
+        /// These libraries are not independent and must have the exact same version
+        /// </summary>
+        /// <exception cref="InvalidProgramException">Thrown if Couchbase.Lite and Couchbase.Lite.Support.UWP do not match</exception>
+        public static void CheckVersion()
+        {
+            var version1 = typeof(UWP).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+            if (version1 == null) {
+                throw new InvalidProgramException("This version of Couchbase.Lite.Support.iOS has no version!");
+            }
+            
+            var cblAssembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(x => x.GetName().Name == "Couchbase.Lite");
+            if (cblAssembly == null) {
+                throw new InvalidProgramException("Couchbase.Lite not detected in app loaded assemblies");
+            }
+
+            var version2 = cblAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+            if (!version1.Equals(version2)) {
+                throw new InvalidProgramException(
+                    $"Mismatch between Couchbase.Lite ({version2.InformationalVersion}) and Couchbase.Lite.Support.UWP ({version1.InformationalVersion})");
+            }
         }
 
         /// <summary>

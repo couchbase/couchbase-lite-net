@@ -15,7 +15,9 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-#if NETFRAMEWORK || NETCOREAPP
+
+// Windows 2012 doesn't define the more generic variants
+#if NETFRAMEWORK || NET461 || NETCOREAPP || NETCOREAPP2_0
 using System;
 using System.IO;
 using Couchbase.Lite.DI;

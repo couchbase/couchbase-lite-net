@@ -44,14 +44,26 @@ namespace Couchbase.Lite.Support
         /// Activates the support classes for Android
         /// </summary>
         /// <param name="context">The main context of the Android application</param>
+        /// <exception cref="ArgumentNullException">Thrown if context is <c>null</c></exception>
+        /// <exception cref="InvalidProgramException">Thrown if versions of Couchbase.Lite and
+        /// Couchbase.Lite.Support.Android do not match</exception>
         public static void Activate(Context context)
         {
             if (Interlocked.Exchange(ref _Activated, 1) == 1) {
 				return;
 			}
 
+            CheckVersion();
             Context = context ?? throw new ArgumentNullException(nameof(context));
-            var version1 = typeof(Droid).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+        }
+
+        internal static void CheckVersion()
+        {
+            var version1 = typeof(Droid).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+            if (version1 == null) {
+                throw new InvalidProgramException("This version of Couchbase.Lite.Support.Android has no version!");
+            }
+            
             var cblAssembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(x => x.GetName().Name == "Couchbase.Lite");
             if (cblAssembly == null) {
                 global::Android.Util.Log.Warn("CouchbaseLite", "Failed to detect loaded Couchbase.Lite, skipping version verification...");
@@ -60,8 +72,8 @@ namespace Couchbase.Lite.Support
 
             var version2 = cblAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
             if (!version1.Equals(version2)) {
-                throw new InvalidOperationException(
-                    $"Mismatch between Couchbase.Lite and Couchbase.Lite.Support.Android ({version2.InformationalVersion} vs {version1.InformationalVersion})");
+                throw new InvalidProgramException(
+                    $"Mismatch between Couchbase.Lite ({version2.InformationalVersion}) and Couchbase.Lite.Support.Android ({version1.InformationalVersion})");
             }
         }
 
