@@ -23,11 +23,11 @@ Push-Location ..
 Write-Host
 Write-Host *** COPYING NATIVE RESOURCES ***
 Write-Host
-if(-Not (Test-Path "..\Couchbase.Lite.Support.Apple\iOS\Native")) {
-    New-Item -ItemType Directory ..\Couchbase.Lite.Support.Apple\iOS\Native
+if(-Not (Test-Path "Couchbase.Lite.Support.Apple\iOS\Native")) {
+    New-Item -ItemType Directory Couchbase.Lite.Support.Apple\iOS\Native
 } 
 
-Copy-Item -Recurse -Force ..\..\vendor\couchbase-lite-core\build_cmake\ios-fat\LiteCore.framework ..\Couchbase.Lite.Support.Apple\iOS\Native
+Copy-Item -Recurse -Force ..\vendor\couchbase-lite-core\build_cmake\ios-fat\LiteCore.framework Couchbase.Lite.Support.Apple\iOS\Native
 Write-Host *** BUILDING ***
 Write-Host
 
