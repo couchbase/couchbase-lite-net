@@ -53,9 +53,9 @@
     <file target="lib\netcoreapp2.0\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp2.0\Couchbase.Lite.dll" />
     <file target="lib\netcoreapp2.0\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp2.0\Couchbase.Lite.pdb" />
     <file target="lib\netcoreapp2.0\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp2.0\Couchbase.Lite.xml" />
-    <file target="lib\monoandroid44\" src="src\Couchbase.Lite\bin\Packaging\monoandroid80\80\Couchbase.Lite.dll" />
-    <file target="lib\monoandroid44\" src="src\Couchbase.Lite\bin\Packaging\monoandroid80\80\Couchbase.Lite.pdb" />
-    <file target="lib\monoandroid44\" src="src\Couchbase.Lite\bin\Packaging\monoandroid80\80\Couchbase.Lite.xml" />
+    <file target="lib\monoandroid44\" src="src\Couchbase.Lite\bin\Packaging\monoandroid80\Couchbase.Lite.dll" />
+    <file target="lib\monoandroid44\" src="src\Couchbase.Lite\bin\Packaging\monoandroid80\Couchbase.Lite.pdb" />
+    <file target="lib\monoandroid44\" src="src\Couchbase.Lite\bin\Packaging\monoandroid80\Couchbase.Lite.xml" />
     <file target="lib\net461\" src="src\Couchbase.Lite\bin\Packaging\net461\Couchbase.Lite.dll" />
     <file target="lib\net461\" src="src\Couchbase.Lite\bin\Packaging\net461\Couchbase.Lite.pdb" />
     <file target="lib\net461\" src="src\Couchbase.Lite\bin\Packaging\net461\Couchbase.Lite.xml" />
