@@ -15,32 +15,10 @@ Write-Host
 
 Write-Host
 Write-Host *** RESTORING PACKAGES ***
-Write-Host *** MAIN ASSEMBLY ***
 Write-Host
 dotnet restore
-Push-Location ..\Couchbase.Lite.Support.NetDesktop
-Write-Host
-Write-Host *** NET DESKTOP ***
-Write-Host
-dotnet restore
-
-cd ..\Couchbase.Lite.Support.UWP
-Write-Host
-Write-Host *** UWP ***
-Write-Host
-& $MSBuild /t:Restore
-
-Write-Host
-Write-Host *** IOS ***
-Write-Host
-cd ..\Couchbase.Lite.Support.Apple\iOS
-& $MSBuild /t:Restore
-
-Write-Host
-Write-Host *** ANDROID ***
-Write-Host
-cd ..\..\Couchbase.Lite.Support.Android
-& $MSBuild /t:Restore
+Push-Location ..
+& $MSBuild /t:Restore Couchbase.Lite.sln
 
 Write-Host
 Write-Host *** COPYING NATIVE RESOURCES ***
@@ -53,8 +31,7 @@ Copy-Item -Recurse -Force ..\..\vendor\couchbase-lite-core\build_cmake\ios-fat\L
 Write-Host *** BUILDING ***
 Write-Host
 
-Pop-Location
-cd ..
 & $MSBuild Couchbase.Lite.sln /p:Configuration=Packaging /p:SourceLinkCreate=true
 
+Pop-Location
 Pop-Location
