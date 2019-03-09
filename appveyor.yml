@@ -1,4 +1,4 @@
-version: 2.5.0.{build}
+version: 2.6.0.{build}
 branches:
     only:
         - master
@@ -16,13 +16,13 @@ image: Visual Studio 2017
 clone_depth: 1
     
 build_script:
+    # x86 is unused
     - ps: >-
         Push-Directory vendor/couchbase-lite-core/build_cmake/x64
         cmake -G "Visual Studio 14 2015 Win64" ..\..
         cmake --build . --target LiteCore --config RelWithDebInfo
         Pop-Directory
 
-        # Unused here
         Push-Directory vendor/couchbase-lite-core/build_cmake/x86
         New-Object -Type File LiteCore.dll
         New-Object -Type File LiteCore.pdb
