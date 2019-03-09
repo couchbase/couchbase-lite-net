@@ -18,15 +18,15 @@ clone_depth: 1
 build_script:
     # x86 is unused
     - ps: >-
-        Push-Directory vendor/couchbase-lite-core/build_cmake/x64
+        Push-Location vendor/couchbase-lite-core/build_cmake/x64
         cmake -G "Visual Studio 14 2015 Win64" ..\..
         cmake --build . --target LiteCore --config RelWithDebInfo
-        Pop-Directory
+        Pop-Location
 
-        Push-Directory vendor/couchbase-lite-core/build_cmake/x86
+        Push-Location vendor/couchbase-lite-core/build_cmake/x86
         New-Object -Type File LiteCore.dll
         New-Object -Type File LiteCore.pdb
-        Pop-Directory
+        Pop-Location
     - cmd: msbuild /t:Restore src/Couchbase.Lite.TestCoverage
     - cmd: msbuild src/Couchbase.Lite.TestCoverage/Couchbase.Lite.TestCoverage.sln
 
