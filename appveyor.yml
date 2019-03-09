@@ -13,37 +13,28 @@ init:
 
 # Environment
 image: Visual Studio 2017
-clone_depth: 1
+
+install:
+    - git submodule update --init --recursive
     
 build_script:
     # x86 is unused
     - ps: >-
-        Push-Location vendor/couchbase-lite-core/build_cmake/x64
-
-        cmake -G "Visual Studio 14 2015 Win64" ..\..
-
-        cmake --build . --target LiteCore --config RelWithDebInfo
-
-        Pop-Location
-
-        Push-Location vendor/couchbase-lite-core/build_cmake/x86
-
-        New-Object -Type File LiteCore.dll
-
-        New-Object -Type File LiteCore.pdb
-
+        Push-Location vendor/couchbase-lite-core/build_cmake/x64;
+        cmake -G "Visual Studio 14 2015 Win64" ..\..;
+        cmake --build . --target LiteCore --config RelWithDebInfo;
+        Pop-Location;
+        Push-Location vendor/couchbase-lite-core/build_cmake/x86;
+        New-Object -Type File LiteCore.dll;
+        New-Object -Type File LiteCore.pdb;
         Pop-Location
     - cmd: msbuild /t:Restore src/Couchbase.Lite.TestCoverage
     - cmd: msbuild src/Couchbase.Lite.TestCoverage/Couchbase.Lite.TestCoverage.sln
 
 test_script:
     - ps: >-
-        dotnet tool install coveralls.net --version 1.0.0 --tool-path coveralls
-
-        dotnet dotcover test /dcXML=coverage.xml --framework netcoreapp2.0 -v n
-
-        dotnet reportgenerator -reports:dotCover.xml -targetdir:out -reporttypes:xml
-
-        $coveralls = ".\coveralls\csmacnz.coveralls.exe"
-        
+        dotnet tool install coveralls.net --version 1.0.0 --tool-path coveralls;
+        dotnet dotcover test /dcXML=coverage.xml --framework netcoreapp2.0 -v n;
+        dotnet reportgenerator -reports:dotCover.xml -targetdir:out -reporttypes:xml;
+        $coveralls = ".\coveralls\csmacnz.coveralls.exe";
         & $coveralls --reportgenerator -i out
