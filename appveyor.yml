@@ -6,7 +6,7 @@ branches:
 skip_tags: true
 environment:
   COVERALLS_REPO_TOKEN:
-    secure: r5d6t1eO4tO2ZBx1fDABM/OE/2idecEPEN76te8EIlsBdCfF7nanTCwueZ8s6lCy
+    secure: rYG0uD7eOutfMDvCi7Fe/W855aWp3b3/onQnk06bxp7EEKsYYdji5yD1euE8M37L
 
 init:
     - cmd: git config --global core.autocrlf true
