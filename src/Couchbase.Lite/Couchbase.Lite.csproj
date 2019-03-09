@@ -36,7 +36,7 @@
   <PropertyGroup Condition=" $(TargetFramework.StartsWith('uap')) ">
         <TargetPlatformMinVersion>10.0.16299.0</TargetPlatformMinVersion>
     </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release_Coverage|netstandard2.0|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Coverage|AnyCPU'">
     <DefineConstants>TRACE;LITECORE_PACKAGED;TEST_COVERAGE</DefineConstants>
   </PropertyGroup>
 
@@ -46,7 +46,7 @@
     <PackageReference Include="SimpleInjector" Version="4.0.12" />
     <PackageReference Include="SourceLink.Create.GitHub" Version="2.7.5" PrivateAssets="all" />
     <PackageReference Include="GitInfo" Version="2.0.20" PrivateAssets="all" />
-    <DotNetCliToolReference Include="dotnet-sourcelink-git" Version="2.1.2" />
+    <DotNetCliToolReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="dotnet-sourcelink-git" Version="2.1.2" />
   </ItemGroup>
 
   <ItemGroup Condition=" $(TargetFramework.StartsWith('netcoreapp')) ">
