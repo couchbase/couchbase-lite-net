@@ -16,6 +16,7 @@ image: Visual Studio 2017
 
 install:
     - git submodule update --init --recursive
+    - appveyor DownloadFile https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
     
 build_script:
     # x86 is unused
@@ -36,8 +37,10 @@ build_script:
 
 test_script:
     - ps: >-
-        dotnet tool install coveralls.net --version 1.0.0 --tool-path coveralls;
-        dotnet dotcover test /dcXML=coverage.xml --framework netcoreapp2.0 -v n;
-        dotnet reportgenerator -reports:dotCover.xml -targetdir:out -reporttypes:xml;
-        $coveralls = ".\coveralls\csmacnz.coveralls.exe";
-        & $coveralls --reportgenerator -i out
+        Push-Location src\Couchbase.Lite.TestCoverage;
+        dotnet tool install coveralls.net --tool-path coveralls;
+        dotnet tool install dotnet-reportgenerator-globaltool --tool-path reportgenerator;
+        ..\..\nuget install JetBrains.dotCover.CommandLineTools -OutputDirectory packages -Version 2018.3.4;
+        .\packages\JetBrains.dotCover.CommandLineTools.2018.3.4\tools\dotCover.exe cover coverage.xml;
+        .\reportgenerator\reportgenerator.exe -reports:dotCover.xml -targetdir:out -reporttypes:xml;
+        .\coveralls\csmacnz.coveralls.exe --reportgenerator -i out
