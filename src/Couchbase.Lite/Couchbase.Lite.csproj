@@ -18,7 +18,6 @@
     <DebugType>portable</DebugType>
     <DebugSymbols>True</DebugSymbols>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(NoGitSha)' == ''"><NoGitSha>false</NoGitSha></PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
     <Optimize>True</Optimize>
     <DocumentationFile>bin\Packaging\netstandard2.0\Couchbase.Lite.xml</DocumentationFile>
@@ -38,13 +37,14 @@
     </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Coverage|AnyCPU'">
     <DefineConstants>TRACE;LITECORE_PACKAGED;TEST_COVERAGE</DefineConstants>
+    <EnableSourceLink>false</EnableSourceLink>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
-    <DotNetCliToolReference Include="dotnet-sourcelink" Version="2.1.2" />
+    <DotNetCliToolReference Condition=" !$(Configuration.StartsWith('Debug')) "  Include="dotnet-sourcelink" Version="2.1.2" />
     <PackageReference Include="SimpleInjector" Version="4.0.12" />
-    <PackageReference Include="SourceLink.Create.GitHub" Version="2.7.5" PrivateAssets="all" />
+    <PackageReference Condition=" !$(Configuration.StartsWith('Debug')) "  Include="SourceLink.Create.GitHub" Version="2.7.5" PrivateAssets="all" />
     <PackageReference Include="GitInfo" Version="2.0.20" PrivateAssets="all" />
     <DotNetCliToolReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="dotnet-sourcelink-git" Version="2.1.2" />
   </ItemGroup>
