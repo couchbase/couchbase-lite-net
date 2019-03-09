@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -12,6 +13,7 @@ namespace Couchbase.Lite
 {
     public partial class Database
     {
+        [ExcludeFromCodeCoverage]
         private static void Activate()
         {
             // Windows 2012 doesn't define NETFRAMEWORK for some reason

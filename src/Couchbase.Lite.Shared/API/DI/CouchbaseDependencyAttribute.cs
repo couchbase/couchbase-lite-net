@@ -17,6 +17,7 @@
 // 
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Couchbase.Lite.DI
 {
@@ -24,6 +25,7 @@ namespace Couchbase.Lite.DI
     /// An attribute to indicate that the specified class implements a dependency for
     /// Couchbase Lite (e.g. <see cref="IDefaultDirectoryResolver"/>
     /// </summary>
+    [ExcludeFromCodeCoverage]
     [AttributeUsage(AttributeTargets.Class)]
     public sealed class CouchbaseDependencyAttribute : Attribute
     {

@@ -17,11 +17,12 @@ image: Visual Studio 2017
 install:
     - git submodule update --init --recursive
     - nuget install OpenCover -OutputDirectory src\Couchbase.Lite.TestCoverage\packages -Version 4.7.922
+    - nuget install xunit.runner.console -OutputDirectory src\Couchbase.Lite.TestCoverage\packages -Version 2.3.1
     
 build_script:
     # Fail fast if C# is broken
-    - cmd: msbuild /t:Restore src/Couchbase.Lite.sln
-    - cmd: msbuild src/Couchbase.Lite.sln /p:JUST_CSHARP=1
+    - cmd: msbuild /t:Restore src/Couchbase.Lite/Couchbase.Lite.csproj /p:Configuration=Debug_Coverage
+    - cmd: msbuild src/Couchbase.Lite/Couchbase.Lite.csproj /p:JUST_CSHARP=1 /p:Configuration=Debug_Coverage
     # x86 is unused
     - ps: |
         New-Item -Type Directory vendor/couchbase-lite-core/build_cmake/x86/RelWithDebInfo
@@ -42,5 +43,7 @@ test_script:
     - ps: |
         Push-Location src\Couchbase.Lite.TestCoverage
         dotnet tool install coveralls.net --tool-path coveralls
-        & .\packages\OpenCover.4.7.922\tools\OpenCover.Console.exe -register:user -target:dotnet.exe -targetargs:"test -v normal --framework netcoreapp2.0" -oldStyle -output:opencoverCoverage.xml -filter:"+[Couchbase.Lite]*" -excludebyattribute:"*.ExcludeFromCodeCoverageAttribute"
-        & .\coveralls\csmacnz.coveralls.exe --opencover -i opencoverCoverage.xml
+        Push-Location bin\Debug\netcoreapp2.0
+        ..\..\..\packages\OpenCover.4.7.922\tools\OpenCover.Console.exe -register:user -target:dotnet.exe "-targetargs:""..\..\..\packages\xunit.runner.console.2.3.1\tools\netcoreapp2.0\xunit.console.dll"" "".\Couchbase.Lite.TestCoverage.dll"" -noshadow -appveyor"  -oldStyle -output:opencoverCoverage.xml -filter:"+[Couchbase.Lite]*" -excludebyattribute:"*.ExcludeFromCodeCoverageAttribute"
+        Pop-Location
+        .\coveralls\csmacnz.coveralls.exe --opencover -i opencoverCoverage.xml

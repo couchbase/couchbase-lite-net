@@ -19,6 +19,7 @@
 // Windows 2012 doesn't define the more generic variants
 #if NETFRAMEWORK || NET461 || NETCOREAPP || NETCOREAPP2_0
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 
@@ -27,6 +28,7 @@ using Couchbase.Lite.Internal.Logging;
 
 namespace Couchbase.Lite.Support
 {
+    [ExcludeFromCodeCoverage]
     internal sealed class LinuxProxy : IProxy
     {
         #region Constants

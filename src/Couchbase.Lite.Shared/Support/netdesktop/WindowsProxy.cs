@@ -20,6 +20,7 @@
 #if NETFRAMEWORK || NET461 || NETCOREAPP || NETCOREAPP2_0
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
@@ -31,6 +32,7 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Couchbase.Lite.Support
 {
+    [ExcludeFromCodeCoverage]
     internal class SafeWinHttpHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         #region Variables
