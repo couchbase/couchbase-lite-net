@@ -20,12 +20,12 @@ install:
 build_script:
     # x86 is unused
     - ps: >-
-        New-Item -Type Directory vendor/couchbase-lite-core/build_cmake/x86;
-        Push-Location vendor/couchbase-lite-core/build_cmake/x86;
+        New-Item -Type Directory vendor/couchbase-lite-core/build_cmake/x86/RelWithDebInfo;
+        Push-Location vendor/couchbase-lite-core/build_cmake/x86/RelWithDebInfo;
         New-Item -Type File LiteCore.dll;
         New-Item -Type File LiteCore.pdb;
         Pop-Location
-        
+
         New-Item -Type Directory vendor/couchbase-lite-core/build_cmake/x64;
         Push-Location vendor/couchbase-lite-core/build_cmake/x64;
         cmake -G "Visual Studio 14 2015 Win64" ..\..;
