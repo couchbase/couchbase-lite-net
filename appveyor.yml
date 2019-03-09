@@ -23,25 +23,25 @@ build_script:
     - cmd: msbuild /t:Restore src/Couchbase.Lite.sln
     - cmd: msbuild src/Couchbase.Lite.sln /p:JUST_CSHARP=1
     # x86 is unused
-    - ps: >-
-        New-Item -Type Directory vendor/couchbase-lite-core/build_cmake/x86/RelWithDebInfo;
-        Push-Location vendor/couchbase-lite-core/build_cmake/x86/RelWithDebInfo;
-        New-Item -Type File LiteCore.dll;
-        New-Item -Type File LiteCore.pdb;
+    - ps: |
+        New-Item -Type Directory vendor/couchbase-lite-core/build_cmake/x86/RelWithDebInfo
+        Push-Location vendor/couchbase-lite-core/build_cmake/x86/RelWithDebInfo
+        New-Item -Type File LiteCore.dll
+        New-Item -Type File LiteCore.pdb
         Pop-Location
 
-        New-Item -Type Directory vendor/couchbase-lite-core/build_cmake/x64;
-        Push-Location vendor/couchbase-lite-core/build_cmake/x64;
-        cmake -G "Visual Studio 14 2015 Win64" ..\..;
-        cmake --build . --target LiteCore --config RelWithDebInfo;
+        New-Item -Type Directory vendor/couchbase-lite-core/build_cmake/x64
+        Push-Location vendor/couchbase-lite-core/build_cmake/x64
+        cmake -G "Visual Studio 14 2015 Win64" ..\..
+        cmake --build . --target LiteCore --config RelWithDebInfo
         Pop-Location
     - cmd: msbuild /t:Restore src/Couchbase.Lite.TestCoverage
     - cmd: msbuild src/Couchbase.Lite.TestCoverage/Couchbase.Lite.TestCoverage.sln
 
 test_script:
-    - ps: >-
-        Push-Location src\Couchbase.Lite.TestCoverage;
-        dotnet tool install coveralls.net --tool-path coveralls;
-        ..\..\nuget install OpenCover -OutputDirectory packages -Version 4.7.922;
-        .\packages\OpenCover.4.7.922\tools\OpenCover.Console.exe -register:user -target:dotnet.exe -targetargs:"test -v normal --framework netcoreapp2.0" -oldStyle -output:opencoverCoverage.xml -filter:"+[Couchbase.Lite]*" -excludebyattribute:"*.ExcludeFromCodeCoverageAttribute";
+    - ps: |
+        Push-Location src\Couchbase.Lite.TestCoverage
+        dotnet tool install coveralls.net --tool-path coveralls
+        ..\..\nuget install OpenCover -OutputDirectory packages -Version 4.7.922
+        .\packages\OpenCover.4.7.922\tools\OpenCover.Console.exe -register:user -target:dotnet.exe -targetargs:"test -v normal --framework netcoreapp2.0" -oldStyle -output:opencoverCoverage.xml -filter:"+[Couchbase.Lite]*" -excludebyattribute:"*.ExcludeFromCodeCoverageAttribute"
         .\coveralls\csmacnz.coveralls.exe --opencover -i opencoverCoverage.xml
