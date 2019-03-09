@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -369,6 +370,7 @@ namespace Couchbase.Lite
 		/// <param name="domains">The log domain(s)</param>
 		/// <param name="level">The log level</param>
 		[Obsolete("This has been superseded by Database.Log.Console.  This function is now a no-op")]
+        [ExcludeFromCodeCoverage]
 		public static void SetLogLevel(LogDomain domains, LogLevel level)
 		{
 		    WriteLog.To.Database.W(Tag, "Database.SetLogLevel is deprecated, use Database.Log.Console instead.");

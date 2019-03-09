@@ -18,6 +18,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 using JetBrains.Annotations;
 
@@ -41,14 +42,17 @@ namespace Couchbase.Lite
         #region Properties
 
         /// <inheritdoc />
+        [ExcludeFromCodeCoverage]
         public int Count => _inner.Count;
 
         /// <inheritdoc />
+        [ExcludeFromCodeCoverage]
         public bool IsReadOnly => false;
 
         /// <inheritdoc />
         public object this[string key]
         {
+            [ExcludeFromCodeCoverage]
             get => _inner[key];
             set {
                 if (!Validate(key, value)) {
@@ -60,9 +64,11 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
+        [ExcludeFromCodeCoverage]
         public ICollection<string> Keys => _inner.Keys;
 
         /// <inheritdoc />
+        [ExcludeFromCodeCoverage]
         public ICollection<object> Values => _inner.Values;
 
         #endregion
@@ -93,11 +99,13 @@ namespace Couchbase.Lite
         internal virtual void BuildInternal()
         { }
 
+        [ExcludeFromCodeCoverage]
         internal virtual bool KeyIsRequired(string key)
         {
             return false;
         }
 
+        [ExcludeFromCodeCoverage]
         internal virtual bool Validate(string key, object value)
         {
             return true;
@@ -124,12 +132,14 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
+        [ExcludeFromCodeCoverage]
         public bool Contains(KeyValuePair<string, object> item)
         {
             return ((ICollection<KeyValuePair<string, object>>)_inner).Contains(item);
         }
 
         /// <inheritdoc />
+        [ExcludeFromCodeCoverage]
         public void CopyTo(KeyValuePair<string, object>[] array, int arrayIndex)
         {
             ((ICollection<KeyValuePair<string, object>>)_inner).CopyTo(array, arrayIndex);
@@ -160,6 +170,7 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
+        [ExcludeFromCodeCoverage]
         public bool ContainsKey(string key)
         {
             return _inner.ContainsKey(key);
@@ -176,6 +187,7 @@ namespace Couchbase.Lite
         }
 
         /// <inheritdoc />
+        [ExcludeFromCodeCoverage]
         public bool TryGetValue(string key, out object value)
         {
             return _inner.TryGetValue(key, out value);

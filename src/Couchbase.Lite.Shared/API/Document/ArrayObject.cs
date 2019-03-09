@@ -19,6 +19,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
@@ -220,6 +221,7 @@ namespace Couchbase.Lite
         #endregion
     }
 
+    [ExcludeFromCodeCoverage]
     internal sealed class IArrayConverter : JsonConverter
     {
         #region Overrides

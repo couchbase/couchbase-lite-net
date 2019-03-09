@@ -17,6 +17,7 @@
 // 
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using Couchbase.Lite.Internal.Logging;
@@ -62,6 +63,7 @@ namespace Couchbase.Lite.DI
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="assembly"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if an invalid type is found inside of the assembly (i.e.
         /// one that does not implement any interfaces and/or does not have a parameter-less constructor)</exception>
+        [ExcludeFromCodeCoverage]
         public static void AutoRegister([NotNull]Assembly assembly)
         {
             if (assembly == null) {
@@ -104,6 +106,7 @@ namespace Couchbase.Lite.DI
         /// <typeparam name="TImplementation">The implementation type</typeparam>
         /// <param name="transient">If <c>true</c> each call to <see cref="GetInstance{T}"/> will return
         /// a new instance, otherwise use a singleton</param>
+        [ExcludeFromCodeCoverage]
         public static void Register<TService, TImplementation>(bool transient = false) where TService : class where TImplementation : class, TService
         {
             Lifestyle style = transient ? Lifestyle.Transient : Lifestyle.Singleton;
@@ -117,6 +120,7 @@ namespace Couchbase.Lite.DI
         /// <param name="generator">The function that creates the object to use</param>
         /// <param name="transient">If <c>true</c> each call to <see cref="GetInstance{T}"/> will return
         /// a new instance, otherwise use a singleton</param>
+        [ExcludeFromCodeCoverage]
         public static void Register<TService>(Func<TService> generator, bool transient = false) where TService : class
         {
             Lifestyle style = transient ? Lifestyle.Transient : Lifestyle.Singleton;
@@ -128,6 +132,7 @@ namespace Couchbase.Lite.DI
         /// </summary>
         /// <typeparam name="TService">The service type</typeparam>
         /// <param name="instance">The singleton instance to use as the implementation</param>
+        [ExcludeFromCodeCoverage]
         public static void Register<TService>(TService instance)
             where TService : class
         {

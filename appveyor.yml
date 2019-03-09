@@ -19,6 +19,9 @@ install:
     - appveyor DownloadFile https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
     
 build_script:
+    # Fail fast if C# is broken
+    - cmd: msbuild /t:Restore src/Couchbase.Lite.sln
+    - cmd: msbuild src/Couchbase.Lite.sln /p:JUST_CSHARP=1
     # x86 is unused
     - ps: >-
         New-Item -Type Directory vendor/couchbase-lite-core/build_cmake/x86/RelWithDebInfo;
@@ -39,8 +42,6 @@ test_script:
     - ps: >-
         Push-Location src\Couchbase.Lite.TestCoverage;
         dotnet tool install coveralls.net --tool-path coveralls;
-        dotnet tool install dotnet-reportgenerator-globaltool --tool-path reportgenerator;
-        ..\..\nuget install JetBrains.dotCover.CommandLineTools -OutputDirectory packages -Version 2018.3.4;
-        .\packages\JetBrains.dotCover.CommandLineTools.2018.3.4\tools\dotCover.exe cover coverage.xml;
-        .\reportgenerator\reportgenerator.exe -reports:dotCover.xml -targetdir:out -reporttypes:xml;
-        .\coveralls\csmacnz.coveralls.exe --reportgenerator -i out
+        ..\..\nuget install OpenCover -OutputDirectory packages -Version 4.7.922;
+        .\packages\OpenCover.4.7.922\tools\OpenCover.Console.exe -register:user -target:dotnet.exe -targetargs:"test -v normal --framework netcoreapp2.0" -oldStyle -output:opencoverCoverage.xml -filter:"+[Couchbase.Lite]*" -excludebyattribute:"*.ExcludeFromCodeCoverageAttribute";
+        .\coveralls\csmacnz.coveralls.exe --opencover -i opencoverCoverage.xml

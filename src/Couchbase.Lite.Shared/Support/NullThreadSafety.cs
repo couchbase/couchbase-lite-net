@@ -16,11 +16,13 @@
 // limitations under the License.
 // 
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Support
 {
+    [ExcludeFromCodeCoverage]
     internal sealed class NullThreadSafety : IThreadSafety
     {
         #region Constants

@@ -39,9 +39,6 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.8.0" />
     <PackageReference Include="xunit" Version="2.4.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
-    <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
-    <DotNetCliToolReference Include="JetBrains.dotCover.CommandLineTools" Version="2018.3.0" />
-    <DotNetCliToolReference Include="dotnet-reportgenerator-cli" Version="4.0.15" />
   </ItemGroup>
   <ItemGroup>
     <None Condition="$(DefineConstants.Contains('HAVE_SG'))" Include="..\..\couchbase-lite-net\src\Couchbase.Lite.Tests.UWP\Assets\localhost-wrong.cert" Link="localhost-wrong.cert">

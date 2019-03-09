@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 using Couchbase.Lite.Internal.Logging;
 
@@ -26,6 +27,7 @@ using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Util
 {
+    [ExcludeFromCodeCoverage]
     internal static class CBDebug
     {
         #if DEBUG

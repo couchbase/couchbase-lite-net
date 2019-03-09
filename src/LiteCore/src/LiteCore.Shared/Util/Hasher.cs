@@ -16,10 +16,12 @@
 // limitations under the License.
 // 
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace LiteCore.Util
 {
     // https://stackoverflow.com/a/18613926/1155387
+    [ExcludeFromCodeCoverage]
     internal struct Hasher
     {
         private int _hashCode;

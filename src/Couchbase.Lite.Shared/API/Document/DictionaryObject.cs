@@ -19,6 +19,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
 using Couchbase.Lite.Internal.Doc;
@@ -31,6 +32,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
+    [ExcludeFromCodeCoverage]
     internal sealed class IDictionaryObjectConverter : JsonConverter
     {
         #region Overrides

@@ -19,6 +19,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 using JetBrains.Annotations;
@@ -28,6 +29,7 @@ namespace LiteCore.Util
     /// <summary>
     /// Simple utility for timing arbitrary logic and listing hotspots
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public static class PerfTimer
     {
         #region Constants
@@ -106,6 +108,7 @@ namespace LiteCore.Util
         #endregion
     }
 
+    [ExcludeFromCodeCoverage]
     internal sealed class PerfEvent
     {
         #region Variables

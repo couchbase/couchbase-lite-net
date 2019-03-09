@@ -23,6 +23,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Couchbase.Lite.Util
 {
+    [ExcludeFromCodeCoverage]
     internal sealed class CollectionDebuggerView<TKey, TValue>
     {
         #region Variables
@@ -63,6 +64,7 @@ namespace Couchbase.Lite.Util
     [DebuggerDisplay("Count={Count}")]
     // ReSharper restore UseNameofExpression
     [DebuggerTypeProxy(typeof(CollectionDebuggerView<,>))]
+    [ExcludeFromCodeCoverage]
     internal sealed class NonNullDictionary<TK, TV> : IDictionary<TK, TV>, IReadOnlyDictionary<TK, TV>
     {
         #region Variables
