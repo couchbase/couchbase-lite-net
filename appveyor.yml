@@ -4,6 +4,10 @@ branches:
         - master
 
 skip_tags: true
+environment:
+  COVERALLS_REPO_TOKEN:
+    secure: r5d6t1eO4tO2ZBx1fDABM/OE/2idecEPEN76te8EIlsBdCfF7nanTCwueZ8s6lCy
+
 init:
     - cmd: git config --global core.autocrlf true
 
@@ -12,5 +16,24 @@ image: Visual Studio 2017
 clone_depth: 1
     
 build_script:
-    - cmd: msbuild /t:Restore src/Couchbase.Lite.sln
-    - cmd: msbuild src/Couchbase.Lite.sln /p:JUST_CSHARP=1
+    - ps: >-
+        Push-Directory vendor/couchbase-lite-core/build_cmake/x64
+        cmake -G "Visual Studio 14 2015 Win64" ..\..
+        cmake --build . --target LiteCore --config RelWithDebInfo
+        Pop-Directory
+
+        # Unused here
+        Push-Directory vendor/couchbase-lite-core/build_cmake/x86
+        New-Object -Type File LiteCore.dll
+        New-Object -Type File LiteCore.pdb
+        Pop-Directory
+    - cmd: msbuild /t:Restore src/Couchbase.Lite.TestCoverage
+    - cmd: msbuild src/Couchbase.Lite.TestCoverage/Couchbase.Lite.TestCoverage.sln
+
+test_script:
+    - ps: >-
+        dotnet tool install coveralls.net --version 1.0.0 --tool-path coveralls
+        dotnet dotcover test /dcXML=coverage.xml --framework netcoreapp2.0 -v n
+        dotnet reportgenerator -reports:dotCover.xml -targetdir:out -reporttypes:xml
+        $coveralls = ".\coveralls\csmacnz.coveralls.exe"
+        & $coveralls --reportgenerator -i out

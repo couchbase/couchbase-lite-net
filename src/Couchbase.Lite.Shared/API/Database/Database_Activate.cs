@@ -32,6 +32,7 @@ namespace Couchbase.Lite
             Service.Register<IProxy>(new UWPProxy());
             Log.Console = new UwpConsoleLogger();
             #elif __ANDROID__
+            #if !TEST_COVERAGE
             if (Droid.Context == null) {
                 throw new RuntimeException(
                     "Android context not set.  Please ensure that a call to Couchbase.Lite.Support.Droid.Activate() is made.");
@@ -42,6 +43,7 @@ namespace Couchbase.Lite
             Service.Register<IMainThreadTaskScheduler>(() => new MainThreadTaskScheduler(Droid.Context));
             Service.Register<IProxy>(new XamarinAndroidProxy());
             Log.Console = new AndroidConsoleLogger();
+            #endif
             #elif __IOS__
             Console.WriteLine("Loading support items");
             Service.AutoRegister(typeof(Database).Assembly);
