@@ -37,7 +37,7 @@ build_script:
         cmake -G "Visual Studio 14 2015 Win64" ..\..
         cmake --build . --target LiteCore --config RelWithDebInfo
         Pop-Location
-    - cmd: msbuild /t:Restore src/Couchbase.Lite.TestCoverage/Couchbase.Lite.TestCoverage.sln
+    - cmd: msbuild /t:Restore src/Couchbase.Lite.TestCoverage/Couchbase.Lite.TestCoverage.csproj
     - cmd: msbuild src/Couchbase.Lite.TestCoverage/Couchbase.Lite.TestCoverage.sln
 
 test_script:
@@ -45,6 +45,6 @@ test_script:
         Push-Location src\Couchbase.Lite.TestCoverage
         dotnet tool install coveralls.net --tool-path coveralls
         Push-Location bin\Debug\netcoreapp2.0
-        & ..\..\..\packages\OpenCover.4.7.922\tools\OpenCover.Console.exe -register:user -target:dotnet.exe "-targetargs:""..\..\..\packages\xunit.runner.console.2.3.1\tools\netcoreapp2.0\xunit.console.dll"" "".\Couchbase.Lite.TestCoverage.dll"" -noshadow -appveyor"  -oldStyle -output:opencoverCoverage.xml -filter:"+[Couchbase.Lite]*" -excludebyattribute:"*.ExcludeFromCodeCoverageAttribute"
+        & ..\..\..\packages\OpenCover.4.7.922\tools\OpenCover.Console.exe -register:user -target:dotnet.exe "-targetargs:""..\..\..\packages\xunit.runner.console.2.3.1\tools\netcoreapp2.0\xunit.console.dll"" "".\Couchbase.Lite.TestCoverage.dll"" -noshadow -appveyor"  -oldStyle -output:opencoverCoverage.xml -filter:"+[Couchbase.Lite]* -[Couchbase.Lite]LiteCore.Interop.*" -excludebyattribute:"*.ExcludeFromCodeCoverageAttribute" 2> $null
         Pop-Location
         & .\coveralls\csmacnz.coveralls.exe --opencover -i bin\Debug\netcoreapp2.0\opencoverCoverage.xml
