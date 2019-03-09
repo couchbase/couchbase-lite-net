@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
 using LiteCore.Interop;
@@ -49,6 +50,7 @@ namespace LiteCore.Interop
 
 namespace LiteCore.Interop
 {
+    [ExcludeFromCodeCoverage]
     internal sealed class ReplicatorParameters : IDisposable
     {
         #region Variables

@@ -16,8 +16,11 @@
 //  limitations under the License.
 //  
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace LiteCore.Interop
 {
+    [ExcludeFromCodeCoverage]
     internal unsafe partial struct C4BlobKey
     {
         public static readonly int Size = _Size;

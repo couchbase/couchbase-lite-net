@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
 namespace LiteCore.Interop
@@ -55,6 +56,7 @@ namespace LiteCore.Interop
    
     internal unsafe delegate void SocketErrorDelegate(C4Socket* socket, Exception e);
     
+    [ExcludeFromCodeCoverage]
     internal static unsafe class SocketFactory
     {
         private static readonly SocketOpenDelegate _open;

@@ -19,6 +19,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -34,6 +35,7 @@ namespace LiteCore.Interop
         void FLEncode(FLEncoder* enc);
     }
 
+    [ExcludeFromCodeCoverage]
     internal unsafe partial struct FLSlice
     {
         public static readonly FLSlice Null = new FLSlice(null, 0);

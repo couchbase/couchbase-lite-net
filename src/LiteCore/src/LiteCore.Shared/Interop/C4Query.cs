@@ -17,17 +17,15 @@
 //
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace LiteCore.Interop
 {
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-        partial struct C4IndexOptions : IDisposable
+
+    [ExcludeFromCodeCoverage]
+    internal partial struct C4IndexOptions : IDisposable
     {
         public void Dispose()
         {
@@ -38,12 +36,8 @@ namespace LiteCore.Interop
         }
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-        partial struct C4QueryOptions
+    [ExcludeFromCodeCoverage]
+    internal partial struct C4QueryOptions
     {
         public static readonly C4QueryOptions Default = new C4QueryOptions
         {
@@ -51,12 +45,8 @@ namespace LiteCore.Interop
         };
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-        partial struct C4FullTextMatch
+    [ExcludeFromCodeCoverage]
+    internal partial struct C4FullTextMatch
     {
         public C4FullTextMatch(ulong dataSource, uint property, uint term,
             uint start, uint length)

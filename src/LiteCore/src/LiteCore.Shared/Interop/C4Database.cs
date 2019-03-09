@@ -16,17 +16,15 @@
 //  limitations under the License.
 //
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using LiteCore.Util;
 
 namespace LiteCore
 {
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-         struct C4StorageEngine
+
+    [ExcludeFromCodeCoverage]
+    internal struct C4StorageEngine
     {
         public static readonly string SQLite = "SQLite";
     }
@@ -34,22 +32,15 @@ namespace LiteCore
 
 namespace LiteCore.Interop
 {
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-        partial struct C4EncryptionKey
+
+    [ExcludeFromCodeCoverage]
+    internal partial struct C4EncryptionKey
     {
         public static readonly int Size = 32;
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-         unsafe partial struct C4UUID
+    [ExcludeFromCodeCoverage]
+    internal unsafe partial struct C4UUID
     {
         public static readonly int Size = 16;
 
@@ -85,12 +76,8 @@ namespace LiteCore.Interop
         }*/
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-         unsafe partial struct C4DatabaseConfig : IDisposable
+    [ExcludeFromCodeCoverage]
+    internal unsafe partial struct C4DatabaseConfig : IDisposable
     {
         public static C4DatabaseConfig Clone(C4DatabaseConfig *source)
         {
@@ -121,12 +108,4 @@ namespace LiteCore.Interop
             storageEngine = null;
         }
     }
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-         unsafe delegate void C4OnCompactCallback(void* context, [MarshalAs(UnmanagedType.U1)]bool compacting);
 }

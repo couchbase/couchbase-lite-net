@@ -29,13 +29,9 @@ namespace LiteCore.Util
     /// Helper class for marshalling string &lt;&gt; C4Slice without creating an extra copy
     /// of the bytes.  Not for storage or long-term use
     /// </summary>
-#if LITECORE_PACKAGED
     [SuppressMessage("ReSharper", "FieldCanBeMadeReadOnly.Local", Justification = "Marshaller will need to change these")]
-    internal
-#else
-    public
-#endif
-         unsafe struct C4String : IDisposable
+    [ExcludeFromCodeCoverage]
+    internal unsafe struct C4String : IDisposable
     {
         private int _byteCount;
         private byte* _bytes;
@@ -74,43 +70,5 @@ namespace LiteCore.Util
             _bytes = null;
         }
 #pragma warning restore 1591
-    }
-
-    internal unsafe struct C4SliceEnumerator : IEnumerator<byte>
-    {
-        private readonly byte* _start;
-        private byte* _current;
-        private readonly int _length;
-
-        public C4SliceEnumerator(void* buf, int length)
-        {
-            _start = (byte*)buf;
-            _current = _start - 1;
-            _length = length;
-        }
-
-        public bool MoveNext()
-        {
-            if((_current - _start) >= _length - 1) {
-                return false;
-            }
-
-            _current++;
-            return true;
-        }
-
-        public void Reset()
-        {
-            _current = _start;
-        }
-
-        object System.Collections.IEnumerator.Current => Current;
-
-        public void Dispose()
-        {
-            // No-op
-        }
-
-        public byte Current => *_current;
     }
 }

@@ -15,15 +15,11 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //  
+
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
-using System.Text;
 
-using Couchbase.Lite.DI;
-
-using LiteCore;
 using LiteCore.Util;
 
 namespace LiteCore.Interop
@@ -31,8 +27,11 @@ namespace LiteCore.Interop
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate void C4LogCallback(C4LogDomain* domain, C4LogLevel level, IntPtr message, IntPtr args);
 
+    [ExcludeFromCodeCoverage]
     internal partial struct C4Error
     {
+        #region Constructors
+
         public C4Error(C4ErrorDomain domain, int code)
         {
             this.code = code;
@@ -40,19 +39,29 @@ namespace LiteCore.Interop
             internal_info = 0;
         }
 
-        public C4Error(C4ErrorCode code) : this(C4ErrorDomain.LiteCoreDomain, (int)code)
+        public C4Error(C4ErrorCode code) : this(C4ErrorDomain.LiteCoreDomain, (int) code)
         {
-
         }
 
-        public C4Error(FLError code) : this(C4ErrorDomain.FleeceDomain, (int)code)
+        public C4Error(FLError code) : this(C4ErrorDomain.FleeceDomain, (int) code)
         {
-
         }
 
         public C4Error(C4NetworkErrorCode code) : this(C4ErrorDomain.NetworkDomain, (int) code)
         {
-            
+        }
+
+        #endregion
+
+        #region Overrides
+
+        public override bool Equals(object obj)
+        {
+            if (obj is C4Error other) {
+                return other.code == code && other.domain == domain;
+            }
+
+            return false;
         }
 
         public override int GetHashCode()
@@ -63,32 +72,6 @@ namespace LiteCore.Interop
                 .GetHashCode();
         }
 
-        public override bool Equals(object obj)
-        {
-            if (obj is C4Error other) {
-                return other.code == code && other.domain == domain;
-            }
-
-            return false;
-        }
+        #endregion
     }
 }
-
-// EPIC HACK: This is required for iOS callbacks, but not available in .NET Standard
-// So I just reverse engineer it (Although reverse engineer is probably too strong a word)
-//namespace ObjCRuntime
-//{
-//    [AttributeUsage(AttributeTargets.Method)]
-//    internal sealed class MonoPInvokeCallbackAttribute : Attribute
-//    {
-//        #region Constructors
-
-//        [SuppressMessage("ReSharper", "UnusedParameter.Local", Justification = "This attribute is only used by mtouch.exe")]
-//        public MonoPInvokeCallbackAttribute(Type t)
-//        {
-//        }
-
-//        #endregion
-//    }
-//}
-

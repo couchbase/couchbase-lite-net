@@ -15,14 +15,14 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+
+using System.Diagnostics.CodeAnalysis;
+
 namespace LiteCore.Interop
 {
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-        partial struct C4EnumeratorOptions
+    
+    [ExcludeFromCodeCoverage]
+    internal partial struct C4EnumeratorOptions
     {
         public static readonly C4EnumeratorOptions Default = new C4EnumeratorOptions {
             flags = C4EnumeratorFlags.IncludeNonConflicted | C4EnumeratorFlags.IncludeBodies

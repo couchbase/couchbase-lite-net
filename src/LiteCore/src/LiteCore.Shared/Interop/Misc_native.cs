@@ -16,10 +16,12 @@
 // limitations under the License.
 //
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
 namespace LiteCore.Interop
 {
+    [ExcludeFromCodeCoverage]
     internal unsafe static partial class Native
     {
         // NOTE: Must allocate unmanaged memory via Marshal class
