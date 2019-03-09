@@ -16,7 +16,7 @@ image: Visual Studio 2017
 
 install:
     - git submodule update --init --recursive
-    - appveyor DownloadFile https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
+    - nuget install OpenCover -OutputDirectory src\Couchbase.Lite.TestCoverage\packages -Version 4.7.922
     
 build_script:
     # Fail fast if C# is broken
@@ -42,6 +42,5 @@ test_script:
     - ps: |
         Push-Location src\Couchbase.Lite.TestCoverage
         dotnet tool install coveralls.net --tool-path coveralls
-        ..\..\nuget install OpenCover -OutputDirectory packages -Version 4.7.922
-        .\packages\OpenCover.4.7.922\tools\OpenCover.Console.exe -register:user -target:dotnet.exe -targetargs:"test -v normal --framework netcoreapp2.0" -oldStyle -output:opencoverCoverage.xml -filter:"+[Couchbase.Lite]*" -excludebyattribute:"*.ExcludeFromCodeCoverageAttribute"
-        .\coveralls\csmacnz.coveralls.exe --opencover -i opencoverCoverage.xml
+        & .\packages\OpenCover.4.7.922\tools\OpenCover.Console.exe -register:user -target:dotnet.exe -targetargs:"test -v normal --framework netcoreapp2.0" -oldStyle -output:opencoverCoverage.xml -filter:"+[Couchbase.Lite]*" -excludebyattribute:"*.ExcludeFromCodeCoverageAttribute"
+        & .\coveralls\csmacnz.coveralls.exe --opencover -i opencoverCoverage.xml
