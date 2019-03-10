@@ -11,7 +11,7 @@ $MSBuild = "$VSInstall\MSBuild\15.0\Bin\MSBuild.exe"
 Write-Host
 Write-Host *** TRANSFORMING TEMPLATES ***
 Write-Host
-& $MSBuild Couchbase.Lite.csproj /t:Transform /p:TransformFile="Properties\DynamicAssemblyInfo.tt"
+& $MSBuild Couchbase.Lite.csproj /t:TransformTemplates
 
 Write-Host
 Write-Host *** RESTORING PACKAGES ***
