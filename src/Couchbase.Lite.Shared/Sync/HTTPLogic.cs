@@ -196,6 +196,9 @@ namespace Couchbase.Lite.Sync
             var regex = new Regex("([0-9]+\\.[0-9]+\\.[0-9]+)-b([0-9]+)");
 			var build = "0";
             var commit = ThisAssembly.Git.Commit;
+            #if COUCHBASE_ENTERPRISE
+            commit += $"+{SubmoduleInfo.Commit}";
+            #endif
 			if (regex.IsMatch(version))
 			{
 				var match = regex.Match(version);
