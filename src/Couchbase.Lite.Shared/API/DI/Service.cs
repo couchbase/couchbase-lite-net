@@ -20,7 +20,11 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
+
 using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Logging;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
@@ -51,6 +55,46 @@ namespace Couchbase.Lite.DI
         private static readonly Container _Collection = new Container();
 
         #endregion
+
+        [ExcludeFromCodeCoverage]
+        static Service()
+        {
+            // Windows 2012 doesn't define NETFRAMEWORK for some reason
+            #if NETCOREAPP2_0 || NETFRAMEWORK || NET461
+            AutoRegister(typeof(Database).GetTypeInfo().Assembly);
+            
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                Service.Register<IProxy>(new WindowsProxy());
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                Service.Register<IProxy>(new MacProxy());
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+                Service.Register<IProxy>(new LinuxProxy());
+            }
+            #elif UAP10_0_16299
+            Service.AutoRegister(typeof(Database).GetTypeInfo().Assembly);
+            Service.Register<IProxy>(new UWPProxy());
+            #elif __ANDROID__
+            #if !TEST_COVERAGE
+            if (Droid.Context == null) {
+                throw new RuntimeException(
+                    "Android context not set.  Please ensure that a call to Couchbase.Lite.Support.Droid.Activate() is made.");
+            }
+
+            Service.AutoRegister(typeof(Database).Assembly);
+            Service.Register<IDefaultDirectoryResolver>(() => new DefaultDirectoryResolver(Droid.Context));
+            Service.Register<IMainThreadTaskScheduler>(() => new MainThreadTaskScheduler(Droid.Context));
+            Service.Register<IProxy>(new XamarinAndroidProxy());
+            #endif
+            #elif __IOS__
+            Service.AutoRegister(typeof(Database).Assembly);
+            Service.Register<IProxy>(new IOSProxy());
+            #elif NETSTANDARD2_0
+            throw new RuntimeException(
+                "Pure .NET Standard variant executed.  This means that Couchbase Lite is running on an unsupported platform");
+            #else
+            #error Unknown Platform
+            #endif
+        }
 
         #region Public Methods
 
@@ -160,10 +204,7 @@ namespace Couchbase.Lite.DI
         {
             return GetInstance<T>() ??  throw new InvalidOperationException(
                        $@"A required dependency injection class is missing ({typeof(T).FullName}).
-                       Please ensure that you have called the proper Activate() class in the 
-                       support assembly (e.g. Couchbase.Lite.Support.UWP.Activate()) or that you 
-                       have manually registered dependencies via the Couchbase.Lite.DI.Service 
-                       class.");
+                       If this is not a custom platform, please file a bug report at https://github.com/couchbase/couchbase-lite-net/issues");
         }
 
         #endregion

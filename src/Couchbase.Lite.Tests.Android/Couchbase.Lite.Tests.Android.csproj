@@ -27,7 +27,7 @@
     <DebugType>Full</DebugType>
     <Optimize>False</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;LITECORE_PACKAGED</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;LITECORE_PACKAGED;COUCHBASE_ENTERPRISE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AndroidUseSharedRuntime>True</AndroidUseSharedRuntime>
@@ -100,9 +100,6 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Couchbase.Lite">
-      <Version>2.6.0-b0001</Version>
-    </PackageReference>
     <PackageReference Include="FluentAssertions">
       <Version>4.19.4</Version>
     </PackageReference>
@@ -115,6 +112,12 @@
     <PackageReference Include="xunit.runner.devices">
       <Version>2.2.0</Version>
     </PackageReference>
+  </ItemGroup>
+  <ItemGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.6.0-b0022" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
+    <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.6.0-b0022" />
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />

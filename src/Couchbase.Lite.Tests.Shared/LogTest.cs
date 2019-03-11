@@ -54,7 +54,7 @@ namespace Test
 #if NETCOREAPP2_0
         static LogTest()
         {
-            Couchbase.Lite.Support.NetDesktop.Activate();
+            Couchbase.Lite.Support.NetDesktop.CheckVersion();
         }
 #endif
 

@@ -54,7 +54,13 @@ namespace Couchbase.Lite.Support
             
             var cblAssembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(x => x.GetName().Name == "Couchbase.Lite");
             if (cblAssembly == null) {
-                throw new InvalidProgramException("Couchbase.Lite not detected in app loaded assemblies");
+                var cblReference = Assembly.GetEntryAssembly().GetReferencedAssemblies()
+                    .FirstOrDefault(x => x.Name == "Couchbase.Lite");
+                if (cblReference == null) {
+                    throw new InvalidProgramException("No reference to Couchbase.Lite found in executing assembly");
+                }
+
+                cblAssembly = Assembly.Load(cblReference);
             }
 
             var version2 = cblAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();

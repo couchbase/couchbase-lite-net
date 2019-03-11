@@ -24,10 +24,12 @@
 using System;
 using System.Diagnostics;
 
+using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
+    [CouchbaseDependency]
     internal sealed class UwpConsoleLogger : IConsoleLogger
     {
         #region Properties

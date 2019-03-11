@@ -80,7 +80,7 @@ namespace LiteCore.Tests
         static Test()
         {
             #if NETCOREAPP2_0
-            Couchbase.Lite.Support.NetDesktop.Activate();
+            Couchbase.Lite.Support.NetDesktop.CheckVersion();
             #endif
             var enc = Native.FLEncoder_New();
             Native.FLEncoder_BeginDict(enc, 1);

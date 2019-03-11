@@ -234,7 +234,6 @@ namespace Couchbase.Lite
         static Database()
         {
             FLSliceExtensions.RegisterFLEncodeExtension(FLValueConverter.FLEncode);
-            Activate();
         }
 
         /// <summary>

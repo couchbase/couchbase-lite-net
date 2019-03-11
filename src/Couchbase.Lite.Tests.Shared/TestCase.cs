@@ -79,7 +79,7 @@ namespace Test
 #if NETCOREAPP2_0
         static TestCase()
         {
-            Couchbase.Lite.Support.NetDesktop.Activate();
+            Couchbase.Lite.Support.NetDesktop.CheckVersion();
         }
 #endif
 

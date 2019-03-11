@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Tests.UWP
         {
             this.InitializeComponent();
             this.Suspending += OnSuspending;
-            Couchbase.Lite.Support.UWP.Activate();
+            Couchbase.Lite.Support.UWP.CheckVersion();
         }
 
         /// <summary>

@@ -27,10 +27,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
+using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
+    [CouchbaseDependency]
     internal sealed class DesktopConsoleLogger : IConsoleLogger
     {
         #region Properties

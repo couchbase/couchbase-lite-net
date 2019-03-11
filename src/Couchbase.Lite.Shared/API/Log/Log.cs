@@ -16,6 +16,8 @@
 //  limitations under the License.
 // 
 
+using Couchbase.Lite.DI;
+
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Logging
@@ -31,7 +33,7 @@ namespace Couchbase.Lite.Logging
         /// Gets the logging facility that logs to a debugging console
         /// </summary>
         [NotNull]
-        public IConsoleLogger Console { get; internal set; }
+        public IConsoleLogger Console { get; } = Service.GetRequiredInstance<IConsoleLogger>();
 
         /// <summary>
         /// Gets or sets the user defined logging facility

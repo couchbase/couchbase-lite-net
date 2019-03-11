@@ -19,10 +19,12 @@
 using System;
 using System.Collections.Generic;
 
+using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
 
 namespace Couchbase.Lite.Support
 {
+    [CouchbaseDependency]
     internal sealed class iOSConsoleLogger : IConsoleLogger
     {
         #region Properties

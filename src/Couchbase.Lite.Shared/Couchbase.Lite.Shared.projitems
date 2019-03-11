@@ -12,7 +12,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Database.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DatabaseChangedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DatabaseConfiguration.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)API\Database\Database_Activate.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DocumentChangedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\ListenerToken.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\CouchbaseDependencyAttribute.cs" />
