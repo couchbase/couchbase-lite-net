@@ -31,11 +31,11 @@ namespace Couchbase.Lite.Tests.Android
             AutoStart = true;
 
             // This doesn't seem to work on Android...at least not on GenyMotion
-            //TerminateAfterExecution = true;
-            //using (var str = GetType().Assembly.GetManifestResourceStream("result_ip"))
-            //using (var sr = new StreamReader(str)) {
-            //    Writer = new TcpTextWriter(sr.ReadToEnd().TrimEnd(), 54321);
-            //}
+            TerminateAfterExecution = true;
+            using (var str = GetType().Assembly.GetManifestResourceStream("result_ip"))
+            using (var sr = new StreamReader(str)) {
+                Writer = new TcpTextWriter(sr.ReadToEnd().TrimEnd(), 54321);
+            }
 
             // you cannot add more assemblies once calling base
             base.OnCreate(bundle);
