@@ -18,11 +18,12 @@
 
 using System;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite.DI
 {
     internal interface IProxy
     {
-        IWebProxy CreateProxy(Uri destination);
+        Task<WebProxy> CreateProxyAsync(Uri destination);
     }
 }

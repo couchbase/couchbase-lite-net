@@ -19,6 +19,7 @@
 using System;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
@@ -41,7 +42,7 @@ namespace Couchbase.Lite.Support
 
         #region IProxy
 
-        public IWebProxy CreateProxy(Uri destination)
+        public Task<WebProxy> CreateProxyAsync(Uri destination)
         {
             if (!_Logged) {
                 WriteLog.To.Sync.W(Tag, "Linux does not support per URL proxy evaluation");
@@ -50,11 +51,11 @@ namespace Couchbase.Lite.Support
 
             var proxyAddress = Environment.GetEnvironmentVariable("http_proxy") ?? Environment.GetEnvironmentVariable("all_proxy");
             if (proxyAddress == null) {
-                return null;
+                return Task.FromResult<WebProxy>(null);
             }
 
             var ignored = Environment.GetEnvironmentVariable("no_proxy")?.Split(',');
-            return new WebProxy(new Uri(proxyAddress), ignored?.Contains("<local>") == true || ignored?.Contains("*") == true, ignored);
+            return Task.FromResult(new WebProxy(new Uri(proxyAddress), ignored?.Contains("<local>") == true || ignored?.Contains("*") == true, ignored));
         }
 
         #endregion
