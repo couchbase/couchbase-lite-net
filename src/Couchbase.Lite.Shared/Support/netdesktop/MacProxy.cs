@@ -22,6 +22,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
 
@@ -47,25 +48,25 @@ namespace Couchbase.Lite.Support
 
         private static readonly int kCFNumberIntType = 9;
 
-        public unsafe IWebProxy CreateProxy(Uri destination)
+        public unsafe Task<WebProxy> CreateProxyAsync(Uri destination)
         {
             var proxySettings = CFNetworkCopySystemProxySettings();
             if (proxySettings == IntPtr.Zero) {
-                return null;
+                return Task.FromResult<WebProxy>(null);
             }
 
             var cfUrlString = CFStringCreateWithCString(IntPtr.Zero, destination.AbsoluteUri,
                 kCFStringEncodingASCII);
             if (cfUrlString == IntPtr.Zero) {
                 CFRelease(proxySettings);
-                return null;
+                return Task.FromResult<WebProxy>(null);
             }
 
             var cfDestination = CFURLCreateWithString(IntPtr.Zero, cfUrlString, IntPtr.Zero);
             if (cfDestination == IntPtr.Zero) {
                 CFRelease(proxySettings);
                 CFRelease(cfUrlString);
-                return null;
+                return Task.FromResult<WebProxy>(null);
             }
 
             var proxies = CFNetworkCopyProxiesForURL(cfDestination, proxySettings);
@@ -75,14 +76,14 @@ namespace Couchbase.Lite.Support
 
             if (CFArrayGetCount(proxies) == 0) {
                 CFRelease(proxies);
-                return null;
+                return Task.FromResult<WebProxy>(null);
             }
 
             var proxy = CFArrayGetValueAtIndex(proxies, 0);
             var proxyKeyValue = CFDictionaryGetValue(proxy, kCFProxyTypeKey);
             if (proxyKeyValue == kCFProxyTypeNone) {
                 CFRelease(proxies);
-                return null;
+                return Task.FromResult<WebProxy>(null);
             }
 
             proxyKeyValue = CFDictionaryGetValue(proxy, kCFProxyHostNameKey);
@@ -91,11 +92,11 @@ namespace Couchbase.Lite.Support
             var port = 0;
             if(!CFNumberGetValue(proxyKeyValue, kCFNumberIntType, &port)) {
                 CFRelease(proxies);
-                return null;
+                return Task.FromResult<WebProxy>(null);
             }
 
             CFRelease(proxies);
-            return new WebProxy(new Uri($"{hostUrlString}:{port}"));
+            return Task.FromResult(new WebProxy(new Uri($"{hostUrlString}:{port}")));
         }
 
         private static IntPtr GetPointer(string libPath, string symbolName)

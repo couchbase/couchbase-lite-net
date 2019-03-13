@@ -207,22 +207,16 @@ namespace Couchbase.Lite.Sync
                 // And if it is, it will return an IWebProxy object to use
                 // Sending "CONNECT" request if IWebProxy object is not null
                 IProxy proxy = Service.GetInstance<IProxy>();
-                WebProxy webproxy = null;
 
                 try {
                     if (_client != null && !_client.Connected) {
                         if (proxy != null) {
-                            Uri proxyUri = new Uri("http://"+_logic.UrlRequest.Host + ":" + _logic.UrlRequest.Port);
-                            webproxy = (WebProxy)proxy.CreateProxy(proxyUri);
-                            if (webproxy != null) {
-                                _logic.HasProxy = true;
-                                connectProxyAsync(webproxy.Address.Host, webproxy.Address.Port, "proxyUer", "proxyPassword");
-                            }
+                            connectProxyAsync(proxy, "proxyUser", "proxyPassword");
                         }
                     }
                 } catch { }
 
-                if (!_logic.HasProxy) {
+                if (proxy == null) {
                     OpenConnectionToRemote();
                 }
             });
@@ -273,13 +267,21 @@ namespace Couchbase.Lite.Sync
             });
         }
 
-        private async void connectProxyAsync(string proxyServer, int proxyPort, string user, string password)
+        private async void connectProxyAsync(IProxy proxy, string user, string password)
         {
             try {
+                Uri destinationUri = new Uri("http://"+_logic.UrlRequest.Host + ":" + _logic.UrlRequest.Port);
+                var proxyServer = await proxy.CreateProxyAsync(destinationUri);
+                if (proxyServer == null) {
+                    OpenConnectionToRemote();
+                    return;
+                }
+
+                _logic.HasProxy = true;
                 //create remote endpoint
-                IPAddress add = IPAddress.Parse(proxyServer);
+                IPAddress add = IPAddress.Parse(proxyServer.Address.Host);
                 //connect remote proxy endpoint
-                await _client.ConnectAsync(add, proxyPort).ConfigureAwait(false);
+                await _client.ConnectAsync(add, proxyServer.Address.Port).ConfigureAwait(false);
                 NetworkStream = _client.GetStream();
                 var proxyRequest = _logic.ProxyRequest();
                 NetworkStream.Write(proxyRequest, 0, proxyRequest.Length);

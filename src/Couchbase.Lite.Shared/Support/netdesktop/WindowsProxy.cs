@@ -24,6 +24,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
@@ -162,14 +163,14 @@ namespace Couchbase.Lite.Support
 
         #region IProxy
 
-        public IWebProxy CreateProxy(Uri destination)
+        public Task<WebProxy> CreateProxyAsync(Uri destination)
         {
             var ieProxy = new WINHTTP_CURRENT_USER_IE_PROXY_CONFIG();
             var success = WinHttpGetIEProxyConfigForCurrentUser(out ieProxy);
             if (success && ieProxy.Proxy != IntPtr.Zero) {
                 var proxyUrl = Marshal.PtrToStringUni(ieProxy.Proxy);
                 var bypassList = Marshal.PtrToStringUni(ieProxy.ProxyBypass)?.Split(';', ' ', '\t', '\r', '\n');
-                return new WebProxy(new Uri($"http://{proxyUrl}"), bypassList?.Contains("<local>") ?? false, bypassList);
+                return Task.FromResult(new WebProxy(new Uri($"http://{proxyUrl}"), bypassList?.Contains("<local>") ?? false, bypassList));
             }
 
             var session = WinHttpOpen(null, WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME,
@@ -177,7 +178,7 @@ namespace Couchbase.Lite.Support
             if (session.IsInvalid) {
                 WriteLog.To.Sync.W(Tag,
                     $"Unable to open WinHttp session to query for proxy (error code: {Marshal.GetLastWin32Error()})");
-                return null;
+                return Task.FromResult<WebProxy>(null);
             }
 
             var options = new WINHTTP_AUTOPROXY_OPTIONS
@@ -208,12 +209,12 @@ namespace Couchbase.Lite.Support
                     WriteLog.To.Sync.W(Tag, "Call to WinHttpGetProxyForUrl failed (possible direct connection)...");
                 }
 
-                return null;
+                return Task.FromResult<WebProxy>(null);
             }
 
             var url = Marshal.PtrToStringUni(info.Proxy);
             var bypass = Marshal.PtrToStringUni(info.ProxyBypass)?.Split(';', ' ', '\t', '\r', '\n');
-            return new WebProxy(new Uri($"http://{url}"), bypass?.Contains("<local>") ?? false, bypass);
+            return Task.FromResult(new WebProxy(new Uri($"http://{url}"), bypass?.Contains("<local>") ?? false, bypass));
         }
 
         #endregion

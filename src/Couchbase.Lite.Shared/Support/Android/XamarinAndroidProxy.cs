@@ -18,6 +18,7 @@
 #if __ANDROID__
 using System;
 using System.Net;
+using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
 
@@ -29,20 +30,20 @@ namespace Couchbase.Lite.Support
     {
         #region IProxy
 
-        public IWebProxy CreateProxy(Uri destination)
+        public Task<WebProxy> CreateProxyAsync(Uri destination)
         {
             // if a proxy is enabled set it up here
             string host = JavaSystem.GetProperty("http.proxyHost")?.TrimEnd('/');
             string port = JavaSystem.GetProperty("http.proxyPort");
 
             if (host == null)
-                return null;
+                return Task.FromResult<WebProxy>(null);
 
             //proxy auth
             //ICredentials credentials = new NetworkCredential("username", "password");
             //WebProxy proxy = new WebProxy(new Uri(host+':'+port), true, null, credentials);
             
-            return new WebProxy(host, Int32.Parse(port));
+            return Task.FromResult(new WebProxy(host, Int32.Parse(port)));
         }
 
         #endregion
