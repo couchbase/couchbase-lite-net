@@ -18,6 +18,7 @@
 #if __ANDROID__
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
@@ -37,10 +38,10 @@ namespace Couchbase.Lite.Support
 
         #region Private Methods
 
-        private string MakeMessage(string msg)
+        private static string MakeMessage(string message, LogLevel level, LogDomain domain)
         {
-            var dateTime = DateTime.Now.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
-            return $"[{Environment.CurrentManagedThreadId}] {dateTime} {msg}";
+            var threadId = Thread.CurrentThread.Name ?? Thread.CurrentThread.ManagedThreadId.ToString();
+            return $"[{threadId}]| [{domain}] {message}";
         }
 
         #endregion
@@ -53,7 +54,7 @@ namespace Couchbase.Lite.Support
                 return;
             }
 
-            var finalStr = MakeMessage($"{domain.ToString()} {message}");
+            var finalStr = MakeMessage(message, level, domain);
             switch (level) {
                 case LogLevel.Error:
                     global::Android.Util.Log.Error("CouchbaseLite", finalStr);

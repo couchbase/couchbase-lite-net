@@ -21,11 +21,12 @@
 // to use Debug.WriteLine even in a release build
 
 // Windows 2012 doesn't define the more generic variants
+
 #if NETFRAMEWORK || NET461 || NETCOREAPP || NETCOREAPP2_0
-#define DEBUG 
+#define DEBUG
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Logging;
@@ -43,6 +44,17 @@ namespace Couchbase.Lite.Support
 
         #endregion
 
+        #region Private Methods
+
+        private static string MakeMessage(string message, LogLevel level, LogDomain domain)
+        {
+            var dateTime = DateTime.Now.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
+            var threadId = Thread.CurrentThread.Name ?? Thread.CurrentThread.ManagedThreadId.ToString();
+            return $"{dateTime} [{threadId}]| {level.ToString().ToUpperInvariant()})  [{domain}] {message}";
+        }
+
+        #endregion
+
         #region ILogger
 
         public void Log(LogLevel level, LogDomain domain, string message)
@@ -50,10 +62,11 @@ namespace Couchbase.Lite.Support
             if (level < Level || !Domains.HasFlag(domain)) {
                 return;
             }
-            
-            Console.WriteLine($"{level.ToString().ToUpperInvariant()}) {domain} {message}");
+
+            var finalStr = MakeMessage(message, level, domain);
+            Console.WriteLine(finalStr);
             if (Debugger.IsAttached) {
-                Debug.WriteLine($"{level.ToString().ToUpperInvariant()}) {domain} {message}");
+                Debug.WriteLine(finalStr);
             }
         }
 
