@@ -48,8 +48,9 @@ namespace Couchbase.Lite.Support
 
         private static string MakeMessage(string message, LogLevel level, LogDomain domain)
         {
+            var dateTime = DateTime.Now.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
             var threadId = Thread.CurrentThread.Name ?? Thread.CurrentThread.ManagedThreadId.ToString();
-            return $"[{threadId}]| {level.ToString().ToUpperInvariant()})  [{domain}] {message}";
+            return $"{dateTime} [{threadId}]| {level.ToString().ToUpperInvariant()})  [{domain}] {message}";
         }
 
         #endregion
@@ -61,10 +62,9 @@ namespace Couchbase.Lite.Support
             if (level < Level || !Domains.HasFlag(domain)) {
                 return;
             }
-            
-            var dateTime = DateTime.Now.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
+
             var finalStr = MakeMessage(message, level, domain);
-            Console.WriteLine($"{dateTime} {finalStr}");
+            Console.WriteLine(finalStr);
             if (Debugger.IsAttached) {
                 Debug.WriteLine(finalStr);
             }
