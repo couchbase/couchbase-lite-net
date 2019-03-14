@@ -16,7 +16,6 @@
 //  limitations under the License.
 // 
 
-#if UAP10_0_16299
 using System;
 using System.Linq;
 using System.Net;

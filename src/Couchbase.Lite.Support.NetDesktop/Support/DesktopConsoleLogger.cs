@@ -19,10 +19,13 @@
 // Define DEBUG just for this file (#define in C# only operates per file
 // as opposed to C / C++ which defines from that point onward) to be able
 // to use Debug.WriteLine even in a release build
-#define DEBUG 
+
+// Windows 2012 doesn't define the more generic variants
+
+#define DEBUG
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 
 using Couchbase.Lite.Logging;
 
@@ -38,6 +41,16 @@ namespace Couchbase.Lite.Support
 
         #endregion
 
+        #region Private Methods
+
+        private static string MakeMessage(string message, LogLevel level, LogDomain domain)
+        {
+            var threadId = Thread.CurrentThread.Name ?? Thread.CurrentThread.ManagedThreadId.ToString();
+            return $"[{threadId}]| {level.ToString().ToUpperInvariant()})  [{domain}] {message}";
+        }
+
+        #endregion
+
         #region ILogger
 
         public void Log(LogLevel level, LogDomain domain, string message)
@@ -46,9 +59,11 @@ namespace Couchbase.Lite.Support
                 return;
             }
             
-            Console.WriteLine($"{level.ToString().ToUpperInvariant()}) {domain} {message}");
+            var dateTime = DateTime.Now.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
+            var finalStr = MakeMessage(message, level, domain);
+            Console.WriteLine($"{dateTime} {finalStr}");
             if (Debugger.IsAttached) {
-                Debug.WriteLine($"{level.ToString().ToUpperInvariant()}) {domain} {message}");
+                Debug.WriteLine(finalStr);
             }
         }
 

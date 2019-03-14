@@ -22,6 +22,7 @@
 #define DEBUG
 using System;
 using System.Diagnostics;
+using System.Threading;
 
 using Couchbase.Lite.Logging;
 
@@ -39,10 +40,10 @@ namespace Couchbase.Lite.Support
 
         #region Private Methods
 
-        private string MakeMessage(string msg)
+        private static string MakeMessage(string message, LogLevel level, LogDomain domain)
         {
-            var dateTime = DateTime.Now.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
-            return $"[{Environment.CurrentManagedThreadId}] {dateTime} {msg}";
+            var threadId = Thread.CurrentThread.Name ?? Thread.CurrentThread.ManagedThreadId.ToString();
+            return $"[{threadId}]| {level.ToString().ToUpperInvariant()})  [{domain}] {message}";
         }
 
         #endregion
@@ -54,14 +55,15 @@ namespace Couchbase.Lite.Support
             if (level < Level || !Domains.HasFlag(domain)) {
                 return;
             }
-
-            var finalStr = MakeMessage($"{domain.ToString()} {message}");
+            
+            var dateTime = DateTime.Now.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
+            var finalStr = MakeMessage(message, level, domain);
             try {
                 if (Debugger.IsAttached) {
                     Debug.WriteLine(finalStr);
                 }
 
-                Console.WriteLine(finalStr);
+                Console.WriteLine($"{dateTime} {finalStr}");
             } catch (ObjectDisposedException) {
                 // On UWP the console can be disposed which means it is no longer 
                 // available to write to.  Nothing we can do except ignore.
