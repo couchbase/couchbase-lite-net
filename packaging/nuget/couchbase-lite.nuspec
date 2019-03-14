@@ -19,27 +19,27 @@
     <language>en-US</language>
     <dependencies>
       <group targetFramework="netcoreapp2.0">
-        <dependency id="Newtonsoft.Json" version="9.0.1" />
+        <dependency id="Newtonsoft.Json" version="11.0.1" />
         <dependency id="SimpleInjector" version="4.0.12" />
         <dependency id="Couchbase.Lite.Support.NetDesktop" version="[$version$]" />
       </group>
       <group targetFramework="net461">
-        <dependency id="Newtonsoft.Json" version="9.0.1" />
+        <dependency id="Newtonsoft.Json" version="11.0.1" />
         <dependency id="SimpleInjector" version="4.0.12" />
         <dependency id="Couchbase.Lite.Support.NetDesktop" version="[$version$]" />
       </group>
       <group targetFramework="uap10.0.16299">
-        <dependency id="Newtonsoft.Json" version="9.0.1" />
+        <dependency id="Newtonsoft.Json" version="11.0.1" />
         <dependency id="SimpleInjector" version="4.0.12" />
         <dependency id="Couchbase.Lite.Support.UWP" version="[$version$]" />
       </group>
       <group targetFramework="monoandroid">
-        <dependency id="Newtonsoft.Json" version="9.0.1" />
+        <dependency id="Newtonsoft.Json" version="11.0.1" />
         <dependency id="SimpleInjector" version="4.0.12" />
         <dependency id="Couchbase.Lite.Support.Android" version="[$version$]" />
       </group>
       <group targetFramework="xamarinios">
-        <dependency id="Newtonsoft.Json" version="9.0.1" />
+        <dependency id="Newtonsoft.Json" version="11.0.1" />
         <dependency id="SimpleInjector" version="4.0.12" />
         <dependency id="Couchbase.Lite.Support.iOS" version="[$version$]" />
       </group>
