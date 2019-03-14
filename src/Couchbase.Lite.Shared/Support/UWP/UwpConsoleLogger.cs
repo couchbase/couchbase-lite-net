@@ -45,9 +45,8 @@ namespace Couchbase.Lite.Support
 
         private static string MakeMessage(string message, LogLevel level, LogDomain domain)
         {
-            var dateTime = DateTime.Now.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
             var threadId = Thread.CurrentThread.Name ?? Thread.CurrentThread.ManagedThreadId.ToString();
-            return $"{dateTime} [{threadId}]| {level.ToString().ToUpperInvariant()})  [{domain}] {message}";
+            return $"[{threadId}]| {level.ToString().ToUpperInvariant()})  [{domain}] {message}";
         }
 
         #endregion
@@ -59,14 +58,15 @@ namespace Couchbase.Lite.Support
             if (level < Level || !Domains.HasFlag(domain)) {
                 return;
             }
-
+            
+            var dateTime = DateTime.Now.ToLocalTime().ToString("yyyy-M-d hh:mm:ss.fffK");
             var finalStr = MakeMessage(message, level, domain);
             try {
                 if (Debugger.IsAttached) {
                     Debug.WriteLine(finalStr);
                 }
 
-                Console.WriteLine(finalStr);
+                Console.WriteLine($"{dateTime} {finalStr}");
             } catch (ObjectDisposedException) {
                 // On UWP the console can be disposed which means it is no longer 
                 // available to write to.  Nothing we can do except ignore.
