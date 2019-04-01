@@ -201,7 +201,7 @@ namespace Couchbase.Lite.Internal.Query
             var columnCnt = Native.c4query_columnCount(query);
             for (int i = 0; i < columnCnt; i++) {
                 var title = Native.c4query_columnTitle(query, (uint)i);
-                map.Add(title.ToString(), i);
+                map.Add(title.CreateString(), i);
             }
             return map;
         }
