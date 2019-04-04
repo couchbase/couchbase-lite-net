@@ -170,9 +170,6 @@ namespace Couchbase.Lite.Internal.Query
             Debug.Assert(from != null, "Reached Check() without receiving a FROM clause!");
 
             var jsonData = EncodeAsJSON();
-            if (_columnNames == null) {
-                _columnNames = CreateColumnNames();
-            }
 
             WriteLog.To.Query.I(Tag, $"Query encoded as {jsonData}");
 
@@ -187,36 +184,25 @@ namespace Couchbase.Lite.Internal.Query
                     return false;
                 }
 
+                if (_columnNames == null) {
+                    _columnNames = CreateColumnNames(query);
+                }
+
                 Native.c4query_free(_c4Query);
                 _c4Query = query;
                 return true;
             });
         }
 
-        private Dictionary<string, int> CreateColumnNames()
+        private unsafe Dictionary<string, int> CreateColumnNames(C4Query* query)
         {
-            var selectImpl = SelectImpl;
-            var fromImpl = FromImpl;
-            Debug.Assert(selectImpl != null, "CreateColumnNames reached without a SELECT clause received");
-            Debug.Assert(fromImpl != null, "CreateColumnNames reached without a FROM clause received");
-
             var map = new Dictionary<string, int>();
-            var index = 0;
-            var provisionKeyIndex = 0;
-            foreach (var select in selectImpl?.SelectResults ?? Enumerable.Empty<QuerySelectResult>()) {
-                var name = select?.ColumnName ?? $"${++provisionKeyIndex}";
-                if (name == String.Empty) {
-                    name = fromImpl?.ColumnName ?? $"${++provisionKeyIndex}";;
-                }
-                
-                if (map.ContainsKey(name)) {
-                    throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery, $"Duplicate select result named {name}");
-                }
 
-                map[name] = index;
-                index++;
+            var columnCnt = Native.c4query_columnCount(query);
+            for (int i = 0; i < columnCnt; i++) {
+                var title = Native.c4query_columnTitle(query, (uint)i);
+                map.Add(title.CreateString(), i);
             }
-
             return map;
         }
 
