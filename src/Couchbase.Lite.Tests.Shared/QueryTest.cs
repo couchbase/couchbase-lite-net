@@ -1020,7 +1020,7 @@ namespace Test
                     r.GetDouble("$1").Should().Be(r.GetDouble(0));
                     r.GetInt("$2").Should().Be(r.GetInt(1));
                     r.GetInt("min").Should().Be(r.GetInt(2));
-                    r.GetInt("$3").Should().Be(r.GetInt(3));
+                    r.GetInt("$4").Should().Be(r.GetInt(3));
                     r.GetInt("sum").Should().Be(r.GetInt(4));
                 });
             }
