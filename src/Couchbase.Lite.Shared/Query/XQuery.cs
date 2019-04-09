@@ -218,8 +218,7 @@ namespace Couchbase.Lite.Internal.Query
                     throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery, $"Duplicate select result named {titleStr}");
                 }
 
-                if (titleStr != String.Empty || !map.ContainsKey(titleStr))
-                    map.Add(titleStr, i);
+                map.Add(titleStr, i);
             }
             return map;
         }
