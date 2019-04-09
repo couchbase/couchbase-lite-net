@@ -203,18 +203,21 @@ namespace Couchbase.Lite.Internal.Query
             var map = new Dictionary<string, int>();
             var columnCnt = Native.c4query_columnCount(query);
             for (int i = 0; i < columnCnt; i++) {
-                var title = Native.c4query_columnTitle(query, (uint)i);
-                var titleStr = title.CreateString();
-                if (titleStr[0].Equals('*') || (titleStr[0].Equals('$') && selectResultList[i].ColumnName!=null)) {
+                var titleStr = String.Empty;
+                if (selectResultList.Count() > 0 && selectResultList[i].ColumnName != null) {
                     titleStr = selectImpl?.SelectResults[i].ColumnName;
+                } else {
+                    var title = Native.c4query_columnTitle(query, (uint)i);
+                    titleStr = title.CreateString();
                 }
-
+                
                 if (titleStr == String.Empty)
                     titleStr = Database.Name;
 
                 if (map.ContainsKey(titleStr)) {
                     throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery, $"Duplicate select result named {titleStr}");
                 }
+
                 if (titleStr != String.Empty || !map.ContainsKey(titleStr))
                     map.Add(titleStr, i);
             }
