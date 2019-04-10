@@ -16,6 +16,7 @@
 // limitations under the License.
 // 
 
+using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
@@ -32,12 +33,6 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
-        #region Variables
-
-        private readonly QueryExpression _select;
-
-        #endregion
-
         [NotNull]
         [ItemNotNull]
         internal QuerySelectResult[] SelectResults { get; }
@@ -47,9 +42,6 @@ namespace Couchbase.Lite.Internal.Query
         public Select(ISelectResult[] selects, bool distinct)
         {
             SelectResults = selects?.OfType<QuerySelectResult>()?.ToArray() ?? new QuerySelectResult[0];
-            if (selects?.Length > 0) {
-                _select = new QueryTypeExpression(SelectResults.Select(x => x.Expression).ToList());
-            }
 
             SelectImpl = this;
             Distinct = distinct;
@@ -61,7 +53,12 @@ namespace Couchbase.Lite.Internal.Query
 
         public object ToJSON()
         {
-            return _select?.ConvertToJSON();
+            var obj = new List<object>();
+            foreach (var o in SelectResults) {
+                obj.Add(o.ToJSON());
+            }
+
+            return obj;
         }
 
         #endregion

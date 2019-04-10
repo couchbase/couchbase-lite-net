@@ -201,17 +201,16 @@ namespace Couchbase.Lite.Internal.Query
 
             var selectResultList = selectImpl?.SelectResults;
             var map = new Dictionary<string, int>();
+            var selectListCnt = selectResultList.Count()-1;
             var columnCnt = Native.c4query_columnCount(query);
             for (int i = 0; i < columnCnt; i++) {
-                var titleStr = String.Empty;
-                if (selectResultList.Count() > 0 && selectResultList[i].ColumnName != null) {
-                    titleStr = selectImpl?.SelectResults[i].ColumnName;
-                } else {
+                var titleStr = selectResultList.ElementAtOrDefault(i)?.ColumnName;
+                if (titleStr==null) {
                     var title = Native.c4query_columnTitle(query, (uint)i);
                     titleStr = title.CreateString();
                 }
                 
-                if (titleStr == String.Empty)
+                if (String.IsNullOrEmpty(titleStr))
                     titleStr = Database.Name;
 
                 if (map.ContainsKey(titleStr)) {
