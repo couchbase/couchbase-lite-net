@@ -74,5 +74,13 @@ namespace Couchbase.Lite.Internal.Query
             (Expression as QueryTypeExpression).From(alias);
             return this;
         }
+
+        public object ToJSON()
+        {
+            var json = (Expression as QueryExpression).ConvertToJSON();
+            if (!String.IsNullOrEmpty(_alias))
+                json = new object[] { "AS", json, _alias };
+            return json;
+        }
     }
 }
