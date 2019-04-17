@@ -2345,16 +2345,15 @@ namespace Test
         [Fact]
         public void TestSelectEmptyClause()
         {
-            int resultCnt = 0;
-            string k1 = "";
-            string k2 = "";
             LoadNumbers(100);
             using (var q = QueryBuilder.Select().From(DataSource.Database(Db))
                 .Where(Expression.Property("number1").LessThan(Expression.Int(10))).OrderBy(Ordering.Property("number1"))) {
                 var res = q.Execute();
-                resultCnt = res.Count();
+                foreach(var result in res) {
+                    result.Keys.ElementAt(0).Should().Be("_id");
+                    result.Keys.ElementAt(1).Should().Be("_sequence");
+                }
             }
-            resultCnt.Should().Be(9);
         }
 
         private void CreateDateDocs()
