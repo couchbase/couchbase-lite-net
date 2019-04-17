@@ -207,13 +207,12 @@ namespace Couchbase.Lite.Internal.Query
             var columnCnt = Native.c4query_columnCount(query);
             for (int i = 0; i < columnCnt; i++) {
                 var titleStr = Native.c4query_columnTitle(query, (uint)i).CreateString();
-                if(titleStr=="*" || titleStr.StartsWith("* #")) {
-                    if(selectListCnt == columnCnt)
-                        titleStr = selectResultList.ElementAtOrDefault(i)?.ColumnName;
-                }
 
-                if (String.IsNullOrEmpty(titleStr))
-                    titleStr = FromImpl.ColumnName;
+                if (titleStr.StartsWith("*")) {
+                    titleStr = selectResultList.ElementAtOrDefault(i)?.ColumnName;
+                    if (String.IsNullOrEmpty(titleStr))
+                        titleStr = FromImpl.ColumnName;
+                }
 
                 if (map.ContainsKey(titleStr)) {
                     throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery, $"Duplicate select result named {titleStr}");
