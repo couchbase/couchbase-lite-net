@@ -196,22 +196,18 @@ namespace Couchbase.Lite.Internal.Query
 
         private unsafe Dictionary<string, int> CreateColumnNames(C4Query* query)
         {
-            var selectImpl = SelectImpl;
-            Debug.Assert(selectImpl != null, "CreateColumnNames reached without a SELECT clause received");
+            var fromImpl = FromImpl;
+            Debug.Assert(fromImpl != null, "CreateColumnNames reached without a FROM clause received");
 
-            var selectResultList = selectImpl?.SelectResults;
             var map = new Dictionary<string, int>();
-            var selectListCnt = selectResultList.Count()-1;
+
             var columnCnt = Native.c4query_columnCount(query);
             for (int i = 0; i < columnCnt; i++) {
-                var titleStr = selectResultList.ElementAtOrDefault(i)?.ColumnName;
-                if (titleStr==null) {
-                    var title = Native.c4query_columnTitle(query, (uint)i);
-                    titleStr = title.CreateString();
+                var titleStr = Native.c4query_columnTitle(query, (uint)i).CreateString();
+
+                if (titleStr.StartsWith("*")) {
+                    titleStr = fromImpl.ColumnName;
                 }
-                
-                if (String.IsNullOrEmpty(titleStr))
-                    titleStr = Database.Name;
 
                 if (map.ContainsKey(titleStr)) {
                     throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery, $"Duplicate select result named {titleStr}");

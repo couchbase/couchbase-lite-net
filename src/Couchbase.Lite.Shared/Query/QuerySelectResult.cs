@@ -37,23 +37,6 @@ namespace Couchbase.Lite.Internal.Query
         private string _alias;
         private string _from = String.Empty;
 
-        internal string ColumnName
-        {
-            get {
-                if (_alias != null) {
-                    return _alias;
-                }
-
-                QueryTypeExpression keyPathExpr = Expression as QueryTypeExpression;
-                var columnName = keyPathExpr?.ColumnName;
-                if(columnName == null) {
-                    return null;
-                }
-
-                return $"{_from}{columnName}".TrimEnd('.');
-            }
-        }
-
         internal QuerySelectResult([NotNull]IExpression expression)
         {
             Debug.Assert(expression != null);
