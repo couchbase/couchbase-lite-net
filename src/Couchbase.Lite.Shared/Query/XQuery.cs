@@ -209,9 +209,7 @@ namespace Couchbase.Lite.Internal.Query
                 var titleStr = Native.c4query_columnTitle(query, (uint)i).CreateString();
 
                 if (titleStr.StartsWith("*")) {
-                    titleStr = selectResultList.ElementAtOrDefault(i)?.ColumnName;
-                    if (String.IsNullOrEmpty(titleStr))
-                        titleStr = FromImpl.ColumnName;
+                    titleStr = FromImpl.ColumnName;
                 }
 
                 if (map.ContainsKey(titleStr)) {
