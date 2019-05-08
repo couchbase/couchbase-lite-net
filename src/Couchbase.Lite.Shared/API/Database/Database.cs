@@ -844,7 +844,7 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        internal void ResolveConflict([NotNull]string docID)
+        internal void ResolveConflict([NotNull]string docID, [CanBeNull]IConflictResolver conflictResolver)
         {
             Debug.Assert(docID != null);
 
@@ -871,7 +871,9 @@ namespace Couchbase.Lite
                         WriteLog.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
                             new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevID,
                             remoteDoc.RevID);
-                        var resolvedDoc = ResolveConflict(localDoc, remoteDoc);
+                        conflictResolver = conflictResolver == null ? new DefaultConflictResolver() : conflictResolver;
+                        var conflict = new Conflict(localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
+                        var resolvedDoc = conflictResolver.Resolve(conflict);
                         SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
                     } finally {
                         localDoc?.Dispose();
@@ -1109,27 +1111,27 @@ namespace Couchbase.Lite
             _documentChanged.Fire(documentID, this, change);
         }
 
-        [NotNull]
-        private Document ResolveConflict([NotNull]Document localDoc, [NotNull]Document remoteDoc)
-        {
-            if (remoteDoc.IsDeleted) {
-                return remoteDoc;
-            }
+        //[NotNull]
+        //private Document ResolveConflict([NotNull]Document localDoc, [NotNull]Document remoteDoc)
+        //{
+        //    if (remoteDoc.IsDeleted) {
+        //        return remoteDoc;
+        //    }
 
-            if (localDoc.IsDeleted) {
-                return localDoc;
-            }
+        //    if (localDoc.IsDeleted) {
+        //        return localDoc;
+        //    }
 
-            if (localDoc.Generation > remoteDoc.Generation) {
-                return localDoc;
-            }
+        //    if (localDoc.Generation > remoteDoc.Generation) {
+        //        return localDoc;
+        //    }
 
-            if (remoteDoc.Generation > localDoc.Generation) {
-                return remoteDoc;
-            }
+        //    if (remoteDoc.Generation > localDoc.Generation) {
+        //        return remoteDoc;
+        //    }
 
-            return String.CompareOrdinal(localDoc.RevID, remoteDoc.RevID) > 0 ? localDoc : remoteDoc;
-        }
+        //    return String.CompareOrdinal(localDoc.RevID, remoteDoc.RevID) > 0 ? localDoc : remoteDoc;
+        //}
         
         private bool Save([NotNull]Document document, ConcurrencyControl concurrencyControl, bool deletion)
         {
@@ -1265,24 +1267,33 @@ namespace Couchbase.Lite
         }
 
         // Must be called in transaction
-        private void SaveResolvedDocument([NotNull]Document resolved, [NotNull]Document localDoc, [NotNull]Document remoteDoc)
+        private void SaveResolvedDocument([CanBeNull]Document resolvedDoc, [NotNull]Document localDoc, [NotNull]Document remoteDoc)
         {
-            if (!ReferenceEquals(resolved, localDoc)) {
-                resolved.Database = this;
+            if (resolvedDoc ==  null) {
+                if (localDoc.IsDeleted)
+                    resolvedDoc = localDoc;
+
+                if (remoteDoc.IsDeleted)
+                    resolvedDoc = remoteDoc;
             }
 
-            // The remote branch has to win, so that the doc revision history matches the server's
+
+            if (!ReferenceEquals(resolvedDoc, localDoc)) {
+                resolvedDoc.Database = this;
+            }
+
+            // The remote branch has to win, so that the doc revision history matches the server's.
             var winningRevID = remoteDoc.RevID;
             var losingRevID = localDoc.RevID;
 
             FLSliceResult mergedBody = (FLSliceResult)FLSlice.Null;
-            if (!ReferenceEquals(resolved, remoteDoc)) {
+            if (!ReferenceEquals(resolvedDoc, remoteDoc)) {
                 // Unless the remote revision is being used as-is, we need a new revision:
                 try {
-                    mergedBody = resolved.Encode();
+                    mergedBody = resolvedDoc.Encode();
                 } catch (ObjectDisposedException) {
                     WriteLog.To.Sync.E(Tag, "Resolved document for {0} somehow got disposed!",
-                        new SecureLogString(resolved.Id, LogMessageSensitivity.PotentiallyInsecure));
+                        new SecureLogString(resolvedDoc.Id, LogMessageSensitivity.PotentiallyInsecure));
                     throw new RuntimeException(
                         "Resolved document was disposed before conflict resolution completed.  Please file a bug report at https://github.com/couchbase/couchbase-lite-net");
                 }
@@ -1290,10 +1301,9 @@ namespace Couchbase.Lite
 
             // Tell LiteCore to do the resolution:
             C4Document* rawDoc = localDoc.c4Doc != null ? localDoc.c4Doc.RawDoc : null;
-            var flags = resolved.c4Doc != null ? resolved.c4Doc.RawDoc->selectedRev.flags : 0;
+            var flags = resolvedDoc.c4Doc != null ? resolvedDoc.c4Doc.RawDoc->selectedRev.flags : 0;
             using(var winningRevID_ = new C4String(winningRevID))
             using (var losingRevID_ = new C4String(losingRevID)) {
-
                 LiteCoreBridge.Check(
                     err =>
                     {

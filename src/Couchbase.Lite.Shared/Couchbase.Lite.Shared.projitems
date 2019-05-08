@@ -9,6 +9,8 @@
     <Import_RootNamespace>Couchbase.Lite.Shared</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)API\Conflict\DefaultConflictResolver.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Conflict\IConflictResolver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Database.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DatabaseChangedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DatabaseConfiguration.cs" />
@@ -27,6 +29,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\Document.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\DocumentFragment.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\IArray.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Conflict\Conflict.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\IDictionaryObject.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\IFragment.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\IMutableArray.cs" />

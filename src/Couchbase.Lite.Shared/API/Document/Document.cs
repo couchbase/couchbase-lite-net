@@ -185,7 +185,7 @@ namespace Couchbase.Lite
         /// can be edited)
         /// </summary>
         /// <returns>A mutable version of the document</returns>
-        [NotNull]
+        [CanBeNull]
         public virtual MutableDocument ToMutable() => new MutableDocument(this);
 
 #if CBL_LINQ
