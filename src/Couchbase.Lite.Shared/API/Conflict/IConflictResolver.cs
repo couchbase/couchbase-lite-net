@@ -31,10 +31,20 @@ namespace Couchbase.Lite
         /// The callback conflict resolve method, if conflict occurs.
         /// When a null document is returned, the conflict will be resolved as document deletion. 
         /// If there is an exception thrown in the resolve method, the exception will be caught and handled:
-        /// The conflict resolving will be skipped. The pending conflicted documents will be resolved when the replicator is restarted.
+        /// <list type="bullet">
+        /// <item>
+        /// <description>1. The conflict resolving will be skipped. The pending conflicted documents will be resolved when the replicator is restarted.</description>
+        /// </item>
+        /// <item>
+        /// <description>2. The exception will be reported in the warning log.</description>
+        /// </item>
+        /// <item>
+        /// <description>3. The exception will be reported in the DocumentReplicationChange event.</description>
+        /// </item>
+        /// </list>
         /// </summary>
-        /// <exception cref="RuntimeException">Thrown when a document with the wrong ID is returned.</exception> 
-        /// <exception cref="RuntimeException">Thrown when a document from a different database is returned.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when a document with the wrong ID is returned.</exception> 
+        /// <exception cref="InvalidOperationException">Thrown when a document from a different database is returned.</exception>
         Document Resolve(Conflict conflict);
     }
 }
