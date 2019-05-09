@@ -22,12 +22,17 @@ using System.Text;
 
 namespace Couchbase.Lite
 {
-    public class DefaultConflictResolver: IConflictResolver
+    public class DefaultConflictResolver : IConflictResolver
     {
         /// <summary>
         /// The callback default conflict resolve method, if conflict occurs.
         /// </summary>
         public Document Resolve(Conflict conflict)
+        {
+            return ResolveFunc(conflict);
+        }
+
+        private Document ResolveFunc(Conflict conflict)
         {
             if (conflict.RemoteDocument == null || conflict.LocalDocument == null)
                 return null;

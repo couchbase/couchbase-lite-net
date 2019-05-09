@@ -874,13 +874,18 @@ namespace Couchbase.Lite
                         conflictResolver = conflictResolver == null ? new DefaultConflictResolver() : conflictResolver;
                         var conflict = new Conflict(localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
                         var resolvedDoc = conflictResolver.Resolve(conflict);
+                        if (resolvedDoc != null && resolvedDoc.Id != docID)
+                            throw new Exception($"Resolved docID {resolvedDoc.Id} does not match with docID {docID}");
+                        if(resolvedDoc != null && resolvedDoc.Database != this)
+                            throw new Exception($"Resolved document db {resolvedDoc.Database.Name} is different from expected db {this.Name}");
                         SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
                     } finally {
                         localDoc?.Dispose();
                         remoteDoc?.Dispose();
                     }
-                } catch (Exception) {
+                } catch (Exception ex) {
                     success = false;
+                    WriteLog.To.Sync.W(Tag, $"Exception in conflict resolver: {ex.Message}.");
                     throw;
                 } finally {
                     LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, success, err));
@@ -1110,28 +1115,6 @@ namespace Couchbase.Lite
 
             _documentChanged.Fire(documentID, this, change);
         }
-
-        //[NotNull]
-        //private Document ResolveConflict([NotNull]Document localDoc, [NotNull]Document remoteDoc)
-        //{
-        //    if (remoteDoc.IsDeleted) {
-        //        return remoteDoc;
-        //    }
-
-        //    if (localDoc.IsDeleted) {
-        //        return localDoc;
-        //    }
-
-        //    if (localDoc.Generation > remoteDoc.Generation) {
-        //        return localDoc;
-        //    }
-
-        //    if (remoteDoc.Generation > localDoc.Generation) {
-        //        return remoteDoc;
-        //    }
-
-        //    return String.CompareOrdinal(localDoc.RevID, remoteDoc.RevID) > 0 ? localDoc : remoteDoc;
-        //}
         
         private bool Save([NotNull]Document document, ConcurrencyControl concurrencyControl, bool deletion)
         {
@@ -1269,7 +1252,7 @@ namespace Couchbase.Lite
         // Must be called in transaction
         private void SaveResolvedDocument([CanBeNull]Document resolvedDoc, [NotNull]Document localDoc, [NotNull]Document remoteDoc)
         {
-            if (resolvedDoc ==  null) {
+            if (resolvedDoc == null) {
                 if (localDoc.IsDeleted)
                     resolvedDoc = localDoc;
 
@@ -1278,7 +1261,7 @@ namespace Couchbase.Lite
             }
 
 
-            if (!ReferenceEquals(resolvedDoc, localDoc)) {
+            if (resolvedDoc!=null&&!ReferenceEquals(resolvedDoc, localDoc)) {
                 resolvedDoc.Database = this;
             }
 
@@ -1287,28 +1270,40 @@ namespace Couchbase.Lite
             var losingRevID = localDoc.RevID;
 
             FLSliceResult mergedBody = (FLSliceResult)FLSlice.Null;
+            C4RevisionFlags mergedFlags = 0;
             if (!ReferenceEquals(resolvedDoc, remoteDoc)) {
-                // Unless the remote revision is being used as-is, we need a new revision:
-                try {
-                    mergedBody = resolvedDoc.Encode();
-                } catch (ObjectDisposedException) {
-                    WriteLog.To.Sync.E(Tag, "Resolved document for {0} somehow got disposed!",
-                        new SecureLogString(resolvedDoc.Id, LogMessageSensitivity.PotentiallyInsecure));
-                    throw new RuntimeException(
-                        "Resolved document was disposed before conflict resolution completed.  Please file a bug report at https://github.com/couchbase/couchbase-lite-net");
+                var isDeleted = true;
+                if (resolvedDoc != null) {
+                    // Unless the remote revision is being used as-is, we need a new revision:
+                    try {
+                        mergedBody = resolvedDoc.Encode();
+                    } catch (ObjectDisposedException) {
+                        WriteLog.To.Sync.E(Tag, "Resolved document for {0} somehow got disposed!",
+                            new SecureLogString(resolvedDoc.Id, LogMessageSensitivity.PotentiallyInsecure));
+                        throw new RuntimeException(
+                            "Resolved document was disposed before conflict resolution completed.  Please file a bug report at https://github.com/couchbase/couchbase-lite-net");
+                    }
+                    if (mergedBody.Equals((FLSliceResult)FLSlice.Null))
+                        throw new RuntimeException("Resolved document contains a null body");
+                    isDeleted = resolvedDoc.IsDeleted;
+                } else {
+                    mergedBody = (FLSliceResult)FLSlice.Allocate("");
                 }
+
+                if (isDeleted)
+                    mergedFlags |= C4RevisionFlags.Deleted;
             }
 
             // Tell LiteCore to do the resolution:
             C4Document* rawDoc = localDoc.c4Doc != null ? localDoc.c4Doc.RawDoc : null;
-            var flags = resolvedDoc.c4Doc != null ? resolvedDoc.c4Doc.RawDoc->selectedRev.flags : 0;
-            using(var winningRevID_ = new C4String(winningRevID))
+            //var flags = resolvedDoc.c4Doc != null ? resolvedDoc.c4Doc.RawDoc->selectedRev.flags : 0;
+            using (var winningRevID_ = new C4String(winningRevID))
             using (var losingRevID_ = new C4String(losingRevID)) {
                 LiteCoreBridge.Check(
                     err =>
                     {
                         var retVal = NativeRaw.c4doc_resolveConflict(rawDoc, winningRevID_.AsFLSlice(),
-                            losingRevID_.AsFLSlice(), (FLSlice) mergedBody, flags, err);
+                            losingRevID_.AsFLSlice(), (FLSlice)mergedBody, mergedFlags, err);
                         Native.FLSliceResult_Release(mergedBody);
                         return retVal;
                     });
