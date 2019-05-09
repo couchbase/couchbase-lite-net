@@ -29,7 +29,12 @@ namespace Couchbase.Lite
     {
         /// <summary>
         /// The callback conflict resolve method, if conflict occurs.
+        /// When a null document is returned, the conflict will be resolved as document deletion. 
+        /// If there is an exception thrown in the resolve method, the exception will be caught and handled:
+        /// The conflict resolving will be skipped. The pending conflicted documents will be resolved when the replicator is restarted.
         /// </summary>
+        /// <exception cref="RuntimeException">Thrown when a document with the wrong ID is returned.</exception> 
+        /// <exception cref="RuntimeException">Thrown when a document from a different database is returned.</exception>
         Document Resolve(Conflict conflict);
     }
 }

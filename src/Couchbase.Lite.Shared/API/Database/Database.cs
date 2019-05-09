@@ -871,13 +871,13 @@ namespace Couchbase.Lite
                         WriteLog.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
                             new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevID,
                             remoteDoc.RevID);
-                        conflictResolver = conflictResolver == null ? new DefaultConflictResolver() : conflictResolver;
+                        conflictResolver = conflictResolver ?? new DefaultConflictResolver();
                         var conflict = new Conflict(localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
                         var resolvedDoc = conflictResolver.Resolve(conflict);
                         if (resolvedDoc != null && resolvedDoc.Id != docID)
-                            throw new Exception($"Resolved docID {resolvedDoc.Id} does not match with docID {docID}");
-                        if(resolvedDoc != null && resolvedDoc.Database != this)
-                            throw new Exception($"Resolved document db {resolvedDoc.Database.Name} is different from expected db {this.Name}");
+                            throw new InvalidOperationException($"Resolved docID {resolvedDoc.Id} does not match with docID {docID}");
+                        if (resolvedDoc != null && resolvedDoc.Database != this)
+                            throw new InvalidOperationException($"Resolved document db {resolvedDoc.Database.Name} is different from expected db {this.Name}");
                         SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
                     } finally {
                         localDoc?.Dispose();
@@ -1260,8 +1260,7 @@ namespace Couchbase.Lite
                     resolvedDoc = remoteDoc;
             }
 
-
-            if (resolvedDoc!=null&&!ReferenceEquals(resolvedDoc, localDoc)) {
+            if (resolvedDoc!=null && !ReferenceEquals(resolvedDoc, localDoc)) {
                 resolvedDoc.Database = this;
             }
 
@@ -1296,7 +1295,6 @@ namespace Couchbase.Lite
 
             // Tell LiteCore to do the resolution:
             C4Document* rawDoc = localDoc.c4Doc != null ? localDoc.c4Doc.RawDoc : null;
-            //var flags = resolvedDoc.c4Doc != null ? resolvedDoc.c4Doc.RawDoc->selectedRev.flags : 0;
             using (var winningRevID_ = new C4String(winningRevID))
             using (var losingRevID_ = new C4String(losingRevID)) {
                 LiteCoreBridge.Check(
