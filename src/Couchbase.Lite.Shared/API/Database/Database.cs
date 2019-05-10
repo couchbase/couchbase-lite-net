@@ -1285,12 +1285,12 @@ namespace Couchbase.Lite
                     if (mergedBody.Equals((FLSliceResult)FLSlice.Null))
                         throw new RuntimeException("Resolved document contains a null body");
                     isDeleted = resolvedDoc.IsDeleted;
-                } else  {
-                        FLEncoder* encoder = SharedEncoder;
-                        Native.FLEncoder_BeginDict(encoder, 0);
-                        Native.FLEncoder_EndDict(encoder);
-                        mergedBody = NativeRaw.FLEncoder_Finish(encoder, null);
-                        Native.FLEncoder_Reset(encoder);
+                } else if (resolvedDoc == null || resolvedDoc.IsEmpty) {
+                    FLEncoder* encoder = SharedEncoder;
+                    Native.FLEncoder_BeginDict(encoder, 0);
+                    Native.FLEncoder_EndDict(encoder);
+                    mergedBody = NativeRaw.FLEncoder_Finish(encoder, null);
+                    Native.FLEncoder_Reset(encoder);
                 }
 
                 if (isDeleted)
