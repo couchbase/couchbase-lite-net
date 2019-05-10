@@ -1270,6 +1270,8 @@ namespace Couchbase.Lite
 
             FLSliceResult mergedBody = (FLSliceResult)FLSlice.Null;
             C4RevisionFlags mergedFlags = 0;
+            if (resolvedDoc != null)
+                mergedFlags = resolvedDoc.c4Doc != null ? resolvedDoc.c4Doc.RawDoc->selectedRev.flags : 0;
             if (!ReferenceEquals(resolvedDoc, remoteDoc)) {
                 var isDeleted = true;
                 if (resolvedDoc != null) {
@@ -1285,7 +1287,7 @@ namespace Couchbase.Lite
                     if (mergedBody.Equals((FLSliceResult)FLSlice.Null))
                         throw new RuntimeException("Resolved document contains a null body");
                     isDeleted = resolvedDoc.IsDeleted;
-                } else if (resolvedDoc == null || resolvedDoc.IsEmpty) {
+                } else {
                     FLEncoder* encoder = SharedEncoder;
                     Native.FLEncoder_BeginDict(encoder, 0);
                     Native.FLEncoder_EndDict(encoder);

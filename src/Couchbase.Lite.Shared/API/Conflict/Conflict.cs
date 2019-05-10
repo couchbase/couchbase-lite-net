@@ -27,13 +27,13 @@ namespace Couchbase.Lite
     public class Conflict
     {
         /// <summary>
-        /// The document which is already in the database. If null, the document is deleted.
+        /// The document in local database. If null, the document is deleted.
         /// </summary>
         [CanBeNull]
         public Document LocalDocument { get; set; }
 
         /// <summary>
-        /// The document which is already in the database. If null, the document is deleted.
+        /// The document in remote database. If null, the document is deleted.
         /// </summary>
         [CanBeNull]
         public Document RemoteDocument { get; set; }

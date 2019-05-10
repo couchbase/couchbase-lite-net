@@ -232,6 +232,12 @@ namespace Couchbase.Lite.Sync
         [NotNull]
         public IEndpoint Target { get; }
 
+        /// <summary>
+        /// The implemented custom conflict resolver object can be registered to the replicator 
+        /// at ConflictResolver property. The default value of the conflictResolver is null. 
+        /// When the value is null, the default conflict resolution will be applied.
+        /// </summary>
+        [CanBeNull]
         public IConflictResolver ConflictResolver
         {
             get => _resolver;
