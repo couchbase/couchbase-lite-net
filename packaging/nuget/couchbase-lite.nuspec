@@ -4,7 +4,7 @@
     <id>Couchbase.Lite</id>
     <title>Couchbase Lite</title>
     <version>$version$</version>
-    <authors>Jim Borden</authors>
+    <authors>Jim Borden, Sandy Chuang</authors>
     <owners>Couchbase</owners>
     <license type="file">LICENSE.txt</license>
     <projectUrl>https://github.com/couchbase/couchbase-lite-net</projectUrl>
