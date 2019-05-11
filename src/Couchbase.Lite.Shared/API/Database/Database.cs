@@ -576,7 +576,7 @@ namespace Couchbase.Lite
         public bool Delete([NotNull]Document document, ConcurrencyControl concurrencyControl)
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
-            return Save(doc, concurrencyControl, true);
+            return Save(doc, null, concurrencyControl, true);
         }
 
         /// <summary>
@@ -816,10 +816,79 @@ namespace Couchbase.Lite
         public bool Save([NotNull]MutableDocument document, ConcurrencyControl concurrencyControl)
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
-            return Save(doc, concurrencyControl, false);
+            return Save(doc, null, concurrencyControl, false);
         }
 
-        #if CBL_LINQ
+        /// <summary>
+        /// Saves a document to the database. When write operations are executed concurrently, 
+        /// and if conflicts occur, conflict handler will be called. Use the handler to directly
+        /// edit the document.Returning true, will save the document. Returning false, will cancel
+        /// the save operation.
+        /// </summary>
+        /// <param name="document">The document to save</param>
+        /// <param name="conflictHandler">The conflict handler block which can be used to resolve it.</param> 
+        /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
+        public bool Save([NotNull]MutableDocument document, Func<MutableDocument, Document, bool> conflictHandler)
+        {
+            var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
+            Debug.Assert(conflictHandler != null);
+            Document currDoc = null;
+            var success = Save(doc, null, ConcurrencyControl.FailOnConflict, false);
+            ThreadSafety.DoLocked(() =>
+            {
+                var committed = false;
+                try {
+                    LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
+                    if (!success) {
+                        var oldDoc = GetDocument(doc.Id);
+                        C4Error err;
+                        C4Document* curDoc = Native.c4doc_get(_c4db, doc.Id, true, &err);
+                        var isDeleted = curDoc->flags.HasFlag(C4DocumentFlags.DocDeleted);
+
+                        if (isDeleted) {
+                            oldDoc.ReplaceC4Doc(new C4DocumentWrapper(curDoc));
+                            Native.c4doc_free(curDoc);
+                            curDoc = null;
+                        }
+
+                        if (oldDoc == null) {
+                            LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
+                            return false;
+                        }
+
+                        currDoc = isDeleted ? null : oldDoc;
+
+                        try {
+                            if (conflictHandler(doc, currDoc)) {
+                                Debug.Assert(doc != null);
+                                success = true;
+                            }
+                        } catch {
+                            success = false;
+                            committed = true;
+                            LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
+                        }
+                    }
+                } catch {
+                    if (!committed) {
+                        LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
+                    }
+                    throw;
+                } finally {
+                    if (!committed) {
+                        LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
+                    }
+                }
+
+                return success;
+            });
+
+            if (success)
+                return Save(doc, currDoc, ConcurrencyControl.FailOnConflict, false);
+            return success;
+        }
+
+#if CBL_LINQ
         public void Save(Couchbase.Lite.Linq.IDocumentModel model)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(model), model);
@@ -1131,7 +1200,8 @@ namespace Couchbase.Lite
             return String.CompareOrdinal(localDoc.RevID, remoteDoc.RevID) > 0 ? localDoc : remoteDoc;
         }
         
-        private bool Save([NotNull]Document document, ConcurrencyControl concurrencyControl, bool deletion)
+        private bool Save([NotNull]Document document, [CanBeNull]Document baseDocument, 
+            ConcurrencyControl concurrencyControl, bool deletion)
         {
             Debug.Assert(document != null);
             if (deletion && document.RevID == null) {
@@ -1148,7 +1218,8 @@ namespace Couchbase.Lite
                 var committed = false;
                 try {
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
-                    Save(document, &newDoc, null, deletion);
+                    var baseDoc = baseDocument == null ? null : baseDocument.c4Doc.RawDoc;
+                    Save(document, &newDoc, baseDoc, deletion);
                     if (newDoc == null) {
                         // Handle conflict:
                         if (concurrencyControl == ConcurrencyControl.FailOnConflict) {

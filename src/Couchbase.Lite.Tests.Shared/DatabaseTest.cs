@@ -306,6 +306,55 @@ namespace Test
         }
 
         [Fact]
+        public void TestSaveDocumentWithConflictHandler()
+        {
+            using (var doc1 = new MutableDocument("doc1")){
+                doc1.SetString("name", "Jim");
+                
+                Db.Save(doc1);
+
+                // Get two doc1 document objects (doc1a and doc1b):
+                var doc1a = Db.GetDocument(doc1.Id).ToMutable();
+                var doc1b = Db.GetDocument(doc1.Id).ToMutable();
+
+                // Modify doc1a:
+                doc1a.SetString("name", "Jim");
+                doc1a.SetString("language", "English");
+                        
+                Db.Save(doc1a);
+
+                // Modify doc1b:
+                doc1b.SetString("name", "Jim");
+                doc1b.SetString("language", "C#");
+                doc1b.SetString("location", "Japan");        
+                Db.Save(doc1b, ResolveConflict);
+            }
+
+            using (var doc1 = Db.GetDocument("doc1")) {
+                doc1.GetString("name").Should().Be("Jim");
+                var lanStr = doc1.GetString("language");
+                lanStr.Should().Contain("English");
+                lanStr.Should().Contain("C#");
+                doc1.GetString("location").Should().Be("Japan");
+            }
+        }
+
+        bool ResolveConflict(MutableDocument updateDoc, Document curDoc)
+        {
+            var updateDocDict = updateDoc.ToDictionary();
+            var curDocDict = curDoc.ToDictionary();
+
+            foreach (var value in curDocDict)
+                if (updateDocDict.ContainsKey(value.Key) && !value.Value.Equals(updateDocDict[value.Key]))
+                    updateDocDict[value.Key] = value.Value + ", " + updateDocDict[value.Key];
+                else if (!updateDocDict.ContainsKey(value.Key))
+                    updateDocDict.Add(value.Key, value.Value);
+
+            updateDoc.SetData(updateDocDict);
+            return true;
+        }
+
+        [Fact]
         public void TestSaveDocToClosedDB()
         {
             Db.Close();
