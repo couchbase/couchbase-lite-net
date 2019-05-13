@@ -2332,18 +2332,18 @@ namespace Couchbase.Lite.Storage.SQLCipher
         {
             var result = new List<string>();
             RunInTransaction (() => {
-                var sequences = new List<long>();
+                var doc_ids = new List<long>();
                 var now = DateTime.UtcNow;
                 TryQuery(c =>
                 {
-                    sequences.Add(c.GetLong(0));
+                    doc_ids.Add(c.GetLong(0));
                     result.Add(c.GetString(1));
 
                     return true;
-                }, "SELECT * FROM docs WHERE expiry_timestamp <= ?", now);
+                }, "SELECT doc_id, docid FROM docs WHERE expiry_timestamp <= ?", now);
                     
                 if (result.Count > 0) {
-                    var deleteSql = String.Format("sequence in ({0})", String.Join(", ", sequences.ToStringArray()));
+                    var deleteSql = String.Format("doc_id in ({0})", String.Join(", ", doc_ids.ToStringArray()));
                     var vals = new ContentValues(1);
                     vals["expiry_timestamp"] = null;
 
