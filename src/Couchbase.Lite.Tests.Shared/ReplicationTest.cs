@@ -1078,6 +1078,27 @@ namespace Test
         }
 
         [Fact]
+        public void TestConflictResolverPropertyInReplicationConfig()
+        {
+            CreateReplicationConflict();
+
+            var config = CreateConfig(false, true, false);
+
+            config.ConflictResolver = new TestConflictResolver((conflict) =>
+            {
+                return conflict.RemoteDocument;
+            });
+
+            config.ConflictResolver.GetType().Should().Be(typeof(TestConflictResolver));
+
+            using (var replicator = new Replicator(config)) {
+                
+                Action badAction = (() => replicator.Config.ConflictResolver = new FakeConflictResolver());
+                badAction.ShouldThrow<InvalidOperationException>("Attempt to modify a frozen object is prohibited.");
+            }
+        }
+
+        [Fact]
         public void TestConflictResolverRemoteWins()
         {
             CreateReplicationConflict();
@@ -1541,6 +1562,14 @@ namespace Test
         public Document Resolve(Conflict conflict)
         {
             return ResolveFunc(conflict);
+        }
+    }
+
+    public class FakeConflictResolver : IConflictResolver
+    {
+        public Document Resolve(Conflict conflict)
+        {
+            throw new NotImplementedException();
         }
     }
 
