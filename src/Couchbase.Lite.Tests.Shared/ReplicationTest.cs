@@ -1135,6 +1135,79 @@ namespace Test
         }
 
         [Fact]
+        public void TestConflictResolverMergeDoc()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Jim");
+                Db.Save(doc1);
+            }
+
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Jim");
+                doc1.SetString("location", "Japan");
+                _otherDB.Save(doc1);
+            }
+
+            var config = CreateConfig(true, true, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                var localDoc = conflict.LocalDocument;
+                var remoteDoc = conflict.RemoteDocument;
+
+                var updateDocDict = localDoc.ToDictionary();
+                var curDocDict = remoteDoc.ToDictionary();
+
+                foreach (var value in curDocDict) {
+                    if (updateDocDict.ContainsKey(value.Key) && !value.Value.Equals(updateDocDict[value.Key])) {
+                        updateDocDict[value.Key] = value.Value + ", " + updateDocDict[value.Key];
+                    } else if (!updateDocDict.ContainsKey(value.Key)) {
+                        updateDocDict.Add(value.Key, value.Value);
+                    }
+                }
+
+                using (var doc1 = Db.GetDocument(localDoc.Id).ToMutable()) {
+                    doc1.SetData(updateDocDict);
+                    return doc1;
+                }
+            });
+
+            RunReplication(config, 0, 0);
+
+            using (var doc1a = Db.GetDocument("doc1"))
+            using (var doc1aMutable = doc1a.ToMutable()) {
+                doc1aMutable.SetString("name", "Jim");
+                doc1aMutable.SetString("language", "English");
+                Db.Save(doc1aMutable);
+            }
+
+            using (var doc1a = _otherDB.GetDocument("doc1"))
+            using (var doc1aMutable = doc1a.ToMutable()) {
+                doc1aMutable.SetString("name", "Jim");
+                doc1aMutable.SetString("language", "C#");
+                _otherDB.Save(doc1aMutable);
+            }
+
+            RunReplication(config, 0, 0);
+
+            using (var doc1 = Db.GetDocument("doc1")) {
+                doc1.GetString("name").Should().Be("Jim");
+                var lanStr = doc1.GetString("language");
+                lanStr.Should().Contain("English");
+                lanStr.Should().Contain("C#");
+                doc1.GetString("location").Should().Be("Japan");
+            }
+
+            RunReplication(config, 0, 0);
+
+            using (var doc1 = _otherDB.GetDocument("doc1")) {
+                doc1.GetString("name").Should().Be("Jim");
+                var lanStr = doc1.GetString("language");
+                lanStr.Should().Contain("English");
+                lanStr.Should().Contain("C#");
+                doc1.GetString("location").Should().Be("Japan");
+            }
+        }
+
+        [Fact]
         public void TestConflictResolverNullDoc()
         {
             CreateReplicationConflict();
