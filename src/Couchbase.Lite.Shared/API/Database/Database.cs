@@ -833,59 +833,63 @@ namespace Couchbase.Lite
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             Debug.Assert(conflictHandler != null);
             Document currDoc = null;
-            var success = Save(doc, null, ConcurrencyControl.FailOnConflict, false);
+            
             ThreadSafety.DoLocked(() =>
             {
-                var committed = false;
-                try {
-                    LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
-                    if (!success) {
-                        var oldDoc = GetDocument(doc.Id);
-                        C4Error err;
-                        C4Document* curDoc = Native.c4doc_get(_c4db, doc.Id, true, &err);
-                        var isDeleted = curDoc->flags.HasFlag(C4DocumentFlags.DocDeleted);
+                while (true) {
+                    var success = Save(doc, currDoc, ConcurrencyControl.FailOnConflict, false);
+                    if (success)
+                        return success;
+                    var committed = false;
+                    try {
+                        LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
+                        if (!success) {
+                            var oldDoc = GetDocument(doc.Id);
+                            C4Error err;
+                            C4Document* curDoc = Native.c4doc_get(_c4db, doc.Id, true, &err);
+                            var isDeleted = curDoc->flags.HasFlag(C4DocumentFlags.DocDeleted);
 
-                        if (isDeleted) {
-                            oldDoc.ReplaceC4Doc(new C4DocumentWrapper(curDoc));
-                            Native.c4doc_free(curDoc);
-                            curDoc = null;
-                        }
-
-                        if (oldDoc == null) {
-                            LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
-                            return false;
-                        }
-
-                        currDoc = isDeleted ? null : oldDoc;
-
-                        try {
-                            if (conflictHandler(doc, currDoc)) {
-                                Debug.Assert(doc != null);
-                                success = true;
+                            if (isDeleted) {
+                                oldDoc.ReplaceC4Doc(new C4DocumentWrapper(curDoc));
+                                Native.c4doc_free(curDoc);
+                                curDoc = null;
                             }
-                        } catch {
-                            success = false;
-                            committed = true;
+
+                            if (oldDoc == null) {
+                                LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
+                                return false;
+                            }
+
+                            currDoc = isDeleted ? null : oldDoc;
+
+                            try {
+                                if (conflictHandler(doc, currDoc)) {
+                                    Debug.Assert(doc != null);
+                                    success = true;
+                                }
+                            } catch {
+                                success = false;
+                                committed = true;
+                                LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
+                            }
+                        }
+                    } catch {
+                        if (!committed) {
+                            LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
+                        }
+                        throw;
+                    } finally {
+                        if (!committed) {
                             LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
                         }
                     }
-                } catch {
-                    if (!committed) {
-                        LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
-                    }
-                    throw;
-                } finally {
-                    if (!committed) {
-                        LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
-                    }
+
+                    if (success)
+                        continue;
+                    return success;
                 }
-
-                return success;
             });
-
-            if (success)
-                return Save(doc, currDoc, ConcurrencyControl.FailOnConflict, false);
-            return success;
+            return false;
         }
 
 #if CBL_LINQ

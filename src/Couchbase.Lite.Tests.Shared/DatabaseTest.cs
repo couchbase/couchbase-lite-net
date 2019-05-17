@@ -30,6 +30,8 @@ using System.Linq;
 using System.Threading;
 
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Logging;
+using Couchbase.Lite.DI;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -306,7 +308,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestSaveDocumentWithConflictHandler()
+        public void TestConflictHandlerSaveMergedDocument()
         {
             using (var doc1 = new MutableDocument("doc1")){
                 doc1.SetString("name", "Jim");
@@ -339,19 +341,68 @@ namespace Test
             }
         }
 
-        bool ResolveConflict(MutableDocument updateDoc, Document curDoc)
+        [Fact]
+        public void TestConflictHandlerReturnsTrue()
         {
-            var updateDocDict = updateDoc.ToDictionary();
-            var curDocDict = curDoc.ToDictionary();
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Jim");
+                Db.Save(doc1, (updated, current) => {
+                    return true;
+                });
 
-            foreach (var value in curDocDict)
-                if (updateDocDict.ContainsKey(value.Key) && !value.Value.Equals(updateDocDict[value.Key]))
-                    updateDocDict[value.Key] = value.Value + ", " + updateDocDict[value.Key];
-                else if (!updateDocDict.ContainsKey(value.Key))
-                    updateDocDict.Add(value.Key, value.Value);
+                Db.GetDocument("doc1").GetString("name").Should().Be("Jim");
 
-            updateDoc.SetData(updateDocDict);
-            return true;
+                var doc1a = new MutableDocument(doc1.Id);
+                doc1a.SetString("name", "Kim");
+                Db.Save(doc1a, (updated, current) => {
+                    return true;
+                });
+
+                Db.GetDocument("doc1").GetString("name").Should().Be("Kim");
+            }
+        }
+
+        [Fact]
+        public void TestConflictHandlerReturnsFalse()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Jim");
+                Db.Save(doc1, (updated, current) => {
+                    return false;
+                });
+
+                Db.GetDocument(doc1.Id).GetString("name").Should().Be("Jim");
+
+                var doc1a = new MutableDocument(doc1.Id);
+                doc1a.SetString("name", "Kim");
+                Db.Save(doc1a, (updated, current) => {
+                    return false;
+                });
+
+                Db.GetDocument("doc1").GetString("name").Should().Be("Jim");
+            }
+        }
+
+        [Fact]
+        public void TestConflictHandlerWithDeletedOldDoc()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Jim");
+                Db.Save(doc1);
+
+                var doc1a = new MutableDocument("doc1");
+                doc1a.SetString("name", "Kim");
+                Db.Save(doc1a, (updated, current) => {
+                    return true;
+                });
+
+                Db.GetDocument("doc1").GetString("name").Should().Be("Kim");
+
+                //delete old doc
+                Db.Delete(doc1);
+
+                Db.GetDocument("doc1").Should().BeNull();
+            }
         }
 
         [Fact]
@@ -1189,6 +1240,21 @@ namespace Test
                     });
                 }
             }
+        }
+
+        private bool ResolveConflict(MutableDocument updatedDoc, Document currentDoc)
+        {
+            var updateDocDict = updatedDoc.ToDictionary();
+            var curDocDict = currentDoc.ToDictionary();
+
+            foreach (var value in curDocDict)
+                if (updateDocDict.ContainsKey(value.Key) && !value.Value.Equals(updateDocDict[value.Key]))
+                    updateDocDict[value.Key] = value.Value + ", " + updateDocDict[value.Key];
+                else if (!updateDocDict.ContainsKey(value.Key))
+                    updateDocDict.Add(value.Key, value.Value);
+
+            updatedDoc.SetData(updateDocDict);
+            return true;
         }
 
         private void DeleteDB(Database db)
