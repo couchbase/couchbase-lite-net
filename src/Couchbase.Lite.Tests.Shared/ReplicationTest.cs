@@ -1164,7 +1164,7 @@ namespace Test
                     }
                 }
 
-                using (var doc1 = Db.GetDocument(localDoc.Id).ToMutable()) {
+                using(var doc1 = new MutableDocument(localDoc.Id)) {
                     doc1.SetData(updateDocDict);
                     return doc1;
                 }

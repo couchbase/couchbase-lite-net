@@ -852,42 +852,45 @@ namespace Couchbase.Lite
             {
                 var success = true;
                 LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
+                Document localDoc = null, remoteDoc = null;
                 try {
-                    Document localDoc = null, remoteDoc = null;
-                    try {
-                        localDoc = new Document(this, docID);
-                        if (!localDoc.Exists) {
-                            throw new CouchbaseLiteException(C4ErrorCode.NotFound);
-                        }
-
-                        remoteDoc = new Document(this, docID);
-                        if (!remoteDoc.SelectConflictingRevision()) {
-                            WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', skipping...",
-                                new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
-                            return;
-                        }
-
-                        // Resolve conflict:
-                        WriteLog.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
-                            new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevID,
-                            remoteDoc.RevID);
-                        conflictResolver = conflictResolver ?? new DefaultConflictResolver();
-                        var conflict = new Conflict(localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
-                        var resolvedDoc = conflictResolver.Resolve(conflict);
-                        if (resolvedDoc != null && resolvedDoc.Id != docID)
-                            throw new InvalidOperationException($"Resolved docID {resolvedDoc.Id} does not match with docID {docID}");
-                        if (resolvedDoc != null && resolvedDoc.Database != this)
-                            throw new InvalidOperationException($"Resolved document db {resolvedDoc.Database.Name} is different from expected db {this.Name}");
-                        SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
-                    } finally {
-                        localDoc?.Dispose();
-                        remoteDoc?.Dispose();
+                    localDoc = new Document(this, docID);
+                    if (!localDoc.Exists) {
+                        throw new CouchbaseLiteException(C4ErrorCode.NotFound);
                     }
+
+                    remoteDoc = new Document(this, docID);
+                    if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
+                        WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', skipping...",
+                            new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+                        success = false;
+                        return;
+                    }
+
+                    // Resolve conflict:
+                    WriteLog.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
+                        new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevID,
+                        remoteDoc.RevID);
+                    conflictResolver = conflictResolver ?? new DefaultConflictResolver();
+                    var conflict = new Conflict(localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
+                    var resolvedDoc = conflictResolver.Resolve(conflict);
+                    if (resolvedDoc != null) {
+                        if (resolvedDoc.Id != docID)
+                            throw new InvalidOperationException($"Resolved docID {resolvedDoc.Id} does not match docID {docID}");
+                        else if (resolvedDoc.Database == null)
+                            resolvedDoc.Database = this;
+                        else if (resolvedDoc.Database != this)
+                            throw new InvalidOperationException($"Resolved document db {resolvedDoc.Database.Name} is different from expected db {this.Name}");
+                    }
+                    SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
+                    success = true;
                 } catch (Exception ex) {
                     success = false;
                     WriteLog.To.Sync.W(Tag, $"Exception in conflict resolver: {ex.Message}.");
-                    throw;
+                    throw; 
                 } finally {
+                    localDoc?.Dispose();
+                    remoteDoc?.Dispose();
                     LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, success, err));
                 }
             });
@@ -1216,11 +1219,7 @@ namespace Couchbase.Lite
                     }
                 });
             } else if (doc.IsEmpty) {
-                FLEncoder* encoder = SharedEncoder;
-                Native.FLEncoder_BeginDict(encoder, 0);
-                Native.FLEncoder_EndDict(encoder);
-                body = NativeRaw.FLEncoder_Finish(encoder, null);
-                Native.FLEncoder_Reset(encoder);
+                body = EmptyFLSliceResult();
             }
 
             var rawDoc = baseDoc != null ? baseDoc :
@@ -1288,11 +1287,7 @@ namespace Couchbase.Lite
                         throw new RuntimeException("Resolved document contains a null body");
                     isDeleted = resolvedDoc.IsDeleted;
                 } else {
-                    FLEncoder* encoder = SharedEncoder;
-                    Native.FLEncoder_BeginDict(encoder, 0);
-                    Native.FLEncoder_EndDict(encoder);
-                    mergedBody = NativeRaw.FLEncoder_Finish(encoder, null);
-                    Native.FLEncoder_Reset(encoder);
+                    mergedBody = EmptyFLSliceResult();
                 }
 
                 if (isDeleted)
@@ -1318,6 +1313,17 @@ namespace Couchbase.Lite
             WriteLog.To.Database.I(Tag, "Conflict resolved as doc '{0}' rev {1}",
                 new SecureLogString(localDoc.Id, LogMessageSensitivity.PotentiallyInsecure),
                 rawDoc->revID.CreateString());
+        }
+
+        private FLSliceResult EmptyFLSliceResult()
+        {
+            FLEncoder* encoder = SharedEncoder;
+            Native.FLEncoder_BeginDict(encoder, 0);
+            Native.FLEncoder_EndDict(encoder);
+            var body = NativeRaw.FLEncoder_Finish(encoder, null);
+            Native.FLEncoder_Reset(encoder);
+
+            return body;
         }
 
         private void StopExpirePurgeTimer()
