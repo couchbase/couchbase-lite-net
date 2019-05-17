@@ -850,47 +850,50 @@ namespace Couchbase.Lite
 
             ThreadSafety.DoLocked(() =>
             {
-                var success = true;
-                LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
-                Document localDoc = null, remoteDoc = null;
-                try {
-                    localDoc = new Document(this, docID);
-                    if (!localDoc.Exists) {
-                        throw new CouchbaseLiteException(C4ErrorCode.NotFound);
-                    }
+                while (true) {
+                    var success = true;
+                    LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
+                    Document localDoc = null, remoteDoc = null;
+                    try {
+                        localDoc = new Document(this, docID);
+                        if (!localDoc.Exists) {
+                            throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+                        }
 
-                    remoteDoc = new Document(this, docID);
-                    if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
-                        WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', skipping...",
-                            new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+                        remoteDoc = new Document(this, docID);
+                        if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
+                            WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', skipping...",
+                                    new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+                            success = false;
+                            return;
+                        }
+
+                        // Resolve conflict:
+                        WriteLog.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
+                                new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevID,
+                                remoteDoc.RevID);
+                        conflictResolver = conflictResolver ?? new DefaultConflictResolver();
+                        var conflict = new Conflict(localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
+                        var resolvedDoc = conflictResolver.Resolve(conflict);
+                        if (resolvedDoc != null) {
+                            if (resolvedDoc.Id != docID)
+                                throw new InvalidOperationException($"Resolved docID {resolvedDoc.Id} does not match docID {docID}");
+                            else if (resolvedDoc.Database == null)
+                                resolvedDoc.Database = this;
+                            else if (resolvedDoc.Database != this)
+                                throw new InvalidOperationException($"Resolved document db {resolvedDoc.Database.Name} is different from expected db {this.Name}");
+                        }
+                        success = SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
+                        if (!success)
+                            continue;
+                    } catch {
                         success = false;
-                        return;
+                        throw;
+                    } finally {
+                        localDoc?.Dispose();
+                        remoteDoc?.Dispose();
+                        LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, success, err));
                     }
-
-                    // Resolve conflict:
-                    WriteLog.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
-                        new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevID,
-                        remoteDoc.RevID);
-                    conflictResolver = conflictResolver ?? new DefaultConflictResolver();
-                    var conflict = new Conflict(localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
-                    var resolvedDoc = conflictResolver.Resolve(conflict);
-                    if (resolvedDoc != null) {
-                        if (resolvedDoc.Id != docID)
-                            throw new InvalidOperationException($"Resolved docID {resolvedDoc.Id} does not match docID {docID}");
-                        else if (resolvedDoc.Database == null)
-                            resolvedDoc.Database = this;
-                        else if (resolvedDoc.Database != this)
-                            throw new InvalidOperationException($"Resolved document db {resolvedDoc.Database.Name} is different from expected db {this.Name}");
-                    }
-                    SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
-                    success = true;
-                } catch (Exception ex) {
-                    success = false;
-                    throw; 
-                } finally {
-                    localDoc?.Dispose();
-                    remoteDoc?.Dispose();
-                    LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, success, err));
                 }
             });
         }
@@ -1248,7 +1251,7 @@ namespace Couchbase.Lite
         }
 
         // Must be called in transaction
-        private void SaveResolvedDocument([CanBeNull]Document resolvedDoc, [NotNull]Document localDoc, [NotNull]Document remoteDoc)
+        private bool SaveResolvedDocument([CanBeNull]Document resolvedDoc, [NotNull]Document localDoc, [NotNull]Document remoteDoc)
         {
             if (resolvedDoc == null) {
                 if (localDoc.IsDeleted)
@@ -1309,9 +1312,14 @@ namespace Couchbase.Lite
 
             LiteCoreBridge.Check(err => Native.c4doc_save(rawDoc, 0, err));
 
+            if (rawDoc->flags.HasFlag(C4DocumentFlags.DocConflicted))
+                return false;
+
             WriteLog.To.Database.I(Tag, "Conflict resolved as doc '{0}' rev {1}",
                 new SecureLogString(localDoc.Id, LogMessageSensitivity.PotentiallyInsecure),
                 rawDoc->revID.CreateString());
+
+            return true;
         }
 
         private FLSliceResult EmptyFLSliceResult()
