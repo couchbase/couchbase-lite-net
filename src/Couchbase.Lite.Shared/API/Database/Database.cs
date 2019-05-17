@@ -886,7 +886,6 @@ namespace Couchbase.Lite
                     success = true;
                 } catch (Exception ex) {
                     success = false;
-                    WriteLog.To.Sync.W(Tag, $"Exception in conflict resolver: {ex.Message}.");
                     throw; 
                 } finally {
                     localDoc?.Dispose();
