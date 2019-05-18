@@ -871,11 +871,6 @@ namespace Couchbase.Lite
                             LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
                         }
                     }
-                } catch {
-                    if (!committed) {
-                        LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
-                    }
-                    throw;
                 } finally {
                     if (!committed) {
                         LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
