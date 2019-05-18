@@ -1300,20 +1300,16 @@ namespace Couchbase.Lite
             C4Document* rawDoc = localDoc.c4Doc != null ? localDoc.c4Doc.RawDoc : null;
             using (var winningRevID_ = new C4String(winningRevID))
             using (var losingRevID_ = new C4String(losingRevID)) {
-                LiteCoreBridge.Check(
-                    err =>
-                    {
-                        var retVal = NativeRaw.c4doc_resolveConflict(rawDoc, winningRevID_.AsFLSlice(),
-                            losingRevID_.AsFLSlice(), (FLSlice)mergedBody, mergedFlags, err);
-                        Native.FLSliceResult_Release(mergedBody);
-                        return retVal;
-                    });
+                C4Error err;
+                var retVal = NativeRaw.c4doc_resolveConflict(rawDoc, winningRevID_.AsFLSlice(),
+                    losingRevID_.AsFLSlice(), (FLSlice)mergedBody, mergedFlags, &err);
+                Native.FLSliceResult_Release(mergedBody);
+                
+                if(!retVal && err.code == (int)C4ErrorCode.Conflict)
+                    return false;
             }
 
             LiteCoreBridge.Check(err => Native.c4doc_save(rawDoc, 0, err));
-
-            if (rawDoc->flags.HasFlag(C4DocumentFlags.DocConflicted))
-                return false;
 
             WriteLog.To.Database.I(Tag, "Conflict resolved as doc '{0}' rev {1}",
                 new SecureLogString(localDoc.Id, LogMessageSensitivity.PotentiallyInsecure),
