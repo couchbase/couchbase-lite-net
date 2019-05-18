@@ -97,6 +97,13 @@ namespace Couchbase.Lite
                             message = ie.Message;
                             c4err.domain = C4ErrorDomain.NetworkDomain;
                             c4err.code = (int) C4NetworkErrorCode.TLSHandshakeFailed;
+                        } else if(ie.Message == "Connection closed.") {
+                        //AppleTlsContext.cs
+                        //case SslStatus.ClosedAbort:
+                        //  throw new IOException("Connection closed.");
+                        message = ie.Message;
+                            c4err.domain = C4ErrorDomain.NetworkDomain;
+                            c4err.code = (int)SocketError.ConnectionAborted;
                         }
                         break;
                     case AuthenticationException ae:
