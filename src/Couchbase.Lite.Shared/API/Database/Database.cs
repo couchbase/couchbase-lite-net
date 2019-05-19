@@ -833,53 +833,34 @@ namespace Couchbase.Lite
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             Debug.Assert(conflictHandler != null);
             Document currDoc = null;
-
             while (true) {
-                var success = Save(doc, currDoc, ConcurrencyControl.FailOnConflict, false);
-                if (success)
-                    return success;
-                var committed = false;
-                try {
-                    LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
-                    if (!success) {
-                        var oldDoc = GetDocument(doc.Id);
-                        C4Error err;
-                        C4Document* curDoc = Native.c4doc_get(_c4db, doc.Id, true, &err);
-                        var isDeleted = curDoc->flags.HasFlag(C4DocumentFlags.DocDeleted);
-
-                        if (isDeleted) {
-                            oldDoc.ReplaceC4Doc(new C4DocumentWrapper(curDoc));
-                            Native.c4doc_free(curDoc);
-                            curDoc = null;
-                        }
-
-                        if (oldDoc == null) {
-                            LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
+                var saved = Save(doc, currDoc, ConcurrencyControl.FailOnConflict, false);
+                if (!saved) { // has conflict, save failed
+                    var oldDoc = GetDocument(doc.Id);
+                    C4Error err;
+                    C4Document* curDoc = Native.c4doc_get(_c4db, doc.Id, true, &err);
+                    var isDeleted = curDoc->flags.HasFlag(C4DocumentFlags.DocDeleted);
+                    if (isDeleted) {
+                        oldDoc.ReplaceC4Doc(new C4DocumentWrapper(curDoc));
+                        Native.c4doc_free(curDoc);
+                        curDoc = null;
+                    }
+                    if (oldDoc == null) {
+                        return false;
+                    }
+                    currDoc = isDeleted ? null : oldDoc;
+                    try {
+                        if (conflictHandler(doc, currDoc)) { // resolve conflict with conflictHandler
+                            Debug.Assert(doc != null);
+                        } else {
                             return false;
                         }
-
-                        currDoc = isDeleted ? null : oldDoc;
-
-                        try {
-                            if (conflictHandler(doc, currDoc)) {
-                                Debug.Assert(doc != null);
-                                success = true;
-                            }
-                        } catch {
-                            success = false;
-                            committed = true;
-                            LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
-                        }
+                    } catch {
+                        return false;
                     }
-                } finally {
-                    if (!committed) {
-                        LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
-                    }
+                    continue; // conflict resolved, try save again
                 }
-
-                if (success)
-                    continue;
-                return success;
+                return saved;
             }
         }
 
