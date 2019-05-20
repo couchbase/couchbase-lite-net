@@ -1304,9 +1304,13 @@ namespace Couchbase.Lite
                 var retVal = NativeRaw.c4doc_resolveConflict(rawDoc, winningRevID_.AsFLSlice(),
                     losingRevID_.AsFLSlice(), (FLSlice)mergedBody, mergedFlags, &err);
                 Native.FLSliceResult_Release(mergedBody);
-                
-                if(!retVal && err.code == (int)C4ErrorCode.Conflict)
-                    return false;
+
+                if (!retVal) {
+                    if (err.code == (int)C4ErrorCode.Conflict)
+                        return false;
+                    else
+                        throw new CouchbaseLiteException((C4ErrorCode)err.code, "LiteCore failed resolving conflict.");
+                }
             }
 
             LiteCoreBridge.Check(err => Native.c4doc_save(rawDoc, 0, err));
