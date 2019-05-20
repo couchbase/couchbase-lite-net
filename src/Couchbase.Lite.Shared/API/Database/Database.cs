@@ -832,27 +832,23 @@ namespace Couchbase.Lite
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             Debug.Assert(conflictHandler != null);
-            Document currDoc = null;
+            Document baseDoc = null;
             while (true) {
-                var saved = Save(doc, currDoc, ConcurrencyControl.FailOnConflict, false);
+                var saved = Save(doc, baseDoc, ConcurrencyControl.FailOnConflict, false);
                 if (!saved) { // has conflict, save failed
-                    var oldDoc = GetDocument(doc.Id);
-                    C4Error err;
-                    C4Document* curDoc = Native.c4doc_get(_c4db, doc.Id, true, &err);
-                    var isDeleted = curDoc->flags.HasFlag(C4DocumentFlags.DocDeleted);
-                    if (isDeleted) {
-                        oldDoc.ReplaceC4Doc(new C4DocumentWrapper(curDoc));
-                        Native.c4doc_free(curDoc);
-                        curDoc = null;
-                    }
-                    if (oldDoc == null) {
-                        return false;
-                    }
-                    currDoc = isDeleted ? null : oldDoc;
+                    ThreadSafety.DoLocked(() =>
+                    {
+                        LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
+                        baseDoc = GetDocument(doc.Id);
+                        if (baseDoc == null) {
+                            LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
+                            return;
+                        }
+                        baseDoc = baseDoc.IsDeleted ? null : baseDoc;
+                        LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, true, e));
+                    });
                     try {
-                        if (conflictHandler(doc, currDoc)) { // resolve conflict with conflictHandler
-                            Debug.Assert(doc != null);
-                        } else {
+                        if (!conflictHandler(doc, baseDoc)) { // resolve conflict with conflictHandler
                             return false;
                         }
                     } catch {
