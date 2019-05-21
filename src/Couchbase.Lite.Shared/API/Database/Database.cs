@@ -847,9 +847,8 @@ namespace Couchbase.Lite
         internal void ResolveConflict([NotNull]string docID, [CanBeNull]IConflictResolver conflictResolver)
         {
             Debug.Assert(docID != null);
-            var saved = false;
-            while (!saved) {
-                var success = true;
+            var success = false;
+            while (!success) {
                 Document localDoc = null, remoteDoc = null;
                 try {
                     localDoc = new Document(this, docID);
@@ -861,6 +860,7 @@ namespace Couchbase.Lite
                     if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
                         WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', skipping...",
                                 new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+                        success = false;
                         return;
                     }
 
@@ -884,18 +884,17 @@ namespace Couchbase.Lite
                         InBatch(() =>
                         {
                             success = SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
-
                         });
                         if (!success)
                             continue;
-                        else
-                            saved = true;
                     }
                 } finally {
                     localDoc?.Dispose();
                     remoteDoc?.Dispose();
                 }
+                
             }
+
         }
 
         internal void SchedulePurgeExpired(TimeSpan delay)
