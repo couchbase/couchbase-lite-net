@@ -386,22 +386,28 @@ namespace Test
         [Fact]
         public void TestConflictHandlerWithDeletedOldDoc()
         {
-            using (var doc1 = new MutableDocument("doc1")) {
+            using (var doc1 = new MutableDocument("doc1")){
                 doc1.SetString("name", "Jim");
                 Db.Save(doc1);
 
-                var doc1a = new MutableDocument("doc1");
+                var doc1a = Db.GetDocument("doc1").ToMutable();
                 doc1a.SetString("name", "Kim");
-                Db.Save(doc1a, (updated, current) => {
-                    return true;
-                });
 
-                Db.GetDocument("doc1").GetString("name").Should().Be("Kim");
+                Document currDoc = null;
+                var updatedDocName = "";
 
                 //delete old doc
                 Db.Delete(doc1);
+                Db.Save(doc1a, (updated, current) =>
+                {
+                    currDoc = current;
+                    updatedDocName = updated.GetString("name");
+                    return true;
+                });
 
-                Db.GetDocument("doc1").Should().BeNull();
+                currDoc.Should().BeNull();
+                updatedDocName.Should().Be("Kim");
+                Db.GetDocument("doc1").GetString("name").Should().Be("Kim");
             }
         }
 

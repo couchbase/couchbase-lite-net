@@ -833,31 +833,21 @@ namespace Couchbase.Lite
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             Debug.Assert(conflictHandler != null);
             Document baseDoc = null;
-            while (true) {
-                var saved = Save(doc, baseDoc, ConcurrencyControl.FailOnConflict, false);
-                if (!saved) { // has conflict, save failed
-                    ThreadSafety.DoLocked(() =>
-                    {
-                        LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
-                        baseDoc = GetDocument(doc.Id);
-                        if (baseDoc == null) {
-                            LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
-                            return;
-                        }
-                        baseDoc = baseDoc.IsDeleted ? null : baseDoc;
-                        LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, true, e));
-                    });
+            var saved = false;
+            do { 
+                saved = Save(doc, baseDoc, ConcurrencyControl.FailOnConflict, false);
+                baseDoc = new Document(this, doc.Id);
+                if (!saved) {
                     try {
-                        if (!conflictHandler(doc, baseDoc)) { // resolve conflict with conflictHandler
+                        if (!conflictHandler(doc, baseDoc.IsDeleted ? null : baseDoc)) { // resolve conflict with conflictHandler
                             return false;
                         }
                     } catch {
                         return false;
                     }
-                    continue; // conflict resolved, try save again
                 }
-                return saved;
-            }
+            } while (!saved);// has conflict, save failed
+            return saved;
         }
 
 #if CBL_LINQ
