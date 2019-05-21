@@ -1269,6 +1269,58 @@ namespace Test
             Db.Count.ShouldBeEquivalentTo(0);
         }
 
+        [Fact]
+        public void TestConflictResolverExceptionsThrown()
+        {
+            var wrongDocIDResolver = new TestConflictResolver((conflict) =>
+            {
+                return new Document(Db, "wrong_id");
+            });
+
+            TestConflictResolverExceptionThrown(wrongDocIDResolver);
+
+            var differentDbResolver = new TestConflictResolver((conflict) =>
+            {
+                Database db = new Database("different_db");
+                return new Document(db, "doc1");
+            });
+
+            TestConflictResolverExceptionThrown(differentDbResolver);
+        }
+
+        private void TestConflictResolverExceptionThrown(TestConflictResolver resolver)
+        {
+            CreateReplicationConflict();
+
+            var config = CreateConfig(true, true, false);
+
+            config.ConflictResolver = resolver;
+
+            using (var repl = new Replicator(config)) {
+                var wa = new WaitAssert();
+                repl.AddDocumentReplicationListener((sender, args) =>
+                {
+                    if (args.Documents[0].Id == "doc1") {
+                        wa.RunAssert(() =>
+                        {
+                            var err = args.Documents[0].Error;
+                            args.Documents[0].Error.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+                            args.Documents[0].Error.Error.Should().Be((int)CouchbaseLiteError.Conflict);
+                        });
+                    }
+                });
+
+                repl.Start();
+
+                wa.WaitForResult(TimeSpan.FromSeconds(10));
+                repl.Stop();
+                Try.Condition(() => repl.Status.Activity == ReplicatorActivityLevel.Stopped)
+                    .Times(5)
+                    .Delay(TimeSpan.FromMilliseconds(500))
+                    .Go().Should().BeTrue();
+            }
+        }
+
         private void TestConflictResolverWins(bool returnRemoteDoc)
         {
             CreateReplicationConflict();
