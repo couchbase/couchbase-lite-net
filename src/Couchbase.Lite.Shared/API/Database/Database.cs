@@ -847,34 +847,31 @@ namespace Couchbase.Lite
         internal void ResolveConflict([NotNull]string docID, [CanBeNull]IConflictResolver conflictResolver)
         {
             Debug.Assert(docID != null);
+            var saved = false;
+            while (!saved) {
+                var success = true;
+                Document localDoc = null, remoteDoc = null;
+                try {
+                    localDoc = new Document(this, docID);
+                    if (!localDoc.Exists) {
+                        throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+                    }
 
-            ThreadSafety.DoLocked(() =>
-            {
-                while (true) {
-                    var success = true;
-                    LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
-                    Document localDoc = null, remoteDoc = null;
-                    try {
-                        localDoc = new Document(this, docID);
-                        if (!localDoc.Exists) {
-                            throw new CouchbaseLiteException(C4ErrorCode.NotFound);
-                        }
+                    remoteDoc = new Document(this, docID);
+                    if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
+                        WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', skipping...",
+                                new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+                        return;
+                    }
 
-                        remoteDoc = new Document(this, docID);
-                        if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
-                            WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', skipping...",
-                                    new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
-                            success = false;
-                            return;
-                        }
+                    // Resolve conflict:
+                    WriteLog.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
+                            new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevID,
+                            remoteDoc.RevID);
 
-                        // Resolve conflict:
-                        WriteLog.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
-                                new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevID,
-                                remoteDoc.RevID);
-                        conflictResolver = conflictResolver ?? new DefaultConflictResolver();
-                        var conflict = new Conflict(localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
-                        var resolvedDoc = conflictResolver.Resolve(conflict);
+                    conflictResolver = conflictResolver ?? new DefaultConflictResolver();
+                    var conflict = new Conflict(localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
+                    using (var resolvedDoc = conflictResolver.Resolve(conflict)) {
                         if (resolvedDoc != null) {
                             if (resolvedDoc.Id != docID)
                                 throw new InvalidOperationException($"Resolved docID {resolvedDoc.Id} does not match docID {docID}");
@@ -883,19 +880,22 @@ namespace Couchbase.Lite
                             else if (resolvedDoc.Database != this)
                                 throw new InvalidOperationException($"Resolved document db {resolvedDoc.Database.Name} is different from expected db {this.Name}");
                         }
-                        success = SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
+
+                        InBatch(() =>
+                        {
+                            success = SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
+
+                        });
                         if (!success)
                             continue;
-                    } catch {
-                        success = false;
-                        throw;
-                    } finally {
-                        localDoc?.Dispose();
-                        remoteDoc?.Dispose();
-                        LiteCoreBridge.Check(err => Native.c4db_endTransaction(_c4db, success, err));
+                        else
+                            saved = true;
                     }
+                } finally {
+                    localDoc?.Dispose();
+                    remoteDoc?.Dispose();
                 }
-            });
+            }
         }
 
         internal void SchedulePurgeExpired(TimeSpan delay)

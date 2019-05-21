@@ -1080,8 +1080,6 @@ namespace Test
         [Fact]
         public void TestConflictResolverPropertyInReplicationConfig()
         {
-            CreateReplicationConflict();
-
             var config = CreateConfig(false, true, false);
 
             config.ConflictResolver = new TestConflictResolver((conflict) =>
@@ -1101,37 +1099,9 @@ namespace Test
         [Fact]
         public void TestConflictResolverRemoteWins()
         {
-            CreateReplicationConflict();
-
-            var config = CreateConfig(false, true, false);
-
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
-                return conflict.RemoteDocument;
-            });
-
-            RunReplication(config, 0, 0);
-
-            var doc = Db.GetDocument("doc1");
-            doc.GetString("name").Should().Be("Lion");
-        }
-
-        [Fact]
-        public void TestConflictResolverLocalWins()
-        {
-            CreateReplicationConflict();
-
-            var config = CreateConfig(false, true, false);
-
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
-                return conflict.LocalDocument;
-            });
-
-            RunReplication(config, 0, 0);
-
-            var doc = Db.GetDocument("doc1");
-            doc.GetString("name").Should().Be("Cat");
+            var returnRemoteDoc = true;
+            TestConflictResolverWins(returnRemoteDoc);
+            TestConflictResolverWins(!returnRemoteDoc);
         }
 
         [Fact]
@@ -1220,12 +1190,13 @@ namespace Test
 
             RunReplication(config, 0, 0);
 
-            Db.Count.ShouldBeEquivalentTo(0);
+            Db.GetDocument("doc1").Should().BeNull(); //Because conflict resolver returns null means return a deleted document.
         }
 
         [Fact]
         public void TestConflictResolverDeletedLocalWin()
         {
+            Document localDoc = null, remoteDoc = null;
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Tiger");
                 Db.Save(doc1);
@@ -1236,22 +1207,27 @@ namespace Test
                 _otherDB.Save(doc1);
             }
 
-            // Force a conflict
+            
             Db.Delete(Db.GetDocument("doc1"));
 
             Db.Count.ShouldBeEquivalentTo(0);
 
-            using (var doc1 = new MutableDocument("doc1")) {
+            using (var doc1 = _otherDB.GetDocument("doc1").ToMutable()) {
                 doc1.SetString("name", "Lion");
                 _otherDB.Save(doc1);
             }
 
             var config = CreateConfig(false, true, false);
             config.ConflictResolver = new TestConflictResolver((conflict) => {
+                localDoc = conflict.LocalDocument;
+                remoteDoc = conflict.RemoteDocument;
                 return null;
             });
 
             RunReplication(config, 0, 0);
+
+            localDoc.Should().BeNull();
+            remoteDoc.Should().NotBeNull();
 
             Db.Count.ShouldBeEquivalentTo(0);
         }
@@ -1259,6 +1235,7 @@ namespace Test
         [Fact]
         public void TestConflictResolverDeletedRemoteWin()
         {
+            Document localDoc = null, remoteDoc = null;
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Tiger");
                 Db.Save(doc1);
@@ -1270,10 +1247,9 @@ namespace Test
             }
 
             // Force a conflict
-            using (var doc1a = Db.GetDocument("doc1"))
-            using (var doc1aMutable = doc1a.ToMutable()) {
-                doc1aMutable.SetString("name", "Cat");
-                Db.Save(doc1aMutable);
+            using (var doc1a = Db.GetDocument("doc1").ToMutable()){
+                doc1a.SetString("name", "Cat");
+                Db.Save(doc1a);
             }
 
             Db.Count.ShouldBeEquivalentTo(1);
@@ -1282,12 +1258,40 @@ namespace Test
 
             var config = CreateConfig(false, true, false);
             config.ConflictResolver = new TestConflictResolver((conflict) => {
+                localDoc = conflict.LocalDocument;
+                remoteDoc = conflict.RemoteDocument;
                 return null;
             });
 
             RunReplication(config, 0, 0);
-
+            remoteDoc.Should().BeNull();
+            localDoc.Should().NotBeNull();
             Db.Count.ShouldBeEquivalentTo(0);
+        }
+
+        private void TestConflictResolverWins(bool returnRemoteDoc)
+        {
+            CreateReplicationConflict();
+
+            var config = CreateConfig(false, true, false);
+
+            config.ConflictResolver = new TestConflictResolver((conflict) =>
+            {
+                if (returnRemoteDoc) {
+                    return conflict.RemoteDocument;
+                } else
+                    return conflict.LocalDocument;
+            });
+
+            RunReplication(config, 0, 0);
+
+            using (var doc = Db.GetDocument("doc1")) {
+                if (returnRemoteDoc) {
+                    doc.GetString("name").Should().Be("Lion");
+                } else {
+                    doc.GetString("name").Should().Be("Cat");
+                }
+            }
         }
 
         private void CreateReplicationConflict()
