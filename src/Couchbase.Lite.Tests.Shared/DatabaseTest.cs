@@ -30,6 +30,8 @@ using System.Linq;
 using System.Threading;
 
 using Couchbase.Lite.Query;
+using Couchbase.Lite.Logging;
+using Couchbase.Lite.DI;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -302,6 +304,110 @@ namespace Test
                 using (var gotDoc = Db.GetDocument(doc1a.Id)) {
                     gotDoc.GetString("name").Should().Be("Tim");
                 }
+            }
+        }
+
+        [Fact]
+        public void TestConflictHandlerSaveMergedDocument()
+        {
+            using (var doc1 = new MutableDocument("doc1")){
+                doc1.SetString("name", "Jim");
+                
+                Db.Save(doc1);
+
+                // Get two doc1 document objects (doc1a and doc1b):
+                var doc1a = Db.GetDocument(doc1.Id).ToMutable();
+                var doc1b = Db.GetDocument(doc1.Id).ToMutable();
+
+                // Modify doc1a:
+                doc1a.SetString("name", "Jim");
+                doc1a.SetString("language", "English");
+                        
+                Db.Save(doc1a);
+
+                // Modify doc1b:
+                doc1b.SetString("name", "Jim");
+                doc1b.SetString("language", "C#");
+                doc1b.SetString("location", "Japan");        
+                Db.Save(doc1b, ResolveConflict);
+            }
+
+            using (var doc1 = Db.GetDocument("doc1")) {
+                doc1.GetString("name").Should().Be("Jim");
+                var lanStr = doc1.GetString("language");
+                lanStr.Should().Contain("English");
+                lanStr.Should().Contain("C#");
+                doc1.GetString("location").Should().Be("Japan");
+            }
+        }
+
+        [Fact]
+        public void TestConflictHandlerReturnsTrue()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Jim");
+                Db.Save(doc1, (updated, current) => {
+                    return true;
+                });
+
+                Db.GetDocument("doc1").GetString("name").Should().Be("Jim");
+
+                var doc1a = new MutableDocument(doc1.Id);
+                doc1a.SetString("name", "Kim");
+                Db.Save(doc1a, (updated, current) => {
+                    return true;
+                });
+
+                Db.GetDocument("doc1").GetString("name").Should().Be("Kim");
+            }
+        }
+
+        [Fact]
+        public void TestConflictHandlerReturnsFalse()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Jim");
+                Db.Save(doc1, (updated, current) => {
+                    return false;
+                });
+
+                Db.GetDocument(doc1.Id).GetString("name").Should().Be("Jim");
+
+                var doc1a = new MutableDocument(doc1.Id);
+                doc1a.SetString("name", "Kim");
+                Db.Save(doc1a, (updated, current) => {
+                    return false;
+                });
+
+                Db.GetDocument("doc1").GetString("name").Should().Be("Jim");
+            }
+        }
+
+        [Fact]
+        public void TestConflictHandlerWithDeletedOldDoc()
+        {
+            using (var doc1 = new MutableDocument("doc1")){
+                doc1.SetString("name", "Jim");
+                Db.Save(doc1);
+
+                var doc1a = Db.GetDocument("doc1").ToMutable();
+                doc1a.SetString("name", "Kim");
+
+                Document currDoc = null;
+                var updatedDocName = "";
+
+                //delete old doc
+                Db.Delete(doc1);
+                Db.Save(doc1a, (updated, current) =>
+                {
+                    currDoc = current;
+                    updatedDocName = updated.GetString("name");
+                    return true;
+                });
+
+                currDoc.Should().BeNull();
+                updatedDocName.Should().Be("Kim");
+                Db.GetDocument("doc1").GetString("name").Should().Be("Kim");
             }
         }
 
@@ -1140,6 +1246,21 @@ namespace Test
                     });
                 }
             }
+        }
+
+        private bool ResolveConflict(MutableDocument updatedDoc, Document currentDoc)
+        {
+            var updateDocDict = updatedDoc.ToDictionary();
+            var curDocDict = currentDoc.ToDictionary();
+
+            foreach (var value in curDocDict)
+                if (updateDocDict.ContainsKey(value.Key) && !value.Value.Equals(updateDocDict[value.Key]))
+                    updateDocDict[value.Key] = value.Value + ", " + updateDocDict[value.Key];
+                else if (!updateDocDict.ContainsKey(value.Key))
+                    updateDocDict.Add(value.Key, value.Value);
+
+            updatedDoc.SetData(updateDocDict);
+            return true;
         }
 
         private void DeleteDB(Database db)
