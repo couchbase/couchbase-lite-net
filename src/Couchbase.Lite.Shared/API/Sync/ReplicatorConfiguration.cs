@@ -117,6 +117,7 @@ namespace Couchbase.Lite.Sync
         private Uri _remoteUrl;
         private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
         private C4SocketFactory _socketFactory;
+        private IConflictResolver _resolver;
 
         #endregion
 
@@ -231,6 +232,18 @@ namespace Couchbase.Lite.Sync
         [NotNull]
         public IEndpoint Target { get; }
 
+        /// <summary>
+        /// The implemented custom conflict resolver object can be registered to the replicator 
+        /// at ConflictResolver property. The default value of the conflictResolver is null. 
+        /// When the value is null, the default conflict resolution will be applied.
+        /// </summary>
+        [CanBeNull]
+        public IConflictResolver ConflictResolver
+        {
+            get => _resolver;
+            set => _freezer.PerformAction(() => _resolver = value);
+        }
+
         internal TimeSpan CheckpointInterval
         {
             get => Options.CheckpointInterval;
@@ -265,7 +278,7 @@ namespace Couchbase.Lite.Sync
             get => _socketFactory.open != IntPtr.Zero ? _socketFactory : LiteCore.Interop.SocketFactory.InternalFactory;
             set => _freezer.SetValue(ref _socketFactory, value);
         }
-
+        
         #endregion
 
         #region Constructors
@@ -301,6 +314,7 @@ namespace Couchbase.Lite.Sync
                 PullFilter = PullFilter,
                 ReplicatorType = ReplicatorType,
                 ProgressLevel = ProgressLevel,
+                ConflictResolver = ConflictResolver,
                 Options = Options
             };
 

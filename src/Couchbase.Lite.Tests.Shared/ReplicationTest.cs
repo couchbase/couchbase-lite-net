@@ -83,12 +83,10 @@ namespace Test
             // exist on the LAN
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
             var config = new ReplicatorConfiguration(Db, targetEndpoint);
-            using (var repl = new Replicator(config))
-            {
+            using (var repl = new Replicator(config)) {
                 repl.Start();
                 var count = 0;
-                while (count++ <= 35 && repl.Status.Activity != ReplicatorActivityLevel.Stopped)
-                {
+                while (count++ <= 35 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
                     WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
                     await Task.Delay(500);
                 }
@@ -171,7 +169,7 @@ namespace Test
                 Db.Delete(doc1);
                 Db.Delete(doc2);
             }
-            
+
             RunReplication(config, 0, 0);
             _isFilteredCallback.Should().BeTrue();
             _otherDB.GetDocument("doc1").Should().NotBeNull("because doc1's deletion should be rejected");
@@ -222,7 +220,7 @@ namespace Test
                 } catch (Exception e) {
                     exceptions.Add(e);
                 }
-                
+
                 return true;
             };
             RunReplication(config, 0, 0);
@@ -351,7 +349,7 @@ namespace Test
 
             using (var doc1 = _otherDB.GetDocument("doc1"))
             using (var doc2 = _otherDB.GetDocument("pass"))
-            using (var doc1Mutable = doc1.ToMutable()) 
+            using (var doc1Mutable = doc1.ToMutable())
             using (var doc2Mutable = doc2.ToMutable()) {
                 doc1Mutable.SetData(new Dictionary<string, object> { ["_removed"] = true });
                 doc2Mutable.SetData(new Dictionary<string, object> { ["_removed"] = true });
@@ -425,7 +423,7 @@ namespace Test
             doc1.SetString("name", "Hobbes");
             Db.Save(doc1);
 
-             var doc2 = new MutableDocument("doc2");
+            var doc2 = new MutableDocument("doc2");
             doc2.SetString("species", "Tiger");
             Db.Save(doc2);
             doc2.SetString("pattern", "striped");
@@ -433,7 +431,7 @@ namespace Test
 
             var doc3 = new MutableDocument("doc3");
             doc3.SetString("species", "Tiger");
-             _otherDB.Save(doc3);
+            _otherDB.Save(doc3);
             doc3.SetString("name", "Hobbes");
             _otherDB.Save(doc3);
 
@@ -444,7 +442,7 @@ namespace Test
             _otherDB.Save(doc4);
 
             var config = CreateConfig(true, true, false);
-            config.DocumentIDs = new[] {"doc1", "doc3"};
+            config.DocumentIDs = new[] { "doc1", "doc3" };
             RunReplication(config, 0, 0);
             Db.Count.Should().Be(3, "because only one document should have been pulled");
             Db.GetDocument("doc3").Should().NotBeNull();
@@ -474,7 +472,7 @@ namespace Test
                 }
             }
         }
-        
+
         [Fact]
         public void TestStopContinuousReplicator()
         {
@@ -500,7 +498,7 @@ namespace Test
                                 (when == ReplicatorActivityLevel.Connecting && args.Status.Activity > when))
                                 && Interlocked.Exchange(ref stopped, 1) == 0) {
                                 WriteLine("***** Stop Replicator *****");
-                                ((Replicator) sender).Stop();
+                                ((Replicator)sender).Stop();
                             }
 
                             if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
@@ -554,7 +552,7 @@ namespace Test
                     return args.Status.Activity == ReplicatorActivityLevel.Stopped;
                 });
             });
-            
+
             _repl.Start();
             try {
                 _waitAssert.WaitForResult(TimeSpan.FromSeconds(30));
@@ -578,14 +576,12 @@ namespace Test
         {
             // NOTE: Only push, need to think of a case that can force an error
             // for pull
-            using (var doc1 = new MutableDocument("doc1"))
-            {
+            using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Tiger");
                 Db.Save(doc1);
             }
 
-            using (var doc1 = new MutableDocument("doc1"))
-            {
+            using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Tiger");
                 _otherDB.Save(doc1);
             }
@@ -593,27 +589,23 @@ namespace Test
 
             // Force a conflict
             using (var doc1a = Db.GetDocument("doc1"))
-            using (var doc1aMutable = doc1a.ToMutable())
-            {
+            using (var doc1aMutable = doc1a.ToMutable()) {
                 doc1aMutable.SetString("name", "Liger");
                 Db.Save(doc1aMutable);
             }
 
             using (var doc1b = _otherDB.GetDocument("doc1"))
-            using (var doc1bMutable = doc1b.ToMutable())
-            {
+            using (var doc1bMutable = doc1b.ToMutable()) {
                 doc1bMutable.SetString("name", "Lion");
                 _otherDB.Save(doc1bMutable);
             }
 
             var config = CreateConfig(true, false, false);
-            using (var repl = new Replicator(config))
-            {
+            using (var repl = new Replicator(config)) {
                 var wa = new WaitAssert();
                 repl.AddDocumentReplicationListener((sender, args) =>
                 {
-                    if (args.Documents[0].Id == "doc1")
-                    {
+                    if (args.Documents[0].Id == "doc1") {
                         wa.RunAssert(() =>
                         {
                             args.Documents[0].Error.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
@@ -636,15 +628,13 @@ namespace Test
         [Fact]
         public void TestDocumentDeletedEvent()
         {
-            using (var doc1 = new MutableDocument("doc1"))
-            {
+            using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "test1");
                 Db.Save(doc1);
                 Db.Delete(doc1);
             }
 
-            using (var doc2 = new MutableDocument("doc2"))
-            {
+            using (var doc2 = new MutableDocument("doc2")) {
                 doc2.SetString("name", "test2");
                 _otherDB.Save(doc2);
                 _otherDB.Delete(doc2);
@@ -666,8 +656,7 @@ namespace Test
         [Fact]
         public void TestChannelRemovedEvent()
         {
-            using (var doc2 = new MutableDocument("doc2"))
-            {
+            using (var doc2 = new MutableDocument("doc2")) {
                 doc2.SetString("name", "test2");
                 _otherDB.Save(doc2);
                 doc2.SetData(new Dictionary<string, object> { ["_removed"] = true });
@@ -680,7 +669,7 @@ namespace Test
             {
                 pullWait.RunConditionalAssert(() => !args.IsPush && args.Documents.Any(x => x.Flags.HasFlag(DocumentFlags.AccessRemoved)));
             });
-            
+
             pullWait.WaitForResult(TimeSpan.FromSeconds(5));
         }
 
@@ -738,7 +727,7 @@ namespace Test
             }
 
             Db.Purge("doc2");
-               
+
             Db.Count.Should().Be(0UL, "because the documents were purged");
             RunReplication(config, 0, 0);
 
@@ -806,7 +795,7 @@ namespace Test
                 config = new ReplicatorConfiguration(Db,
                         new MessageEndpoint($"p2ptest1", server, protocolType,
                             new MockConnectionFactory(null)))
-                    { Continuous = false };
+                { Continuous = false };
 
                 RunReplication(config, 0, 0);
                 Db.Count.Should().Be(2UL, "because no new documents were added");
@@ -828,7 +817,7 @@ namespace Test
                 _otherDB = OpenDB(_otherDB.Name);
             }
         }
-        
+
         [Fact]
         public void TestContinuousP2P()
         {
@@ -952,7 +941,7 @@ namespace Test
                 Continuous = true
             };
 
-            using(var replicator = new Replicator(config))
+            using (var replicator = new Replicator(config))
             using (var replicator2 = new Replicator(config2)) {
                 replicator.Start();
                 replicator2.Start();
@@ -1078,14 +1067,258 @@ namespace Test
                 doc1.SetString("expire_me", "now");
                 Db.Save(doc1);
             }
-            
+
             Db.SetDocumentExpiration(docId, DateTimeOffset.Now);
             var config = CreateConfig(true, false, false);
             var callbackCount = 0;
-            RunReplication(config, 0, 0, documentReplicated:(status, args) => { callbackCount++; });
+            RunReplication(config, 0, 0, documentReplicated: (status, args) => { callbackCount++; });
             _otherDB.Count.Should().Be(0);
             callbackCount.Should().Be(0);
             _repl.Status.Progress.Total.Should().Be(0UL);
+        }
+
+        [Fact]
+        public void TestConflictResolverPropertyInReplicationConfig()
+        {
+            var config = CreateConfig(false, true, false);
+
+            config.ConflictResolver = new TestConflictResolver((conflict) =>
+            {
+                return conflict.RemoteDocument;
+            });
+
+            config.ConflictResolver.GetType().Should().Be(typeof(TestConflictResolver));
+
+            using (var replicator = new Replicator(config)) {
+                
+                Action badAction = (() => replicator.Config.ConflictResolver = new FakeConflictResolver());
+                badAction.ShouldThrow<InvalidOperationException>("Attempt to modify a frozen object is prohibited.");
+            }
+        }
+
+        [Fact]
+        public void TestConflictResolverRemoteWins()
+        {
+            var returnRemoteDoc = true;
+            TestConflictResolverWins(returnRemoteDoc);
+            TestConflictResolverWins(!returnRemoteDoc);
+        }
+
+        [Fact]
+        public void TestConflictResolverMergeDoc()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Jim");
+                Db.Save(doc1);
+            }
+
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Jim");
+                doc1.SetString("location", "Japan");
+                _otherDB.Save(doc1);
+            }
+
+            var config = CreateConfig(true, true, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                var localDoc = conflict.LocalDocument;
+                var remoteDoc = conflict.RemoteDocument;
+
+                var updateDocDict = localDoc.ToDictionary();
+                var curDocDict = remoteDoc.ToDictionary();
+
+                foreach (var value in curDocDict) {
+                    if (updateDocDict.ContainsKey(value.Key) && !value.Value.Equals(updateDocDict[value.Key])) {
+                        updateDocDict[value.Key] = value.Value + ", " + updateDocDict[value.Key];
+                    } else if (!updateDocDict.ContainsKey(value.Key)) {
+                        updateDocDict.Add(value.Key, value.Value);
+                    }
+                }
+
+                using(var doc1 = new MutableDocument(localDoc.Id)) {
+                    doc1.SetData(updateDocDict);
+                    return doc1;
+                }
+            });
+
+            RunReplication(config, 0, 0);
+
+            using (var doc1a = Db.GetDocument("doc1"))
+            using (var doc1aMutable = doc1a.ToMutable()) {
+                doc1aMutable.SetString("name", "Jim");
+                doc1aMutable.SetString("language", "English");
+                Db.Save(doc1aMutable);
+            }
+
+            using (var doc1a = _otherDB.GetDocument("doc1"))
+            using (var doc1aMutable = doc1a.ToMutable()) {
+                doc1aMutable.SetString("name", "Jim");
+                doc1aMutable.SetString("language", "C#");
+                _otherDB.Save(doc1aMutable);
+            }
+
+            RunReplication(config, 0, 0);
+
+            using (var doc1 = Db.GetDocument("doc1")) {
+                doc1.GetString("name").Should().Be("Jim");
+                var lanStr = doc1.GetString("language");
+                lanStr.Should().Contain("English");
+                lanStr.Should().Contain("C#");
+                doc1.GetString("location").Should().Be("Japan");
+            }
+
+            RunReplication(config, 0, 0);
+
+            using (var doc1 = _otherDB.GetDocument("doc1")) {
+                doc1.GetString("name").Should().Be("Jim");
+                var lanStr = doc1.GetString("language");
+                lanStr.Should().Contain("English");
+                lanStr.Should().Contain("C#");
+                doc1.GetString("location").Should().Be("Japan");
+            }
+        }
+
+        [Fact]
+        public void TestConflictResolverNullDoc()
+        {
+            CreateReplicationConflict();
+
+            var config = CreateConfig(false, true, false);
+
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                return null;
+            });
+
+            RunReplication(config, 0, 0);
+
+            Db.GetDocument("doc1").Should().BeNull(); //Because conflict resolver returns null means return a deleted document.
+        }
+
+        [Fact]
+        public void TestConflictResolverDeletedLocalWin()
+        {
+            Document localDoc = null, remoteDoc = null;
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1);
+            }
+
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                _otherDB.Save(doc1);
+            }
+
+            
+            Db.Delete(Db.GetDocument("doc1"));
+
+            Db.Count.ShouldBeEquivalentTo(0);
+
+            using (var doc1 = _otherDB.GetDocument("doc1").ToMutable()) {
+                doc1.SetString("name", "Lion");
+                _otherDB.Save(doc1);
+            }
+
+            var config = CreateConfig(false, true, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                localDoc = conflict.LocalDocument;
+                remoteDoc = conflict.RemoteDocument;
+                return null;
+            });
+
+            RunReplication(config, 0, 0);
+
+            localDoc.Should().BeNull();
+            remoteDoc.Should().NotBeNull();
+
+            Db.Count.ShouldBeEquivalentTo(0);
+        }
+
+        [Fact]
+        public void TestConflictResolverDeletedRemoteWin()
+        {
+            Document localDoc = null, remoteDoc = null;
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1);
+            }
+
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                _otherDB.Save(doc1);
+            }
+
+            // Force a conflict
+            using (var doc1a = Db.GetDocument("doc1").ToMutable()){
+                doc1a.SetString("name", "Cat");
+                Db.Save(doc1a);
+            }
+
+            Db.Count.ShouldBeEquivalentTo(1);
+
+            _otherDB.Delete(_otherDB.GetDocument("doc1"));
+
+            var config = CreateConfig(false, true, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                localDoc = conflict.LocalDocument;
+                remoteDoc = conflict.RemoteDocument;
+                return null;
+            });
+
+            RunReplication(config, 0, 0);
+            remoteDoc.Should().BeNull();
+            localDoc.Should().NotBeNull();
+            Db.Count.ShouldBeEquivalentTo(0);
+        }
+
+        private void TestConflictResolverWins(bool returnRemoteDoc)
+        {
+            CreateReplicationConflict();
+
+            var config = CreateConfig(false, true, false);
+
+            config.ConflictResolver = new TestConflictResolver((conflict) =>
+            {
+                if (returnRemoteDoc) {
+                    return conflict.RemoteDocument;
+                } else
+                    return conflict.LocalDocument;
+            });
+
+            RunReplication(config, 0, 0);
+
+            using (var doc = Db.GetDocument("doc1")) {
+                if (returnRemoteDoc) {
+                    doc.GetString("name").Should().Be("Lion");
+                } else {
+                    doc.GetString("name").Should().Be("Cat");
+                }
+            }
+        }
+
+        private void CreateReplicationConflict()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1);
+            }
+
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                _otherDB.Save(doc1);
+            }
+
+            // Force a conflict
+            using (var doc1a = Db.GetDocument("doc1"))
+            using (var doc1aMutable = doc1a.ToMutable()) {
+                doc1aMutable.SetString("name", "Cat");
+                Db.Save(doc1aMutable);
+            }
+
+            Db.Count.ShouldBeEquivalentTo(1);
+
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Lion");
+                _otherDB.Save(doc1);
+            }
         }
 
         private ReplicatorConfiguration CreateFailureP2PConfiguration(ProtocolType protocolType, MockConnectionLifecycleLocation location, bool recoverable)
@@ -1287,7 +1520,7 @@ namespace Test
                     s.Error.Should().BeAssignableTo<CouchbaseException>();
                     var error = s.Error.As<CouchbaseException>();
                     error.Error.Should().Be(errorCode);
-                    if ((int) domain != 0) {
+                    if ((int)domain != 0) {
                         error.Domain.As<CouchbaseLiteErrorType>().Should().Be(domain);
                     }
                 } else {
@@ -1308,7 +1541,7 @@ namespace Test
                     VerifyChange(args, expectedErrCode, expectedErrDomain);
                     if (config.Continuous && args.Status.Activity == ReplicatorActivityLevel.Idle
                                           && args.Status.Progress.Completed == args.Status.Progress.Total) {
-                        ((Replicator) sender).Stop();
+                        ((Replicator)sender).Stop();
                     }
 
                     return args.Status.Activity == ReplicatorActivityLevel.Stopped;
@@ -1322,7 +1555,7 @@ namespace Test
             if (documentReplicated != null) {
                 _repl.AddDocumentReplicationListener(documentReplicated);
             }
-            
+
             _repl.Start();
             try {
                 _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
@@ -1394,6 +1627,29 @@ namespace Test
         }
     }
 
+    public class TestConflictResolver : IConflictResolver
+    {
+        Func<Conflict, Document> ResolveFunc { get; set; }
+
+        public TestConflictResolver(Func<Conflict, Document> resolveFunc)
+        {
+            ResolveFunc = resolveFunc;
+        }
+
+        public Document Resolve(Conflict conflict)
+        {
+            return ResolveFunc(conflict);
+        }
+    }
+
+    public class FakeConflictResolver : IConflictResolver
+    {
+        public Document Resolve(Conflict conflict)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
 #if COUCHBASE_ENTERPRISE
     public class TestErrorLogic : IMockConnectionErrorLogic
     {
@@ -1414,7 +1670,7 @@ namespace Test
         public TestErrorLogic WithRecoverableException(int count = 1)
         {
             _exception = new MessagingException("Test recoverable exception",
-                new SocketException((int) SocketError.ConnectionReset), true);
+                new SocketException((int)SocketError.ConnectionReset), true);
             _total = count;
             return this;
         }
@@ -1422,7 +1678,7 @@ namespace Test
         public TestErrorLogic WithPermanentException()
         {
             _exception = new MessagingException("Test permanent exception",
-                new SocketException((int) SocketError.AccessDenied), false);
+                new SocketException((int)SocketError.AccessDenied), false);
             _total = Int32.MaxValue;
             return this;
         }
@@ -1487,6 +1743,7 @@ namespace Test
             }
         }
     }
+
 #endif
 }
 
