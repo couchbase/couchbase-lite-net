@@ -1288,7 +1288,17 @@ namespace Test
             TestConflictResolverExceptionThrown(differentDbResolver);
         }
 
-        private void TestConflictResolverExceptionThrown(TestConflictResolver resolver)
+        [Fact]
+        public void TestConflictResolverThrowingException()
+        {
+            var wrongDocIDResolver = new TestConflictResolver((conflict) =>
+            {
+                return new Document(Db, "wrong_id");
+            });
+            TestConflictResolverExceptionThrown(wrongDocIDResolver, true);
+        }
+
+        private void TestConflictResolverExceptionThrown(TestConflictResolver resolver, bool continueWithWorkingResolver = false)
         {
             CreateReplicationConflict();
 
@@ -1298,7 +1308,7 @@ namespace Test
 
             using (var repl = new Replicator(config)) {
                 var wa = new WaitAssert();
-                repl.AddDocumentReplicationListener((sender, args) =>
+                var token = repl.AddDocumentReplicationListener((sender, args) =>
                 {
                     if (args.Documents[0].Id == "doc1") {
                         wa.RunAssert(() =>
@@ -1313,11 +1323,24 @@ namespace Test
                 repl.Start();
 
                 wa.WaitForResult(TimeSpan.FromSeconds(10));
-                repl.Stop();
+
                 Try.Condition(() => repl.Status.Activity == ReplicatorActivityLevel.Stopped)
                     .Times(5)
                     .Delay(TimeSpan.FromMilliseconds(500))
                     .Go().Should().BeTrue();
+
+                repl.Status.Activity.Should().Be(ReplicatorActivityLevel.Stopped);
+                repl.RemoveChangeListener(token);
+
+                if (!continueWithWorkingResolver)
+                    return;
+
+                config.ConflictResolver = new TestConflictResolver((conflict) => 
+                {
+                    return conflict.LocalDocument;
+                });
+                RunReplication(config, 0, 0);
+                Db.GetDocument("doc1").GetString("name").Should().Be("Cat");
             }
         }
 
