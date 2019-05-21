@@ -828,10 +828,10 @@ namespace Couchbase.Lite
         /// <param name="document">The document to save</param>
         /// <param name="conflictHandler">The conflict handler block which can be used to resolve it.</param> 
         /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
-        public bool Save([NotNull]MutableDocument document, Func<MutableDocument, Document, bool> conflictHandler)
+        public bool Save([NotNull]MutableDocument document, [NotNull]Func<MutableDocument, Document, bool> conflictHandler)
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
-            Debug.Assert(conflictHandler != null);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(conflictHandler), conflictHandler);
             Document baseDoc = null;
             var saved = false;
             do { 
