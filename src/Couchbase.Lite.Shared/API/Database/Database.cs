@@ -885,8 +885,6 @@ namespace Couchbase.Lite
                         {
                             success = SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
                         });
-                        if (!success)
-                            continue;
                     }
                 } finally {
                     localDoc?.Dispose();
