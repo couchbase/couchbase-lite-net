@@ -98,6 +98,16 @@ namespace Couchbase.Lite
                             c4err.domain = C4ErrorDomain.NetworkDomain;
                             c4err.code = (int) C4NetworkErrorCode.TLSHandshakeFailed;
                         }
+                    #if __IOS__
+                        if (ie.Message == "Connection closed.") {
+                        //AppleTlsContext.cs
+                        //case SslStatus.ClosedAbort:
+                        //  throw new IOException("Connection closed.");
+                        message = ie.Message;
+                            c4err.domain = C4ErrorDomain.NetworkDomain;
+                            c4err.code = (int)SocketError.ConnectionAborted;
+                        }
+                    #endif
                         break;
                     case AuthenticationException ae:
                         if (ae.Message == "The remote certificate is invalid according to the validation procedure.") {
