@@ -679,7 +679,17 @@ namespace Couchbase.Lite
         public void Purge([NotNull]Document document)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
-            InBatch(() => PurgeDocById(document.Id));
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                VerifyDB(document);
+
+                if (!document.Exists) {
+                    throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+                }
+
+                InBatch(() => PurgeDocById(document.Id));
+            });
         }
 
         /// <summary>
