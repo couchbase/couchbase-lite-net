@@ -390,7 +390,6 @@ namespace Test
             using (var doc1a = new MutableDocument("doc1"))
             using (var doc1b = new MutableDocument("doc1")) {
                 var waitObj = new AutoResetEvent(true);
-                var resolveWait = new AutoResetEvent(true);
                 doc1.SetString("name", "Jim");
                 Db.Save(doc1);
                 Task task2 = Task.Factory.StartNew(() => {
@@ -403,17 +402,15 @@ namespace Test
                     });
                     waitObj.Set();
                     Thread.Sleep(250);
-                    resolveWait.WaitOne();
                 });
                 waitObj.WaitOne();
                 doc1b.SetString("name", "Tim");
                 Db.Save(doc1b);
                 Db.GetDocument("doc1").GetString("name").Should().Be("Tim");
-                resolveWait.Set();
+                waitObj.Set();
                 Thread.Sleep(250);
                 waitObj.WaitOne();
                 Db.GetDocument("doc1").GetString("name").Should().Be("Kim");
-                waitObj.Set();
             }
         }
 
