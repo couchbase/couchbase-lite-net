@@ -1274,7 +1274,7 @@ namespace Test
         {
             var wrongDocIDResolver = new TestConflictResolver((conflict) =>
             {
-                return new Document(Db, "wrong_id");
+                return new MutableDocument("wrong_id");
             });
 
             TestConflictResolverExceptionThrown(wrongDocIDResolver);
@@ -1285,17 +1285,7 @@ namespace Test
                 return new Document(db, "doc1");
             });
 
-            TestConflictResolverExceptionThrown(differentDbResolver);
-        }
-
-        [Fact]
-        public void TestConflictResolverThrowingException()
-        {
-            var wrongDocIDResolver = new TestConflictResolver((conflict) =>
-            {
-                return new Document(Db, "wrong_id");
-            });
-            TestConflictResolverExceptionThrown(wrongDocIDResolver, true);
+            TestConflictResolverExceptionThrown(differentDbResolver, true);
         }
 
         private void TestConflictResolverExceptionThrown(TestConflictResolver resolver, bool continueWithWorkingResolver = false)
@@ -1303,7 +1293,6 @@ namespace Test
             CreateReplicationConflict();
 
             var config = CreateConfig(true, true, false);
-
             config.ConflictResolver = resolver;
 
             using (var repl = new Replicator(config)) {
@@ -1337,10 +1326,12 @@ namespace Test
 
                 config.ConflictResolver = new TestConflictResolver((conflict) => 
                 {
-                    return conflict.LocalDocument;
+                    var doc = new MutableDocument("doc1");
+                    doc.SetString("name", "Human");
+                    return doc;
                 });
                 RunReplication(config, 0, 0);
-                Db.GetDocument("doc1").GetString("name").Should().Be("Cat");
+                Db.GetDocument("doc1").GetString("name").Should().Be("Human");
             }
         }
 
