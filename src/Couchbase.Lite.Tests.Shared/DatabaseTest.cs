@@ -632,9 +632,9 @@ namespace Test
             PurgeDocAndVerify(doc);
             Db.Count.Should().Be(0UL, "because the only document was purged");
 
-            // Second purge
-            PurgeDocAndVerify(doc1);
-            Db.Count.Should().Be(0UL, "because the only document was purged");
+            // Second purge and throw error
+            Db.Invoking(db => db.Purge(doc)).ShouldThrow<CouchbaseLiteException>().Where(e =>
+                e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
         }
 
         [Fact]
