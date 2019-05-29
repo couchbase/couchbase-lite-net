@@ -1269,6 +1269,72 @@ namespace Test
             Db.Count.ShouldBeEquivalentTo(0);
         }
 
+        [Fact]
+        public void TestConflictResolverExceptionsThrown()
+        {
+            var wrongDocIDResolver = new TestConflictResolver((conflict) =>
+            {
+                return new MutableDocument("wrong_id");
+            });
+
+            TestConflictResolverExceptionThrown(wrongDocIDResolver);
+
+            var differentDbResolver = new TestConflictResolver((conflict) =>
+            {
+                Database db = new Database("different_db");
+                return new Document(db, "doc1");
+            });
+
+            TestConflictResolverExceptionThrown(differentDbResolver, true);
+        }
+
+        private void TestConflictResolverExceptionThrown(TestConflictResolver resolver, bool continueWithWorkingResolver = false)
+        {
+            CreateReplicationConflict();
+
+            var config = CreateConfig(true, true, false);
+            config.ConflictResolver = resolver;
+
+            using (var repl = new Replicator(config)) {
+                var wa = new WaitAssert();
+                var token = repl.AddDocumentReplicationListener((sender, args) =>
+                {
+                    if (args.Documents[0].Id == "doc1") {
+                        wa.RunAssert(() =>
+                        {
+                            var err = args.Documents[0].Error;
+                            args.Documents[0].Error.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+                            args.Documents[0].Error.Error.Should().Be((int)CouchbaseLiteError.Conflict);
+                        });
+                    }
+                });
+
+                repl.Start();
+
+                wa.WaitForResult(TimeSpan.FromSeconds(10));
+
+                Try.Condition(() => repl.Status.Activity == ReplicatorActivityLevel.Stopped)
+                    .Times(5)
+                    .Delay(TimeSpan.FromMilliseconds(500))
+                    .Go().Should().BeTrue();
+
+                repl.Status.Activity.Should().Be(ReplicatorActivityLevel.Stopped);
+                repl.RemoveChangeListener(token);
+
+                if (!continueWithWorkingResolver)
+                    return;
+
+                config.ConflictResolver = new TestConflictResolver((conflict) => 
+                {
+                    var doc = new MutableDocument("doc1");
+                    doc.SetString("name", "Human");
+                    return doc;
+                });
+                RunReplication(config, 0, 0);
+                Db.GetDocument("doc1").GetString("name").Should().Be("Human");
+            }
+        }
+
         private void TestConflictResolverWins(bool returnRemoteDoc)
         {
             CreateReplicationConflict();
