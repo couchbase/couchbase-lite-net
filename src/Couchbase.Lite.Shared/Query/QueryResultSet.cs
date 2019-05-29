@@ -65,7 +65,7 @@ namespace Couchbase.Lite.Internal.Query
                         throw new ObjectDisposedException(nameof(QueryResultSet));
                     }
 
-                    return Native.c4queryenum_seek(_c4Enum, (ulong) index, err);
+                    return Native.c4queryenum_seek(_c4Enum, index, err);
                 });
 
                 return new Result(this, _c4Enum, _context);

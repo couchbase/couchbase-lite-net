@@ -99,6 +99,11 @@ namespace LiteCore.Interop
         None
     }
 
+	internal unsafe struct C4ExtraInfo
+    {
+        public void* pointer;
+    }
+
 	internal unsafe partial struct C4Error
     {
         public C4ErrorDomain domain;

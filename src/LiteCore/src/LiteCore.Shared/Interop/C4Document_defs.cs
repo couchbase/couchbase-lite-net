@@ -62,6 +62,7 @@ namespace LiteCore.Interop
         public FLHeapSlice revID;
         public ulong sequence;
         public C4Revision selectedRev;
+        public C4ExtraInfo extraInfo;
     }
 
 	internal unsafe partial struct C4DocPutRequest

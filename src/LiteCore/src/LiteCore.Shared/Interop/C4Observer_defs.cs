@@ -42,4 +42,8 @@ namespace LiteCore.Interop
 	internal unsafe struct C4DocumentObserver
     {
     }
+
+	internal unsafe struct C4QueryObserver
+    {
+    }
 }

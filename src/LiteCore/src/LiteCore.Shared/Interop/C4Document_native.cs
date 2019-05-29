@@ -42,6 +42,9 @@ namespace LiteCore.Interop
         public static extern bool c4doc_save(C4Document* doc, uint maxRevTreeDepth, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4Document* c4doc_retain(C4Document* doc);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4doc_free(C4Document* doc);
 
         public static bool c4doc_selectRevision(C4Document* doc, string revID, bool withBody, C4Error* outError)
@@ -127,17 +130,17 @@ namespace LiteCore.Interop
             }
         }
 
-        public static bool c4doc_setExpiration(C4Database* db, string docId, long timestamp, C4Error* outError)
+        public static bool c4doc_setExpiration(C4Database* db, string docID, long timestamp, C4Error* outError)
         {
-            using(var docId_ = new C4String(docId)) {
-                return NativeRaw.c4doc_setExpiration(db, docId_.AsFLSlice(), timestamp, outError);
+            using(var docID_ = new C4String(docID)) {
+                return NativeRaw.c4doc_setExpiration(db, docID_.AsFLSlice(), timestamp, outError);
             }
         }
 
-        public static long c4doc_getExpiration(C4Database* db, string docId)
+        public static long c4doc_getExpiration(C4Database* db, string docID, C4Error* outError)
         {
-            using(var docId_ = new C4String(docId)) {
-                return NativeRaw.c4doc_getExpiration(db, docId_.AsFLSlice());
+            using(var docID_ = new C4String(docID)) {
+                return NativeRaw.c4doc_getExpiration(db, docID_.AsFLSlice(), outError);
             }
         }
 
@@ -208,10 +211,10 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_setExpiration(C4Database* db, FLSlice docId, long timestamp, C4Error* outError);
+        public static extern bool c4doc_setExpiration(C4Database* db, FLSlice docID, long timestamp, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern long c4doc_getExpiration(C4Database* db, FLSlice docId);
+        public static extern long c4doc_getExpiration(C4Database* db, FLSlice docID, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Document* c4doc_put(C4Database* database, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError);

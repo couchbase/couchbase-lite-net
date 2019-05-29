@@ -25,6 +25,12 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
+    internal enum C4QueryLanguage : uint
+    {
+        JSONQuery,
+        N1QLQuery,
+    }
+
     internal enum C4IndexType : uint
     {
         ValueIndex,

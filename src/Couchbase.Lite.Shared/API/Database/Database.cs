@@ -748,10 +748,17 @@ namespace Couchbase.Lite
             if (LiteCoreBridge.Check(err => Native.c4doc_get(_c4db, docId, true, err)) == null) {
                 throw new CouchbaseLiteException(C4ErrorCode.NotFound);
             }
-            var res = (long)Native.c4doc_getExpiration(_c4db, docId);
+
+            C4Error err2 = new C4Error();
+            var res = (long) Native.c4doc_getExpiration(_c4db, docId, &err2);
             if (res == 0) {
-                return null;
+                if (err2.code == 0) {
+                    return null;
+                }
+
+                throw CouchbaseException.Create(err2);
             }
+
             return DateTimeOffset.FromUnixTimeMilliseconds(res);
         }
 

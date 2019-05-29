@@ -104,6 +104,12 @@ namespace LiteCore.Interop
         public static extern bool c4db_getUUIDs(C4Database* database, C4UUID* publicUUID, C4UUID* privateUUID, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4ExtraInfo c4db_getExtraInfo(C4Database* database);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4db_setExtraInfo(C4Database* database, C4ExtraInfo x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_compact(C4Database* database, C4Error* outError);
 

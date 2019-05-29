@@ -150,11 +150,11 @@ namespace LiteCore.Tests
                 var expire = Native.c4_now() + 2000;
                 C4Error err;
                 Native.c4doc_setExpiration(Db, docID, expire, &err).Should().BeTrue();
-                Native.c4doc_getExpiration(Db, docID).Should().Be(expire);
+                Native.c4doc_getExpiration(Db, docID, null).Should().Be(expire);
                 Native.c4db_nextDocExpiration(Db).Should().Be(expire);
 
                 Native.c4doc_setExpiration(Db, docID, 0, &err).Should().BeTrue();
-                Native.c4doc_getExpiration(Db, docID).Should().Be(0);
+                Native.c4doc_getExpiration(Db, docID, null).Should().Be(0);
                 Native.c4db_nextDocExpiration(Db).Should().Be(0);
                 Native.c4db_purgeExpiredDocs(Db, &err).Should().Be(0);
             });
@@ -413,11 +413,11 @@ namespace LiteCore.Tests
                 err.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
                 err.code.Should().Be((int) C4ErrorCode.NotFound);
 
-                Native.c4doc_getExpiration(Db, docID).Should().Be(expire);
-                Native.c4doc_getExpiration(Db, docID2).Should().Be(expire);
-                Native.c4doc_getExpiration(Db, docID3).Should().Be(0L);
-                Native.c4doc_getExpiration(Db, docID4).Should().Be(expire + 100_000);
-                Native.c4doc_getExpiration(Db, "nonexistent").Should().Be(0L);
+                Native.c4doc_getExpiration(Db, docID, null).Should().Be(expire);
+                Native.c4doc_getExpiration(Db, docID2, null).Should().Be(expire);
+                Native.c4doc_getExpiration(Db, docID3, null).Should().Be(0L);
+                Native.c4doc_getExpiration(Db, docID4, null).Should().Be(expire + 100_000);
+                Native.c4doc_getExpiration(Db, "nonexistent", null).Should().Be(0L);
                 Native.c4db_nextDocExpiration(Db).Should().Be(expire);
 
                 WriteLine("--- Wait till expiration time...");
