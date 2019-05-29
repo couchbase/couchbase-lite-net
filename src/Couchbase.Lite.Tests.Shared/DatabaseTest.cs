@@ -384,6 +384,37 @@ namespace Test
         }
 
         [Fact]
+        public void TestConflictHandlerWithMultipleIncomingConflicts()
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc1a = new MutableDocument("doc1"))
+            using (var doc1b = new MutableDocument("doc1")) {
+                var waitObj = new AutoResetEvent(true);
+                doc1.SetString("name", "Jim");
+                Db.Save(doc1);
+                Task task2 = Task.Factory.StartNew(() => {
+                    doc1a.SetString("name", "Kim");
+                    Db.Save(doc1a, (updated, current) => {
+                        waitObj.Set();
+                        Thread.Sleep(250);
+                        waitObj.WaitOne();
+                        return true;
+                    });
+                    waitObj.Set();
+                    Thread.Sleep(250);
+                });
+                waitObj.WaitOne();
+                doc1b.SetString("name", "Tim");
+                Db.Save(doc1b);
+                Db.GetDocument("doc1").GetString("name").Should().Be("Tim");
+                waitObj.Set();
+                Thread.Sleep(250);
+                waitObj.WaitOne();
+                Db.GetDocument("doc1").GetString("name").Should().Be("Kim");
+            }
+        }
+
+        [Fact]
         public void TestConflictHandlerWithDeletedOldDoc()
         {
             using (var doc1 = new MutableDocument("doc1")){
