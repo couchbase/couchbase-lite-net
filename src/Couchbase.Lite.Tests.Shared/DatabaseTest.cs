@@ -398,7 +398,7 @@ namespace Test
                         waitObj.Set();
                         Thread.Sleep(250);
                         waitObj.WaitOne(TimeSpan.FromMilliseconds(250));
-                        return true;
+                        return false;
                     });
                     waitObj.Set();
                     Thread.Sleep(250);
@@ -410,7 +410,7 @@ namespace Test
                 waitObj.Set();
                 Thread.Sleep(250);
                 waitObj.WaitOne(TimeSpan.FromMilliseconds(250));
-                Db.GetDocument("doc1").GetString("name").Should().Be("Kim");
+                Db.GetDocument("doc1").GetString("name").Should().Be("Tim");
             }
         }
 
