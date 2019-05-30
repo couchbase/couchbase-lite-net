@@ -396,20 +396,17 @@ namespace Test
                     doc1a.SetString("name", "Kim");
                     Db.Save(doc1a, (updated, current) => {
                         waitObj.Set();
-                        Thread.Sleep(250);
-                        waitObj.WaitOne();
+                        waitObj.WaitOne(TimeSpan.FromMilliseconds(250));
                         return true;
                     });
                     waitObj.Set();
-                    Thread.Sleep(250);
                 });
-                waitObj.WaitOne();
+                waitObj.WaitOne(TimeSpan.FromMilliseconds(250));
                 doc1b.SetString("name", "Tim");
                 Db.Save(doc1b);
                 Db.GetDocument("doc1").GetString("name").Should().Be("Tim");
                 waitObj.Set();
-                Thread.Sleep(250);
-                waitObj.WaitOne();
+                waitObj.WaitOne(TimeSpan.FromMilliseconds(250));
                 Db.GetDocument("doc1").GetString("name").Should().Be("Kim");
             }
         }
