@@ -382,6 +382,7 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
+            NetworkStream.WriteAsync(httpData, 0, httpData.Length).ContinueWith(t =>
             {
                 if (!NetworkTaskSuccessful(t)) {
                     return;
