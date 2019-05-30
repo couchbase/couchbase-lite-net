@@ -76,7 +76,7 @@ namespace Test
             //Database.SetLogLevel(LogDomain.Replicator, LogLevel.Verbose);
         }
 #if !WINDOWS_UWP
-        [Fact]
+        //[Fact]
         public async Task TestReplicatorStopsWhenEndpointInvalid()
         {
             // If this IP address happens to exist, then change it.  It needs to be an address that does not
