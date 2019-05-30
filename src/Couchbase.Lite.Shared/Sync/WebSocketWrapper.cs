@@ -75,8 +75,6 @@ namespace Couchbase.Lite.Sync
         private const uint MaxReceivedBytesPending = 100 * 1024;
         private const string Tag = nameof(WebSocketWrapper);
 
-        private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(15);
-        private static readonly TimeSpan IdleTimeout = TimeSpan.FromSeconds(300);
 
         #endregion
 
@@ -182,11 +180,7 @@ namespace Couchbase.Lite.Sync
                 // the socket connection between here and the server
                 try {
                     // ReSharper disable once UseObjectOrCollectionInitializer
-                    _client = new TcpClient(AddressFamily.InterNetworkV6)
-                    {
-                        SendTimeout = (int) IdleTimeout.TotalMilliseconds,
-                        ReceiveTimeout = (int) IdleTimeout.TotalMilliseconds
-                    };
+                    _client = new TcpClient(AddressFamily.InterNetworkV6);
                 } catch (Exception e) {
                     DidClose(e);
                     return;
@@ -196,11 +190,7 @@ namespace Couchbase.Lite.Sync
                     _client.Client.DualMode = true;
                 } catch(ArgumentException) {
                     WriteLog.To.Sync.I(Tag, "IPv4/IPv6 dual mode not supported on this device, falling back to IPv4");
-                    _client = new TcpClient(AddressFamily.InterNetwork)
-                    {
-                        SendTimeout = (int)IdleTimeout.TotalMilliseconds,
-                        ReceiveTimeout = (int)IdleTimeout.TotalMilliseconds
-                    };
+                    _client = new TcpClient(AddressFamily.InterNetwork);
                 }
 
                 // STEP 2.5: The IProxy interface will detect a system wide proxy that is set
@@ -385,31 +375,24 @@ namespace Couchbase.Lite.Sync
         {
             //STEP 5: Send the HTTP request to start the WebSocket upgrade
             var httpData = _logic.HTTPRequestData();
-            var cts = new CancellationTokenSource();
-            cts.CancelAfter(IdleTimeout);
             if (NetworkStream == null) {
                 WriteLog.To.Sync.E(Tag, "Socket reported ready, but no network stream available!");
                 DidClose(C4WebSocketCloseCode.WebSocketCloseAbnormal, "Unexpected error in client logic");
                 return;
             }
 
-            NetworkStream.ReadTimeout = (int)IdleTimeout.TotalMilliseconds;
-            NetworkStream.WriteTimeout = (int)IdleTimeout.TotalMilliseconds;
-            NetworkStream.WriteAsync(httpData, 0, httpData.Length, cts.Token).ContinueWith(t =>
             {
                 if (!NetworkTaskSuccessful(t)) {
                     return;
                 }
 
                 _queue.DispatchAsync(HandleHTTPResponse);
-            }, cts.Token);
+            });
         }
 
         private void OpenConnectionToRemote()
         {
             // STEP 2: Open the socket connection to the remote host
-            var cts = new CancellationTokenSource(ConnectTimeout);
-            var tok = cts.Token;
 
             if(_logic.HasProxy) {
                 _queue.DispatchAsync(StartInternal);
@@ -424,23 +407,12 @@ namespace Couchbase.Lite.Sync
                         }
                         _queue.DispatchAsync(StartInternal);
 
-                    }, tok);
+                    });
                 } catch (Exception e) {
                     // Yes, unfortunately exceptions can either be thrown here or in the task...
                     DidClose(e);
                 }
             }
-            var cancelCallback = default(CancellationTokenRegistration);
-            cancelCallback = tok.Register(() =>
-            {
-                if (_client != null && !_client.Connected) {
-                    // TODO: Should this be transient?
-                    DidClose(new OperationCanceledException());
-                }
-
-                cancelCallback.Dispose();
-                cts.Dispose();
-            });
         }
 
         // Run in a dedicated thread
