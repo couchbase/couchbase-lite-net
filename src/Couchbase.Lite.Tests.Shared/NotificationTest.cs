@@ -184,19 +184,19 @@ namespace Test
                 {
                     args.Should().NotBeNull();
                     args.DocumentID.Should().Be("doc-6");
-                    using (var doc = Db.GetDocument(args.DocumentID)) {
+                    using (var doc = db2.GetDocument(args.DocumentID)) {
                         doc.GetString("type").Should().Be("demo");
                         countdownDoc.CurrentCount.Should().Be(1);
                         countdownDoc.Signal();
                     }
                 });
 
-                Db.InBatch(() =>
+                db2.InBatch(() =>
                 {
                     for (var i = 0; i < 10; i++) {
                         using (var doc = new MutableDocument($"doc-{i}")) {
                             doc.SetString("type", "demo");
-                            Db.Save(doc);
+                            db2.Save(doc);
                         }
                     }
                 });
