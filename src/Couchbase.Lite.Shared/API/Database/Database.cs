@@ -878,7 +878,7 @@ namespace Couchbase.Lite
             Debug.Assert(docID != null);
             var success = false;
             while (!success) {
-                Document localDoc = null, remoteDoc = null;
+                Document localDoc = null, remoteDoc = null, resolvedDoc = null;
                 try {
                     localDoc = new Document(this, docID);
                     if (!localDoc.Exists) {
@@ -900,24 +900,24 @@ namespace Couchbase.Lite
 
                     conflictResolver = conflictResolver ?? new DefaultConflictResolver();
                     var conflict = new Conflict(localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
-                    using (var resolvedDoc = conflictResolver.Resolve(conflict)) {
-                        if (resolvedDoc != null) {
-                            if (resolvedDoc.Id != docID)
-                                throw new InvalidOperationException($"Resolved docID {resolvedDoc.Id} does not match docID {docID}");
-                            else if (resolvedDoc.Database == null)
-                                resolvedDoc.Database = this;
-                            else if (resolvedDoc.Database != this)
-                                throw new InvalidOperationException($"Resolved document db {resolvedDoc.Database.Name} is different from expected db {this.Name}");
-                        }
-
-                        InBatch(() =>
-                        {
-                            success = SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
-                        });
+                    resolvedDoc = conflictResolver.Resolve(conflict);
+                    if (resolvedDoc != null) {
+                        if (resolvedDoc.Id != docID)
+                            throw new InvalidOperationException($"Resolved docID {resolvedDoc.Id} does not match docID {docID}");
+                        else if (resolvedDoc.Database == null)
+                            resolvedDoc.Database = this;
+                        else if (resolvedDoc.Database != this)
+                            throw new InvalidOperationException($"Resolved document db {resolvedDoc.Database.Name} is different from expected db {this.Name}");
                     }
+
+                    InBatch(() =>
+                    {
+                        success = SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
+                    });
                 } finally {
                     localDoc?.Dispose();
                     remoteDoc?.Dispose();
+                    resolvedDoc?.Dispose();
                 }
                 
             }
