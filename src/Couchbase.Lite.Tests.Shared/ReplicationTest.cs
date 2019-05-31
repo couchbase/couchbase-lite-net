@@ -1276,8 +1276,6 @@ namespace Test
             {
                 return new MutableDocument("wrong_id");
             });
-
-            TestConflictResolverExceptionThrown(wrongDocIDResolver, true);
         }
 
         [Fact]
@@ -1286,10 +1284,11 @@ namespace Test
             var differentDbResolver = new TestConflictResolver((conflict) =>
             {
                 Database db = new Database("different_db");
-                return new Document(db, "doc1");
+                return new Document(db, "doc1").ToMutable();
             });
 
             TestConflictResolverExceptionThrown(differentDbResolver, true);
+            Db.GetDocument("doc1").GetString("name").Should().Be("Human");
         }
 
         private void TestConflictResolverExceptionThrown(TestConflictResolver resolver, bool continueWithWorkingResolver = false)
@@ -1335,7 +1334,6 @@ namespace Test
                     return doc;
                 });
                 RunReplication(config, 0, 0);
-                Db.GetDocument("doc1").GetString("name").Should().Be("Human");
             }
         }
 
