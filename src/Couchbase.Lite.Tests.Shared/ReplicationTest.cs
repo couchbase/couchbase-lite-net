@@ -1270,15 +1270,19 @@ namespace Test
         }
 
         [Fact]
-        public void TestConflictResolverExceptionsThrown()
+        public void TestConflictResolverExceptionsWrongIDThrown()
         {
             var wrongDocIDResolver = new TestConflictResolver((conflict) =>
             {
                 return new MutableDocument("wrong_id");
             });
 
-            TestConflictResolverExceptionThrown(wrongDocIDResolver);
+            TestConflictResolverExceptionThrown(wrongDocIDResolver, true);
+        }
 
+        [Fact]
+        public void TestConflictResolverExceptionsNoneMatchDBThrown()
+        {
             var differentDbResolver = new TestConflictResolver((conflict) =>
             {
                 Database db = new Database("different_db");
