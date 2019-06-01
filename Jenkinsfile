@@ -14,21 +14,33 @@ pipeline {
                     agent { label 's61114win10_(litecore)' }
                     steps {
                         powershell(returnStatus: true, script: 'jenkins\\run_win_tests.ps1')
-                        step([$class: 'MSTestPublisher', testResultsFile:"**/unit_tests.xml", failOnError: true, keepLongStdio: true])
+                    }
+                    post {
+                        always {
+                            step([$class: 'MSTestPublisher', testResultsFile:"**/unit_tests.xml", failOnError: true, keepLongStdio: true])
+                        }
                     }
                 }
                 stage("macOS") {
                     agent { label 'mobile-mac-mini' }
                     steps {
                         sh 'jenkins/run_mac_tests.sh'
-                        step([$class: 'MSTestPublisher', testResultsFile:"**/unit_tests.xml", failOnError: true, keepLongStdio: true])
+                    }
+                    post {
+                        always {
+                            step([$class: 'MSTestPublisher', testResultsFile:"**/unit_tests.xml", failOnError: true, keepLongStdio: true])
+                        }
                     }
                 }
                 stage("Linux") {
                     agent { label 's61113u16 (litecore)' }
                     steps {
                         sh 'jenkins/run_linux_tests.sh'
-                        step([$class: 'MSTestPublisher', testResultsFile:"**/unit_tests.xml", failOnError: true, keepLongStdio: true])
+                    }
+                    post {
+                        always {
+                            step([$class: 'MSTestPublisher', testResultsFile:"**/unit_tests.xml", failOnError: true, keepLongStdio: true])
+                        }
                     }
                 }
             }
