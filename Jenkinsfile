@@ -11,7 +11,7 @@ pipeline {
         stage("Test Desktop") {
             parallel {
                 stage("Windows") {
-                    agent "s61114win10_(litecore)"
+                    agent { label 's61114win10_(litecore)' }
                     steps {
                         powershell(returnStatus: true, script: 'jenkins\\build_win_tests.ps1')
                     }
