@@ -30,11 +30,11 @@ then
     # Test the debug build
     dotnet nuget locals http-cache --clear
     dotnet restore -s http://mobile.nuget.couchbase.com/nuget/CI/ -s https://api.nuget.org/v3/index.json Couchbase.Lite.Tests.NetCore.csproj
-    dotnet test -v n --no-restore
+    dotnet test -v n --no-restore --logger "trx;LogFileName=unit_tests.xml" 
 
     # Test the release package
     dotnet restore -s http://mobile.nuget.couchbase.com/nuget/CI/ -s https://api.nuget.org/v3/index.json Couchbase.Lite.Tests.NetCore.csproj
-    dotnet test -c Release -v n --no-restore
+    dotnet test -c Release -v n --no-restore --logger "trx;LogFileName=unit_tests.xml" 
 else
     pwsh build/do_fetch_litecore.ps1 -DebugLib -Variants linux -NexusRepo $NEXUS_REPO -Sha $sha
     cd Couchbase.Lite.Tests.NetCore
@@ -44,7 +44,7 @@ else
     dotnet restore Couchbase.Lite.Tests.NetCore.Source.csproj
     dotnet restore ../Couchbase.Lite/Couchbase.Lite.csproj
     dotnet restore ../Couchbase.Lite.Support.NetDesktop/Couchbase.Lite.Support.NetDesktop.csproj
-    dotnet test -v n --no-restore Couchbase.Lite.Tests.NetCore.Source.csproj
+    dotnet test -v n --no-restore Couchbase.Lite.Tests.NetCore.Source.csproj --logger "trx;LogFileName=unit_tests.xml" 
 
     # Test the release package
     mv Couchbase.Lite.Tests.NetCore.foo Couchbase.Lite.Tests.NetCore.csproj
@@ -54,5 +54,5 @@ else
     ./modify_packages.sh $assemblyVersion $nugetVersion
     dotnet nuget locals http-cache --clear
     dotnet restore -s http://mobile.nuget.couchbase.com/nuget/CI/ -s https://api.nuget.org/v3/index.json Couchbase.Lite.Tests.NetCore.csproj
-    dotnet test -c Release -v n --no-restore Couchbase.Lite.Tests.NetCore.csproj
+    dotnet test -c Release -v n --no-restore Couchbase.Lite.Tests.NetCore.csproj --logger "trx;LogFileName=unit_tests.xml" 
 fi
