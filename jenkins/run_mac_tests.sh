@@ -39,6 +39,7 @@ then
     /usr/local/share/dotnet/dotnet test -v n --no-restore --logger "trx;LogFileName=unit_tests.xml" 
 
     # Test the release package
+    rm unit_tests.xml
     /usr/local/share/dotnet/dotnet test -c Release -v n --no-restore --logger "trx;LogFileName=unit_tests.xml" 
 else
 	powershell build/do_fetch_litecore.ps1 -DebugLib -Variants macosx -NexusRepo $NEXUS_REPO -Sha $sha
@@ -60,5 +61,6 @@ else
     ./modify_packages.sh $assemblyVersion $nugetVersion
     /usr/local/share/dotnet/dotnet nuget locals http-cache --clear
     /usr/local/share/dotnet/dotnet restore -s http://mobile.nuget.couchbase.com/nuget/CI/ -s https://api.nuget.org/v3/index.json Couchbase.Lite.Tests.NetCore.csproj
+    rm unit_tests.xml
     /usr/local/share/dotnet/dotnet test -c Release -v n --no-restore Couchbase.Lite.Tests.NetCore.csproj --logger "trx;LogFileName=unit_tests.xml" 
 fi

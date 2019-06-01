@@ -32,6 +32,7 @@ if (-NOT (Test-Path $sourceProjectFile)) {
 
     # Test the release package
     dotnet restore --no-cache -s https://api.nuget.org/v3/index.json -s http://mobile.nuget.couchbase.com/nuget/CI/ Couchbase.Lite.Tests.NetCore.csproj /p:Configuration=Release
+    Remove-Item unit_tests.xml
     dotnet test -v n -c Release --framework netcoreapp2.0 --logger "trx;LogFileName=unit_tests.xml" 
     if ($lastexitcode -ne 0) {
         throw "Release testing failed"
@@ -55,6 +56,7 @@ if (-NOT (Test-Path $sourceProjectFile)) {
     .\modify_packages.ps1 -Version $Env:VERSION
     dotnet nuget locals http-cache --clear
     dotnet restore -s https://api.nuget.org/v3/index.json -s http://mobile.nuget.couchbase.com/nuget/CI/ Couchbase.Lite.Tests.NetCore.csproj
+    Remove-Item unit_tests.xml
     dotnet test -v normal --framework netcoreapp2.0 --no-restore -c Release Couchbase.Lite.Tests.NetCore.csproj --logger "trx;LogFileName=unit_tests.xml" 
     if ($lastexitcode -ne 0) {
         throw "Release testing failed"
