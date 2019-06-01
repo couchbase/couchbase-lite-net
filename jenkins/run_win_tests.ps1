@@ -27,7 +27,7 @@ if (-NOT (Test-Path $sourceProjectFile)) {
     dotnet restore --no-cache -s https://api.nuget.org/v3/index.json -s http://mobile.nuget.couchbase.com/nuget/CI/ Couchbase.Lite.Tests.NetCore.csproj
     dotnet test -v n --framework netcoreapp2.0 --logger "trx;LogFileName=unit_tests.xml" 
     if ($lastexitcode -ne 0) {
-        throw "Debug testing failed"
+        exit $lastexitcode
     }
 
     # Test the release package
@@ -35,7 +35,7 @@ if (-NOT (Test-Path $sourceProjectFile)) {
     Remove-Item unit_tests.xml
     dotnet test -v n -c Release --framework netcoreapp2.0 --logger "trx;LogFileName=unit_tests.xml" 
     if ($lastexitcode -ne 0) {
-        throw "Release testing failed"
+        exit $lastexitcode
     }
 } else {
     ../build/do_fetch_litecore.ps1 -DebugLib -Variants windows-win32,windows-win64 -NexusRepo $env:NEXUS_REPO -Sha $sha
@@ -47,7 +47,7 @@ if (-NOT (Test-Path $sourceProjectFile)) {
     dotnet restore ../Couchbase.Lite.Support.NetDesktop/Couchbase.Lite.Support.NetDesktop.csproj
     dotnet test -v normal --framework netcoreapp2.0 --no-restore Couchbase.Lite.Tests.NetCore.Source.csproj --logger "trx;LogFileName=unit_tests.xml" 
     if ($lastexitcode -ne 0) {
-        throw "Debug testing failed"
+        exit $lastexitcode
     }
 
     # Test the release package
@@ -59,6 +59,6 @@ if (-NOT (Test-Path $sourceProjectFile)) {
     Remove-Item unit_tests.xml
     dotnet test -v normal --framework netcoreapp2.0 --no-restore -c Release Couchbase.Lite.Tests.NetCore.csproj --logger "trx;LogFileName=unit_tests.xml" 
     if ($lastexitcode -ne 0) {
-        throw "Release testing failed"
+        exit $lastexitcode
     }
 }
