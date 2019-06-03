@@ -72,15 +72,14 @@ namespace LiteCore.Interop
             }
         }
 
-        public static string FLJSON5_ToJSON(string json5, FLError* error)
+        public static string FLJSON5_ToJSON(string json5, FLSlice* outErrorMessage, UIntPtr* outErrPos, FLError* err)
         {
             using(var json5_ = new C4String(json5)) {
-                using(var retVal = NativeRaw.FLJSON5_ToJSON((FLSlice)json5_.AsFLSlice(), error)) {
+                using(var retVal = NativeRaw.FLJSON5_ToJSON((FLSlice)json5_.AsFLSlice(), outErrorMessage, outErrPos, err)) {
                     return ((FLSlice)retVal).CreateString();
                 }
             }
         }
-
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValueType FLValue_GetType(FLValue* value);
 
@@ -309,7 +308,7 @@ namespace LiteCore.Interop
         public static extern FLSliceResult FLValue_ToJSONX(FLValue* v, [MarshalAs(UnmanagedType.U1)]bool json5, [MarshalAs(UnmanagedType.U1)]bool canonicalForm);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult FLJSON5_ToJSON(FLSlice json5, FLError* error);
+        public static extern FLSliceResult FLJSON5_ToJSON(FLSlice json5, FLSlice* outErrorMessage, UIntPtr* outErrorPos, FLError* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSlice FLValue_AsString(FLValue* value);

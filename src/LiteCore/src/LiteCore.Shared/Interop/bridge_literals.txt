@@ -89,3 +89,12 @@ c4db_initFLDictKey
             return NativeRaw.c4db_initFLDictKey(db, C4Slice.Constant(str));
         }
 
+FLJSON5_ToJSON
+        public static string FLJSON5_ToJSON(string json5, FLSlice* outErrorMessage, UIntPtr* outErrPos, FLError* err)
+        {
+            using(var json5_ = new C4String(json5)) {
+                using(var retVal = NativeRaw.FLJSON5_ToJSON((FLSlice)json5_.AsFLSlice(), outErrorMessage, outErrPos, err)) {
+                    return ((FLSlice)retVal).CreateString();
+                }
+            }
+        }

@@ -113,7 +113,7 @@ namespace LiteCore.Tests
         internal FLSliceResult JSON2Fleece(FLSlice body)
         {
             FLError err;
-            var jsonStr = NativeRaw.FLJSON5_ToJSON(body, &err);
+            var jsonStr = NativeRaw.FLJSON5_ToJSON(body, null, null, &err);
             LiteCoreBridge.Check(c4err => Native.c4db_beginTransaction(Db, c4err));
             var success = false;
             try {
@@ -390,7 +390,7 @@ namespace LiteCore.Tests
             }
 
             json.Append("]}");
-            var jsonStr = Native.FLJSON5_ToJSON(json.ToString(), null);
+            var jsonStr = Native.FLJSON5_ToJSON(json.ToString(), null, null, null);
             using (var jsonStr_ = new C4String(jsonStr)) {
                 C4Error error; 
                 var body = NativeRaw.c4db_encodeJSON(Db, jsonStr_.AsFLSlice(), &error);

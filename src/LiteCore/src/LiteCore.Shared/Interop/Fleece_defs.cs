@@ -88,6 +88,10 @@ namespace LiteCore.Interop
     {
     }
 
+	internal unsafe struct FLSlot
+    {
+    }
+
 	internal unsafe struct FLMutableArray
     {
     }
