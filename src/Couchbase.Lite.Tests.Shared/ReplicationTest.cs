@@ -1134,10 +1134,9 @@ namespace Test
                     }
                 }
 
-                using(var doc1 = new MutableDocument(localDoc.Id)) {
-                    doc1.SetData(updateDocDict);
-                    return doc1;
-                }
+                var doc1 = new MutableDocument(localDoc.Id);
+                doc1.SetData(updateDocDict);
+                return doc1;
             });
 
             RunReplication(config, 0, 0);
@@ -1276,6 +1275,8 @@ namespace Test
             {
                 return new MutableDocument("wrong_id");
             });
+            
+            TestConflictResolverExceptionThrown(wrongDocIDResolver, false);
         }
 
         [Fact]
@@ -1383,9 +1384,10 @@ namespace Test
 
             Db.Count.ShouldBeEquivalentTo(1);
 
-            using (var doc1 = new MutableDocument("doc1")) {
-                doc1.SetString("name", "Lion");
-                _otherDB.Save(doc1);
+            using (var doc1a = _otherDB.GetDocument("doc1"))
+            using (var doc1aMutable = doc1a.ToMutable()) {
+                doc1aMutable.SetString("name", "Lion");
+                _otherDB.Save(doc1aMutable);
             }
         }
 
