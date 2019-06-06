@@ -1282,11 +1282,13 @@ namespace Test
         [Fact]
         public void TestConflictResolverExceptionsNoneMatchDBThrown()
         {
-            var differentDbResolver = new TestConflictResolver((conflict) =>
-            {
-                Database db = new Database("different_db");
-                return new Document(db, "doc1").ToMutable();
-            });
+            var tmpDoc = new MutableDocument("doc1");
+            using (var thirdDb = new Database("different_db")) {
+                tmpDoc.SetString("foo", "bar");
+                thirdDb.Save(tmpDoc);
+            }
+
+            var differentDbResolver = new TestConflictResolver((conflict) => tmpDoc);
 
             TestConflictResolverExceptionThrown(differentDbResolver, true);
             Db.GetDocument("doc1").GetString("name").Should().Be("Human");
