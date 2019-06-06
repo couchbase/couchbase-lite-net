@@ -879,6 +879,7 @@ namespace Couchbase.Lite
             var success = false;
             while (!success) {
                 Document localDoc = null, remoteDoc = null;
+                MutableDocument resolvedMutableDoc = null;
                 try {
                     localDoc = new Document(this, docID);
                     if (!localDoc.Exists) {
@@ -899,25 +900,29 @@ namespace Couchbase.Lite
                             remoteDoc.RevID);
 
                     conflictResolver = conflictResolver ?? new DefaultConflictResolver();
-                    var conflict = new Conflict(localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
+                    var conflict = new Conflict(docID, localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
                     using (var resolvedDoc = conflictResolver.Resolve(conflict)) {
                         if (resolvedDoc != null) {
-                            if (resolvedDoc.Id != docID)
-                                throw new InvalidOperationException($"Resolved docID {resolvedDoc.Id} does not match docID {docID}");
-                            else if (resolvedDoc.Database == null)
-                                resolvedDoc.Database = this;
-                            else if (resolvedDoc.Database != this)
-                                throw new InvalidOperationException($"Resolved document db {resolvedDoc.Database.Name} is different from expected db {this.Name}");
+                            resolvedMutableDoc = resolvedDoc.ToMutable();
+                            if (resolvedMutableDoc.Id != docID) {
+                                WriteLog.To.Sync.W(Tag, $"Resolved docID {resolvedMutableDoc.Id} does not match docID {docID}",
+                                new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+                                resolvedMutableDoc = new MutableDocument(docID, resolvedDoc.ToDictionary());
+                            } else if (resolvedMutableDoc.Database == null)
+                                resolvedMutableDoc.Database = this;
+                            else if (resolvedMutableDoc.Database != this)
+                                throw new InvalidOperationException($"Resolved document db {resolvedMutableDoc.Database.Name} is different from expected db {this.Name}");
                         }
 
                         InBatch(() =>
                         {
-                            success = SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
+                            success = SaveResolvedDocument(resolvedMutableDoc, localDoc, remoteDoc);
                         });
                     }
                 } finally {
                     localDoc?.Dispose();
                     remoteDoc?.Dispose();
+                    resolvedMutableDoc?.Dispose();
                 }
                 
             }
