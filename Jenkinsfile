@@ -8,74 +8,69 @@ pipeline {
                 }
             }
         }
-        stage("Test Desktop") {
-            parallel {
-                stage("Windows") {
-                    agent { label 's61114win10_(litecore)' }
-                    steps {
-                        powershell(returnStatus: true, script: 'jenkins\\run_win_tests.ps1')
-                    }
-                    post {
-                        always {
-                            step([$class: 'MSTestPublisher', testResultsFile:"**/unit_tests.xml", failOnError: true, keepLongStdio: true])
-                        }
-                    }
-                }
-                stage("macOS") {
-                    agent { label 'mobile-mac-mini' }
-                    steps {
-                        sh 'jenkins/run_mac_tests.sh'
-                    }
-                    post {
-                        always {
-                            step([$class: 'MSTestPublisher', testResultsFile:"**/unit_tests.xml", failOnError: true, keepLongStdio: true])
-                        }
-                    }
-                }
-                stage("Linux") {
-                    agent { label 's61113u16 (litecore)' }
-                    steps {
-                        sh 'jenkins/run_linux_tests.sh'
-                    }
-                    post {
-                        always {
-                            step([$class: 'MSTestPublisher', testResultsFile:"**/unit_tests.xml", failOnError: true, keepLongStdio: true])
-                        }
-                    }
-                }
-            }
-        }
-        // stage("Test Mobile") {
+        // stage("Test Desktop") {
         //     parallel {
-        //         stage("UWP") {
+        //         stage("Windows") {
+        //             agent { label 's61114win10_(litecore)' }
         //             steps {
-        //                 build job: "couchbase-lite-net-uwp",
-        //                 parameters:[
-        //                 string(name:"VERSION", value:"${VERSION}"), 
-        //                 string(name:"BRANCH", value:"${BRANCH}")
-        //                 ]
+        //                 powershell(returnStatus: true, script: 'jenkins\\run_win_tests.ps1')
+        //             }
+        //             post {
+        //                 always {
+        //                     step([$class: 'MSTestPublisher', testResultsFile:"**/unit_tests.xml", failOnError: true, keepLongStdio: true])
+        //                 }
         //             }
         //         }
-        //         stage("Xamarin Android") {
+        //         stage("macOS") {
+        //             agent { label 'mobile-mac-mini' }
         //             steps {
-        //                 build job: "couchbase-lite-net-xamarin-android",
-        //                 parameters:[
-        //                 string(name:"VERSION", value:"${VERSION}"), 
-        //                 string(name:"BRANCH", value:"${BRANCH}")
-        //                 ]
+        //                 sh 'jenkins/run_mac_tests.sh'
+        //             }
+        //             post {
+        //                 always {
+        //                     step([$class: 'MSTestPublisher', testResultsFile:"**/unit_tests.xml", failOnError: true, keepLongStdio: true])
+        //                 }
         //             }
         //         }
-        //         stage("Xamarin iOS") {
+        //         stage("Linux") {
+        //             agent { label 's61113u16 (litecore)' }
         //             steps {
-        //                 build job: "couchbase-lite-net-xamarin-ios",
-        //                 parameters:[
-        //                 string(name:"VERSION", value:"${VERSION}"), 
-        //                 string(name:"BRANCH", value:"${BRANCH}")
-        //                 ]
+        //                 sh 'jenkins/run_linux_tests.sh'
+        //             }
+        //             post {
+        //                 always {
+        //                     step([$class: 'MSTestPublisher', testResultsFile:"**/unit_tests.xml", failOnError: true, keepLongStdio: true])
+        //                 }
         //             }
         //         }
         //     }
         // }
+        stage("Test Mobile") {
+            parallel {
+                stage("UWP") {
+                    agent { label 's61114win10_(litecore)' }
+                    steps {
+                        powershell(returnStatus: true, script: 'jenkins\\build_uwp_tests.ps1')
+                        powershell(returnStatus: true, script: 'Remove-AppxPackage -Package "eb9a8775-4322-4e36-a34c-eee261241f4e_1.0.0.0_x64__1v3rwxh47wwxj"')
+                        bat 'jenkins\\run_uwp_tests_debug.bat'
+                        powershell(returnStatus: true, script: 'Remove-AppxPackage -Package "eb9a8775-4322-4e36-a34c-eee261241f4e_1.0.0.0_x64__1v3rwxh47wwxj"')
+                        bat 'jenkins\\run_uwp_tests_release.bat'
+                    }
+                }
+                stage("Xamarin Android") {
+                    agent { label 'mobile-mac-mini' }
+                    steps {
+                        
+                    }
+                }
+                stage("Xamarin iOS") {
+                    agent { label 'mobile-mac-mini' }
+                    steps {
+                        
+                    }
+                }
+            }
+        }
         // stage("Promote Build") {
         //     steps {
         //         sh '''#!/bin/bash
