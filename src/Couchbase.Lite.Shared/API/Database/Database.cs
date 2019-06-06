@@ -903,15 +903,18 @@ namespace Couchbase.Lite
                     var conflict = new Conflict(docID, localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
 
                     resolvedDoc = conflictResolver.Resolve(conflict)?.ToMutable();
+                    Misc.SafeSwap(ref resolvedDoc, resolvedDoc?.ToMutable());
                     if (resolvedDoc != null) {
                         if (resolvedDoc.Id != docID) {
                             WriteLog.To.Sync.W(Tag, $"Resolved docID {resolvedDoc.Id} does not match docID {docID}",
                                 new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
                             resolvedDoc = new MutableDocument(docID, resolvedDoc.ToDictionary());
-                        } else if (resolvedDoc.Database == null)
+                            Misc.SafeSwap(ref resolvedDoc, resolvedDoc?.ToMutable());
+                        } else if (resolvedDoc.Database == null) {
                             resolvedDoc.Database = this;
-                        else if (resolvedDoc.Database != this)
+                        } else if (resolvedDoc.Database != this) {
                             throw new InvalidOperationException($"Resolved document db {resolvedDoc.Database.Name} is different from expected db {this.Name}");
+                        }
                     }
 
                     InBatch(() =>
