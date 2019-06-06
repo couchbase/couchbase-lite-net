@@ -1277,7 +1277,7 @@ namespace Test
                 return new MutableDocument("wrong_id");
             });
             
-            TestConflictResolverExceptionThrown(wrongDocIDResolver, false);
+            //TestConflictResolverExceptionThrown(wrongDocIDResolver, false);
         }
 
         [Fact]
