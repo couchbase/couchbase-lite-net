@@ -27,22 +27,29 @@ namespace Couchbase.Lite
     public class Conflict
     {
         /// <summary>
+        /// The conflict resolved document id.
+        /// </summary>
+        [NotNull]
+        public string DocumentID { get; }
+
+        /// <summary>
         /// The document in local database. If null, the document is deleted.
         /// </summary>
         [CanBeNull]
-        public Document LocalDocument { get; set; }
+        public Document LocalDocument { get; }
 
         /// <summary>
         /// The document in remote database. If null, the document is deleted.
         /// </summary>
         [CanBeNull]
-        public Document RemoteDocument { get; set; }
+        public Document RemoteDocument { get; }
 
-        internal Conflict(Document localDoc, Document remoteDoc)
+        internal Conflict(string docID, Document localDoc, Document remoteDoc)
         {
-            Debug.Assert(localDoc != null || remoteDoc != null,
+            Debug.Assert(localDoc != null && remoteDoc != null,
                 "Local and remote document shouldn't be empty at same time, when resolving conflict.");
 
+            DocumentID = docID;
             LocalDocument = localDoc;
             RemoteDocument = remoteDoc;
         }
