@@ -27,6 +27,9 @@ namespace LiteCore.Interop
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate void C4LogCallback(C4LogDomain* domain, C4LogLevel level, IntPtr message, IntPtr args);
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    internal unsafe delegate void C4ExtraInfoDestructor(void* ptr);
+
     [ExcludeFromCodeCoverage]
     internal partial struct C4Error
     {

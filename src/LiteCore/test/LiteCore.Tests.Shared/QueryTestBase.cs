@@ -96,7 +96,7 @@ namespace LiteCore.Tests
         protected string Json5(string input)
         {
             FLError err;
-            var json = Native.FLJSON5_ToJSON(input, &err);
+            var json = Native.FLJSON5_ToJSON(input, null, null, &err);
             json.Should().NotBeNull("because otherwise the JSON failed to parse");
             return json;
         }

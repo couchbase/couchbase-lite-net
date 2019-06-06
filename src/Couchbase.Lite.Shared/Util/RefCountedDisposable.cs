@@ -19,6 +19,9 @@
 using System;
 using System.Threading;
 
+using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Logging;
+
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Util
@@ -35,6 +38,7 @@ namespace Couchbase.Lite.Util
         #region Variables
         
         private int _refCount;
+        private AtomicBool _disposed = false;
 
         #endregion
 
@@ -65,6 +69,10 @@ namespace Couchbase.Lite.Util
         /// </summary>
         public void Retain()
         {
+            if (_disposed) {
+                throw new ObjectDisposedException(GetType().Name);
+            }
+
             Interlocked.Increment(ref _refCount);
         }
 
@@ -76,6 +84,10 @@ namespace Couchbase.Lite.Util
         [NotNull]
         public T Retain<T>() where T : RefCountedDisposable
         {
+            if (_disposed) {
+                throw new ObjectDisposedException(GetType().Name);
+            }
+
             Interlocked.Increment(ref _refCount);
             return (T) this;
         }
@@ -83,7 +95,7 @@ namespace Couchbase.Lite.Util
         #region Protected Methods
 
         /// <summary>
-        /// Performs the actual disposale
+        /// Performs the actual dispose
         /// </summary>
         /// <param name="disposing">Whether or not this method is being called from
         /// inside <see cref="IDisposable.Dispose"/> (vs the finalizer)</param>
@@ -97,11 +109,9 @@ namespace Couchbase.Lite.Util
         public void Dispose()
         {
             var refCount = Interlocked.Decrement(ref _refCount);
-            if (refCount == 0) {
+            if (refCount == 0 && !_disposed.Set(true)) {
                 GC.SuppressFinalize(this);
                 Dispose(true);
-            } else if (refCount < 0) {
-                throw new InvalidOperationException("Dispose called too many times!");
             }
         }
 
