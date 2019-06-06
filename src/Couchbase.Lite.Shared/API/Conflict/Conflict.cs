@@ -46,7 +46,7 @@ namespace Couchbase.Lite
 
         internal Conflict(string docID, Document localDoc, Document remoteDoc)
         {
-            Debug.Assert(localDoc != null && remoteDoc != null,
+            Debug.Assert(localDoc != null || remoteDoc != null,
                 "Local and remote document shouldn't be empty at same time, when resolving conflict.");
 
             DocumentID = docID;
