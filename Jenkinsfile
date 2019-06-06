@@ -57,18 +57,18 @@ pipeline {
                         bat 'jenkins\\run_uwp_tests_release.bat'
                     }
                 }
-                stage("Xamarin Android") {
-                    agent { label 'mobile-mac-mini' }
-                    steps {
+                // stage("Xamarin Android") {
+                //     agent { label 'mobile-mac-mini' }
+                //     steps {
                         
-                    }
-                }
-                stage("Xamarin iOS") {
-                    agent { label 'mobile-mac-mini' }
-                    steps {
+                //     }
+                // }
+                // stage("Xamarin iOS") {
+                //     agent { label 'mobile-mac-mini' }
+                //     steps {
                         
-                    }
-                }
+                //     }
+                // }
             }
         }
         // stage("Promote Build") {
