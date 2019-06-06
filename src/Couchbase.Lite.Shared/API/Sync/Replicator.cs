@@ -620,7 +620,7 @@ namespace Couchbase.Lite.Sync
                 if (HandleError(status.error)) {
                     status.level = C4ReplicatorActivityLevel.Offline;
                 }
-            } else if (status.level > C4ReplicatorActivityLevel.Connecting) {
+            } else if (status.level > C4ReplicatorActivityLevel.Connecting && status.error.code == 0) {
                 _retryCount = 0;
                 _reachability?.Stop();
                 _reachability = null;

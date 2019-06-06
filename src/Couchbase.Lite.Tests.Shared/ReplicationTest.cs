@@ -76,7 +76,7 @@ namespace Test
             //Database.SetLogLevel(LogDomain.Replicator, LogLevel.Verbose);
         }
 #if !WINDOWS_UWP
-        //[Fact]
+        [Fact]
         public async Task TestReplicatorStopsWhenEndpointInvalid()
         {
             // If this IP address happens to exist, then change it.  It needs to be an address that does not
@@ -86,7 +86,8 @@ namespace Test
             using (var repl = new Replicator(config)) {
                 repl.Start();
                 var count = 0;
-                while (count++ <= 35 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                Thread.Sleep(TimeSpan.FromSeconds(51)); // The combined amount of time this should take to stop
+                while (count++ <= 10 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
                     WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
                     await Task.Delay(500);
                 }
