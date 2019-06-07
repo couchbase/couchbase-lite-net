@@ -1754,7 +1754,8 @@ namespace Test
         [Fact]
         public void TestEqualityDifferentDB()
         {
-            using (var otherDB = OpenDB("other")) {
+            var otherDB = OpenDB("other");
+            try {
                 using (var doc1a = new MutableDocument("doc1"))
                 using (var doc1b = new MutableDocument("doc1")) {
                     doc1a.SetInt("answer", 42);
@@ -1763,7 +1764,7 @@ namespace Test
 
                     Db.Save(doc1a);
                     otherDB.Save(doc1b);
-                    using(var sdoc1a = Db.GetDocument(doc1a.Id))
+                    using (var sdoc1a = Db.GetDocument(doc1a.Id))
                     using (var sdoc1b = otherDB.GetDocument(doc1b.Id)) {
                         sdoc1a.As<object>().Should().Be(doc1a);
                         sdoc1b.As<object>().Should().Be(doc1b);
@@ -1772,15 +1773,18 @@ namespace Test
                     }
                 }
 
-                using(var sdoc1a = Db.GetDocument("doc1"))
+                using (var sdoc1a = Db.GetDocument("doc1"))
                 using (var sdoc1b = otherDB.GetDocument("doc1")) {
                     sdoc1a.As<object>().Should().NotBe(sdoc1b);
 
                     using (var sameDB = new Database(Db))
-                    using(var anotherDoc1a = sameDB.GetDocument("doc1")) {
+                    using (var anotherDoc1a = sameDB.GetDocument("doc1")) {
                         sdoc1a.As<object>().Should().Be(anotherDoc1a);
                     }
                 }
+            } finally {
+                otherDB.Delete();
+                otherDB.Dispose();
             }
         }
 

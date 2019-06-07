@@ -725,6 +725,43 @@ namespace Test
         }
 
         [Fact]
+        [ForIssue("couchbase-lite-core/497")]
+        public void TestLeftJoinWithSelectAll()
+        {
+            LoadNumbers(100);
+
+            using (var joinme = new MutableDocument("joinme")) {
+                joinme.SetInt("theone", 42);
+                Db.Save(joinme);
+            }
+
+            var on = Expression.Property("number1").From("main").EqualTo(Expression.Property("theone").From("secondary"));
+            var join = Join.LeftJoin(DataSource.Database(Db).As("secondary")).On(on);
+
+            using (var q = QueryBuilder.Select(SelectResult.All().From("main"),
+                    SelectResult.All().From("secondary"))
+                .From(DataSource.Database(Db).As("main"))
+                .Join(join)) {
+                var numRows = VerifyQuery(q, (n, r) =>
+                {
+                    var main = r.GetDictionary(0);
+                    var secondary = r.GetDictionary(1);
+
+                    var number1 = main.GetInt("number1");
+                    if (number1 == 42) {
+                        secondary.Should().NotBeNull("because the JOIN matched");
+                        secondary.GetInt("theone").Should().Be(number1, "because this is the join entry");
+                    } else {
+                        secondary.Should().BeNull("because the JOIN didn't match");
+                    }
+                });
+
+                numRows.Should().Be(101);
+            }
+
+        }
+
+        [Fact]
         public void TestCrossJoin()
         {
             LoadNumbers(10);
