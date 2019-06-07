@@ -35,6 +35,8 @@ using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
 
+using Newtonsoft.Json;
+
 using Test.Util;
 #if COUCHBASE_ENTERPRISE
 using Couchbase.Lite.P2P;
@@ -92,7 +94,7 @@ namespace Test
                     await Task.Delay(500);
                 }
 
-                count.Should().BeLessThan(35, "because otherwise the replicator never stopped");
+                count.Should().BeLessThan(10, "because otherwise the replicator never stopped");
             }
         }
 #endif
@@ -1135,7 +1137,9 @@ namespace Test
                     }
                 }
 
-                var doc1 = new MutableDocument(localDoc.Id);
+                WriteLine($"Resulting merge: {JsonConvert.SerializeObject(updateDocDict)}");
+
+                var doc1 = new MutableDocument(conflict.DocumentID);
                 doc1.SetData(updateDocDict);
                 return doc1;
             });
@@ -1165,7 +1169,7 @@ namespace Test
                 lanStr.Should().Contain("C#");
                 doc1.GetString("location").Should().Be("Japan");
             }
-
+            
             RunReplication(config, 0, 0);
 
             using (var doc1 = _otherDB.GetDocument("doc1")) {
