@@ -1276,12 +1276,14 @@ namespace Test
             using (var thirdDb = new Database("different_db")) {
                 tmpDoc.SetString("foo", "bar");
                 thirdDb.Save(tmpDoc);
+
+                var differentDbResolver = new TestConflictResolver((conflict) => tmpDoc);
+
+                TestConflictResolverExceptionThrown(differentDbResolver, true);
+                Db.GetDocument("doc1").GetString("name").Should().Be("Human");
+
+                thirdDb.Delete();
             }
-
-            var differentDbResolver = new TestConflictResolver((conflict) => tmpDoc);
-
-            TestConflictResolverExceptionThrown(differentDbResolver, true);
-            Db.GetDocument("doc1").GetString("name").Should().Be("Human");
         }
 
         private void TestConflictResolverExceptionThrown(TestConflictResolver resolver, bool continueWithWorkingResolver = false)

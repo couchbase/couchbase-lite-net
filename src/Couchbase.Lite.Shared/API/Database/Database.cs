@@ -878,8 +878,7 @@ namespace Couchbase.Lite
             Debug.Assert(docID != null);
             var success = false;
             while (!success) {
-                Document localDoc = null, remoteDoc = null;
-                MutableDocument resolvedDoc = null;
+                Document localDoc = null, remoteDoc = null, resolvedDoc = null;
                 try {
                     localDoc = new Document(this, docID);
                     if (!localDoc.Exists) {
@@ -902,14 +901,12 @@ namespace Couchbase.Lite
                     conflictResolver = conflictResolver ?? new DefaultConflictResolver();
                     var conflict = new Conflict(docID, localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
 
-                    resolvedDoc = conflictResolver.Resolve(conflict)?.ToMutable();
-                    Misc.SafeSwap(ref resolvedDoc, resolvedDoc?.ToMutable());
+                    resolvedDoc = conflictResolver.Resolve(conflict);
                     if (resolvedDoc != null) {
                         if (resolvedDoc.Id != docID) {
                             WriteLog.To.Sync.W(Tag, $"Resolved docID {resolvedDoc.Id} does not match docID {docID}",
                                 new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
-                            resolvedDoc = new MutableDocument(docID, resolvedDoc.ToDictionary());
-                            Misc.SafeSwap(ref resolvedDoc, resolvedDoc?.ToMutable());
+                            Misc.SafeSwap(ref resolvedDoc, new MutableDocument(docID, resolvedDoc.ToDictionary()));
                         } else if (resolvedDoc.Database == null) {
                             resolvedDoc.Database = this;
                         } else if (resolvedDoc.Database != this) {
