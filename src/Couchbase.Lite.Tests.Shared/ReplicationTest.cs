@@ -1275,6 +1275,28 @@ namespace Test
         }
 
         [Fact]
+        public void TestConflictResolverWrongDocID()
+        {
+            var wrongDocIDResolver = new TestConflictResolver((conflict) =>
+            {
+                var doc = new MutableDocument("wrong_id");
+                doc.SetString("wrong_id_key", "wrong_id_value");
+                return doc;
+            });
+
+            CreateReplicationConflict();
+
+            var config = CreateConfig(true, true, false);
+            config.ConflictResolver = wrongDocIDResolver;
+
+            RunReplication(config, 0, 0);
+
+            using (var db = Db.GetDocument("doc1")) {
+                db.GetString("wrong_id_key").Should().Be("wrong_id_value");
+            }
+        }
+
+        [Fact]
         public void TestConflictResolverExceptionsNoneMatchDBThrown()
         {
             var tmpDoc = new MutableDocument("doc1");
@@ -1288,6 +1310,107 @@ namespace Test
                 Db.GetDocument("doc1").GetString("name").Should().Be("Human");
 
                 thirdDb.Delete();
+            }
+        }
+
+        [Fact]
+        public void TestConflictResolverReturningBlob()
+        {
+            var returnRemoteDoc = true;
+            TestConflictResolverWinsInBlobs(returnRemoteDoc);
+            TestConflictResolverWinsInBlobs(!returnRemoteDoc);
+
+            //return new doc with a blob object
+            CreateReplicationConflictInBlobs();
+
+            var config = CreateConfig(false, true, false);
+
+            config.ConflictResolver = new TestConflictResolver((conflict) =>
+            {
+                var evilByteArray = new byte[] { 6, 6, 6 };
+
+                var doc = new MutableDocument();
+                doc.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
+                return doc;
+            });
+
+            RunReplication(config, 0, 0);
+
+            using (var doc = Db.GetDocument("doc1")) {
+                doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 6, 6, 6 });
+            }
+        }
+
+        [Fact]
+        public void TestConflictResolverReturningBlobFromDifferentDB()
+        {
+            var tmpDoc = new MutableDocument("doc1");
+            var evilByteArray = new byte[] { 6, 6, 6 };
+            using (var thirdDb = new Database("different_db")) {
+                tmpDoc.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
+                thirdDb.Save(tmpDoc);
+
+                var differentDbResolver = new TestConflictResolver((conflict) => tmpDoc);
+
+                TestConflictResolverExceptionThrown(differentDbResolver, false);
+
+                thirdDb.Delete();
+            }
+        }
+
+        private void TestConflictResolverWinsInBlobs(bool returnRemoteDoc)
+        {
+            CreateReplicationConflictInBlobs();
+
+            var config = CreateConfig(false, true, false);
+
+            config.ConflictResolver = new TestConflictResolver((conflict) =>
+            {
+                if (returnRemoteDoc) {
+                    return conflict.RemoteDocument;
+                } else
+                    return conflict.LocalDocument;
+            });
+
+            RunReplication(config, 0, 0);
+
+            using (var doc = Db.GetDocument("doc1")) {
+                if (returnRemoteDoc) {
+                    doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 7, 7, 7 });
+                } else {
+                    doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 4, 5, 6 });
+                }
+            }
+        }
+
+        private void CreateReplicationConflictInBlobs()
+        {
+            var oddByteArray = new byte[] { 1, 2, 3 };
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetBlob("blob", new Blob("text/plaintext", oddByteArray));
+                Db.Save(doc1);
+            }
+
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetBlob("blob", new Blob("text/plaintext", oddByteArray));
+                _otherDB.Save(doc1);
+            }
+
+            // Force a conflict
+            using (var doc1a = Db.GetDocument("doc1"))
+            using (var doc1aMutable = doc1a.ToMutable()) {
+                var evenByteArray = new byte[] { 4, 5, 6 };
+                doc1aMutable.SetBlob("blob", new Blob("text/plaintext", evenByteArray));
+                Db.Save(doc1aMutable);
+            }
+
+            Db.Count.ShouldBeEquivalentTo(1);
+
+            using (var doc1a = _otherDB.GetDocument("doc1"))
+            using (var doc1aMutable = doc1a.ToMutable()) {
+                var luckyByteArray = new byte[] { 7, 7, 7 };
+                doc1aMutable.SetBlob("blob", new Blob("text/plaintext", luckyByteArray));
+                _otherDB.Save(doc1aMutable);
             }
         }
 
