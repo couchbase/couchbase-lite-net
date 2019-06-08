@@ -835,6 +835,9 @@ namespace Couchbase.Lite
             do { 
                 saved = Save(doc, baseDoc, ConcurrencyControl.FailOnConflict, false);
                 baseDoc = new Document(this, doc.Id);
+                if (!baseDoc.Exists) {
+                    throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+                }
                 if (!saved) {
                     try {
                         if (!conflictHandler(doc, baseDoc.IsDeleted ? null : baseDoc)) { // resolve conflict with conflictHandler
@@ -907,7 +910,8 @@ namespace Couchbase.Lite
                             WriteLog.To.Sync.W(Tag, $"Resolved docID {resolvedDoc.Id} does not match docID {docID}",
                                 new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
                             Misc.SafeSwap(ref resolvedDoc, new MutableDocument(docID, resolvedDoc.ToDictionary()));
-                        } else if (resolvedDoc.Database == null) {
+                        }
+                        if (resolvedDoc.Database == null) {
                             resolvedDoc.Database = this;
                         } else if (resolvedDoc.Database != this) {
                             throw new InvalidOperationException($"Resolved document db {resolvedDoc.Database.Name} is different from expected db {this.Name}");
