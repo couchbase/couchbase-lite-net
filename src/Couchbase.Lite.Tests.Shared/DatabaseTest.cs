@@ -344,24 +344,27 @@ namespace Test
         [Fact]
         public void TestConflictHandlerWhenDocumentIsPurged()
         {
-            var doc = new MutableDocument("doc1");
-            doc.SetString("firstName", "Tiger");
-            Db.Save(doc);
+            using (var doc = new MutableDocument("doc1")) {
+                doc.SetString("firstName", "Tiger");
+                Db.Save(doc);
+            }
+
             Db.GetDocument("doc1").Generation.Should().Be(1);
 
-            var doc1b = Db.GetDocument("doc1").ToMutable();
+            using (var doc1b = Db.GetDocument("doc1").ToMutable()) {
 
-            Db.Purge("doc1");
+                Db.Purge("doc1");
 
-            doc1b.SetString("nickName", "Scott");
+                doc1b.SetString("nickName", "Scott");
 
-            try {
-                Db.Save(doc1b, (updated, current) => {
+                Db.Invoking(d => Db.Save(doc1b, (updated, current) =>
+                {
                     return true;
-                });
-            } catch (CouchbaseLiteException ex) {
-                ex.Error.Should().Be(CouchbaseLiteError.NotFound, "because the document is purged");
-                ex.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite, "because this is a LiteCore error");
+                })).ShouldThrow<CouchbaseLiteException>()
+                    .Where(
+                        e => e.Error == CouchbaseLiteError.NotFound &&
+                             e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
+                        "because the document is purged");
             }
         }
 
