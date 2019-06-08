@@ -349,15 +349,14 @@ namespace Test
                 Db.Save(doc);
             }
 
-            Db.GetDocument("doc1").Generation.Should().Be(1);
+            using (var doc = Db.GetDocument("doc1")) {
+                doc.Generation.Should().Be(1);
+            }
 
             using (var doc1 = Db.GetDocument("doc1"))
             using (var doc1b = doc1.ToMutable()) {
-
                 Db.Purge("doc1");
-
                 doc1b.SetString("nickName", "Scott");
-
                 Db.Invoking(d => Db.Save(doc1b, (updated, current) =>
                 {
                     return true;
