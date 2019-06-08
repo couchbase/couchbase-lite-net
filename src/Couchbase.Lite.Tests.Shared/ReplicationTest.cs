@@ -1110,88 +1110,75 @@ namespace Test
         [Fact]
         public void TestConflictResolverMergeDoc()
         {
-            #if WINDOWS_UWP
-            var customLogger = Database.Log.Custom as MSTestLogger;
-            #else
-            var customLogger = Database.Log.Custom as XunitLogger;
-            #endif
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Jim");
+                Db.Save(doc1);
+            }
 
-            Database.Log.Console.Level = LogLevel.Verbose;
-            customLogger.Level = LogLevel.Verbose;
-            try {
-                using (var doc1 = new MutableDocument("doc1")) {
-                    doc1.SetString("name", "Jim");
-                    Db.Save(doc1);
-                }
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Jim");
+                doc1.SetString("location", "Japan");
+                _otherDB.Save(doc1);
+            }
 
-                using (var doc1 = new MutableDocument("doc1")) {
-                    doc1.SetString("name", "Jim");
-                    doc1.SetString("location", "Japan");
-                    _otherDB.Save(doc1);
-                }
+            var config = CreateConfig(true, true, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) =>
+            {
+                var localDoc = conflict.LocalDocument;
+                var remoteDoc = conflict.RemoteDocument;
 
-                var config = CreateConfig(true, true, false);
-                config.ConflictResolver = new TestConflictResolver((conflict) =>
-                {
-                    var localDoc = conflict.LocalDocument;
-                    var remoteDoc = conflict.RemoteDocument;
+                var updateDocDict = localDoc.ToDictionary();
+                var curDocDict = remoteDoc.ToDictionary();
 
-                    var updateDocDict = localDoc.ToDictionary();
-                    var curDocDict = remoteDoc.ToDictionary();
-
-                    foreach (var value in curDocDict) {
-                        if (updateDocDict.ContainsKey(value.Key) && !value.Value.Equals(updateDocDict[value.Key])) {
-                            updateDocDict[value.Key] = value.Value + ", " + updateDocDict[value.Key];
-                        } else if (!updateDocDict.ContainsKey(value.Key)) {
-                            updateDocDict.Add(value.Key, value.Value);
-                        }
+                foreach (var value in curDocDict) {
+                    if (updateDocDict.ContainsKey(value.Key) && !value.Value.Equals(updateDocDict[value.Key])) {
+                        updateDocDict[value.Key] = value.Value + ", " + updateDocDict[value.Key];
+                    } else if (!updateDocDict.ContainsKey(value.Key)) {
+                        updateDocDict.Add(value.Key, value.Value);
                     }
-
-                    WriteLine($"Resulting merge: {JsonConvert.SerializeObject(updateDocDict)}");
-
-                    var doc1 = new MutableDocument(conflict.DocumentID);
-                    doc1.SetData(updateDocDict);
-                    return doc1;
-                });
-
-                RunReplication(config, 0, 0);
-
-                using (var doc1a = Db.GetDocument("doc1"))
-                using (var doc1aMutable = doc1a.ToMutable()) {
-                    doc1aMutable.SetString("name", "Jim");
-                    doc1aMutable.SetString("language", "English");
-                    Db.Save(doc1aMutable);
                 }
 
-                using (var doc1a = _otherDB.GetDocument("doc1"))
-                using (var doc1aMutable = doc1a.ToMutable()) {
-                    doc1aMutable.SetString("name", "Jim");
-                    doc1aMutable.SetString("language", "C#");
-                    _otherDB.Save(doc1aMutable);
-                }
+                WriteLine($"Resulting merge: {JsonConvert.SerializeObject(updateDocDict)}");
 
-                RunReplication(config, 0, 0);
+                var doc1 = new MutableDocument(conflict.DocumentID);
+                doc1.SetData(updateDocDict);
+                return doc1;
+            });
 
-                using (var doc1 = Db.GetDocument("doc1")) {
-                    doc1.GetString("name").Should().Be("Jim");
-                    var lanStr = doc1.GetString("language");
-                    lanStr.Should().Contain("English");
-                    lanStr.Should().Contain("C#");
-                    doc1.GetString("location").Should().Be("Japan");
-                }
+            RunReplication(config, 0, 0);
 
-                RunReplication(config, 0, 0);
+            using (var doc1a = Db.GetDocument("doc1"))
+            using (var doc1aMutable = doc1a.ToMutable()) {
+                doc1aMutable.SetString("name", "Jim");
+                doc1aMutable.SetString("language", "English");
+                Db.Save(doc1aMutable);
+            }
 
-                using (var doc1 = _otherDB.GetDocument("doc1")) {
-                    doc1.GetString("name").Should().Be("Jim");
-                    var lanStr = doc1.GetString("language");
-                    lanStr.Should().Contain("English");
-                    lanStr.Should().Contain("C#");
-                    doc1.GetString("location").Should().Be("Japan");
-                }
-            } finally {
-                Database.Log.Console.Level = LogLevel.Warning;
-                customLogger.Level = LogLevel.Warning;
+            using (var doc1a = _otherDB.GetDocument("doc1"))
+            using (var doc1aMutable = doc1a.ToMutable()) {
+                doc1aMutable.SetString("name", "Jim");
+                doc1aMutable.SetString("language", "C#");
+                _otherDB.Save(doc1aMutable);
+            }
+
+            RunReplication(config, 0, 0);
+
+            using (var doc1 = Db.GetDocument("doc1")) {
+                doc1.GetString("name").Should().Be("Jim");
+                var lanStr = doc1.GetString("language");
+                lanStr.Should().Contain("English");
+                lanStr.Should().Contain("C#");
+                doc1.GetString("location").Should().Be("Japan");
+            }
+
+            RunReplication(config, 0, 0);
+
+            using (var doc1 = _otherDB.GetDocument("doc1")) {
+                doc1.GetString("name").Should().Be("Jim");
+                var lanStr = doc1.GetString("language");
+                lanStr.Should().Contain("English");
+                lanStr.Should().Contain("C#");
+                doc1.GetString("location").Should().Be("Japan");
             }
         }
 
@@ -1318,8 +1305,10 @@ namespace Test
                     if (args.Documents[0].Id == "doc1") {
                         wa.RunAssert(() =>
                         {
+                            WriteLine($"Received document listener callback of size {args.Documents.Count}");
                             var err = args.Documents[0].Error;
-                            args.Documents[0].Error.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+                            args.Documents[0].Error.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite,
+                                $"because otherwise the wrong error ({args.Documents[0].Error.Error}) occurred");
                             args.Documents[0].Error.Error.Should().Be((int)CouchbaseLiteError.Conflict);
                         });
                     }
