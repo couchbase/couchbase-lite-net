@@ -342,6 +342,30 @@ namespace Test
         }
 
         [Fact]
+        public void TestConflictHandlerWhenDocumentIsPurged()
+        {
+            var doc = new MutableDocument("doc1");
+            doc.SetString("firstName", "Tiger");
+            Db.Save(doc);
+            Db.GetDocument("doc1").Generation.Should().Be(1);
+
+            var doc1b = Db.GetDocument("doc1").ToMutable();
+
+            Db.Purge("doc1");
+
+            doc1b.SetString("nickName", "Scott");
+
+            try {
+                Db.Save(doc1b, (updated, current) => {
+                    return true;
+                });
+            } catch (CouchbaseLiteException ex) {
+                ex.Error.Should().Be(CouchbaseLiteError.NotFound, "because the document is purged");
+                ex.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite, "because this is a LiteCore error");
+            }
+        }
+
+        [Fact]
         public void TestConflictHandlerReturnsTrue()
         {
             using (var doc1 = new MutableDocument("doc1")) {
