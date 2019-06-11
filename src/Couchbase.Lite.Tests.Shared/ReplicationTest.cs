@@ -1110,6 +1110,7 @@ namespace Test
         [Fact]
         public void TestConflictResolverMergeDoc()
         {
+            bool conflictResolved = false;
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Jim");
                 Db.Save(doc1);
@@ -1140,6 +1141,8 @@ namespace Test
 
                 WriteLine($"Resulting merge: {JsonConvert.SerializeObject(updateDocDict)}");
 
+                conflictResolved = true;
+               
                 var doc1 = new MutableDocument(conflict.DocumentID);
                 doc1.SetData(updateDocDict);
                 return doc1;
@@ -1161,7 +1164,10 @@ namespace Test
                 _otherDB.Save(doc1aMutable);
             }
 
-            RunReplication(config, 0, 0);
+            RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
+            {
+                conflictResolved.Should().Be(true, "Because the DocumentReplicationEvent will not be notified until the conflicted document is resolved.");
+            });
 
             using (var doc1 = Db.GetDocument("doc1")) {
                 doc1.GetString("name").Should().Be("Jim");
