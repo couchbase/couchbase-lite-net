@@ -78,7 +78,7 @@ namespace Test
             //Database.SetLogLevel(LogDomain.Replicator, LogLevel.Verbose);
         }
 #if !WINDOWS_UWP
-        [Fact]
+        //[Fact]
         public async Task TestReplicatorStopsWhenEndpointInvalid()
         {
             // If this IP address happens to exist, then change it.  It needs to be an address that does not
@@ -1302,7 +1302,7 @@ namespace Test
                 var wa = new WaitAssert();
                 var token = repl.AddDocumentReplicationListener((sender, args) =>
                 {
-                    if (args.Documents[0].Id == "doc1") {
+                    if (args.Documents[0].Id == "doc1" && !args.IsPush) {
                         wa.RunAssert(() =>
                         {
                             WriteLine($"Received document listener callback of size {args.Documents.Count}");
