@@ -488,7 +488,6 @@ namespace Couchbase.Lite.Sync
             {
                 if (_repl == null && e.Status == NetworkReachabilityStatus.Reachable) {
                     WriteLog.To.Sync.I(Tag, $"{this}: Server may now be reachable; retrying...");
-                    _retryCount = 0;
                     Retry();
                 }
             });
