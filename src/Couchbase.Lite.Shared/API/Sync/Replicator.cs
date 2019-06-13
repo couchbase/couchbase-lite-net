@@ -354,7 +354,9 @@ namespace Couchbase.Lite.Sync
         private static void StatusChangedCallback(C4Replicator* repl, C4ReplicatorStatus status, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
-            if (status.level == C4ReplicatorActivityLevel.Stopped) {
+
+            if ((replicator != null && replicator.PermanentNetworkError(status.error)) 
+                && status.level == C4ReplicatorActivityLevel.Stopped) {
                 var array = replicator?._conflictTasks?.Keys?.ToArray();
                 if (array != null) {
                     Task.WaitAll(array);
@@ -404,6 +406,22 @@ namespace Couchbase.Lite.Sync
         private bool filterCallback(Func<Document, DocumentFlags, bool> filterFunction, string docID, FLDict* value, DocumentFlags flags)
         {
              return filterFunction(new Document(Config.Database, docID, value), flags);
+        }
+
+        private bool PermanentNetworkError(C4Error error)
+        {
+            // If this is a transient error, or if I'm continuous and the error might go away with a change
+            // in network (i.e. network down, hostname unknown), then go offline and retry later
+            var transient = Native.c4error_mayBeTransient(error) ||
+                            (error.domain == C4ErrorDomain.WebSocketDomain && error.code ==
+                             (int)C4WebSocketCustomCloseCode.WebSocketCloseUserTransient);
+
+            if (!transient && !(Config.Continuous && Native.c4error_mayBeNetworkDependent(error))) {
+                WriteLog.To.Sync.I(Tag, "Permanent error encountered ({0} / {1}), giving up...", error.domain, error.code);
+                return true; // Nope, this is permanent
+            }
+
+            return false;
         }
 
         private bool HandleError(C4Error error)
