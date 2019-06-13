@@ -122,11 +122,15 @@ namespace Couchbase.Lite.DI
                     continue;
                 }
 
-                var interfaceType = ti?.ImplementedInterfaces?.FirstOrDefault();
-                if (interfaceType == null) {
+                var actualInterfaces = ti?.ImplementedInterfaces;
+                if(actualInterfaces == null) {
                     throw new InvalidOperationException($"{type.Name} does not implement any interfaces!");
                 }
 
+                var minimalInterfaces = actualInterfaces
+                    .Except(type.BaseType?.GetInterfaces() ?? Enumerable.Empty<Type>())
+                    .Except(actualInterfaces.SelectMany(i => i.GetInterfaces()));
+                var interfaceType = minimalInterfaces.FirstOrDefault();
                 if(ti?.DeclaredConstructors?.All(x => x?.GetParameters()?.Length != 0) == true) {
                     throw new InvalidOperationException($"{type.Name} does not contain a default constructor");
                 }
