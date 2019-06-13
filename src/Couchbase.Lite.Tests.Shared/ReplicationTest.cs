@@ -1344,17 +1344,22 @@ namespace Test
         [Fact]
         public void TestConflictResolverReturningBlobFromDifferentDB()
         {
-            var evilByteArray = new byte[] { 6, 6, 6 };
-            using (var thirdDb = new Database("different_db"))
-            using (var doc1 = new MutableDocument("doc1")) {
-                doc1.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
-                thirdDb.Save(doc1);
+            CreateReplicationConflict();
 
-                var differentDbResolver = new TestConflictResolver((conflict) => doc1);
+            var config = CreateConfig(false, true, false);
 
-                TestConflictResolverExceptionThrown(differentDbResolver, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) =>
+            {
+                var blob = conflict.RemoteDocument.GetBlob("blob");
+                var md = conflict.LocalDocument.ToMutable();
+                md.SetBlob("blob", blob);
+                return md;
+            });
 
-                thirdDb.Delete();
+            RunReplication(config, 0, 0);
+
+            using (var doc = Db.GetDocument("doc1")) {
+                doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 7, 7, 7 });
             }
         }
 
@@ -1428,14 +1433,14 @@ namespace Test
                     doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 7, 7, 7 });
                 } else {
                     doc.GetString("name").Should().Be("Cat");
-                    doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 4, 5, 6 });
+                    doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 6, 6, 6 });
                 }
             }
         }
 
         private void CreateReplicationConflict()
         {
-            var oddByteArray = new byte[] { 1, 2, 3 };
+            var oddByteArray = new byte[] { 1, 3, 5 };
 
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Tiger");
@@ -1452,10 +1457,10 @@ namespace Test
             // Force a conflict
             using (var doc1a = Db.GetDocument("doc1"))
             using (var doc1aMutable = doc1a.ToMutable()) {
-                var evenByteArray = new byte[] { 4, 5, 6 };
+                var evilByteArray = new byte[] { 6, 6, 6 };
 
                 doc1aMutable.SetString("name", "Cat");
-                doc1aMutable.SetBlob("blob", new Blob("text/plaintext", evenByteArray));
+                doc1aMutable.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
                 Db.Save(doc1aMutable);
             }
 
