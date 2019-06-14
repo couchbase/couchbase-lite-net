@@ -487,7 +487,7 @@ namespace Couchbase.Lite.Sync
                         _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, pushing));
                     });
                     
-                    _conflictTasks.TryAdd(t.ContinueWith(task=> _conflictTasks.Remove(t, out var dummy)), 0);
+                    _conflictTasks.TryAdd(t.ContinueWith(task=> _conflictTasks.TryRemove(t, out var dummy)), 0);
                 } else {
                     var transientStr = transient ? "transient " : String.Empty;
                     var dirStr = pushing ? "pushing" : "pulling";
