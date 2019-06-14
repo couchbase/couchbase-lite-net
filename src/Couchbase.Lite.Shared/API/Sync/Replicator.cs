@@ -354,8 +354,8 @@ namespace Couchbase.Lite.Sync
         private static void StatusChangedCallback(C4Replicator* repl, C4ReplicatorStatus status, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
-
-            if ((replicator != null && replicator.PermanentNetworkError(status.error)) 
+            bool transient;
+            if ((replicator != null && replicator.IsPermanentError(status.error, out transient)) 
                 && status.level == C4ReplicatorActivityLevel.Stopped) {
                 var array = replicator?._conflictTasks?.Keys?.ToArray();
                 if (array != null) {
@@ -408,16 +408,15 @@ namespace Couchbase.Lite.Sync
              return filterFunction(new Document(Config.Database, docID, value), flags);
         }
 
-        private bool PermanentNetworkError(C4Error error)
+        private bool IsPermanentError(C4Error error, out bool transient)
         {
             // If this is a transient error, or if I'm continuous and the error might go away with a change
             // in network (i.e. network down, hostname unknown), then go offline and retry later
-            var transient = Native.c4error_mayBeTransient(error) ||
+            transient = Native.c4error_mayBeTransient(error) ||
                             (error.domain == C4ErrorDomain.WebSocketDomain && error.code ==
                              (int)C4WebSocketCustomCloseCode.WebSocketCloseUserTransient);
 
             if (!transient && !(Config.Continuous && Native.c4error_mayBeNetworkDependent(error))) {
-                WriteLog.To.Sync.I(Tag, "Permanent error encountered ({0} / {1}), giving up...", error.domain, error.code);
                 return true; // Nope, this is permanent
             }
 
@@ -431,15 +430,10 @@ namespace Couchbase.Lite.Sync
                 return false;
             }
 
-            // If this is a transient error, or if I'm continuous and the error might go away with a change
-            // in network (i.e. network down, hostname unknown), then go offline and retry later
-            var transient = Native.c4error_mayBeTransient(error) ||
-                            (error.domain == C4ErrorDomain.WebSocketDomain && error.code ==
-                             (int) C4WebSocketCustomCloseCode.WebSocketCloseUserTransient);
-
-            if (!transient && !(Config.Continuous && Native.c4error_mayBeNetworkDependent(error))) {
+            bool transient;
+            if(IsPermanentError(error, out transient)) {
                 WriteLog.To.Sync.I(Tag, "Permanent error encountered ({0} / {1}), giving up...", error.domain, error.code);
-                return false; // Nope, this is permanent
+                return false;
             }
 
             if (!Config.Continuous && _retryCount >= MaxOneShotRetryCount) {
