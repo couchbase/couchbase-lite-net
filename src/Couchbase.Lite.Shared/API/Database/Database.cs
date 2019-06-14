@@ -1342,7 +1342,8 @@ namespace Couchbase.Lite
             using (var losingRevID_ = new C4String(losingRevID)) {
                 C4Error err;
                 var retVal = NativeRaw.c4doc_resolveConflict(rawDoc, winningRevID_.AsFLSlice(),
-                    losingRevID_.AsFLSlice(), (FLSlice)mergedBody, mergedFlags, &err);
+                    losingRevID_.AsFLSlice(), (FLSlice)mergedBody, mergedFlags, &err) 
+                    && Native.c4doc_save(rawDoc, 0, &err);
                 Native.FLSliceResult_Release(mergedBody);
 
                 if (!retVal) {
@@ -1352,8 +1353,6 @@ namespace Couchbase.Lite
                         throw new CouchbaseLiteException((C4ErrorCode)err.code, "LiteCore failed resolving conflict.");
                 }
             }
-
-            LiteCoreBridge.Check(err => Native.c4doc_save(rawDoc, 0, err));
 
             WriteLog.To.Database.I(Tag, "Conflict resolved as doc '{0}' rev {1}",
                 new SecureLogString(localDoc.Id, LogMessageSensitivity.PotentiallyInsecure),
