@@ -17,6 +17,8 @@
 // 
 
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -77,6 +79,7 @@ namespace Couchbase.Lite.Sync
         private C4Replicator* _repl;
         private int _retryCount;
         private bool _stopping;
+        private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
 
         #endregion
 
@@ -280,11 +283,11 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
-            var documentReplications = new ReplicatedDocument[(int)numDocs];
+            var documentReplications = new List<ReplicatedDocument>((int)numDocs);
             for (int i = 0; i < (int) numDocs; i++) {
                 var current = docs[i];
-                documentReplications[i] = new ReplicatedDocument(current->docID.CreateString() ?? "", 
-                    current->flags, current->error, current->errorIsTransient);
+                documentReplications.Add(new ReplicatedDocument(current->docID.CreateString() ?? "", 
+                    current->flags, current->error, current->errorIsTransient));
             }
 
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
@@ -351,6 +354,15 @@ namespace Couchbase.Lite.Sync
         private static void StatusChangedCallback(C4Replicator* repl, C4ReplicatorStatus status, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            bool transient;
+            if ((replicator != null && replicator.IsPermanentError(status.error, out transient)) 
+                && status.level == C4ReplicatorActivityLevel.Stopped) {
+                var array = replicator?._conflictTasks?.Keys?.ToArray();
+                if (array != null) {
+                    Task.WaitAll(array);
+                }
+            }
+               
             replicator?.DispatchQueue.DispatchSync(() =>
             {
                 replicator.StatusChangedCallback(status);
@@ -396,6 +408,21 @@ namespace Couchbase.Lite.Sync
              return filterFunction(new Document(Config.Database, docID, value), flags);
         }
 
+        private bool IsPermanentError(C4Error error, out bool transient)
+        {
+            // If this is a transient error, or if I'm continuous and the error might go away with a change
+            // in network (i.e. network down, hostname unknown), then go offline and retry later
+            transient = Native.c4error_mayBeTransient(error) ||
+                            (error.domain == C4ErrorDomain.WebSocketDomain && error.code ==
+                             (int)C4WebSocketCustomCloseCode.WebSocketCloseUserTransient);
+
+            if (!transient && !(Config.Continuous && Native.c4error_mayBeNetworkDependent(error))) {
+                return true; // Nope, this is permanent
+            }
+
+            return false;
+        }
+
         private bool HandleError(C4Error error)
         {
             if (_stopping) {
@@ -403,15 +430,10 @@ namespace Couchbase.Lite.Sync
                 return false;
             }
 
-            // If this is a transient error, or if I'm continuous and the error might go away with a change
-            // in network (i.e. network down, hostname unknown), then go offline and retry later
-            var transient = Native.c4error_mayBeTransient(error) ||
-                            (error.domain == C4ErrorDomain.WebSocketDomain && error.code ==
-                             (int) C4WebSocketCustomCloseCode.WebSocketCloseUserTransient);
-
-            if (!transient && !(Config.Continuous && Native.c4error_mayBeNetworkDependent(error))) {
+            bool transient;
+            if(IsPermanentError(error, out transient)) {
                 WriteLog.To.Sync.I(Tag, "Permanent error encountered ({0} / {1}), giving up...", error.domain, error.code);
-                return false; // Nope, this is permanent
+                return false;
             }
 
             if (!Config.Continuous && _retryCount >= MaxOneShotRetryCount) {
@@ -436,29 +458,36 @@ namespace Couchbase.Lite.Sync
             return true;
         }
 
-        private void OnDocEnded(ReplicatedDocument[] replications, bool pushing)
+        private void OnDocEnded(List<ReplicatedDocument> replications, bool pushing)
         {
             if (_disposed) {
                 return;
             }
 
-            for (int i = 0; i < replications.Length; i++) {
+            for(int i = 0; i < replications.Count; i++) {
                 var replication = replications[i];
                 var docID = replication.Id;
                 var error = replication.NativeError;
                 var transient = replication.IsTransient;
                 var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
                 if (!pushing && error.domain == C4ErrorDomain.LiteCoreDomain &&
-                    error.code == (int) C4ErrorCode.Conflict) {
+                    error.code == (int)C4ErrorCode.Conflict) {
+                    replications.Remove(replication);
                     // Conflict pulling a document -- the revision was added but app needs to resolve it:
                     var safeDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
                     WriteLog.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
-                    try {
-                        Config.Database.ResolveConflict(docID, Config.ConflictResolver);
-                        replications[i] = replication.ClearError();
-                    } catch (Exception e) {
-                        WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{logDocID}' failed", e);
-                    }
+                    Task t = Task.Run(() =>
+                    {
+                        try {
+                            Config.Database.ResolveConflict(docID, Config.ConflictResolver);
+                            replication = replication.ClearError();
+                        } catch (Exception e) {
+                            WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{logDocID}' failed", e);
+                        }
+                        _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, pushing));
+                    });
+                    
+                    _conflictTasks.TryAdd(t.ContinueWith(task=> _conflictTasks.Remove(t, out var dummy)), 0);
                 } else {
                     var transientStr = transient ? "transient " : String.Empty;
                     var dirStr = pushing ? "pushing" : "pulling";
@@ -466,7 +495,6 @@ namespace Couchbase.Lite.Sync
                         $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
                 }
             }
-
             _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(replications, pushing));
         }
 
