@@ -1295,6 +1295,34 @@ namespace Test
                 db.GetString("wrong_id_key").Should().Be("wrong_id_value");
             }
         }
+        [Fact]
+        public void TestConflictResolverCalledTwice()
+        {
+            int resolveCnt = 0;
+            CreateReplicationConflict();
+
+            var config = CreateConfig(false, true, false);
+
+            config.ConflictResolver = new TestConflictResolver((conflict) =>
+            {
+                if (resolveCnt == 0) {
+                    using (var d = Db.GetDocument("doc1"))
+                    using (MutableDocument savedDoc = d.ToMutable()) {
+                        savedDoc.SetString("name", "Cougar");
+                        Db.Save(savedDoc);
+                    }
+                }
+                resolveCnt++;
+                return conflict.LocalDocument;
+            });
+
+            RunReplication(config, 0, 0);
+
+            resolveCnt.Should().Be(2);
+            using (var doc = Db.GetDocument("doc1")) {
+                    doc.GetString("name").Should().Be("Cougar");
+            }
+        }
 
         [Fact]
         public void TestConflictResolverExceptionsNoneMatchDBThrown()
