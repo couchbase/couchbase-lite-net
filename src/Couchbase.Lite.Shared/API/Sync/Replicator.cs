@@ -79,7 +79,7 @@ namespace Couchbase.Lite.Sync
         private C4Replicator* _repl;
         private int _retryCount;
         private bool _stopping;
-        private ConcurrentBag<Task> _conflictTasks = new ConcurrentBag<Task>();
+        private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
 
         #endregion
 
@@ -283,16 +283,14 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
-            var conflictTasks = new ConcurrentBag<Task>();
-            var replicatedDocuments = new ConcurrentBag<ReplicatedDocument>();
+            var replicatedDocumentsContainConflict = new List<ReplicatedDocument>();
             var documentReplications = new List<ReplicatedDocument>((int)numDocs);
             for (int i = 0; i < (int) numDocs; i++) {
                 var current = docs[i];
                 if (!pushing && current->error.domain == C4ErrorDomain.LiteCoreDomain &&
                     current->error.code == (int)C4ErrorCode.Conflict) {
-                    conflictTasks.Add(Task.Run(() =>
-                        replicatedDocuments.Add(new ReplicatedDocument(current->docID.CreateString() ?? "",
-                            current->flags, current->error, current->errorIsTransient))));
+                    replicatedDocumentsContainConflict.Add(new ReplicatedDocument(current->docID.CreateString() ?? "",
+                        current->flags, current->error, current->errorIsTransient));
                 } else {
                     documentReplications.Add(new ReplicatedDocument(current->docID.CreateString() ?? "",
                         current->flags, current->error, current->errorIsTransient));
@@ -305,10 +303,9 @@ namespace Couchbase.Lite.Sync
                 replicator.OnDocEnded(documentReplications, pushing);
             });
 
-            Task.WaitAll(conflictTasks.ToArray());
             replicator?.DispatchQueue.DispatchAsync(() =>
             {
-                replicator.OnDocEnded(replicatedDocuments, pushing);
+                replicator.OnDocEndedWithConflict(replicatedDocumentsContainConflict, pushing);
             });
         }
 
@@ -371,10 +368,9 @@ namespace Couchbase.Lite.Sync
             bool transient;
             if ((replicator != null && replicator.IsPermanentError(status.error, out transient)) 
                 && status.level == C4ReplicatorActivityLevel.Stopped) {
-                var array = replicator?._conflictTasks?.ToArray();
+                var array = replicator?._conflictTasks?.Keys?.ToArray();
                 if (array != null) {
                     Task.WaitAll(array);
-                    replicator._conflictTasks = new ConcurrentBag<Task>();
                 }
             }
                
@@ -473,34 +469,38 @@ namespace Couchbase.Lite.Sync
             return true;
         }
 
-        private void OnDocEnded(ConcurrentBag<ReplicatedDocument> replications, bool pushing)
+        private void OnDocEndedWithConflict(List<ReplicatedDocument> replications, bool pushing)
         {
             if (_disposed) {
                 return;
             }
 
-            while (!replications.IsEmpty) {
-                _conflictTasks.Add(Task.Run(() =>
+            for(int i = 0; i < replications.Count; i++) {
+                var replication = replications[i];
+                // Conflict pulling a document -- the revision was added but app needs to resolve it:
+                var safeDocID = new SecureLogString(replication.Id, LogMessageSensitivity.PotentiallyInsecure);
+                WriteLog.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
+                Task t = Task.Run(() =>
                 {
-                    ReplicatedDocument replication;
-                    if (replications.TryTake(out replication)) {
-                        try {
-                            Config.Database.ResolveConflict(replication.Id, Config.ConflictResolver);
-                            replication = replication.ClearError();
-                        } catch (Exception e) {
-                            C4Error error;
-                            if(e.GetBaseException() is CouchbaseException) {
-                                var errCode = ((CouchbaseException)e).Error;
-                                error = new C4Error((C4ErrorCode)errCode);
-                            } else {
-                                error = new C4Error(C4ErrorCode.UnexpectedError);
-                            }
+                    try {
+                        Config.Database.ResolveConflict(replication.Id, Config.ConflictResolver);
+                        replication = replication.ClearError();
+                    } catch (Exception e) {
+                        C4Error error;
+                        if (e.GetBaseException() is CouchbaseLiteException) {
+                            var errCode = ((CouchbaseLiteException)e).Error;
+                            error = new C4Error((C4ErrorCode)errCode);
                             replication = replication.AssignError(error);
-                            WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{replication.Id}' failed", e);
+                        } else {
+                            error = new C4Error(C4ErrorCode.UnexpectedError);
+                            replication = replication.AssignError(error,
+                                new CouchbaseLiteException(C4ErrorCode.UnexpectedError, e.Message));
                         }
-                        _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, pushing));
+                        WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{replication.Id}' failed", e);
                     }
-                }).ContinueWith(task => _conflictTasks.TryTake(out var t)));
+                    _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, pushing));
+                });
+                _conflictTasks.TryAdd(t.ContinueWith(task => _conflictTasks.TryRemove(t, out var dummy)), 0);
             }
         }
 
