@@ -1443,20 +1443,20 @@ namespace Test
             CreateReplicationConflict();
 
             var config = CreateConfig(false, true, false);
-
+            var otherDbDoc = _otherDB.GetDocument("doc1");
             config.ConflictResolver = new TestConflictResolver((conflict) =>
             {
-                var blob = conflict.RemoteDocument.GetBlob("blob");
                 var md = conflict.LocalDocument.ToMutable();
-                md.SetBlob("blob", blob);
+                md.SetBlob("blob", otherDbDoc.GetBlob("blob"));
                 return md;
             });
 
-            RunReplication(config, 0, 0);
-
-            using (var doc = Db.GetDocument("doc1")) {
-                doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 7, 7, 7 });
-            }
+            RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
+            {
+                if (!args.IsPush) {
+                    args.Documents[0].Error.Error.Should().Be((int)CouchbaseLiteError.UnexpectedError);
+                }
+            });
         }
 
         private void TestConflictResolverExceptionThrown(TestConflictResolver resolver, bool continueWithWorkingResolver = false)
@@ -1889,13 +1889,7 @@ namespace Test
 
         public Document Resolve(Conflict conflict)
         {
-            Document result;
-            try {
-                result = ResolveFunc(conflict);
-            } catch (Exception ex) {
-                throw ex;
-            }
-            return result;
+            return ResolveFunc(conflict);
         }
     }
 
