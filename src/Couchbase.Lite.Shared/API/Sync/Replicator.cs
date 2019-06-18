@@ -516,19 +516,10 @@ namespace Couchbase.Lite.Sync
                 var error = replication.NativeError;
                 var transient = replication.IsTransient;
                 var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
-                //if (!pushing && error.domain == C4ErrorDomain.LiteCoreDomain &&
-                //    error.code == (int)C4ErrorCode.Conflict) {
-                //    _conflictTasks.Add(Task.Run(() => cb.Add(replication)));
-                //    replications.Remove(replication);
-                //    // Conflict pulling a document -- the revision was added but app needs to resolve it:
-                //    var safeDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
-                //    WriteLog.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
-                //} else {
-                    var transientStr = transient ? "transient " : String.Empty;
-                    var dirStr = pushing ? "pushing" : "pulling";
-                    WriteLog.To.Sync.I(Tag,
-                        $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
-                //}
+                var transientStr = transient ? "transient " : String.Empty;
+                var dirStr = pushing ? "pushing" : "pulling";
+                WriteLog.To.Sync.I(Tag,
+                    $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
             }
             _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(replications, pushing));
         }
