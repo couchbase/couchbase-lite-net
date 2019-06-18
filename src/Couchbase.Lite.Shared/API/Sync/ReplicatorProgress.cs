@@ -94,6 +94,11 @@ namespace Couchbase.Lite.Sync
             IsTransient = isTransient;
         }
 
+        internal ReplicatedDocument AssignError(C4Error error)
+        {
+            return new ReplicatedDocument(Id, Flags, error, IsTransient);
+        }
+
         internal ReplicatedDocument ClearError()
         {
             return new ReplicatedDocument(Id, Flags, new C4Error(), IsTransient);
