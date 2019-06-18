@@ -498,8 +498,8 @@ namespace Couchbase.Lite.Sync
                             replication = replication.AssignError(error);
                             WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{replication.Id}' failed", e);
                         }
+                        _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, pushing));
                     }
-                    _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, pushing));
                 }).ContinueWith(task => _conflictTasks.TryTake(out var t)));
             }
         }
