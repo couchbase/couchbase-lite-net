@@ -21,6 +21,7 @@ using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 using LiteCore.Interop;
+using System;
 
 namespace Couchbase.Lite.Sync
 {
@@ -70,33 +71,37 @@ namespace Couchbase.Lite.Sync
         [CanBeNull]
         public CouchbaseException Error { get; }
 
+        internal Exception Exception { get; set; }
+
         internal bool IsTransient { get; }
 
         internal C4Error NativeError { get; }
 
         internal ReplicatedDocument([NotNull]string docID, C4RevisionFlags flags, C4Error error,
-            bool isTransient)
+            bool isTransient, Exception exception = null)
         {
             Id = docID;
             Flags = flags.ToDocumentFlags();
             NativeError = error;
             Error = error.domain == 0 ? null : CouchbaseException.Create(error);
             IsTransient = isTransient;
+            Exception = exception;
         }
 
         private ReplicatedDocument([NotNull] string docID, DocumentFlags flags, C4Error error,
-            bool isTransient)
+            bool isTransient, Exception exception = null)
         {
             Id = docID;
             Flags = flags;
             NativeError = error;
             Error = error.domain == 0 ? null : CouchbaseException.Create(error);
             IsTransient = isTransient;
+            Exception = exception;
         }
 
-        internal ReplicatedDocument AssignError(C4Error error)
+        internal ReplicatedDocument AssignError(C4Error error, Exception exception = null)
         {
-            return new ReplicatedDocument(Id, Flags, error, IsTransient);
+            return new ReplicatedDocument(Id, Flags, error, IsTransient, exception);
         }
 
         internal ReplicatedDocument ClearError()
