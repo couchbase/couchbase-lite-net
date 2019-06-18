@@ -1282,17 +1282,15 @@ namespace Test
         [Fact]
         public void TestConflictResolverWrongDocID()
         {
-            var wrongDocIDResolver = new TestConflictResolver((conflict) =>
+            CreateReplicationConflict();
+
+            var config = CreateConfig(false, true, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) =>
             {
                 var doc = new MutableDocument("wrong_id");
                 doc.SetString("wrong_id_key", "wrong_id_value");
                 return doc;
             });
-
-            CreateReplicationConflict();
-
-            var config = CreateConfig(true, true, false);
-            config.ConflictResolver = wrongDocIDResolver;
 
             RunReplication(config, 0, 0);
 
@@ -1479,7 +1477,7 @@ namespace Test
                             var err = args.Documents[0].Error;
                             args.Documents[0].Error.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite,
                                 $"because otherwise the wrong error ({args.Documents[0].Error.Error}) occurred");
-                            args.Documents[0].Error.Error.Should().Be((int)CouchbaseLiteError.Conflict);
+                            args.Documents[0].Error.Error.Should().Be((int)CouchbaseLiteError.UnexpectedError);
                         });
                     }
                 });
