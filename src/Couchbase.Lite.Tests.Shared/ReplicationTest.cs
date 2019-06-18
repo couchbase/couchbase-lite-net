@@ -1185,15 +1185,20 @@ namespace Test
         [Fact]
         public void TestConflictResolverNullDoc()
         {
+            bool conflictResolved = false;
             CreateReplicationConflict();
 
             var config = CreateConfig(false, true, false);
 
             config.ConflictResolver = new TestConflictResolver((conflict) => {
+                conflictResolved = true;
                 return null;
             });
 
-            RunReplication(config, 0, 0);
+            RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
+            {
+                conflictResolved.Should().Be(true, "Because the DocumentReplicationEvent be notified after the conflict has being resolved.");
+            });
 
             Db.GetDocument("doc1").Should().BeNull(); //Because conflict resolver returns null means return a deleted document.
         }
@@ -1307,11 +1312,12 @@ namespace Test
             {
                 if (resolveCnt == 0) {
                     using (var d = Db.GetDocument("doc1"))
-                    using (MutableDocument savedDoc = d.ToMutable()) {
-                        savedDoc.SetString("name", "Cougar");
-                        Db.Save(savedDoc);
+                    using (var doc = d.ToMutable()) {
+                        doc.SetString("name", "Cougar");
+                        Db.Save(doc);
                     }
                 }
+
                 resolveCnt++;
                 return conflict.LocalDocument;
             });
@@ -1325,7 +1331,61 @@ namespace Test
         }
 
         [Fact]
-        public void TestConflictResolverExceptionsNoneMatchDBThrown()
+        public void TestNonBlockingDatabaseOperationConflictResolver()
+        {
+            int resolveCnt = 0;
+            CreateReplicationConflict();
+            var config = CreateConfig(false, true, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) =>
+            {
+                if (resolveCnt == 0) {
+                    using (var d = Db.GetDocument("doc1"))
+                    using (var doc = d.ToMutable()) {
+                        d.GetString("name").Should().Be("Tiger");
+                        doc.SetString("name", "Cougar");
+                        Db.Save(doc);
+                        d.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
+                    }
+                }
+                resolveCnt++;
+                return null;
+            });
+
+            RunReplication(config, 0, 0);
+
+            using (var doc = Db.GetDocument("doc1")) {
+                if(resolveCnt==1)
+                    doc.Should().BeNull();
+            }
+        }
+
+        [Fact]
+        public void TestConflictResolverExceptionWhenDocumentIsPurged()
+        {
+            int resolveCnt = 0;
+            CreateReplicationConflict();
+
+            var config = CreateConfig(false, true, false);
+
+            config.ConflictResolver = new TestConflictResolver((conflict) =>
+            {
+                if (resolveCnt == 0) {
+                    Db.Purge(conflict.DocumentID);
+                }
+                resolveCnt++;
+                return conflict.RemoteDocument;
+            });
+
+            RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
+            {
+                if (!args.IsPush) {
+                    args.Documents[0].Error.Error.Should().Be((int)CouchbaseLiteError.NotFound);
+                }
+            });
+        }
+
+        [Fact]
+        public void TestConflictResolverExceptionsReturnDocFromOtherDBThrown()
         {
             var tmpDoc = new MutableDocument("doc1");
             using (var thirdDb = new Database("different_db")) {
@@ -1339,6 +1399,16 @@ namespace Test
 
                 thirdDb.Delete();
             }
+        }
+
+        [Fact]
+        public void TestConflictResolverExceptionThrownInConflictResolver()
+        {
+            var resolverWithException = new TestConflictResolver((conflict) => {
+                throw new Exception("Customer side exception");
+            });
+
+            TestConflictResolverExceptionThrown(resolverWithException, false);
         }
 
         [Fact]
@@ -1821,7 +1891,13 @@ namespace Test
 
         public Document Resolve(Conflict conflict)
         {
-            return ResolveFunc(conflict);
+            Document result;
+            try {
+                result = ResolveFunc(conflict);
+            } catch (Exception ex) {
+                throw ex;
+            }
+            return result;
         }
     }
 

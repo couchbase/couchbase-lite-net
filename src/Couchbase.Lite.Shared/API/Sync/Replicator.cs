@@ -472,7 +472,6 @@ namespace Couchbase.Lite.Sync
                 var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
                 if (!pushing && error.domain == C4ErrorDomain.LiteCoreDomain &&
                     error.code == (int)C4ErrorCode.Conflict) {
-                    replications.Remove(replication);
                     // Conflict pulling a document -- the revision was added but app needs to resolve it:
                     var safeDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
                     WriteLog.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
@@ -482,9 +481,11 @@ namespace Couchbase.Lite.Sync
                             Config.Database.ResolveConflict(docID, Config.ConflictResolver);
                             replication = replication.ClearError();
                         } catch (Exception e) {
+                            replication = replication.AssignError(new C4Error(C4ErrorCode.NotFound));
                             WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{logDocID}' failed", e);
                         }
                         _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, pushing));
+                        replications.Remove(replication);
                     });
                     
                     _conflictTasks.TryAdd(t.ContinueWith(task=> _conflictTasks.TryRemove(t, out var dummy)), 0);
