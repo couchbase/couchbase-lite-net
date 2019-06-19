@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Sync
         [CanBeNull]
         public CouchbaseException Error { get; }
 
-        internal CouchbaseLiteException Exception { get; set; }
+        public CouchbaseLiteException Exception { get; }
 
         internal bool IsTransient { get; }
 
@@ -88,20 +88,28 @@ namespace Couchbase.Lite.Sync
             Exception = exception;
         }
 
-        private ReplicatedDocument([NotNull] string docID, DocumentFlags flags, C4Error error,
-            bool isTransient, CouchbaseLiteException exception = null)
+        private ReplicatedDocument([NotNull] string docID, DocumentFlags flags, C4Error c4error,
+            bool isTransient, CouchbaseException error = null, CouchbaseLiteException exception = null)
         {
             Id = docID;
             Flags = flags;
-            NativeError = error;
-            Error = error.domain == 0 ? null : CouchbaseException.Create(error);
+            NativeError = c4error;
+            if (error != null)
+                Error = error;
+            else
+                Error = c4error.domain == 0 ? null : CouchbaseException.Create(c4error);
             IsTransient = isTransient;
             Exception = exception;
         }
 
-        internal ReplicatedDocument AssignError(C4Error error, CouchbaseLiteException exception = null)
+        internal ReplicatedDocument AssignError(C4Error error, CouchbaseException exception =  null)
         {
             return new ReplicatedDocument(Id, Flags, error, IsTransient, exception);
+        }
+
+        internal ReplicatedDocument AssignError(C4Error error, CouchbaseLiteException exception = null)
+        {
+            return new ReplicatedDocument(Id, Flags, error, IsTransient, null, exception);
         }
 
         internal ReplicatedDocument ClearError()
