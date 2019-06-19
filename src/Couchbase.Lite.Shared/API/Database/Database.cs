@@ -879,20 +879,30 @@ namespace Couchbase.Lite
         internal void ResolveConflict([NotNull]string docID, [CanBeNull]IConflictResolver conflictResolver)
         {
             Debug.Assert(docID != null);
-            var success = false;
-            while (!success) {
+            var readSuccess = false;
+            var writeSuccess = false;
+            while (!writeSuccess) {
                 Document localDoc = null, remoteDoc = null, resolvedDoc = null;
                 try {
-                    localDoc = new Document(this, docID);
-                    if (!localDoc.Exists) {
-                        throw new CouchbaseLiteException(C4ErrorCode.NotFound);
-                    }
+                    InBatch(() =>
+                    {
+                        // Do this in a batch so that there are no changes to the document between
+                        // localDoc read and remoteDoc read
+                        localDoc = new Document(this, docID);
+                        if (!localDoc.Exists) {
+                            throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+                        }
 
-                    remoteDoc = new Document(this, docID);
-                    if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
-                        WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', skipping...",
+                        remoteDoc = new Document(this, docID);
+                        if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
+                            WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', skipping...",
                                 new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
-                        success = false;
+                        }
+
+                        readSuccess = true;
+                    });
+
+                    if (!readSuccess) {
                         return;
                     }
 
@@ -920,7 +930,8 @@ namespace Couchbase.Lite
 
                     InBatch(() =>
                     {
-                        success = SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
+                        // ReSharper disable once AccessToDisposedClosure
+                        writeSuccess = SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
                     });
                     
                 } finally {
