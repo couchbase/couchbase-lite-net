@@ -16,7 +16,7 @@
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
     <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
-    <DebugType>portable</DebugType>
+    <DebugType Condition= " !$(TargetFramework.StartsWith('uap')) ">portable</DebugType>
     <DebugSymbols>True</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
@@ -34,7 +34,8 @@
     <DefineConstants>TRACE;RELEASE;LITECORE_PACKAGED</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" $(TargetFramework.StartsWith('uap')) ">
-        <TargetPlatformMinVersion>10.0.16299.0</TargetPlatformMinVersion>
+      <DebugType>pdbonly</DebugType>
+      <TargetPlatformMinVersion>10.0.16299.0</TargetPlatformMinVersion>
     </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Coverage|AnyCPU'">
     <DefineConstants>TRACE;LITECORE_PACKAGED;TEST_COVERAGE</DefineConstants>
