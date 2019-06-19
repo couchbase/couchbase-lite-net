@@ -1477,7 +1477,7 @@ namespace Test
                             args.Documents[0].Error.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite,
                                 $"because otherwise the wrong error ({args.Documents[0].Error.Error}) occurred");
                             args.Documents[0].Error.Error.Should().Be((int)CouchbaseLiteError.UnexpectedError);
-                            var innerException = ((Couchbase.Lite.Sync.ReplicatedDocument[])args.Documents)[0].Exception.InnerException;
+                            var innerException = ((Couchbase.Lite.Sync.ReplicatedDocument[])args.Documents)[0].Error.InnerException;
                             if (innerException is InvalidOperationException) {
                                 innerException.Message.Should().Contain("Resolved document db different_db is different from expected db");
                             } else if(innerException is Exception) {
