@@ -1323,14 +1323,7 @@ namespace Couchbase.Lite
                 var isDeleted = true;
                 if (resolvedDoc != null) {
                     // Unless the remote revision is being used as-is, we need a new revision:
-                    try {
-                        mergedBody = resolvedDoc.Encode();
-                    } catch (ObjectDisposedException) {
-                        WriteLog.To.Sync.E(Tag, "Resolved document for {0} somehow got disposed!",
-                            new SecureLogString(resolvedDoc.Id, LogMessageSensitivity.PotentiallyInsecure));
-                        throw new RuntimeException(
-                            "Resolved document was disposed before conflict resolution completed.  Please file a bug report at https://github.com/couchbase/couchbase-lite-net");
-                    }
+                    mergedBody = resolvedDoc.Encode();
                     if (mergedBody.Equals((FLSliceResult)FLSlice.Null))
                         throw new RuntimeException("Resolved document contains a null body");
                     isDeleted = resolvedDoc.IsDeleted;
