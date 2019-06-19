@@ -284,7 +284,7 @@ namespace Couchbase.Lite.Sync
             }
 
             var replicatedDocumentsContainConflict = new List<ReplicatedDocument>();
-            var documentReplications = new List<ReplicatedDocument>((int)numDocs);
+            var documentReplications = new List<ReplicatedDocument>();
             for (int i = 0; i < (int) numDocs; i++) {
                 var current = docs[i];
                 if (!pushing && current->error.domain == C4ErrorDomain.LiteCoreDomain &&
@@ -298,15 +298,20 @@ namespace Couchbase.Lite.Sync
             }
 
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
-            replicator?.DispatchQueue.DispatchAsync(() =>
-            {
-                replicator.OnDocEnded(documentReplications, pushing);
-            });
 
-            replicator?.DispatchQueue.DispatchAsync(() =>
-            {
-                replicator.OnDocEndedWithConflict(replicatedDocumentsContainConflict, pushing);
-            });
+            if (documentReplications.Count > 0) {
+                replicator?.DispatchQueue.DispatchAsync(() =>
+                {
+                    replicator.OnDocEnded(documentReplications, pushing);
+                });
+            }
+
+            if (replicatedDocumentsContainConflict.Count > 0) {
+                replicator?.DispatchQueue.DispatchAsync(() =>
+                {
+                    replicator.OnDocEndedWithConflict(replicatedDocumentsContainConflict);
+                });
+            }
         }
 
         #if __IOS__
@@ -469,7 +474,7 @@ namespace Couchbase.Lite.Sync
             return true;
         }
 
-        private void OnDocEndedWithConflict(List<ReplicatedDocument> replications, bool pushing)
+        private void OnDocEndedWithConflict(List<ReplicatedDocument> replications)
         {
             if (_disposed) {
                 return;
@@ -494,11 +499,11 @@ namespace Couchbase.Lite.Sync
                         } else {
                             error = new C4Error(C4ErrorCode.UnexpectedError);
                             replication = replication.AssignError(error,
-                                new CouchbaseLiteException(C4ErrorCode.UnexpectedError, e.Message));
+                                new CouchbaseLiteException(C4ErrorCode.UnexpectedError, e.Message, e));
                         }
                         WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{replication.Id}' failed", e);
                     }
-                    _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, pushing));
+                    _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, false));
                 });
                 _conflictTasks.TryAdd(t.ContinueWith(task => _conflictTasks.TryRemove(t, out var dummy)), 0);
             }
