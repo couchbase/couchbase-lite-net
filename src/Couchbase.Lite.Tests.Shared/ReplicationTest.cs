@@ -1474,10 +1474,15 @@ namespace Test
                         wa.RunAssert(() =>
                         {
                             WriteLine($"Received document listener callback of size {args.Documents.Count}");
-                            var err = args.Documents[0].Error;
                             args.Documents[0].Error.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite,
                                 $"because otherwise the wrong error ({args.Documents[0].Error.Error}) occurred");
                             args.Documents[0].Error.Error.Should().Be((int)CouchbaseLiteError.UnexpectedError);
+                            var innerException = ((Couchbase.Lite.Sync.ReplicatedDocument[])args.Documents)[0].Exception.InnerException;
+                            if (innerException is InvalidOperationException) {
+                                innerException.Message.Should().Contain("Resolved document db different_db is different from expected db");
+                            } else if(innerException is Exception) {
+                                innerException.Message.Should().Be("Customer side exception");
+                            }
                         });
                     }
                 });
