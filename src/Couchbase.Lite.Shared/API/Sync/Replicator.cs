@@ -492,10 +492,10 @@ namespace Couchbase.Lite.Sync
                         replication = replication.ClearError();
                     } catch (Exception e) {
                         C4Error error;
-                        if (e.GetBaseException() is CouchbaseLiteException) {
-                            var errCode = ((CouchbaseLiteException)e).Error;
+                        if (e.GetBaseException() is CouchbaseException) {
+                            var errCode = ((CouchbaseException)e).Error;
                             error = new C4Error((C4ErrorCode)errCode);
-                            replication = replication.AssignError(error);
+                            replication = replication.AssignError(error, (CouchbaseException)e);
                         } else {
                             error = new C4Error(C4ErrorCode.UnexpectedError);
                             replication = replication.AssignError(error,
