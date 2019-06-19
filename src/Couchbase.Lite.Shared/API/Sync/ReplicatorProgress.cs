@@ -69,47 +69,30 @@ namespace Couchbase.Lite.Sync
         /// Gets the error that occurred during replication, if any.
         /// </summary>
         [CanBeNull]
-        public CouchbaseException Error { get; }
-
-        public CouchbaseLiteException Exception { get; }
+        public CouchbaseException Error { get; internal set; }
 
         internal bool IsTransient { get; }
 
         internal C4Error NativeError { get; }
 
         internal ReplicatedDocument([NotNull]string docID, C4RevisionFlags flags, C4Error error,
-            bool isTransient, CouchbaseLiteException exception = null)
+            bool isTransient)
         {
             Id = docID;
             Flags = flags.ToDocumentFlags();
             NativeError = error;
             Error = error.domain == 0 ? null : CouchbaseException.Create(error);
             IsTransient = isTransient;
-            Exception = exception;
         }
 
         private ReplicatedDocument([NotNull] string docID, DocumentFlags flags, C4Error c4error,
-            bool isTransient, CouchbaseException error = null, CouchbaseLiteException exception = null)
+            bool isTransient)
         {
             Id = docID;
             Flags = flags;
             NativeError = c4error;
-            if (error != null)
-                Error = error;
-            else
-                Error = c4error.domain == 0 ? null : CouchbaseException.Create(c4error);
+            Error = c4error.domain == 0 ? null : CouchbaseException.Create(c4error);
             IsTransient = isTransient;
-            Exception = exception;
-        }
-
-        internal ReplicatedDocument AssignError(C4Error error, CouchbaseException exception =  null)
-        {
-            return new ReplicatedDocument(Id, Flags, error, IsTransient, exception);
-        }
-
-        internal ReplicatedDocument AssignError(C4Error error, CouchbaseLiteException exception = null)
-        {
-            return new ReplicatedDocument(Id, Flags, error, IsTransient, null, exception);
         }
 
         internal ReplicatedDocument ClearError()

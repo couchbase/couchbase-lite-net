@@ -490,19 +490,13 @@ namespace Couchbase.Lite.Sync
                     try {
                         Config.Database.ResolveConflict(replication.Id, Config.ConflictResolver);
                         replication = replication.ClearError();
+                    } catch (CouchbaseException e) {
+                        replication.Error = e;
                     } catch (Exception e) {
-                        C4Error error;
-                        if (e.GetBaseException() is CouchbaseException) {
-                            var errCode = ((CouchbaseException)e).Error;
-                            error = new C4Error((C4ErrorCode)errCode);
-                            replication = replication.AssignError(error, (CouchbaseException)e);
-                        } else {
-                            error = new C4Error(C4ErrorCode.UnexpectedError);
-                            replication = replication.AssignError(error,
-                                new CouchbaseLiteException(C4ErrorCode.UnexpectedError, e.Message, e));
-                        }
-                        WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{replication.Id}' failed", e);
+                        replication.Error = new CouchbaseLiteException(C4ErrorCode.UnexpectedError, e.Message, e);
                     }
+                    if(replication.Error != null)
+                        WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{replication.Id}' failed", replication.Error);
                     _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, false));
                 });
                 _conflictTasks.TryAdd(t.ContinueWith(task => _conflictTasks.TryRemove(t, out var dummy)), 0);
