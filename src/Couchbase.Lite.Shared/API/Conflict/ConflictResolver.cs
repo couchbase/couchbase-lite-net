@@ -30,6 +30,6 @@ namespace Couchbase.Lite
         /// Then call methods on that instance.
         /// </summary>
         [NotNull]
-        public static IConflictResolver Default { get { return new DefaultConflictResolver(); } }
+        public static IConflictResolver Default { get; } = new DefaultConflictResolver();
     }
 }
