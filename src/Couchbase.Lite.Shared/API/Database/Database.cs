@@ -879,9 +879,9 @@ namespace Couchbase.Lite
         internal void ResolveConflict([NotNull]string docID, [CanBeNull]IConflictResolver conflictResolver)
         {
             Debug.Assert(docID != null);
-            var readSuccess = false;
             var writeSuccess = false;
             while (!writeSuccess) {
+                var readSuccess = false;
                 Document localDoc = null, remoteDoc = null, resolvedDoc = null;
                 try {
                     InBatch(() =>
@@ -895,8 +895,9 @@ namespace Couchbase.Lite
 
                         remoteDoc = new Document(this, docID);
                         if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
-                            WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', skipping...",
+                            WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', the conflict may have been previously resolved...",
                                 new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+                            return;
                         }
 
                         readSuccess = true;
