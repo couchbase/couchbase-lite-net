@@ -25,16 +25,11 @@ namespace Couchbase.Lite
     /// </summary>
     public static class ConflictResolver
     {
-        private static IConflictResolver _default => new DefaultConflictResolver();
-
         /// <summary>
         /// Access IConflictResolver.Default to get the singleton DefaultConflictResolver object.
         /// Then call methods on that instance.
         /// </summary>
         [NotNull]
-        public static IConflictResolver Default
-        {
-            get { return _default; }
-        }
+        public static IConflictResolver Default { get { return new DefaultConflictResolver(); } }
     }
 }

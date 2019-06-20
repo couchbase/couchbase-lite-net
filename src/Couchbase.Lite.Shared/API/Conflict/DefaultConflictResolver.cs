@@ -24,15 +24,6 @@ namespace Couchbase.Lite
 {
     internal sealed class DefaultConflictResolver : IConflictResolver
     {
-
-        /// <summary>
-        /// Default constructor
-        /// </summary>
-        internal DefaultConflictResolver()
-        {
-
-        }
-
         /// <summary>
         /// The callback default conflict resolve method, if conflict occurs.
         /// </summary>
