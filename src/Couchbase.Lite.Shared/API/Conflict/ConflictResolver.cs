@@ -20,6 +20,9 @@ namespace Couchbase.Lite
 {
     public static class ConflictResolver
     {
+        /// <summary>
+        /// Access to the default conflict resolution
+        /// </summary>
         public static IConflictResolver Default => new DefaultConflictResolver();
     }
 }
