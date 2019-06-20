@@ -912,7 +912,7 @@ namespace Couchbase.Lite
                             new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevID,
                             remoteDoc.RevID);
 
-                    conflictResolver = conflictResolver ?? new DefaultConflictResolver();
+                    conflictResolver = conflictResolver ?? ConflictResolver.Default;
                     var conflict = new Conflict(docID, localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
 
                     resolvedDoc = conflictResolver.Resolve(conflict);
