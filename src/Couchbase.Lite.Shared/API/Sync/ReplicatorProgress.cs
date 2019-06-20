@@ -85,13 +85,13 @@ namespace Couchbase.Lite.Sync
             IsTransient = isTransient;
         }
 
-        private ReplicatedDocument([NotNull] string docID, DocumentFlags flags, C4Error c4error,
+        private ReplicatedDocument([NotNull] string docID, DocumentFlags flags, C4Error error,
             bool isTransient)
         {
             Id = docID;
             Flags = flags;
-            NativeError = c4error;
-            Error = c4error.domain == 0 ? null : CouchbaseException.Create(c4error);
+            NativeError = error;
+            Error = error.domain == 0 ? null : CouchbaseException.Create(error);
             IsTransient = isTransient;
         }
 
