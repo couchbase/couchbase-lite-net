@@ -1357,7 +1357,7 @@ namespace Test
             }
         }
         
-        [Fact] //failed failed
+        [Fact]
         public void TestNonBlockingConflictResolver()
         {
             CreateReplicationConflict("doc1");
