@@ -16,13 +16,25 @@
 //  limitations under the License.
 // 
 
+using JetBrains.Annotations;
+
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// ConflictResolver provides access to the default conflict resolver used by the replicator.
+    /// </summary>
     public static class ConflictResolver
     {
+        private static IConflictResolver _default => new DefaultConflictResolver();
+
         /// <summary>
-        /// Access to the default conflict resolution
+        /// Access IConflictResolver.Default to get the singleton DefaultConflictResolver object.
+        /// Then call methods on that instance.
         /// </summary>
-        public static IConflictResolver Default => new DefaultConflictResolver();
+        [NotNull]
+        public static IConflictResolver Default
+        {
+            get { return _default; }
+        }
     }
 }
