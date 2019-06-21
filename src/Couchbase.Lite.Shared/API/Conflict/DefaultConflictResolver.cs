@@ -22,7 +22,7 @@ using System.Text;
 
 namespace Couchbase.Lite
 {
-    public class DefaultConflictResolver : IConflictResolver
+    internal sealed class DefaultConflictResolver : IConflictResolver
     {
         /// <summary>
         /// The callback default conflict resolve method, if conflict occurs.

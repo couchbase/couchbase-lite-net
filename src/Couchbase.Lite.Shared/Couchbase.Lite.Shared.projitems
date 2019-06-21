@@ -9,6 +9,7 @@
     <Import_RootNamespace>Couchbase.Lite.Shared</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)API\Conflict\ConflictResolver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Conflict\DefaultConflictResolver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Conflict\IConflictResolver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Database.cs" />
