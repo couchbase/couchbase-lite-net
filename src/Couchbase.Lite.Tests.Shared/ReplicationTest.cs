@@ -1382,6 +1382,11 @@ namespace Test
 
                 q.Enqueue(conflict.LocalDocument.Id);
                 wa.RunConditionalAssert(() => q.Count.Equals(4));
+
+                if (cnt != 1) {
+                    manualResetEvent.Set();
+                }
+
                 return conflict.RemoteDocument;
             });
 
