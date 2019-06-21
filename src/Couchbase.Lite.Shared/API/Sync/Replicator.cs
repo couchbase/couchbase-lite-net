@@ -495,8 +495,9 @@ namespace Couchbase.Lite.Sync
                     } catch (Exception e) {
                         replication.Error = new CouchbaseLiteException(C4ErrorCode.UnexpectedError, e.Message, e);
                     }
-                    if(replication.Error != null)
+                    if (replication.Error != null) {
                         WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{replication.Id}' failed", replication.Error);
+                    }
                     _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, false));
                 });
                 _conflictTasks.TryAdd(t.ContinueWith(task => _conflictTasks.TryRemove(t, out var dummy)), 0);

@@ -1347,10 +1347,11 @@ namespace Couchbase.Lite
                 Native.FLSliceResult_Release(mergedBody);
 
                 if (!retVal) {
-                    if (err.code == (int)C4ErrorCode.Conflict)
+                    if (err.code == (int)C4ErrorCode.Conflict) {
                         return false;
-                    else
+                    } else {
                         throw new CouchbaseLiteException((C4ErrorCode)err.code, "LiteCore failed resolving conflict.");
+                    }
                 }
             }
 

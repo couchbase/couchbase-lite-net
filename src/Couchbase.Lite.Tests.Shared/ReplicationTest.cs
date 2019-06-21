@@ -1363,6 +1363,7 @@ namespace Test
             CreateReplicationConflict("doc1");
             CreateReplicationConflict("doc2");
             var config = CreateConfig(false, true, false);
+            ManualResetEvent manualResetEvent = new ManualResetEvent(false);
             Queue<string> q = new Queue<string>();
             var wa = new WaitAssert();
             config.ConflictResolver = new TestConflictResolver((conflict) =>
@@ -1374,8 +1375,11 @@ namespace Test
                 }
 
                 if (cnt == 1) {
-                    Thread.Sleep(500);
+                    manualResetEvent.WaitOne();
+                } else {
+                    manualResetEvent.Set();
                 }
+
                 q.Enqueue(conflict.LocalDocument.Id);
                 wa.RunConditionalAssert(() => q.Count.Equals(4));
                 return conflict.RemoteDocument;
@@ -1555,32 +1559,19 @@ namespace Test
         [Fact]
         public void TestConflictResolverReturningBlobFromDifferentDB()
         {
-            CreateReplicationConflict("doc1");
-
-            var config = CreateConfig(false, true, false);
-            var otherDbDoc = _otherDB.GetDocument("doc1");
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
+            var blobFromOtherDbResolver = new TestConflictResolver((conflict) =>
             {
                 var md = conflict.LocalDocument.ToMutable();
-                md.SetBlob("blob", otherDbDoc.GetBlob("blob"));
+                using (var otherDbDoc = _otherDB.GetDocument("doc1")) {
+                    md.SetBlob("blob", otherDbDoc.GetBlob("blob"));
+                }
                 return md;
             });
 
-            RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
-            {
-                if (!args.IsPush) {
-                    args.Documents[0].Error.Error.Should().Be((int)CouchbaseLiteError.UnexpectedError);
-                    var innerException = ((Couchbase.Lite.Sync.ReplicatedDocument[])args.Documents)[0].Error.InnerException;
-                    if (innerException is InvalidOperationException) {
-                        innerException.Message.Should().Contain("Resolved document db different_db is different from expected db");
-                    } else if (innerException is Exception) {
-                        innerException.Message.Should().Be("Customer side exception");
-                    }
-                }
-            });
+            TestConflictResolverExceptionThrown(blobFromOtherDbResolver, false, true);
         }
 
-        private void TestConflictResolverExceptionThrown(TestConflictResolver resolver, bool continueWithWorkingResolver = false)
+        private void TestConflictResolverExceptionThrown(TestConflictResolver resolver, bool continueWithWorkingResolver = false, bool withBlob = false)
         {
             CreateReplicationConflict("doc1");
 
@@ -1600,7 +1591,11 @@ namespace Test
                             args.Documents[0].Error.Error.Should().Be((int)CouchbaseLiteError.UnexpectedError);
                             var innerException = ((Couchbase.Lite.Sync.ReplicatedDocument[])args.Documents)[0].Error.InnerException;
                             if (innerException is InvalidOperationException) {
-                                innerException.Message.Should().Contain("Resolved document db different_db is different from expected db");
+                                if (withBlob) {
+                                    innerException.Message.Should().Be("A document contains a blob that was saved to a different database; the save operation cannot complete.");
+                                } else {
+                                    innerException.Message.Should().Contain("Resolved document db different_db is different from expected db");
+                                }
                             } else if(innerException is Exception) {
                                 innerException.Message.Should().Be("Customer side exception");
                             }
