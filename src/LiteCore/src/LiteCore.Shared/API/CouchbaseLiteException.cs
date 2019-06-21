@@ -592,7 +592,7 @@ namespace Couchbase.Lite
 
         }
 
-        internal CouchbaseLiteException(C4ErrorCode errCode, string message, Exception innerException) : base(new C4Error(errCode), message)
+        internal CouchbaseLiteException(C4ErrorCode errCode, string message, Exception innerException) : base(new C4Error(errCode), message, innerException)
         {
 
         }

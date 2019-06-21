@@ -21,6 +21,7 @@ using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 using LiteCore.Interop;
+using System;
 
 namespace Couchbase.Lite.Sync
 {
@@ -68,7 +69,7 @@ namespace Couchbase.Lite.Sync
         /// Gets the error that occurred during replication, if any.
         /// </summary>
         [CanBeNull]
-        public CouchbaseException Error { get; }
+        public CouchbaseException Error { get; internal set; }
 
         internal bool IsTransient { get; }
 

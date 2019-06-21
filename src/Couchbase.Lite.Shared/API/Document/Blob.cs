@@ -312,7 +312,7 @@ namespace Couchbase.Lite
 
             if(_db != null) {
                 if(db != _db) {
-                    throw new InvalidOperationException("Blob belongs to a different database");
+                    throw new InvalidOperationException("A document contains a blob that was saved to a different database; the save operation cannot complete.");
                 }
 
                 return;
