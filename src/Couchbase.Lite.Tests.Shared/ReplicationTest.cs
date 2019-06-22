@@ -1376,8 +1376,6 @@ namespace Test
 
                 if (cnt == 1) {
                     manualResetEvent.WaitOne();
-                } else {
-                    manualResetEvent.Set();
                 }
 
                 q.Enqueue(conflict.LocalDocument.Id);
