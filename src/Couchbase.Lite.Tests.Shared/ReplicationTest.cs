@@ -1405,14 +1405,15 @@ namespace Test
         {
             CreateReplicationConflict("doc1");
 
-            var waitEvent = new AutoResetEvent(false);
+            var firstReplicatorStart = new ManualResetEventSlim();
+            var secondReplicatorFinish = new ManualResetEventSlim();
             int resolveCnt = 0;
 
             var config = CreateConfig(false, true, false);
             config.ConflictResolver = new TestConflictResolver((conflict) =>
             {
-                waitEvent.Set();
-                waitEvent.WaitOne();
+                firstReplicatorStart.Set();
+                secondReplicatorFinish.Wait();
                 Thread.Sleep(500);
                 resolveCnt++;
                 return conflict.LocalDocument;
@@ -1423,7 +1424,7 @@ namespace Test
             config1.ConflictResolver = new TestConflictResolver((conflict) =>
             {
                 resolveCnt++;
-                Task.Delay(500).ContinueWith(t => waitEvent.Set()); // Set after return
+                Task.Delay(500).ContinueWith(t => secondReplicatorFinish.Set()); // Set after return
                 return conflict.RemoteDocument;
             });
             Replicator replicator1 = new Replicator(config1);
@@ -1459,7 +1460,7 @@ namespace Test
             });
 
             replicator.Start();
-            waitEvent.WaitOne();
+            firstReplicatorStart.Wait();
             replicator1.Start();
 
             try {
