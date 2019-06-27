@@ -448,7 +448,10 @@ namespace Couchbase.Lite.Sync
 
             bool transient;
             if(IsPermanentError(error, out transient)) {
-                WriteLog.To.Sync.I(Tag, "Permanent error encountered ({0} / {1}), giving up...", error.domain, error.code);
+                if (error.code > 0) {
+                    WriteLog.To.Sync.I(Tag, "Permanent error encountered ({0} / {1}), giving up...", error.domain, error.code);
+                }
+
                 return false;
             }
 
@@ -495,9 +498,11 @@ namespace Couchbase.Lite.Sync
                     } catch (Exception e) {
                         replication.Error = new CouchbaseLiteException(C4ErrorCode.UnexpectedError, e.Message, e);
                     }
+
                     if (replication.Error != null) {
                         WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{replication.Id}' failed", replication.Error);
                     }
+
                     _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, false));
                 });
                 _conflictTasks.TryAdd(t.ContinueWith(task => _conflictTasks.TryRemove(t, out var dummy)), 0);
@@ -518,8 +523,10 @@ namespace Couchbase.Lite.Sync
                 var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
                 var transientStr = transient ? "transient " : String.Empty;
                 var dirStr = pushing ? "pushing" : "pulling";
-                WriteLog.To.Sync.I(Tag,
-                    $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
+                if (error.code > 0) {
+                    WriteLog.To.Sync.I(Tag,
+                        $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
+                }
             }
             _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(replications, pushing));
         }
