@@ -24,6 +24,10 @@ using System.Text;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// Conflict contains information of the conflicted documents, including local and 
+    /// remote document’s content. The null content means that the document is deleted.
+    /// </summary>
     public class Conflict
     {
         /// <summary>
