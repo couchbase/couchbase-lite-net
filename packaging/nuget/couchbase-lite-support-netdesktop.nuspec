@@ -12,9 +12,9 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>.NET Core / .NET Framework native libraries and support classes for Couchbase Lite</description>
     <releaseNotes>
-        https://developer.couchbase.com/documentation/mobile/2.5/couchbase-lite/csharp.html#release-notes
+        https://docs.couchbase.com/couchbase-lite/2.5/csharp.html#2-5-3
     </releaseNotes>
-    <copyright>Copyright 2018</copyright>
+    <copyright>Copyright 2019</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
