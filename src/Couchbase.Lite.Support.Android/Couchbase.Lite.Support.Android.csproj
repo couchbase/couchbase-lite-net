@@ -83,6 +83,9 @@
     <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\x86\libLiteCore.so">
       <Link>x86\libLiteCore.so</Link>
     </EmbeddedNativeLibrary>
+    <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\x86_64\libLiteCore.so">
+      <Link>x86_64\libLiteCore.so</Link>
+    </EmbeddedNativeLibrary>
     <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\armeabi-v7a\libLiteCore.so">
       <Link>armeabi-v7a\libLiteCore.so</Link>
     </EmbeddedNativeLibrary>
