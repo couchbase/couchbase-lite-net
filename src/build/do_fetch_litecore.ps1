@@ -13,7 +13,7 @@ if($DebugLib) {
 
 Write-Host "Fetching variants for $Sha..."
 if($Variants[0].ToLower() -eq "all") {
-    $Variants = @("macosx", "linux", "ios", "android-x86", "android-armeabi-v7a", "android-arm64-v8a", "windows-win32", "windows-win64", "windows-arm")
+    $Variants = @("macosx", "linux", "ios", "android-x86", "android-x86_64", "android-armeabi-v7a", "android-arm64-v8a", "windows-win32", "windows-win64", "windows-arm")
 }
 
 $VARIANT_EXT = @{
@@ -21,6 +21,7 @@ $VARIANT_EXT = @{
   "ios" = "zip"; 
   "linux" = "tar.gz"; 
   "android-x86" = "zip"; 
+  "android-x86_64" = "zip";
   "android-armeabi-v7a" = "zip";
   "android-arm64-v8a" = "zip";
   "windows-win32" = "zip";
@@ -83,7 +84,7 @@ if(Test-Path "litecore-ios$suffix.zip") {
     Set-Location ..
 }
 
-foreach($arch in @("x86", "armeabi-v7a", "arm64-v8a")) {
+foreach($arch in @("x86", "x86_64", "armeabi-v7a", "arm64-v8a")) {
     if(Test-Path "litecore-android-$arch$suffix.zip") {
         New-Item -Type directory -ErrorAction Ignore android\lib\$arch
         Set-Location android\lib\$arch
