@@ -910,8 +910,8 @@ namespace Couchbase.Lite
 
                     // Resolve conflict:
                     WriteLog.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
-                            new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevID,
-                            remoteDoc.RevID);
+                            new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevisionID,
+                            remoteDoc.RevisionID);
 
                     conflictResolver = conflictResolver ?? ConflictResolver.Default;
                     var conflict = new Conflict(docID, localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
@@ -1173,7 +1173,7 @@ namespace Couchbase.Lite
             ConcurrencyControl concurrencyControl, bool deletion)
         {
             Debug.Assert(document != null);
-            if (deletion && document.RevID == null) {
+            if (deletion && document.RevisionID == null) {
                 throw new CouchbaseLiteException(C4ErrorCode.NotFound,
                     CouchbaseLiteErrorMessage.DeleteDocFailedNotSaved);
             }
@@ -1317,8 +1317,8 @@ namespace Couchbase.Lite
             }
 
             // The remote branch has to win, so that the doc revision history matches the server's.
-            var winningRevID = remoteDoc.RevID;
-            var losingRevID = localDoc.RevID;
+            var winningRevID = remoteDoc.RevisionID;
+            var losingRevID = localDoc.RevisionID;
 
             FLSliceResult mergedBody = (FLSliceResult)FLSlice.Null;
             C4RevisionFlags mergedFlags = 0;

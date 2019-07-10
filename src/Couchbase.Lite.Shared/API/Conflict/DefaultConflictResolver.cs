@@ -40,7 +40,7 @@ namespace Couchbase.Lite
                 return conflict.LocalDocument;
             else if (conflict.LocalDocument.Generation < conflict.RemoteDocument.Generation)
                 return conflict.RemoteDocument;
-            else return String.CompareOrdinal(conflict.LocalDocument.RevID, conflict.RemoteDocument.RevID) > 0
+            else return String.CompareOrdinal(conflict.LocalDocument.RevisionID, conflict.RemoteDocument.RevisionID) > 0
                     ? conflict.LocalDocument : conflict.RemoteDocument;
         }
     }
