@@ -112,8 +112,14 @@ namespace Couchbase.Lite
 
         internal virtual bool IsMutable => false;
 
+        /// <summary>
+        /// The RevisionID in Document class is a constant, while the RevisionID in MutableDocument class is not. Every time a MutableDocument is saved, 
+        /// its internal revision (via C4Document) will be updated. When a new MutableDocument is created, the document will not have C4Document 
+        /// nor Revision associated with it, therefore, the revisionID will be null.
+        /// The RevisionID format is opaque, which means it's format has no meaning and shouldn’t be parsed to get information.
+        /// </summary>
         [CanBeNull]
-        internal string RevID => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.revID.CreateString() : null;
+        public string RevisionID => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.revID.CreateString() : null;
 
         /// <summary>
         /// Gets the sequence of this document (a unique incrementing number
@@ -276,8 +282,8 @@ namespace Couchbase.Lite
         {
             var h = Hasher.Start;
             h.Add(Id);
-            if (RevID != null) {
-                h.Add(RevID);
+            if (RevisionID != null) {
+                h.Add(RevisionID);
             }
 
             return h;
