@@ -113,6 +113,7 @@ namespace Couchbase.Lite
         internal virtual bool IsMutable => false;
 
         /// <summary>
+        /// The RevisionID in Document class is a constant, while the RevisionID in <see cref="MutableDocument" /> class is not.
         /// Newly created document will have a null RevisionID. The RevisionID in <see cref="MutableDocument" /> will be updated on save.
         /// The RevisionID format is opaque, which means it's format has no meaning and shouldn’t be parsed to get information.
         /// </summary>
