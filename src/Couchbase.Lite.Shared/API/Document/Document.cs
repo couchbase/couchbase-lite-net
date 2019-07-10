@@ -113,9 +113,7 @@ namespace Couchbase.Lite
         internal virtual bool IsMutable => false;
 
         /// <summary>
-        /// The RevisionID in Document class is a constant, while the RevisionID in MutableDocument class is not. Every time a MutableDocument is saved, 
-        /// its internal revision (via C4Document) will be updated. When a new MutableDocument is created, the document will not have C4Document 
-        /// nor Revision associated with it, therefore, the revisionID will be null.
+        /// Newly created document will have a null RevisionID. The RevisionID in <see cref="MutableDocument" /> will be updated on save.
         /// The RevisionID format is opaque, which means it's format has no meaning and shouldn’t be parsed to get information.
         /// </summary>
         [CanBeNull]
