@@ -2037,6 +2037,34 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestRevisionIDNewDoc()
+        {
+            using (var doc = new MutableDocument()) {
+                doc.RevisionID.Should().BeNull();
+                Db.Save(doc);
+                doc.RevisionID.Should().NotBeNull();
+            }
+        }
+
+        [Fact]
+        public void TestRevisionIDExistingDoc()
+        {
+            using (var doc = new MutableDocument("doc1")) {
+                Db.Save(doc);
+            }
+
+            using (var doc = Db.GetDocument("doc1"))
+            using (var mutabledoc = doc.ToMutable()) {
+                var docRevId = doc.RevisionID;
+                doc.RevisionID.Should().Be(mutabledoc.RevisionID);
+                mutabledoc.SetInt("int", 88);
+                Db.Save(mutabledoc);
+                doc.RevisionID.Should().NotBe(mutabledoc.RevisionID);
+                docRevId.Should().Be(doc.RevisionID);
+            }
+        }
+
         private void PopulateData(MutableDocument doc)
         {
             var date = DateTimeOffset.Now;
