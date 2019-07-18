@@ -15,12 +15,12 @@ pipeline {
                     steps {
                         powershell(returnStatus: true, script: 'jenkins\\run_win_tests.ps1')
                     }
-                    # This is unreliable for some reason...
-                    #post {
-                    #    always {
-                    #        step([$class: 'MSTestPublisher', testResultsFile:"**/unit_tests.xml", failOnError: true, keepLongStdio: true])
-                    #    }
-                    #}
+                    // This is unreliable for some reason...
+                    //post {
+                    //    always {
+                    //        step([$class: 'MSTestPublisher', testResultsFile:"**/unit_tests.xml", failOnError: true, keepLongStdio: true])
+                    //    }
+                    //}
                 }
                 stage("macOS") {
                     agent { label 'mobile-mac-mini' }
