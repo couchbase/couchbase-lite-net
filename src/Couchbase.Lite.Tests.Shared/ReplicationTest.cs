@@ -83,17 +83,16 @@ namespace Test
             // exist on the LAN
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
             var config = new ReplicatorConfiguration(Db, targetEndpoint);
-            using (var repl = new Replicator(config))
-            {
+            using (var repl = new Replicator(config)) {
                 repl.Start();
                 var count = 0;
-                while (count++ <= 35 && repl.Status.Activity != ReplicatorActivityLevel.Stopped)
-                {
+                Thread.Sleep(TimeSpan.FromSeconds(51)); // The combined amount of time this should take to stop
+                while (count++ <= 10 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
                     WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
                     await Task.Delay(500);
                 }
 
-                count.Should().BeLessThan(35, "because otherwise the replicator never stopped");
+                count.Should().BeLessThan(10, "because otherwise the replicator never stopped");
             }
         }
 #endif
