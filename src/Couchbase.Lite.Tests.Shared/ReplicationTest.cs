@@ -86,8 +86,8 @@ namespace Test
             using (var repl = new Replicator(config)) {
                 repl.Start();
                 var count = 0;
-                //Thread.Sleep(TimeSpan.FromSeconds(51)); // The combined amount of time this should take to stop
-                while (count++ <= 15 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                Thread.Sleep(TimeSpan.FromSeconds(51)); // The combined amount of time this should take to stop
+                while (count++ < 15 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
                     WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
                     await Task.Delay(1000);
                 }
