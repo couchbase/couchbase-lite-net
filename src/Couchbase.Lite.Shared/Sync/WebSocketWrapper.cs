@@ -404,6 +404,12 @@ namespace Couchbase.Lite.Sync
                     _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port)
                     .ContinueWith(t =>
                     {
+                        if (t.Exception != null && t.Exception.InnerExceptions.Any(x => x is NullReferenceException)) {
+                            WriteLog.To.Sync.I(Tag,
+                                "Ignoring bug in .NET runtime (NRE when closing TcpClient before connection is made");
+                            return;
+                        }
+
                         if (!NetworkTaskSuccessful(t)) {
                             return;
                         }
