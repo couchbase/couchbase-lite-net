@@ -7,9 +7,10 @@ $url="http://mobile.nuget.couchbase.com/nuget/CI/Packages()?`$format=json"
 $content=$(Invoke-WebRequest $url).Content
 $results = $(ConvertFrom-Json $content).d.results
 foreach($result in $results) {
-    $ticks = [long]$result.Published.Substring(7,13)
-    $published = New-Object DateTime($ticks)
-    $now = Get-Date
+    $ms = [long]$result.Published.Substring(7,13)
+    $published = $(New-Object -Type DateTime -ArgumentList 1970, 1, 1, 0, 0, 0, 0).AddMilliseconds($ms)
+
+    $now = $(Get-Date).ToUniversalTime()
     $limit = New-TimeSpan -Days 30
     if(($now - $published) -gt $limit) {
         echo "Deleting $($result.Id)-$($result.Version)"
