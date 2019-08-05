@@ -37,7 +37,6 @@ namespace Couchbase.Lite.Support
         [Obsolete("This call is no longer needed, and will be removed in 3.0")]
         public static void Activate()
         {
-            CheckVersion();
         }
 
         /// <summary>
