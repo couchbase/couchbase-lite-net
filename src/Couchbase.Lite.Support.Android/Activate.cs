@@ -53,7 +53,6 @@ namespace Couchbase.Lite.Support
 				return;
 			}
 
-            CheckVersion();
             Context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
