@@ -296,6 +296,7 @@ Transfer-Encoding: chunked";
             e.Should().NotBeNull("because an exception is expected");
         }
 
+        #if !CBL_NO_EXTERN_FILES
         [Fact]
         public unsafe void TestSerializationRoundTrip()
         {
@@ -337,6 +338,7 @@ Transfer-Encoding: chunked";
                 i++;
             }
         }
+        #endif
 
         [Fact]
         public void TestOptionsDictionary()

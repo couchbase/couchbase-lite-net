@@ -15,9 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-#if __IOS__
-extern alias ios;
-#endif
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -76,7 +73,7 @@ namespace Test
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
 
-#if NETCOREAPP2_0
+#if NETCOREAPP2_0 && !CBL_NO_VERSION_CHECK
         static TestCase()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
@@ -285,6 +282,7 @@ namespace Test
             }
         }
 
+        #if !CBL_NO_EXTERN_FILES
         protected void LoadJSONResource(string resourceName)
         {
             Db.InBatch(() =>
@@ -322,7 +320,7 @@ namespace Test
                 string line;
                 while ((line = tr.ReadLine()) != null) {
 #elif __IOS__
-			var bundlePath = ios::Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
+			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			using (var tr = new StreamReader(File.Open(bundlePath, FileMode.Open, FileAccess.Read)))
 			{
 				string line;
@@ -362,13 +360,14 @@ namespace Test
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
             return ctx.Assets.Open(path);
 #elif __IOS__
-			var bundlePath = ios::Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
+			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			return File.Open(bundlePath, FileMode.Open, FileAccess.Read);
 #else
             return File.Open(path, FileMode.Open, FileAccess.Read);
 #endif
 
         }
+        #endif
 
         public void Dispose()
         {

@@ -16,7 +16,7 @@
 //  limitations under the License.
 // 
 
-#if UAP10_0_16299
+#if UAP10_0_16299 || WINDOWS_UWP
 using System;
 using System.Linq;
 using System.Net;

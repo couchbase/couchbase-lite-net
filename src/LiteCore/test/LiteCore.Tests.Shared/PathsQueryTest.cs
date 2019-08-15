@@ -15,6 +15,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
+#if !CBL_NO_EXTERN_FILES
 using FluentAssertions;
 using LiteCore.Interop;
 #if !WINDOWS_UWP
@@ -58,3 +59,4 @@ namespace LiteCore.Tests
         }
     }
 }
+#endif

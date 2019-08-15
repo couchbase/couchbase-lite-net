@@ -15,7 +15,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-
+#if !CBL_NO_EXTERN_FILES
 using System;
 using System.Collections.Generic;
 using System.IO.Compression;
@@ -121,3 +121,4 @@ namespace Test
         }
     }
 }
+#endif

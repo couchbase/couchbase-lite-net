@@ -80,6 +80,7 @@ namespace LiteCore.Tests
             });
         }
 
+        #if !CBL_NO_EXTERN_FILES
         [Fact]
         public void TestFleeceDocs()
         {
@@ -87,6 +88,7 @@ namespace LiteCore.Tests
                 ImportJSONLines("C/tests/data/names_100.json");
             });
         }
+        #endif
 
         [Fact]
         public void TestPossibleAncestors()

@@ -253,6 +253,7 @@ namespace Test
             parameters.GetValue(utcNow.ToShortDateString()).Should().Be(utcNow);
         }
 
+        #if !CBL_NO_EXTERN_FILES
         [Fact]
         public void TestNoWhereQuery()
         {
@@ -273,6 +274,7 @@ namespace Test
                 numRows.Should().Be(100, "because otherwise the incorrect number of rows was returned");
             }
         }
+        #endif
 
         [Fact]
         public void TestWhereNullOrMissing()
@@ -460,6 +462,7 @@ namespace Test
             RunTestWithNumbers(new[] { 5 }, cases);
         }
 
+        #if !CBL_NO_EXTERN_FILES
         [Fact]
         public void TestWhereIn()
         {
@@ -599,6 +602,7 @@ namespace Test
                 }
             }
         }
+        #endif
 
         [Fact]
         public void TestSelectDistinct()
@@ -807,6 +811,7 @@ namespace Test
             }
         }
 
+        #if !CBL_NO_EXTERN_FILES
         [Fact]
         public void TestGroupBy()
         {
@@ -865,6 +870,7 @@ namespace Test
                 numRows.Should().Be(15);
             }
         }
+        #endif
 
         [Fact]
         public void TestParameters()
@@ -1011,6 +1017,7 @@ namespace Test
             }
         }
 
+        #if !CBL_NO_EXTERN_FILES
         [Fact]
         public void TestQueryResult()
         {
@@ -1039,6 +1046,7 @@ namespace Test
                 numRows.Should().Be(100);
             }
         }
+        #endif
 
         [Fact]
         public void TestQueryProjectingKeys()
@@ -1202,6 +1210,7 @@ namespace Test
             }
         }
 
+        #if !CBL_NO_EXTERN_FILES
         [Fact]
         public void TestQuantifiedOperators()
         {
@@ -1236,6 +1245,7 @@ namespace Test
                 received.Count.Should().Be(0, "because nobody likes taxes...");
             }
         }
+        #endif
 
         [Fact]
         public void TestQuantifiedOperatorVariableKeyPath()

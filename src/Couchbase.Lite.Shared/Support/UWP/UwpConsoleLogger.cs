@@ -19,7 +19,7 @@
 // Define DEBUG just for this file (#define in C# only operates per file
 // as opposed to C / C++ which defines from that point onward) to be able
 // to use Debug.WriteLine even in a release build
-#if UAP10_0_16299
+#if UAP10_0_16299 || WINDOWS_UWP
 #define DEBUG
 using System;
 using System.Diagnostics;
