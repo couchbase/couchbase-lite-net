@@ -16,10 +16,6 @@
 //  limitations under the License.
 // 
 
-#if __IOS__
-extern alias ios;
-#endif
-
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -181,7 +177,7 @@ namespace LiteCore.Tests
 
 
 #if __IOS__
-        [ios::ObjCRuntime.MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
 #endif
         private static void DBObserverCallback(C4DatabaseObserver* obs, void* context)
         {
@@ -190,7 +186,7 @@ namespace LiteCore.Tests
         }
 
 #if __IOS__
-        [ios::ObjCRuntime.MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
 #endif
         private static void DocObserverCallback(C4DocumentObserver* obs, FLSlice docId, ulong sequence, void* context)
         {

@@ -15,9 +15,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
-#if __IOS__
-extern alias ios;
-#endif
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -79,7 +76,7 @@ namespace LiteCore.Tests
 
         static Test()
         {
-            #if NETCOREAPP2_0
+            #if NETCOREAPP2_0 && !CBL_NO_VERSION_CHECK
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
             #endif
             var enc = Native.FLEncoder_New();
@@ -233,6 +230,7 @@ namespace LiteCore.Tests
             WriteLine($"[{level}] {s.CreateString()}");
         }
 
+        #if !CBL_NO_EXTERN_FILES
         internal bool ReadFileByLines(string path, Func<FLSlice, bool> callback)
         {
 #if WINDOWS_UWP
@@ -251,7 +249,7 @@ namespace LiteCore.Tests
                 string line;
                 while((line = tr.ReadLine()) != null) { 
 #elif __IOS__
-			var bundlePath = ios::Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
+			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			using (var tr = new StreamReader(File.Open(bundlePath, FileMode.Open, FileAccess.Read)))
 			{
 				string line;
@@ -343,6 +341,7 @@ namespace LiteCore.Tests
 
             return numDocs;
         }
+        #endif
 
         protected void ReopenDB()
         {
@@ -409,6 +408,7 @@ namespace LiteCore.Tests
             }
         }
 
+        #if !CBL_NO_EXTERN_FILES
         protected uint ImportJSONFile(string path)
         {
             return ImportJSONFile(path, "", TimeSpan.FromSeconds(15), false);
@@ -443,7 +443,7 @@ namespace LiteCore.Tests
                 jsonData = ms.ToArray();
             }
 #elif __IOS__
-			var bundlePath = ios::Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
+			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			byte[] jsonData;
             using (var stream = File.Open(bundlePath, FileMode.Open, FileAccess.Read))
             using (var ms = new MemoryStream()) {
@@ -513,5 +513,6 @@ namespace LiteCore.Tests
                 LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
             }
         }
+        #endif
     }
 }

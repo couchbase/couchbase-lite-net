@@ -70,7 +70,7 @@ namespace Couchbase.Lite.DI
             } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
                 Service.Register<IProxy>(new LinuxProxy());
             }
-            #elif UAP10_0_16299
+            #elif UAP10_0_16299 || WINDOWS_UWP
             Service.AutoRegister(typeof(Database).GetTypeInfo().Assembly);
             Service.Register<IProxy>(new UWPProxy());
             #elif __ANDROID__

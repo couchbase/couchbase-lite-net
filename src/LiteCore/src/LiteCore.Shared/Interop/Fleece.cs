@@ -210,12 +210,7 @@ namespace LiteCore.Interop
         }
     }
 
-#if LITECORE_PACKAGED
-    internal
-#else
-    public
-#endif
-        static unsafe class FLSliceExtensions
+    internal static unsafe class FLSliceExtensions
     {
         public static object ToObject(FLValue* value)
         {
