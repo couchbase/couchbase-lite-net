@@ -43,7 +43,6 @@ namespace Couchbase.Lite
         /// </item>
         /// </list>
         /// </summary>
-        /// <exception cref="InvalidOperationException">Thrown when a document with the wrong ID is returned.</exception> 
         /// <exception cref="InvalidOperationException">Thrown when a document from a different database is returned.</exception>
         Document Resolve(Conflict conflict);
     }
