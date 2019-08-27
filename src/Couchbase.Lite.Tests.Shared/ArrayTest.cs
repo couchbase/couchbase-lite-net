@@ -127,7 +127,7 @@ namespace Test
                 var subdict = a.GetDictionary(8);
                 subdict.Should().NotBeNull("because a dictionary should be present at this index");
                 subdict.ToDictionary()
-                    .ShouldBeEquivalentTo(new Dictionary<string, object> {
+                    .Should().BeEquivalentTo(new Dictionary<string, object> {
                         ["name"] = "Scott Tiger"
                     }, "because that is what was added");
 
@@ -168,7 +168,7 @@ namespace Test
                     var subdict = a.GetDictionary(19);
                     subdict.Should().NotBeNull("because a dictionary should be present at this index");
                     subdict.ToDictionary()
-                        .ShouldBeEquivalentTo(new Dictionary<string, object> { ["name"] = "Scott Tiger" },
+                        .Should().BeEquivalentTo(new Dictionary<string, object> { ["name"] = "Scott Tiger" },
                             "because that is what was added");
 
                     var subarray = a.GetArray(20);
@@ -211,7 +211,7 @@ namespace Test
                 var subdict = a.GetDictionary(8);
                 subdict.Should().NotBeNull("because a dictionary should be present at this index");
                 subdict.ToDictionary()
-                    .ShouldBeEquivalentTo(new Dictionary<string, object> {
+                    .Should().BeEquivalentTo(new Dictionary<string, object> {
                         ["name"] = "Scott Tiger"
                     }, "because that is what was added");
 
@@ -256,7 +256,7 @@ namespace Test
                 var subdict = a.GetDictionary(2);
                 subdict.Should().NotBeNull("because a dictionary should be present at this index");
                 subdict.ToDictionary()
-                    .ShouldBeEquivalentTo(new Dictionary<string, object> {
+                    .Should().BeEquivalentTo(new Dictionary<string, object> {
                         ["name"] = "Scott Tiger"
                     }, "because that is what was added");
 
@@ -273,7 +273,7 @@ namespace Test
             var array = new MutableArrayObject();
             array.AddString("a");
             foreach (var index in new[] {-1, 1}) {
-                array.Invoking(a => a.SetString(index, "b")).ShouldThrow<ArgumentOutOfRangeException>();
+                array.Invoking(a => a.SetString(index, "b")).Should().Throw<ArgumentOutOfRangeException>();
             }
         }
 
@@ -355,7 +355,7 @@ namespace Test
             array.AddString("a");
 
             foreach (int index in new[] {-1, 2}) {
-                array.Invoking(a => a.InsertString(index, "b")).ShouldThrow<ArgumentOutOfRangeException>();
+                array.Invoking(a => a.InsertString(index, "b")).Should().Throw<ArgumentOutOfRangeException>();
             }
         }
 
@@ -405,7 +405,7 @@ namespace Test
             var array = new MutableArrayObject();
             array.AddString("a");
             foreach (int index in new[] { -1, 1 }) {
-                array.Invoking(a => a.RemoveAt(index)).ShouldThrow<ArgumentOutOfRangeException>();
+                array.Invoking(a => a.RemoveAt(index)).Should().Throw<ArgumentOutOfRangeException>();
             }
         }
 
@@ -666,7 +666,7 @@ namespace Test
                 a.GetDictionary(7).Should().BeNull("because that is the default value");
                 a.GetDictionary(8)
                     .ToDictionary()
-                    .ShouldBeEquivalentTo(new Dictionary<string, object> {
+                    .Should().BeEquivalentTo(new Dictionary<string, object> {
                         ["name"] = "Scott Tiger"
                     }, "because that is the stored value");
                 a.GetDictionary(9).Should().BeNull("because that is the default value");
@@ -719,8 +719,8 @@ namespace Test
                     array.GetArray(3).Should().NotBeNull();
 
                     var nestedArray = array.GetArray(3);
-                    nestedArray.ShouldBeEquivalentTo(mNestedArray);
-                    array.ShouldBeEquivalentTo(mArray);
+                    nestedArray.Should().BeEquivalentTo(mNestedArray);
+                    array.Should().BeEquivalentTo(mArray);
                 }
             }
         }
@@ -1340,9 +1340,9 @@ namespace Test
         public void TestTypes()
         {
             var array = new MutableArrayObject();
-            array.Invoking(a => a.AddValue(new ASCIIEncoding())).ShouldThrow<ArgumentException>();
-            array.Invoking(a => a.AddValue(new[] { new ASCIIEncoding() })).ShouldThrow<ArgumentException>();
-            array.Invoking(a => a.AddValue(new Dictionary<string, object> { ["encoding"] = new ASCIIEncoding() })).ShouldThrow<ArgumentException>();
+            array.Invoking(a => a.AddValue(new ASCIIEncoding())).Should().Throw<ArgumentException>();
+            array.Invoking(a => a.AddValue(new[] { new ASCIIEncoding() })).Should().Throw<ArgumentException>();
+            array.Invoking(a => a.AddValue(new Dictionary<string, object> { ["encoding"] = new ASCIIEncoding() })).Should().Throw<ArgumentException>();
             array.AddValue((byte) 1);
             array.AddValue((sbyte) 1);
             array.AddValue((ushort) 1);

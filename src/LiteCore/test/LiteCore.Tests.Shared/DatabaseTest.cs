@@ -597,7 +597,7 @@ namespace LiteCore.Tests
                     var localConfig = config;
                     return Native.c4db_copy(srcPath, destPath, &localConfig, err);
                 });
-                a.ShouldThrow<CouchbaseLiteException>().Where(e =>
+                a.Should().Throw<CouchbaseLiteException>().Where(e =>
                     e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
 
                 nudb = (C4Database*)LiteCoreBridge.Check(err =>
@@ -616,7 +616,7 @@ namespace LiteCore.Tests
                 var originalSrc = srcPath;
                 srcPath = $"{srcPath}bogus{Path.DirectorySeparatorChar}";
                 destPath = originalDest;
-                a.ShouldThrow<CouchbaseLiteException>().Where(e =>
+                a.Should().Throw<CouchbaseLiteException>().Where(e =>
                     e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
 
                 nudb = (C4Database*)LiteCoreBridge.Check(err =>
@@ -633,7 +633,7 @@ namespace LiteCore.Tests
                 }
 
                 srcPath = originalSrc;
-                a.ShouldThrow<CouchbasePosixException>().Where(e =>
+                a.Should().Throw<CouchbasePosixException>().Where(e =>
                     e.Error == PosixBase.GetCode(nameof(PosixBase.EEXIST)) && e.Domain == CouchbaseLiteErrorType.POSIX);
                 nudb = (C4Database*)LiteCoreBridge.Check(err =>
                 {

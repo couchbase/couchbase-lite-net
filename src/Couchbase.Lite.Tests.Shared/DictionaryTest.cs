@@ -72,8 +72,8 @@ namespace Test
                 ["state"] = "CA"
             };
             var address = new MutableDictionaryObject(dict);
-            address.ShouldBeEquivalentTo(dict, "because that is what was stored");
-            address.ToDictionary().ShouldBeEquivalentTo(dict, "because that is what was stored");
+            address.Should().BeEquivalentTo(dict, "because that is what was stored");
+            address.ToDictionary().Should().BeEquivalentTo(dict, "because that is what was stored");
 
             var doc1 = new MutableDocument("doc1");
             doc1.SetDictionary("address", address);
@@ -86,7 +86,7 @@ namespace Test
             gotDoc.Should().NotBeNull();
             gotDoc.GetDictionary("address")
                 .ToDictionary()
-                .ShouldBeEquivalentTo(dict, "because the content should not have changed");
+                .Should().BeEquivalentTo(dict, "because the content should not have changed");
         }
 
         [Fact]
@@ -140,9 +140,9 @@ namespace Test
             level3.SetString("name", "n3");
             level2.SetDictionary("level3", level3);
 
-            doc.GetDictionary("level1").ShouldBeEquivalentTo(level1, "because that is what was inserted");
-            level1.GetDictionary("level2").ShouldBeEquivalentTo(level2, "because that is what was inserted");
-            level2.GetDictionary("level3").ShouldBeEquivalentTo(level3, "because that is what was inserted");
+            doc.GetDictionary("level1").Should().BeEquivalentTo(level1, "because that is what was inserted");
+            level1.GetDictionary("level2").Should().BeEquivalentTo(level2, "because that is what was inserted");
+            level2.GetDictionary("level3").Should().BeEquivalentTo(level3, "because that is what was inserted");
             var dict = new Dictionary<string, object> {
                 ["level1"] = new Dictionary<string, object> {
                     ["name"] = "n1",
@@ -155,12 +155,12 @@ namespace Test
                 }
             };
 
-            doc.ToDictionary().ShouldBeEquivalentTo(dict, "because otherwise the document's contents are incorrect");
+            doc.ToDictionary().Should().BeEquivalentTo(dict, "because otherwise the document's contents are incorrect");
 
             Db.Save(doc);
             var gotDoc = Db.GetDocument("doc1");
             gotDoc.GetDictionary("level1").Should().NotBeSameAs(level1);
-            gotDoc.ToDictionary().ShouldBeEquivalentTo(dict);
+            gotDoc.ToDictionary().Should().BeEquivalentTo(dict);
         }
 
         [Fact]
@@ -266,12 +266,12 @@ namespace Test
             var profile1 = new MutableDictionaryObject();
             profile1.SetString("name", "Scott Tiger");
             doc.SetDictionary("profile", profile1);
-            doc.GetDictionary("profile").ShouldBeEquivalentTo(profile1, "because that is what was set");
+            doc.GetDictionary("profile").Should().BeEquivalentTo(profile1, "because that is what was set");
 
             var profile2 = new MutableDictionaryObject();
             profile2.SetString("name", "Daniel Tiger");
             doc.SetDictionary("profile", profile2);
-            doc.GetDictionary("profile").ShouldBeEquivalentTo(profile2, "because that is what was set");
+            doc.GetDictionary("profile").Should().BeEquivalentTo(profile2, "because that is what was set");
 
             profile1.SetInt("age", 20);
             profile1.GetString("name").Should().Be("Scott Tiger", "because profile1 should be detached now");
@@ -297,7 +297,7 @@ namespace Test
             var profile1 = new MutableDictionaryObject();
             profile1.SetString("name", "Scott Tiger");
             doc.SetDictionary("profile", profile1);
-            doc.GetDictionary("profile").ShouldBeEquivalentTo(profile1, "because that is what was set");
+            doc.GetDictionary("profile").Should().BeEquivalentTo(profile1, "because that is what was set");
 
             doc.SetString("profile", "Daniel Tiger");
             doc.GetString("profile").Should().Be("Daniel Tiger", "because that is what was set");
@@ -320,7 +320,7 @@ namespace Test
             var profile1 = new MutableDictionaryObject();
             profile1.SetString("name", "Scott Tiger");
             doc.SetDictionary("profile", profile1);
-            doc.GetDictionary("profile").ShouldBeEquivalentTo(profile1, "because that was what was inserted");
+            doc.GetDictionary("profile").Should().BeEquivalentTo(profile1, "because that was what was inserted");
             doc.Contains("profile").Should().BeTrue("because a value exists for that key");
 
             doc.Remove("profile");
@@ -355,7 +355,7 @@ namespace Test
                 result[item.Key] = item.Value;
             }
 
-            result.ShouldBeEquivalentTo(content, "because that is the correct content");
+            result.Should().BeEquivalentTo(content, "because that is the correct content");
             content = dict.Remove("key2").SetInt("key20", 20).SetInt("key21", 21).ToDictionary();
 
             result = new Dictionary<string, object>();
@@ -363,7 +363,7 @@ namespace Test
                 result[item.Key] = item.Value;
             }
 
-            result.ShouldBeEquivalentTo(content, "because that is the correct content");
+            result.Should().BeEquivalentTo(content, "because that is the correct content");
 
             var doc = new MutableDocument("doc1");
             doc.SetDictionary("dict", dict);
@@ -376,7 +376,7 @@ namespace Test
                     result[item.Key] = item.Value;
                 }
 
-                result.ShouldBeEquivalentTo(content, "because that is the correct content");
+                result.Should().BeEquivalentTo(content, "because that is the correct content");
             });
         }
 
@@ -441,7 +441,7 @@ namespace Test
                     dict.GetDictionary("not-exists").Should().BeNull();
                     var nestedDict = dict.GetDictionary("nestedDict");
                     nestedDict.Should().NotBeNull();
-                    nestedDict.ToDictionary().ShouldBeEquivalentTo(mNestedDict.ToDictionary());
+                    nestedDict.ToDictionary().Should().BeEquivalentTo(mNestedDict.ToDictionary());
                 }
             }
         }
@@ -473,8 +473,8 @@ namespace Test
                     array.GetArray(3).Should().NotBeNull();
 
                     var nestedArray = array.GetArray(3);
-                    nestedArray.ShouldBeEquivalentTo(mNestedArray);
-                    array.ShouldBeEquivalentTo(mArray);
+                    nestedArray.Should().BeEquivalentTo(mNestedArray);
+                    array.Should().BeEquivalentTo(mArray);
                 }
             }
         }
@@ -485,9 +485,9 @@ namespace Test
             var dict = new MutableDictionaryObject();
             var dict2 = new InMemoryDictionary();
             foreach (var d in new IMutableDictionary[] { dict, dict2 }) {
-                d.Invoking(d_ => d_.SetValue("test", new ASCIIEncoding())).ShouldThrow<ArgumentException>();
-                d.Invoking(d_ => d_.SetValue("test", new[] { new ASCIIEncoding() })).ShouldThrow<ArgumentException>();
-                d.Invoking(d_ => d_.SetValue("test", new Dictionary<string, object> { ["encoding"] = new ASCIIEncoding() })).ShouldThrow<ArgumentException>();
+                d.Invoking(d_ => d_.SetValue("test", new ASCIIEncoding())).Should().Throw<ArgumentException>();
+                d.Invoking(d_ => d_.SetValue("test", new[] { new ASCIIEncoding() })).Should().Throw<ArgumentException>();
+                d.Invoking(d_ => d_.SetValue("test", new Dictionary<string, object> { ["encoding"] = new ASCIIEncoding() })).Should().Throw<ArgumentException>();
                 d.SetValue("test", (byte) 1);
                 d.SetValue("test", (sbyte) 1);
                 d.SetValue("test", (ushort) 1);

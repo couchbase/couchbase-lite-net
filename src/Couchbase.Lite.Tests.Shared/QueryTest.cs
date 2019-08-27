@@ -239,7 +239,7 @@ namespace Test
                 q.Parameters = parameters;
                 q.Parameters.GetValue("foo").Should().Be("bar");
                 q.Invoking(q2 => q2.Parameters.SetValue("foo2", "bar2"))
-                    .ShouldThrow<InvalidOperationException>("because the parameters are read only once in use");
+                    .Should().Throw<InvalidOperationException>("because the parameters are read only once in use");
             }
         }
 
@@ -1223,7 +1223,7 @@ namespace Test
                 var expected = new[] {"doc-017", "doc-021", "doc-023", "doc-045", "doc-060"};
                 var results = q.Execute();
                 var received = results.Select(x => x.GetString("id"));
-                received.ShouldBeEquivalentTo(expected);
+                received.Should().BeEquivalentTo(expected);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
@@ -1351,38 +1351,38 @@ namespace Test
             asciiNoSensitive.SetOperand(Expression.Property("test") as QueryExpression);
             locale.SetOperand(Expression.Property("test") as QueryExpression);
 
-            bothSensitive.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object> {
+            bothSensitive.ConvertToJSON().Should().BeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object> {
                 ["UNICODE"] = true,
 				["LOCALE"] = Collation.DefaultLocale
             }, new[] { ".test" }});
-            accentSensitive.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            accentSensitive.ConvertToJSON().Should().BeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
             {
                 ["UNICODE"] = true,
                 ["CASE"] = false,
 				["LOCALE"] = Collation.DefaultLocale
             }, new[] { ".test" }});
-            caseSensitive.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            caseSensitive.ConvertToJSON().Should().BeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
             {
                 ["UNICODE"] = true,
                 ["DIAC"] = false,
 				["LOCALE"] = Collation.DefaultLocale
             }, new[] { ".test" }});
-            noSensitive.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            noSensitive.ConvertToJSON().Should().BeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
             {
                 ["UNICODE"] = true,
                 ["DIAC"] = false,
                 ["CASE"] = false,
 				["LOCALE"] = Collation.DefaultLocale
             }, new[] { ".test" }});
-            ascii.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            ascii.ConvertToJSON().Should().BeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
             {
             }, new[] { ".test" }});
-            asciiNoSensitive.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            asciiNoSensitive.ConvertToJSON().Should().BeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
             {
                 ["CASE"] = false
             }, new[] { ".test" }});
 
-            locale.ConvertToJSON().ShouldBeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
+            locale.ConvertToJSON().Should().BeEquivalentTo(new object[] { "COLLATE", new Dictionary<string, object>
             {
                 ["UNICODE"] = true,
                 ["LOCALE"] = "ja"
@@ -1405,7 +1405,7 @@ namespace Test
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(stringProp.Collate(Collation.Unicode())))) {
                 var results = q.Execute();
-                results.Select(x => x.GetString(0)).ShouldBeEquivalentTo(new[] {"A", "Å", "B", "Z"},
+                results.Select(x => x.GetString(0)).Should().BeEquivalentTo(new[] {"A", "Å", "B", "Z"},
                     "because by default Å comes between A and B");
             }
 
@@ -1413,7 +1413,7 @@ namespace Test
                 .From(DataSource.Database(Db))
                 .OrderBy(Ordering.Expression(stringProp.Collate(Collation.Unicode().Locale("se"))))) {
                 var results = q.Execute();
-                results.Select(x => x.GetString(0)).ShouldBeEquivalentTo(new[] { "A", "B", "Z", "Å" },
+                results.Select(x => x.GetString(0)).Should().BeEquivalentTo(new[] { "A", "B", "Z", "Å" },
                     "because in Swedish Å comes after Z");
             }
         }
@@ -1578,7 +1578,7 @@ namespace Test
 
                 doc1Listener.WaitForResult(TimeSpan.FromSeconds(20));
                 otherDb.Invoking(d => d.Dispose())
-                    .ShouldThrow<CouchbaseLiteException>("because the live query is still active");
+                    .Should().Throw<CouchbaseLiteException>("because the live query is still active");
             } finally {
                 query.RemoveChangeListener(token);
                 query.Dispose();
@@ -1882,7 +1882,7 @@ namespace Test
                     result.GetValue(1).Should().BeNull();
 
                     result.ToList<object>().Should().ContainInOrder(new object[] { null });
-                    result.ToDictionary().ShouldBeEquivalentTo(new Dictionary<string, object>
+                    result.ToDictionary().Should().BeEquivalentTo(new Dictionary<string, object>
                     {
                         ["nullval"] = null
                     });
@@ -1902,7 +1902,7 @@ namespace Test
                 .SetLong("big_num", Int64.MaxValue)
                 .SetString("name", "Jim");
 
-            builder.Invoking(b => b.SetValue("bad", new[] { 1, 2, 3 })).ShouldThrow<ArgumentException>();
+            builder.Invoking(b => b.SetValue("bad", new[] { 1, 2, 3 })).Should().Throw<ArgumentException>();
 
             var parameters = builder;
             parameters.GetValue("true").As<bool>().Should().BeTrue();
@@ -2064,10 +2064,10 @@ namespace Test
                 resultsValue = query.Execute().Select(r => r.GetDictionary(Db.Name)).ToArray();
             }
 
-            resultsDouble.Length.ShouldBeEquivalentTo(1);
-            resultsFloat.Length.ShouldBeEquivalentTo(1);
-            resultsLong.Length.ShouldBeEquivalentTo(1);
-            resultsValue.Length.ShouldBeEquivalentTo(1);
+            resultsDouble.Length.Should().Be(1);
+            resultsFloat.Length.Should().Be(1);
+            resultsLong.Length.Should().Be(1);
+            resultsValue.Length.Should().Be(1);
         }
 
         [Fact]
@@ -2121,8 +2121,8 @@ namespace Test
                 results2 = query.Execute().Select(r => r.GetDictionary(Db.Name)).ToArray();
             }
 
-            results1.Length.ShouldBeEquivalentTo(1);
-            results2.Length.ShouldBeEquivalentTo(1);
+            results1.Length.Should().Be(1);
+            results2.Length.Should().Be(1);
         }
 
         [Fact]
@@ -2204,9 +2204,9 @@ namespace Test
                 results3 = query.Execute().Select(r => r.GetDictionary(Db.Name)).ToArray();
             }
 
-            results1.Length.ShouldBeEquivalentTo(1);
-            results2.Length.ShouldBeEquivalentTo(1);
-            results3.Length.ShouldBeEquivalentTo(1);
+            results1.Length.Should().Be(1);
+            results2.Length.Should().Be(1);
+            results3.Length.Should().Be(1);
         }
 
         [ForIssue("couchbase-lite-core/497")]

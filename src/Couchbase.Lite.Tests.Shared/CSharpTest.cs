@@ -87,11 +87,11 @@ namespace Test
             }
 
             Action badAction = (() => new EncryptionKey(new byte[] {1, 2, 3, 4}));
-            badAction.ShouldThrow<ArgumentOutOfRangeException>("because the encryption key data must be 32 bytes");
+            badAction.Should().Throw<ArgumentOutOfRangeException>("because the encryption key data must be 32 bytes");
             badAction = (() => new EncryptionKey("foo", new byte[] {1}, 200));
-            badAction.ShouldThrow<ArgumentOutOfRangeException>("because the salt must be at least 4 bytes");
+            badAction.Should().Throw<ArgumentOutOfRangeException>("because the salt must be at least 4 bytes");
             badAction = (() => new EncryptionKey("foo", new byte[] {1, 2, 3, 4, 5}, 5));
-            badAction.ShouldThrow<ArgumentOutOfRangeException>("because the rounds must be >= 200");
+            badAction.Should().Throw<ArgumentOutOfRangeException>("because the rounds must be >= 200");
         }
 #endif
 
@@ -217,7 +217,7 @@ namespace Test
 
                     var dict = deserializedDict.ToDictionary();
                     dict["array"].As<IList>().Should().Equal(1L, 2L, 3L);
-                    dict["dict"].As<IDictionary<string, object>>().ShouldBeEquivalentTo(nestedDict);
+                    dict["dict"].As<IDictionary<string, object>>().Should().BeEquivalentTo(nestedDict);
                     var isContain = mDict.Contains("");
                     isContain.Should().BeFalse();
                 }
@@ -354,15 +354,15 @@ Transfer-Encoding: chunked";
             dict.Validate("type", "Basic").Should().BeTrue();
             dict.Validate("type", "Bogus").Should().BeFalse();
             dict.Invoking(d => d.Add("type", "Bogus"))
-                .ShouldThrow<InvalidOperationException>("because the type is invalid");
+                .Should().Throw<InvalidOperationException>("because the type is invalid");
             dict.Invoking(d => d.Add(new KeyValuePair<string, object>("type", "Bogus")))
-                .ShouldThrow<InvalidOperationException>("because the type is invalid");
+                .Should().Throw<InvalidOperationException>("because the type is invalid");
             dict.Invoking(d => d["type"] = "Bogus")
-                .ShouldThrow<InvalidOperationException>("because the type is invalid");
+                .Should().Throw<InvalidOperationException>("because the type is invalid");
             dict.Invoking(d => d.Remove("type"))
-                .ShouldThrow<InvalidOperationException>("because the type key is required");
+                .Should().Throw<InvalidOperationException>("because the type key is required");
             dict.Invoking(d => d.Remove(new KeyValuePair<string, object>("type", "Basic")))
-                .ShouldThrow<InvalidOperationException>("because the type key is required");
+                .Should().Throw<InvalidOperationException>("because the type key is required");
             dict.Clear();
             dict.Count.Should().Be(0);
         }
@@ -685,7 +685,7 @@ Transfer-Encoding: chunked";
                 nameof(CSharpTest), 
                 nameof(TestCBDebugItemsMustNotBeNull), 
                 list));
-            badAction.ShouldThrow<ArgumentNullException>("because the item in enumeration cannot be null.");
+            badAction.Should().Throw<ArgumentNullException>("because the item in enumeration cannot be null.");
 
             list.RemoveAt(1);
             var items = CBDebug.ItemsMustNotBeNull(
@@ -704,7 +704,7 @@ Transfer-Encoding: chunked";
                 var flValue = NativeRaw.FLValue_FromData((FLSlice) encoded, FLTrust.Trusted);
                 ((IntPtr) flValue).Should().NotBe(IntPtr.Zero);
                 if (item is IEnumerable enumerable && !(item is string)) {
-                    ((IEnumerable) FLSliceExtensions.ToObject(flValue)).ShouldBeEquivalentTo(enumerable);
+                    ((IEnumerable) FLSliceExtensions.ToObject(flValue)).Should().BeEquivalentTo(enumerable);
                 } else {
                     Extensions.CastOrDefault<T>(FLSliceExtensions.ToObject(flValue)).Should().Be(item);
                 }

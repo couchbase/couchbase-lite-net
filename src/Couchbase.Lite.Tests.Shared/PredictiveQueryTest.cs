@@ -79,7 +79,7 @@ namespace Test
                     SelectResult.Expression(Function.Prediction(aggregateModel.Name, input)))
                 .From(DataSource.Database(Db))) {
                 Action badAction = () => q.Execute();
-                badAction.ShouldThrow<CouchbaseSQLiteException>().Which.Error.Should().Be((int) SQLiteStatus.Error);
+                badAction.Should().Throw<CouchbaseSQLiteException>().Which.Error.Should().Be((int) SQLiteStatus.Error);
 
                 aggregateModel.RegisterModel();
                 var numRows = VerifyQuery(q, (i, result) =>
@@ -96,7 +96,7 @@ namespace Test
 
                 numRows.Should().Be(2);
                 aggregateModel.UnregisterModel();
-                badAction.ShouldThrow<CouchbaseSQLiteException>().Which.Error.Should().Be((int) SQLiteStatus.Error);
+                badAction.Should().Throw<CouchbaseSQLiteException>().Which.Error.Should().Be((int) SQLiteStatus.Error);
             }
         }
 
@@ -384,7 +384,7 @@ namespace Test
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction))
                 .From(DataSource.Database(Db))) {
-                q.Invoking(x => x.Execute()).ShouldThrow<CouchbaseSQLiteException>()
+                q.Invoking(x => x.Execute()).Should().Throw<CouchbaseSQLiteException>()
                     .Where(x => x.BaseError == SQLiteStatus.Error);
             }
 
@@ -394,7 +394,7 @@ namespace Test
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction))
                 .From(DataSource.Database(Db))) {
-                q.Invoking(x => x.Execute()).ShouldThrow<ArgumentException>();
+                q.Invoking(x => x.Execute()).Should().Throw<ArgumentException>();
             }
         }
 

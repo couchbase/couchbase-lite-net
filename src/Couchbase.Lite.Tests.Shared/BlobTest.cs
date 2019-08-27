@@ -113,9 +113,9 @@ namespace Test
             long tmp;
             using (var stream = new BlobWriteStream(Db.BlobStore)) {
                 stream.CanSeek.Should().BeFalse();
-                stream.Invoking(s => s.Position = 10).ShouldThrow<NotSupportedException>();
-                stream.Invoking(s => s.Read(bytes, 0, bytes.Length)).ShouldThrow<NotSupportedException>();
-                stream.Invoking(s => s.SetLength(100)).ShouldThrow<NotSupportedException>();
+                stream.Invoking(s => s.Position = 10).Should().Throw<NotSupportedException>();
+                stream.Invoking(s => s.Read(bytes, 0, bytes.Length)).Should().Throw<NotSupportedException>();
+                stream.Invoking(s => s.SetLength(100)).Should().Throw<NotSupportedException>();
                 stream.Write(bytes, 0, bytes.Length);
                 stream.Length.Should().Be(bytes.Length);
                 stream.Position.Should().Be(bytes.Length);
@@ -124,7 +124,7 @@ namespace Test
             }
 
             using (var stream = new BlobReadStream(Db.BlobStore, key)) {
-                stream.Invoking(s => s.SetLength(100)).ShouldThrow<NotSupportedException>();
+                stream.Invoking(s => s.SetLength(100)).Should().Throw<NotSupportedException>();
                 stream.CanRead.Should().BeTrue();
                 stream.CanSeek.Should().BeTrue();
                 stream.CanWrite.Should().BeFalse();

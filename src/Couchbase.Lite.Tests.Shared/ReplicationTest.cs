@@ -106,7 +106,7 @@ namespace Test
             using (var repl = new Replicator(config)) {
                 config = repl.Config;
                 config.Invoking(c => c.ReplicatorType = ReplicatorType.PushAndPull)
-                    .ShouldThrow<InvalidOperationException>("because the configuration from a replicator should be read only");
+                    .Should().Throw<InvalidOperationException>("because the configuration from a replicator should be read only");
             }
         }
 
@@ -465,7 +465,7 @@ namespace Test
                 }
 
                 this.Invoking(x => ReopenDB())
-                    .ShouldThrow<CouchbaseLiteException>(
+                    .Should().Throw<CouchbaseLiteException>(
                         "because the database cannot be closed while replication is running");
 
                 repl.Stop();
@@ -1095,7 +1095,7 @@ namespace Test
             using (var replicator = new Replicator(config)) {
                 
                 Action badAction = (() => replicator.Config.ConflictResolver = new FakeConflictResolver());
-                badAction.ShouldThrow<InvalidOperationException>("Attempt to modify a frozen object is prohibited.");
+                badAction.Should().Throw<InvalidOperationException>("Attempt to modify a frozen object is prohibited.");
             }
         }
 
@@ -1220,7 +1220,7 @@ namespace Test
             
             Db.Delete(Db.GetDocument("doc1"));
 
-            Db.Count.ShouldBeEquivalentTo(0);
+            Db.Count.Should().Be(0);
 
             using (var doc1 = _otherDB.GetDocument("doc1").ToMutable()) {
                 doc1.SetString("name", "Lion");
@@ -1239,7 +1239,7 @@ namespace Test
             localDoc.Should().BeNull();
             remoteDoc.Should().NotBeNull();
 
-            Db.Count.ShouldBeEquivalentTo(0);
+            Db.Count.Should().Be(0);
         }
 
         [Fact]
@@ -1262,7 +1262,7 @@ namespace Test
                 Db.Save(doc1a);
             }
 
-            Db.Count.ShouldBeEquivalentTo(1);
+            Db.Count.Should().Be(1);
 
             _otherDB.Delete(_otherDB.GetDocument("doc1"));
 
@@ -1276,7 +1276,7 @@ namespace Test
             RunReplication(config, 0, 0);
             remoteDoc.Should().BeNull();
             localDoc.Should().NotBeNull();
-            Db.Count.ShouldBeEquivalentTo(0);
+            Db.Count.Should().Be(0);
         }
 
         [Fact]

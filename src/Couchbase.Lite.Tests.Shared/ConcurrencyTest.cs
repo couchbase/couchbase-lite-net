@@ -263,7 +263,7 @@ namespace Test
             var ignore = exp1.RunAssertAsync(() =>
             {
                 Action a = () => CreateDocs(nDocs, "Create").ToList();
-                a.ShouldThrow<InvalidOperationException>();
+                a.Should().Throw<InvalidOperationException>();
             });
 
             Db.Close();
@@ -279,7 +279,7 @@ namespace Test
             var ignore = exp1.RunAssertAsync(() =>
             {
                 Action a = () => CreateDocs(nDocs, "Create").ToList();
-                a.ShouldThrow<InvalidOperationException>();
+                a.Should().Throw<InvalidOperationException>();
             });
 
             Db.Delete();
