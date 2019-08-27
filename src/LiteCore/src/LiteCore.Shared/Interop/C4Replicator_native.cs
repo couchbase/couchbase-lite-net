@@ -37,6 +37,9 @@ namespace LiteCore.Interop
         public static extern void c4repl_free(C4Replicator* repl);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4repl_start(C4Replicator* repl);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4repl_stop(C4Replicator* repl);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
