@@ -633,6 +633,7 @@ namespace Couchbase.Lite.Sync
                     _nativeParams.C4Params, &localErr);
                 err = localErr;
                 if (_repl != null) {
+                    Native.c4repl_start(_repl);
                     status = Native.c4repl_getStatus(_repl);
                     Config.Database.ActiveReplications.Add(this);
                 } else {
