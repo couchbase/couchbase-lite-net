@@ -161,6 +161,7 @@ namespace LiteCore.Interop
             if (options != null) {
                 _c4Params.optionsDictFleece = (FLSlice) options.FLEncode();
             }
+            _c4Params.dontStart = true;
         }
 
         ~ReplicatorParameters()
