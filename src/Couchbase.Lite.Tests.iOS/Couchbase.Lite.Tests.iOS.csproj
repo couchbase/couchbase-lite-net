@@ -202,13 +202,6 @@
   <ItemGroup>
     <BundleResource Include="Resources\*.*" />
   </ItemGroup>
-  <Target Name="AddAliases" BeforeTargets="FindReferenceAssembliesForReferences;ResolveReferences">
-    <ItemGroup>
-      <ReferencePath Condition="'%(FileName)' == 'Xamarin.iOS'">
-        <Aliases>ios</Aliases>
-      </ReferencePath>
-    </ItemGroup>
-  </Target>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
 </Project>

@@ -18,8 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-extern alias ios;
-using ios::UIKit;
+using UIKit;
 
 namespace Couchbase.Lite.Tests.iOS
 {

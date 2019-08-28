@@ -15,14 +15,13 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
-extern alias ios;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using ios::Foundation;
-using ios::UIKit;
+using Foundation;
+using UIKit;
 
 using Xunit.Runner;
 using Xunit.Runners.UI;
