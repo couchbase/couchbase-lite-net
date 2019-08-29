@@ -108,7 +108,7 @@ namespace Test
                     .BeSameAs(fragment.Dictionary, "because both of these should access the same object");
                 fragment.Dictionary
                     .ToDictionary()
-                    .ShouldBeEquivalentTo(dict["address"], "because otherwise the contents are incorrect");
+                    .Should().BeEquivalentTo(dict["address"], "because otherwise the contents are incorrect");
             });
         }
 
@@ -147,7 +147,7 @@ namespace Test
                     .Should()
                     .BeSameAs(fragment.Array, "because both of these should access the same object");
 
-                fragment.Array.ToList().ShouldAllBeEquivalentTo(references);
+                fragment.Array.ToList().Should().BeEquivalentTo((IList)references);
             });
         }
 
@@ -339,7 +339,7 @@ namespace Test
                     .Should()
                     .BeSameAs(fragment.Dictionary,
                         "because both of these accessors should return the same object");
-                fragment.Dictionary.ShouldBeEquivalentTo(phones, "because that is the stored content");
+                fragment.Dictionary.Should().BeEquivalentTo(phones, "because that is the stored content");
                 fragment.Dictionary.Count.Should().Be(1, "because there is one entry in the dictionary");
             });
         }
@@ -724,11 +724,11 @@ namespace Test
             var doc = new MutableDocument("doc1");
 
             doc.Invoking(d => d["array"][0][0].Value = 1)
-                .ShouldThrow<InvalidOperationException>("because the path does not exist");
+                .Should().Throw<InvalidOperationException>("because the path does not exist");
             doc.Invoking(d => d["array"][0][1].Value = false)
-                .ShouldThrow<InvalidOperationException>("because the path does not exist");
+                .Should().Throw<InvalidOperationException>("because the path does not exist");
             doc.Invoking(d => d["array"][0][2].Value = "hello")
-                .ShouldThrow<InvalidOperationException>("because the path does not exist");
+                .Should().Throw<InvalidOperationException>("because the path does not exist");
 
             SaveDocument(doc, d =>
             {
@@ -744,7 +744,7 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc["array"].Value = new List<object>();
             doc["array"].Array.AddValue(new object[] { "Jason", 5.5, true });
-            doc.Invoking(d => d["array"][0][3].Value = 1).ShouldThrow<InvalidOperationException>();
+            doc.Invoking(d => d["array"][0][3].Value = 1).Should().Throw<InvalidOperationException>();
 
             SaveDocument(doc, d =>
             {

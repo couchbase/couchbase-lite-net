@@ -73,7 +73,7 @@ namespace Test
             }
 
             #if COUCHBASE_ENTERPRISE
-            options.Invoking(o => o.EncryptionKey = new EncryptionKey("foo")).ShouldThrow<InvalidOperationException>("because the configuration is in use");
+            options.Invoking(o => o.EncryptionKey = new EncryptionKey("foo")).Should().Throw<InvalidOperationException>("because the configuration is in use");
             #endif
         }
 
@@ -196,7 +196,7 @@ namespace Test
                 Db.Close();
 
                 Db.Invoking(d => d.GetDocument("doc1"))
-                    .ShouldThrow<InvalidOperationException>()
+                    .Should().Throw<InvalidOperationException>()
                     .WithMessage("Attempt to perform an operation on a closed database",
                         "because this operation is invalid");
             }
@@ -238,7 +238,7 @@ namespace Test
                     .Be(1UL, "because the other database instance should reflect existing data");
                 doc.SetInt("key", 2);
                 otherDB.Invoking(d => d.Save(doc))
-                    .ShouldThrow<CouchbaseLiteException>()
+                    .Should().Throw<CouchbaseLiteException>()
                     .Where(
                         e => e.Error == CouchbaseLiteError.InvalidParameter &&
                              e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
@@ -257,7 +257,7 @@ namespace Test
                     .Be(0UL, "because the other database is empty");
                 doc.SetInt("key", 2);
                 otherDB.Invoking(d => d.Save(doc))
-                    .ShouldThrow<CouchbaseLiteException>()
+                    .Should().Throw<CouchbaseLiteException>()
                     .Where(
                         e => e.Error == CouchbaseLiteError.InvalidParameter &&
                              e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
@@ -360,7 +360,7 @@ namespace Test
                 Db.Invoking(d => Db.Save(doc1b, (updated, current) =>
                 {
                     return true;
-                })).ShouldThrow<CouchbaseLiteException>()
+                })).Should().Throw<CouchbaseLiteException>()
                     .Where(
                         e => e.Error == CouchbaseLiteError.NotFound &&
                              e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
@@ -477,7 +477,7 @@ namespace Test
             doc.SetInt("key", 1);
 
             Db.Invoking(d => d.Save(doc))
-                .ShouldThrow<InvalidOperationException>()
+                .Should().Throw<InvalidOperationException>()
                 .WithMessage("Attempt to perform an operation on a closed database",
                     "because this operation is invalid");
         }
@@ -490,7 +490,7 @@ namespace Test
             doc.SetInt("key", 1);
 
             Db.Invoking(d => d.Save(doc))
-                .ShouldThrow<InvalidOperationException>()
+                .Should().Throw<InvalidOperationException>()
                 .WithMessage("Attempt to perform an operation on a closed database",
                     "because this operation is invalid");
         }
@@ -502,7 +502,7 @@ namespace Test
             doc.SetInt("key", 1);
 
             Db.Invoking(d => d.Delete(doc))
-                .ShouldThrow<CouchbaseLiteException>()
+                .Should().Throw<CouchbaseLiteException>()
                 .Where(
                     e => e.Error == CouchbaseLiteError.NotFound &&
                          e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
@@ -534,7 +534,7 @@ namespace Test
                 otherDB.Count.Should()
                     .Be(1UL, "because the other database instance should reflect existing data");
                 otherDB.Invoking(d => d.Delete(doc))
-                    .ShouldThrow<CouchbaseLiteException>()
+                    .Should().Throw<CouchbaseLiteException>()
                     .Where(
                         e => e.Error == CouchbaseLiteError.InvalidParameter &&
                              e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
@@ -557,7 +557,7 @@ namespace Test
                 otherDB.Count.Should()
                     .Be(0UL, "because the other database should be empty");
                 otherDB.Invoking(d => d.Delete(doc))
-                    .ShouldThrow<CouchbaseLiteException>()
+                    .Should().Throw<CouchbaseLiteException>()
                     .Where(
                         e => e.Error == CouchbaseLiteError.InvalidParameter &&
                              e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
@@ -595,7 +595,7 @@ namespace Test
 
             Db.Close();
             Db.Invoking(d => d.Delete(doc))
-                .ShouldThrow<InvalidOperationException>()
+                .Should().Throw<InvalidOperationException>()
                 .WithMessage("Attempt to perform an operation on a closed database",
                     "because this operation is invalid");
         }
@@ -607,7 +607,7 @@ namespace Test
 
             DeleteDB(Db);
             Db.Invoking(d => d.Delete(doc))
-                .ShouldThrow<InvalidOperationException>()
+                .Should().Throw<InvalidOperationException>()
                 .WithMessage("Attempt to perform an operation on a closed database",
                     "because this operation is invalid");
         }
@@ -618,7 +618,7 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc.SetInt("key", 1);
 
-            Db.Invoking(db => db.Purge(doc)).ShouldThrow<CouchbaseLiteException>()
+            Db.Invoking(db => db.Purge(doc)).Should().Throw<CouchbaseLiteException>()
                 .Where(e => e.Error == CouchbaseLiteError.NotFound);
 
             Db.Count.Should().Be(0UL, "because the database should still be empty");
@@ -643,7 +643,7 @@ namespace Test
                 otherDB.Count.Should()
                     .Be(1UL, "because the other database instance should reflect existing data");
                 otherDB.Invoking(d => d.Purge(doc))
-                    .ShouldThrow<CouchbaseLiteException>()
+                    .Should().Throw<CouchbaseLiteException>()
                     .Where(
                         e => e.Error == CouchbaseLiteError.InvalidParameter &&
                              e.Domain == CouchbaseLiteErrorType.CouchbaseLite, "because a document cannot be purged from another database instance");
@@ -665,7 +665,7 @@ namespace Test
                 otherDB.Count.Should()
                     .Be(0UL, "because the other database should be empty");
                 otherDB.Invoking(d => d.Purge(doc))
-                    .ShouldThrow<CouchbaseLiteException>()
+                    .Should().Throw<CouchbaseLiteException>()
                     .Where(
                         e => e.Error == CouchbaseLiteError.InvalidParameter &&
                              e.Domain == CouchbaseLiteErrorType.CouchbaseLite, "because a document cannot be purged from another database");
@@ -691,7 +691,7 @@ namespace Test
             Db.Count.Should().Be(0UL, "because the only document was purged");
 
             // Second purge and throw error
-            Db.Invoking(db => db.Purge(doc)).ShouldThrow<CouchbaseLiteException>().Where(e =>
+            Db.Invoking(db => db.Purge(doc)).Should().Throw<CouchbaseLiteException>().Where(e =>
                 e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
         }
 
@@ -719,7 +719,7 @@ namespace Test
 
             Db.Close();
             Db.Invoking(d => d.Purge(doc))
-                .ShouldThrow<InvalidOperationException>()
+                .Should().Throw<InvalidOperationException>()
                 .WithMessage("Attempt to perform an operation on a closed database",
                     "because this operation is invalid");
         }
@@ -731,7 +731,7 @@ namespace Test
 
             DeleteDB(Db);
             Db.Invoking(d => d.Purge(doc))
-                .ShouldThrow<InvalidOperationException>()
+                .Should().Throw<InvalidOperationException>()
                 .WithMessage("Attempt to perform an operation on a closed database",
                     "because this operation is invalid");
         }
@@ -800,7 +800,7 @@ namespace Test
         public void TestCloseThenDeleteDatabase()
         {
             Db.Dispose();
-            Db.Invoking(DeleteDB).ShouldThrow<InvalidOperationException>();
+            Db.Invoking(DeleteDB).Should().Throw<InvalidOperationException>();
         }
 
         [Fact]
@@ -810,7 +810,7 @@ namespace Test
             {
                 Db.Close();
             }))
-            .ShouldThrow<CouchbaseLiteException>()
+            .Should().Throw<CouchbaseLiteException>()
             .Where(
                 e => e.Error == CouchbaseLiteError.TransactionNotClosed && e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
                 "because a database can't be closed in the middle of a batch");
@@ -826,7 +826,7 @@ namespace Test
         public void TestDeleteTwice()
         {
             Db.Delete();
-            Db.Invoking(d => d.Delete()).ShouldThrow<InvalidOperationException>();
+            Db.Invoking(d => d.Delete()).Should().Throw<InvalidOperationException>();
         }
 
         [Fact]
@@ -881,7 +881,7 @@ namespace Test
             {
                 Db.Delete();
             }))
-            .ShouldThrow<CouchbaseLiteException>()
+            .Should().Throw<CouchbaseLiteException>()
             .Where(
                 e => e.Error == CouchbaseLiteError.TransactionNotClosed && e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
                 "because a database can't be closed in the middle of a batch");
@@ -892,7 +892,7 @@ namespace Test
         {
             using (var otherDB = OpenDB(Db.Name)) {
                 Db.Invoking(d => d.Delete())
-                    .ShouldThrow<CouchbaseLiteException>()
+                    .Should().Throw<CouchbaseLiteException>()
                     .Where(e => e.Error == CouchbaseLiteError.Busy &&
                                          e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
                         "because an in-use database cannot be deleted");
@@ -920,7 +920,7 @@ namespace Test
                 {
                     Database.Delete("db", null);
                 };
-                a.ShouldThrow<CouchbaseLiteException>().Where(e =>
+                a.Should().Throw<CouchbaseLiteException>().Where(e =>
                     e.Error == CouchbaseLiteError.Busy && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
             }
         }
@@ -1188,7 +1188,7 @@ namespace Test
             var index3 = IndexBuilder.FullTextIndex(detailItem2).IgnoreAccents(true).SetLanguage("es");
             Db.CreateIndex("index3", index3);
 
-            Db.GetIndexes().ShouldBeEquivalentTo(new[] { "index1", "index2", "index3" });
+            Db.GetIndexes().Should().BeEquivalentTo(new[] { "index1", "index2", "index3" });
         }
 
         [Fact]
@@ -1199,7 +1199,7 @@ namespace Test
             Db.CreateIndex("myindex", index);
             Db.CreateIndex("myindex", index);
 
-            Db.GetIndexes().ShouldBeEquivalentTo(new[] {"myindex"});
+            Db.GetIndexes().Should().BeEquivalentTo(new[] {"myindex"});
         }
 
         [Fact]
@@ -1216,13 +1216,13 @@ namespace Test
             var lNameIndex = IndexBuilder.ValueIndex(lNameItem);
             Db.CreateIndex("myindex", lNameIndex);
 
-            Db.GetIndexes().ShouldBeEquivalentTo(new[] {"myindex"}, "because lNameIndex should overwrite fNameIndex");
+            Db.GetIndexes().Should().BeEquivalentTo(new[] {"myindex"}, "because lNameIndex should overwrite fNameIndex");
 
             var detailItem = FullTextIndexItem.Property("detail");
             var detailIndex = IndexBuilder.FullTextIndex(detailItem);
             Db.CreateIndex("myindex", detailIndex);
 
-            Db.GetIndexes().ShouldBeEquivalentTo(new[] { "myindex" }, "because detailIndex should overwrite lNameIndex");
+            Db.GetIndexes().Should().BeEquivalentTo(new[] { "myindex" }, "because detailIndex should overwrite lNameIndex");
         }
 
         [Fact]
@@ -1231,10 +1231,10 @@ namespace Test
             TestCreateIndex();
 
             Db.DeleteIndex("index1");
-            Db.GetIndexes().ShouldBeEquivalentTo(new[] {"index2", "index3"});
+            Db.GetIndexes().Should().BeEquivalentTo(new[] {"index2", "index3"});
 
             Db.DeleteIndex("index2");
-            Db.GetIndexes().ShouldBeEquivalentTo(new[] { "index3" });
+            Db.GetIndexes().Should().BeEquivalentTo(new[] { "index3" });
 
             Db.DeleteIndex("index3");
             Db.GetIndexes().Should().BeEmpty();
@@ -1253,7 +1253,7 @@ namespace Test
                 Db.Delete();
 
                 Db.Invoking(d => d.GetDocument("doc1"))
-                    .ShouldThrow<InvalidOperationException>()
+                    .Should().Throw<InvalidOperationException>()
                     .WithMessage("Attempt to perform an operation on a closed database",
                         "because this operation is invalid");
             }

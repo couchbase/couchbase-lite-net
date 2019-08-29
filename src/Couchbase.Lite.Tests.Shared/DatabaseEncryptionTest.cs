@@ -63,7 +63,7 @@ namespace Test
                 }
             }
 
-            this.Invoking(t => OpenSeekrit("wrong")).ShouldThrow<CouchbaseLiteException>().Which.Error.Should()
+            this.Invoking(t => OpenSeekrit("wrong")).Should().Throw<CouchbaseLiteException>().Which.Error.Should()
                 .Be(CouchbaseLiteError.UnreadableDatabase);
 
             using (var seekrit = OpenSeekrit(null)) {
@@ -82,9 +82,9 @@ namespace Test
                 }
             }
 
-            this.Invoking(t => OpenSeekrit(null)).ShouldThrow<CouchbaseLiteException>().Which.Error.Should()
+            this.Invoking(t => OpenSeekrit(null)).Should().Throw<CouchbaseLiteException>().Which.Error.Should()
                 .Be(CouchbaseLiteError.UnreadableDatabase);
-            this.Invoking(t => OpenSeekrit("wrong")).ShouldThrow<CouchbaseLiteException>().Which.Error.Should()
+            this.Invoking(t => OpenSeekrit("wrong")).Should().Throw<CouchbaseLiteException>().Which.Error.Should()
                 .Be(CouchbaseLiteError.UnreadableDatabase);
 
             using (var seekrit = OpenSeekrit("letmein")) {
@@ -110,7 +110,7 @@ namespace Test
                 seekrit.Count.Should().Be(0UL);
             }
 
-            this.Invoking(t => OpenSeekrit("letmein")).ShouldThrow<CouchbaseLiteException>().Which.Error.Should()
+            this.Invoking(t => OpenSeekrit("letmein")).Should().Throw<CouchbaseLiteException>().Which.Error.Should()
                 .Be(CouchbaseLiteError.UnreadableDatabase);
         }
 

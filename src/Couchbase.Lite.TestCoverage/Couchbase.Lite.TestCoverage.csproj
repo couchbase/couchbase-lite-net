@@ -35,10 +35,13 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="FluentAssertions" Version="4.19.4" />
+    <PackageReference Include="FluentAssertions" Version="5.9.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.8.0" />
-    <PackageReference Include="xunit" Version="2.4.0" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
+    <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <None Condition="$(DefineConstants.Contains('HAVE_SG'))" Include="..\..\couchbase-lite-net\src\Couchbase.Lite.Tests.UWP\Assets\localhost-wrong.cert" Link="localhost-wrong.cert">
