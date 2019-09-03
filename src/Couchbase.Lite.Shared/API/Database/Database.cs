@@ -540,7 +540,7 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                ThrowIfActiveItems();
+                ThrowIfActiveItems(true);
                 LiteCoreBridge.Check(err => Native.c4db_delete(_c4db, err));
                 Dispose();
             });
@@ -925,7 +925,8 @@ namespace Couchbase.Lite
                         if (resolvedDoc.Database == null) {
                             resolvedDoc.Database = this;
                         } else if (resolvedDoc.Database != this) {
-                            throw new InvalidOperationException($"Resolved document db {resolvedDoc.Database.Name} is different from expected db {this.Name}");
+                            throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.RESOLVED_DOC_WRONG_DB, 
+                                resolvedDoc.Database.Name, this.Name));
                         }
                     }
 
@@ -977,14 +978,15 @@ namespace Couchbase.Lite
 
             if (String.IsNullOrWhiteSpace(directoryToUse)) {
                 throw new RuntimeException(
-                    "Failed to resolve a default directory!  If you have overriden the IDefaultDirectoryResolver interface, please check it.  Otherwise please file a bug report.");
+                    CouchbaseLiteErrorMessage.RESOLVE_DEFAULT_DIRECTORY_FAILED);
             }
 
             if (String.IsNullOrWhiteSpace(name)) {
                 return directoryToUse;
             }
             
-            return System.IO.Path.Combine(directoryToUse, $"{name}.{DBExtension}") ?? throw new RuntimeException("Path.Combine failed to return a non-null value!");
+            return System.IO.Path.Combine(directoryToUse, $"{name}.{DBExtension}") ?? 
+                throw new RuntimeException(CouchbaseLiteErrorMessage.INVALID_PATH);
         }
 
         #if __IOS__
@@ -1016,7 +1018,7 @@ namespace Couchbase.Lite
         private void CheckOpen()
         {
             if(_c4db == null) {
-                throw new InvalidOperationException("Attempt to perform an operation on a closed database");
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.DB_CLOSED);
             }
         }
 
@@ -1080,7 +1082,8 @@ namespace Couchbase.Lite
             try {
                 Directory.CreateDirectory(Config.Directory);
             } catch (Exception e) {
-                throw new CouchbaseLiteException(C4ErrorCode.CantOpenFile, "Unable to create database directory", e);
+                throw new CouchbaseLiteException(C4ErrorCode.CantOpenFile, 
+                    CouchbaseLiteErrorMessage.CREATE_DB_DIRECTORY_FAILED, e);
             }
 
             var path = DatabasePath(Name, Config.Directory);
@@ -1170,7 +1173,8 @@ namespace Couchbase.Lite
         {
             Debug.Assert(document != null);
             if (deletion && document.RevID == null) {
-                throw new CouchbaseLiteException(C4ErrorCode.NotFound, "Cannot delete a document that has not yet been saved");
+                throw new CouchbaseLiteException(C4ErrorCode.NotFound,
+                    CouchbaseLiteErrorMessage.DELETE_DOC_FAILED_NOT_SAVED);
             }
 
             var success = true;
@@ -1325,7 +1329,7 @@ namespace Couchbase.Lite
                     // Unless the remote revision is being used as-is, we need a new revision:
                     mergedBody = resolvedDoc.Encode();
                     if (mergedBody.Equals((FLSliceResult)FLSlice.Null))
-                        throw new RuntimeException("Resolved document contains a null body");
+                        throw new RuntimeException(CouchbaseLiteErrorMessage.RESOLVED_DOC_CONTENT_NULL);
                     isDeleted = resolvedDoc.IsDeleted;
                 } else {
                     mergedBody = EmptyFLSliceResult();
@@ -1349,7 +1353,8 @@ namespace Couchbase.Lite
                     if (err.code == (int)C4ErrorCode.Conflict) {
                         return false;
                     } else {
-                        throw new CouchbaseLiteException((C4ErrorCode)err.code, "LiteCore failed resolving conflict.");
+                        throw new CouchbaseLiteException((C4ErrorCode)err.code, 
+                            CouchbaseLiteErrorMessage.RESOLVED_DOC_FAILED_LITECORE);
                     }
                 }
             }
@@ -1387,17 +1392,19 @@ namespace Couchbase.Lite
             }
         }
 
-        private void ThrowIfActiveItems()
+        private void ThrowIfActiveItems(bool deletion = false)
         {
             if (ActiveReplications.Any()) {
                 var c4err = Native.c4error_make(C4ErrorDomain.LiteCoreDomain, (int) C4ErrorCode.Busy,
-                    "Cannot close the database. Please stop all of the replicators before closing the database.");
+                    deletion ? CouchbaseLiteErrorMessage.DELETE_DB_FAILED_REPLICATORS
+                    : CouchbaseLiteErrorMessage.CLOSE_DB_FAILED_REPLICATORS);
                 throw new CouchbaseLiteException(c4err);
             }
 
             if (ActiveLiveQueries.Any()) {
                 var c4err = Native.c4error_make(C4ErrorDomain.LiteCoreDomain, (int) C4ErrorCode.Busy,
-                    "Cannot close the database. Please remove all of the query listeners before closing the database.");
+                    deletion ? CouchbaseLiteErrorMessage.DELETE_DB_FAILED_QUERY_LISTENERS
+                    : CouchbaseLiteErrorMessage.CLOSE_DB_FAILED_QUERY_LISTENERS);
                 throw new CouchbaseLiteException(c4err);
             }
         }
@@ -1407,7 +1414,8 @@ namespace Couchbase.Lite
             if (document.Database == null) {
                 document.Database = this;
             } else if (document.Database != this) {
-                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Cannot operate on a document from another database");
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter,
+                    CouchbaseLiteErrorMessage.DOCUMENT_ANOTHER_DATABASE);
             }
         }
 

@@ -312,7 +312,7 @@ namespace Couchbase.Lite
 
             if(_db != null) {
                 if(db != _db) {
-                    throw new InvalidOperationException("A document contains a blob that was saved to a different database; the save operation cannot complete.");
+                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.BLOB_DIFFERENT_DATABASE);
                 }
 
                 return;
@@ -330,7 +330,7 @@ namespace Couchbase.Lite
                 });
             } else {
                 if(_initialContentStream == null) {
-                    throw new InvalidOperationException("No data available to write for install");
+                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.BLOB_CONTENT_NULL);
                 }
 
                 Length = 0;
