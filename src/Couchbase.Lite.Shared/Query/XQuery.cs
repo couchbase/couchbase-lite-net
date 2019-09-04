@@ -155,7 +155,7 @@ namespace Couchbase.Lite.Internal.Query
         protected void ValidateParams<T>(T[] param, [CallerMemberName]string tag = null)
         {
             if (param.Length == 0) {
-                var message = $"{tag} expressions must contain at least one element";
+                var message = String.Format(CouchbaseLiteErrorMessage.ExpressionsMustContainOnePlusElement, tag);
                 CBDebug.LogAndThrow(WriteLog.To.Query, new InvalidOperationException(message), Tag, message, true);
             }
         }
@@ -210,7 +210,8 @@ namespace Couchbase.Lite.Internal.Query
                 }
 
                 if (map.ContainsKey(titleStr)) {
-                    throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery, $"Duplicate select result named {titleStr}");
+                    throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery, 
+                        String.Format(CouchbaseLiteErrorMessage.DuplicateSelectResultName, titleStr));
                 }
 
                 map.Add(titleStr, i);
@@ -251,9 +252,7 @@ namespace Couchbase.Lite.Internal.Query
             if (JoinImpl != null) {
                 var fromJson = FromImpl?.ToJSON();
                 if (fromJson == null) {
-                    throw new InvalidOperationException(
-                        @"The default database must have an alias in order to use a JOIN statement
-                         (Make sure your data source uses the As() function)");
+                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.NoAliasInJoin);
                 }
 
                 var joinJson = JoinImpl.ToJSON() as IList<object>;
@@ -400,12 +399,12 @@ namespace Couchbase.Lite.Internal.Query
         public unsafe IResultSet Execute()
         {
             if (Database == null) {
-                throw new InvalidOperationException("Invalid query, Database == null");
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.InvalidQueryDBNull);
             }
 
             var fromImpl = FromImpl;
             if (SelectImpl == null || fromImpl == null) {
-                throw new InvalidOperationException("Invalid query, missing Select or From");
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.InvalidQueryMissingSelectOrFrom);
             }
             
             var options = C4QueryOptions.Default;

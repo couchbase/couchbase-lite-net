@@ -206,7 +206,7 @@ namespace Couchbase.Lite.Query
             // HACK: Use side effect of data validation
             var cbVal = DataOps.ToCouchbaseObject(value);
             if (cbVal is MutableDictionaryObject || cbVal is MutableArrayObject) {
-                throw new ArgumentException("Query parameters are not allowed to contain collections");
+                throw new ArgumentException(CouchbaseLiteErrorMessage.QueryParamNotAllowedContainCollections);
             }
 
             _freezer.PerformAction(() => _params[name] = value);

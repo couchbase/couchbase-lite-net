@@ -98,7 +98,7 @@ namespace Couchbase.Lite.Internal.Query
                     } else {
                         expr = r as QueryExpression;
                         if (expr == null) {
-                            throw new InvalidOperationException("Expressions must either be IExpression or string");
+                            throw new InvalidOperationException(CouchbaseLiteErrorMessage.ExpressionsMustBeIExpressionOrString);
                         }
                     }
 
@@ -121,8 +121,8 @@ namespace Couchbase.Lite.Internal.Query
                 case QueryConstantExpressionBase e:
                     return e;
                 default:
-                    throw new ArgumentException(
-                        $"Invalid expression value for expression1 of Between ({expression.GetType().Name})");
+                    throw new ArgumentException(String.Format(CouchbaseLiteErrorMessage.InvalidExpressionValueBetween, 
+                        expression.GetType().Name));
             }
         }
 

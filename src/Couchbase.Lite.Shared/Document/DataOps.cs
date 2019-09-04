@@ -145,9 +145,7 @@ namespace Couchbase.Lite.Internal.Doc
                 case Blob blob:
                     return value;
                 default:
-                    throw new ArgumentException($"{value.GetType().Name} is not a valid type. " +
-                                                "You may only pass byte, sbyte, short, ushort, int, uint, long, ulong, float, double, bool, DateTimeOffset, Blob, " +
-                                                "or one-dimensional arrays or dictionaries containing the above types");
+                    throw new ArgumentException(String.Format(CouchbaseLiteErrorMessage.InvalidCouchbaseObjType, value.GetType().Name));
             }
         }
 

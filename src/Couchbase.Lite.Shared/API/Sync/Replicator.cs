@@ -226,7 +226,7 @@ namespace Couchbase.Lite.Sync
             DispatchQueue.DispatchSync(() =>
             {
                 if (_disposed) {
-                    throw new ObjectDisposedException("Replication cannot be started after disposal");
+                    throw new ObjectDisposedException(CouchbaseLiteErrorMessage.ReplicatorDisposed);
                 }
 
                 if (_repl != null) {

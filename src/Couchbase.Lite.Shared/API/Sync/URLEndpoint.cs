@@ -58,13 +58,13 @@ namespace Couchbase.Lite.Sync
         {
             var urlToUse = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, "url", url);
             if (!urlToUse.Scheme.StartsWith("ws")) {
-                throw new ArgumentException($"Invalid scheme for URLEndpoint url ({urlToUse.Scheme}); must be either ws or wss");
+                throw new ArgumentException(String.Format(CouchbaseLiteErrorMessage.InvalidSchemeURLEndpoint, urlToUse.Scheme));
             }
 
             var userInfo = url?.UserInfo?.Split(':');
             if (userInfo?.Length == 2) {
                 throw new ArgumentException(
-                    "Embedded credentials in a URL (username:password@url) are not allowed; use the BasicAuthenticator class instead");
+                    CouchbaseLiteErrorMessage.InvalidEmbeddedCredentialsInURL);
             }
 
             Url = url;

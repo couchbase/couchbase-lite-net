@@ -223,7 +223,7 @@ namespace Couchbase.Lite
         internal bool SelectConflictingRevision()
         {
             if (_c4Doc == null) {
-                throw new InvalidOperationException("No revision data on the document!");
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.NoDocumentRevision);
             }
             
             var foundConflict = false;

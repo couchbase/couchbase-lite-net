@@ -72,7 +72,7 @@ namespace Couchbase.Lite.Internal.Serialization
         public void Clear()
         {
             if (!IsMutable) {
-                throw new InvalidOperationException("Cannot clear a non-mutable MDict");
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotClearNonMutableMDict);
             }
 
             if (Count == 0) {
@@ -125,7 +125,7 @@ namespace Couchbase.Lite.Internal.Serialization
         public void Set(string key, MValue val)
         {
             if (!IsMutable) {
-                throw new InvalidOperationException("Cannot set items in a non-mutable MDict");
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotSetItemsInNonMutableInMDict);
             }
 
             if (_map.ContainsKey(key)) {
