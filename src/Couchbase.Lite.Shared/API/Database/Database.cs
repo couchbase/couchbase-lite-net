@@ -986,7 +986,7 @@ namespace Couchbase.Lite
             }
             
             return System.IO.Path.Combine(directoryToUse, $"{name}.{DBExtension}") ?? 
-                throw new RuntimeException(CouchbaseLiteErrorMessage.InvalidPath);
+                throw new RuntimeException("Path.Combine failed to return a non-null value!");
         }
 
         #if __IOS__
