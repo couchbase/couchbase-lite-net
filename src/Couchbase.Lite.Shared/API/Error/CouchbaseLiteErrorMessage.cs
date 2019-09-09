@@ -9,7 +9,7 @@ namespace Couchbase.Lite
         //Database error messages
         internal const string CreateDBDirectoryFailed = "Unable to create database directory";
         //Database - Copy
-        internal const string ResolveDefaultDirectoryFailed = "Failed to resolve a default directory! If you have overriden the IDefaultDirectoryResolver interface, please check it.  Otherwise please file a bug report.";
+        internal const string ResolveDefaultDirectoryFailed = "Failed to resolve a default directory! If you have overriden the default directory, please check it.  Otherwise please file a bug report.";
         internal const string InvalidPath = "Path.Combine failed to return a non-null value!";
         //Database - Close
         internal const string CloseDBFailedReplications = "Cannot close the database. Please stop all of the replicators before closing the database.";
