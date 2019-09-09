@@ -10,7 +10,6 @@ namespace Couchbase.Lite
         internal const string CreateDBDirectoryFailed = "Unable to create database directory";
         //Database - Copy
         internal const string ResolveDefaultDirectoryFailed = "Failed to resolve a default directory! If you have overriden the default directory, please check it.  Otherwise please file a bug report.";
-        internal const string InvalidPath = "Path.Combine failed to return a non-null value!";
         //Database - Close
         internal const string CloseDBFailedReplications = "Cannot close the database. Please stop all of the replicators before closing the database.";
         internal const string CloseDBFailedQueryListeners = "Cannot close the database. Please remove all of the query listeners before closing the database.";
@@ -34,7 +33,7 @@ namespace Couchbase.Lite
         internal const string FragmentPathNotExist = "Specified fragment path does not exist in object, cannot set value";
         //ToCouchbaseObject(object value))
         internal const string InvalidCouchbaseObjType = "{0} is not a valid type. " +
-                                                "You may only pass byte, sbyte, short, ushort, int, uint, long, ulong, float, double, bool, DateTimeOffset, Blob, " +
+                                                "You may only pass {1} " + //byte, sbyte, short, ushort, int, uint, long, ulong, float, double, bool, DateTimeOffset, Blob,
                                                 "or one-dimensional arrays or dictionaries containing the above types";
         //ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) JsonConverter Override method
         internal const string InvalidValueToBeDeserialized = "Non-string or null key in data to be deserialized";

@@ -145,7 +145,8 @@ namespace Couchbase.Lite.Internal.Doc
                 case Blob blob:
                     return value;
                 default:
-                    throw new ArgumentException(String.Format(CouchbaseLiteErrorMessage.InvalidCouchbaseObjType, value.GetType().Name));
+                    throw new ArgumentException(String.Format(CouchbaseLiteErrorMessage.InvalidCouchbaseObjType, value.GetType().Name,
+                        "byte, sbyte, short, ushort, int, uint, long, ulong, float, double, bool, DateTimeOffset, Blob," ));
             }
         }
 
