@@ -935,6 +935,8 @@ namespace Couchbase.Lite
                         writeSuccess = SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
                     });
                     
+                } catch (Exception ex) {
+                    throw ex;
                 } finally {
                     resolvedDoc?.Dispose();
                     localDoc?.Dispose();

@@ -1339,10 +1339,10 @@ namespace Test
                 if (resolveCnt == 0) {
                     using (var d = Db.GetDocument("doc1"))
                     using (var doc = d.ToMutable()) {
-                        d.GetString("name").Should().Be("Tiger");
+                        d.GetString("name").Should().Be("Cat");
                         doc.SetString("name", "Cougar");
                         Db.Save(doc);
-                        d.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
+                        doc.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
                     }
                 }
                 resolveCnt++;
