@@ -1329,6 +1329,23 @@ namespace Test
         }
 
         [Fact]
+        public void TestExceptionThrownInConflictResolver()
+        {
+            CreateReplicationConflict("doc1");
+            var config = CreateConfig(false, true, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) =>
+            {
+                    using (var d = Db.GetDocument("doc1"))
+                    using (var doc = d.ToMutable()) {
+                        d.GetString("name").Should().Be("Tiger");
+                    }
+                return null;
+            });
+
+            RunReplication(config, 0, 0, isConflictResolvingFailed: true);
+        }
+
+        [Fact]
         public void TestNonBlockingDatabaseOperationConflictResolver()
         {
             int resolveCnt = 0;
@@ -1904,7 +1921,7 @@ namespace Test
         }
 
         private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, CouchbaseLiteErrorType expectedErrDomain, bool reset = false,
-            EventHandler<DocumentReplicationEventArgs> documentReplicated = null)
+            EventHandler<DocumentReplicationEventArgs> documentReplicated = null, bool isConflictResolvingFailed = false)
         {
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
@@ -1928,6 +1945,20 @@ namespace Test
 
             if (documentReplicated != null) {
                 _repl.AddDocumentReplicationListener(documentReplicated);
+            }
+
+            if (isConflictResolvingFailed) {
+                _repl.AddDocumentReplicationListener((sender, args) =>
+                {
+                    if (!args.IsPush) {
+                        foreach(var d in args.Documents) {
+                            d.Error.Should().NotBeNull();
+                            var error = d.Error.As<CouchbaseException>();
+                            error.Error.Should().BeGreaterThan(0);
+                            error.Domain.Should().NotBeNull();
+                        }
+                    }
+                });
             }
 
             _repl.Start();
