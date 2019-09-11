@@ -63,7 +63,8 @@ namespace Test
         private WaitAssert _waitAssert;
         private bool _isFilteredCallback;
         private List<DocumentReplicationEventArgs> _replicationEvents = new List<DocumentReplicationEventArgs>();
-
+        private delegate void ExceptionThrownEvent(object sender, ReplicatedDocument docWithExp);
+        private event ExceptionThrownEvent ExceptionThrowned;
 #if !WINDOWS_UWP
         public ReplicatorTest(ITestOutputHelper output) : base(output)
 #else
@@ -1348,15 +1349,23 @@ namespace Test
                 resolveCnt++;
                 return null;
             });
-
+            this.ExceptionThrowned += ReplicatorTest_ExceptionThrowned;
             RunReplication(config, 0, 0, isConflictResolving:true);
 
             using (var doc = Db.GetDocument("doc1")) {
                 if(resolveCnt==1)
                     doc.Should().BeNull();
             }
+            this.ExceptionThrowned -= ReplicatorTest_ExceptionThrowned;
         }
-        
+
+        private void ReplicatorTest_ExceptionThrowned(object sender, ReplicatedDocument docWithExp)
+        {
+            var id = docWithExp.Id;
+            docWithExp.Error.Should().NotBeNull();
+            docWithExp.Error.Should().BeAssignableTo<CouchbaseException>();
+        }
+
         [Fact]
         public void TestNonBlockingConflictResolver()
         {
@@ -1936,7 +1945,7 @@ namespace Test
                     if (!args.IsPush) {
                         foreach(var d in args.Documents) {
                             if(d.Error != null) {
-                                Db.GetDocument(d.Id).GetString("name").Should().Be("Cat");
+                                ExceptionThrowned.Invoke(this, d);
                             }
                         }
                     }
