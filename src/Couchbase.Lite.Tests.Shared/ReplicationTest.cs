@@ -1341,29 +1341,21 @@ namespace Test
                         d.GetString("name").Should().Be("Cat");
                         doc.SetString("name", "Cougar");
                         Db.Save(doc);
-                        doc.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
+                        using (var docCheck = Db.GetDocument("doc1")) {
+                            docCheck.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
+                        }
                     }
                 }
                 resolveCnt++;
                 return null;
             });
 
-            WaitAssert _waitAssert1 = new WaitAssert();
-            RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
-            {
-                if (!args.IsPush) {
-                    foreach (var d in args.Documents) {
-                        _waitAssert1.RunConditionalAssert(() =>
-                        {
-                            return d.Error == null;
-                        });
-                    }
-                }
-            });
+            RunReplication(config, 0, 0);
 
-            _waitAssert1.WaitForResult(TimeSpan.FromSeconds(2));
+            // This will be 0 if the test resolver threw an exception
+            resolveCnt.Should().NotBe(0, "because otherwise the conflict resolver didn't complete");
+
             using (var doc = Db.GetDocument("doc1")) {
-                if(resolveCnt==1)
                     doc.Should().BeNull();
             }
         }
