@@ -1329,23 +1329,6 @@ namespace Test
         }
 
         [Fact]
-        public void TestExceptionThrownInConflictResolver()
-        {
-            CreateReplicationConflict("doc1");
-            var config = CreateConfig(false, true, false);
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
-                    using (var d = Db.GetDocument("doc1"))
-                    using (var doc = d.ToMutable()) {
-                        d.GetString("name").Should().Be("Tiger");
-                    }
-                return null;
-            });
-
-            RunReplication(config, 0, 0, isConflictResolvingFailed: true);
-        }
-
-        [Fact]
         public void TestNonBlockingDatabaseOperationConflictResolver()
         {
             int resolveCnt = 0;
@@ -1356,7 +1339,7 @@ namespace Test
                 if (resolveCnt == 0) {
                     using (var d = Db.GetDocument("doc1"))
                     using (var doc = d.ToMutable()) {
-                        d.GetString("name").Should().Be("Cat");
+                        d.GetString("name").Should().Be("WrongAnswer");
                         doc.SetString("name", "Cougar");
                         Db.Save(doc);
                         doc.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
@@ -1366,7 +1349,7 @@ namespace Test
                 return null;
             });
 
-            RunReplication(config, 0, 0);
+            RunReplication(config, 0, 0, isConflictResolving:true);
 
             using (var doc = Db.GetDocument("doc1")) {
                 if(resolveCnt==1)
@@ -1921,7 +1904,7 @@ namespace Test
         }
 
         private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, CouchbaseLiteErrorType expectedErrDomain, bool reset = false,
-            EventHandler<DocumentReplicationEventArgs> documentReplicated = null, bool isConflictResolvingFailed = false)
+            EventHandler<DocumentReplicationEventArgs> documentReplicated = null, bool isConflictResolving = false)
         {
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
@@ -1947,15 +1930,14 @@ namespace Test
                 _repl.AddDocumentReplicationListener(documentReplicated);
             }
 
-            if (isConflictResolvingFailed) {
+            if (isConflictResolving) {
                 _repl.AddDocumentReplicationListener((sender, args) =>
                 {
                     if (!args.IsPush) {
                         foreach(var d in args.Documents) {
-                            d.Error.Should().NotBeNull();
-                            var error = d.Error.As<CouchbaseException>();
-                            error.Error.Should().BeGreaterThan(0);
-                            error.Domain.Should().NotBeNull();
+                            if(d.Error != null) {
+                                Db.GetDocument(d.Id).GetString("name").Should().Be("Cat");
+                            }
                         }
                     }
                 });
