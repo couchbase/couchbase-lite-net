@@ -934,7 +934,6 @@ namespace Couchbase.Lite
                         // ReSharper disable once AccessToDisposedClosure
                         writeSuccess = SaveResolvedDocument(resolvedDoc, localDoc, remoteDoc);
                     });
-                    
                 } finally {
                     resolvedDoc?.Dispose();
                     localDoc?.Dispose();

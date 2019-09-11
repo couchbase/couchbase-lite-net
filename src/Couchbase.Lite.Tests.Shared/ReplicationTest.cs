@@ -63,7 +63,6 @@ namespace Test
         private WaitAssert _waitAssert;
         private bool _isFilteredCallback;
         private List<DocumentReplicationEventArgs> _replicationEvents = new List<DocumentReplicationEventArgs>();
-
 #if !WINDOWS_UWP
         public ReplicatorTest(ITestOutputHelper output) : base(output)
 #else
@@ -1339,10 +1338,12 @@ namespace Test
                 if (resolveCnt == 0) {
                     using (var d = Db.GetDocument("doc1"))
                     using (var doc = d.ToMutable()) {
-                        d.GetString("name").Should().Be("Tiger");
+                        d.GetString("name").Should().Be("Cat");
                         doc.SetString("name", "Cougar");
                         Db.Save(doc);
-                        d.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
+                        using (var docCheck = Db.GetDocument("doc1")) {
+                            docCheck.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
+                        }
                     }
                 }
                 resolveCnt++;
@@ -1351,12 +1352,14 @@ namespace Test
 
             RunReplication(config, 0, 0);
 
+            // This will be 0 if the test resolver threw an exception
+            resolveCnt.Should().NotBe(0, "because otherwise the conflict resolver didn't complete");
+
             using (var doc = Db.GetDocument("doc1")) {
-                if(resolveCnt==1)
                     doc.Should().BeNull();
             }
         }
-        
+
         [Fact]
         public void TestNonBlockingConflictResolver()
         {
