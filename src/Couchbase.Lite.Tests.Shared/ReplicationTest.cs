@@ -63,8 +63,6 @@ namespace Test
         private WaitAssert _waitAssert;
         private bool _isFilteredCallback;
         private List<DocumentReplicationEventArgs> _replicationEvents = new List<DocumentReplicationEventArgs>();
-        private delegate void ExceptionThrownEvent(object sender, ReplicatedDocument docWithExp);
-        private event ExceptionThrownEvent ExceptionThrowned;
 #if !WINDOWS_UWP
         public ReplicatorTest(ITestOutputHelper output) : base(output)
 #else
@@ -1340,7 +1338,7 @@ namespace Test
                 if (resolveCnt == 0) {
                     using (var d = Db.GetDocument("doc1"))
                     using (var doc = d.ToMutable()) {
-                        d.GetString("name").Should().Be("WrongAnswer");
+                        d.GetString("name").Should().Be("Cat");
                         doc.SetString("name", "Cougar");
                         Db.Save(doc);
                         doc.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
@@ -1349,21 +1347,12 @@ namespace Test
                 resolveCnt++;
                 return null;
             });
-            this.ExceptionThrowned += ReplicatorTest_ExceptionThrowned;
             RunReplication(config, 0, 0, isConflictResolving:true);
 
             using (var doc = Db.GetDocument("doc1")) {
                 if(resolveCnt==1)
                     doc.Should().BeNull();
             }
-            this.ExceptionThrowned -= ReplicatorTest_ExceptionThrowned;
-        }
-
-        private void ReplicatorTest_ExceptionThrowned(object sender, ReplicatedDocument docWithExp)
-        {
-            var id = docWithExp.Id;
-            docWithExp.Error.Should().NotBeNull();
-            docWithExp.Error.Should().BeAssignableTo<CouchbaseException>();
         }
 
         [Fact]
@@ -1917,6 +1906,7 @@ namespace Test
         {
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
+            WaitAssert _waitAssert1 = new WaitAssert();
             var token = _repl.AddChangeListener((sender, args) =>
             {
                 _waitAssert.RunConditionalAssert(() =>
@@ -1943,10 +1933,12 @@ namespace Test
                 _repl.AddDocumentReplicationListener((sender, args) =>
                 {
                     if (!args.IsPush) {
-                        foreach(var d in args.Documents) {
-                            if(d.Error != null) {
-                                ExceptionThrowned.Invoke(this, d);
-                            }
+
+                        foreach (var d in args.Documents) {
+                            _waitAssert1.RunConditionalAssert(() =>
+                            {
+                                return d.Error == null;
+                            });
                         }
                     }
                 });
@@ -1955,6 +1947,7 @@ namespace Test
             _repl.Start();
             try {
                 _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
+                _waitAssert1.WaitForResult(TimeSpan.FromSeconds(2));
             } catch {
                 _repl.Stop();
                 throw;
