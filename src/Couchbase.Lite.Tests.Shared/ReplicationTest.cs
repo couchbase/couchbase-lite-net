@@ -1347,8 +1347,21 @@ namespace Test
                 resolveCnt++;
                 return null;
             });
-            RunReplication(config, 0, 0, isConflictResolving:true);
 
+            WaitAssert _waitAssert1 = new WaitAssert();
+            RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
+            {
+                if (!args.IsPush) {
+                    foreach (var d in args.Documents) {
+                        _waitAssert1.RunConditionalAssert(() =>
+                        {
+                            return d.Error == null;
+                        });
+                    }
+                }
+            });
+
+            _waitAssert1.WaitForResult(TimeSpan.FromSeconds(2));
             using (var doc = Db.GetDocument("doc1")) {
                 if(resolveCnt==1)
                     doc.Should().BeNull();
@@ -1902,11 +1915,10 @@ namespace Test
         }
 
         private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, CouchbaseLiteErrorType expectedErrDomain, bool reset = false,
-            EventHandler<DocumentReplicationEventArgs> documentReplicated = null, bool isConflictResolving = false)
+            EventHandler<DocumentReplicationEventArgs> documentReplicated = null)
         {
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
-            WaitAssert _waitAssert1 = new WaitAssert();
             var token = _repl.AddChangeListener((sender, args) =>
             {
                 _waitAssert.RunConditionalAssert(() =>
@@ -1929,25 +1941,9 @@ namespace Test
                 _repl.AddDocumentReplicationListener(documentReplicated);
             }
 
-            if (isConflictResolving) {
-                _repl.AddDocumentReplicationListener((sender, args) =>
-                {
-                    if (!args.IsPush) {
-
-                        foreach (var d in args.Documents) {
-                            _waitAssert1.RunConditionalAssert(() =>
-                            {
-                                return d.Error == null;
-                            });
-                        }
-                    }
-                });
-            }
-
             _repl.Start();
             try {
                 _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
-                _waitAssert1.WaitForResult(TimeSpan.FromSeconds(2));
             } catch {
                 _repl.Stop();
                 throw;
