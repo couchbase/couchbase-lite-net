@@ -371,7 +371,8 @@ namespace Couchbase.Lite.Sync
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             bool transient;
-            if ((replicator != null && replicator.IsPermanentError(status.error, out transient)) 
+            if ((replicator != null && (status.error.code > 0 && status.error.domain > 0 
+                && replicator.IsPermanentError(status.error, out transient)))
                 && status.level == C4ReplicatorActivityLevel.Stopped) {
                 var array = replicator?._conflictTasks?.Keys?.ToArray();
                 if (array != null) {
