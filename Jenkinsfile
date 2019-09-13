@@ -4,7 +4,7 @@ pipeline {
         stage("Entry") {
             parallel {
                 stage("Windows Node") {
-                    agent { label 's61114win10_(litecore)' }
+                    agent { label 'couchbase-lite-net-validation' }
                     environment {
                         NEXUS_REPO="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
                     }
