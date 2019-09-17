@@ -373,14 +373,14 @@ namespace Couchbase.Lite.Sync
             if (replicator == null)
                 return;
 
-            WaitPendingConflictTasks(replicator, status);
+            replicator.WaitPendingConflictTasks(replicator, status);
             replicator?.DispatchQueue.DispatchSync(() =>
             {
                 replicator.StatusChangedCallback(status);
             });
         }
 
-        private static void WaitPendingConflictTasks(Replicator replicator, C4ReplicatorStatus status)
+        private void WaitPendingConflictTasks(Replicator replicator, C4ReplicatorStatus status)
         {
             if (status.error.code == 0 && status.error.domain == 0)
                 return;
