@@ -373,24 +373,24 @@ namespace Couchbase.Lite.Sync
             if (replicator == null)
                 return;
 
-            replicator.WaitPendingConflictTasks(replicator, status);
-            replicator?.DispatchQueue.DispatchSync(() =>
+            replicator.WaitPendingConflictTasks(status);
+            replicator.DispatchQueue.DispatchSync(() =>
             {
                 replicator.StatusChangedCallback(status);
             });
         }
 
-        private void WaitPendingConflictTasks(Replicator replicator, C4ReplicatorStatus status)
+        private void WaitPendingConflictTasks(C4ReplicatorStatus status)
         {
             if (status.error.code == 0 && status.error.domain == 0)
                 return;
 
             bool transient;
-            if (!replicator.IsPermanentError(status.error, out transient))
+            if (!IsPermanentError(status.error, out transient))
                 return;
 
             if (status.level == C4ReplicatorActivityLevel.Stopped) {
-                var array = replicator?._conflictTasks?.Keys?.ToArray();
+                var array = _conflictTasks?.Keys?.ToArray();
                 if (array != null) {
                     Task.WaitAll(array);
                 }
