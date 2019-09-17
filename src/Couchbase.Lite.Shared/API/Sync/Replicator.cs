@@ -370,19 +370,31 @@ namespace Couchbase.Lite.Sync
         private static void StatusChangedCallback(C4Replicator* repl, C4ReplicatorStatus status, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            if (replicator == null)
+                return;
+
+            replicator.WaitPendingConflictTasks(status);
+            replicator.DispatchQueue.DispatchSync(() =>
+            {
+                replicator.StatusChangedCallback(status);
+            });
+        }
+
+        private void WaitPendingConflictTasks(C4ReplicatorStatus status)
+        {
+            if (status.error.code == 0 && status.error.domain == 0)
+                return;
+
             bool transient;
-            if ((replicator != null && replicator.IsPermanentError(status.error, out transient)) 
-                && status.level == C4ReplicatorActivityLevel.Stopped) {
-                var array = replicator?._conflictTasks?.Keys?.ToArray();
+            if (!IsPermanentError(status.error, out transient))
+                return;
+
+            if (status.level == C4ReplicatorActivityLevel.Stopped) {
+                var array = _conflictTasks?.Keys?.ToArray();
                 if (array != null) {
                     Task.WaitAll(array);
                 }
             }
-               
-            replicator?.DispatchQueue.DispatchSync(() =>
-            {
-                replicator.StatusChangedCallback(status);
-            });
         }
 
         private void ClearRepl()
