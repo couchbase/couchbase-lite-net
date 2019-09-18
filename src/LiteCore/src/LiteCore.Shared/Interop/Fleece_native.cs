@@ -135,6 +135,41 @@ namespace LiteCore.Interop
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLSlot_SetNull(FLSlot x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLSlot_SetBool(FLSlot x, [MarshalAs(UnmanagedType.U1)]bool b);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLSlot_SetInt(FLSlot x, long l);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLSlot_SetUInt(FLSlot x, ulong u);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLSlot_SetFloat(FLSlot x, float f);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLSlot_SetDouble(FLSlot x, double d);
+
+        public static void FLSlot_SetString(FLSlot x, string str)
+        {
+            using(var str_ = new C4String(str)) {
+                NativeRaw.FLSlot_SetString(x, (FLSlice)str_.AsFLSlice());
+            }
+        }
+
+        public static void FLSlot_SetData(FLSlot x, byte[] slice)
+        {
+            fixed(byte *slice_ = slice) {
+                NativeRaw.FLSlot_SetData(x, new FLSlice(slice_, (ulong)slice.Length));
+            }
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLSlot_SetValue(FLSlot x, FLValue* value);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint FLArray_Count(FLArray* array);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
@@ -402,6 +437,12 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult FLValue_ToString(FLValue* value);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLSlot_SetString(FLSlot x, FLSlice str);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLSlot_SetData(FLSlot x, FLSlice slice);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLValue* FLDict_Get(FLDict* dict, FLSlice keyString);
