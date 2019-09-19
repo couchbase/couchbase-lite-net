@@ -79,11 +79,12 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Internal Methods
 
+        //To serialize an object to Fleece data
         internal static bool FLEncode(object obj, FLEncoder* enc)
         {
             switch (obj) {
                 case ArrayObject arObj:
-                    arObj.ToMCollection().FLEncode(enc);
+                    arObj.FLEncode(enc);
                     return true;
                 case DictionaryObject roDict:
                     roDict.ToMCollection().FLEncode(enc);

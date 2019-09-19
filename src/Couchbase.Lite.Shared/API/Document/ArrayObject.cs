@@ -27,6 +27,7 @@ using Couchbase.Lite.Support;
 
 using JetBrains.Annotations;
 
+using LiteCore.Interop;
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite
@@ -34,12 +35,15 @@ namespace Couchbase.Lite
     /// <summary>
     /// A class representing a readonly ordered collection of objects
     /// </summary>
-    public class ArrayObject : IArray
+    public unsafe class ArrayObject : IArray
     {
         #region Variables
 
-        [NotNull]
-        internal readonly MArray _array = new MArray();
+        internal FLArray* BaseArray { get; private set; }
+        internal FLMutableArray ar;
+
+        //[NotNull]
+        //internal readonly MArray _array = new MArray();
 
         [NotNull] internal readonly ThreadSafety _threadSafety;
 
@@ -48,7 +52,7 @@ namespace Couchbase.Lite
         #region Properties
 
         /// <inheritdoc />
-        public int Count => _threadSafety.DoLocked(() => _array.Count);
+        public int Count => _threadSafety.DoLocked(() => (int)Native.FLArray_Count(BaseArray));
 
         /// <inheritdoc />
         public IFragment this[int index] => index >= Count ? Fragment.Null : new Fragment(this, index);
@@ -62,23 +66,23 @@ namespace Couchbase.Lite
             _threadSafety = SetupThreadSafety();
         }
 
-        internal ArrayObject([NotNull]MArray array, bool isMutable)
+        internal ArrayObject([NotNull]FLArray* array, bool isMutable)
         {
-            _array.InitAsCopyOf(array, isMutable);
+            ar = Native.FLArray_MutableCopy(array, FLCopyFlags.DefaultCopy);
             _threadSafety = SetupThreadSafety();
         }
 
         internal ArrayObject([NotNull]ArrayObject original, bool mutable)
-            : this(original._array, mutable)
+            : this(original.BaseArray, mutable)
         {
             _threadSafety = SetupThreadSafety();
         }
 
-        internal ArrayObject(MValue mv, MCollection parent)
-        {
-            _array.InitInSlot(mv, parent);
-            _threadSafety = SetupThreadSafety();
-        }
+        //internal ArrayObject(MValue mv, MCollection parent)
+        //{
+        //    _array.InitInSlot(mv, parent);
+        //    _threadSafety = SetupThreadSafety();
+        //}
 
         #endregion
 
@@ -91,12 +95,12 @@ namespace Couchbase.Lite
         /// <returns>A list of standard .NET typed objects in the array</returns>
         public List<object> ToList()
         {
-            var count = _array.Count;
+            var count = Count;
             var result = new List<object>(count);
             _threadSafety.DoLocked(() =>
             {
                 for (var i = 0; i < count; i++) {
-                    result.Add(DataOps.ToNetObject(GetObject(_array, i)));
+                    result.Add(DataOps.ToNetObject(GetObject(BaseArray, i)));
                 }
             });
 
@@ -110,7 +114,7 @@ namespace Couchbase.Lite
         [NotNull]
         public MutableArrayObject ToMutable()
         {
-            return _threadSafety.DoLocked(() => new MutableArrayObject(_array, true));
+            return _threadSafety.DoLocked(() => new MutableArrayObject(BaseArray, true));
         }
 
         #endregion
@@ -124,40 +128,39 @@ namespace Couchbase.Lite
         }
 
         [NotNull]
-        internal MCollection ToMCollection()
-        {
-            return _array;
-        }
+        //internal MCollection ToMCollection()
+        //{
+        //    return BaseArray;
+        //}
 
         #endregion
 
         #region Private Methods
 
-        [NotNull]
-        private static MValue Get([NotNull]MArray array, int index, IThreadSafety threadSafety = null)
+        private static MValue Get([NotNull]FLArray* array, int index, IThreadSafety threadSafety = null)
         {
             return (threadSafety ?? NullThreadSafety.Instance).DoLocked(() =>
             {
-                var val = array.Get(index);
+                var val = new MValue(Native.FLArray_Get(array, (uint)index));//array.Get(index);
                 if (val.IsEmpty) {
                     throw new IndexOutOfRangeException();
                 }
-
                 return val;
             });
         }
 
-        private static object GetObject([NotNull]MArray array, int index, IThreadSafety threadSafety = null) => Get(array, index, threadSafety).AsObject(array);
+        private static object GetObject([NotNull]FLArray* array, int index, IThreadSafety threadSafety = null) => Get(array, index, threadSafety).AsObject(array);
 
-        private static T GetObject<T>([NotNull]MArray array, int index, IThreadSafety threadSafety = null) where T : class => GetObject(array, index, threadSafety) as T;
+        private static T GetObject<T>([NotNull]FLArray* array, int index, IThreadSafety threadSafety = null) where T : class => GetObject(array, index, threadSafety) as T;
 
         [NotNull]
         private ThreadSafety SetupThreadSafety()
         {
             Database db = null;
-            if (_array.Context != null && _array.Context != MContext.Null) {
-                db = (_array.Context as DocContext)?.Db;
-            }
+            //todo: find a way to get db :P
+            //if (_array.Context != null && _array.Context != MContext.Null) {
+            //    db = (_array.Context as DocContext)?.Db;
+            //}
 
             return db?.ThreadSafety ?? new ThreadSafety();
         }
@@ -167,37 +170,37 @@ namespace Couchbase.Lite
         #region IArray
 
         /// <inheritdoc />
-        public ArrayObject GetArray(int index) => GetObject<ArrayObject>(_array, index, _threadSafety);
+        public ArrayObject GetArray(int index) => GetObject<ArrayObject>(BaseArray, index, _threadSafety);
 
         /// <inheritdoc />
-        public Blob GetBlob(int index) => GetObject<Blob>(_array, index, _threadSafety);
+        public Blob GetBlob(int index) => GetObject<Blob>(BaseArray, index, _threadSafety);
 
         /// <inheritdoc />
-        public bool GetBoolean(int index) => DataOps.ConvertToBoolean(GetObject(_array, index, _threadSafety));
+        public bool GetBoolean(int index) => DataOps.ConvertToBoolean(GetObject(BaseArray, index, _threadSafety));
 
         /// <inheritdoc />
-        public DateTimeOffset GetDate(int index) => DataOps.ConvertToDate(GetObject(_array, index, _threadSafety));
+        public DateTimeOffset GetDate(int index) => DataOps.ConvertToDate(GetObject(BaseArray, index, _threadSafety));
 
         /// <inheritdoc />
-        public DictionaryObject GetDictionary(int index) => GetObject<DictionaryObject>(_array, index, _threadSafety);
+        public DictionaryObject GetDictionary(int index) => GetObject<DictionaryObject>(BaseArray, index, _threadSafety);
 
         /// <inheritdoc />
-        public double GetDouble(int index) => DataOps.ConvertToDouble(GetObject(_array, index, _threadSafety));
+        public double GetDouble(int index) => DataOps.ConvertToDouble(GetObject(BaseArray, index, _threadSafety));
 
         /// <inheritdoc />
-        public float GetFloat(int index) => DataOps.ConvertToFloat(GetObject(_array, index, _threadSafety));
+        public float GetFloat(int index) => DataOps.ConvertToFloat(GetObject(BaseArray, index, _threadSafety));
 
         /// <inheritdoc />
-        public int GetInt(int index) => DataOps.ConvertToInt(GetObject(_array, index, _threadSafety));
+        public int GetInt(int index) => DataOps.ConvertToInt(GetObject(BaseArray, index, _threadSafety));
 
         /// <inheritdoc />
-        public long GetLong(int index) => DataOps.ConvertToLong(GetObject(_array, index, _threadSafety));
+        public long GetLong(int index) => DataOps.ConvertToLong(GetObject(BaseArray, index, _threadSafety));
 
         /// <inheritdoc />
-        public object GetValue(int index) => GetObject(_array, index, _threadSafety);
+        public object GetValue(int index) => GetObject(BaseArray, index, _threadSafety);
 
         /// <inheritdoc />
-        public string GetString(int index) => GetObject<string>(_array, index, _threadSafety);
+        public string GetString(int index) => GetObject<string>(BaseArray, index, _threadSafety);
 
         #endregion
 
@@ -216,7 +219,7 @@ namespace Couchbase.Lite
         /// Returns an enumerator that iterates through the collection.
         /// </summary>
         /// <returns>An enumerator that can be used to iterate through the collection.</returns>
-        public virtual IEnumerator<object> GetEnumerator() => _array.GetEnumerator();
+        public virtual IEnumerator<object> GetEnumerator() => BaseArray.GetEnumerator();
 
         #endregion
     }

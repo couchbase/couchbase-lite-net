@@ -101,17 +101,17 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Private Methods
 
-        private static MCollection CollectionFromObject(object obj)
-        {
-            switch (obj) {
-                case ArrayObject arr:
-                    return arr.ToMCollection();
-                case DictionaryObject dict:
-                    return dict.ToMCollection();
-                default:
-                    return null;
-            }
-        }
+        //private static MCollection CollectionFromObject(object obj)
+        //{
+        //    switch (obj) {
+        //        case ArrayObject arr:
+        //            return arr.ToMCollection();
+        //        case DictionaryObject dict:
+        //            return dict.ToMCollection();
+        //        default:
+        //            return null;
+        //    }
+        //}
 
         private static object CreateSpecialObject(string type, FLDict* properties, DocContext context)
         {
@@ -149,7 +149,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         private void NativeChangeSlot(MValue newSlot)
         {
-            var collection = CollectionFromObject(NativeObject);
+            var collection = CollectionFromObject(NativeObject);//<--- Value is going to be either FLMutableArray or FLMutableDict
             collection?.SetSlot(newSlot, this);
         }
 
