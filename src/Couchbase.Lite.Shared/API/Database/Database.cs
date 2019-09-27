@@ -233,6 +233,7 @@ namespace Couchbase.Lite
 
         static Database()
         {
+
         }
 
         /// <summary>
