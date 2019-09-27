@@ -87,7 +87,7 @@ namespace Couchbase.Lite
             _threadSafety.DoLocked(() =>
             {
                 if (DataOps.ValueWouldChange(value, _array.Get(index), _array)) {
-                    _array.Set(index, DataOps.ToCouchbaseObject(value));
+                    _array.Set(index, value);
                 }
             });
         }
