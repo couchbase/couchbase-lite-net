@@ -372,22 +372,22 @@ namespace LiteCore.Interop
             switch (obj) {
                 case null:
                     Native.FLEncoder_WriteNull(enc);
-                    break;
+                    return true;
                 case IFLEncodable flObj:
                     flObj.FLEncode(enc);
-                    break;
+                    return true;
                 case IDictionary<string, object> dict:
                     dict.FLEncode(enc);
-                    break;
+                    return true;
                 case IDictionary<string, string> dict:
                     dict.FLEncode(enc);
-                    break;
+                    return true;
                 case IEnumerable<byte> data:
                     data.FLEncode(enc);
-                    break;
+                    return true;
                 case IList list:
                     list.FLEncode(enc);
-                    break;
+                    return true;
                 case string s:
                     s.FLEncode(enc);
                     break;
