@@ -367,60 +367,68 @@ namespace LiteCore.Interop
             Native.FLEncoder_WriteBool(enc, b);
         }
 
-        public static void FLEncode(this object obj, FLEncoder* enc)
+        public static bool FLEncode(this object obj, FLEncoder* enc)
         {
             switch (obj) {
                 case null:
                     Native.FLEncoder_WriteNull(enc);
-                    break;
+                    return true;
                 case IFLEncodable flObj:
                     flObj.FLEncode(enc);
-                    break;
+                    return true;
                 case IDictionary<string, object> dict:
                     dict.FLEncode(enc);
-                    break;
+                    return true;
                 case IDictionary<string, string> dict:
                     dict.FLEncode(enc);
-                    break;
+                    return true;
                 case IEnumerable<byte> data:
                     data.FLEncode(enc);
-                    break;
+                    return true;
                 case IList list:
                     list.FLEncode(enc);
-                    break;
+                    return true;
                 case string s:
                     s.FLEncode(enc);
-                    break;
+                    return true;
                 case uint u:
                     ((ulong) u).FLEncode(enc);
-                    break;
+                    return true;
                 case ulong u:
                     u.FLEncode(enc);
-                    break;
+                    return true;
                 case int i:
                     ((long) i).FLEncode(enc);
-                    break;
+                    return true;
                 case long l:
                     l.FLEncode(enc);
-                    break;
+                    return true;
                 case float f:
                     f.FLEncode(enc);
-                    break;
+                    return true;
                 case double d:
                     d.FLEncode(enc);
-                    break;
+                    return true;
                 case bool b:
                     b.FLEncode(enc);
-                    break;
+                    return true;
                 case DateTimeOffset dto:
                     (dto.ToString("o")).FLEncode(enc);
-                    break;
+                    return true;
+                case ArrayObject arObj:
+                    arObj.ToMCollection().FLEncode(enc);
+                    return true;
+                case DictionaryObject roDict:
+                    roDict.ToMCollection().FLEncode(enc);
+                    return true;
+                case Blob b:
+                    b.FLEncode(enc);
+                    return true;
                 default:
                     if (_FLEncodeExtension?.Invoke(obj, enc) != true) {
                         throw new InvalidCastException($"Cannot encode {obj.GetType().FullName} to Fleece!");
                     }
-
-                    break;
+                    return false;
             }
         }
 

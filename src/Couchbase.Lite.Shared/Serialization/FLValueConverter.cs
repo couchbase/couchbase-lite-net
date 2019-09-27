@@ -21,7 +21,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
-
+using Couchbase.Lite.Fleece;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
@@ -50,16 +50,16 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public static object ToCouchbaseObject(FLValue* value, Database database, bool dotNetTypes, Type hintType1 = null)
         {
-                switch (Native.FLValue_GetType(value)) {
-                    case FLValueType.Array: {
-                        if(dotNetTypes) {
+            switch (Native.FLValue_GetType(value)) {
+                case FLValueType.Array: {
+                        if (dotNetTypes) {
                             return ToObject(value, database, 0, hintType1);
                         }
 
-                        var array = new ArrayObject(new MArray(new MValue(value), null), false);
+                        var array = new ArrayObject(new FleeceMutableArray(new MValue(value), null), false);
                         return array;
                     }
-                    case FLValueType.Dict: {
+                case FLValueType.Dict: {
                         var dict = Native.FLValue_AsDict(value);
                         var type = TypeForDict(dict);
                         if (!dotNetTypes && type.buf == null && !IsOldAttachment(dict)) {
@@ -68,33 +68,16 @@ namespace Couchbase.Lite.Internal.Serialization
 
                         return ToObject(value, database, 0, hintType1);
                     }
-                    case FLValueType.Undefined:
-                        return null;
-                    default:
-                        return ToObject(value, database);
-                }
+                case FLValueType.Undefined:
+                    return null;
+                default:
+                    return ToObject(value, database);
+            }
         }
 
         #endregion
 
         #region Internal Methods
-
-        internal static bool FLEncode(object obj, FLEncoder* enc)
-        {
-            switch (obj) {
-                case ArrayObject arObj:
-                    arObj.ToMCollection().FLEncode(enc);
-                    return true;
-                case DictionaryObject roDict:
-                    roDict.ToMCollection().FLEncode(enc);
-                    return true;
-                case Blob b:
-                    b.FLEncode(enc);
-                    return true;
-                default:
-                    return false;
-            }
-        }
 
         internal static bool IsOldAttachment(FLDict* dict)
         {
