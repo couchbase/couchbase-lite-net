@@ -21,7 +21,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-
+using Couchbase.Lite.Fleece;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Support;
@@ -85,7 +85,7 @@ namespace Couchbase.Lite
         #region Variables
 
         [NotNull]
-        internal readonly MDict _dict = new MDict();
+        internal readonly FleeceMutableDictionary _dict = new FleeceMutableDictionary();
 
         [NotNull] internal readonly ThreadSafety _threadSafety;
         private List<string> _keys;
@@ -136,7 +136,7 @@ namespace Couchbase.Lite
             _threadSafety = SetupThreadSafety();
         }
 
-        internal DictionaryObject(MDict dict, bool isMutable)
+        internal DictionaryObject(FleeceMutableDictionary dict, bool isMutable)
         {
             _dict.InitAsCopyOf(dict, isMutable);
             _threadSafety = SetupThreadSafety();
@@ -189,9 +189,9 @@ namespace Couchbase.Lite
 
         #region Private Methods
 
-        private static object GetObject([NotNull]MDict dict, [NotNull]string key, IThreadSafety threadSafety = null) => (threadSafety ?? NullThreadSafety.Instance).DoLocked(() => dict.Get(key).AsObject(dict));
+        private static object GetObject([NotNull]FleeceMutableDictionary dict, [NotNull]string key, IThreadSafety threadSafety = null) => (threadSafety ?? NullThreadSafety.Instance).DoLocked(() => dict.Get(key).AsObject(dict));
 
-        private static T GetObject<T>([NotNull]MDict dict, [NotNull]string key, IThreadSafety threadSafety = null) where T : class => GetObject(dict, key, threadSafety) as T;
+        private static T GetObject<T>([NotNull]FleeceMutableDictionary dict, [NotNull]string key, IThreadSafety threadSafety = null) where T : class => GetObject(dict, key, threadSafety) as T;
 
         [NotNull]
         private ThreadSafety SetupThreadSafety()
@@ -292,7 +292,7 @@ namespace Couchbase.Lite
             private readonly IEnumerator<KeyValuePair<string, MValue>> _inner;
 
             [NotNull]
-            private readonly MDict _parent;
+            private readonly FleeceMutableDictionary _parent;
 
             #endregion
 
@@ -307,7 +307,7 @@ namespace Couchbase.Lite
 
             #region Constructors
 
-            public Enumerator([NotNull]MDict parent)
+            public Enumerator([NotNull]FleeceMutableDictionary parent)
             {
                 _parent = parent;
                 _inner = parent.AllItems().GetEnumerator();

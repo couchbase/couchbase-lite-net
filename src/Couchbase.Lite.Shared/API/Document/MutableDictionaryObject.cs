@@ -18,7 +18,7 @@
 
 using System;
 using System.Collections.Generic;
-
+using Couchbase.Lite.Fleece;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 
@@ -64,7 +64,7 @@ namespace Couchbase.Lite
             SetData(dict);
         }
 
-        internal MutableDictionaryObject(MDict dict, bool isMutable)
+        internal MutableDictionaryObject(FleeceMutableDictionary dict, bool isMutable)
         {
             _dict.InitAsCopyOf(dict, isMutable);
         }

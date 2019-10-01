@@ -58,6 +58,8 @@ namespace Couchbase.Lite.Fleece
 
         public bool IsEmpty => Native.FLArray_IsEmpty((FLArray*)_flArr);
 
+        //public bool IsMutated => Native.FLMutableArray_IsChanged(ar);
+
         public object this[int index]
         {
             get => Get(index).AsObject(this);
