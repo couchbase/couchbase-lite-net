@@ -205,7 +205,7 @@ namespace Test
                 using (var mRoot = new MRoot(context)) {
                     mRoot.Context.Should().BeSameAs(context);
                     var flValue = NativeRaw.FLValue_FromData((FLSlice) flData, FLTrust.Trusted);
-                    var mDict = new MDict(new MValue(flValue), mRoot);
+                    var mDict = new FleeceMutableDictionary(new MValue(flValue), mRoot);
                     var deserializedDict = new DictionaryObject(mDict, false);
 
                     deserializedDict["bogus"].Blob.Should().BeNull();

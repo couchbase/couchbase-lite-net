@@ -152,12 +152,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)Query\Select.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\Where.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\XQuery.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Serialization\FleeceMutableDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\FLValueConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\JsonFLValueReader.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\JsonFLValueWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MCollection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MContext.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Serialization\MDict.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MValue.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Android\AndroidConsoleLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\Android\AndroidRuntimePlatform.cs" />

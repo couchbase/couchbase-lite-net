@@ -63,7 +63,7 @@ namespace Couchbase.Lite.Internal.Serialization
                         var dict = Native.FLValue_AsDict(value);
                         var type = TypeForDict(dict);
                         if (!dotNetTypes && type.buf == null && !IsOldAttachment(dict)) {
-                            return new DictionaryObject(new MDict(new MValue(value), null), false);
+                            return new DictionaryObject(new FleeceMutableDictionary(new MValue(value), null), false);
                         }
 
                         return ToObject(value, database, 0, hintType1);
