@@ -102,6 +102,7 @@ namespace Couchbase.Lite.Internal.Doc
             return (long)Math.Truncate(ConvertToDecimal(value));
         }
 
+        //makes sure it is ArrayObject / DictionaryObject instead of List and Dictionary
         internal static object ToCouchbaseObject(object value)
         {
             switch (value) {
