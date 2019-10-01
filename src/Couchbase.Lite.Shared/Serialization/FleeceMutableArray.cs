@@ -20,6 +20,7 @@ using LiteCore.Interop;
 using Couchbase.Lite.Internal.Serialization;
 
 using JetBrains.Annotations;
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -40,6 +41,7 @@ namespace Couchbase.Lite.Fleece
         [NotNull]
         [ItemNotNull]
         private List<MValue> _vec = new List<MValue>();
+
         private FLMutableArray* _flArr;
 
         private bool _releaseRequired = false;
