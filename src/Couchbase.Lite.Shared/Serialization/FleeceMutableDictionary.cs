@@ -1,7 +1,7 @@
 ﻿// 
-// MDict.cs
+// FleeceMutableDictionary.cs
 // 
-// Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// Copyright (c) 2019 Couchbase, Inc All rights reserved.
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,51 +16,49 @@
 // limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Internal.Serialization;
+using Couchbase.Lite.Util;
+using JetBrains.Annotations;
+using LiteCore.Interop;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
-using Couchbase.Lite.Internal.Logging;
-using Couchbase.Lite.Util;
-
-using JetBrains.Annotations;
-
-using LiteCore.Interop;
-
-namespace Couchbase.Lite.Internal.Serialization
+namespace Couchbase.Lite.Fleece
 {
-    internal sealed unsafe class MDict : MCollection
+    internal sealed unsafe class FleeceMutableDictionary : MCollection
     {
         #region Constants
 
-        private const string Tag = nameof(MDict);
+        private const string Tag = nameof(FleeceMutableDictionary);
 
         #endregion
 
         #region Variables
 
         private readonly List<string> _newKeys = new List<string>();
-
-        private FLDict* _dict;
         private Dictionary<string, MValue> _map = new Dictionary<string, MValue>();
 
         #endregion
 
         #region Properties
 
-        public int Count { get; private set; }
+        private FLMutableDict* dict { get; set; }
+        private FLDict* BaseDict => (FLDict*)dict;
+        public int Count => (int)Native.FLDict_Count(BaseDict);
 
         #endregion
 
         #region Constructors
 
-        public MDict()
+        public FleeceMutableDictionary()
         {
-            
+            dict = Native.FLMutableDict_New();
         }
 
-        public MDict(MValue mv, MCollection parent)
+        public FleeceMutableDictionary(MValue mv, MCollection parent)
         {
             InitInSlot(mv, parent);
         }
@@ -80,17 +78,16 @@ namespace Couchbase.Lite.Internal.Serialization
             }
 
             Mutate();
+            Native.FLMutableDict_RemoveAll(dict);
             _map.Clear();
             foreach (var item in IterateDict()) {
                 _map[item.Key] = MValue.Empty;
             }
-
-            Count = 0;
         }
 
         public bool Contains(string key)
         {
-            return _map.ContainsKey(key) || Native.FLDict_Get(_dict, Encoding.UTF8.GetBytes(key)) != null;
+            return _map.ContainsKey(key) || Native.FLDict_Get(BaseDict, Encoding.UTF8.GetBytes(key)) != null;
         }
 
         [NotNull]
@@ -102,7 +99,7 @@ namespace Couchbase.Lite.Internal.Serialization
                 return _map[key];
             }
 
-            var val = Native.FLDict_Get(_dict, Encoding.UTF8.GetBytes(key));
+            var val = Native.FLDict_Get(BaseDict, Encoding.UTF8.GetBytes(key));
             if (val == null) {
                 return MValue.Empty;
             }
@@ -128,6 +125,9 @@ namespace Couchbase.Lite.Internal.Serialization
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotSetItemsInNonMutableInMDict);
             }
 
+            if (dict == null)//FL_NONNULL : to check dict is not null first?
+                return;
+
             if (_map.ContainsKey(key)) {
                 var existing = _map[key];
                 if (val.IsEmpty && existing.IsEmpty) {
@@ -135,17 +135,13 @@ namespace Couchbase.Lite.Internal.Serialization
                 }
 
                 Mutate();
-                Count += Convert.ToInt32(!val.IsEmpty) - Convert.ToInt32(!existing.IsEmpty);
+                using (var encoded = val.NativeObject.FLEncode()) {
+                    //Convert object into FLValue
+                    var flValue = NativeRaw.FLValue_FromData((FLSlice)encoded, FLTrust.Trusted);
+                    Native.FLSlot_SetValue(Native.FLMutableDict_Set(dict, key), flValue);
+                }
                 _map[key] = val;
             } else {
-                if (Native.FLDict_Get(_dict, Encoding.UTF8.GetBytes(key)) != null) {
-                    if (val.IsEmpty) {
-                        Count--;
-                    }
-                } else {
-                    Count++;
-                }
-
                 Mutate();
                 SetInMap(key, val);
             }
@@ -185,13 +181,13 @@ namespace Couchbase.Lite.Internal.Serialization
         private FLDictIterator BeginIteration()
         {
             FLDictIterator i;
-            Native.FLDictIterator_Begin(_dict, &i);
+            Native.FLDictIterator_Begin(BaseDict, &i);
             return i;
         }
 
         private KeyValuePair<string, MValue> Get(FLDictIterator i)
         {
-            if (_dict == null || Native.FLDict_Count(_dict) == 0U) {
+            if (BaseDict == null || Count == 0U) {
                 return new KeyValuePair<string, MValue>();
             }
 
@@ -210,7 +206,7 @@ namespace Couchbase.Lite.Internal.Serialization
             // I hate this dance...but it's necessary to convince the commpiler to let
             // me use unsafe methods inside of a generator method
             var i = BeginIteration();
-            
+
             do {
                 var got = Get(i);
                 if (got.Key != null) {
@@ -221,6 +217,11 @@ namespace Couchbase.Lite.Internal.Serialization
 
         private void SetInMap(string key, MValue val)
         {
+            using (var encoded = val.NativeObject.FLEncode()) {
+                //Convert object into FLValue
+                var flValue = NativeRaw.FLValue_FromData((FLSlice)encoded, FLTrust.Trusted);
+                Native.FLSlot_SetValue(Native.FLMutableDict_Set(dict, key), flValue);
+            }
             _newKeys.Add(key);
             _map[key] = val;
         }
@@ -232,11 +233,11 @@ namespace Couchbase.Lite.Internal.Serialization
         public override void FLEncode(FLEncoder* enc)
         {
             if (!IsMutated) {
-                if (_dict == null) {
-                    Native.FLEncoder_BeginDict(enc,0U);
+                if (BaseDict == null) {
+                    Native.FLEncoder_BeginDict(enc, 0U);
                     Native.FLEncoder_EndDict(enc);
                 } else {
-                    Native.FLEncoder_WriteValue(enc, (FLValue*) _dict);
+                    Native.FLEncoder_WriteValue(enc, (FLValue*)BaseDict);
                 }
             } else {
                 Native.FLEncoder_BeginDict(enc, (uint)Count);
@@ -271,18 +272,17 @@ namespace Couchbase.Lite.Internal.Serialization
         public override void InitAsCopyOf(MCollection original, bool isMutable)
         {
             base.InitAsCopyOf(original, isMutable);
-            var d = original as MDict;
-            _dict = d != null ? d._dict : null;
+            var d = original as FleeceMutableDictionary;
+            var baseDict = d != null ? d.BaseDict : null;
+            dict = Native.FLDict_MutableCopy(baseDict, FLCopyFlags.DefaultCopy);
             _map = d?._map;
-            Count = d?.Count ?? 0;
         }
 
         protected override void InitInSlot(MValue slot, MCollection parent, bool isMutable)
         {
             base.InitInSlot(slot, parent, isMutable);
-            Debug.Assert(_dict == null);
-            _dict = Native.FLValue_AsDict(slot.Value);
-            Count = (int)Native.FLDict_Count(_dict);
+            var baseDict = Native.FLValue_AsDict(slot.Value);
+            dict = Native.FLDict_MutableCopy(baseDict, FLCopyFlags.DefaultCopy);
         }
 
         #endregion
