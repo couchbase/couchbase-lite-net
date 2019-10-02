@@ -15,18 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-using Couchbase.Lite.Internal.Doc;
-using Couchbase.Lite.Internal.Serialization;
-using JetBrains.Annotations;
+
 using LiteCore.Interop;
+using Couchbase.Lite.Internal.Serialization;
+
+using JetBrains.Annotations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Text;
 
 namespace Couchbase.Lite.Fleece
 {
@@ -48,15 +45,13 @@ namespace Couchbase.Lite.Fleece
 
         #region Properties
 
-        private FLMutableArray* ar { get; set; }
+        private FLMutableArray* flArr { get; set; }
 
-        private FLArray* BaseArray => (FLArray*)ar;
-
-        public int Count => (int)Native.FLArray_Count(BaseArray);
+        public int Count => (int)Native.FLArray_Count((FLArray*)flArr);
 
         public bool IsReadOnly => !IsMutable;
 
-        public bool IsEmpty => Native.FLArray_IsEmpty(BaseArray);
+        public bool IsEmpty => Native.FLArray_IsEmpty((FLArray*)flArr);
 
         public object this[int index]
         {
@@ -70,7 +65,7 @@ namespace Couchbase.Lite.Fleece
 
         public FleeceMutableArray()
         {
-            ar = Native.FLMutableArray_New();
+            flArr = Native.FLMutableArray_New();
         }
 
         public FleeceMutableArray(MValue mv, MCollection parent)
@@ -91,7 +86,7 @@ namespace Couchbase.Lite.Fleece
 
             var val = _vec[index];
             if (val.IsEmpty) {
-                val = new MValue(Native.FLArray_Get(BaseArray, (uint)index));
+                val = new MValue(Native.FLArray_Get((FLArray*)flArr, (uint)index));
                 _vec[index] = val;
             }
 
@@ -131,7 +126,7 @@ namespace Couchbase.Lite.Fleece
             }
 
             Mutate();
-            Native.FLMutableArray_Remove(ar, (uint)start, (uint)count);
+            Native.FLMutableArray_Remove(flArr, (uint)start, (uint)count);
             _vec.RemoveRange(start, count);
         }
 
@@ -149,16 +144,7 @@ namespace Couchbase.Lite.Fleece
                 throw new ArgumentNullException(nameof(val));
             }
 
-            if (index < Count) {
-                PopulateArr();
-            }
-
-            Mutate();
-            using (var encoded = val.FLEncode()) { 
-                //Convert object into FLValue
-                var flValue = NativeRaw.FLValue_FromData((FLSlice)encoded, FLTrust.Trusted);
-                Native.FLSlot_SetValue(Native.FLMutableArray_Set(ar, (uint)index), flValue);
-            }
+            SetValue(index, val);
             _vec[index] = new MValue(val);
         }
 
@@ -171,7 +157,7 @@ namespace Couchbase.Lite.Fleece
             for (int i = 0; i < _vec.Count; i++) {
                 var v = _vec[i];
                 if (v.IsEmpty) {
-                    var val = Native.FLArray_Get(BaseArray, (uint)i);
+                    var val = Native.FLArray_Get((FLArray*)flArr, (uint)i);
                     Set(i, FLSliceExtensions.ToObject(val));
                 }
             }
@@ -179,7 +165,7 @@ namespace Couchbase.Lite.Fleece
 
         private void Resize(int newSize)
         {
-            Native.FLMutableArray_Resize(ar, (uint)newSize);
+            Native.FLMutableArray_Resize(flArr, (uint)newSize);
             var count = _vec.Count;
             if (newSize < count) {
                 _vec.RemoveRange(newSize, count - newSize);
@@ -192,6 +178,27 @@ namespace Couchbase.Lite.Fleece
             }
         }
 
+        private void SetValue(int index, object val, bool isInserting = false)
+        {
+            if (index < Count) {
+                PopulateArr();
+            }
+
+            Mutate();
+            using (var encoded = val.FLEncode()) {
+                //Convert object into FLValue
+                var flValue = NativeRaw.FLValue_FromData((FLSlice)encoded, FLTrust.Trusted);
+                if(isInserting)
+                    Native.FLMutableArray_Insert(flArr, (uint)index, 1);
+                Native.FLSlot_SetValue(Native.FLMutableArray_Set(flArr, (uint)index), flValue);
+                //TODO:
+                //This will probably need to be reworked later. There is a whole suite of 
+                //FLSlot_Set* functions that are available and can be used by writing a method 
+                //similar to FLEncode() that calls the appropriate FLSlot_Set* methods. 
+                //This avoids encoding upfront.
+            }
+        }
+
         #endregion
 
         #region Overrides
@@ -200,8 +207,7 @@ namespace Couchbase.Lite.Fleece
         {
             var a = original as FleeceMutableArray;
             base.InitAsCopyOf(original, isMutable);
-            var b = a != null ? a.BaseArray : null;
-            ar = Native.FLArray_MutableCopy(b, FLCopyFlags.DefaultCopy);
+            flArr = a != null ? a.flArr : null;
             _vec = a?._vec ?? new List<MValue>();
         }
 
@@ -209,8 +215,8 @@ namespace Couchbase.Lite.Fleece
         {
             base.InitInSlot(slot, parent, isMutable);
             var b = Native.FLValue_AsArray(slot.Value);
-            ar = Native.FLArray_MutableCopy(b, FLCopyFlags.DefaultCopy);
-            Resize((int)Native.FLArray_Count(BaseArray));
+            flArr = Native.FLArray_MutableCopy(b, FLCopyFlags.DefaultCopy);
+            Resize((int)Native.FLArray_Count((FLArray*)flArr));
         }
 
         #endregion
@@ -234,7 +240,7 @@ namespace Couchbase.Lite.Fleece
             }
 
             Mutate();
-            Native.FLMutableArray_Remove(ar, 0, (uint)Count);
+            Native.FLMutableArray_Remove(flArr, 0, (uint)Count);
             _vec.Clear();
         }
 
@@ -272,17 +278,7 @@ namespace Couchbase.Lite.Fleece
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
 
-            if (index < Count) {
-                PopulateArr();
-            }
-
-            Mutate();
-            using (var encoded = val.FLEncode()) {
-                //Convert object into FLValue
-                var flValue = NativeRaw.FLValue_FromData((FLSlice)encoded, FLTrust.Trusted);
-                Native.FLMutableArray_Insert(ar, (uint)index, 1);
-                Native.FLSlot_SetValue(Native.FLMutableArray_Set(ar, (uint)index), flValue);
-            }
+            SetValue(index, val, true);
             _vec.Insert(index, new MValue(val));
         }
 
@@ -316,18 +312,18 @@ namespace Couchbase.Lite.Fleece
         public override void FLEncode(FLEncoder* enc)
         {
             if (!IsMutated) {
-                if (BaseArray == null) {
+                if ((FLArray*)flArr == null) {
                     Native.FLEncoder_BeginArray(enc, 0UL);
                     Native.FLEncoder_EndArray(enc);
                 } else {
-                    Native.FLEncoder_WriteValue(enc, (FLValue*)BaseArray);
+                    Native.FLEncoder_WriteValue(enc, (FLValue*)(FLArray*)flArr);
                 }
             } else {
                 Native.FLEncoder_BeginArray(enc, (uint)Count);
                 for (int i = 0; i < Count; i++) {
                     var item = Get(i);
                     if (item.IsEmpty) {
-                        Native.FLEncoder_WriteValue(enc, Native.FLArray_Get(BaseArray, (uint)i));
+                        Native.FLEncoder_WriteValue(enc, Native.FLArray_Get((FLArray*)flArr, (uint)i));
                     } else {
                         item.NativeObject.FLEncode(enc);
                     }

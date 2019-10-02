@@ -21,13 +21,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
-using Couchbase.Lite.Fleece;
-using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
 
 using LiteCore;
 using LiteCore.Interop;
+using Couchbase.Lite.Fleece;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal.Serialization
 {

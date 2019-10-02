@@ -392,28 +392,18 @@ namespace LiteCore.Interop
                     s.FLEncode(enc);
                     break;
                 case byte b:
-                    ((ulong)b).FLEncode(enc);
+                case ushort us:
+                case uint ui:
+                case ulong ul:
+                    var unsignedNumericVal = Convert.ToUInt64(obj);
+                    unsignedNumericVal.FLEncode(enc);
                     break;
                 case sbyte sb:
-                    ((long)sb).FLEncode(enc);
-                    break;
-                case ushort us:
-                    ((ulong)us).FLEncode(enc);
-                    break;
-                case short sh:
-                    ((long)sh).FLEncode(enc);
-                    break;
-                case uint u:
-                    ((ulong)u).FLEncode(enc);
-                    break;
-                case ulong u:
-                    u.FLEncode(enc);
-                    break;
+                case short s:
                 case int i:
-                    ((long)i).FLEncode(enc);
-                    break;
                 case long l:
-                    l.FLEncode(enc);
+                    var numericVal = Convert.ToInt64(obj);
+                    numericVal.FLEncode(enc);
                     break;
                 case float f:
                     f.FLEncode(enc);

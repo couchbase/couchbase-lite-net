@@ -236,6 +236,10 @@ namespace LiteCore.Interop
         public static extern uint FLDict_Count(FLDict* dict);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool FLDict_IsEmpty(FLDict* dict);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLMutableDict* FLDict_AsMutable(FLDict* dict);
 
         public static FLValue* FLDict_Get(FLDict* dict, byte[] keyString)
