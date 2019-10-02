@@ -16,11 +16,13 @@
 // limitations under the License.
 // 
 
+using LiteCore.Interop;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Util;
+
 using JetBrains.Annotations;
-using LiteCore.Interop;
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -38,16 +40,14 @@ namespace Couchbase.Lite.Fleece
 
         #region Variables
 
-        private readonly List<string> _newKeys = new List<string>();
         private Dictionary<string, MValue> _map = new Dictionary<string, MValue>();
+        private FLMutableDict* _dict;
 
         #endregion
 
         #region Properties
 
-        private FLMutableDict* dict { get; set; }
-        private FLDict* BaseDict => (FLDict*)dict;
-        public int Count => (int)Native.FLDict_Count(BaseDict);
+        public int Count => (int)Native.FLDict_Count((FLDict*)_dict);
 
         #endregion
 
@@ -55,7 +55,7 @@ namespace Couchbase.Lite.Fleece
 
         public FleeceMutableDictionary()
         {
-            dict = Native.FLMutableDict_New();
+            _dict = Native.FLMutableDict_New();
         }
 
         public FleeceMutableDictionary(MValue mv, MCollection parent)
@@ -78,7 +78,7 @@ namespace Couchbase.Lite.Fleece
             }
 
             Mutate();
-            Native.FLMutableDict_RemoveAll(dict);
+            Native.FLMutableDict_RemoveAll(_dict);
             _map.Clear();
             foreach (var item in IterateDict()) {
                 _map[item.Key] = MValue.Empty;
@@ -87,7 +87,7 @@ namespace Couchbase.Lite.Fleece
 
         public bool Contains(string key)
         {
-            return _map.ContainsKey(key) || Native.FLDict_Get(BaseDict, Encoding.UTF8.GetBytes(key)) != null;
+            return _map.ContainsKey(key) || Native.FLDict_Get((FLDict*)_dict, Encoding.UTF8.GetBytes(key)) != null;
         }
 
         [NotNull]
@@ -99,7 +99,7 @@ namespace Couchbase.Lite.Fleece
                 return _map[key];
             }
 
-            var val = Native.FLDict_Get(BaseDict, Encoding.UTF8.GetBytes(key));
+            var val = Native.FLDict_Get((FLDict*)_dict, Encoding.UTF8.GetBytes(key));
             if (val == null) {
                 return MValue.Empty;
             }
@@ -125,7 +125,7 @@ namespace Couchbase.Lite.Fleece
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotSetItemsInNonMutableInMDict);
             }
 
-            if (dict == null)//FL_NONNULL : to check dict is not null first?
+            if (_dict == null)//FL_NONNULL : to check dict is not null first?
                 return;
 
             if (_map.ContainsKey(key)) {
@@ -133,18 +133,10 @@ namespace Couchbase.Lite.Fleece
                 if (val.IsEmpty && existing.IsEmpty) {
                     return;
                 }
-
-                Mutate();
-                using (var encoded = val.NativeObject.FLEncode()) {
-                    //Convert object into FLValue
-                    var flValue = NativeRaw.FLValue_FromData((FLSlice)encoded, FLTrust.Trusted);
-                    Native.FLSlot_SetValue(Native.FLMutableDict_Set(dict, key), flValue);
-                }
-                _map[key] = val;
-            } else {
-                Mutate();
-                SetInMap(key, val);
             }
+
+            Mutate();
+            SetInMap(key, val);
         }
 
         #endregion
@@ -181,13 +173,13 @@ namespace Couchbase.Lite.Fleece
         private FLDictIterator BeginIteration()
         {
             FLDictIterator i;
-            Native.FLDictIterator_Begin(BaseDict, &i);
+            Native.FLDictIterator_Begin((FLDict*)_dict, &i);
             return i;
         }
 
         private KeyValuePair<string, MValue> Get(FLDictIterator i)
         {
-            if (BaseDict == null || Count == 0U) {
+            if ((FLDict*)_dict == null || Count == 0U) {
                 return new KeyValuePair<string, MValue>();
             }
 
@@ -220,9 +212,8 @@ namespace Couchbase.Lite.Fleece
             using (var encoded = val.NativeObject.FLEncode()) {
                 //Convert object into FLValue
                 var flValue = NativeRaw.FLValue_FromData((FLSlice)encoded, FLTrust.Trusted);
-                Native.FLSlot_SetValue(Native.FLMutableDict_Set(dict, key), flValue);
+                Native.FLSlot_SetValue(Native.FLMutableDict_Set(_dict, key), flValue);
             }
-            _newKeys.Add(key);
             _map[key] = val;
         }
 
@@ -233,11 +224,11 @@ namespace Couchbase.Lite.Fleece
         public override void FLEncode(FLEncoder* enc)
         {
             if (!IsMutated) {
-                if (BaseDict == null) {
+                if ((FLDict*)_dict == null) {
                     Native.FLEncoder_BeginDict(enc, 0U);
                     Native.FLEncoder_EndDict(enc);
                 } else {
-                    Native.FLEncoder_WriteValue(enc, (FLValue*)BaseDict);
+                    Native.FLEncoder_WriteValue(enc, (FLValue*)(FLDict*)_dict);
                 }
             } else {
                 Native.FLEncoder_BeginDict(enc, (uint)Count);
@@ -273,8 +264,7 @@ namespace Couchbase.Lite.Fleece
         {
             base.InitAsCopyOf(original, isMutable);
             var d = original as FleeceMutableDictionary;
-            var baseDict = d != null ? d.BaseDict : null;
-            dict = Native.FLDict_MutableCopy(baseDict, FLCopyFlags.DefaultCopy);
+            _dict = d != null ? d._dict : null;
             _map = d?._map;
         }
 
@@ -282,7 +272,7 @@ namespace Couchbase.Lite.Fleece
         {
             base.InitInSlot(slot, parent, isMutable);
             var baseDict = Native.FLValue_AsDict(slot.Value);
-            dict = Native.FLDict_MutableCopy(baseDict, FLCopyFlags.DefaultCopy);
+            _dict = Native.FLDict_MutableCopy(baseDict, FLCopyFlags.DefaultCopy);
         }
 
         #endregion
