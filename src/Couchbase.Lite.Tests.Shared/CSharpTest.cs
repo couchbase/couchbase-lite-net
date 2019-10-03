@@ -45,6 +45,7 @@ using Newtonsoft.Json.Linq;
 
 using Extensions = Couchbase.Lite.Util.Extensions;
 using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Fleece;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -114,7 +115,7 @@ namespace Test
                 using (var mRoot = new MRoot(context)) {
                     mRoot.Context.Should().BeSameAs(context);
                     var flValue = NativeRaw.FLValue_FromData((FLSlice) flData, FLTrust.Trusted);
-                    var mArr = new MArray(new MValue(flValue), mRoot);
+                    var mArr = new FleeceMutableArray(new MValue(flValue), mRoot);
                     var deserializedArray = new ArrayObject(mArr, false);
                     deserializedArray.GetArray(2).Should().Equal(1L, 2L, 3L);
                     deserializedArray.GetArray(3).Should().BeNull();

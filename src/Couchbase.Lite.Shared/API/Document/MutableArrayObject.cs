@@ -21,8 +21,8 @@
 
 using System;
 using System.Collections;
-using System.Linq;
 
+using Couchbase.Lite.Fleece;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 
@@ -66,7 +66,7 @@ namespace Couchbase.Lite
             SetData(array);
         }
 
-        internal MutableArrayObject(MArray array, bool isMutable)
+        internal MutableArrayObject(FleeceMutableArray array, bool isMutable)
         {
             _array.InitAsCopyOf(array, isMutable);
         }

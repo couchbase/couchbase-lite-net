@@ -391,17 +391,19 @@ namespace LiteCore.Interop
                 case string s:
                     s.FLEncode(enc);
                     break;
-                case uint u:
-                    ((ulong) u).FLEncode(enc);
+                case byte b:
+                case ushort us:
+                case uint ui:
+                case ulong ul:
+                    var unsignedNumericVal = Convert.ToUInt64(obj);
+                    unsignedNumericVal.FLEncode(enc);
                     break;
-                case ulong u:
-                    u.FLEncode(enc);
-                    break;
+                case sbyte sb:
+                case short s:
                 case int i:
-                    ((long) i).FLEncode(enc);
-                    break;
                 case long l:
-                    l.FLEncode(enc);
+                    var numericVal = Convert.ToInt64(obj);
+                    numericVal.FLEncode(enc);
                     break;
                 case float f:
                     f.FLEncode(enc);
@@ -415,21 +417,20 @@ namespace LiteCore.Interop
                 case DateTimeOffset dto:
                     (dto.ToString("o")).FLEncode(enc);
                     break;
-                default:
-                    if (_FLEncodeExtension?.Invoke(obj, enc) != true) {
-                        throw new InvalidCastException($"Cannot encode {obj.GetType().FullName} to Fleece!");
-                    }
-
+                case ArrayObject arObj:
+                    arObj.ToMCollection().FLEncode(enc);
                     break;
+                case DictionaryObject roDict:
+                    roDict.ToMCollection().FLEncode(enc);
+                    break;
+                case Blob b:
+                    b.FLEncode(enc);
+                    break;
+                default:
+                    throw new ArgumentException($"Cannot encode {obj.GetType().FullName} to Fleece!");
             }
         }
 
-        public delegate bool FLEncodeExtension(object obj, FLEncoder* encoder);
 
-        private static FLEncodeExtension _FLEncodeExtension;
-        public static void RegisterFLEncodeExtension(FLEncodeExtension extension)
-        {
-            _FLEncodeExtension = extension;
-        }
     }
 }

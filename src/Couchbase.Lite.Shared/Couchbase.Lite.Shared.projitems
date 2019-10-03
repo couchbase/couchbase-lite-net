@@ -110,6 +110,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Document\Fragment.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\InMemoryDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\MRoot.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Serialization\FleeceMutableArray.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\IDocumentModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\ISelectResultContainer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\LinqExtensionMethods.cs" />
@@ -154,7 +155,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\FLValueConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\JsonFLValueReader.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\JsonFLValueWriter.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Serialization\MArray.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MCollection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\MDict.cs" />

@@ -7,6 +7,6 @@ return_bridge_types = ["FLSliceResult", "FLSlice", "size_t", "FLString", "FLStri
 type_map = {"int32_t":"int","uint32_t":"uint","int64_t":"long","uint64_t":"ulong","size_t":"UIntPtr","size_t*":"UIntPtr*",
             "unsigned":"uint","FLValue":"FLValue*","FLDict":"FLDict*","FLArray":"FLArray*","FLEncoder":"FLEncoder*",
             "FLSharedKeys":"FLSharedKeys*","FLKeyPath":"FLKeyPath*","FLDoc":"FLDoc*","FLDeepIterator":"FLDeepIterator*",
-            "FLTimestamp":"long"}
+            "FLTimestamp":"long","FLSlot":"FLSlot*","FLMutableArray":"FLMutableArray*","FLMutableDict":"FLMutableDict*"}
 literals = {"FLSlice_Compare":".nobridge .int FLSlice_Compare FLSlice:left FLSlice:right"}
 reserved = ["string","base"]

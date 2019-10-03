@@ -21,6 +21,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
+using Couchbase.Lite.Fleece;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Support;
@@ -39,7 +40,7 @@ namespace Couchbase.Lite
         #region Variables
 
         [NotNull]
-        internal readonly MArray _array = new MArray();
+        internal readonly FleeceMutableArray _array = new FleeceMutableArray();
 
         [NotNull] internal readonly ThreadSafety _threadSafety;
 
@@ -62,7 +63,7 @@ namespace Couchbase.Lite
             _threadSafety = SetupThreadSafety();
         }
 
-        internal ArrayObject([NotNull]MArray array, bool isMutable)
+        internal ArrayObject([NotNull]FleeceMutableArray array, bool isMutable)
         {
             _array.InitAsCopyOf(array, isMutable);
             _threadSafety = SetupThreadSafety();
@@ -134,7 +135,7 @@ namespace Couchbase.Lite
         #region Private Methods
 
         [NotNull]
-        private static MValue Get([NotNull]MArray array, int index, IThreadSafety threadSafety = null)
+        private static MValue Get([NotNull]FleeceMutableArray array, int index, IThreadSafety threadSafety = null)
         {
             return (threadSafety ?? NullThreadSafety.Instance).DoLocked(() =>
             {
@@ -147,9 +148,9 @@ namespace Couchbase.Lite
             });
         }
 
-        private static object GetObject([NotNull]MArray array, int index, IThreadSafety threadSafety = null) => Get(array, index, threadSafety).AsObject(array);
+        private static object GetObject([NotNull]FleeceMutableArray array, int index, IThreadSafety threadSafety = null) => Get(array, index, threadSafety).AsObject(array);
 
-        private static T GetObject<T>([NotNull]MArray array, int index, IThreadSafety threadSafety = null) where T : class => GetObject(array, index, threadSafety) as T;
+        private static T GetObject<T>([NotNull]FleeceMutableArray array, int index, IThreadSafety threadSafety = null) where T : class => GetObject(array, index, threadSafety) as T;
 
         [NotNull]
         private ThreadSafety SetupThreadSafety()
