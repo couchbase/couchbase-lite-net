@@ -271,6 +271,10 @@ namespace Couchbase.Lite.Fleece
 
         public void Insert(int index, object val)
         {
+            if (!IsMutable) {
+                throw new InvalidOperationException("Cannot insert items in a non-mutable Fleece Mutable Array");
+            }
+
             if (index < 0 || index > _vec.Count) {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
