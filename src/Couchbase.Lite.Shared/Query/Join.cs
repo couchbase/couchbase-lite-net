@@ -80,13 +80,13 @@ namespace Couchbase.Lite.Internal.Query
             }
 
             if (!((_source as QueryDataSource)?.ToJSON() is Dictionary<string, object> asObj)) {
-                throw new InvalidOperationException("Missing AS clause for JOIN");
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.MissASforJoin);
             }
 
             if (_joinType != "CROSS") {
                 var onObj = _on as QueryExpression;
                 asObj["ON"] = onObj?.ConvertToJSON() ??
-                              throw new InvalidOperationException("Missing ON statement for JOIN");
+                              throw new InvalidOperationException(CouchbaseLiteErrorMessage.MissONforJoin);
             }
 
             if (_joinType != null) {

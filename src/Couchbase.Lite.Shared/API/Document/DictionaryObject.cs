@@ -58,7 +58,7 @@ namespace Couchbase.Lite
             while (reader.TokenType != JsonToken.EndObject && reader.Read()) {
                 var key = reader.Value as string;
                 if (key == null) {
-                    throw new InvalidDataException("Non-string or null key in data to be deserialized");
+                    throw new InvalidDataException(CouchbaseLiteErrorMessage.InvalidValueToBeDeserialized);
                 }
 
                 reader.Read();

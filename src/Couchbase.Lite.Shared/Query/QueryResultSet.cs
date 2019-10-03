@@ -141,7 +141,7 @@ namespace Couchbase.Lite.Internal.Query
             _threadSafety.DoLocked(() =>
             {
                 if (_enumeratorGenerated) {
-                    throw new InvalidOperationException("This result set has already been enumerated, please re-run Execute() on the original query");
+                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.ResultSetAlreadyEnumerated);
                 }
 
                 if (_disposed) {

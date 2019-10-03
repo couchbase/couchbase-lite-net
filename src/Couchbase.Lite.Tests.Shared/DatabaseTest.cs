@@ -197,7 +197,7 @@ namespace Test
 
                 Db.Invoking(d => d.GetDocument("doc1"))
                     .Should().Throw<InvalidOperationException>()
-                    .WithMessage("Attempt to perform an operation on a closed database",
+                    .WithMessage("Attempt to perform an operation on a closed database.",
                         "because this operation is invalid");
             }
         }
@@ -478,7 +478,7 @@ namespace Test
 
             Db.Invoking(d => d.Save(doc))
                 .Should().Throw<InvalidOperationException>()
-                .WithMessage("Attempt to perform an operation on a closed database",
+                .WithMessage("Attempt to perform an operation on a closed database.",
                     "because this operation is invalid");
         }
 
@@ -491,7 +491,7 @@ namespace Test
 
             Db.Invoking(d => d.Save(doc))
                 .Should().Throw<InvalidOperationException>()
-                .WithMessage("Attempt to perform an operation on a closed database",
+                .WithMessage("Attempt to perform an operation on a closed database.",
                     "because this operation is invalid");
         }
 
@@ -596,7 +596,7 @@ namespace Test
             Db.Close();
             Db.Invoking(d => d.Delete(doc))
                 .Should().Throw<InvalidOperationException>()
-                .WithMessage("Attempt to perform an operation on a closed database",
+                .WithMessage("Attempt to perform an operation on a closed database.",
                     "because this operation is invalid");
         }
 
@@ -608,7 +608,7 @@ namespace Test
             DeleteDB(Db);
             Db.Invoking(d => d.Delete(doc))
                 .Should().Throw<InvalidOperationException>()
-                .WithMessage("Attempt to perform an operation on a closed database",
+                .WithMessage("Attempt to perform an operation on a closed database.",
                     "because this operation is invalid");
         }
 
@@ -720,7 +720,7 @@ namespace Test
             Db.Close();
             Db.Invoking(d => d.Purge(doc))
                 .Should().Throw<InvalidOperationException>()
-                .WithMessage("Attempt to perform an operation on a closed database",
+                .WithMessage("Attempt to perform an operation on a closed database.",
                     "because this operation is invalid");
         }
 
@@ -732,7 +732,7 @@ namespace Test
             DeleteDB(Db);
             Db.Invoking(d => d.Purge(doc))
                 .Should().Throw<InvalidOperationException>()
-                .WithMessage("Attempt to perform an operation on a closed database",
+                .WithMessage("Attempt to perform an operation on a closed database.",
                     "because this operation is invalid");
         }
 
@@ -1254,7 +1254,7 @@ namespace Test
 
                 Db.Invoking(d => d.GetDocument("doc1"))
                     .Should().Throw<InvalidOperationException>()
-                    .WithMessage("Attempt to perform an operation on a closed database",
+                    .WithMessage("Attempt to perform an operation on a closed database.",
                         "because this operation is invalid");
             }
         }

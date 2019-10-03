@@ -1599,9 +1599,9 @@ namespace Test
                             var innerException = ((Couchbase.Lite.Sync.ReplicatedDocument[])args.Documents)[0].Error.InnerException;
                             if (innerException is InvalidOperationException) {
                                 if (withBlob) {
-                                    innerException.Message.Should().Be("A document contains a blob that was saved to a different database; the save operation cannot complete.");
+                                    innerException.Message.Should().Be(CouchbaseLiteErrorMessage.BlobDifferentDatabase);
                                 } else {
-                                    innerException.Message.Should().Contain("Resolved document db different_db is different from expected db");
+                                    innerException.Message.Should().Contain("Resolved document's database different_db is different from expected database");
                                 }
                             } else if(innerException is Exception) {
                                 innerException.Message.Should().Be("Customer side exception");

@@ -106,7 +106,7 @@ namespace Couchbase.Lite.Internal.Doc
         public override int Read(byte[] buffer, int offset, int count)
         {
             if(_readStream == null) {
-                throw new InvalidOperationException("Stream is not open");
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.BlobReadStreamNotOpen);
             }
 
             int retVal = 0;

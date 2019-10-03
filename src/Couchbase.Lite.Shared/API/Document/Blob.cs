@@ -104,7 +104,7 @@ namespace Couchbase.Lite
                 }
 
                 if(_initialContentStream == null) {
-                    throw new InvalidOperationException("Blob has no data available");
+                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.BlobContainsNoData);
                 }
 
                 var result = new List<byte>();
@@ -243,7 +243,7 @@ namespace Couchbase.Lite
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(fileUrl), fileUrl);
 
             if(!fileUrl.IsFile) {
-                throw new ArgumentException($"{fileUrl} must be a file-based URL", nameof(fileUrl));
+                throw new ArgumentException(String.Format(CouchbaseLiteErrorMessage.NotFileBasedURL, fileUrl), nameof(fileUrl));
             }
 
             ContentType = contentType;
@@ -312,7 +312,7 @@ namespace Couchbase.Lite
 
             if(_db != null) {
                 if(db != _db) {
-                    throw new InvalidOperationException("A document contains a blob that was saved to a different database; the save operation cannot complete.");
+                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.BlobDifferentDatabase);
                 }
 
                 return;
@@ -330,7 +330,7 @@ namespace Couchbase.Lite
                 });
             } else {
                 if(_initialContentStream == null) {
-                    throw new InvalidOperationException("No data available to write for install");
+                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.BlobContentNull);
                 }
 
                 Length = 0;

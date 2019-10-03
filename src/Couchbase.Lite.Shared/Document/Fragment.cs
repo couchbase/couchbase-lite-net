@@ -114,7 +114,7 @@ namespace Couchbase.Lite.Internal.Doc
             }
             set {
                 if (this == Null) {
-                    throw new InvalidOperationException("Specified fragment path does not exist in object, cannot set value");
+                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.FragmentPathNotExist);
                 }
 
                 if (_parent == null) {
