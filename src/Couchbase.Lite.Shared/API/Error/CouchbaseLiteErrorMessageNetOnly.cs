@@ -35,7 +35,7 @@ namespace Couchbase.Lite
         internal const string CannotSetItemsInNonMutableMArray = "Cannot set items in a non-mutable array";
         internal const string CannotClearNonMutableMArray = "Cannot clear a non-mutable array";
         internal const string CannotInsertItemsInNonMutableMArray = "Cannot insert items in a non-mutable array";
-        internal const string CannotClearNonMutableMDict = "Cannot clear a non-mutable Fleece Mutable Dictionary";
-        internal const string CannotSetItemsInNonMutableInMDict = "Cannot set items in a non-mutable Fleece Mutable Dictionary";
+        internal const string CannotClearNonMutableMDict = "Cannot clear a non-mutable dictionary";
+        internal const string CannotSetItemsInNonMutableInMDict = "Cannot set items in a non-mutable dictionary";
     }
 }
