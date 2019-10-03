@@ -100,7 +100,7 @@ namespace Couchbase.Lite.Fleece
         public void RemoveRange(int start, int count = 1)
         {
             if (!IsMutable) {
-                throw new InvalidOperationException("Cannot remove items from a non-mutable Fleece Mutable Array");
+                throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CannotRemoveItemsFromNonMutableMArray));
             }
 
             var end = start + count;
@@ -109,15 +109,15 @@ namespace Couchbase.Lite.Fleece
             }
 
             if (start < 0) {
-                throw new ArgumentOutOfRangeException($"Cannot remove starting from an index less than 0 (got {start})");
+                throw new ArgumentOutOfRangeException(String.Format(CouchbaseLiteErrorMessage.CannotRemoveStartingFromIndexLessThan, start));
             }
 
             if (end < start) {
-                throw new ArgumentOutOfRangeException($"Cannot remove a range that ends before it starts (got start={start}, count = {count})");
+                throw new ArgumentOutOfRangeException(String.Format(CouchbaseLiteErrorMessage.CannotRemoveRangeEndsBeforeItStarts, start, count));
             }
 
             if (end > _vec.Count) {
-                throw new ArgumentOutOfRangeException($"Range end for remove exceeds the length of the array (got start={start}, count = {count})");
+                throw new ArgumentOutOfRangeException(String.Format(CouchbaseLiteErrorMessage.RangeEndForRemoveExceedsArrayLength, start, count));
             }
 
             if (end < Count) {
@@ -132,7 +132,7 @@ namespace Couchbase.Lite.Fleece
         public void Set(int index, object val)
         {
             if (!IsMutable) {
-                throw new InvalidOperationException("Cannot set items in a non-mutable Fleece Mutable Array");
+                throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CannotSetItemsInNonMutableMArray));
             }
 
             if (index < 0 || index >= Count) {
@@ -233,7 +233,7 @@ namespace Couchbase.Lite.Fleece
         public void Clear()
         {
             if (!IsMutable) {
-                throw new InvalidOperationException("Cannot clear a non-mutable Fleece Mutable Array");
+                throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CannotClearNonMutableMArray));
             }
 
             if (!_vec.Any()) {
@@ -272,7 +272,7 @@ namespace Couchbase.Lite.Fleece
         public void Insert(int index, object val)
         {
             if (!IsMutable) {
-                throw new InvalidOperationException("Cannot insert items in a non-mutable Fleece Mutable Array");
+                throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CannotInsertItemsInNonMutableMArray));
             }
 
             if (index < 0 || index > _vec.Count) {
