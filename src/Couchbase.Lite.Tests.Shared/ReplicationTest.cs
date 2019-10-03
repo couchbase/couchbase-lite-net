@@ -1601,7 +1601,7 @@ namespace Test
                                 if (withBlob) {
                                     innerException.Message.Should().Be(CouchbaseLiteErrorMessage.BlobDifferentDatabase);
                                 } else {
-                                    innerException.Message.Should().Contain("Resolved document db different_db is different from expected db");
+                                    innerException.Message.Should().Contain("Resolved document's database different_db is different from expected database");
                                 }
                             } else if(innerException is Exception) {
                                 innerException.Message.Should().Be("Customer side exception");
