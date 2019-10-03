@@ -21,7 +21,6 @@
 
 using System;
 using System.Collections;
-using System.Linq;
 
 using Couchbase.Lite.Fleece;
 using Couchbase.Lite.Internal.Doc;
