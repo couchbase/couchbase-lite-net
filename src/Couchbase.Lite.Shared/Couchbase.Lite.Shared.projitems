@@ -40,6 +40,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\MutableDictionaryObject.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\MutableDocument.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Error\CouchbaseLiteErrorMessage.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Error\CouchbaseLiteErrorMessageNetOnly.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\ConsoleLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\FileLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\ILogger.cs" />
