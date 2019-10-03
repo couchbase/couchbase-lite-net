@@ -367,27 +367,27 @@ namespace LiteCore.Interop
             Native.FLEncoder_WriteBool(enc, b);
         }
 
-        public static bool FLEncode(this object obj, FLEncoder* enc)
+        public static void FLEncode(this object obj, FLEncoder* enc)
         {
             switch (obj) {
                 case null:
                     Native.FLEncoder_WriteNull(enc);
-                    return true;
+                    break;
                 case IFLEncodable flObj:
                     flObj.FLEncode(enc);
-                    return true;
+                    break;
                 case IDictionary<string, object> dict:
                     dict.FLEncode(enc);
-                    return true;
+                    break;
                 case IDictionary<string, string> dict:
                     dict.FLEncode(enc);
-                    return true;
+                    break;
                 case IEnumerable<byte> data:
                     data.FLEncode(enc);
-                    return true;
+                    break;
                 case IList list:
                     list.FLEncode(enc);
-                    return true;
+                    break;
                 case string s:
                     s.FLEncode(enc);
                     break;
@@ -407,13 +407,13 @@ namespace LiteCore.Interop
                     break;
                 case float f:
                     f.FLEncode(enc);
-                    return true;
+                    break;
                 case double d:
                     d.FLEncode(enc);
-                    return true;
+                    break;
                 case bool b:
                     b.FLEncode(enc);
-                    return true;
+                    break;
                 case DateTimeOffset dto:
                     (dto.ToString("o")).FLEncode(enc);
                     break;
