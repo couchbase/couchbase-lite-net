@@ -100,7 +100,7 @@ namespace Couchbase.Lite.Fleece
         public void RemoveRange(int start, int count = 1)
         {
             if (!IsMutable) {
-                throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CannotRemoveItemsFromNonMutableMArray));
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotRemoveItemsFromNonMutableMArray);
             }
 
             var end = start + count;
@@ -132,7 +132,7 @@ namespace Couchbase.Lite.Fleece
         public void Set(int index, object val)
         {
             if (!IsMutable) {
-                throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CannotSetItemsInNonMutableMArray));
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotSetItemsInNonMutableMArray);
             }
 
             if (index < 0 || index >= Count) {
@@ -233,7 +233,7 @@ namespace Couchbase.Lite.Fleece
         public void Clear()
         {
             if (!IsMutable) {
-                throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CannotClearNonMutableMArray));
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotClearNonMutableMArray);
             }
 
             if (!_vec.Any()) {
@@ -272,7 +272,7 @@ namespace Couchbase.Lite.Fleece
         public void Insert(int index, object val)
         {
             if (!IsMutable) {
-                throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CannotInsertItemsInNonMutableMArray));
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotInsertItemsInNonMutableMArray);
             }
 
             if (index < 0 || index > _vec.Count) {
