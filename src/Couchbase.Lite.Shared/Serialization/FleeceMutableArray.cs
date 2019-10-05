@@ -157,7 +157,7 @@ namespace Couchbase.Lite.Fleece
                 var v = _vec[i];
                 if (v.IsEmpty) {
                     var val = Native.FLArray_Get((FLArray*)_flArr, (uint)i);
-                    Set(i, FLSliceExtensions.ToObject(val));
+                    _vec[i] = new MValue(val);
                 }
             }
         }
