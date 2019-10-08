@@ -14,7 +14,7 @@ namespace LiteCore.Interop
             var version = typeof(Native).GetTypeInfo().Assembly
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>();
 
-#if NETCOREAPP2_0 || NETFRAMEWORK
+#if NEEDS_LITECORE_LOAD
             NetDesktop.LoadLiteCore();
 #endif
         }

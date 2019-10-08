@@ -41,7 +41,9 @@
     <DefineConstants>TRACE;LITECORE_PACKAGED;TEST_COVERAGE</DefineConstants>
     <EnableSourceLink>false</EnableSourceLink>
   </PropertyGroup>
-
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net461' or $(TargetFramework.StartsWith('netcoreapp')) ">
+    <DefineConstants>$(DefineConstants);NEEDS_LITECORE_LOAD</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
     <DotNetCliToolReference Condition=" !$(Configuration.StartsWith('Debug')) "  Include="dotnet-sourcelink" Version="2.1.2" />
