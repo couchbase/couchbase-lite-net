@@ -105,7 +105,7 @@ namespace Couchbase.Lite.Fleece
             }
 
             var retVal = new MValue(val);
-            SetInMap(key, retVal);
+            _map[key] = retVal;
             return retVal;
         }
 
@@ -124,9 +124,6 @@ namespace Couchbase.Lite.Fleece
             if (!IsMutable) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotSetItemsInNonMutableInMDict);
             }
-
-            if (_dict == null)//FL_NONNULL : to check dict is not null first?
-                return;
 
             if (_map.ContainsKey(key)) {
                 var existing = _map[key];
