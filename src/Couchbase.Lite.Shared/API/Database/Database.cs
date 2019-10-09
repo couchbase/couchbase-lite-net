@@ -374,7 +374,9 @@ namespace Couchbase.Lite
         [ExcludeFromCodeCoverage]
 		public static void SetLogLevel(LogDomain domains, LogLevel level)
 		{
-		    WriteLog.To.Database.W(Tag, "Database.SetLogLevel is deprecated, use Database.Log.Console instead.");
+            Log.Console.Level = level;
+            Log.Console.Domains = domains;
+            WriteLog.To.Database.W(Tag, "Currently it will only affect the console logger and not the file logger. Please use Database.Log.Console instead if you need console logging.");
 		}
         
         /// <summary>
