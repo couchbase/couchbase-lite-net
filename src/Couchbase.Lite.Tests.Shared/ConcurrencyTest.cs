@@ -212,7 +212,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestConcurrentPurge()
         {
             const int nDocs = 1000;
