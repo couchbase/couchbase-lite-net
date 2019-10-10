@@ -30,7 +30,7 @@ using System.Text;
 
 namespace Couchbase.Lite.Fleece
 {
-    internal sealed unsafe class FleeceMutableDictionary : MCollection
+    internal sealed unsafe class FleeceMutableDictionary : MCollection, IDisposable
     {
         #region Constants
 
@@ -42,6 +42,7 @@ namespace Couchbase.Lite.Fleece
 
         private Dictionary<string, MValue> _map = new Dictionary<string, MValue>();
         private FLMutableDict* _dict;
+        private bool _releaseRequired = false;
 
         #endregion
 
@@ -56,6 +57,7 @@ namespace Couchbase.Lite.Fleece
         public FleeceMutableDictionary()
         {
             _dict = Native.FLMutableDict_New();
+            _releaseRequired = true;
         }
 
         public FleeceMutableDictionary(MValue mv, MCollection parent)
@@ -270,6 +272,19 @@ namespace Couchbase.Lite.Fleece
             base.InitInSlot(slot, parent, isMutable);
             var baseDict = Native.FLValue_AsDict(slot.Value);
             _dict = Native.FLDict_MutableCopy(baseDict, FLCopyFlags.DefaultCopy);
+            _releaseRequired = true;
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            if (_releaseRequired) {
+                Native.FLValue_Release((FLValue*)_dict);
+            }
+            Context?.Dispose();
         }
 
         #endregion
