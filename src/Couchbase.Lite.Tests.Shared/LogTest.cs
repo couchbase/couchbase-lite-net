@@ -291,6 +291,48 @@ namespace Test
             Database.Log.Console.Level = LogLevel.Warning;
         }
 
+        [Fact] void TestSetLogLevel()
+        {
+            WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
+            Database.Log.Console.Level = LogLevel.None;
+            Database.SetLogLevel(LogDomain.Database, LogLevel.None);
+            var stringWriter = new StringWriter();
+            Console.SetOut(stringWriter);
+            WriteLog.To.Database.E("TEST", "TEST ERROR");
+            stringWriter.Flush();
+            stringWriter.ToString().Should().BeEmpty("because logging is disabled");
+
+            Database.SetLogLevel(LogDomain.Database, LogLevel.Verbose);
+            stringWriter = new StringWriter();
+            Console.SetOut(stringWriter);
+            WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+            WriteLog.To.Database.I("TEST", "TEST INFO");
+            WriteLog.To.Database.W("TEST", "TEST WARNING");
+            WriteLog.To.Database.E("TEST", "TEST ERROR");
+            stringWriter.Flush();
+            stringWriter.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Should()
+                .HaveCount(4, "because all levels should be logged");
+
+            var currentCount = 1;
+            foreach (var level in new[] { LogLevel.Error, LogLevel.Warning,
+                LogLevel.Info}) {
+                Database.SetLogLevel(LogDomain.Database, level);
+                stringWriter = new StringWriter();
+                Console.SetOut(stringWriter);
+                WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+                WriteLog.To.Database.I("TEST", "TEST INFO");
+                WriteLog.To.Database.W("TEST", "TEST WARNING");
+                WriteLog.To.Database.E("TEST", "TEST ERROR");
+                stringWriter.Flush();
+                stringWriter.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Should()
+                    .HaveCount(currentCount, "because {0} levels should be logged for {1}", currentCount, level);
+                currentCount++;
+            }
+
+            Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
+            Database.SetLogLevel(LogDomain.Database, LogLevel.Warning);
+        }
+
         [Fact]
         public void TestConsoleLoggingDomains()
         {

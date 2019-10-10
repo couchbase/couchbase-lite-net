@@ -376,7 +376,8 @@ namespace Couchbase.Lite
 		{
             Log.Console.Level = level;
             Log.Console.Domains = domains;
-            WriteLog.To.Database.W(Tag, "Currently it will only affect the console logger and not the file logger. Please use Database.Log.Console instead if you need console logging.");
+
+            WriteLog.To.Database.W(Tag, "Currently it will only affect the console logger and not the file logger.");
 		}
         
         /// <summary>
