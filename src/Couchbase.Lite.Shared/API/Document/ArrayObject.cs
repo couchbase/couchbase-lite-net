@@ -35,7 +35,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A class representing a readonly ordered collection of objects
     /// </summary>
-    public class ArrayObject : IArray
+    public class ArrayObject : IArray, IDisposable
     {
         #region Variables
 
@@ -218,6 +218,15 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>An enumerator that can be used to iterate through the collection.</returns>
         public virtual IEnumerator<object> GetEnumerator() => _array.GetEnumerator();
+
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            _array.Dispose();
+        }
 
         #endregion
     }
