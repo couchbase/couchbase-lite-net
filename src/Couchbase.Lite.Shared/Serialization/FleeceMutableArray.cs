@@ -27,7 +27,7 @@ using System.Linq;
 
 namespace Couchbase.Lite.Fleece
 {
-    internal sealed unsafe class FleeceMutableArray : MCollection, IList<object>
+    internal sealed unsafe class FleeceMutableArray : MCollection, IList<object>, IDisposable
     {
         #region Constants
 
@@ -41,6 +41,8 @@ namespace Couchbase.Lite.Fleece
         [ItemNotNull]
         private List<MValue> _vec = new List<MValue>();
         private FLMutableArray* _flArr;
+
+        private bool _releaseRequired = false;
 
         #endregion
 
@@ -65,6 +67,7 @@ namespace Couchbase.Lite.Fleece
         public FleeceMutableArray()
         {
             _flArr = Native.FLMutableArray_New();
+            _releaseRequired = true;
         }
 
         public FleeceMutableArray(MValue mv, MCollection parent)
@@ -218,6 +221,7 @@ namespace Couchbase.Lite.Fleece
             var b = Native.FLValue_AsArray(slot.Value);
             _flArr = Native.FLArray_MutableCopy(b, FLCopyFlags.DefaultCopy);
             Resize((int)Native.FLArray_Count((FLArray*)_flArr));
+            _releaseRequired = true;
         }
 
         #endregion
@@ -333,6 +337,18 @@ namespace Couchbase.Lite.Fleece
                 Native.FLEncoder_EndArray(enc);
             }
             
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            if (_releaseRequired) {
+                Native.FLValue_Release((FLValue*)_flArr);
+            }
+            Context?.Dispose();
         }
 
         #endregion

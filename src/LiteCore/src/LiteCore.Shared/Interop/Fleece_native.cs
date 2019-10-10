@@ -135,6 +135,9 @@ namespace LiteCore.Interop
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLValue_Release(FLValue* value);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void FLSlot_SetNull(FLSlot* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
