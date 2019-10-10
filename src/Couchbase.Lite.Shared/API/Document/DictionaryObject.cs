@@ -80,7 +80,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A class representing a key-value collection that is read only
     /// </summary>
-    public class DictionaryObject : IDictionaryObject
+    public class DictionaryObject : IDictionaryObject, IDisposable
     {
         #region Variables
 
@@ -278,6 +278,15 @@ namespace Couchbase.Lite
         public virtual IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
             return new Enumerator(_dict);
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            _dict.Dispose();
         }
 
         #endregion
