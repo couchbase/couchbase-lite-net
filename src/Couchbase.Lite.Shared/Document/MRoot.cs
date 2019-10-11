@@ -23,7 +23,7 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Doc
 {
-    internal sealed unsafe class MRoot : MCollection, IDisposable
+    internal sealed unsafe class MRoot : MCollection
     {
         #region Variables
 
@@ -114,9 +114,9 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region IDisposable
 
-        public void Dispose()
+        public override void Dispose()
         {
-            Context?.Dispose();
+            base.Dispose();
         }
 
         #endregion
