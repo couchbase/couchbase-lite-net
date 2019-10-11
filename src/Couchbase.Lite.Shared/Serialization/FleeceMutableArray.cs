@@ -30,7 +30,7 @@ using System.Linq;
 
 namespace Couchbase.Lite.Fleece
 {
-    internal sealed unsafe class FleeceMutableArray : MCollection, IList<object>, IDisposable
+    internal sealed unsafe class FleeceMutableArray : MCollection, IList<object>
     {
         #region Constants
 
@@ -349,12 +349,12 @@ namespace Couchbase.Lite.Fleece
 
         #region IDisposable
 
-        public void Dispose()
+        public override void Dispose()
         {
+            base.Dispose();
             if (_releaseRequired) {
                 Native.FLValue_Release((FLValue*)_flArr);
             }
-            Context?.Dispose();
         }
 
         #endregion

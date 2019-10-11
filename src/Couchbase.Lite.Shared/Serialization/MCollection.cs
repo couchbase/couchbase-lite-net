@@ -15,12 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
+using System;
 using System.Diagnostics;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Serialization
 {
-    internal abstract unsafe class MCollection : IFLEncodable
+    internal abstract unsafe class MCollection : IFLEncodable, IDisposable
     {
         #region Variables
 
@@ -114,6 +115,15 @@ namespace Couchbase.Lite.Internal.Serialization
         #region IFLEncodable
 
         public abstract void FLEncode(FLEncoder* enc);
+
+        #endregion
+
+        #region IDisposable
+
+        public virtual void Dispose()
+        {
+            Context?.Dispose();
+        }
 
         #endregion
     }

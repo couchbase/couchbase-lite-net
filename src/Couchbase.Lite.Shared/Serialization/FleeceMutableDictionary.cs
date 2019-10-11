@@ -30,7 +30,7 @@ using System.Text;
 
 namespace Couchbase.Lite.Fleece
 {
-    internal sealed unsafe class FleeceMutableDictionary : MCollection, IDisposable
+    internal sealed unsafe class FleeceMutableDictionary : MCollection
     {
         #region Constants
 
@@ -279,12 +279,12 @@ namespace Couchbase.Lite.Fleece
 
         #region IDisposable
 
-        public void Dispose()
+        public override void Dispose()
         {
+            base.Dispose();
             if (_releaseRequired) {
                 Native.FLValue_Release((FLValue*)_dict);
             }
-            Context?.Dispose();
         }
 
         #endregion
