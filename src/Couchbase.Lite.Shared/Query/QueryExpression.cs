@@ -98,7 +98,8 @@ namespace Couchbase.Lite.Internal.Query
                     } else {
                         expr = r as QueryExpression;
                         if (expr == null) {
-                            throw new InvalidOperationException(CouchbaseLiteErrorMessage.ExpressionsMustBeIExpressionOrString);
+                            throw new InvalidOperationException(
+                                String.Format(CouchbaseLiteErrorMessage.ExpressionsMustBeIExpressionOrString, "IExpression"));
                         }
                     }
 
