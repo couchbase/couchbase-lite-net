@@ -27,6 +27,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using System.Collections;
 
 namespace Couchbase.Lite.Fleece
 {
@@ -56,8 +57,7 @@ namespace Couchbase.Lite.Fleece
 
         public FleeceMutableDictionary()
         {
-            _dict = Native.FLMutableDict_New();
-            _releaseRequired = true;
+            
         }
 
         public FleeceMutableDictionary(MValue mv, MCollection parent)
@@ -158,6 +158,12 @@ namespace Couchbase.Lite.Fleece
             }
         }
 
+        internal void NewFLMutableDict()
+        {
+            _dict = Native.FLMutableDict_New();
+            _releaseRequired = true;
+        }
+
         #endregion
 
         #region Private Methods
@@ -220,6 +226,26 @@ namespace Couchbase.Lite.Fleece
 
         #region Overrides
 
+        public override void InitAsCopyOf(MCollection original, bool isMutable)
+        {
+            base.InitAsCopyOf(original, isMutable);
+            var d = original as FleeceMutableDictionary;
+            _dict = d != null ? d._dict : null;
+            _map = d?._map;
+        }
+
+        protected override void InitInSlot(MValue slot, MCollection parent, bool isMutable)
+        {
+            base.InitInSlot(slot, parent, isMutable);
+            var baseDict = Native.FLValue_AsDict(slot.Value);
+            _dict = Native.FLDict_MutableCopy(baseDict, FLCopyFlags.DefaultCopy);
+            _releaseRequired = true;
+        }
+
+        #endregion
+
+        #region IFLEncodable
+
         public override void FLEncode(FLEncoder* enc)
         {
             if (!IsMutated) {
@@ -257,22 +283,6 @@ namespace Couchbase.Lite.Fleece
 
                 Native.FLEncoder_EndDict(enc);
             }
-        }
-
-        public override void InitAsCopyOf(MCollection original, bool isMutable)
-        {
-            base.InitAsCopyOf(original, isMutable);
-            var d = original as FleeceMutableDictionary;
-            _dict = d != null ? d._dict : null;
-            _map = d?._map;
-        }
-
-        protected override void InitInSlot(MValue slot, MCollection parent, bool isMutable)
-        {
-            base.InitInSlot(slot, parent, isMutable);
-            var baseDict = Native.FLValue_AsDict(slot.Value);
-            _dict = Native.FLDict_MutableCopy(baseDict, FLCopyFlags.DefaultCopy);
-            _releaseRequired = true;
         }
 
         #endregion
