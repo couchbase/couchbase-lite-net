@@ -61,6 +61,7 @@ namespace Couchbase.Lite
         internal ArrayObject()
         {
             _threadSafety = SetupThreadSafety();
+            _threadSafety.DoLocked(() => _array.NewFLMutableArray());
         }
 
         internal ArrayObject([NotNull]FleeceMutableArray array, bool isMutable)
@@ -72,7 +73,7 @@ namespace Couchbase.Lite
         internal ArrayObject([NotNull]ArrayObject original, bool mutable)
             : this(original._array, mutable)
         {
-            _threadSafety = SetupThreadSafety();
+
         }
 
         internal ArrayObject(MValue mv, MCollection parent)
@@ -223,9 +224,15 @@ namespace Couchbase.Lite
 
         #region IDisposable
 
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
         public void Dispose()
         {
-            _array.Dispose();
+            _threadSafety.DoLocked(() =>
+            {
+                _array?.Dispose();
+            });
         }
 
         #endregion

@@ -72,8 +72,7 @@ namespace Couchbase.Lite.Fleece
 
         public FleeceMutableArray()
         {
-            _flArr = Native.FLMutableArray_New();
-            _releaseRequired = true;
+
         }
 
         public FleeceMutableArray(MValue mv, MCollection parent)
@@ -156,6 +155,15 @@ namespace Couchbase.Lite.Fleece
             _vec[index] = new MValue(val);
         }
 
+        #endregion
+
+        #region Internal Method(s)
+
+        internal void NewFLMutableArray()
+        {
+            _flArr = Native.FLMutableArray_New();
+            _releaseRequired = true;
+        }
         #endregion
 
         #region Private Methods
