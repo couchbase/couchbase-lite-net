@@ -128,6 +128,7 @@ namespace Couchbase.Lite
         internal DictionaryObject()
         {
             _threadSafety = SetupThreadSafety();
+            _threadSafety.DoLocked(() => _dict.NewFLMutableDict());
         }
 
         internal DictionaryObject(MValue mv, MCollection parent)
@@ -284,9 +285,15 @@ namespace Couchbase.Lite
 
         #region IDisposable
 
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
         public void Dispose()
         {
-            _dict.Dispose();
+            _threadSafety.DoLocked(() =>
+            {
+                _dict?.Dispose();
+            });
         }
 
         #endregion
