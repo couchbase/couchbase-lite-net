@@ -296,7 +296,6 @@ namespace Couchbase.Lite.Fleece
                 _dict = null;
                 _releaseRequired = false;
             }
-            base.Dispose();
         }
 
         #endregion
