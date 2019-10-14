@@ -80,10 +80,9 @@ namespace Couchbase.Lite.Fleece
             }
 
             Mutate();
-            Native.FLMutableDict_RemoveAll(_dict);
             _map.Clear();
             foreach (var item in IterateDict()) {
-                _map[item.Key] = MValue.Empty;
+                SetInMap(item.Key, MValue.Empty);
             }
         }
 
@@ -293,6 +292,8 @@ namespace Couchbase.Lite.Fleece
         {
             if (_releaseRequired && _dict != null) {
                 Native.FLValue_Release((FLValue*)_dict);
+                _dict = null;
+                _releaseRequired = false;
             }
             base.Dispose();
         }
