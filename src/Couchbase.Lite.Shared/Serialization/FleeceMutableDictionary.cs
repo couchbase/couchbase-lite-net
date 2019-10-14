@@ -81,6 +81,7 @@ namespace Couchbase.Lite.Fleece
 
             Mutate();
             _map.Clear();
+            Native.FLMutableDict_RemoveAll(_dict);
             foreach (var item in IterateDict()) {
                 SetInMap(item.Key, MValue.Empty);
             }
