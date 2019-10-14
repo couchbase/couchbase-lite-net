@@ -359,10 +359,10 @@ namespace Couchbase.Lite.Fleece
 
         public override void Dispose()
         {
-            base.Dispose();
             if (_releaseRequired && _flArr != null) {
                 Native.FLValue_Release((FLValue*)_flArr);
             }
+            base.Dispose();
         }
 
         #endregion
