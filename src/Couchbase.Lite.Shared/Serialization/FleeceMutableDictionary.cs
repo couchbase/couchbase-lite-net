@@ -25,9 +25,7 @@ using JetBrains.Annotations;
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Text;
-using System.Collections;
 
 namespace Couchbase.Lite.Fleece
 {
@@ -83,7 +81,7 @@ namespace Couchbase.Lite.Fleece
             _map.Clear();
             Native.FLMutableDict_RemoveAll(_dict);
             foreach (var item in IterateDict()) {
-                SetInMap(item.Key, MValue.Empty);
+                _map[item.Key] = MValue.Empty;
             }
         }
 
@@ -296,6 +294,7 @@ namespace Couchbase.Lite.Fleece
                 _dict = null;
                 _releaseRequired = false;
             }
+            base.Dispose();
         }
 
         #endregion

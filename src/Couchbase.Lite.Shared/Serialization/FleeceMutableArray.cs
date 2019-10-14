@@ -17,8 +17,6 @@
 // 
 
 using LiteCore.Interop;
-
-using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 
 using JetBrains.Annotations;
