@@ -114,17 +114,16 @@ pipeline {
                                 sh 'jenkins/run_unix_tests.sh'
                             }
                         }
-                        // TODO: Enable these again later
-                        // stage("Xamarin Android") {
-                        //     steps {
-                        //         sh 'jenkins/run_android_tests.sh'
-                        //     }
-                        // }
-                        // stage("Xamarin iOS") {
-                        //     steps {
-                        //         sh 'jenkins/run_ios_tests.sh'
-                        //     }
-                        // }
+                         stage("Xamarin Android") {
+                             steps {
+                                 sh 'jenkins/run_android_tests.sh'
+                             }
+                         }
+                         stage("Xamarin iOS") {
+                             steps {
+                                 sh 'jenkins/run_ios_tests.sh'
+                             }
+                         }
                     }
                 }
             }
