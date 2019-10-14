@@ -294,15 +294,14 @@ namespace Test
         [Fact] void TestSetLogLevel()
         {
             WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
-            Database.Log.Console.Level = LogLevel.None;
-            Database.SetLogLevel(LogDomain.Database, LogLevel.None);
+            Database.SetLogLevel(LogDomain.All, LogLevel.None);
             var stringWriter = new StringWriter();
             Console.SetOut(stringWriter);
             WriteLog.To.Database.E("TEST", "TEST ERROR");
             stringWriter.Flush();
             stringWriter.ToString().Should().BeEmpty("because logging is disabled");
 
-            Database.SetLogLevel(LogDomain.Database, LogLevel.Verbose);
+            Database.SetLogLevel(LogDomain.All, LogLevel.Verbose);
             stringWriter = new StringWriter();
             Console.SetOut(stringWriter);
             WriteLog.To.Database.V("TEST", "TEST VERBOSE");
@@ -316,7 +315,7 @@ namespace Test
             var currentCount = 1;
             foreach (var level in new[] { LogLevel.Error, LogLevel.Warning,
                 LogLevel.Info}) {
-                Database.SetLogLevel(LogDomain.Database, level);
+                Database.SetLogLevel(LogDomain.All, level);
                 stringWriter = new StringWriter();
                 Console.SetOut(stringWriter);
                 WriteLog.To.Database.V("TEST", "TEST VERBOSE");
@@ -330,7 +329,7 @@ namespace Test
             }
 
             Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
-            Database.SetLogLevel(LogDomain.Database, LogLevel.Warning);
+            Database.SetLogLevel(LogDomain.All, LogLevel.Warning);
         }
 
         [Fact]
