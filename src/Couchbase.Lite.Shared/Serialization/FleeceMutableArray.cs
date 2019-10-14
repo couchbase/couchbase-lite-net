@@ -361,6 +361,8 @@ namespace Couchbase.Lite.Fleece
         {
             if (_releaseRequired && _flArr != null) {
                 Native.FLValue_Release((FLValue*)_flArr);
+                _flArr = null;
+                _releaseRequired = false;
             }
             base.Dispose();
         }
