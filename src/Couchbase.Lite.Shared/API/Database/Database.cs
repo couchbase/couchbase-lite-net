@@ -373,12 +373,12 @@ namespace Couchbase.Lite
 		[Obsolete("This has been superseded by Database.Log.Console.  This function is now a no-op")]
         [ExcludeFromCodeCoverage]
 		public static void SetLogLevel(LogDomain domains, LogLevel level)
-		{
+        {
             Log.Console.Level = level;
             Log.Console.Domains = domains;
             WriteLog.To.Database.W(Tag, "Currently it will only affect the console logger and not the file logger.");
-		}
-        
+        }
+
         /// <summary>
         /// Adds a change listener for the changes that occur in this database.  Signatures
         /// are the same as += style event handlers, but the callbacks will be called using the
