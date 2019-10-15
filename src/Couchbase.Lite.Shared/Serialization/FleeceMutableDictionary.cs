@@ -80,6 +80,9 @@ namespace Couchbase.Lite.Fleece
             Mutate();
             Native.FLMutableDict_RemoveAll(_dict);
             _map.Clear();
+            foreach (var item in IterateDict()) {
+                _map[item.Key] = MValue.Empty;
+            }
         }
 
         public bool Contains(string key)
@@ -208,7 +211,7 @@ namespace Couchbase.Lite.Fleece
         }
 
         private void SetInMap(string key, MValue val)
-        {
+        { 
             using (var encoded = val.NativeObject.FLEncode()) {
                 //Convert object into FLValue
                 var flValue = NativeRaw.FLValue_FromData((FLSlice)encoded, FLTrust.Trusted);
@@ -265,6 +268,15 @@ namespace Couchbase.Lite.Fleece
                     } else {
                         Native.FLEncoder_WriteNull(enc);
                     }
+                }
+
+                foreach (var item in IterateDict()) {
+                    if (_map.ContainsKey(item.Key)) {
+                        continue;
+                    }
+
+                    Native.FLEncoder_WriteKey(enc, item.Key);
+                    item.Value.FLEncode(enc);
                 }
 
                 Native.FLEncoder_EndDict(enc);
