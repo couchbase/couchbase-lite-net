@@ -78,11 +78,8 @@ namespace Couchbase.Lite.Fleece
             }
 
             Mutate();
-            _map.Clear();
             Native.FLMutableDict_RemoveAll(_dict);
-            foreach (var item in IterateDict()) {
-                _map[item.Key] = MValue.Empty;
-            }
+            _map.Clear();
         }
 
         public bool Contains(string key)
@@ -268,15 +265,6 @@ namespace Couchbase.Lite.Fleece
                     } else {
                         Native.FLEncoder_WriteNull(enc);
                     }
-                }
-
-                foreach (var item in IterateDict()) {
-                    if (_map.ContainsKey(item.Key)) {
-                        continue;
-                    }
-
-                    Native.FLEncoder_WriteKey(enc, item.Key);
-                    item.Value.FLEncode(enc);
                 }
 
                 Native.FLEncoder_EndDict(enc);
