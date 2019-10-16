@@ -180,6 +180,11 @@ namespace Couchbase.Lite.Fleece
             return i;
         }
 
+        private void EndIteration(FLDictIterator i)
+        {
+            Native.FLDictIterator_End(&i);
+        }
+
         private KeyValuePair<string, MValue> Get(FLDictIterator i)
         {
             if ((FLDict*)_dict == null || Count == 0U) {
@@ -208,6 +213,8 @@ namespace Couchbase.Lite.Fleece
                     yield return got;
                 }
             } while (Advance(ref i));
+
+            EndIteration(i);
         }
 
         private void SetInMap(string key, MValue val)
@@ -289,12 +296,12 @@ namespace Couchbase.Lite.Fleece
 
         public override void Dispose()
         {
+            base.Dispose();
             if (_releaseRequired && _dict != null) {
                 Native.FLValue_Release((FLValue*)_dict);
                 _dict = null;
                 _releaseRequired = false;
             }
-            base.Dispose();
         }
 
         #endregion
