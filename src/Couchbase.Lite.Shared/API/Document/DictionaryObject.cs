@@ -21,6 +21,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+
 using Couchbase.Lite.Fleece;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
@@ -248,7 +249,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public Dictionary<string, object> ToDictionary()
         {
-            var result = new Dictionary<string, object>(_dict.Count);
+            var result = new Dictionary<string, object>(Count);
             _threadSafety.DoLocked(() =>
             {
                 foreach (var item in _dict.AllItems()) {
