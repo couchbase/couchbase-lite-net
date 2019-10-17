@@ -26,6 +26,7 @@ using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 namespace Couchbase.Lite.Fleece
 {
@@ -81,16 +82,9 @@ namespace Couchbase.Lite.Fleece
 
             _map.Clear();
 
-            foreach (var item in IterateDict()) {
-                _map[item.Key] = MValue.Empty;
-            }
-
-            foreach(var i in _map) {
-                using (var encoded = i.Value.NativeObject.FLEncode()) {
-                    //Convert object into FLValue
-                    var flValue = NativeRaw.FLValue_FromData((FLSlice)encoded, FLTrust.Trusted);
-                    Native.FLSlot_SetValue(Native.FLMutableDict_Set(_dict, i.Key), flValue);
-                }
+            var list = IterateDict().AsParallel().ToList();
+            foreach (var item in list) {
+                SetInMap(item.Key, MValue.Empty);
             }
         }
 
