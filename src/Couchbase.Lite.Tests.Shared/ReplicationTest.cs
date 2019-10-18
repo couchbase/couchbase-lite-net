@@ -1479,7 +1479,7 @@ namespace Test
             }
 
             using (var doc = Db.GetDocument("doc1")) {
-                doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 7, 7, 7 });
+                doc.GetBlob("blob")?.Content.Should().Contain(new byte[] { 7, 7, 7 });
             }
         }
 
