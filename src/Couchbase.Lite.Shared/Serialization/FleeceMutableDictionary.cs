@@ -82,7 +82,7 @@ namespace Couchbase.Lite.Fleece
 
             _map.Clear();
 
-            var list = IterateDict().AsParallel().ToList();
+            var list = IterateDict().ToList();
             foreach (var item in list) {
                 SetInMap(item.Key, MValue.Empty);
             }
@@ -261,7 +261,7 @@ namespace Couchbase.Lite.Fleece
                     Native.FLEncoder_BeginDict(enc, 0U);
                     Native.FLEncoder_EndDict(enc);
                 } else {
-                    Native.FLEncoder_WriteValue(enc, (FLValue*)(FLDict*)_dict);
+                    Native.FLEncoder_WriteValue(enc, (FLValue*)_dict);
                 }
             } else {
                 Native.FLEncoder_BeginDict(enc, (uint)Count);
@@ -299,8 +299,8 @@ namespace Couchbase.Lite.Fleece
 
         public override void Dispose()
         {
-            base.Dispose();
-            if (_releaseRequired && _dict != null) {
+            Context?.Dispose();
+            if (_releaseRequired) {
                 Native.FLValue_Release((FLValue*)_dict);
                 _dict = null;
                 _releaseRequired = false;

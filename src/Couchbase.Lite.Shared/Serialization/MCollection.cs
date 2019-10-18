@@ -122,7 +122,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         public virtual void Dispose()
         {
-            Context?.Dispose();
+            
         }
 
         #endregion

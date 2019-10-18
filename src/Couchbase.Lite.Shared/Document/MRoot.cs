@@ -116,7 +116,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         public override void Dispose()
         {
-            base.Dispose();
+            Context?.Dispose();
         }
 
         #endregion
