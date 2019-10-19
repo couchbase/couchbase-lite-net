@@ -21,7 +21,7 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Serialization
 {
-    internal abstract unsafe class MCollection : IFLEncodable, IDisposable
+    internal abstract unsafe class MCollection : IFLEncodable
     {
         #region Variables
 
@@ -115,15 +115,6 @@ namespace Couchbase.Lite.Internal.Serialization
         #region IFLEncodable
 
         public abstract void FLEncode(FLEncoder* enc);
-
-        #endregion
-
-        #region IDisposable
-
-        public virtual void Dispose()
-        {
-            
-        }
 
         #endregion
     }
