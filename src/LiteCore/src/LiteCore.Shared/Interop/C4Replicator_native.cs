@@ -45,11 +45,32 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4ReplicatorStatus c4repl_getStatus(C4Replicator* repl);
 
+        public static byte[] c4repl_getPendingDocIDs(C4Replicator* repl, C4Error* outErr)
+        {
+            using(var retVal = NativeRaw.c4repl_getPendingDocIDs(repl, outErr)) {
+                return ((FLSlice)retVal).ToArrayFast();
+            }
+        }
+
+        public static bool c4repl_isDocumentPending(C4Replicator* repl, string docID, C4Error* outErr)
+        {
+            using(var docID_ = new C4String(docID)) {
+                return NativeRaw.c4repl_isDocumentPending(repl, docID_.AsFLSlice(), outErr);
+            }
+        }
+
 
     }
 
     internal unsafe static partial class NativeRaw
     {
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4repl_getPendingDocIDs(C4Replicator* repl, C4Error* outErr);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4repl_isDocumentPending(C4Replicator* repl, FLSlice docID, C4Error* outErr);
+
 
     }
 }
