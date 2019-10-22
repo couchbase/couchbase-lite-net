@@ -292,21 +292,20 @@ namespace Couchbase.Lite.Sync
                 throw CouchbaseException.Create(err);
             }
 
-            if (ids == null) {
-                return null;
+            if (ids != null) {
+                var flval = Native.FLValue_FromData(ids, FLTrust.Trusted);
+                var flarr = Native.FLValue_AsArray(flval);
+                var cnt = (int)Native.FLArray_Count(flarr);
+
+                for (int i = 0; i < cnt; i++) {
+                    var flv = Native.FLArray_Get(flarr, (uint)i);
+                    result.Add(Native.FLValue_AsString(flv));
+                    Native.FLValue_Release(flv);
+                }
+
+                Native.FLValue_Release(flval);
             }
 
-            var flval = Native.FLValue_FromData(ids, FLTrust.Trusted);
-            var flarr = Native.FLValue_AsArray(flval);
-            var cnt = (int)Native.FLArray_Count(flarr);
-
-            for(int i=0; i < cnt; i++) {
-                var flv = Native.FLArray_Get(flarr, (uint)i);
-                result.Add(Native.FLValue_AsString(flv));
-                Native.FLValue_Release(flv);
-            }
-
-            Native.FLValue_Release(flval);
             return result.ToImmutableHashSet<string>();
         }
 
