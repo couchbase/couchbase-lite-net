@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -265,9 +266,83 @@ namespace Couchbase.Lite.Sync
             });
         }
 
+        /// <summary>
+        /// Gets a list of document IDs that are going to be pushed, but have not been pushed yet
+        /// <item type="bullet">
+        /// <description>API is a snapshot and results may change between the time the call was made and the time</description>
+        /// </item>
+        /// </summary>
+        /// <returns>An immutable set of strings, each of which is a document ID</returns>
+        /// <exception cref="CouchbaseLiteException">Thrown if no push replication</exception>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        [NotNull]
+        public IImmutableSet<string> GetPendingDocumentIDs()
+        {
+            if (IsNotPushing()) {
+                WriteLog.To.Database.E(Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
+                throw new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
+            }
+
+            var result = new HashSet<string>();
+            C4Error err;
+            var ids = Native.c4repl_getPendingDocIDs(_repl, &err);
+
+            if (err.code > 0) {
+                WriteLog.To.Database.E(Tag, err.ToString());
+                throw CouchbaseException.Create(err);
+            }
+
+            if (ids == null) {
+                return null;
+            }
+
+            var flval = Native.FLValue_FromData(ids, FLTrust.Trusted);
+            var flarr = Native.FLValue_AsArray(flval);
+            var cnt = (int)Native.FLArray_Count(flarr);
+
+            for(int i=0; i < cnt; i++) {
+                var flv = Native.FLArray_Get(flarr, (uint)i);
+                result.Add(Native.FLValue_AsString(flv));
+                Native.FLValue_Release(flv);
+            }
+
+            Native.FLValue_Release(flval);
+            return result.ToImmutableHashSet<string>();
+        }
+
+        /// <summary>
+        /// Checks whether or not a document with the given ID has any pending revisions to push
+        /// </summary>
+        /// <param name="documentID">The document ID</param>
+        /// <returns>A bool which represents whether or not the document with the corresponding ID has one or more pending revisions.  
+        /// <c>true</c> means that one or more revisions have not been pushed to the remote yet, 
+        /// and <c>false</c> means that all revisions on the document have been pushed</returns>
+        /// <exception cref="CouchbaseLiteException">Thrown if no push replication</exception>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        public bool IsDocumentPending([NotNull]string documentID)
+        {
+            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(documentID), documentID);
+
+            if (IsNotPushing()) {
+                WriteLog.To.Database.E(Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
+                throw new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
+            }
+
+            C4Error err;
+            var isDocPending = Native.c4repl_isDocumentPending(_repl, documentID, &err);
+            return isDocPending;
+        }
+
         #endregion
 
         #region Private Methods
+
+        private bool IsNotPushing()
+        {
+            var push = Config.ReplicatorType.HasFlag(ReplicatorType.Push);
+            var pushnpull = Config.ReplicatorType.HasFlag(ReplicatorType.PushAndPull);
+            return !push && !pushnpull;
+        }
 
         private static C4ReplicatorMode Mkmode(bool active, bool continuous)
         {
