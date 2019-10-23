@@ -278,7 +278,7 @@ namespace Couchbase.Lite.Sync
         [NotNull]
         public IImmutableSet<string> GetPendingDocumentIDs()
         {
-            if (IsNotPushing()) {
+            if (!IsPushing()) {
                 WriteLog.To.Database.E(Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
                 throw new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
             }
@@ -322,7 +322,7 @@ namespace Couchbase.Lite.Sync
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(documentID), documentID);
 
-            if (IsNotPushing()) {
+            if (!IsPushing()) {
                 WriteLog.To.Database.E(Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
                 throw new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
             }
@@ -342,11 +342,11 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods
 
-        private bool IsNotPushing()
+        private bool IsPushing()
         {
             var push = Config.ReplicatorType.HasFlag(ReplicatorType.Push);
             var pushnpull = Config.ReplicatorType.HasFlag(ReplicatorType.PushAndPull);
-            return !push && !pushnpull;
+            return push || pushnpull;
         }
 
         private static C4ReplicatorMode Mkmode(bool active, bool continuous)
