@@ -329,6 +329,12 @@ namespace Couchbase.Lite.Sync
 
             C4Error err;
             var isDocPending = Native.c4repl_isDocumentPending(_repl, documentID, &err);
+
+            if (err.code > 0) {
+                WriteLog.To.Database.E(Tag, err.ToString());
+                throw CouchbaseException.Create(err);
+            }
+
             return isDocPending;
         }
 
