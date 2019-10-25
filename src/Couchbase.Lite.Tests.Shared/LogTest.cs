@@ -301,20 +301,9 @@ namespace Test
             stringWriter.Flush();
             stringWriter.ToString().Should().BeEmpty("because logging is disabled");
 
-            Database.SetLogLevel(LogDomain.All, LogLevel.Verbose);
-            stringWriter = new StringWriter();
-            Console.SetOut(stringWriter);
-            WriteLog.To.Database.V("TEST", "TEST VERBOSE");
-            WriteLog.To.Database.I("TEST", "TEST INFO");
-            WriteLog.To.Database.W("TEST", "TEST WARNING");
-            WriteLog.To.Database.E("TEST", "TEST ERROR");
-            stringWriter.Flush();
-            stringWriter.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Should()
-                .HaveCount(4, "because all levels should be logged");
-
             var currentCount = 1;
             foreach (var level in new[] { LogLevel.Error, LogLevel.Warning,
-                LogLevel.Info}) {
+                LogLevel.Info, LogLevel.Verbose}) {
                 Database.SetLogLevel(LogDomain.All, level);
                 stringWriter = new StringWriter();
                 Console.SetOut(stringWriter);
