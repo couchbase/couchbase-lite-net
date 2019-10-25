@@ -283,6 +283,10 @@ namespace Couchbase.Lite.Sync
                 throw new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
             }
 
+            if (_repl == null) {
+                StartInternal();
+            }
+
             var result = new HashSet<string>();
             C4Error err;
             var ids = Native.c4repl_getPendingDocIDs(_repl, &err);
@@ -325,6 +329,10 @@ namespace Couchbase.Lite.Sync
             if (!IsPushing()) {
                 WriteLog.To.Database.E(Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
                 throw new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
+            }
+
+            if (_repl == null) {
+                StartInternal();
             }
 
             C4Error err;
