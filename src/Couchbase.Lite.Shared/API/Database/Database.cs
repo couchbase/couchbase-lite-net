@@ -370,13 +370,13 @@ namespace Couchbase.Lite
 		/// </summary>
 		/// <param name="domains">The log domain(s)</param>
 		/// <param name="level">The log level</param>
-		[Obsolete("This has been superseded by Database.Log.Console.  This function is now a no-op")]
+		[Obsolete("Currently SetLogLevel will only affect the console logger and not the file logger. Domains will be used as an on/off switch of sorts, and you can no longer set level per domain.")]
         [ExcludeFromCodeCoverage]
 		public static void SetLogLevel(LogDomain domains, LogLevel level)
         {
             Log.Console.Level = level;
             Log.Console.Domains = domains;
-            WriteLog.To.Database.W(Tag, "Currently it will only affect the console logger and not the file logger.");
+            WriteLog.To.Database.W(Tag, "Currently SetLogLevel will only affect the console logger and not the file logger. Domains will be used as an on/off switch of sorts, and you can no longer set level per domain.");
         }
 
         /// <summary>
