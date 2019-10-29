@@ -291,7 +291,8 @@ namespace Test
             Database.Log.Console.Level = LogLevel.Warning;
         }
 
-        [Fact] void TestSetLogLevel()
+        [Fact]
+        void TestSetLogLevel()
         {
             WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
             Database.SetLogLevel(LogDomain.All, LogLevel.None);
