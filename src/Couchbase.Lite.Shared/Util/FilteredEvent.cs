@@ -20,7 +20,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.Support;
@@ -40,7 +39,7 @@ namespace Couchbase.Lite.Util
 
         #region Overrides
 
-        [ExcludeFromCodeCoverage]
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         protected override IEnumerable<Task> GetScheduledTasks() => throw new NotSupportedException();
 
         protected override void QueueTask(Task task)
@@ -48,7 +47,7 @@ namespace Couchbase.Lite.Util
             _queue.DispatchAsync(() => TryExecuteTask(task));
         }
 
-        [ExcludeFromCodeCoverage]
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued) => false;
 
         #endregion

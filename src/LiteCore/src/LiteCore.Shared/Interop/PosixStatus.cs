@@ -17,7 +17,6 @@
 // 
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Couchbase.Lite.Internal.Logging;
@@ -29,7 +28,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// The base codes that are guaranteed to be the same on any POSIX system
     /// </summary>
-    [ExcludeFromCodeCoverage]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public abstract class PosixBase
     {
         #region Constants
@@ -234,7 +233,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// POSIX codes that are specific to Windows
     /// </summary>
-    [ExcludeFromCodeCoverage]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public sealed class PosixWindows : PosixBase
     {
         /// <summary>
@@ -481,7 +480,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A class containing POSIX codes that are unique to macOS
     /// </summary>
-    [ExcludeFromCodeCoverage]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public sealed class PosixMac : PosixBase
     {
         /// <summary>
@@ -868,7 +867,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A class containing POSIX codes that are unique to the Linux kernel
     /// </summary>
-    [ExcludeFromCodeCoverage]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public sealed class PosixLinux : PosixBase
     {
         /// <summary>
