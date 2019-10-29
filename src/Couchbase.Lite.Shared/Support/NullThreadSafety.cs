@@ -17,7 +17,7 @@
 // 
 using System;
 
-using JetBrains.Annotations;
+using NotNull = JetBrains.Annotations.NotNullAttribute;
 
 namespace Couchbase.Lite.Support
 {

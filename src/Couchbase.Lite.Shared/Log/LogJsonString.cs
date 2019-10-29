@@ -20,9 +20,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
-using JetBrains.Annotations;
-
 using Newtonsoft.Json;
+
+using NotNull = JetBrains.Annotations.NotNullAttribute;
 
 namespace Couchbase.Lite.Logging
 {

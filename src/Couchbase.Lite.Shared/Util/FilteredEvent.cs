@@ -24,7 +24,8 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite.Support;
 
-using JetBrains.Annotations;
+using NotNull = JetBrains.Annotations.NotNullAttribute;
+using ItemNotNull = JetBrains.Annotations.ItemNotNullAttribute;
 
 namespace Couchbase.Lite.Util
 {

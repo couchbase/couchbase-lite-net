@@ -21,7 +21,8 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
-using JetBrains.Annotations;
+
+using NotNull = JetBrains.Annotations.NotNullAttribute;
 
 namespace Couchbase.Lite
 {

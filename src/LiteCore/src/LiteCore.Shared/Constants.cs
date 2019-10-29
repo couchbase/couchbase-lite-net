@@ -16,7 +16,7 @@
 // limitations under the License.
 //
 
-using JetBrains.Annotations;
+using NotNull = JetBrains.Annotations.NotNullAttribute;
 
 namespace LiteCore
 {

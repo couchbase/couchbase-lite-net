@@ -22,7 +22,8 @@ using System.Diagnostics;
 
 using Couchbase.Lite.Internal.Logging;
 
-using JetBrains.Annotations;
+using NotNull = JetBrains.Annotations.NotNullAttribute;
+using ContractAnnotation = JetBrains.Annotations.ContractAnnotationAttribute;
 
 namespace Couchbase.Lite.Util
 {

@@ -21,9 +21,11 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Couchbase.Lite.Support;
-using JetBrains.Annotations;
 
 using SimpleInjector;
+
+using NotNull = JetBrains.Annotations.NotNullAttribute;
+using CanBeNull = JetBrains.Annotations.CanBeNullAttribute;
 
 namespace Couchbase.Lite.DI
 {
