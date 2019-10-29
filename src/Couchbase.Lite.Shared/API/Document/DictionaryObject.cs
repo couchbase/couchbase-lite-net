@@ -25,9 +25,9 @@ using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Support;
 
-using JetBrains.Annotations;
-
 using Newtonsoft.Json;
+
+using NotNull = JetBrains.Annotations.NotNullAttribute;
 
 namespace Couchbase.Lite
 {

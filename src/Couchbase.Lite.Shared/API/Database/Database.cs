@@ -36,13 +36,15 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
 
-using JetBrains.Annotations;
-
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
 
 using Newtonsoft.Json;
+
+using NotNull = JetBrains.Annotations.NotNullAttribute;
+using ItemNotNull = JetBrains.Annotations.ItemNotNullAttribute;
+using CanBeNull = JetBrains.Annotations.CanBeNullAttribute;
 
 namespace Couchbase.Lite
 {
