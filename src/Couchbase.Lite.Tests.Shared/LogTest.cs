@@ -292,6 +292,37 @@ namespace Test
         }
 
         [Fact]
+        void TestSetLogLevel()
+        {
+            WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
+            Database.SetLogLevel(LogDomain.All, LogLevel.None);
+            var stringWriter = new StringWriter();
+            Console.SetOut(stringWriter);
+            WriteLog.To.Database.E("TEST", "TEST ERROR");
+            stringWriter.Flush();
+            stringWriter.ToString().Should().BeEmpty("because logging is disabled");
+
+            var currentCount = 1;
+            foreach (var level in new[] { LogLevel.Error, LogLevel.Warning,
+                LogLevel.Info, LogLevel.Verbose}) {
+                Database.SetLogLevel(LogDomain.All, level);
+                stringWriter = new StringWriter();
+                Console.SetOut(stringWriter);
+                WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+                WriteLog.To.Database.I("TEST", "TEST INFO");
+                WriteLog.To.Database.W("TEST", "TEST WARNING");
+                WriteLog.To.Database.E("TEST", "TEST ERROR");
+                stringWriter.Flush();
+                stringWriter.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Should()
+                    .HaveCount(currentCount, "because {0} levels should be logged for {1}", currentCount, level);
+                currentCount++;
+            }
+
+            Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
+            Database.SetLogLevel(LogDomain.All, LogLevel.Warning);
+        }
+
+        [Fact]
         public void TestConsoleLoggingDomains()
         {
             WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
