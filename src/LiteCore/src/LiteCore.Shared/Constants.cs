@@ -16,13 +16,11 @@
 // limitations under the License.
 //
 
-using System.Diagnostics.CodeAnalysis;
-
 using JetBrains.Annotations;
 
 namespace LiteCore
 {
-    [ExcludeFromCodeCoverage]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     internal static class Constants
     {
         #if __IOS__

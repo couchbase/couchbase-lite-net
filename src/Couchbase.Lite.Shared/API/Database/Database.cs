@@ -19,10 +19,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -371,7 +369,7 @@ namespace Couchbase.Lite
 		/// <param name="domains">The log domain(s)</param>
 		/// <param name="level">The log level</param>
 		[Obsolete("Currently SetLogLevel will only affect the console logger and not the file logger. Domains will be used as an on/off switch of sorts, and you can no longer set level per domain.")]
-        [ExcludeFromCodeCoverage]
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 		public static void SetLogLevel(LogDomain domains, LogLevel level)
         {
             Log.Console.Level = level;

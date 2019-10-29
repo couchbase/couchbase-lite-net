@@ -17,11 +17,8 @@
 // 
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
-
-using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
 
@@ -29,7 +26,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Logging
 {
-    [ExcludeFromCodeCoverage]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     internal sealed class LogString
     {
         #region Variables
@@ -60,7 +57,7 @@ namespace Couchbase.Lite.Logging
         #endregion
     }
 
-    [ExcludeFromCodeCoverage]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     internal sealed class LogJsonString
     {
         #region Variables
