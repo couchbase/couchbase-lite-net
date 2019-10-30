@@ -190,7 +190,7 @@ namespace Couchbase.Lite.Fleece
 
         private KeyValuePair<string, MValue> Get(FLDictIterator i)
         {
-            if ((FLDict*)_dict == null || Count == 0U) {
+            if (_dict == null || Count == 0U) {
                 return new KeyValuePair<string, MValue>();
             }
 
@@ -257,7 +257,7 @@ namespace Couchbase.Lite.Fleece
         public override void FLEncode(FLEncoder* enc)
         {
             if (!IsMutated) {
-                if ((FLDict*)_dict == null) {
+                if (_dict == null) {
                     Native.FLEncoder_BeginDict(enc, 0U);
                     Native.FLEncoder_EndDict(enc);
                 } else {
