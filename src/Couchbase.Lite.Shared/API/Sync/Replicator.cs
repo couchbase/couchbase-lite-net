@@ -290,8 +290,7 @@ namespace Couchbase.Lite.Sync
             var ids = Native.c4repl_getPendingDocIDs(_repl, &err);
 
             if (err.code > 0) {
-                WriteLog.To.Database.E(Tag, err.ToString());
-                throw CouchbaseException.Create(err);
+                CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(err), Tag, err.ToString(), true);
             }
 
             if (ids != null) {
@@ -325,8 +324,8 @@ namespace Couchbase.Lite.Sync
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(documentID), documentID);
 
             if (!IsPushing()) {
-                WriteLog.To.Database.E(Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
-                throw new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
+                CBDebug.LogAndThrow(WriteLog.To.Sync, new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs), 
+                    Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
             }
 
             CreateReplicator();
@@ -349,8 +348,7 @@ namespace Couchbase.Lite.Sync
         private bool IsPushing()
         {
             var push = Config.ReplicatorType.HasFlag(ReplicatorType.Push);
-            var pushnpull = Config.ReplicatorType.HasFlag(ReplicatorType.PushAndPull);
-            return push || pushnpull;
+            return push;
         }
 
         private static C4ReplicatorMode Mkmode(bool active, bool continuous)
