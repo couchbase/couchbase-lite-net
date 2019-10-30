@@ -283,9 +283,7 @@ namespace Couchbase.Lite.Sync
                 throw new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
             }
 
-            if (_repl == null) {
-                StartInternal();
-            }
+            CreateReplicator();
 
             var result = new HashSet<string>();
             C4Error err;
@@ -331,9 +329,7 @@ namespace Couchbase.Lite.Sync
                 throw new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
             }
 
-            if (_repl == null) {
-                StartInternal();
-            }
+            CreateReplicator();
 
             C4Error err;
             var isDocPending = Native.c4repl_isDocumentPending(_repl, documentID, &err);
@@ -673,28 +669,6 @@ namespace Couchbase.Lite.Sync
         {
             _desc = ToString(); // Cache this; it may be called a lot when logging
 
-            // Target:
-            var addr = new C4Address();
-            var scheme = new C4String();
-            var host = new C4String();
-            var path = new C4String();
-            Database otherDB = null;
-            var remoteUrl = Config.RemoteUrl;
-            string dbNameStr = null;
-            if (remoteUrl != null) {
-                var pathStr = String.Concat(remoteUrl.Segments.Take(remoteUrl.Segments.Length - 1));
-                dbNameStr = remoteUrl.Segments.Last().TrimEnd('/');
-                scheme = new C4String(remoteUrl.Scheme);
-                host = new C4String(remoteUrl.Host);
-                path = new C4String(pathStr);
-                addr.scheme = scheme.AsFLSlice();
-                addr.hostname = host.AsFLSlice();
-                addr.port = (ushort) remoteUrl.Port;
-                addr.path = path.AsFLSlice();
-            } else {
-                otherDB = Config.OtherDB;
-            }
-
             var options = Config.Options;
 
             Config.Authenticator?.Authenticate(options);
@@ -729,10 +703,7 @@ namespace Couchbase.Lite.Sync
             _stopping = false;
             _databaseThreadSafety.DoLocked(() =>
             {
-                C4Error localErr;
-                _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, otherDB != null ? otherDB.c4db : null,
-                    _nativeParams.C4Params, &localErr);
-                err = localErr;
+                err = CreateReplicator();
                 if (_repl != null) {
                     Native.c4repl_start(_repl);
                     status = Native.c4repl_getStatus(_repl);
@@ -746,12 +717,46 @@ namespace Couchbase.Lite.Sync
                 }
             });
 
+            UpdateStateProperties(status);
+            DispatchQueue.DispatchSync(() => StatusChangedCallback(status));
+        }
+
+        private C4Error CreateReplicator()
+        {
+            if (_repl != null)
+                return new C4Error();
+
+            // Target:
+            var addr = new C4Address();
+            var scheme = new C4String();
+            var host = new C4String();
+            var path = new C4String();
+            Database otherDB = null;
+            var remoteUrl = Config.RemoteUrl;
+            string dbNameStr = null;
+            if (remoteUrl != null) {
+                var pathStr = String.Concat(remoteUrl.Segments.Take(remoteUrl.Segments.Length - 1));
+                dbNameStr = remoteUrl.Segments.Last().TrimEnd('/');
+                scheme = new C4String(remoteUrl.Scheme);
+                host = new C4String(remoteUrl.Host);
+                path = new C4String(pathStr);
+                addr.scheme = scheme.AsFLSlice();
+                addr.hostname = host.AsFLSlice();
+                addr.port = (ushort)remoteUrl.Port;
+                addr.path = path.AsFLSlice();
+            } else {
+                otherDB = Config.OtherDB;
+            }
+
+            C4Error localErr;
+            _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, otherDB != null ? otherDB.c4db : null,
+                _nativeParams.C4Params, &localErr);
+
             scheme.Dispose();
             path.Dispose();
             host.Dispose();
 
-            UpdateStateProperties(status);
-            DispatchQueue.DispatchSync(() => StatusChangedCallback(status));
+            return localErr;
         }
 
         private void StartReachabilityObserver()
