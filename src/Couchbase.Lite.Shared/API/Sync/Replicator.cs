@@ -230,11 +230,6 @@ namespace Couchbase.Lite.Sync
                     throw new ObjectDisposedException(CouchbaseLiteErrorMessage.ReplicatorDisposed);
                 }
 
-                if (_repl != null) {
-                    WriteLog.To.Sync.W(Tag, $"{this} has already started");
-                    return;
-                }
-
                 WriteLog.To.Sync.I(Tag, $"{this}: Starting");
                 _retryCount = 0;
                 StartInternal();
@@ -667,47 +662,23 @@ namespace Couchbase.Lite.Sync
         {
             _desc = ToString(); // Cache this; it may be called a lot when logging
 
-            var options = Config.Options;
-
-            Config.Authenticator?.Authenticate(options);
-
-            options.Build();
-            var push = Config.ReplicatorType.HasFlag(ReplicatorType.Push);
-            var pull = Config.ReplicatorType.HasFlag(ReplicatorType.Pull);
-            var continuous = Config.Continuous;
-            
-            var socketFactory = Config.SocketFactory;
-            socketFactory.context = GCHandle.ToIntPtr(GCHandle.Alloc(this)).ToPointer();
-            _nativeParams = new ReplicatorParameters(options)
-            {
-                Push = Mkmode(push, continuous),
-                Pull = Mkmode(pull, continuous),
-                Context = this,
-                OnDocumentEnded = OnDocEnded,
-                OnStatusChanged = StatusChangedCallback,
-                SocketFactory = &socketFactory
-            };
-
-            // Clear the reset flag, it is a one-time thing
-            options.Reset = false;
-
-            if(Config.PushFilter!=null)
-                _nativeParams.PushFilter = PushFilterCallback;
-            if (Config.PullFilter != null)
-                _nativeParams.PullFilter = PullValidateCallback;
-
             var err = new C4Error();
             var status = default(C4ReplicatorStatus);
             _stopping = false;
+
+            if (_repl == null) {
+                err = CreateReplicator();
+            }
+
             _databaseThreadSafety.DoLocked(() =>
             {
-                err = CreateReplicator();
                 if (_repl != null) {
                     Native.c4repl_start(_repl);
                     status = Native.c4repl_getStatus(_repl);
                     Config.Database.ActiveReplications.Add(this);
                 } else {
-                    status = new C4ReplicatorStatus {
+                    status = new C4ReplicatorStatus
+                    {
                         error = err,
                         level = C4ReplicatorActivityLevel.Stopped,
                         progress = new C4Progress()
@@ -721,9 +692,6 @@ namespace Couchbase.Lite.Sync
 
         private C4Error CreateReplicator()
         {
-            if (_repl != null)
-                return new C4Error();
-
             // Target:
             var addr = new C4Address();
             var scheme = new C4String();
@@ -746,15 +714,51 @@ namespace Couchbase.Lite.Sync
                 otherDB = Config.OtherDB;
             }
 
-            C4Error localErr;
-            _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, otherDB != null ? otherDB.c4db : null,
-                _nativeParams.C4Params, &localErr);
+            var options = Config.Options;
+
+            Config.Authenticator?.Authenticate(options);
+
+            options.Build();
+            var push = Config.ReplicatorType.HasFlag(ReplicatorType.Push);
+            var pull = Config.ReplicatorType.HasFlag(ReplicatorType.Pull);
+            var continuous = Config.Continuous;
+
+            var socketFactory = Config.SocketFactory;
+            socketFactory.context = GCHandle.ToIntPtr(GCHandle.Alloc(this)).ToPointer();
+            _nativeParams = new ReplicatorParameters(options)
+            {
+                Push = Mkmode(push, continuous),
+                Pull = Mkmode(pull, continuous),
+                Context = this,
+                OnDocumentEnded = OnDocEnded,
+                OnStatusChanged = StatusChangedCallback,
+                SocketFactory = &socketFactory
+            };
+
+            // Clear the reset flag, it is a one-time thing
+            options.Reset = false;
+
+            if (Config.PushFilter != null)
+                _nativeParams.PushFilter = PushFilterCallback;
+            if (Config.PullFilter != null)
+                _nativeParams.PullFilter = PullValidateCallback;
+
+            var err = new C4Error();
+            _databaseThreadSafety.DoLocked(() =>
+            {
+                if (_repl == null) {
+                    C4Error localErr;
+                    _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, otherDB != null ? otherDB.c4db : null,
+                        _nativeParams.C4Params, &localErr);
+                    err = localErr;
+                }
+            });
 
             scheme.Dispose();
             path.Dispose();
             host.Dispose();
 
-            return localErr;
+            return err;
         }
 
         private void StartReachabilityObserver()
