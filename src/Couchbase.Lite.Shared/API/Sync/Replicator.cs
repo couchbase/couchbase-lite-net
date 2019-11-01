@@ -300,6 +300,7 @@ namespace Couchbase.Lite.Sync
                 }
             }
 
+            Array.Clear(ids, 0, ids.Length);
             ids = null;
             return result.ToImmutableHashSet<string>();
         }
@@ -686,7 +687,11 @@ namespace Couchbase.Lite.Sync
         }
 
         private C4Error CreateReplicator()
-        {
+        {          
+            var err = new C4Error();
+            if (_repl != null)
+                return err;
+
             // Target:
             var addr = new C4Address();
             var scheme = new C4String();
@@ -737,16 +742,13 @@ namespace Couchbase.Lite.Sync
                 _nativeParams.PushFilter = PushFilterCallback;
             if (Config.PullFilter != null)
                 _nativeParams.PullFilter = PullValidateCallback;
-
-            var err = new C4Error();
+            
             _databaseThreadSafety.DoLocked(() =>
             {
-                if (_repl == null) {
-                    C4Error localErr;
-                    _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, otherDB != null ? otherDB.c4db : null,
-                        _nativeParams.C4Params, &localErr);
-                    err = localErr;
-                }
+                C4Error localErr;
+                _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, otherDB != null ? otherDB.c4db : null,
+                    _nativeParams.C4Params, &localErr);
+                err = localErr;
             });
 
             scheme.Dispose();
