@@ -274,8 +274,9 @@ namespace Couchbase.Lite.Sync
         public IImmutableSet<string> GetPendingDocumentIDs()
         {
             if (!IsPushing()) {
-                WriteLog.To.Database.E(Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
-                throw new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
+                CBDebug.LogAndThrow(WriteLog.To.Sync,
+                    new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
+                    Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
             }
 
             CreateReplicator();
@@ -296,12 +297,10 @@ namespace Couchbase.Lite.Sync
                 for (int i = 0; i < cnt; i++) {
                     var flv = Native.FLArray_Get(flarr, (uint)i);
                     result.Add(Native.FLValue_AsString(flv));
-                    Native.FLValue_Release(flv);
                 }
-
-                Native.FLValue_Release(flval);
             }
 
+            ids = null;
             return result.ToImmutableHashSet<string>();
         }
 
@@ -319,7 +318,8 @@ namespace Couchbase.Lite.Sync
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(documentID), documentID);
 
             if (!IsPushing()) {
-                CBDebug.LogAndThrow(WriteLog.To.Sync, new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs), 
+                CBDebug.LogAndThrow(WriteLog.To.Sync,
+                    new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
                     Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
             }
 
@@ -329,8 +329,7 @@ namespace Couchbase.Lite.Sync
             var isDocPending = Native.c4repl_isDocumentPending(_repl, documentID, &err);
 
             if (err.code > 0) {
-                WriteLog.To.Database.E(Tag, err.ToString());
-                throw CouchbaseException.Create(err);
+                CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(err), Tag, err.ToString(), true);
             }
 
             return isDocPending;
@@ -342,8 +341,7 @@ namespace Couchbase.Lite.Sync
 
         private bool IsPushing()
         {
-            var push = Config.ReplicatorType.HasFlag(ReplicatorType.Push);
-            return push;
+            return Config.ReplicatorType.HasFlag(ReplicatorType.Push);
         }
 
         private static C4ReplicatorMode Mkmode(bool active, bool continuous)
@@ -662,13 +660,10 @@ namespace Couchbase.Lite.Sync
         {
             _desc = ToString(); // Cache this; it may be called a lot when logging
 
-            var err = new C4Error();
             var status = default(C4ReplicatorStatus);
             _stopping = false;
 
-            if (_repl == null) {
-                err = CreateReplicator();
-            }
+            var err = CreateReplicator();
 
             _databaseThreadSafety.DoLocked(() =>
             {
