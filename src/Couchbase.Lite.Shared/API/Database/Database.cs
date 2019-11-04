@@ -908,15 +908,20 @@ namespace Couchbase.Lite
                         return;
                     }
 
-                    // Resolve conflict:
-                    WriteLog.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
-                            new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevisionID,
-                            remoteDoc.RevisionID);
+                    if (localDoc.IsDeleted && remoteDoc.IsDeleted) {
+                        resolvedDoc = localDoc; // No need go through resolver, because both remote and local docs are deleted.
+                    } else {
+                        // Resolve conflict:
+                        WriteLog.To.Database.I(Tag, "Resolving doc '{0}' (mine={1} and theirs={2})",
+                                new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure), localDoc.RevisionID,
+                                remoteDoc.RevisionID);
 
-                    conflictResolver = conflictResolver ?? ConflictResolver.Default;
-                    var conflict = new Conflict(docID, localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
+                        conflictResolver = conflictResolver ?? ConflictResolver.Default;
+                        var conflict = new Conflict(docID, localDoc.IsDeleted ? null : localDoc, remoteDoc.IsDeleted ? null : remoteDoc);
 
-                    resolvedDoc = conflictResolver.Resolve(conflict);
+                        resolvedDoc = conflictResolver.Resolve(conflict);
+                    }
+
                     if (resolvedDoc != null) {
                         if (resolvedDoc.Id != docID) {
                             WriteLog.To.Sync.W(Tag, $"Resolved docID {resolvedDoc.Id} does not match docID {docID}",
@@ -926,7 +931,7 @@ namespace Couchbase.Lite
                         if (resolvedDoc.Database == null) {
                             resolvedDoc.Database = this;
                         } else if (resolvedDoc.Database != this) {
-                            throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.ResolvedDocWrongDb, 
+                            throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.ResolvedDocWrongDb,
                                 resolvedDoc.Database.Name, this.Name));
                         }
                     }

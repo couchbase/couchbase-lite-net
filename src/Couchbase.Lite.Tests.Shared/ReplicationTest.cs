@@ -1080,6 +1080,44 @@ namespace Test
         }
 
         [Fact]
+        public void TestConflictResolverBothRemoteLocalDelete()
+        {
+            int resolveCnt = 0;
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1);
+            }
+
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                _otherDB.Save(doc1);
+            }
+
+            // Force a conflict
+            using (var doc1a = Db.GetDocument("doc1").ToMutable()) {
+                doc1a.SetString("name", "Cat");
+                Db.Save(doc1a);
+            }
+
+            Db.Count.Should().Be(1);
+
+            _otherDB.Delete(_otherDB.GetDocument("doc1"));
+
+            var config = CreateConfig(false, true, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                using (var doc1 = Db.GetDocument("doc1")) {
+                    Db.Delete(doc1);
+                }
+                resolveCnt++;
+                return conflict.LocalDocument;
+            });
+
+            RunReplication(config, 0, 0);
+            resolveCnt.Should().Be(1);
+            Db.Count.Should().Be(0);
+        }
+
+        [Fact]
         public void TestConflictResolverPropertyInReplicationConfig()
         {
             var config = CreateConfig(false, true, false);
