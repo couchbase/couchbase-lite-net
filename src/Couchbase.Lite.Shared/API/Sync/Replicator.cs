@@ -389,7 +389,8 @@ namespace Couchbase.Lite.Sync
             if (!IsPermanentError(status.error, out transient))
                 return;
 
-            if (status.level == C4ReplicatorActivityLevel.Stopped) {
+            if (status.level == C4ReplicatorActivityLevel.Stopped
+                || status.level == C4ReplicatorActivityLevel.Idle) {
                 var array = _conflictTasks?.Keys?.ToArray();
                 if (array != null) {
                     Task.WaitAll(array);
