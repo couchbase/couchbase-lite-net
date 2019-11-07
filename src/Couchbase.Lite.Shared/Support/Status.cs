@@ -109,8 +109,8 @@ namespace Couchbase.Lite
                         //case SslStatus.ClosedAbort:
                         //  throw new IOException("Connection closed.");
                         message = ie.Message;
-                            c4err.domain = C4ErrorDomain.NetworkDomain;
-                            c4err.code = (int)SocketError.ConnectionAborted;
+                            c4err.domain = C4ErrorDomain.POSIXDomain;
+                            c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNRESET));
                         }
                     #endif
                         break;
