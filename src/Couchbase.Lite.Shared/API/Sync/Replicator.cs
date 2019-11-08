@@ -79,7 +79,7 @@ namespace Couchbase.Lite.Sync
         private IReachability _reachability;
         private C4Replicator* _repl;
         private int _retryCount;
-        private bool _stopping;
+        private bool _stopping = true;
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
 
         #endregion
@@ -228,6 +228,11 @@ namespace Couchbase.Lite.Sync
             {
                 if (_disposed) {
                     throw new ObjectDisposedException(CouchbaseLiteErrorMessage.ReplicatorDisposed);
+                }
+
+                if(_stopping == false) {
+                    WriteLog.To.Sync.W(Tag, $"{this} has already started");
+                    return;
                 }
 
                 WriteLog.To.Sync.I(Tag, $"{this}: Starting");
