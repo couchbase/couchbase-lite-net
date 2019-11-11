@@ -45,7 +45,7 @@
     <DefineConstants>$(DefineConstants);NEEDS_LITECORE_LOAD</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.1" />
     <DotNetCliToolReference Condition=" !$(Configuration.StartsWith('Debug')) "  Include="dotnet-sourcelink" Version="2.1.2" />
     <PackageReference Include="SimpleInjector" Version="4.0.12" />
     <PackageReference Condition=" !$(Configuration.StartsWith('Debug')) "  Include="SourceLink.Create.GitHub" Version="2.7.5" PrivateAssets="all" />
