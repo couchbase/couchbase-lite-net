@@ -118,7 +118,7 @@ namespace Couchbase.Lite
         /// The RevisionID format is opaque, which means it's format has no meaning and shouldn’t be parsed to get information.
         /// </summary>
         [CanBeNull]
-        public string RevisionID => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.revID.CreateString() : null;
+        public string RevisionID { get; private set; }
 
         /// <summary>
         /// Gets the sequence of this document (a unique incrementing number
@@ -164,9 +164,10 @@ namespace Couchbase.Lite
             });
         }
 
-        internal Document([CanBeNull] Database database, [NotNull] string id, FLDict* body)
+        internal Document([CanBeNull] Database database, [NotNull] string id, string revId, FLDict* body)
             : this(database, id, default(C4DocumentWrapper))
         {
+            RevisionID = ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.revID.CreateString() : revId);
             Data = body;
             UpdateDictionary();
         }

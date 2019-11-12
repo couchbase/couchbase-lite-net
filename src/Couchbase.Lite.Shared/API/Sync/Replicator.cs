@@ -317,7 +317,7 @@ namespace Couchbase.Lite.Sync
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
         #endif
-        private static bool PullValidateCallback(FLSlice docID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
+        private static bool PullValidateCallback(FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             if (replicator == null) {
@@ -333,13 +333,13 @@ namespace Couchbase.Lite.Sync
             }
 
             var flags = revisionFlags.ToDocumentFlags();
-            return replicator.PullValidateCallback(docIDStr, dict, flags);
+            return replicator.PullValidateCallback(docIDStr, revID.CreateString(), dict, flags);
         }
 
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
         #endif
-        private static bool PushFilterCallback(FLSlice docID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
+        private static bool PushFilterCallback(FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             if (replicator == null) {
@@ -355,7 +355,7 @@ namespace Couchbase.Lite.Sync
             }
 
             var flags = revisionFlags.ToDocumentFlags();
-            return replicator.PushFilterCallback(docIDStr, dict, flags);
+            return replicator.PushFilterCallback(docIDStr, revID.CreateString(), dict, flags);
         }
 
         private static TimeSpan RetryDelay(int retryCount)
@@ -432,9 +432,10 @@ namespace Couchbase.Lite.Sync
             });
         }
 
-        private bool filterCallback(Func<Document, DocumentFlags, bool> filterFunction, string docID, FLDict* value, DocumentFlags flags)
+        private bool filterCallback(Func<Document, DocumentFlags, bool> filterFunction, string docID, string revID, FLDict* value, DocumentFlags flags)
         {
-             return filterFunction(new Document(Config.Database, docID, value), flags);
+            var doc = new Document(Config.Database, docID, revID, value);
+             return filterFunction(doc, flags);
         }
 
         private bool IsPermanentError(C4Error error, out bool transient)
@@ -544,14 +545,14 @@ namespace Couchbase.Lite.Sync
             _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(replications, pushing));
         }
 
-        private bool PullValidateCallback(string docID, FLDict* value, DocumentFlags flags)
+        private bool PullValidateCallback(string docID, string revID, FLDict* value, DocumentFlags flags)
         {
-            return filterCallback(Config.PullFilter, docID, value, flags);
+            return filterCallback(Config.PullFilter, docID, revID, value, flags);
         }
 
-        private bool PushFilterCallback([NotNull]string docID, FLDict* value, DocumentFlags flags)
+        private bool PushFilterCallback([NotNull]string docID, string revID, FLDict* value, DocumentFlags flags)
         {
-            return Config.PushFilter(new Document(Config.Database, docID, value), flags);
+            return Config.PushFilter(new Document(Config.Database, docID, revID, value), flags);
         }
 
         private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)
