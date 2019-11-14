@@ -41,6 +41,8 @@ namespace Couchbase.Lite
     {
         #region Variables
 
+        private string _revId;
+
         private C4DocumentWrapper _c4Doc;
 
         /// <summary>
@@ -118,7 +120,7 @@ namespace Couchbase.Lite
         /// The RevisionID format is opaque, which means it's format has no meaning and shouldn’t be parsed to get information.
         /// </summary>
         [CanBeNull]
-        public string RevisionID { get; private set; }
+        public string RevisionID => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.revID.CreateString() : _revId);
 
         /// <summary>
         /// Gets the sequence of this document (a unique incrementing number
@@ -167,9 +169,9 @@ namespace Couchbase.Lite
         internal Document([CanBeNull] Database database, [NotNull] string id, string revId, FLDict* body)
             : this(database, id, default(C4DocumentWrapper))
         {
-            RevisionID = ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.revID.CreateString() : revId);
             Data = body;
             UpdateDictionary();
+            _revId = revId;
         }
 
         internal Document([NotNull]Document other)

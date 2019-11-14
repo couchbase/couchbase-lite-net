@@ -206,6 +206,7 @@ namespace Test
                     nestedBlob.Should().NotBeNull("because the actual blob object should be intact");
                     var gotContent = nestedBlob.Content;
                     gotContent.Should().BeNull("because the blob is not yet available");
+                    doc.RevisionID.Should().NotBeNull();
                 } catch (Exception e) {
                     exceptions.Add(e);
                 }
@@ -219,6 +220,7 @@ namespace Test
                     var gotContent = doc.GetDictionary("outer_dict")?.GetBlob("inner_blob")?.Content;
                     gotContent.Should().NotBeNull("because the nested blob should be intact in the push");
                     gotContent.Should().ContainInOrder(content1, "because the nested blob should be intact in the push");
+                    doc.RevisionID.Should().NotBeNull();
                 } catch (Exception e) {
                     exceptions.Add(e);
                 }
@@ -1904,7 +1906,7 @@ namespace Test
             if (flags != 0) {
                 return document.Id == "pass";
             }
-
+            document.RevisionID.Should().NotBeNull();
             var name = document.GetString("name");
             return name == "pass";
         }
