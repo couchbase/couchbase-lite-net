@@ -198,7 +198,7 @@ namespace Test
                     doc.GetInt("Two").Should().Be(2);
                     doc.RevisionID.Should().NotBeNull();
                     Action act = () => doc.ToMutable();
-                    act.Should().Throw<CouchbaseLiteException>()
+                    act.Should().Throw<InvalidOperationException>()
                       .WithMessage(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
                 } catch (Exception e) {
                     exceptions.Add(e);
@@ -213,7 +213,7 @@ namespace Test
                     doc.GetInt("One").Should().Be(1);
                     doc.RevisionID.Should().NotBeNull();
                     Action act = () => doc.ToMutable();
-                    act.Should().Throw<CouchbaseLiteException>()
+                    act.Should().Throw<InvalidOperationException>()
                       .WithMessage(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
                     
                 } catch (Exception e) {
