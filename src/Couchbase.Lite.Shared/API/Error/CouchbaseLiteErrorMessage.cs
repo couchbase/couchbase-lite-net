@@ -58,6 +58,7 @@ namespace Couchbase.Lite
         internal const string NoAliasInJoin = "The default database must have an alias in order to use a JOIN statement (Make sure your data source uses the As() function).";
         internal const string InvalidQueryDBNull = "Invalid query: The database is null.";
         internal const string InvalidQueryMissingSelectOrFrom = "Invalid query: missing Select or From.";
+        internal const string NoDocEditInReplicationFilter = "Documents from a replication filter cannot be edited.";
     }
 }
 

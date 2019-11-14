@@ -180,6 +180,54 @@ namespace Test
         }
 
         [Fact]
+        public void TestRevisionIdInPushPullFilters()
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetInt("One", 1);
+                Db.Save(doc1);
+                doc2.SetInt("Two", 2);
+                _otherDB.Save(doc2);
+            }
+
+            var config = CreateConfig(true, true, false);
+            var exceptions = new List<Exception>();
+            config.PullFilter = (doc, isPush) =>
+            {
+                try {
+                    doc.GetInt("Two").Should().Be(2);
+                    doc.RevisionID.Should().NotBeNull();
+                    Action act = () => doc.ToMutable();
+                    act.Should().Throw<CouchbaseLiteException>()
+                      .WithMessage(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
+                } catch (Exception e) {
+                    exceptions.Add(e);
+                }
+
+                return true;
+            };
+
+            config.PushFilter = (doc, isPush) =>
+            {
+                try {
+                    doc.GetInt("One").Should().Be(1);
+                    doc.RevisionID.Should().NotBeNull();
+                    Action act = () => doc.ToMutable();
+                    act.Should().Throw<CouchbaseLiteException>()
+                      .WithMessage(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
+                    
+                } catch (Exception e) {
+                    exceptions.Add(e);
+                }
+
+                return true;
+            };
+
+            RunReplication(config, 0, 0);
+            exceptions.Count.Should().Be(0);
+        }
+
+        [Fact]
         public void TestBlobAccessInFilter()
         {
             var content1 = new byte[] { 1, 2, 3 };

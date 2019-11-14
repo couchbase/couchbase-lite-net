@@ -192,9 +192,18 @@ namespace Couchbase.Lite
         /// Creates a mutable version of a document (i.e. one that
         /// can be edited)
         /// </summary>
+        /// <exception cref="CouchbaseLiteException">
+        /// CouchbaseLiteException thrown when trying edit Documents from a replication filter.
+        /// </exception>
         /// <returns>A mutable version of the document</returns>
         [NotNull]
-        public virtual MutableDocument ToMutable() => new MutableDocument(this);
+        public virtual MutableDocument ToMutable() {
+            if (_revId != null) {
+                throw new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
+            }
+
+            return new MutableDocument(this);
+        }
 
 #if CBL_LINQ
         public T ToModel<T>() where T : class, Linq.IDocumentModel, new()
