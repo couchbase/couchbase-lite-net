@@ -180,6 +180,54 @@ namespace Test
         }
 
         [Fact]
+        public void TestRevisionIdInPushPullFilters()
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetInt("One", 1);
+                Db.Save(doc1);
+                doc2.SetInt("Two", 2);
+                _otherDB.Save(doc2);
+            }
+
+            var config = CreateConfig(true, true, false);
+            var exceptions = new List<Exception>();
+            config.PullFilter = (doc, isPush) =>
+            {
+                try {
+                    doc.GetInt("Two").Should().Be(2);
+                    doc.RevisionID.Should().NotBeNull();
+                    Action act = () => doc.ToMutable();
+                    act.Should().Throw<InvalidOperationException>()
+                      .WithMessage(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
+                } catch (Exception e) {
+                    exceptions.Add(e);
+                }
+
+                return true;
+            };
+
+            config.PushFilter = (doc, isPush) =>
+            {
+                try {
+                    doc.GetInt("One").Should().Be(1);
+                    doc.RevisionID.Should().NotBeNull();
+                    Action act = () => doc.ToMutable();
+                    act.Should().Throw<InvalidOperationException>()
+                      .WithMessage(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
+                    
+                } catch (Exception e) {
+                    exceptions.Add(e);
+                }
+
+                return true;
+            };
+
+            RunReplication(config, 0, 0);
+            exceptions.Count.Should().Be(0);
+        }
+
+        [Fact]
         public void TestBlobAccessInFilter()
         {
             var content1 = new byte[] { 1, 2, 3 };
@@ -206,6 +254,7 @@ namespace Test
                     nestedBlob.Should().NotBeNull("because the actual blob object should be intact");
                     var gotContent = nestedBlob.Content;
                     gotContent.Should().BeNull("because the blob is not yet available");
+                    doc.RevisionID.Should().NotBeNull();
                 } catch (Exception e) {
                     exceptions.Add(e);
                 }
@@ -219,6 +268,7 @@ namespace Test
                     var gotContent = doc.GetDictionary("outer_dict")?.GetBlob("inner_blob")?.Content;
                     gotContent.Should().NotBeNull("because the nested blob should be intact in the push");
                     gotContent.Should().ContainInOrder(content1, "because the nested blob should be intact in the push");
+                    doc.RevisionID.Should().NotBeNull();
                 } catch (Exception e) {
                     exceptions.Add(e);
                 }
@@ -1904,7 +1954,7 @@ namespace Test
             if (flags != 0) {
                 return document.Id == "pass";
             }
-
+            document.RevisionID.Should().NotBeNull();
             var name = document.GetString("name");
             return name == "pass";
         }

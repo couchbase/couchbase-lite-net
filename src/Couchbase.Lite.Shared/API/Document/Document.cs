@@ -41,6 +41,8 @@ namespace Couchbase.Lite
     {
         #region Variables
 
+        private string _revId;
+
         private C4DocumentWrapper _c4Doc;
 
         /// <summary>
@@ -118,7 +120,7 @@ namespace Couchbase.Lite
         /// The RevisionID format is opaque, which means it's format has no meaning and shouldn’t be parsed to get information.
         /// </summary>
         [CanBeNull]
-        public string RevisionID => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.revID.CreateString() : null;
+        public string RevisionID => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? c4Doc.RawDoc->selectedRev.revID.CreateString() : _revId);
 
         /// <summary>
         /// Gets the sequence of this document (a unique incrementing number
@@ -164,11 +166,12 @@ namespace Couchbase.Lite
             });
         }
 
-        internal Document([CanBeNull] Database database, [NotNull] string id, FLDict* body)
+        internal Document([CanBeNull] Database database, [NotNull] string id, string revId, FLDict* body)
             : this(database, id, default(C4DocumentWrapper))
         {
             Data = body;
             UpdateDictionary();
+            _revId = revId;
         }
 
         internal Document([NotNull]Document other)
@@ -189,9 +192,18 @@ namespace Couchbase.Lite
         /// Creates a mutable version of a document (i.e. one that
         /// can be edited)
         /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// InvalidOperationException thrown when trying edit Documents from a replication filter.
+        /// </exception>
         /// <returns>A mutable version of the document</returns>
         [NotNull]
-        public virtual MutableDocument ToMutable() => new MutableDocument(this);
+        public virtual MutableDocument ToMutable() {
+            if (_revId != null) {
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
+            }
+
+            return new MutableDocument(this);
+        }
 
 #if CBL_LINQ
         public T ToModel<T>() where T : class, Linq.IDocumentModel, new()
