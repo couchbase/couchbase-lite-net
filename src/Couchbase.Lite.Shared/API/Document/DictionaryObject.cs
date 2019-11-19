@@ -86,7 +86,9 @@ namespace Couchbase.Lite
         [NotNull]
         internal readonly MDict _dict = new MDict();
 
-        [NotNull] internal readonly ThreadSafety _threadSafety;
+        [NotNull]
+        internal readonly ThreadSafety _threadSafety;
+
         private List<string> _keys;
 
         #endregion
