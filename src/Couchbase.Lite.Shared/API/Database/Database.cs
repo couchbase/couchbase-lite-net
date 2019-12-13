@@ -1278,6 +1278,8 @@ namespace Couchbase.Lite
                     if (Native.c4doc_dictContainsBlobs((FLDict *)Native.FLDoc_GetRoot(fleeceDoc))) {
                         revFlags |= C4RevisionFlags.HasAttachments;
                     }
+
+                    Native.FLDoc_Release(fleeceDoc);
                 });
             } else if (doc.IsEmpty) {
                 body = EmptyFLSliceResult();
