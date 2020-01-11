@@ -12,7 +12,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Xamarin iOS native libraries and support classes for Couchbase Lite .NET</description>
     <releaseNotes>
-        https://docs.couchbase.com/couchbase-lite/2.6/csharp.html#2-6-0
+        https://docs.couchbase.com/couchbase-lite/2.7/csharp.html#2-7-0
     </releaseNotes>
     <copyright>Copyright 2019</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
