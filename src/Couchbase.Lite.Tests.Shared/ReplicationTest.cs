@@ -1666,6 +1666,40 @@ namespace Test
             TestConflictResolverExceptionThrown(blobFromOtherDbResolver, false, true);
         }
 
+        //CBL-623: Revision flags get cleared while saving resolved document
+        [Fact]
+        public void TestConflictResolverPreservesFlags()
+        {
+            //force conflicts and check flags
+            CreateReplicationConflict("doc1", true);
+
+            var config = CreateConfig(false, true, false);
+            C4DocumentFlags flags = (C4DocumentFlags)0;
+            config.ConflictResolver = new TestConflictResolver((conflict) =>
+            {
+                unsafe
+                {
+                    flags = conflict.LocalDocument.c4Doc.RawDoc->flags;
+                    flags.HasFlag(C4DocumentFlags.DocConflicted).Should().BeTrue();
+                    flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+                    return conflict.LocalDocument;
+                }
+            });
+
+            RunReplication(config, 0, 0);
+
+            using (var doc = Db.GetDocument("doc1")) {
+                doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 6, 6, 6 });
+                unsafe
+                {
+                    flags = doc.c4Doc.RawDoc->flags;
+                }
+            }
+
+            flags.HasFlag(C4DocumentFlags.DocConflicted).Should().BeFalse();
+            flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+        }
+
         private void TestConflictResolverExceptionThrown(TestConflictResolver resolver, bool continueWithWorkingResolver = false, bool withBlob = false)
         {
             CreateReplicationConflict("doc1");
@@ -1750,39 +1784,62 @@ namespace Test
             }
         }
 
-        private void CreateReplicationConflict(string id)
+        private void CreateReplicationConflict(string id, bool checkFlags = false)
         {
-            var oddByteArray = new byte[] { 1, 3, 5 };
+            unsafe
+            {
+                var oddByteArray = new byte[] {1, 3, 5};
+                C4DocumentFlags flags = (C4DocumentFlags)0;
+                using (var doc1 = new MutableDocument(id))
+                {
+                    doc1.SetString("name", "Tiger");
+                    doc1.SetBlob("blob", new Blob("text/plaintext", oddByteArray));
+                    Db.Save(doc1);
+                    if (checkFlags) {
+                        flags = doc1.c4Doc.RawDoc->flags;
+                        flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+                    }
+                }
 
-            using (var doc1 = new MutableDocument(id)) {
-                doc1.SetString("name", "Tiger");
-                doc1.SetBlob("blob", new Blob("text/plaintext", oddByteArray));
-                Db.Save(doc1);
-            }
+                using (var doc1 = new MutableDocument(id))
+                {
+                    doc1.SetString("name", "Tiger");
+                    doc1.SetBlob("blob", new Blob("text/plaintext", oddByteArray));
+                    _otherDB.Save(doc1);
+                    if (checkFlags) {
+                        flags = doc1.c4Doc.RawDoc->flags;
+                        flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+                    }
+                }
 
-            using (var doc1 = new MutableDocument(id)) {
-                doc1.SetString("name", "Tiger");
-                doc1.SetBlob("blob", new Blob("text/plaintext", oddByteArray));
-                _otherDB.Save(doc1);
-            }
+                // Force a conflict
+                using (var doc1a = Db.GetDocument(id))
+                using (var doc1aMutable = doc1a.ToMutable())
+                {
+                    var evilByteArray = new byte[] {6, 6, 6};
 
-            // Force a conflict
-            using (var doc1a = Db.GetDocument(id))
-            using (var doc1aMutable = doc1a.ToMutable()) {
-                var evilByteArray = new byte[] { 6, 6, 6 };
+                    doc1aMutable.SetString("name", "Cat");
+                    doc1aMutable.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
+                    Db.Save(doc1aMutable);
+                    if (checkFlags) {
+                        flags = doc1aMutable.c4Doc.RawDoc->flags;
+                        flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+                    }
+                }
 
-                doc1aMutable.SetString("name", "Cat");
-                doc1aMutable.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
-                Db.Save(doc1aMutable);
-            }
+                using (var doc1a = _otherDB.GetDocument(id))
+                using (var doc1aMutable = doc1a.ToMutable())
+                {
+                    var luckyByteArray = new byte[] {7, 7, 7};
 
-            using (var doc1a = _otherDB.GetDocument(id))
-            using (var doc1aMutable = doc1a.ToMutable()) {
-                var luckyByteArray = new byte[] { 7, 7, 7 };
-
-                doc1aMutable.SetString("name", "Lion");
-                doc1aMutable.SetBlob("blob", new Blob("text/plaintext", luckyByteArray));
-                _otherDB.Save(doc1aMutable);
+                    doc1aMutable.SetString("name", "Lion");
+                    doc1aMutable.SetBlob("blob", new Blob("text/plaintext", luckyByteArray));
+                    _otherDB.Save(doc1aMutable);
+                    if (checkFlags) {
+                        flags = doc1aMutable.c4Doc.RawDoc->flags;
+                        flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+                    }
+                }
             }
         }
 
