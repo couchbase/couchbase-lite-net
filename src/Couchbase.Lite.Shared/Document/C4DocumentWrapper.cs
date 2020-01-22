@@ -60,7 +60,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         protected override void Dispose(bool disposing)
         {
-            Native.c4doc_free(RawDoc);
+            Native.c4doc_release(RawDoc);
         }
 
         public override bool Equals(object obj)

@@ -643,8 +643,13 @@ namespace Couchbase.Lite.Sync
             _databaseThreadSafety.DoLocked(() =>
             {
                 C4Error localErr;
-                _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, otherDB != null ? otherDB.c4db : null,
-                    _nativeParams.C4Params, &localErr);
+                if (otherDB != null) {
+                    _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
+                        &localErr);
+                } else {
+                    _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
+                }
+
                 err = localErr;
                 if (_repl != null) {
                     Native.c4repl_start(_repl);

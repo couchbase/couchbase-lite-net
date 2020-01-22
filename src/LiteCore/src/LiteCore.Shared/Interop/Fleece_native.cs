@@ -1,7 +1,7 @@
 //
 // Fleece_native.cs
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// Copyright (c) 2020 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -267,8 +267,14 @@ namespace LiteCore.Interop
         public static extern FLValue* FLDictIterator_GetValue(FLDictIterator* i);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint FLDictIterator_GetCount(FLDictIterator* i);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool FLDictIterator_Next(FLDictIterator* i);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void FLDictIterator_End(FLDictIterator* i);
 
         // Note: Allocates unmanaged heap memory; should only be used with constants
         public static FLDictKey FLDictKey_Init(string str)

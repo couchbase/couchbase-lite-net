@@ -1062,7 +1062,7 @@ namespace Couchbase.Lite
                 LiteCoreBridge.Check(err => Native.c4db_close(_c4db, err));
             }
 
-            Native.c4db_free(_c4db);
+            Native.c4db_release(_c4db);
             _c4db = null;
         }
 
@@ -1246,8 +1246,8 @@ namespace Couchbase.Lite
 
                     throw;
                 } finally {
-                    Native.c4doc_free(curDoc);
-                    Native.c4doc_free(newDoc);
+                    Native.c4doc_release(curDoc);
+                    Native.c4doc_release(newDoc);
                 }
             });
 

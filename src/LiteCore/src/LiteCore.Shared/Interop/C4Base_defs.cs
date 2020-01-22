@@ -1,7 +1,7 @@
 //
 // C4Base_defs.cs
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// Copyright (c) 2020 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ namespace LiteCore.Interop
         FleeceDomain,
         NetworkDomain,
         WebSocketDomain,
+        MbedTLSDomain,
         MaxErrorDomainPlus1
     }
 
@@ -87,6 +88,10 @@ namespace LiteCore.Interop
         TLSClientCertRejected,
         TLSCertUnknownRoot,
         InvalidRedirect,
+        Unknown,
+        TLSCertRevoked,
+        TLSCertNameMismatch,
+        NumNetErrorCodesPlus1
     }
 
     internal enum C4LogLevel : sbyte
@@ -111,6 +116,87 @@ namespace LiteCore.Interop
         }
     }
     
+
+	internal unsafe partial struct C4BlobKey
+    {
+        public fixed byte bytes[20];
+    }
+
+	internal unsafe partial struct C4Address
+    {
+    }
+
+	internal unsafe struct C4BlobStore
+    {
+    }
+
+	internal unsafe struct C4Cert
+    {
+    }
+
+	internal unsafe struct C4Database
+    {
+    }
+
+	internal unsafe struct C4DatabaseObserver
+    {
+    }
+
+	internal unsafe partial struct C4Document
+    {
+    }
+
+	internal unsafe struct C4DocumentObserver
+    {
+    }
+
+	internal unsafe struct C4DocEnumerator
+    {
+    }
+
+	internal unsafe struct C4KeyPair
+    {
+    }
+
+	internal unsafe struct C4Listener
+    {
+    }
+
+	internal unsafe struct C4Query
+    {
+    }
+
+	internal unsafe partial struct C4QueryEnumerator
+    {
+    }
+
+	internal unsafe struct C4QueryObserver
+    {
+    }
+
+	internal unsafe partial struct C4RawDocument
+    {
+    }
+
+	internal unsafe struct C4ReadStream
+    {
+    }
+
+	internal unsafe struct C4Replicator
+    {
+    }
+
+	internal unsafe partial struct C4Socket
+    {
+    }
+
+	internal unsafe partial struct C4SocketFactory
+    {
+    }
+
+	internal unsafe struct C4WriteStream
+    {
+    }
 
 	internal unsafe partial struct C4Error
     {

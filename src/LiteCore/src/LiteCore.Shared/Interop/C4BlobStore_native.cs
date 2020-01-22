@@ -1,7 +1,7 @@
 //
 // C4BlobStore_native.cs
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// Copyright (c) 2020 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -100,9 +100,6 @@ namespace LiteCore.Interop
         public static extern bool c4stream_seek(C4ReadStream* stream, ulong position, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4stream_close(C4ReadStream* stream);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4WriteStream* c4blob_openWriteStream(C4BlobStore* store, C4Error* outError);
 
         public static bool c4stream_write(C4WriteStream* stream, byte[] bytes, ulong length, C4Error* outError)
@@ -117,9 +114,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4stream_install(C4WriteStream* stream, C4BlobKey* expectedKey, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4stream_closeWriter(C4WriteStream* stream);
 
 
     }

@@ -1,7 +1,7 @@
 //
 // C4DocEnumerator_defs.cs
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// Copyright (c) 2020 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ namespace LiteCore.Interop
     internal enum C4EnumeratorFlags : ushort
     {
         Descending           = 0x01,
+        Unsorted             = 0x02,
         IncludeDeleted       = 0x08,
         IncludeNonConflicted = 0x10,
         IncludeBodies        = 0x20
@@ -47,9 +48,5 @@ namespace LiteCore.Interop
         public ulong sequence;
         public ulong bodySize;
         public long expiration;
-    }
-
-	internal unsafe struct C4DocEnumerator
-    {
     }
 }

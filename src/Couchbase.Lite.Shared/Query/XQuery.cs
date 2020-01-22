@@ -139,7 +139,7 @@ namespace Couchbase.Lite.Internal.Query
                     }
 
                     _history.Clear();
-                    Native.c4query_free(_c4Query);
+                    Native.c4query_release(_c4Query);
                     _c4Query = null;
                     _disposalWatchdog.Dispose();
                 });
@@ -147,7 +147,7 @@ namespace Couchbase.Lite.Internal.Query
             else {
                 // Database is not valid inside finalizer, but thread safety
                 // is guaranteed
-                Native.c4query_free(_c4Query);
+                Native.c4query_release(_c4Query);
                 _c4Query = null;
             }
         }
@@ -188,7 +188,7 @@ namespace Couchbase.Lite.Internal.Query
                     _columnNames = CreateColumnNames(query);
                 }
 
-                Native.c4query_free(_c4Query);
+                Native.c4query_release(_c4Query);
                 _c4Query = query;
                 return true;
             });

@@ -1,7 +1,7 @@
 //
 // C4Database_native.cs
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// Copyright (c) 2020 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,6 +34,13 @@ namespace LiteCore.Interop
             }
         }
 
+        public static C4Database* c4db_openNamed(string name, C4DatabaseConfig2* config, C4Error* outError)
+        {
+            using(var name_ = new C4String(name)) {
+                return NativeRaw.c4db_openNamed(name_.AsFLSlice(), config, outError);
+            }
+        }
+
         public static bool c4db_copy(string sourcePath, string destinationPath, C4DatabaseConfig* config, C4Error* error)
         {
             using(var sourcePath_ = new C4String(sourcePath))
@@ -41,12 +48,6 @@ namespace LiteCore.Interop
                 return NativeRaw.c4db_copy(sourcePath_.AsFLSlice(), destinationPath_.AsFLSlice(), config, error);
             }
         }
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Database* c4db_retain(C4Database* db);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4db_free(C4Database* database);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -125,9 +126,6 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_isInTransaction(C4Database* database);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4raw_free(C4RawDocument* rawDoc);
-
         public static C4RawDocument* c4raw_get(C4Database* database, string storeName, string docID, C4Error* outError)
         {
             using(var storeName_ = new C4String(storeName))
@@ -153,6 +151,9 @@ namespace LiteCore.Interop
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Database* c4db_open(FLSlice path, C4DatabaseConfig* config, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4Database* c4db_openNamed(FLSlice name, C4DatabaseConfig2* config, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

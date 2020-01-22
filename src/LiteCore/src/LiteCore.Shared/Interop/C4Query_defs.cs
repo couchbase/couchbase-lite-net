@@ -1,7 +1,7 @@
 //
 // C4Query_defs.cs
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// Copyright (c) 2020 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,18 +31,6 @@ namespace LiteCore.Interop
         N1QLQuery,
     }
 
-    internal enum C4IndexType : uint
-    {
-        ValueIndex,
-        FullTextIndex,
-        ArrayIndex,
-        PredictiveIndex,
-    }
-
-	internal unsafe struct C4Query
-    {
-    }
-
 	internal unsafe partial struct C4QueryOptions
     {
         private byte _rankFullText;
@@ -67,61 +55,11 @@ namespace LiteCore.Interop
         public uint length;
     }
 
-	internal unsafe struct C4QueryEnumerator
+	internal unsafe partial struct C4QueryEnumerator
     {
         public FLArrayIterator columns;
         public ulong missingColumns;
         public uint fullTextMatchCount;
         public C4FullTextMatch* fullTextMatches;
-    }
-
-	internal unsafe partial struct C4IndexOptions
-    {
-        private IntPtr _language;
-        private byte _ignoreDiacritics;
-        private byte _disableStemming;
-        private IntPtr _stopWords;
-
-        public string language
-        {
-            get {
-                return Marshal.PtrToStringAnsi(_language);
-            }
-            set {
-                var old = Interlocked.Exchange(ref _language, Marshal.StringToHGlobalAnsi(value));
-                Marshal.FreeHGlobal(old);
-            }
-        }
-
-        public bool ignoreDiacritics
-        {
-            get {
-                return Convert.ToBoolean(_ignoreDiacritics);
-            }
-            set {
-                _ignoreDiacritics = Convert.ToByte(value);
-            }
-        }
-
-        public bool disableStemming
-        {
-            get {
-                return Convert.ToBoolean(_disableStemming);
-            }
-            set {
-                _disableStemming = Convert.ToByte(value);
-            }
-        }
-
-        public string stopWords
-        {
-            get {
-                return Marshal.PtrToStringAnsi(_stopWords);
-            }
-            set {
-                var old = Interlocked.Exchange(ref _stopWords, Marshal.StringToHGlobalAnsi(value));
-                Marshal.FreeHGlobal(old);
-            }
-        }
     }
 }

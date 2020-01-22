@@ -1,7 +1,7 @@
 //
 // C4Document_defs.cs
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// Copyright (c) 2020 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ namespace LiteCore.Interop
         public FLSlice body;
     }
 
-	internal unsafe struct C4Document
+	internal unsafe partial struct C4Document
     {
         public C4DocumentFlags flags;
         public FLHeapSlice docID;
