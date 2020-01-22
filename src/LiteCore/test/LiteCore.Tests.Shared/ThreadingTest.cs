@@ -158,7 +158,7 @@ namespace LiteCore.Tests
         private void CloseDB(C4Database* db)
         {
             Native.c4db_close(db, null);
-            Native.c4db_free(db);
+            Native.c4db_release(db);
         }
     }
 }

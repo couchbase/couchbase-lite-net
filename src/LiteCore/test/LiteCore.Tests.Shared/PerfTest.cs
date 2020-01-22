@@ -65,7 +65,7 @@ namespace LiteCore.Tests
                     var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(Db, docID,
                         true, err));
                     doc->selectedRev.body.size.Should().BeGreaterThan(10);
-                    Native.c4doc_free(doc);
+                    Native.c4doc_release(doc);
                 }
 
                 st.PrintReport("Reading random docs", (uint)readNo, "doc", _output);
@@ -123,8 +123,8 @@ namespace LiteCore.Tests
                 docIDs.Add(artist);
             }
 
-            Native.c4queryenum_free(e);
-            Native.c4query_free(query);
+            Native.c4queryenum_release(e);
+            Native.c4query_release(query);
             if(verbose) {
                 WriteLine();
             }
@@ -189,7 +189,7 @@ namespace LiteCore.Tests
                         return Native.c4doc_put(Db, &localRq, null, c4err);
                     });
                     
-                    Native.c4doc_free(doc);
+                    Native.c4doc_release(doc);
                     ++numDocs;
                 }
 

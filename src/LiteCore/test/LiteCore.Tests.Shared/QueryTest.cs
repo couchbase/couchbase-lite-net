@@ -179,8 +179,8 @@ namespace LiteCore.Tests
                         return Native.c4doc_put(Db, &localRq, null, err);
                     });
 
-                    Native.c4doc_free(doc);
-                    Native.c4doc_free(updatedDoc);
+                    Native.c4doc_release(doc);
+                    Native.c4doc_release(updatedDoc);
                 } finally {
                     LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
                 }
@@ -389,7 +389,7 @@ namespace LiteCore.Tests
 
                 error.code.Should().Be(0, "because otherwise an error occurred during enumeration");
                 i.Should().Be(3, "because that is the number of expected rows");
-                Native.c4queryenum_free(e);
+                Native.c4queryenum_release(e);
             });
         }
 
@@ -426,7 +426,7 @@ namespace LiteCore.Tests
 
                 error.code.Should().Be(0, "because otherwise an error occurred during enumeration");
                 i.Should().Be(3, "because that is the number of expected rows");
-                Native.c4queryenum_free(e);
+                Native.c4queryenum_release(e);
             });
         }
 
@@ -454,7 +454,7 @@ namespace LiteCore.Tests
 
                 error.code.Should().Be(0, "because otherwise an error occurred during enumeration");
                 i.Should().Be(1, "because there is only one result for the query");
-                Native.c4queryenum_free(e);
+                Native.c4queryenum_release(e);
             });
         }
 
@@ -493,7 +493,7 @@ namespace LiteCore.Tests
 
                 error.code.Should().Be(0);
                 i.Should().Be(expectedRowCount);
-                Native.c4queryenum_free(e);
+                Native.c4queryenum_release(e);
             });
         }
 
@@ -528,7 +528,7 @@ namespace LiteCore.Tests
 
                 error.code.Should().Be(0);
                 i.Should().Be(3, "because there should be three resulting rows");
-                Native.c4queryenum_free(e);
+                Native.c4queryenum_release(e);
             });
         }
 
@@ -559,7 +559,7 @@ namespace LiteCore.Tests
                 Native.c4queryenum_seek(e, 100, &error).Should().BeFalse();
                 error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
                 error.code.Should().Be((int) C4ErrorCode.InvalidParameter);
-                Native.c4queryenum_free(e);
+                Native.c4queryenum_release(e);
             });
         }
 

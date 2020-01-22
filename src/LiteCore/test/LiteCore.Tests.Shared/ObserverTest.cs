@@ -150,7 +150,7 @@ namespace LiteCore.Tests
                     _dbCallbackCalls.Should().Be(2, "because the observer was disposed");
 
                     LiteCoreBridge.Check(err => Native.c4db_close(otherdb, err));
-                    Native.c4db_free(otherdb);
+                    Native.c4db_release(otherdb);
                 }
                 finally
                 {

@@ -67,7 +67,7 @@ namespace LiteCore.Tests
             }
 
             error.code.Should().Be(0, "because otherwise an error occurred during enumeration");
-            Native.c4queryenum_free(e);
+            Native.c4queryenum_release(e);
             return returnList;
         }
 
@@ -120,7 +120,7 @@ namespace LiteCore.Tests
         internal C4Query* CompileSelect(string queryString)
         {
             WriteLine($"Query = {queryString}");
-            Native.c4query_free(_query);
+            Native.c4query_release(_query);
             _query = (C4Query*)LiteCoreBridge.Check(err => Native.c4query_new(Db, queryString, err));
             return _query;
         }
@@ -133,7 +133,7 @@ namespace LiteCore.Tests
 
         protected override void TeardownVariant(int option)
         {
-            Native.c4query_free(_query);
+            Native.c4query_release(_query);
             _query = null;
             base.TeardownVariant(option);
         }
