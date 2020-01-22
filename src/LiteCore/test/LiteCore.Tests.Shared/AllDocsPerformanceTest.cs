@@ -76,7 +76,7 @@ namespace LiteCore.Tests
                         rq.save = true;
                         var doc = Native.c4doc_put(Db, &rq, null, &err);
                         ((long)doc).Should().NotBe(0, $"because otherwise the put failed");
-                        Native.c4doc_free(doc);
+                        Native.c4doc_release(doc);
                     }
                 }
             }

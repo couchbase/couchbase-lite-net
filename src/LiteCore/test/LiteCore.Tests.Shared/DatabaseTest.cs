@@ -98,7 +98,7 @@ namespace LiteCore.Tests
                     info.bodySize.Should().BeGreaterOrEqualTo(11).And
                         .BeLessOrEqualTo(40, "because the body should have some data");
 
-                    Native.c4doc_free(doc);
+                    Native.c4doc_release(doc);
                     i++;
                 }
 
@@ -181,7 +181,7 @@ namespace LiteCore.Tests
                     doc->selectedRev.sequence.Should().Be(seq, "because the sequence numbers should be ascending");
                     var docID = $"doc-{seq:D3}";
                     doc->docID.CreateString().Should().Be(docID, "because the doc should have the correct doc ID");
-                    Native.c4doc_free(doc);
+                    Native.c4doc_release(doc);
                     seq++;
                 }
 
@@ -198,7 +198,7 @@ namespace LiteCore.Tests
                     doc->selectedRev.sequence.Should().Be(seq, "because the sequence numbers should be ascending");
                     var docID = $"doc-{seq:D3}";
                     doc->docID.CreateString().Should().Be(docID, "because the doc should have the correct doc ID");
-                    Native.c4doc_free(doc);
+                    Native.c4doc_release(doc);
                     seq++;
                 }
 
@@ -452,7 +452,7 @@ namespace LiteCore.Tests
                 Native.c4doc_setExpiration(Db, docID, expire, &error);
 
                 Native.c4db_nextDocExpiration(db2).Should().Be(expire);
-                Native.c4db_free(db2);
+                Native.c4db_release(db2);
             });
         }
 
@@ -473,7 +473,7 @@ namespace LiteCore.Tests
                 var path = Native.c4db_getPath(bundle);
                 path.Should().Be(bundlePath, "because the database should store the correct path");
                 LiteCoreBridge.Check(err => Native.c4db_close(bundle, err));
-                Native.c4db_free(bundle);
+                Native.c4db_release(bundle);
 
                 // Reopen without the 'create' flag:
                 config.flags &= ~C4DatabaseFlags.Create;
@@ -483,7 +483,7 @@ namespace LiteCore.Tests
                     return Native.c4db_open(bundlePath, &localConfig, err);
                 });
                 LiteCoreBridge.Check(err => Native.c4db_close(bundle, err));
-                Native.c4db_free(bundle);
+                Native.c4db_release(bundle);
 
                 // Reopen with wrong storage type:
                 NativePrivate.c4log_warnOnErrors(false);
@@ -573,7 +573,7 @@ namespace LiteCore.Tests
                     LiteCoreBridge.Check(err => Native.c4db_delete(nudb, err));
                 }
                 finally {
-                    Native.c4db_free(nudb);
+                    Native.c4db_release(nudb);
                 }
 
                 nudb = (C4Database*)LiteCoreBridge.Check(err =>
@@ -587,7 +587,7 @@ namespace LiteCore.Tests
                     Native.c4db_getDocumentCount(nudb).Should().Be(1L, "because a document was inserted");
                 }
                 finally {
-                    Native.c4db_free(nudb);
+                    Native.c4db_release(nudb);
                 }
 
                 var originalDest = destPath;
@@ -610,7 +610,7 @@ namespace LiteCore.Tests
                     Native.c4db_getDocumentCount(nudb).Should().Be(1L, "because the original database should remain");
                 }
                 finally {
-                    Native.c4db_free(nudb);
+                    Native.c4db_release(nudb);
                 }
 
                 var originalSrc = srcPath;
@@ -629,7 +629,7 @@ namespace LiteCore.Tests
                     Native.c4db_getDocumentCount(nudb).Should().Be(1L, "because the original database should remain");
                 }
                 finally {
-                    Native.c4db_free(nudb);
+                    Native.c4db_release(nudb);
                 }
 
                 srcPath = originalSrc;
@@ -646,7 +646,7 @@ namespace LiteCore.Tests
                     LiteCoreBridge.Check(err => Native.c4db_delete(nudb, err));
                 }
                 finally {
-                    Native.c4db_free(nudb);
+                    Native.c4db_release(nudb);
                 }
             });
         }

@@ -132,7 +132,7 @@ namespace LiteCore.Tests
         {
             var config = *Native.c4db_getConfig(Db);
             LiteCoreBridge.Check(err => Native.c4db_delete(Db, err));
-            Native.c4db_free(Db);
+            Native.c4db_release(Db);
             Db = (C4Database*)LiteCoreBridge.Check(err =>
            {
                var localConfig = config;
@@ -173,7 +173,7 @@ namespace LiteCore.Tests
             var config = C4DatabaseConfig.Get(Native.c4db_getConfig(Db));
             config.Dispose();
             LiteCoreBridge.Check(err => Native.c4db_delete(Db, err));
-            Native.c4db_free(Db);
+            Native.c4db_release(Db);
             Db = null;
             //if(CurrentException == null) {
             //    Native.c4_getObjectCount().Should().Be(_objectCount, "because otherwise an object was leaked");
@@ -202,8 +202,8 @@ namespace LiteCore.Tests
                         var localRq = rq;
                         return Native.c4doc_put(db, &localRq, null, err);
                     });
-                    Native.c4doc_free(doc);
-                    Native.c4doc_free(curDoc);
+                    Native.c4doc_release(doc);
+                    Native.c4doc_release(curDoc);
                 }
             } finally {
                 LiteCoreBridge.Check(err => Native.c4db_endTransaction(db, true, err));
@@ -311,7 +311,7 @@ namespace LiteCore.Tests
                             var localRq = rq;
                             return Native.c4doc_put(Db, &localRq, null, err);
                         });
-                        Native.c4doc_free(doc);
+                        Native.c4doc_release(doc);
                     }
 
                     Native.FLSliceResult_Release(body);
@@ -347,7 +347,7 @@ namespace LiteCore.Tests
         {
             var config = C4DatabaseConfig.Get(Native.c4db_getConfig(Db));
             LiteCoreBridge.Check(err => Native.c4db_close(Db, err));
-            Native.c4db_free(Db);
+            Native.c4db_release(Db);
             Db = (C4Database *)LiteCoreBridge.Check(err => {
                 var localConfig = config;
                 return Native.c4db_open(DatabasePath(), &localConfig, err);
@@ -358,7 +358,7 @@ namespace LiteCore.Tests
         {
             var config = C4DatabaseConfig.Get(Native.c4db_getConfig(Db));
             LiteCoreBridge.Check(err => Native.c4db_close(Db, err));
-            Native.c4db_free(Db);
+            Native.c4db_release(Db);
             config.flags = (config.flags & ~C4DatabaseFlags.Create) | C4DatabaseFlags.ReadOnly;
             Db = (C4Database *)LiteCoreBridge.Check(err => {
                 var localConfig = config;
@@ -403,7 +403,7 @@ namespace LiteCore.Tests
                 var doc = Native.c4doc_put(Db, &rq, null, &error);
                 Native.FLSliceResult_Release(body);
                 ((long) doc).Should().NotBe(0, "because otherwise the put failed");
-                Native.c4doc_free(doc);
+                Native.c4doc_release(doc);
                 return keys.ToArray();
             }
         }
@@ -489,7 +489,7 @@ namespace LiteCore.Tests
                         return Native.c4doc_put(Db, &localPut, null, err);
                     });
 
-                    Native.c4doc_free(doc);
+                    Native.c4doc_release(doc);
                     Native.FLSliceResult_Release(body);
                     FLSlice.Free(rq.docID);
                     ++numDocs;

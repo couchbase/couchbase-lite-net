@@ -118,7 +118,7 @@ namespace LiteCore.Tests
 
                 newRevID = "1-f00f00";
                 Native.c4doc_selectFirstPossibleAncestorOf(doc, newRevID).Should().BeFalse("because we are at the root");
-                Native.c4doc_free(doc);
+                Native.c4doc_release(doc);
             });
         }
 
@@ -132,7 +132,7 @@ namespace LiteCore.Tests
                 ((long)doc).Should().Be(0, "because the document does not exist");
                 error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
                 error.code.Should().Be((int)C4ErrorCode.NotFound);
-                Native.c4doc_free(doc);
+                Native.c4doc_release(doc);
 
                 // Now get the doc with mustExist=false, which returns an empty doc:
                 doc = (C4Document *)LiteCoreBridge.Check(err => NativeRaw.c4doc_get(Db, DocID, false, err));
@@ -140,7 +140,7 @@ namespace LiteCore.Tests
                 doc->docID.Equals(DocID).Should().BeTrue("because the doc ID should match what was stored");
                 ((long)doc->revID.buf).Should().Be(0, "because the doc has no revision ID yet");
                 ((long)doc->selectedRev.revID.buf).Should().Be(0, "because the doc has no revision ID yet");
-                Native.c4doc_free(doc);
+                Native.c4doc_release(doc);
 
                 LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
                 try {
@@ -162,7 +162,7 @@ namespace LiteCore.Tests
                     doc->selectedRev.revID.Equals(RevID).Should().BeTrue("because the doc should have the stored revID");
                     doc->selectedRev.flags.Should().Be(C4RevisionFlags.Leaf, "because this is a leaf revision");
                     doc->selectedRev.body.Equals(FleeceBody).Should().BeTrue("because the body should be stored correctly");
-                    Native.c4doc_free(doc);
+                    Native.c4doc_release(doc);
                 } finally {
                     LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
                 }
@@ -175,7 +175,7 @@ namespace LiteCore.Tests
                 doc->selectedRev.revID.Equals(RevID).Should().BeTrue("because the doc should have the stored rev ID");
                 doc->selectedRev.sequence.Should().Be(1, "because it is the first stored document");
                 doc->selectedRev.body.Equals(FleeceBody).Should().BeTrue("because the doc should have the stored body");
-                Native.c4doc_free(doc);
+                Native.c4doc_release(doc);
 
                 // Get the doc by its sequence
                 doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_getBySequence(Db, 1, err));
@@ -185,7 +185,7 @@ namespace LiteCore.Tests
                 doc->selectedRev.revID.Equals(RevID).Should().BeTrue("because the doc should have the stored rev ID");
                 doc->selectedRev.sequence.Should().Be(1, "because it is the first stored document");
                 doc->selectedRev.body.Equals(FleeceBody).Should().BeTrue("because the doc should have the stored body");
-                Native.c4doc_free(doc);
+                Native.c4doc_release(doc);
             });
         }
 
@@ -217,7 +217,7 @@ namespace LiteCore.Tests
                     doc->selectedRev.body.Should().Be(FLSlice.Null, "because the body of the old revision should be gone");
                     Native.c4doc_hasRevisionBody(doc).Should().BeFalse("because the body of the old revision should be gone");
                     Native.c4doc_selectParentRevision(doc).Should().BeFalse("because a root revision has no parent");
-                    Native.c4doc_free(doc);
+                    Native.c4doc_release(doc);
 
                     // Add a 3rd revision:
                     CreateRev(docID, Rev3ID, (FLSlice)Body3);
@@ -228,7 +228,7 @@ namespace LiteCore.Tests
                     doc->selectedRev.sequence.Should().Be(2, "because it is the second revision");
                     doc->selectedRev.flags.Should().HaveFlag(C4RevisionFlags.KeepBody, "because the KeepBody flag was saved on the revision");
                     doc->selectedRev.body.Should().Be(Body2, "because the body should load correctly");
-                    Native.c4doc_free(doc);
+                    Native.c4doc_release(doc);
 
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
                     try {
@@ -238,14 +238,14 @@ namespace LiteCore.Tests
                         LiteCoreBridge.Check(err => Native.c4doc_save(doc, 20, err));
                     } finally {
                         LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
-                        Native.c4doc_free(doc);
+                        Native.c4doc_release(doc);
                         doc = null;
                     }
                 }
 
                 Native.FLSliceResult_Release(Body2);
                 Native.FLSliceResult_Release(Body3);
-                Native.c4doc_free(doc);
+                Native.c4doc_release(doc);
             });
         }
 
@@ -278,7 +278,7 @@ namespace LiteCore.Tests
                     try {
                         doc = Native.c4doc_put(Db, &rq, null, &error);
                         ((IntPtr)doc).Should().NotBe(IntPtr.Zero);
-                        Native.c4doc_free(doc);
+                        Native.c4doc_release(doc);
                     } finally {
                         LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
                     }
@@ -309,7 +309,7 @@ namespace LiteCore.Tests
                         LiteCoreBridge.Check(err => Native.c4doc_purgeRevision(doc, null, err));
                         LiteCoreBridge.Check(err => Native.c4doc_save(doc, 0, err));
                     } finally {
-                        Native.c4doc_free(doc);
+                        Native.c4doc_release(doc);
                         LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
                     }
 
@@ -350,7 +350,7 @@ namespace LiteCore.Tests
                             var localPut = rq;
                             return Native.c4doc_put(Db, &localPut, null, err);
                         });
-                        Native.c4doc_free(doc);
+                        Native.c4doc_release(doc);
                         doc = savedDoc;
                     }
                 } finally {
@@ -376,7 +376,7 @@ namespace LiteCore.Tests
                     nRevs.Should().Be(30, "because the tree should be pruned");
                 }
 
-                Native.c4doc_free(doc);
+                Native.c4doc_release(doc);
             });
         }
 
@@ -404,7 +404,7 @@ namespace LiteCore.Tests
                     doc->revID.Equals(expectedRevID).Should().BeTrue("because the doc should have the correct rev ID");
                     doc->flags.Should().Be(C4DocumentFlags.DocExists, "because the document exists");
                     doc->selectedRev.revID.Equals(expectedRevID).Should().BeTrue("because the selected rev should have the correct rev ID");
-                    Native.c4doc_free(doc);
+                    Native.c4doc_release(doc);
 
                     // Update doc:
                     var tmp = new[] { expectedRevID };
@@ -429,7 +429,7 @@ namespace LiteCore.Tests
                     doc->revID.Equals(expectedRev2ID).Should().BeTrue("because the doc should have the updated rev ID");
                     doc->flags.Should().Be(C4DocumentFlags.DocExists, "because the document exists");
                     doc->selectedRev.revID.Equals(expectedRev2ID).Should().BeTrue("because the selected rev should have the correct rev ID");
-                    Native.c4doc_free(doc);
+                    Native.c4doc_release(doc);
 
                     // Insert existing rev that conflicts:
                     Native.FLSliceResult_Release(body);
@@ -457,7 +457,7 @@ namespace LiteCore.Tests
                     doc->selectedRev.revID.Equals(conflictRevID).Should().BeTrue("because the selected rev should have the correct rev ID");
                     doc->revID.Equals(expectedRev2ID).Should().BeTrue("because the conflicting rev should never be the default");
                     Native.FLSliceResult_Release(body);
-                    Native.c4doc_free(doc);
+                    Native.c4doc_release(doc);
                 } finally {
                     LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
                 }
@@ -507,7 +507,7 @@ namespace LiteCore.Tests
                                 err => NativeRaw.c4doc_update(doc, (FLSlice) body, 0, err));
                         doc->selectedRev.revID.Equals(oldRevID).Should().BeTrue();
                         doc->revID.Equals(oldRevID).Should().BeTrue();
-                        Native.c4doc_free(doc);
+                        Native.c4doc_release(doc);
                         doc = updatedDoc;
                         Native.FLSliceResult_Release(body);
                     }
@@ -552,8 +552,8 @@ namespace LiteCore.Tests
                     LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
                 }
 
-                Native.c4doc_free(doc);
-                Native.c4doc_free(doc2);
+                Native.c4doc_release(doc);
+                Native.c4doc_release(doc2);
             });
         }
 
