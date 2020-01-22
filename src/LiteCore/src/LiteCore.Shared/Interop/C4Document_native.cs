@@ -1,7 +1,7 @@
 //
 // C4Document_native.cs
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// Copyright (c) 2020 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40,12 +40,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_save(C4Document* doc, uint maxRevTreeDepth, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Document* c4doc_retain(C4Document* doc);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4doc_free(C4Document* doc);
 
         public static bool c4doc_selectRevision(C4Document* doc, string revID, bool withBody, C4Error* outError)
         {

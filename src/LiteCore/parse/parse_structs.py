@@ -10,9 +10,13 @@ type_map = {"uint32_t":"uint","size_t":"UIntPtr","int32_t":"int","uint8_t":"byte
 bridge_types = ["UIntPtr","string","bool"]
 reverse_bridge_map = {"string":"IntPtr","bool":"byte"}
 skip_types = ["C4FullTextTerm","C4SocketFactory","C4ReplicatorParameters","C4PredictiveModel", "C4ExtraInfo"]
-partials = ["C4Error","C4Slice","C4BlobKey","C4EncryptionKey","C4DatabaseConfig","C4IndexOptions","C4EnumeratorOptions","C4QueryOptions","C4UUID","FLSlice","FLSliceResult","C4FullTextMatch","C4DocPutRequest"]
+partials = ["C4Error","C4Slice","C4BlobKey","C4EncryptionKey","C4DatabaseConfig",
+"C4IndexOptions","C4EnumeratorOptions","C4QueryOptions","C4UUID","FLSlice","FLSliceResult",
+"C4FullTextMatch","C4DocPutRequest","C4Document","C4Address","C4QueryEnumerator","C4RawDocument","C4Socket",
+"C4SocketFactory"]
 delegate_types = ["C4DocDeltaApplier"]
 skip_files = ["c4Listener.h", "Fleece+CoreFoundation.h"]
+
 
 def make_property(name, type):
     tin = open("templates/{}.cs".format(type))
@@ -53,13 +57,22 @@ if __name__ == "__main__":
         fin = open(file, "r")
         variables = []
         structs = {}
-        in_struct = False
+        in_typedef_struct = False
+        in_normal_struct = False
         in_comment = 0
         for line in fin:
-            if in_struct:
-                end = re.search(r'} ([A-Za-z0-9]+);', line)
-                if end:
-                    struct_type = end.group(1)
+            if in_typedef_struct or in_normal_struct:
+                finished = False
+                if in_typedef_struct:
+                    end = re.search(r'} ([A-Za-z0-9]+);', line)
+                    if end:
+                        struct_type = end.group(1)
+                        finished = True
+                else:
+                    if "};" in line:
+                        finished = True
+
+                if finished:
                     if struct_type in skip_types:
                         structs[struct_type] = ["skip"]
                     elif struct_type in delegate_types:
@@ -68,7 +81,7 @@ if __name__ == "__main__":
                         structs[struct_type] = variables
 
                     variables = []
-                    in_struct = False
+                    in_typedef_struct = in_normal_struct = False
                 else:
                     if in_comment > 0:
                         if "*/" in line:
@@ -101,8 +114,14 @@ if __name__ == "__main__":
 
                     variables.append(" ".join([type, name]))
             elif re.search("typedef struct.*?{", line):
-                in_struct = True
+                in_typedef_struct = True
             else:
+                normal_struct = re.search(r'struct (\S*) {', line)
+                if normal_struct:
+                    struct_type = normal_struct.group(1)
+                    in_normal_struct = True
+                    continue
+
                 opaque = re.search("typedef (?:const )?struct (\\S*)\\s+\\*?(\\S*);", line)
                 if opaque:
                     structs[opaque.group(2)] = []

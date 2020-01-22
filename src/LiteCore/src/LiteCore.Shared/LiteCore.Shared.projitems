@@ -15,7 +15,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Base_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Base_native.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4BlobStore.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4BlobStore_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4BlobStore_native.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Database.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Database_defs.cs" />
@@ -27,6 +26,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Document.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Document_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Document_native.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Index_defs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Index_native.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer_native.cs" />

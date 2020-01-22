@@ -1,7 +1,7 @@
 //
 // C4DocEnumerator_native.cs
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// Copyright (c) 2020 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,9 +29,6 @@ namespace LiteCore.Interop
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4enum_close(C4DocEnumerator* e);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4enum_free(C4DocEnumerator* e);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4DocEnumerator* c4db_enumerateChanges(C4Database* database, ulong since, C4EnumeratorOptions* options, C4Error* outError);

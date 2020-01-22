@@ -1,7 +1,7 @@
 //
 // C4Replicator_defs.cs
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// Copyright (c) 2020 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,6 +42,22 @@ namespace LiteCore.Interop
         Busy
     }
 
+    [Flags]
+    internal enum C4ReplicatorStatusFlags : int
+    {
+        WillRetry     = 0x1,
+        HostReachable = 0x2,
+        Suspended     = 0x4
+    }
+
+	internal unsafe partial struct C4Address
+    {
+        public FLSlice scheme;
+        public FLSlice hostname;
+        public ushort port;
+        public FLSlice path;
+    }
+
 	internal unsafe struct C4Progress
     {
         public ulong unitsCompleted;
@@ -54,6 +70,7 @@ namespace LiteCore.Interop
         public C4ReplicatorActivityLevel level;
         public C4Progress progress;
         public C4Error error;
+        public C4ReplicatorStatusFlags flags;
     }
 
 	internal unsafe struct C4DocumentEnded
@@ -74,10 +91,6 @@ namespace LiteCore.Interop
                 _errorIsTransient = Convert.ToByte(value);
             }
         }
-    }
-
-	internal unsafe struct C4Replicator
-    {
     }
 
     internal unsafe partial struct C4ReplicatorParameters

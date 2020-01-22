@@ -1,7 +1,7 @@
 //
 // C4Observer_native.cs
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// Copyright (c) 2020 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,18 +36,12 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4dbobs_releaseChanges(C4DatabaseChange[] changes, uint numChanges);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4dbobs_free(C4DatabaseObserver* observer);
-
         public static C4DocumentObserver* c4docobs_create(C4Database* database, string docID, C4DocumentObserverCallback callback, void* context)
         {
             using(var docID_ = new C4String(docID)) {
                 return NativeRaw.c4docobs_create(database, docID_.AsFLSlice(), callback, context);
             }
         }
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4docobs_free(C4DocumentObserver* observer);
 
 
     }

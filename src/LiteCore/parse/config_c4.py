@@ -1,4 +1,4 @@
-skip_files = ["c4Listener.h"]
+skip_files = ["c4Listener.h","c4Certificate.h"]
 excluded = ["c4log", "c4vlog", "c4error_getMessageC", "c4str", "c4log_getDomain","c4repl_parseURL","c4SliceEqual","c4slice_free"]
 force_no_bridge = ["c4repl_getResponseHeaders","c4repl_new","c4socket_gotHTTPResponse"]
 default_param_name = {"C4SliceResult":"slice","C4WriteStream*":"stream","C4ReadStream*":"stream","C4Error*":"outError",
@@ -12,4 +12,4 @@ type_map = {"int32_t":"int","uint32_t":"uint","int64_t":"long","uint64_t":"ulong
             "FLSharedKeys":"FLSharedKeys*","char*":"byte*","FLEncoder":"FLEncoder*","C4LogDomain":"C4LogDomain*",
             "FLDict":"FLDict*","C4FullTextID":"ulong","C4RemoteID":"uint","C4String*":"FLSlice*","FLDoc":"FLDoc*",
             "C4Timestamp": "long"}
-reserved = ["string","params"]
+reserved = ["string","params","ref"]

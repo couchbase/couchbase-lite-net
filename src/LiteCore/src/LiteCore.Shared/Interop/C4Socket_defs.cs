@@ -1,7 +1,7 @@
 //
 // C4Socket_defs.cs
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// Copyright (c) 2020 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -49,20 +49,12 @@ namespace LiteCore.Interop
         WebSocketServerFraming,
     }
 
-	internal unsafe struct C4Address
-    {
-        public FLSlice scheme;
-        public FLSlice hostname;
-        public ushort port;
-        public FLSlice path;
-    }
-
-	internal unsafe struct C4Socket
+	internal unsafe partial struct C4Socket
     {
         public void* nativeHandle;
     }
 
-    internal unsafe struct C4SocketFactory
+    internal unsafe partial struct C4SocketFactory
     {
         public C4SocketFraming framing;
         public void* context;

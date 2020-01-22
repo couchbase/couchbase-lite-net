@@ -25,6 +25,8 @@ import re
 import argparse
 import importlib
 
+seen_functions = set()
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Parses C++ headers into an abstract representation for processing")
 
@@ -85,6 +87,9 @@ if __name__ == "__main__":
 
         for function in cppHeader.functions:
             fn_name = function["name"]
+            if fn_name in seen_functions:
+                continue
+
             if fn_name in excluded or (symbol_list and not fn_name in symbol_list):
                 continue
 
@@ -92,7 +97,8 @@ if __name__ == "__main__":
                 lines.append(literals[fn_name])
                 continue
 
-            return_type = function["rtnType"].replace(" ","").replace("struct_","").replace("struct","").replace("const","")
+            seen_functions.add(fn_name)
+            return_type = function["rtnType"].replace(" ","").replace("struct_","").replace("struct","").replace("const","").replace("staticinline","")
             if return_type in type_map:
                 return_type = type_map[return_type]
 

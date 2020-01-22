@@ -44,7 +44,7 @@ namespace Couchbase.Lite.Internal.Query
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
-            Native.c4queryenum_free(_enumerator);
+            Native.c4queryenum_release(_enumerator);
         }
 
         #endregion

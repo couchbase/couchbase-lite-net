@@ -1,7 +1,7 @@
 //
 // C4Database_defs.cs
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// Copyright (c) 2020 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -84,16 +84,12 @@ namespace LiteCore.Interop
         public C4EncryptionKey encryptionKey;
     }
 
-	internal unsafe struct C4Database
-    {
-    }
-
 	internal unsafe partial struct C4UUID
     {
         public fixed byte bytes[16];
     }
 
-	internal unsafe struct C4RawDocument
+	internal unsafe partial struct C4RawDocument
     {
         public FLSlice key;
         public FLSlice meta;
