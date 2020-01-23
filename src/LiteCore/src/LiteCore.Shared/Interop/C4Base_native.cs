@@ -37,28 +37,16 @@ namespace LiteCore.Interop
         public static extern void c4base_release(void* obj);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Database* c4db_retain(C4Database* @ref);
+        public static extern C4Document* c4doc_retain(C4Document* r);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4db_release(C4Database* @ref);
+        public static extern void c4doc_release(C4Document* r);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Query* c4query_retain(C4Query* @ref);
+        public static extern C4QueryEnumerator* c4queryenum_retain(C4QueryEnumerator* r);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4query_release(C4Query* @ref);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Document* c4doc_retain(C4Document* @ref);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4doc_release(C4Document* @ref);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4QueryEnumerator* c4queryenum_retain(C4QueryEnumerator* @ref);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4queryenum_release(C4QueryEnumerator* @ref);
+        public static extern void c4queryenum_release(C4QueryEnumerator* r);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4dbobs_free(C4DatabaseObserver* observer);
@@ -83,6 +71,14 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern int c4_getObjectCount();
+
+        public static void c4db_release(C4Database* db) => c4base_release(db);
+
+        public static void* c4db_retain(C4Database* db) => c4base_retain(db);
+
+        public static void c4query_release(C4Query* query) => c4base_release(query);
+
+        public static void FLSliceResult_Release(FLSliceResult flSliceResult) => _FLBuf_Release(flSliceResult.buf);
 
         public static string c4error_getMessage(C4Error error)
         {

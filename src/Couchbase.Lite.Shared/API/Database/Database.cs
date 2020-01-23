@@ -278,7 +278,7 @@ namespace Couchbase.Lite
         {
             Name = "tmp";
             Config = new DatabaseConfiguration(true);
-            _c4db = Native.c4db_retain(c4db);
+            _c4db = (C4Database*)Native.c4db_retain(c4db);
             IsShell = true;
         }
 

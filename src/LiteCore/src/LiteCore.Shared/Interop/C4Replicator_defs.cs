@@ -105,16 +105,6 @@ namespace LiteCore.Interop
         public IntPtr onBlobProgress;
         public void* callbackContext;
         public C4SocketFactory* socketFactory;
-        private byte _dontStart;
-        public bool dontStart
-        {
-            get {
-                return Convert.ToBoolean(_dontStart);
-            }
-            set {
-                _dontStart = Convert.ToByte(value);
-            }
-        }
     }
 
 }
