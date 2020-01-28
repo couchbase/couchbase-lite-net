@@ -17,6 +17,7 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -108,8 +109,9 @@ namespace Test
         [Fact]
         public void TestAddObjects()
         {
-            var array = new MutableArrayObject();
-            PopulateData(array);
+            var data = (IList)CreateArrayOfAllTypes();
+            var array = new MutableArrayObject(data);
+            //PopulateData(array);
             var doc = new MutableDocument("doc1");
 
             SaveArray(array, doc, "array", a =>
@@ -880,6 +882,20 @@ namespace Test
         }
 
         [Fact]
+        public void TestAddDateTime()
+        {
+            var array = new MutableArrayObject();
+            array.AddValue(new DateTimeOffset(DateTime.Now));
+            using (var doc = new MutableDocument("doc1")) {
+                SaveArray(array, doc, "array", a =>
+                {
+                    a.Count.Should().Be(1);
+                    a.GetValue(0).Should().NotBeNull();
+                });
+            }
+        }
+
+        [Fact]
         public void TestAddInt()
         {
             using (var mDoc = new MutableDocument("test")) {
@@ -1195,6 +1211,7 @@ namespace Test
                 mArray.AddString("");
                 mArray.AddString("Hello");
                 mArray.AddString("World");
+                mArray.AddString("This is a test test test test test test test test test test");
                 mDoc.SetArray("array", mArray);
                 SaveDocument(mDoc, doc =>
                 {
