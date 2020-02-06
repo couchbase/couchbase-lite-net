@@ -145,6 +145,50 @@ namespace Test
         }
 
         [Fact]
+        public void TestSaveImageBlobTwice()
+        {
+            byte[] bytes = null;
+            using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("attachment.png"))
+            using (var sr = new BinaryReader(stream)) {
+                bytes = sr.ReadBytes((int)stream.Length);
+            }
+
+            var doc1 = new Document(Db, "doc1");
+            var doc2 = new MutableDocument(Db, "doc2");
+
+            using (var mDoc = doc1.ToMutable())
+            using (var mDoc2 = doc2.ToMutable()) {
+                try {
+                    mDoc.SetString("string", "this is a doc with image.");
+                    mDoc.SetBlob("blob", new Blob("image/png", bytes));
+                    Db.Save(mDoc);
+                } catch (Exception ex) {
+                    throw new Exception("Failed to save image", ex);
+                }
+                try {
+                    mDoc2.SetString("string", "this is a doc with image.");
+                    mDoc2.SetBlob("blob", new Blob("image/png", bytes));
+                    Db.Save(mDoc2);
+                } catch (Exception ex) {
+                    throw new Exception("Failed to save same image", ex);
+                }
+            }
+
+            using (var doc = Db.GetDocument("doc1"))
+            using (var doc3 = Db.GetDocument("doc2")) {
+                var savedBlob = doc.GetBlob("blob");
+                savedBlob.Should().NotBeNull();
+                savedBlob.ContentType.Should().Be("image/png");
+                savedBlob.Content.Should().Equal(bytes);
+
+                var savedBlob1 = doc3.GetBlob("blob");
+                savedBlob1.Should().NotBeNull();
+                savedBlob1.ContentType.Should().Be("image/png");
+                savedBlob1.Content.Should().Equal(bytes);
+            }
+        }
+
+        [Fact]
         public unsafe void TestBlobStreamCopyTo()
         {
             byte[] bytes = null;
