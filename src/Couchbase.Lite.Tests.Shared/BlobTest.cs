@@ -149,15 +149,13 @@ namespace Test
         {
             byte[] bytes = null;
             using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("attachment.png"))
-            using (var sr = new BinaryReader(stream)) {
-                bytes = sr.ReadBytes((int)stream.Length);
+            {
+                bytes = GetBytesFromStream(stream);
             }
 
             var doc1 = new Document(Db, "doc1");
-            var doc2 = new MutableDocument(Db, "doc2");
 
-            using (var mDoc = doc1.ToMutable())
-            using (var mDoc2 = doc2.ToMutable()) {
+            using (var mDoc = doc1.ToMutable()){
                 try {
                     mDoc.SetString("string", "this is a doc with image.");
                     mDoc.SetBlob("blob", new Blob("image/png", bytes));
@@ -165,9 +163,29 @@ namespace Test
                 } catch (Exception ex) {
                     throw new Exception("Failed to save image", ex);
                 }
+            }
+
+            Blob savedBlob;
+            Stream savedBlobContentStream;
+
+            using (var doc = Db.GetDocument("doc1"))
+            {
+                savedBlob = doc.GetBlob("blob");
+                savedBlobContentStream = savedBlob.ContentStream;
+            }
+
+            bytes = GetBytesFromStream(savedBlobContentStream);
+
+            //Must dispose the ContentStream 
+            savedBlobContentStream.Dispose();
+
+            var doc2 = new MutableDocument(Db, "doc2");
+            var blob = new Blob("image/png", bytes);
+
+            using (var mDoc2 = doc2.ToMutable()) {
                 try {
                     mDoc2.SetString("string", "this is a doc with image.");
-                    mDoc2.SetBlob("blob", new Blob("image/png", bytes));
+                    mDoc2.SetBlob("blob", blob);
                     Db.Save(mDoc2);
                 } catch (Exception ex) {
                     throw new Exception("Failed to save same image", ex);
@@ -176,7 +194,7 @@ namespace Test
 
             using (var doc = Db.GetDocument("doc1"))
             using (var doc3 = Db.GetDocument("doc2")) {
-                var savedBlob = doc.GetBlob("blob");
+                savedBlob = doc.GetBlob("blob");
                 savedBlob.Should().NotBeNull();
                 savedBlob.ContentType.Should().Be("image/png");
                 savedBlob.Content.Should().Equal(bytes);
@@ -209,6 +227,14 @@ namespace Test
 
             using (var stream = new BlobReadStream(Db.BlobStore, key)) {
                 stream.Length.Should().Be(bytes.Length);
+            }
+        }
+
+        private byte[] GetBytesFromStream(Stream stream)
+        {
+            using (var ms = new MemoryStream()) {
+                stream.CopyTo(ms);
+                return ms.ToArray();
             }
         }
     }
