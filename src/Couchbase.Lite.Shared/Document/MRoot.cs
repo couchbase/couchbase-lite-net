@@ -129,5 +129,10 @@ namespace Couchbase.Lite.Internal.Doc
         }
 
         #endregion
+
+        public override void FLSlotSet(FLSlot* slot)
+        {
+            _slot.FLSlotSet(slot);
+        }
     }
 }

@@ -24,6 +24,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Lite.Internal.Doc;
 
 namespace Couchbase.Lite.Fleece
 {
@@ -187,20 +188,13 @@ namespace Couchbase.Lite.Fleece
             }
 
             Mutate();
-            using (var encoded = val.FLEncode()) {
-                //Convert object into FLValue
-                var flValue = NativeRaw.FLValue_FromData((FLSlice)encoded, FLTrust.Trusted);
-                if (isInserting) {
-                    Native.FLMutableArray_Insert(_flArr, (uint)index, 1);
-                }
-
-                Native.FLSlot_SetValue(Native.FLMutableArray_Set(_flArr, (uint)index), flValue);
-                //TODO:
-                //This will probably need to be reworked later. There is a whole suite of 
-                //FLSlot_Set* functions that are available and can be used by writing a method 
-                //similar to FLEncode() that calls the appropriate FLSlot_Set* methods. 
-                //This avoids encoding upfront.
+            //Use ToCouchbaseObject method to throw ArgumentException when the value is not a Couchbase object
+            var cbVal = DataOps.ToCouchbaseObject(val);
+            if (isInserting) {
+                Native.FLMutableArray_Insert(_flArr, (uint) index, 1);
             }
+
+            cbVal.FLSlotSet(Native.FLMutableArray_Set(_flArr, (uint) index));
         }
 
         #endregion
@@ -340,6 +334,15 @@ namespace Couchbase.Lite.Fleece
         }
 
         #endregion
+
+        public override unsafe void FLSlotSet(FLSlot* slot)
+        {
+            if ((FLArray*) _flArr == null) {
+                Native.FLSlot_SetNull(slot);
+            } else {
+                Native.FLSlot_SetValue(slot, (FLValue*) (FLArray*) _flArr);
+            }
+        }
 
         #region IDisposable
 

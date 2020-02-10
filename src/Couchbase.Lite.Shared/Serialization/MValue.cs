@@ -28,7 +28,7 @@ using static LiteCore.Constants;
 
 namespace Couchbase.Lite.Internal.Serialization
 {
-    internal sealed unsafe class MValue : IDisposable, IFLEncodable
+    internal sealed unsafe class MValue : IDisposable, IFLEncodable, IFLSlotSetable
     {
         #region Constants
 
@@ -176,6 +176,20 @@ namespace Couchbase.Lite.Internal.Serialization
                 Native.FLEncoder_WriteValue(enc, Value);
             } else {
                 NativeObject.FLEncode(enc);
+            }
+        }
+
+        #endregion
+
+        #region IFLSlotSetable
+
+        public unsafe void FLSlotSet(FLSlot* slot)
+        {
+            Debug.Assert(!IsEmpty);
+            if (Value == null) {
+                Native.FLSlot_SetNull(slot);
+            } else {
+                NativeObject.FLSlotSet(slot);
             }
         }
 

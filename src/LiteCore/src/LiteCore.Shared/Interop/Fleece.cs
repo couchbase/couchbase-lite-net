@@ -35,6 +35,11 @@ namespace LiteCore.Interop
         void FLEncode(FLEncoder* enc);
     }
 
+    internal unsafe interface IFLSlotSetable
+    {
+        void FLSlotSet(FLSlot* slot);
+    }
+
     [ExcludeFromCodeCoverage]
     internal unsafe partial struct FLSlice
     {
@@ -208,6 +213,124 @@ namespace LiteCore.Interop
         {
             Native.FLSliceResult_Release(this);
         }
+    }
+
+    internal static unsafe class FLSlotSetExt
+    {
+        public static void FLSlotSet(this string str, FLSlot* slot)
+        {
+            Native.FLSlot_SetString(slot, str);
+        }
+
+        public static void FLSlotSet(this bool b, FLSlot* slot)
+        {
+            Native.FLSlot_SetBool(slot, b);
+        }
+
+        public static void FLSlotSet(this long l, FLSlot* slot)
+        {
+            Native.FLSlot_SetInt(slot, l);
+        }
+
+        public static void FLSlotSet(this ulong ul, FLSlot* slot)
+        {
+            Native.FLSlot_SetUInt(slot, ul);
+        }
+
+        public static void FLSlotSet(this float f, FLSlot* slot)
+        {
+            Native.FLSlot_SetFloat(slot, f);
+        }
+
+        public static void FLSlotSet(this double d, FLSlot* slot)
+        {
+            Native.FLSlot_SetDouble(slot, d);
+        }
+
+        public static void FLSlotSet<TVal>(this IDictionary<string, TVal> dict, FLSlot* slot)
+        {
+            if (dict == null) {
+                Native.FLSlot_SetNull(slot);
+                return;
+            }
+
+            (new MutableDictionaryObject((IDictionary<string, object>)dict)).FLSlotSet(slot);
+        }
+
+        public static void FLSlotSet(this IList list, FLSlot* slot)
+        {
+            if (list == null) {
+                Native.FLSlot_SetNull(slot);
+                return;
+            }
+
+            (new MutableArrayObject(list)).FLSlotSet(slot);
+        }
+
+        public static void FLSlotSet(this object obj, FLSlot* slot)
+        {
+            switch (obj) {
+                case null:
+                    Native.FLSlot_SetNull(slot);
+                    break;
+                case IFLEncodable flObj:
+                    flObj.FLSlotSet(slot);
+                    break;
+                case IDictionary<string, object> dict:
+                    dict.FLSlotSet(slot);
+                    break;
+                case IDictionary<string, string> dict:
+                    dict.FLSlotSet(slot);
+                    break;
+                case IEnumerable<byte> data:
+                    data.FLSlotSet(slot);
+                    break;
+                case IList list:
+                    list.FLSlotSet(slot);
+                    break;
+                case string s:
+                    s.FLSlotSet(slot);
+                    break;
+                case byte b:
+                case ushort us:
+                case uint ui:
+                case ulong ul:
+                    var unsignedNumericVal = Convert.ToUInt64(obj);
+                    unsignedNumericVal.FLSlotSet(slot);
+                    break;
+                case sbyte sb:
+                case short s:
+                case int i:
+                case long l:
+                    var numericVal = Convert.ToInt64(obj);
+                    numericVal.FLSlotSet(slot);
+                    break;
+                case float f:
+                    f.FLSlotSet(slot);
+                    break;
+                case double d:
+                    d.FLSlotSet(slot);
+                    break;
+                case bool b:
+                    b.FLSlotSet(slot);
+                    break;
+                case DateTimeOffset dto:
+                    (dto.ToString("o")).FLSlotSet(slot); ;
+                    break;
+                case ArrayObject arObj:
+                    arObj.ToMCollection().FLSlotSet(slot);
+                    break;
+                case DictionaryObject roDict:
+                    roDict.ToMCollection().FLSlotSet(slot);
+                    break;
+                case Blob b:
+                    b.FLSlotSet(slot);
+                    break;
+                default:
+                    throw new ArgumentException($"Cannot encode {obj.GetType().FullName} to Fleece!");
+            }
+        }
+
     }
 
     internal static unsafe class FLSliceExtensions

@@ -287,6 +287,11 @@ namespace Couchbase.Lite
             JsonRepresentation.FLEncode(enc);
         }
 
+        internal void FLSlotSet(FLSlot* slot)
+        {
+            JsonRepresentation.FLSlotSet(slot);
+        }
+
         #endregion
 
         #region Private Methods
