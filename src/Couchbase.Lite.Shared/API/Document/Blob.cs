@@ -127,6 +127,9 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the contents of the blob as a <see cref="Stream"/>
         /// </summary>
+        /// <remarks>
+        /// Please release all resources of this Stream object soon after usage.
+        /// </remarks>
         [CanBeNull]
         public Stream ContentStream
         {
