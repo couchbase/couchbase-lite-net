@@ -114,7 +114,10 @@ namespace Test
                 var context = new DocContext(Db, null);
                 using (var mRoot = new MRoot(context)) {
                     mRoot.Context.Should().BeSameAs(context);
-                    var flValue = NativeRaw.FLValue_FromData((FLSlice) flData, FLTrust.Trusted);
+                    FLDoc* fleeceDoc = Native.FLDoc_FromResultData(flData,
+                        FLTrust.Trusted,
+                        Native.c4db_getFLSharedKeys(Db.c4db), FLSlice.Null);
+                    var flValue = Native.FLDoc_GetRoot(fleeceDoc);
                     var mArr = new FleeceMutableArray(new MValue(flValue), mRoot);
                     var deserializedArray = new ArrayObject(mArr, false);
                     deserializedArray.GetArray(2).Should().Equal(1L, 2L, 3L);
@@ -133,6 +136,7 @@ namespace Test
 
                     var mVal = new MValue();
                     mVal.Dispose();
+                    Native.FLDoc_Release(fleeceDoc);
                 }
             } finally {
                 Native.FLSliceResult_Release(flData);
@@ -204,7 +208,10 @@ namespace Test
                 var context = new DocContext(Db, null);
                 using (var mRoot = new MRoot(context)) {
                     mRoot.Context.Should().BeSameAs(context);
-                    var flValue = NativeRaw.FLValue_FromData((FLSlice) flData, FLTrust.Trusted);
+                    FLDoc* fleeceDoc = Native.FLDoc_FromResultData(flData,
+                        FLTrust.Trusted,
+                        Native.c4db_getFLSharedKeys(Db.c4db), FLSlice.Null);
+                    var flValue = Native.FLDoc_GetRoot(fleeceDoc);
                     var mDict = new MDict(new MValue(flValue), mRoot);
                     var deserializedDict = new DictionaryObject(mDict, false);
 
@@ -221,6 +228,7 @@ namespace Test
                     dict["dict"].As<IDictionary<string, object>>().Should().BeEquivalentTo(nestedDict);
                     var isContain = mDict.Contains("");
                     isContain.Should().BeFalse();
+                    Native.FLDoc_Release(fleeceDoc);
                 }
             } finally {
                 Native.FLSliceResult_Release(flData);

@@ -285,6 +285,15 @@ namespace Couchbase.Lite.Internal.Serialization
             Count = (int)Native.FLDict_Count(_dict);
         }
 
+        public override void FLSlotSet(FLSlot* slot)
+        {
+            if (_dict == null) {
+                Native.FLSlot_SetNull(slot);
+            } else {
+                Native.FLSlot_SetValue(slot, (FLValue*) _dict);
+            }
+        }
+
         #endregion
     }
 }

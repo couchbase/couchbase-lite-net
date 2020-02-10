@@ -20,7 +20,7 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Serialization
 {
-    internal abstract unsafe class MCollection : IFLEncodable
+    internal abstract unsafe class MCollection : IFLEncodable, IFLSlotSetable
     {
         #region Variables
 
@@ -116,5 +116,7 @@ namespace Couchbase.Lite.Internal.Serialization
         public abstract void FLEncode(FLEncoder* enc);
 
         #endregion
+
+        public abstract void FLSlotSet(FLSlot* slot);
     }
 }

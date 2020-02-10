@@ -30,7 +30,7 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Doc
 {
-    internal sealed class InMemoryDictionary : IMutableDictionary, IFLEncodable
+    internal sealed class InMemoryDictionary : IMutableDictionary, IFLEncodable, IFLSlotSetable
     {
         #region Constants
 
@@ -198,6 +198,15 @@ namespace Couchbase.Lite.Internal.Doc
         public unsafe void FLEncode(FLEncoder* enc)
         {
             _dict.FLEncode(enc);
+        }
+
+        #endregion
+
+        #region IFLSlotSetable
+
+        public unsafe void FLSlotSet(FLSlot* slot)
+        {
+            _dict.FLSlotSet(slot);
         }
 
         #endregion

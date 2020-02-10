@@ -111,7 +111,6 @@ namespace Test
         {
             var data = (IList)CreateArrayOfAllTypes();
             var array = new MutableArrayObject(data);
-            //PopulateData(array);
             var doc = new MutableDocument("doc1");
 
             SaveArray(array, doc, "array", a =>
@@ -1219,10 +1218,11 @@ namespace Test
                     doc.Contains("array").Should().BeTrue();
                     var array = doc.GetArray("array");
                     array.Should().NotBeNull();
-                    array.Count.Should().Be(3);
+                    array.Count.Should().Be(4);
                     array.GetString(0).Should().Be("");
                     array.GetString(1).Should().Be("Hello");
                     array.GetString(2).Should().Be("World");
+                    array.GetString(3).Should().Be("This is a test test test test test test test test test test");
                 });
             }
         }
