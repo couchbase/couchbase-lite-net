@@ -34,7 +34,7 @@ build_script:
 
         New-Item -Type Directory vendor/couchbase-lite-core/build_cmake/x64
         Push-Location vendor/couchbase-lite-core/build_cmake/x64
-        cmake -G "Visual Studio 14 2015 Win64" ..\..
+        cmake -G "Visual Studio 15 2017 Win64" ..\..
         cmake --build . --target LiteCore --config RelWithDebInfo
         Pop-Location
     - cmd: msbuild /t:Restore src/Couchbase.Lite.TestCoverage/Couchbase.Lite.TestCoverage.csproj
