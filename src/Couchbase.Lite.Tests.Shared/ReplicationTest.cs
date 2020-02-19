@@ -77,25 +77,25 @@ namespace Test
             //Database.SetLogLevel(LogDomain.Replicator, LogLevel.Verbose);
         }
 #if !WINDOWS_UWP
-        [Fact]
-        public async Task TestReplicatorStopsWhenEndpointInvalid()
-        {
-            // If this IP address happens to exist, then change it.  It needs to be an address that does not
-            // exist on the LAN
-            var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
-            var config = new ReplicatorConfiguration(Db, targetEndpoint);
-            using (var repl = new Replicator(config)) {
-                repl.Start();
-                var count = 0;
-                Thread.Sleep(TimeSpan.FromSeconds(51)); // The combined amount of time this should take to stop
-                while (count++ <= 10 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
-                    WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
-                    await Task.Delay(500);
-                }
+        //[Fact]
+        //public async Task TestReplicatorStopsWhenEndpointInvalid()
+        //{
+        //    // If this IP address happens to exist, then change it.  It needs to be an address that does not
+        //    // exist on the LAN
+        //    var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
+        //    var config = new ReplicatorConfiguration(Db, targetEndpoint);
+        //    using (var repl = new Replicator(config)) {
+        //        repl.Start();
+        //        var count = 0;
+        //        Thread.Sleep(TimeSpan.FromSeconds(51)); // The combined amount of time this should take to stop
+        //        while (count++ <= 10 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
+        //            WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
+        //            await Task.Delay(500);
+        //        }
 
-                count.Should().BeLessThan(10, "because otherwise the replicator never stopped");
-            }
-        }
+        //        count.Should().BeLessThan(10, "because otherwise the replicator never stopped");
+        //    }
+        //}
 #endif
 #if COUCHBASE_ENTERPRISE
         [Fact]
@@ -116,330 +116,330 @@ namespace Test
             RunReplication(config, 0, 0);
         }
 
-        //[Fact]
-        //public void TestPushDocWithFilterOneShot() => TestPushDocWithFilter(false);
+        [Fact]
+        public void TestPushDocWithFilterOneShot() => TestPushDocWithFilter(false);
 
-        //[Fact]
-        //public void TestPushDocWithFilterContinuous() => TestPushDocWithFilter(true);
+        [Fact]
+        public void TestPushDocWithFilterContinuous() => TestPushDocWithFilter(true);
 
-        //[Fact]
-        //public void TestPushPullKeepsFilter()
-        //{
-        //    var config = CreateConfig(true, true, false);
-        //    config.PullFilter = _replicator__filterCallback;
-        //    config.PushFilter = _replicator__filterCallback;
+        [Fact]
+        public void TestPushPullKeepsFilter()
+        {
+            var config = CreateConfig(true, true, false);
+            config.PullFilter = _replicator__filterCallback;
+            config.PushFilter = _replicator__filterCallback;
 
-        //    using (var doc1 = new MutableDocument("doc1")) {
-        //        doc1.SetString("name", "donotpass");
-        //        Db.Save(doc1);
-        //    }
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "donotpass");
+                Db.Save(doc1);
+            }
 
-        //    using (var doc2 = new MutableDocument("doc2")) {
-        //        doc2.SetString("name", "donotpass");
-        //        _otherDB.Save(doc2);
-        //    }
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("name", "donotpass");
+                _otherDB.Save(doc2);
+            }
 
-        //    for (int i = 0; i < 2; i++) {
-        //        RunReplication(config, 0, 0);
-        //        Db.Count.Should().Be(1, "because the pull should have rejected the other document");
-        //        _otherDB.Count.Should().Be(1, "because the push should have rejected the local document");
-        //    }
-        //}
+            for (int i = 0; i < 2; i++) {
+                RunReplication(config, 0, 0);
+                Db.Count.Should().Be(1, "because the pull should have rejected the other document");
+                _otherDB.Count.Should().Be(1, "because the push should have rejected the local document");
+            }
+        }
 
-        //[Fact]
-        //public void TestPushDeletedDocWithFilter()
-        //{
-        //    using (var doc1 = new MutableDocument("doc1"))
-        //    using (var doc2 = new MutableDocument("pass")) {
-        //        doc1.SetString("name", "pass");
-        //        Db.Save(doc1);
+        [Fact]
+        public void TestPushDeletedDocWithFilter()
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("pass")) {
+                doc1.SetString("name", "pass");
+                Db.Save(doc1);
 
-        //        doc2.SetString("name", "pass");
-        //        Db.Save(doc2);
-        //    }
+                doc2.SetString("name", "pass");
+                Db.Save(doc2);
+            }
 
-        //    var config = CreateConfig(true, false, false);
-        //    config.PushFilter = _replicator__filterCallback;
-        //    RunReplication(config, 0, 0);
-        //    _isFilteredCallback.Should().BeTrue();
-        //    _otherDB.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
-        //    _otherDB.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
-        //    _isFilteredCallback = false;
+            var config = CreateConfig(true, false, false);
+            config.PushFilter = _replicator__filterCallback;
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue();
+            _otherDB.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
+            _otherDB.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
+            _isFilteredCallback = false;
 
-        //    using (var doc1 = Db.GetDocument("doc1"))
-        //    using (var doc2 = Db.GetDocument("pass")) {
-        //        Db.Delete(doc1);
-        //        Db.Delete(doc2);
-        //    }
+            using (var doc1 = Db.GetDocument("doc1"))
+            using (var doc2 = Db.GetDocument("pass")) {
+                Db.Delete(doc1);
+                Db.Delete(doc2);
+            }
 
-        //    RunReplication(config, 0, 0);
-        //    _isFilteredCallback.Should().BeTrue();
-        //    _otherDB.GetDocument("doc1").Should().NotBeNull("because doc1's deletion should be rejected");
-        //    _otherDB.GetDocument("pass").Should().BeNull("because the next document's deletion is not rejected");
-        //    _isFilteredCallback = false;
-        //}
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue();
+            _otherDB.GetDocument("doc1").Should().NotBeNull("because doc1's deletion should be rejected");
+            _otherDB.GetDocument("pass").Should().BeNull("because the next document's deletion is not rejected");
+            _isFilteredCallback = false;
+        }
 
-        //[Fact]
-        //public void TestRevisionIdInPushPullFilters()
-        //{
-        //    using (var doc1 = new MutableDocument("doc1"))
-        //    using (var doc2 = new MutableDocument("doc2")) {
-        //        doc1.SetInt("One", 1);
-        //        Db.Save(doc1);
-        //        doc2.SetInt("Two", 2);
-        //        _otherDB.Save(doc2);
-        //    }
+        [Fact]
+        public void TestRevisionIdInPushPullFilters()
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetInt("One", 1);
+                Db.Save(doc1);
+                doc2.SetInt("Two", 2);
+                _otherDB.Save(doc2);
+            }
 
-        //    var config = CreateConfig(true, true, false);
-        //    var exceptions = new List<Exception>();
-        //    config.PullFilter = (doc, isPush) =>
-        //    {
-        //        try {
-        //            doc.GetInt("Two").Should().Be(2);
-        //            doc.RevisionID.Should().NotBeNull();
-        //            Action act = () => doc.ToMutable();
-        //            act.Should().Throw<InvalidOperationException>()
-        //              .WithMessage(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
-        //        } catch (Exception e) {
-        //            exceptions.Add(e);
-        //        }
+            var config = CreateConfig(true, true, false);
+            var exceptions = new List<Exception>();
+            config.PullFilter = (doc, isPush) =>
+            {
+                try {
+                    doc.GetInt("Two").Should().Be(2);
+                    doc.RevisionID.Should().NotBeNull();
+                    Action act = () => doc.ToMutable();
+                    act.Should().Throw<InvalidOperationException>()
+                      .WithMessage(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
+                } catch (Exception e) {
+                    exceptions.Add(e);
+                }
 
-        //        return true;
-        //    };
+                return true;
+            };
 
-        //    config.PushFilter = (doc, isPush) =>
-        //    {
-        //        try {
-        //            doc.GetInt("One").Should().Be(1);
-        //            doc.RevisionID.Should().NotBeNull();
-        //            Action act = () => doc.ToMutable();
-        //            act.Should().Throw<InvalidOperationException>()
-        //              .WithMessage(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
-                    
-        //        } catch (Exception e) {
-        //            exceptions.Add(e);
-        //        }
+            config.PushFilter = (doc, isPush) =>
+            {
+                try {
+                    doc.GetInt("One").Should().Be(1);
+                    doc.RevisionID.Should().NotBeNull();
+                    Action act = () => doc.ToMutable();
+                    act.Should().Throw<InvalidOperationException>()
+                      .WithMessage(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
 
-        //        return true;
-        //    };
+                } catch (Exception e) {
+                    exceptions.Add(e);
+                }
 
-        //    RunReplication(config, 0, 0);
-        //    exceptions.Count.Should().Be(0);
-        //}
+                return true;
+            };
 
-        //[Fact]
-        //public void TestBlobAccessInFilter()
-        //{
-        //    var content1 = new byte[] { 1, 2, 3 };
-        //    var content2 = new byte[] { 4, 5, 6 };
-        //    using (var doc1 = new MutableDocument("doc1"))
-        //    using (var doc2 = new MutableDocument("doc2")) {
-        //        var mutableDictionary = new MutableDictionaryObject();
-        //        mutableDictionary.SetBlob("inner_blob", new Blob("text/plaintext", content1));
-        //        doc1.SetDictionary("outer_dict", mutableDictionary);
+            RunReplication(config, 0, 0);
+            exceptions.Count.Should().Be(0);
+        }
 
-        //        var mutableArray = new MutableArrayObject();
-        //        mutableArray.AddBlob(new Blob("text/plaintext", content2));
-        //        doc2.SetArray("outer_arr", mutableArray);
-        //        Db.Save(doc1);
-        //        _otherDB.Save(doc2);
-        //    }
+        [Fact]
+        public void TestBlobAccessInFilter()
+        {
+            var content1 = new byte[] { 1, 2, 3 };
+            var content2 = new byte[] { 4, 5, 6 };
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                var mutableDictionary = new MutableDictionaryObject();
+                mutableDictionary.SetBlob("inner_blob", new Blob("text/plaintext", content1));
+                doc1.SetDictionary("outer_dict", mutableDictionary);
 
-        //    var config = CreateConfig(true, true, false);
-        //    var exceptions = new List<Exception>();
-        //    config.PullFilter = (doc, isPush) =>
-        //    {
-        //        try {
-        //            var nestedBlob = doc.GetArray("outer_arr")?.GetBlob(0);
-        //            nestedBlob.Should().NotBeNull("because the actual blob object should be intact");
-        //            var gotContent = nestedBlob.Content;
-        //            gotContent.Should().BeNull("because the blob is not yet available");
-        //            doc.RevisionID.Should().NotBeNull();
-        //        } catch (Exception e) {
-        //            exceptions.Add(e);
-        //        }
+                var mutableArray = new MutableArrayObject();
+                mutableArray.AddBlob(new Blob("text/plaintext", content2));
+                doc2.SetArray("outer_arr", mutableArray);
+                Db.Save(doc1);
+                _otherDB.Save(doc2);
+            }
 
-        //        return true;
-        //    };
+            var config = CreateConfig(true, true, false);
+            var exceptions = new List<Exception>();
+            config.PullFilter = (doc, isPush) =>
+            {
+                try {
+                    var nestedBlob = doc.GetArray("outer_arr")?.GetBlob(0);
+                    nestedBlob.Should().NotBeNull("because the actual blob object should be intact");
+                    var gotContent = nestedBlob.Content;
+                    gotContent.Should().BeNull("because the blob is not yet available");
+                    doc.RevisionID.Should().NotBeNull();
+                } catch (Exception e) {
+                    exceptions.Add(e);
+                }
 
-        //    config.PushFilter = (doc, isPush) =>
-        //    {
-        //        try {
-        //            var gotContent = doc.GetDictionary("outer_dict")?.GetBlob("inner_blob")?.Content;
-        //            gotContent.Should().NotBeNull("because the nested blob should be intact in the push");
-        //            gotContent.Should().ContainInOrder(content1, "because the nested blob should be intact in the push");
-        //            doc.RevisionID.Should().NotBeNull();
-        //        } catch (Exception e) {
-        //            exceptions.Add(e);
-        //        }
+                return true;
+            };
 
-        //        return true;
-        //    };
-        //    RunReplication(config, 0, 0);
-        //    exceptions.Should().BeEmpty("because there should be no errors");
-        //}
+            config.PushFilter = (doc, isPush) =>
+            {
+                try {
+                    var gotContent = doc.GetDictionary("outer_dict")?.GetBlob("inner_blob")?.Content;
+                    gotContent.Should().NotBeNull("because the nested blob should be intact in the push");
+                    gotContent.Should().ContainInOrder(content1, "because the nested blob should be intact in the push");
+                    doc.RevisionID.Should().NotBeNull();
+                } catch (Exception e) {
+                    exceptions.Add(e);
+                }
 
-        //[Fact]
-        //public void TestPushDoc()
-        //{
-        //    using (var doc1 = new MutableDocument("doc1"))
-        //    using (var doc2 = new MutableDocument("doc2")) {
-        //        doc1.SetString("name", "Tiger");
-        //        Db.Save(doc1);
-        //        Db.Count.Should().Be(1UL);
+                return true;
+            };
+            RunReplication(config, 0, 0);
+            exceptions.Should().BeEmpty("because there should be no errors");
+        }
 
-        //        doc2.SetString("name", "Cat");
-        //        _otherDB.Save(doc2);
-        //    }
+        [Fact]
+        public void TestPushDoc()
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1);
+                Db.Count.Should().Be(1UL);
 
-        //    var config = CreateConfig(true, false, false);
-        //    RunReplication(config, 0, 0);
-        //    _isFilteredCallback.Should().BeFalse();
+                doc2.SetString("name", "Cat");
+                _otherDB.Save(doc2);
+            }
 
-        //    _otherDB.Count.Should().Be(2UL);
-        //    using (var savedDoc1 = _otherDB.GetDocument("doc1")) {
-        //        savedDoc1.GetString("name").Should().Be("Tiger");
-        //    }
-        //}
+            var config = CreateConfig(true, false, false);
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeFalse();
 
-        //[Fact]
-        //public void TestPushDocContinuous()
-        //{
-        //    using (var doc1 = new MutableDocument("doc1"))
-        //    using (var doc2 = new MutableDocument("doc2")) {
-        //        doc1.SetString("name", "Tiger");
-        //        Db.Save(doc1);
-        //        Db.Count.Should().Be(1UL);
+            _otherDB.Count.Should().Be(2UL);
+            using (var savedDoc1 = _otherDB.GetDocument("doc1")) {
+                savedDoc1.GetString("name").Should().Be("Tiger");
+            }
+        }
 
-        //        doc2.SetString("name", "Cat");
-        //        _otherDB.Save(doc2);
-        //    }
+        [Fact]
+        public void TestPushDocContinuous()
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1);
+                Db.Count.Should().Be(1UL);
 
-        //    var config = CreateConfig(true, false, true);
-        //    config.CheckpointInterval = TimeSpan.FromSeconds(1);
-        //    RunReplication(config, 0, 0);
+                doc2.SetString("name", "Cat");
+                _otherDB.Save(doc2);
+            }
 
-        //    _otherDB.Count.Should().Be(2UL);
-        //    using (var savedDoc1 = _otherDB.GetDocument("doc1")) {
-        //        savedDoc1.GetString("name").Should().Be("Tiger");
-        //    }
-        //}
+            var config = CreateConfig(true, false, true);
+            config.CheckpointInterval = TimeSpan.FromSeconds(1);
+            RunReplication(config, 0, 0);
 
-        //[Fact]
-        //public void TestPullDocWithFilter()
-        //{
-        //    using (var doc1 = new MutableDocument("doc1"))
-        //    using (var doc2 = new MutableDocument("doc2")) {
-        //        doc1.SetString("name", "donotpass");
-        //        _otherDB.Save(doc1);
+            _otherDB.Count.Should().Be(2UL);
+            using (var savedDoc1 = _otherDB.GetDocument("doc1")) {
+                savedDoc1.GetString("name").Should().Be("Tiger");
+            }
+        }
 
-        //        doc2.SetString("name", "pass");
-        //        _otherDB.Save(doc2);
-        //    }
+        [Fact]
+        public void TestPullDocWithFilter()
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetString("name", "donotpass");
+                _otherDB.Save(doc1);
 
-        //    var config = CreateConfig(false, true, false);
-        //    config.PullFilter = _replicator__filterCallback;
-        //    RunReplication(config, 0, 0);
-        //    _isFilteredCallback.Should().BeTrue();
-        //    Db.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
-        //    Db.GetDocument("doc2").Should().NotBeNull("because doc2 is filtered in in the callback");
-        //    _isFilteredCallback = false;
-        //}
+                doc2.SetString("name", "pass");
+                _otherDB.Save(doc2);
+            }
 
-        //[Fact]
-        //public void TestPullDeletedDocWithFilter()
-        //{
-        //    using (var doc1 = new MutableDocument("doc1"))
-        //    using (var doc2 = new MutableDocument("pass")) {
-        //        doc1.SetString("name", "pass");
-        //        _otherDB.Save(doc1);
+            var config = CreateConfig(false, true, false);
+            config.PullFilter = _replicator__filterCallback;
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue();
+            Db.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
+            Db.GetDocument("doc2").Should().NotBeNull("because doc2 is filtered in in the callback");
+            _isFilteredCallback = false;
+        }
 
-        //        doc2.SetString("name", "pass");
-        //        _otherDB.Save(doc2);
-        //    }
+        [Fact]
+        public void TestPullDeletedDocWithFilter()
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("pass")) {
+                doc1.SetString("name", "pass");
+                _otherDB.Save(doc1);
 
-        //    var config = CreateConfig(false, true, false);
-        //    config.PullFilter = _replicator__filterCallback;
-        //    RunReplication(config, 0, 0);
-        //    _isFilteredCallback.Should().BeTrue();
-        //    Db.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
-        //    Db.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
-        //    _isFilteredCallback = false;
+                doc2.SetString("name", "pass");
+                _otherDB.Save(doc2);
+            }
 
-        //    using (var doc1 = _otherDB.GetDocument("doc1"))
-        //    using (var doc2 = _otherDB.GetDocument("pass")) {
-        //        _otherDB.Delete(doc1);
-        //        _otherDB.Delete(doc2);
-        //    }
+            var config = CreateConfig(false, true, false);
+            config.PullFilter = _replicator__filterCallback;
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue();
+            Db.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
+            Db.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
+            _isFilteredCallback = false;
 
-        //    RunReplication(config, 0, 0);
-        //    _isFilteredCallback.Should().BeTrue();
-        //    Db.GetDocument("doc1").Should().NotBeNull("because doc1's deletion should be rejected");
-        //    Db.GetDocument("pass").Should().BeNull("because the next document's deletion is not rejected");
-        //    _isFilteredCallback = false;
-        //}
+            using (var doc1 = _otherDB.GetDocument("doc1"))
+            using (var doc2 = _otherDB.GetDocument("pass")) {
+                _otherDB.Delete(doc1);
+                _otherDB.Delete(doc2);
+            }
 
-        //[Fact]
-        //public void TestPullRemovedDocWithFilter()
-        //{
-        //    using (var doc1 = new MutableDocument("doc1"))
-        //    using (var doc2 = new MutableDocument("pass")) {
-        //        doc1.SetString("name", "pass");
-        //        _otherDB.Save(doc1);
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue();
+            Db.GetDocument("doc1").Should().NotBeNull("because doc1's deletion should be rejected");
+            Db.GetDocument("pass").Should().BeNull("because the next document's deletion is not rejected");
+            _isFilteredCallback = false;
+        }
 
-        //        doc2.SetString("name", "pass");
-        //        _otherDB.Save(doc2);
-        //    }
+        [Fact]
+        public void TestPullRemovedDocWithFilter()
+        {
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("pass")) {
+                doc1.SetString("name", "pass");
+                _otherDB.Save(doc1);
 
-        //    var config = CreateConfig(false, true, false);
-        //    config.PullFilter = _replicator__filterCallback;
-        //    RunReplication(config, 0, 0);
-        //    _isFilteredCallback.Should().BeTrue();
-        //    Db.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
-        //    Db.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
-        //    _isFilteredCallback = false;
+                doc2.SetString("name", "pass");
+                _otherDB.Save(doc2);
+            }
 
-        //    using (var doc1 = _otherDB.GetDocument("doc1"))
-        //    using (var doc2 = _otherDB.GetDocument("pass"))
-        //    using (var doc1Mutable = doc1.ToMutable())
-        //    using (var doc2Mutable = doc2.ToMutable()) {
-        //        doc1Mutable.SetData(new Dictionary<string, object> { ["_removed"] = true });
-        //        doc2Mutable.SetData(new Dictionary<string, object> { ["_removed"] = true });
-        //        _otherDB.Save(doc1Mutable);
-        //        _otherDB.Save(doc2Mutable);
-        //    }
+            var config = CreateConfig(false, true, false);
+            config.PullFilter = _replicator__filterCallback;
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue();
+            Db.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
+            Db.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
+            _isFilteredCallback = false;
 
-        //    RunReplication(config, 0, 0);
-        //    _isFilteredCallback.Should().BeTrue();
-        //    Db.GetDocument("doc1").Should().NotBeNull("because doc1's removal should be rejected");
-        //    Db.GetDocument("pass").Should().BeNull("because the next document's removal is not rejected");
-        //    _isFilteredCallback = false;
-        //}
+            using (var doc1 = _otherDB.GetDocument("doc1"))
+            using (var doc2 = _otherDB.GetDocument("pass"))
+            using (var doc1Mutable = doc1.ToMutable())
+            using (var doc2Mutable = doc2.ToMutable()) {
+                doc1Mutable.SetData(new Dictionary<string, object> { ["_removed"] = true });
+                doc2Mutable.SetData(new Dictionary<string, object> { ["_removed"] = true });
+                _otherDB.Save(doc1Mutable);
+                _otherDB.Save(doc2Mutable);
+            }
 
-        //[ForIssue("couchbase-lite-core/156")]
-        //[Fact]
-        //public void TestPullDoc()
-        //{
-        //    using (var doc1 = new MutableDocument("doc1")) {
-        //        doc1.SetString("name", "Tiger");
-        //        Db.Save(doc1);
-        //        Db.Count.Should().Be(1, "because only one document was saved so far");
-        //    }
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue();
+            Db.GetDocument("doc1").Should().NotBeNull("because doc1's removal should be rejected");
+            Db.GetDocument("pass").Should().BeNull("because the next document's removal is not rejected");
+            _isFilteredCallback = false;
+        }
 
-        //    using (var doc2 = new MutableDocument("doc2")) {
-        //        doc2.SetString("name", "Cat");
-        //        _otherDB.Save(doc2);
-        //    }
+        [ForIssue("couchbase-lite-core/156")]
+        [Fact]
+        public void TestPullDoc()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1);
+                Db.Count.Should().Be(1, "because only one document was saved so far");
+            }
 
-        //    var config = CreateConfig(false, true, false);
-        //    RunReplication(config, 0, 0);
-        //    _isFilteredCallback.Should().BeFalse();
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("name", "Cat");
+                _otherDB.Save(doc2);
+            }
 
-        //    Db.Count.Should().Be(2, "because the replicator should have pulled doc2 from the other DB");
-        //    using (var doc2 = Db.GetDocument("doc2")) {
-        //        doc2.GetString("name").Should().Be("Cat");
-        //    }
-        //}
+            var config = CreateConfig(false, true, false);
+            RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeFalse();
+
+            Db.Count.Should().Be(2, "because the replicator should have pulled doc2 from the other DB");
+            using (var doc2 = Db.GetDocument("doc2")) {
+                doc2.GetString("name").Should().Be("Cat");
+            }
+        }
 
         [ForIssue("couchbase-lite-core/156")]
         [Fact]
@@ -502,28 +502,28 @@ namespace Test
             _otherDB.GetDocument("doc1").Should().NotBeNull();
         }
 
-        //[Fact]
-        //public async Task TestReplicatorStopWhenClosed()
-        //{
-        //    var config = CreateConfig(true, true, true);
-        //    using (var repl = new Replicator(config)) {
-        //        repl.Start();
-        //        while (repl.Status.Activity != ReplicatorActivityLevel.Idle) {
-        //            WriteLine($"Replication status still {repl.Status.Activity}, waiting for idle...");
-        //            await Task.Delay(500);
-        //        }
+        [Fact]
+        public async Task TestReplicatorStopWhenClosed()
+        {
+            var config = CreateConfig(true, true, true);
+            using (var repl = new Replicator(config)) {
+                repl.Start();
+                while (repl.Status.Activity != ReplicatorActivityLevel.Idle) {
+                    WriteLine($"Replication status still {repl.Status.Activity}, waiting for idle...");
+                    await Task.Delay(500);
+                }
 
-        //        this.Invoking(x => ReopenDB())
-        //            .Should().Throw<CouchbaseLiteException>(
-        //                "because the database cannot be closed while replication is running");
+                this.Invoking(x => ReopenDB())
+                    .Should().Throw<CouchbaseLiteException>(
+                        "because the database cannot be closed while replication is running");
 
-        //        repl.Stop();
-        //        while (repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
-        //            WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
-        //            await Task.Delay(500);
-        //        }
-        //    }
-        //}
+                repl.Stop();
+                while (repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                    WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
+                    await Task.Delay(500);
+                }
+            }
+        }
 
         [Fact]
         public void TestStopContinuousReplicator()
@@ -574,156 +574,156 @@ namespace Test
             }
         }
 
-        //[Fact]
-        //public void TestDocumentEndedEvent()
-        //{
-        //    using (var doc1 = new MutableDocument("doc1")) {
-        //        doc1.SetString("name", "Tiger");
-        //        Db.Save(doc1);
-        //    }
+        [Fact]
+        public void TestDocumentEndedEvent()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1);
+            }
 
-        //    using (var doc2 = new MutableDocument("doc2")) {
-        //        doc2.SetString("name", "Cat");
-        //        _otherDB.Save(doc2);
-        //    }
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("name", "Cat");
+                _otherDB.Save(doc2);
+            }
 
-        //    var config = CreateConfig(true, true, true);//push n pull
+            var config = CreateConfig(true, true, true);//push n pull
 
-        //    Misc.SafeSwap(ref _repl, new Replicator(config));
-        //    _waitAssert = new WaitAssert();
-        //    var token1 = _repl.AddDocumentReplicationListener(DocumentEndedUpdate);
-        //    var token = _repl.AddChangeListener((sender, args) =>
-        //    {
-        //        _waitAssert.RunConditionalAssert(() =>
-        //        {
-        //            VerifyChange(args, 0, 0);
-        //            if (config.Continuous && args.Status.Activity == ReplicatorActivityLevel.Idle
-        //                                  && args.Status.Progress.Completed == args.Status.Progress.Total) {
-        //                ((Replicator)sender).Stop();
-        //            }
-        //            return args.Status.Activity == ReplicatorActivityLevel.Stopped;
-        //        });
-        //    });
+            Misc.SafeSwap(ref _repl, new Replicator(config));
+            _waitAssert = new WaitAssert();
+            var token1 = _repl.AddDocumentReplicationListener(DocumentEndedUpdate);
+            var token = _repl.AddChangeListener((sender, args) =>
+            {
+                _waitAssert.RunConditionalAssert(() =>
+                {
+                    VerifyChange(args, 0, 0);
+                    if (config.Continuous && args.Status.Activity == ReplicatorActivityLevel.Idle
+                                          && args.Status.Progress.Completed == args.Status.Progress.Total) {
+                        ((Replicator)sender).Stop();
+                    }
+                    return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                });
+            });
 
-        //    _repl.Start();
-        //    try {
-        //        _waitAssert.WaitForResult(TimeSpan.FromSeconds(30));
-        //    } catch {
-        //        _repl.Stop();
-        //        throw;
-        //    } finally {
-        //        _repl.RemoveChangeListener(token);
-        //        _repl.RemoveChangeListener(token1);
-        //    }
+            _repl.Start();
+            try {
+                _waitAssert.WaitForResult(TimeSpan.FromSeconds(30));
+            } catch {
+                _repl.Stop();
+                throw;
+            } finally {
+                _repl.RemoveChangeListener(token);
+                _repl.RemoveChangeListener(token1);
+            }
 
-        //    _replicationEvents.Should().HaveCount(2);
-        //    var push = _replicationEvents.FirstOrDefault(g => g.IsPush);
-        //    push.Documents.First().Id.Should().Be("doc1");
-        //    var pull = _replicationEvents.FirstOrDefault(g => !g.IsPush);
-        //    pull.Documents.First().Id.Should().Be("doc2");
-        //}
+            _replicationEvents.Should().HaveCount(2);
+            var push = _replicationEvents.FirstOrDefault(g => g.IsPush);
+            push.Documents.First().Id.Should().Be("doc1");
+            var pull = _replicationEvents.FirstOrDefault(g => !g.IsPush);
+            pull.Documents.First().Id.Should().Be("doc2");
+        }
 
-        //[Fact]
-        //public void TestDocumentErrorEvent()
-        //{
-        //    // NOTE: Only push, need to think of a case that can force an error
-        //    // for pull
-        //    using (var doc1 = new MutableDocument("doc1")) {
-        //        doc1.SetString("name", "Tiger");
-        //        Db.Save(doc1);
-        //    }
+        [Fact]
+        public void TestDocumentErrorEvent()
+        {
+            // NOTE: Only push, need to think of a case that can force an error
+            // for pull
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1);
+            }
 
-        //    using (var doc1 = new MutableDocument("doc1")) {
-        //        doc1.SetString("name", "Tiger");
-        //        _otherDB.Save(doc1);
-        //    }
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                _otherDB.Save(doc1);
+            }
 
 
-        //    // Force a conflict
-        //    using (var doc1a = Db.GetDocument("doc1"))
-        //    using (var doc1aMutable = doc1a.ToMutable()) {
-        //        doc1aMutable.SetString("name", "Liger");
-        //        Db.Save(doc1aMutable);
-        //    }
+            // Force a conflict
+            using (var doc1a = Db.GetDocument("doc1"))
+            using (var doc1aMutable = doc1a.ToMutable()) {
+                doc1aMutable.SetString("name", "Liger");
+                Db.Save(doc1aMutable);
+            }
 
-        //    using (var doc1b = _otherDB.GetDocument("doc1"))
-        //    using (var doc1bMutable = doc1b.ToMutable()) {
-        //        doc1bMutable.SetString("name", "Lion");
-        //        _otherDB.Save(doc1bMutable);
-        //    }
+            using (var doc1b = _otherDB.GetDocument("doc1"))
+            using (var doc1bMutable = doc1b.ToMutable()) {
+                doc1bMutable.SetString("name", "Lion");
+                _otherDB.Save(doc1bMutable);
+            }
 
-        //    var config = CreateConfig(true, false, false);
-        //    using (var repl = new Replicator(config)) {
-        //        var wa = new WaitAssert();
-        //        repl.AddDocumentReplicationListener((sender, args) =>
-        //        {
-        //            if (args.Documents[0].Id == "doc1") {
-        //                wa.RunAssert(() =>
-        //                {
-        //                    args.Documents[0].Error.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
-        //                    args.Documents[0].Error.Error.Should().Be((int)CouchbaseLiteError.HTTPConflict);
-        //                });
-        //            }
-        //        });
+            var config = CreateConfig(true, false, false);
+            using (var repl = new Replicator(config)) {
+                var wa = new WaitAssert();
+                repl.AddDocumentReplicationListener((sender, args) =>
+                {
+                    if (args.Documents[0].Id == "doc1") {
+                        wa.RunAssert(() =>
+                        {
+                            args.Documents[0].Error.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+                            args.Documents[0].Error.Error.Should().Be((int)CouchbaseLiteError.HTTPConflict);
+                        });
+                    }
+                });
 
-        //        repl.Start();
+                repl.Start();
 
-        //        wa.WaitForResult(TimeSpan.FromSeconds(10));
-        //        repl.Stop();
-        //        Try.Condition(() => repl.Status.Activity == ReplicatorActivityLevel.Stopped)
-        //            .Times(5)
-        //            .Delay(TimeSpan.FromMilliseconds(500))
-        //            .Go().Should().BeTrue();
-        //    }
-        //}
+                wa.WaitForResult(TimeSpan.FromSeconds(10));
+                repl.Stop();
+                Try.Condition(() => repl.Status.Activity == ReplicatorActivityLevel.Stopped)
+                    .Times(5)
+                    .Delay(TimeSpan.FromMilliseconds(500))
+                    .Go().Should().BeTrue();
+            }
+        }
 
-        //[Fact]
-        //public void TestDocumentDeletedEvent()
-        //{
-        //    using (var doc1 = new MutableDocument("doc1")) {
-        //        doc1.SetString("name", "test1");
-        //        Db.Save(doc1);
-        //        Db.Delete(doc1);
-        //    }
+        [Fact]
+        public void TestDocumentDeletedEvent()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "test1");
+                Db.Save(doc1);
+                Db.Delete(doc1);
+            }
 
-        //    using (var doc2 = new MutableDocument("doc2")) {
-        //        doc2.SetString("name", "test2");
-        //        _otherDB.Save(doc2);
-        //        _otherDB.Delete(doc2);
-        //    }
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("name", "test2");
+                _otherDB.Save(doc2);
+                _otherDB.Delete(doc2);
+            }
 
-        //    var config = CreateConfig(true, true, false);
-        //    var pullWait = new WaitAssert();
-        //    var pushWait = new WaitAssert();
-        //    RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
-        //    {
-        //        pushWait.RunConditionalAssert(() => args.IsPush && args.Documents.Any(x => x.Flags.HasFlag(DocumentFlags.Deleted)));
-        //        pullWait.RunConditionalAssert(() => !args.IsPush && args.Documents.Any(x => x.Flags.HasFlag(DocumentFlags.Deleted)));
-        //    });
+            var config = CreateConfig(true, true, false);
+            var pullWait = new WaitAssert();
+            var pushWait = new WaitAssert();
+            RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
+            {
+                pushWait.RunConditionalAssert(() => args.IsPush && args.Documents.Any(x => x.Flags.HasFlag(DocumentFlags.Deleted)));
+                pullWait.RunConditionalAssert(() => !args.IsPush && args.Documents.Any(x => x.Flags.HasFlag(DocumentFlags.Deleted)));
+            });
 
-        //    pushWait.WaitForResult(TimeSpan.FromSeconds(5));
-        //    pullWait.WaitForResult(TimeSpan.FromSeconds(1));
-        //}
+            pushWait.WaitForResult(TimeSpan.FromSeconds(5));
+            pullWait.WaitForResult(TimeSpan.FromSeconds(1));
+        }
 
-        //[Fact]
-        //public void TestChannelRemovedEvent()
-        //{
-        //    using (var doc2 = new MutableDocument("doc2")) {
-        //        doc2.SetString("name", "test2");
-        //        _otherDB.Save(doc2);
-        //        doc2.SetData(new Dictionary<string, object> { ["_removed"] = true });
-        //        _otherDB.Save(doc2);
-        //    }
+        [Fact]
+        public void TestChannelRemovedEvent()
+        {
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("name", "test2");
+                _otherDB.Save(doc2);
+                doc2.SetData(new Dictionary<string, object> { ["_removed"] = true });
+                _otherDB.Save(doc2);
+            }
 
-        //    var config = CreateConfig(true, true, false);
-        //    var pullWait = new WaitAssert();
-        //    RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
-        //    {
-        //        pullWait.RunConditionalAssert(() => !args.IsPush && args.Documents.Any(x => x.Flags.HasFlag(DocumentFlags.AccessRemoved)));
-        //    });
+            var config = CreateConfig(true, true, false);
+            var pullWait = new WaitAssert();
+            RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
+            {
+                pullWait.RunConditionalAssert(() => !args.IsPush && args.Documents.Any(x => x.Flags.HasFlag(DocumentFlags.AccessRemoved)));
+            });
 
-        //    pullWait.WaitForResult(TimeSpan.FromSeconds(5));
-        //}
+            pullWait.WaitForResult(TimeSpan.FromSeconds(5));
+        }
 
         [Fact]
         public void TestDocumentIDs()
@@ -752,42 +752,42 @@ namespace Test
             }
         }
 
-        //[Fact]
-        //[ForIssue("couchbase-lite-core/447")]
-        //public void TestResetCheckpoint()
-        //{
-        //    using (var doc1 = new MutableDocument("doc1")) {
-        //        doc1.SetString("species", "Tiger");
-        //        doc1.SetString("name", "Hobbes");
-        //        Db.Save(doc1);
-        //    }
+        [Fact]
+        [ForIssue("couchbase-lite-core/447")]
+        public void TestResetCheckpoint()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("species", "Tiger");
+                doc1.SetString("name", "Hobbes");
+                Db.Save(doc1);
+            }
 
-        //    using (var doc2 = new MutableDocument("doc2")) {
-        //        doc2.SetString("species", "Tiger");
-        //        doc2.SetString("pattern", "striped");
-        //        Db.Save(doc2);
-        //    }
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("species", "Tiger");
+                doc2.SetString("pattern", "striped");
+                Db.Save(doc2);
+            }
 
-        //    var config = CreateConfig(true, false, false);
-        //    RunReplication(config, 0, 0);
-        //    config = CreateConfig(false, true, false);
-        //    RunReplication(config, 0, 0);
+            var config = CreateConfig(true, false, false);
+            RunReplication(config, 0, 0);
+            config = CreateConfig(false, true, false);
+            RunReplication(config, 0, 0);
 
-        //    _otherDB.Count.Should().Be(2UL);
-        //    using (var doc = Db.GetDocument("doc1")) {
-        //        Db.Purge(doc);
-        //    }
+            _otherDB.Count.Should().Be(2UL);
+            using (var doc = Db.GetDocument("doc1")) {
+                Db.Purge(doc);
+            }
 
-        //    Db.Purge("doc2");
+            Db.Purge("doc2");
 
-        //    Db.Count.Should().Be(0UL, "because the documents were purged");
-        //    RunReplication(config, 0, 0);
+            Db.Count.Should().Be(0UL, "because the documents were purged");
+            RunReplication(config, 0, 0);
 
-        //    Db.Count.Should().Be(0UL, "because the documents were purged and the replicator is already past them");
-        //    RunReplication(config, 0, 0, true);
+            Db.Count.Should().Be(0UL, "because the documents were purged and the replicator is already past them");
+            RunReplication(config, 0, 0, true);
 
-        //    Db.Count.Should().Be(2UL, "because the replicator was reset");
-        //}
+            Db.Count.Should().Be(2UL, "because the replicator was reset");
+        }
 
         //[Fact]
         //public void TestShortP2P()
@@ -899,8 +899,8 @@ namespace Test
         //[Fact]
         //public void TestP2PRecoverableFailureDuringReceive() => TestP2PError(MockConnectionLifecycleLocation.Receive, true);
 
-        //[Fact]
-        //public void TestP2PPermanentFailureDuringOpen() => TestP2PError(MockConnectionLifecycleLocation.Connect, false);
+        [Fact]
+        public void TestP2PPermanentFailureDuringOpen() => TestP2PError(MockConnectionLifecycleLocation.Connect, false);
 
         //[Fact]
         //public void TestP2PPermanentFailureDuringSend() => TestP2PError(MockConnectionLifecycleLocation.Send, false);
