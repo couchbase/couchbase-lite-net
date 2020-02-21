@@ -169,11 +169,11 @@
         <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.5.0-b0029" />
       </ItemGroup>
     </When>
-    <When Condition="'$(Configuration)'== 'Release'">
+    <Otherwise>
       <ItemGroup>
         <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.5.0-b0029" />
       </ItemGroup>
-    </When>
+    </Otherwise>
   </Choose>
   <ItemGroup>
     <PackageReference Include="FluentAssertions">
