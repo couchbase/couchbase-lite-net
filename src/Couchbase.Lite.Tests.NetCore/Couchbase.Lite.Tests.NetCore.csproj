@@ -19,12 +19,18 @@
     <EmbeddedResource Remove="replacedb\**" />
     <None Remove="replacedb\**" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.5.0-b0020" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
-    <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.5.0-b0020" />
-  </ItemGroup>
+  <Choose>
+    <When Condition="'$(Configuration)'=='Debug'">
+      <ItemGroup>
+        <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.5.0-b0029" />
+      </ItemGroup>
+    </When>
+    <When Condition="'$(Configuration)'== 'Release'">
+      <ItemGroup>
+        <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.5.0-b0029" />
+      </ItemGroup>
+    </When>
+  </Choose>
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="5.9.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.5.0" />

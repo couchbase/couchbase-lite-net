@@ -137,8 +137,6 @@
       <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.5.0-b0027" />
     </ItemGroup>
   </When>
-  </Choose>
-  <Choose>
   <When Condition="'$(Configuration)'== 'Release'">
     <ItemGroup>
       <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.5.0-b0027" />
