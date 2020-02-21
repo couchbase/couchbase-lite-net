@@ -142,6 +142,7 @@
       <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.5.0-b0027" />
     </ItemGroup>
   </Otherwise>
+  <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" />
   </Choose>
   <ItemGroup>
     <PackageReference Include="FluentAssertions">
@@ -163,7 +164,6 @@
   <ItemGroup>
     <None Include="Couchbase.Lite.Tests.UWP_TemporaryKey.pfx" />
   </ItemGroup>
-  <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" />
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>
