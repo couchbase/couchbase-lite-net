@@ -131,19 +131,6 @@
     <Content Include="Assets\StoreLogo.png" />
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
-  <Choose>
-  <When Condition="'$(Configuration)'=='Debug'">
-    <ItemGroup>
-      <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.5.0-b0027" />
-    </ItemGroup>
-  </When>
-  <Otherwise>
-    <ItemGroup>
-      <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.5.0-b0027" />
-    </ItemGroup>
-  </Otherwise>
-  <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" />
-  </Choose>
   <ItemGroup>
     <PackageReference Include="FluentAssertions">
       <Version>5.9.0</Version>
@@ -167,6 +154,19 @@
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>
+  <Choose>
+  <When Condition="'$(Configuration)'=='Debug'">
+    <ItemGroup>
+      <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.5.0-b0027" />
+    </ItemGroup>
+  </When>
+  <Otherwise>
+    <ItemGroup>
+      <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.5.0-b0027" />
+    </ItemGroup>
+  </Otherwise>
+  </Choose>
+  <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\WindowsXaml\v$(VisualStudioVersion)\Microsoft.Windows.UI.Xaml.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
