@@ -64,81 +64,81 @@ namespace Test
         }
 #endif
 
-        //[Fact]
-        //public void TestRegisterAndUnregisterModel()
-        //{
-        //    CreateDocument(1, 2, 3, 4, 5);
-        //    CreateDocument(6, 7, 8, 9, 10);
+        [Fact]
+        public void TestRegisterAndUnregisterModel()
+        {
+            CreateDocument(1, 2, 3, 4, 5);
+            CreateDocument(6, 7, 8, 9, 10);
 
-        //    var aggregateModel = new AggregateModel();
-        //    var input = Expression.Dictionary(new Dictionary<string, object>
-        //    {
-        //        ["numbers"] = Expression.Property("numbers")
-        //    });
-        //    using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
-        //            SelectResult.Expression(Function.Prediction(aggregateModel.Name, input)))
-        //        .From(DataSource.Database(Db))) {
-        //        Action badAction = () => q.Execute();
-        //        badAction.Should().Throw<CouchbaseSQLiteException>().Which.Error.Should().Be((int) SQLiteStatus.Error);
+            var aggregateModel = new AggregateModel();
+            var input = Expression.Dictionary(new Dictionary<string, object>
+            {
+                ["numbers"] = Expression.Property("numbers")
+            });
+            using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
+                    SelectResult.Expression(Function.Prediction(aggregateModel.Name, input)))
+                .From(DataSource.Database(Db))) {
+                Action badAction = () => q.Execute();
+                badAction.Should().Throw<CouchbaseSQLiteException>().Which.Error.Should().Be((int)SQLiteStatus.Error);
 
-        //        aggregateModel.RegisterModel();
-        //        var numRows = VerifyQuery(q, (i, result) =>
-        //        {
-        //            var numbers = result.GetArray(0)?.ToList();
-        //            numbers.Should().NotBeEmpty("because otherwise the data didn't come through");
-        //            var pred = result.GetDictionary(1);
-        //            pred.Should().NotBeNull();
-        //            pred.GetLong("sum").Should().Be(numbers.Cast<long>().Sum());
-        //            pred.GetLong("min").Should().Be(numbers.Cast<long>().Min());
-        //            pred.GetLong("max").Should().Be(numbers.Cast<long>().Max());
-        //            pred.GetDouble("avg").Should().Be(numbers.Cast<long>().Average());
-        //        });
+                aggregateModel.RegisterModel();
+                var numRows = VerifyQuery(q, (i, result) =>
+                {
+                    var numbers = result.GetArray(0)?.ToList();
+                    numbers.Should().NotBeEmpty("because otherwise the data didn't come through");
+                    var pred = result.GetDictionary(1);
+                    pred.Should().NotBeNull();
+                    pred.GetLong("sum").Should().Be(numbers.Cast<long>().Sum());
+                    pred.GetLong("min").Should().Be(numbers.Cast<long>().Min());
+                    pred.GetLong("max").Should().Be(numbers.Cast<long>().Max());
+                    pred.GetDouble("avg").Should().Be(numbers.Cast<long>().Average());
+                });
 
-        //        numRows.Should().Be(2);
-        //        aggregateModel.UnregisterModel();
-        //        badAction.Should().Throw<CouchbaseSQLiteException>().Which.Error.Should().Be((int) SQLiteStatus.Error);
-        //    }
-        //}
+                numRows.Should().Be(2);
+                aggregateModel.UnregisterModel();
+                badAction.Should().Throw<CouchbaseSQLiteException>().Which.Error.Should().Be((int)SQLiteStatus.Error);
+            }
+        }
 
-        //[Fact]
-        //public void TestRegisterMultipleModelsWithSameName()
-        //{
-        //    CreateDocument(1, 2, 3, 4, 5);
+        [Fact]
+        public void TestRegisterMultipleModelsWithSameName()
+        {
+            CreateDocument(1, 2, 3, 4, 5);
 
-        //    var model = "TheModel";
-        //    var aggregateModel = new AggregateModel();
-        //    Database.Prediction.RegisterModel(model, aggregateModel);
+            var model = "TheModel";
+            var aggregateModel = new AggregateModel();
+            Database.Prediction.RegisterModel(model, aggregateModel);
 
-        //    try {
-        //        var input = AggregateModel.CreateInput("numbers");
-        //        var prediction = Function.Prediction(model, input);
-        //        using (var q = QueryBuilder.Select(SelectResult.Expression(prediction))
-        //            .From(DataSource.Database(Db))) {
-        //            var rows = VerifyQuery(q, (n, result) =>
-        //            {
-        //                var pred = result.GetDictionary(0);
-        //                pred.GetInt("sum").Should().Be(15);
-        //            });
-        //            rows.Should().Be(1);
+            try {
+                var input = AggregateModel.CreateInput("numbers");
+                var prediction = Function.Prediction(model, input);
+                using (var q = QueryBuilder.Select(SelectResult.Expression(prediction))
+                    .From(DataSource.Database(Db))) {
+                    var rows = VerifyQuery(q, (n, result) =>
+                    {
+                        var pred = result.GetDictionary(0);
+                        pred.GetInt("sum").Should().Be(15);
+                    });
+                    rows.Should().Be(1);
 
-        //            var echoModel = new EchoModel();
-        //            Database.Prediction.RegisterModel(model, echoModel);
+                    var echoModel = new EchoModel();
+                    Database.Prediction.RegisterModel(model, echoModel);
 
-        //            rows = VerifyQuery(q, (n, result) =>
-        //            {
-        //                var pred = result.GetDictionary(0);
-        //                pred.GetValue("sum").Should().BeNull("because the model should have been replaced");
-        //                pred.GetArray("numbers").Should().ContainInOrder(new[] { 1L, 2L, 3L, 4L, 5L },
-        //                    "because the document should simply be echoed back");
-        //            });
-        //            rows.Should().Be(1);
-        //        }
+                    rows = VerifyQuery(q, (n, result) =>
+                    {
+                        var pred = result.GetDictionary(0);
+                        pred.GetValue("sum").Should().BeNull("because the model should have been replaced");
+                        pred.GetArray("numbers").Should().ContainInOrder(new[] { 1L, 2L, 3L, 4L, 5L },
+                            "because the document should simply be echoed back");
+                    });
+                    rows.Should().Be(1);
+                }
 
-                
-        //    } finally {
-        //        Database.Prediction.UnregisterModel(model);
-        //    }
-        //}
+
+            } finally {
+                Database.Prediction.UnregisterModel(model);
+            }
+        }
 
         [Fact]
         public void TestPredictionInputOutput()
@@ -233,80 +233,80 @@ namespace Test
             }
         }
 
-        //[Fact]
-        //public void TestQueryValueFromDictionaryResult()
-        //{
-        //    CreateDocument(1, 2, 3, 4, 5);
-        //    CreateDocument(6, 7, 8, 9, 10);
+        [Fact]
+        public void TestQueryValueFromDictionaryResult()
+        {
+            CreateDocument(1, 2, 3, 4, 5);
+            CreateDocument(6, 7, 8, 9, 10);
 
-        //    var aggregateModel = new AggregateModel();
-        //    aggregateModel.RegisterModel();
-        //    var input = Expression.Dictionary(new Dictionary<string, object>
-        //    {
-        //        ["numbers"] = Expression.Property("numbers")
-        //    });
-        //    using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
-        //            SelectResult.Expression(Function.Prediction(aggregateModel.Name, input).Property("sum")).As("sum"))
-        //        .From(DataSource.Database(Db))) {
-        //        var numRows = VerifyQuery(q, (i, result) =>
-        //        {
-        //            var numbers = result.GetArray(0)?.ToList();
-        //            numbers.Should().NotBeEmpty("because otherwise the data didn't come through");
-        //            var sum = result.GetLong(1);
-        //            sum.Should().Be(result.GetLong("sum"));
-        //            sum.Should().Be(numbers.Cast<long>().Sum());
-        //        });
+            var aggregateModel = new AggregateModel();
+            aggregateModel.RegisterModel();
+            var input = Expression.Dictionary(new Dictionary<string, object>
+            {
+                ["numbers"] = Expression.Property("numbers")
+            });
+            using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
+                    SelectResult.Expression(Function.Prediction(aggregateModel.Name, input).Property("sum")).As("sum"))
+                .From(DataSource.Database(Db))) {
+                var numRows = VerifyQuery(q, (i, result) =>
+                {
+                    var numbers = result.GetArray(0)?.ToList();
+                    numbers.Should().NotBeEmpty("because otherwise the data didn't come through");
+                    var sum = result.GetLong(1);
+                    sum.Should().Be(result.GetLong("sum"));
+                    sum.Should().Be(numbers.Cast<long>().Sum());
+                });
 
-        //        numRows.Should().Be(2);
-        //        aggregateModel.UnregisterModel();
-        //    }
-        //}
+                numRows.Should().Be(2);
+                aggregateModel.UnregisterModel();
+            }
+        }
 
-        //[Fact]
-        //public void TestQueryPredictionValues()
-        //{
-        //    CreateDocument(1, 2, 3, 4, 5);
-        //    CreateDocument(6, 7, 8, 9, 10);
+        [Fact]
+        public void TestQueryPredictionValues()
+        {
+            CreateDocument(1, 2, 3, 4, 5);
+            CreateDocument(6, 7, 8, 9, 10);
 
-        //    var aggregateModel = new AggregateModel();
-        //    aggregateModel.RegisterModel();
+            var aggregateModel = new AggregateModel();
+            aggregateModel.RegisterModel();
 
-        //    var model = nameof(AggregateModel);
-        //    var input = AggregateModel.CreateInput("numbers");
-        //    var prediction = Function.Prediction(model, input);
+            var model = nameof(AggregateModel);
+            var input = AggregateModel.CreateInput("numbers");
+            var prediction = Function.Prediction(model, input);
 
-        //    using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
-        //            SelectResult.Expression(prediction.Property("sum")).As("sum"),
-        //            SelectResult.Expression(prediction.Property("min")).As("min"),
-        //            SelectResult.Expression(prediction.Property("max")).As("max"),
-        //            SelectResult.Expression(prediction.Property("avg")).As("avg"))
-        //        .From(DataSource.Database(Db))) {
-        //        var rows = VerifyQuery(q, (n, result) =>
-        //        {
-        //            var numbers = result.GetArray(0);
-        //            var dict = new MutableDictionaryObject();
-        //            dict.SetArray("numbers", numbers);
-        //            var expected = aggregateModel.Predict(dict);
+            using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
+                    SelectResult.Expression(prediction.Property("sum")).As("sum"),
+                    SelectResult.Expression(prediction.Property("min")).As("min"),
+                    SelectResult.Expression(prediction.Property("max")).As("max"),
+                    SelectResult.Expression(prediction.Property("avg")).As("avg"))
+                .From(DataSource.Database(Db))) {
+                var rows = VerifyQuery(q, (n, result) =>
+                {
+                    var numbers = result.GetArray(0);
+                    var dict = new MutableDictionaryObject();
+                    dict.SetArray("numbers", numbers);
+                    var expected = aggregateModel.Predict(dict);
 
-        //            var sum = result.GetInt(1);
-        //            var min = result.GetInt(2);
-        //            var max = result.GetInt(3);
-        //            var avg = result.GetDouble(4);
+                    var sum = result.GetInt(1);
+                    var min = result.GetInt(2);
+                    var max = result.GetInt(3);
+                    var avg = result.GetDouble(4);
 
-        //            result.GetInt("sum").Should().Be(sum);
-        //            result.GetInt("min").Should().Be(min);
-        //            result.GetInt("max").Should().Be(max);
-        //            result.GetDouble("avg").Should().Be(avg);
+                    result.GetInt("sum").Should().Be(sum);
+                    result.GetInt("min").Should().Be(min);
+                    result.GetInt("max").Should().Be(max);
+                    result.GetDouble("avg").Should().Be(avg);
 
-        //            sum.Should().Be(expected.GetInt("sum"));
-        //            min.Should().Be(expected.GetInt("min"));
-        //            max.Should().Be(expected.GetInt("max"));
-        //            avg.Should().Be(expected.GetDouble("avg"));
-        //        });
+                    sum.Should().Be(expected.GetInt("sum"));
+                    min.Should().Be(expected.GetInt("min"));
+                    max.Should().Be(expected.GetInt("max"));
+                    avg.Should().Be(expected.GetDouble("avg"));
+                });
 
-        //        rows.Should().Be(2);
-        //    }
-        //}
+                rows.Should().Be(2);
+            }
+        }
 
         [Fact]
         public void TestQueryWithBlobProperty()
@@ -398,504 +398,504 @@ namespace Test
             }
         }
 
-        //[Fact]
-        //public void TestWhere()
-        //{
-        //    CreateDocument(1, 2, 3, 4, 5);
-        //    CreateDocument(6, 7, 8, 9, 10);
-
-        //    var aggregateModel = new AggregateModel();
-        //    aggregateModel.RegisterModel();
-
-        //    var model = nameof(AggregateModel);
-        //    var input = AggregateModel.CreateInput("numbers");
-        //    var prediction = Function.Prediction(model, input);
-
-        //    using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
-        //            SelectResult.Expression(prediction.Property("sum")).As("sum"),
-        //            SelectResult.Expression(prediction.Property("min")).As("min"),
-        //            SelectResult.Expression(prediction.Property("max")).As("max"),
-        //            SelectResult.Expression(prediction.Property("avg")).As("avg"))
-        //        .From(DataSource.Database(Db))
-        //        .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
-        //        var rows = VerifyQuery(q, (n, result) =>
-        //        {
-        //            var sum = result.GetInt(1);
-        //            var min = result.GetInt(2);
-        //            var max = result.GetInt(3);
-        //            var avg = result.GetDouble(4);
-
-        //            sum.Should().Be(15);
-        //            min.Should().Be(1);
-        //            max.Should().Be(5);
-        //            avg.Should().Be(3.0);
-        //        });
-        //        rows.Should().Be(1);
-        //    }
-        //}
-
-        //[Fact]
-        //public void TestOrderBy()
-        //{
-        //    CreateDocument(1, 2, 3, 4, 5);
-        //    CreateDocument(6, 7, 8, 9, 10);
-
-        //    var aggregateModel = new AggregateModel();
-        //    aggregateModel.RegisterModel();
-
-        //    var model = nameof(AggregateModel);
-        //    var input = AggregateModel.CreateInput("numbers");
-        //    var prediction = Function.Prediction(model, input);
-
-        //    using (var q = QueryBuilder.Select(SelectResult.Expression(prediction.Property("sum")).As("sum"))
-        //        .From(DataSource.Database(Db))
-        //        .Where(prediction.Property("sum").GreaterThan(Expression.Int(1)))
-        //        .OrderBy(Ordering.Expression(prediction.Property("sum")).Descending())) {
-        //        var rows = VerifyQuery(q, (n, result) =>
-        //        {
-        //            var sum = result.GetInt(0);
-        //            sum.Should().Be(n == 1 ? 40 : 15);
-        //        });
-        //        rows.Should().Be(2);
-        //    }
-        //}
-
-        //[Fact]
-        //public void TestModelReturningNull()
-        //{
-        //    CreateDocument(1, 2, 3, 4, 5);
-
-        //    using (var doc = new MutableDocument()) {
-        //        doc.SetString("text", "Knox on fox in socks in box.  Socks on Knox and Knox in box.");
-        //        Db.Save(doc);
-        //    }
-
-        //    var aggregateModel = new AggregateModel();
-        //    aggregateModel.RegisterModel();
-
-        //    var model = nameof(AggregateModel);
-        //    var input = AggregateModel.CreateInput("numbers");
-        //    var prediction = Function.Prediction(model, input);
-
-        //    using (var q = QueryBuilder.Select(SelectResult.Expression(prediction),
-        //            SelectResult.Expression(prediction.Property("sum")))
-        //        .From(DataSource.Database(Db))) {
-        //        var rows = VerifyQuery(q, (n, result) =>
-        //        {
-        //            if (n == 1) {
-        //                result.GetDictionary(0).Should().NotBeNull();
-        //                result.GetInt(1).Should().Be(15);
-        //            } else {
-        //                result.GetDictionary(0).Should().BeNull();
-        //                result.GetValue(1).Should().BeNull();
-        //            }
-        //        });
-        //        rows.Should().Be(2);
-        //    }
-
-        //    using (var q = QueryBuilder.Select(SelectResult.Expression(prediction),
-        //            SelectResult.Expression(prediction.Property("sum")))
-        //        .From(DataSource.Database(Db))
-        //        .Where(prediction.NotNullOrMissing())) {
-        //        var explain = q.Explain();
-        //        var rows = VerifyQuery(q, (n, result) =>
-        //        {
-        //            result.GetDictionary(0).Should().NotBeNull();
-        //            result.GetInt(1).Should().Be(15);
-        //        });
-        //        rows.Should().Be(1);
-        //    }
-        //}
-
-        //[Fact]
-        //public void TestValueIndex()
-        //{
-        //    CreateDocument(1, 2, 3, 4, 5);
-        //    CreateDocument(6, 7, 8, 9, 10);
-
-        //    var aggregateModel = new AggregateModel();
-        //    aggregateModel.RegisterModel();
-        //    var input = AggregateModel.CreateInput("numbers");
-        //    var sumPrediction = Function.Prediction(aggregateModel.Name, input).Property("sum");
-
-        //    var index = IndexBuilder.ValueIndex(ValueIndexItem.Expression(sumPrediction));
-        //    Db.CreateIndex("SumIndex", index);
-
-        //    using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
-        //            SelectResult.Expression(sumPrediction))
-        //        .From(DataSource.Database(Db))
-        //        .Where(sumPrediction.EqualTo(Expression.Int(15)))) {
-        //        q.Explain().IndexOf("USING INDEX SumIndex").Should()
-        //            .NotBe(-1, "because the query should make use of the index");
-        //        var numRows = VerifyQuery(q, (n, r) =>
-        //        {
-        //            var numbers = r.GetArray(0).Cast<long>().ToList();
-        //            var sum = r.GetLong(1);
-        //            sum.Should().Be(numbers.Sum());
-        //        });
-
-        //        numRows.Should().Be(1);
-        //        aggregateModel.NumberOfCalls.Should().Be(2,
-        //            "because the value should be cached and not call the prediction function again");
-        //    }
-        //}
-
-        //[Fact]
-        //public void TestValueIndexMultipleValues()
-        //{
-        //    CreateDocument(1, 2, 3, 4, 5);
-        //    CreateDocument(6, 7, 8, 9, 10);
-
-        //    var aggregateModel = new AggregateModel();
-        //    aggregateModel.RegisterModel();
-        //    var input = AggregateModel.CreateInput("numbers");
-        //    var sumPrediction = Function.Prediction(aggregateModel.Name, input).Property("sum");
-        //    var avgPrediction = Function.Prediction(aggregateModel.Name, input).Property("avg");
-
-        //    var sumIndex = IndexBuilder.ValueIndex(ValueIndexItem.Expression(sumPrediction));
-        //    Db.CreateIndex("SumIndex", sumIndex);
-        //    var avgIndex = IndexBuilder.ValueIndex(ValueIndexItem.Expression(avgPrediction));
-        //    Db.CreateIndex("AvgIndex", avgIndex);
-
-        //    using (var q = QueryBuilder.Select(SelectResult.Expression(sumPrediction).As("s"),
-        //            SelectResult.Expression(avgPrediction).As("a"))
-        //        .From(DataSource.Database(Db))
-        //        .Where(sumPrediction.LessThanOrEqualTo(Expression.Int(15)).Or(avgPrediction.EqualTo(Expression.Int(8))))) {
-        //        var explain = q.Explain();
-        //        explain.IndexOf("USING INDEX SumIndex").Should().NotBe(-1, "because the sum index should be used");
-        //        explain.IndexOf("USING INDEX AvgIndex").Should().NotBe(-1, "because the average index should be used");
-
-        //        var numRows = VerifyQuery(q, (n, r) =>
-        //        {
-        //            r.Should().Match<Result>(x => x.GetLong(0) == 15 || x.GetLong(1) == 8);
-        //        });
-        //        numRows.Should().Be(2);
-        //    }
-        //}
-
-        //[Fact]
-        //public void TestValueIndexCompoundValues()
-        //{
-        //    CreateDocument(1, 2, 3, 4, 5);
-        //    CreateDocument(6, 7, 8, 9, 10);
-
-        //    var aggregateModel = new AggregateModel();
-        //    aggregateModel.RegisterModel();
-        //    var input = Expression.Dictionary(new Dictionary<string, object>
-        //    {
-        //        ["numbers"] = Expression.Property("numbers")
-        //    });
-        //    var sumPrediction = Function.Prediction(aggregateModel.Name, input).Property("sum");
-        //    var avgPrediction = Function.Prediction(aggregateModel.Name, input).Property("avg");
-
-        //    var index = IndexBuilder.ValueIndex(ValueIndexItem.Expression(sumPrediction),
-        //        ValueIndexItem.Expression(avgPrediction));
-        //    Db.CreateIndex("SumAvgIndex", index);
-
-        //    aggregateModel.AllowCalls = false;
-
-        //    using (var q = QueryBuilder.Select(SelectResult.Expression(sumPrediction).As("s"),
-        //            SelectResult.Expression(avgPrediction).As("a"))
-        //        .From(DataSource.Database(Db))
-        //        .Where(sumPrediction.EqualTo(Expression.Int(15)).And(avgPrediction.EqualTo(Expression.Int(3))))) {
-        //        var explain = q.Explain();
-        //        explain.IndexOf("USING INDEX SumAvgIndex").Should().NotBe(-1, "because the sum index should be used");
-
-        //        var numRows = VerifyQuery(q, (n, r) =>
-        //        {
-        //            r.GetLong(0).Should().Be(15);
-        //            r.GetLong(1).Should().Be(3);
-        //        });
-        //        numRows.Should().Be(1);
-        //        aggregateModel.NumberOfCalls.Should().Be(4);
-        //    }
-        //}
-
-        //[Fact]
-        //public void TestPredictiveIndex()
-        //{
-        //    CreateDocument(1, 2, 3, 4, 5);
-        //    CreateDocument(6, 7, 8, 9, 10);
-
-        //    var aggregateModel = new AggregateModel();
-        //    aggregateModel.RegisterModel();
-
-        //    var model = nameof(AggregateModel);
-        //    var input = AggregateModel.CreateInput("numbers");
-        //    var prediction = Function.Prediction(model, input);
-
-        //    var index = IndexBuilder.PredictiveIndex(model, input, null);
-        //    Db.CreateIndex("AggIndex", index);
-
-        //    aggregateModel.AllowCalls = false;
-
-        //    using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
-        //            SelectResult.Expression(prediction.Property("sum")).As("sum"))
-        //        .From(DataSource.Database(Db))
-        //        .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
-        //        var explain = q.Explain();
-        //        explain.Contains("USING INDEX AggIndex").Should()
-        //            .BeFalse("because unlike other indexes, predictive result indexes don't create SQLite indexes");
-
-        //        var rows = VerifyQuery(q, (n, result) => { result.GetInt(1).Should().Be(15); });
-        //        aggregateModel.Error.Should().BeNull();
-        //        rows.Should().Be(1);
-        //        aggregateModel.NumberOfCalls.Should().Be(2);
-        //    }
-        //}
-
-        //[Fact]
-        //public void TestPredictiveIndexOnValues()
-        //{
-        //    CreateDocument(1, 2, 3, 4, 5);
-        //    CreateDocument(6, 7, 8, 9, 10);
-
-        //    var aggregateModel = new AggregateModel();
-        //    aggregateModel.RegisterModel();
-
-        //    var model = nameof(AggregateModel);
-        //    var input = AggregateModel.CreateInput("numbers");
-        //    var prediction = Function.Prediction(model, input);
-
-        //    var index = IndexBuilder.PredictiveIndex(model, input, "sum");
-        //    Db.CreateIndex("SumIndex", index);
-
-        //    aggregateModel.AllowCalls = false;
-
-        //    using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
-        //            SelectResult.Expression(prediction.Property("sum")).As("sum"))
-        //        .From(DataSource.Database(Db))
-        //        .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
-        //        var explain = q.Explain();
-        //        explain.Contains("USING INDEX SumIndex").Should().BeTrue();
-
-        //        var rows = VerifyQuery(q, (n, result) => { result.GetInt(1).Should().Be(15); });
-        //        aggregateModel.Error.Should().BeNull();
-        //        rows.Should().Be(1);
-        //        aggregateModel.NumberOfCalls.Should().Be(2);
-        //    }
-        //}
-
-        //[Fact]
-        //public void TestPredictiveIndexMultipleValues()
-        //{
-        //    CreateDocument(1, 2, 3, 4, 5);
-        //    CreateDocument(6, 7, 8, 9, 10);
-
-        //    var aggregateModel = new AggregateModel();
-        //    aggregateModel.RegisterModel();
-
-        //    var model = nameof(AggregateModel);
-        //    var input = AggregateModel.CreateInput("numbers");
-        //    var prediction = Function.Prediction(model, input);
-
-        //    var sumIndex = IndexBuilder.PredictiveIndex(model, input, "sum");
-        //    Db.CreateIndex("SumIndex", sumIndex);
-
-        //    var avgIndex = IndexBuilder.PredictiveIndex(model, input, "avg");
-        //    Db.CreateIndex("AvgIndex", avgIndex);
-
-        //    aggregateModel.AllowCalls = false;
-
-        //    using (var q = QueryBuilder.Select(SelectResult.Expression(prediction.Property("sum")).As("sum"),
-        //            SelectResult.Expression(prediction.Property("avg")).As("avg"))
-        //        .From(DataSource.Database(Db))
-        //        .Where(prediction.Property("sum").LessThanOrEqualTo(Expression.Int(15)).Or(
-        //            prediction.Property("avg").EqualTo(Expression.Int(8))))) {
-        //        var explain = q.Explain();
-        //        explain.Contains("USING INDEX SumIndex").Should().BeTrue();
-        //        explain.Contains("USING INDEX AvgIndex").Should().BeTrue();
-
-        //        var rows = VerifyQuery(q, (n, result) =>
-        //            {
-        //                result.Should().Match<Result>(x => x.GetInt(0) == 15 || x.GetInt(1) == 8);
-        //            });
-        //        aggregateModel.Error.Should().BeNull();
-        //        rows.Should().Be(2);
-        //        aggregateModel.NumberOfCalls.Should().Be(2);
-        //    }
-        //}
-
-        //[Fact]
-        //public void TestPredictiveIndexCompoundValue()
-        //{
-        //    CreateDocument(1, 2, 3, 4, 5);
-        //    CreateDocument(6, 7, 8, 9, 10);
-
-        //    var aggregateModel = new AggregateModel();
-        //    aggregateModel.RegisterModel();
-
-        //    var model = nameof(AggregateModel);
-        //    var input = AggregateModel.CreateInput("numbers");
-        //    var prediction = Function.Prediction(model, input);
-
-        //    var sumIndex = IndexBuilder.PredictiveIndex(model, input, "sum", "avg");
-        //    Db.CreateIndex("SumAvgIndex", sumIndex);
-
-        //    aggregateModel.AllowCalls = false;
-
-        //    using (var q = QueryBuilder.Select(SelectResult.Expression(prediction.Property("sum")).As("sum"),
-        //            SelectResult.Expression(prediction.Property("avg")).As("avg"))
-        //        .From(DataSource.Database(Db))
-        //        .Where(prediction.Property("sum").LessThanOrEqualTo(Expression.Int(15)).And(
-        //            prediction.Property("avg").EqualTo(Expression.Int(3))))) {
-        //        var explain = q.Explain();
-        //        explain.Contains("USING INDEX SumAvgIndex").Should().BeTrue();
-
-        //        var rows = VerifyQuery(q, (n, result) =>
-        //        {
-        //            result.GetInt(0).Should().Be(15);
-        //            result.GetInt(1).Should().Be(3);
-        //        });
-
-        //        aggregateModel.Error.Should().BeNull();
-        //        rows.Should().Be(1);
-        //        aggregateModel.NumberOfCalls.Should().Be(2);
-        //    }
-        //}
-
-        //[Fact]
-        //public void TestDeletePredictiveIndex()
-        //{
-        //    CreateDocument(1, 2, 3, 4, 5);
-        //    CreateDocument(6, 7, 8, 9, 10);
-
-        //    var aggregateModel = new AggregateModel();
-        //    aggregateModel.RegisterModel();
-
-        //    var model = nameof(AggregateModel);
-        //    var input = AggregateModel.CreateInput("numbers");
-        //    var prediction = Function.Prediction(model, input);
-
-        //    var sumIndex = IndexBuilder.PredictiveIndex(model, input, "sum");
-        //    Db.CreateIndex("SumIndex", sumIndex);
-
-        //    aggregateModel.AllowCalls = false;
-
-        //    using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
-        //        .From(DataSource.Database(Db))
-        //        .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
-        //        var explain = q.Explain();
-        //        explain.Contains("USING INDEX SumIndex").Should().BeTrue();
-
-        //        var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
-        //        aggregateModel.Error.Should().BeNull();
-        //        rows.Should().Be(1);
-        //        aggregateModel.NumberOfCalls.Should().Be(2);
-        //    }
-
-        //    Db.DeleteIndex("SumIndex");
-
-        //    aggregateModel.Reset();
-        //    using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
-        //        .From(DataSource.Database(Db))
-        //        .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
-        //        var explain = q.Explain();
-        //        explain.Contains("USING INDEX SumIndex").Should().BeFalse();
-
-        //        var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
-        //        aggregateModel.Error.Should().BeNull();
-        //        rows.Should().Be(1);
-        //        aggregateModel.NumberOfCalls.Should().Be(2);
-        //    }
-        //}
-
-        //[Fact]
-        //public void TestDeletePredictiveIndexesSharedCache()
-        //{
-        //    CreateDocument(1, 2, 3, 4, 5);
-        //    CreateDocument(6, 7, 8, 9, 10);
-
-        //    var aggregateModel = new AggregateModel();
-        //    aggregateModel.RegisterModel();
-
-        //    var model = nameof(AggregateModel);
-        //    var input = AggregateModel.CreateInput("numbers");
-        //    var prediction = Function.Prediction(model, input);
-
-        //    var aggIndex = IndexBuilder.PredictiveIndex(model, input, null);
-        //    Db.CreateIndex("AggIndex", aggIndex);
-
-        //    var sumIndex = IndexBuilder.PredictiveIndex(model, input, "sum");
-        //    Db.CreateIndex("SumIndex", sumIndex);
-
-        //    var avgIndex = IndexBuilder.PredictiveIndex(model, input, "avg");
-        //    Db.CreateIndex("AvgIndex", avgIndex);
-
-        //    using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
-        //        .From(DataSource.Database(Db))
-        //        .Where(prediction.Property("sum").LessThanOrEqualTo(Expression.Int(15)).Or(
-        //            prediction.Property("avg").EqualTo(Expression.Int(8))))) {
-        //        var explain = q.Explain();
-        //        explain.Contains("USING INDEX SumIndex").Should().BeTrue();
-        //        explain.Contains("USING INDEX AvgIndex").Should().BeTrue();
-
-        //        var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
-        //        aggregateModel.Error.Should().BeNull();
-        //        rows.Should().Be(2);
-        //        aggregateModel.NumberOfCalls.Should().Be(2);
-        //    }
-
-        //    Db.DeleteIndex("SumIndex");
-
-        //    // Note: With only one index, the SQLite optimizer does not utilize the index
-        //    // when using an OR expression.  So test each query individually.
-
-        //    aggregateModel.Reset();
-        //    aggregateModel.AllowCalls = false;
-
-        //    using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
-        //        .From(DataSource.Database(Db))
-        //        .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
-        //        var explain = q.Explain();
-        //        explain.Contains("USING INDEX SumIndex").Should().BeFalse();
-
-        //        var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
-        //        aggregateModel.Error.Should().BeNull();
-        //        rows.Should().Be(1);
-        //        aggregateModel.NumberOfCalls.Should().Be(0);
-        //    }
-
-        //    aggregateModel.Reset();
-        //    aggregateModel.AllowCalls = false;
-        //    using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
-        //        .From(DataSource.Database(Db))
-        //        .Where(prediction.Property("avg").EqualTo(Expression.Int(8)))) {
-        //        var explain = q.Explain();
-        //        explain.Contains("USING INDEX AvgIndex").Should().BeTrue();
-
-        //        var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
-        //        aggregateModel.Error.Should().BeNull();
-        //        rows.Should().Be(1);
-        //        aggregateModel.NumberOfCalls.Should().Be(0);
-        //    }
-
-        //    Db.DeleteIndex("AvgIndex");
-
-        //    for (int i = 0; i < 2; i++) {
-        //        aggregateModel.Reset();
-        //        aggregateModel.AllowCalls = i == 1;
-
-        //        using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
-        //            .From(DataSource.Database(Db))
-        //            .Where(prediction.Property("avg").EqualTo(Expression.Int(8)))) {
-        //            var explain = q.Explain();
-        //            explain.Contains("USING INDEX SumIndex").Should().BeFalse();
-        //            explain.Contains("USING INDEX AvgIndex").Should().BeFalse();
-
-        //            var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
-        //            aggregateModel.Error.Should().BeNull();
-        //            rows.Should().Be(1);
-        //            if (i == 0) {
-        //                aggregateModel.NumberOfCalls.Should().Be(0);
-        //            } else {
-        //                aggregateModel.NumberOfCalls.Should().BeGreaterThan(0);
-        //            }
-        //        }
-
-        //        Db.DeleteIndex("AggIndex");
-        //    }
-        //}
+        [Fact]
+        public void TestWhere()
+        {
+            CreateDocument(1, 2, 3, 4, 5);
+            CreateDocument(6, 7, 8, 9, 10);
+
+            var aggregateModel = new AggregateModel();
+            aggregateModel.RegisterModel();
+
+            var model = nameof(AggregateModel);
+            var input = AggregateModel.CreateInput("numbers");
+            var prediction = Function.Prediction(model, input);
+
+            using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
+                    SelectResult.Expression(prediction.Property("sum")).As("sum"),
+                    SelectResult.Expression(prediction.Property("min")).As("min"),
+                    SelectResult.Expression(prediction.Property("max")).As("max"),
+                    SelectResult.Expression(prediction.Property("avg")).As("avg"))
+                .From(DataSource.Database(Db))
+                .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
+                var rows = VerifyQuery(q, (n, result) =>
+                {
+                    var sum = result.GetInt(1);
+                    var min = result.GetInt(2);
+                    var max = result.GetInt(3);
+                    var avg = result.GetDouble(4);
+
+                    sum.Should().Be(15);
+                    min.Should().Be(1);
+                    max.Should().Be(5);
+                    avg.Should().Be(3.0);
+                });
+                rows.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public void TestOrderBy()
+        {
+            CreateDocument(1, 2, 3, 4, 5);
+            CreateDocument(6, 7, 8, 9, 10);
+
+            var aggregateModel = new AggregateModel();
+            aggregateModel.RegisterModel();
+
+            var model = nameof(AggregateModel);
+            var input = AggregateModel.CreateInput("numbers");
+            var prediction = Function.Prediction(model, input);
+
+            using (var q = QueryBuilder.Select(SelectResult.Expression(prediction.Property("sum")).As("sum"))
+                .From(DataSource.Database(Db))
+                .Where(prediction.Property("sum").GreaterThan(Expression.Int(1)))
+                .OrderBy(Ordering.Expression(prediction.Property("sum")).Descending())) {
+                var rows = VerifyQuery(q, (n, result) =>
+                {
+                    var sum = result.GetInt(0);
+                    sum.Should().Be(n == 1 ? 40 : 15);
+                });
+                rows.Should().Be(2);
+            }
+        }
+
+        [Fact]
+        public void TestModelReturningNull()
+        {
+            CreateDocument(1, 2, 3, 4, 5);
+
+            using (var doc = new MutableDocument()) {
+                doc.SetString("text", "Knox on fox in socks in box.  Socks on Knox and Knox in box.");
+                Db.Save(doc);
+            }
+
+            var aggregateModel = new AggregateModel();
+            aggregateModel.RegisterModel();
+
+            var model = nameof(AggregateModel);
+            var input = AggregateModel.CreateInput("numbers");
+            var prediction = Function.Prediction(model, input);
+
+            using (var q = QueryBuilder.Select(SelectResult.Expression(prediction),
+                    SelectResult.Expression(prediction.Property("sum")))
+                .From(DataSource.Database(Db))) {
+                var rows = VerifyQuery(q, (n, result) =>
+                {
+                    if (n == 1) {
+                        result.GetDictionary(0).Should().NotBeNull();
+                        result.GetInt(1).Should().Be(15);
+                    } else {
+                        result.GetDictionary(0).Should().BeNull();
+                        result.GetValue(1).Should().BeNull();
+                    }
+                });
+                rows.Should().Be(2);
+            }
+
+            using (var q = QueryBuilder.Select(SelectResult.Expression(prediction),
+                    SelectResult.Expression(prediction.Property("sum")))
+                .From(DataSource.Database(Db))
+                .Where(prediction.NotNullOrMissing())) {
+                var explain = q.Explain();
+                var rows = VerifyQuery(q, (n, result) =>
+                {
+                    result.GetDictionary(0).Should().NotBeNull();
+                    result.GetInt(1).Should().Be(15);
+                });
+                rows.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public void TestValueIndex()
+        {
+            CreateDocument(1, 2, 3, 4, 5);
+            CreateDocument(6, 7, 8, 9, 10);
+
+            var aggregateModel = new AggregateModel();
+            aggregateModel.RegisterModel();
+            var input = AggregateModel.CreateInput("numbers");
+            var sumPrediction = Function.Prediction(aggregateModel.Name, input).Property("sum");
+
+            var index = IndexBuilder.ValueIndex(ValueIndexItem.Expression(sumPrediction));
+            Db.CreateIndex("SumIndex", index);
+
+            using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
+                    SelectResult.Expression(sumPrediction))
+                .From(DataSource.Database(Db))
+                .Where(sumPrediction.EqualTo(Expression.Int(15)))) {
+                q.Explain().IndexOf("USING INDEX SumIndex").Should()
+                    .NotBe(-1, "because the query should make use of the index");
+                var numRows = VerifyQuery(q, (n, r) =>
+                {
+                    var numbers = r.GetArray(0).Cast<long>().ToList();
+                    var sum = r.GetLong(1);
+                    sum.Should().Be(numbers.Sum());
+                });
+
+                numRows.Should().Be(1);
+                aggregateModel.NumberOfCalls.Should().Be(2,
+                    "because the value should be cached and not call the prediction function again");
+            }
+        }
+
+        [Fact]
+        public void TestValueIndexMultipleValues()
+        {
+            CreateDocument(1, 2, 3, 4, 5);
+            CreateDocument(6, 7, 8, 9, 10);
+
+            var aggregateModel = new AggregateModel();
+            aggregateModel.RegisterModel();
+            var input = AggregateModel.CreateInput("numbers");
+            var sumPrediction = Function.Prediction(aggregateModel.Name, input).Property("sum");
+            var avgPrediction = Function.Prediction(aggregateModel.Name, input).Property("avg");
+
+            var sumIndex = IndexBuilder.ValueIndex(ValueIndexItem.Expression(sumPrediction));
+            Db.CreateIndex("SumIndex", sumIndex);
+            var avgIndex = IndexBuilder.ValueIndex(ValueIndexItem.Expression(avgPrediction));
+            Db.CreateIndex("AvgIndex", avgIndex);
+
+            using (var q = QueryBuilder.Select(SelectResult.Expression(sumPrediction).As("s"),
+                    SelectResult.Expression(avgPrediction).As("a"))
+                .From(DataSource.Database(Db))
+                .Where(sumPrediction.LessThanOrEqualTo(Expression.Int(15)).Or(avgPrediction.EqualTo(Expression.Int(8))))) {
+                var explain = q.Explain();
+                explain.IndexOf("USING INDEX SumIndex").Should().NotBe(-1, "because the sum index should be used");
+                explain.IndexOf("USING INDEX AvgIndex").Should().NotBe(-1, "because the average index should be used");
+
+                var numRows = VerifyQuery(q, (n, r) =>
+                {
+                    r.Should().Match<Result>(x => x.GetLong(0) == 15 || x.GetLong(1) == 8);
+                });
+                numRows.Should().Be(2);
+            }
+        }
+
+        [Fact]
+        public void TestValueIndexCompoundValues()
+        {
+            CreateDocument(1, 2, 3, 4, 5);
+            CreateDocument(6, 7, 8, 9, 10);
+
+            var aggregateModel = new AggregateModel();
+            aggregateModel.RegisterModel();
+            var input = Expression.Dictionary(new Dictionary<string, object>
+            {
+                ["numbers"] = Expression.Property("numbers")
+            });
+            var sumPrediction = Function.Prediction(aggregateModel.Name, input).Property("sum");
+            var avgPrediction = Function.Prediction(aggregateModel.Name, input).Property("avg");
+
+            var index = IndexBuilder.ValueIndex(ValueIndexItem.Expression(sumPrediction),
+                ValueIndexItem.Expression(avgPrediction));
+            Db.CreateIndex("SumAvgIndex", index);
+
+            aggregateModel.AllowCalls = false;
+
+            using (var q = QueryBuilder.Select(SelectResult.Expression(sumPrediction).As("s"),
+                    SelectResult.Expression(avgPrediction).As("a"))
+                .From(DataSource.Database(Db))
+                .Where(sumPrediction.EqualTo(Expression.Int(15)).And(avgPrediction.EqualTo(Expression.Int(3))))) {
+                var explain = q.Explain();
+                explain.IndexOf("USING INDEX SumAvgIndex").Should().NotBe(-1, "because the sum index should be used");
+
+                var numRows = VerifyQuery(q, (n, r) =>
+                {
+                    r.GetLong(0).Should().Be(15);
+                    r.GetLong(1).Should().Be(3);
+                });
+                numRows.Should().Be(1);
+                aggregateModel.NumberOfCalls.Should().Be(4);
+            }
+        }
+
+        [Fact]
+        public void TestPredictiveIndex()
+        {
+            CreateDocument(1, 2, 3, 4, 5);
+            CreateDocument(6, 7, 8, 9, 10);
+
+            var aggregateModel = new AggregateModel();
+            aggregateModel.RegisterModel();
+
+            var model = nameof(AggregateModel);
+            var input = AggregateModel.CreateInput("numbers");
+            var prediction = Function.Prediction(model, input);
+
+            var index = IndexBuilder.PredictiveIndex(model, input, null);
+            Db.CreateIndex("AggIndex", index);
+
+            aggregateModel.AllowCalls = false;
+
+            using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
+                    SelectResult.Expression(prediction.Property("sum")).As("sum"))
+                .From(DataSource.Database(Db))
+                .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
+                var explain = q.Explain();
+                explain.Contains("USING INDEX AggIndex").Should()
+                    .BeFalse("because unlike other indexes, predictive result indexes don't create SQLite indexes");
+
+                var rows = VerifyQuery(q, (n, result) => { result.GetInt(1).Should().Be(15); });
+                aggregateModel.Error.Should().BeNull();
+                rows.Should().Be(1);
+                aggregateModel.NumberOfCalls.Should().Be(2);
+            }
+        }
+
+        [Fact]
+        public void TestPredictiveIndexOnValues()
+        {
+            CreateDocument(1, 2, 3, 4, 5);
+            CreateDocument(6, 7, 8, 9, 10);
+
+            var aggregateModel = new AggregateModel();
+            aggregateModel.RegisterModel();
+
+            var model = nameof(AggregateModel);
+            var input = AggregateModel.CreateInput("numbers");
+            var prediction = Function.Prediction(model, input);
+
+            var index = IndexBuilder.PredictiveIndex(model, input, "sum");
+            Db.CreateIndex("SumIndex", index);
+
+            aggregateModel.AllowCalls = false;
+
+            using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
+                    SelectResult.Expression(prediction.Property("sum")).As("sum"))
+                .From(DataSource.Database(Db))
+                .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
+                var explain = q.Explain();
+                explain.Contains("USING INDEX SumIndex").Should().BeTrue();
+
+                var rows = VerifyQuery(q, (n, result) => { result.GetInt(1).Should().Be(15); });
+                aggregateModel.Error.Should().BeNull();
+                rows.Should().Be(1);
+                aggregateModel.NumberOfCalls.Should().Be(2);
+            }
+        }
+
+        [Fact]
+        public void TestPredictiveIndexMultipleValues()
+        {
+            CreateDocument(1, 2, 3, 4, 5);
+            CreateDocument(6, 7, 8, 9, 10);
+
+            var aggregateModel = new AggregateModel();
+            aggregateModel.RegisterModel();
+
+            var model = nameof(AggregateModel);
+            var input = AggregateModel.CreateInput("numbers");
+            var prediction = Function.Prediction(model, input);
+
+            var sumIndex = IndexBuilder.PredictiveIndex(model, input, "sum");
+            Db.CreateIndex("SumIndex", sumIndex);
+
+            var avgIndex = IndexBuilder.PredictiveIndex(model, input, "avg");
+            Db.CreateIndex("AvgIndex", avgIndex);
+
+            aggregateModel.AllowCalls = false;
+
+            using (var q = QueryBuilder.Select(SelectResult.Expression(prediction.Property("sum")).As("sum"),
+                    SelectResult.Expression(prediction.Property("avg")).As("avg"))
+                .From(DataSource.Database(Db))
+                .Where(prediction.Property("sum").LessThanOrEqualTo(Expression.Int(15)).Or(
+                    prediction.Property("avg").EqualTo(Expression.Int(8))))) {
+                var explain = q.Explain();
+                explain.Contains("USING INDEX SumIndex").Should().BeTrue();
+                explain.Contains("USING INDEX AvgIndex").Should().BeTrue();
+
+                var rows = VerifyQuery(q, (n, result) =>
+                    {
+                        result.Should().Match<Result>(x => x.GetInt(0) == 15 || x.GetInt(1) == 8);
+                    });
+                aggregateModel.Error.Should().BeNull();
+                rows.Should().Be(2);
+                aggregateModel.NumberOfCalls.Should().Be(2);
+            }
+        }
+
+        [Fact]
+        public void TestPredictiveIndexCompoundValue()
+        {
+            CreateDocument(1, 2, 3, 4, 5);
+            CreateDocument(6, 7, 8, 9, 10);
+
+            var aggregateModel = new AggregateModel();
+            aggregateModel.RegisterModel();
+
+            var model = nameof(AggregateModel);
+            var input = AggregateModel.CreateInput("numbers");
+            var prediction = Function.Prediction(model, input);
+
+            var sumIndex = IndexBuilder.PredictiveIndex(model, input, "sum", "avg");
+            Db.CreateIndex("SumAvgIndex", sumIndex);
+
+            aggregateModel.AllowCalls = false;
+
+            using (var q = QueryBuilder.Select(SelectResult.Expression(prediction.Property("sum")).As("sum"),
+                    SelectResult.Expression(prediction.Property("avg")).As("avg"))
+                .From(DataSource.Database(Db))
+                .Where(prediction.Property("sum").LessThanOrEqualTo(Expression.Int(15)).And(
+                    prediction.Property("avg").EqualTo(Expression.Int(3))))) {
+                var explain = q.Explain();
+                explain.Contains("USING INDEX SumAvgIndex").Should().BeTrue();
+
+                var rows = VerifyQuery(q, (n, result) =>
+                {
+                    result.GetInt(0).Should().Be(15);
+                    result.GetInt(1).Should().Be(3);
+                });
+
+                aggregateModel.Error.Should().BeNull();
+                rows.Should().Be(1);
+                aggregateModel.NumberOfCalls.Should().Be(2);
+            }
+        }
+
+        [Fact]
+        public void TestDeletePredictiveIndex()
+        {
+            CreateDocument(1, 2, 3, 4, 5);
+            CreateDocument(6, 7, 8, 9, 10);
+
+            var aggregateModel = new AggregateModel();
+            aggregateModel.RegisterModel();
+
+            var model = nameof(AggregateModel);
+            var input = AggregateModel.CreateInput("numbers");
+            var prediction = Function.Prediction(model, input);
+
+            var sumIndex = IndexBuilder.PredictiveIndex(model, input, "sum");
+            Db.CreateIndex("SumIndex", sumIndex);
+
+            aggregateModel.AllowCalls = false;
+
+            using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
+                .From(DataSource.Database(Db))
+                .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
+                var explain = q.Explain();
+                explain.Contains("USING INDEX SumIndex").Should().BeTrue();
+
+                var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
+                aggregateModel.Error.Should().BeNull();
+                rows.Should().Be(1);
+                aggregateModel.NumberOfCalls.Should().Be(2);
+            }
+
+            Db.DeleteIndex("SumIndex");
+
+            aggregateModel.Reset();
+            using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
+                .From(DataSource.Database(Db))
+                .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
+                var explain = q.Explain();
+                explain.Contains("USING INDEX SumIndex").Should().BeFalse();
+
+                var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
+                aggregateModel.Error.Should().BeNull();
+                rows.Should().Be(1);
+                aggregateModel.NumberOfCalls.Should().Be(2);
+            }
+        }
+
+        [Fact]
+        public void TestDeletePredictiveIndexesSharedCache()
+        {
+            CreateDocument(1, 2, 3, 4, 5);
+            CreateDocument(6, 7, 8, 9, 10);
+
+            var aggregateModel = new AggregateModel();
+            aggregateModel.RegisterModel();
+
+            var model = nameof(AggregateModel);
+            var input = AggregateModel.CreateInput("numbers");
+            var prediction = Function.Prediction(model, input);
+
+            var aggIndex = IndexBuilder.PredictiveIndex(model, input, null);
+            Db.CreateIndex("AggIndex", aggIndex);
+
+            var sumIndex = IndexBuilder.PredictiveIndex(model, input, "sum");
+            Db.CreateIndex("SumIndex", sumIndex);
+
+            var avgIndex = IndexBuilder.PredictiveIndex(model, input, "avg");
+            Db.CreateIndex("AvgIndex", avgIndex);
+
+            using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
+                .From(DataSource.Database(Db))
+                .Where(prediction.Property("sum").LessThanOrEqualTo(Expression.Int(15)).Or(
+                    prediction.Property("avg").EqualTo(Expression.Int(8))))) {
+                var explain = q.Explain();
+                explain.Contains("USING INDEX SumIndex").Should().BeTrue();
+                explain.Contains("USING INDEX AvgIndex").Should().BeTrue();
+
+                var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
+                aggregateModel.Error.Should().BeNull();
+                rows.Should().Be(2);
+                aggregateModel.NumberOfCalls.Should().Be(2);
+            }
+
+            Db.DeleteIndex("SumIndex");
+
+            // Note: With only one index, the SQLite optimizer does not utilize the index
+            // when using an OR expression.  So test each query individually.
+
+            aggregateModel.Reset();
+            aggregateModel.AllowCalls = false;
+
+            using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
+                .From(DataSource.Database(Db))
+                .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
+                var explain = q.Explain();
+                explain.Contains("USING INDEX SumIndex").Should().BeFalse();
+
+                var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
+                aggregateModel.Error.Should().BeNull();
+                rows.Should().Be(1);
+                aggregateModel.NumberOfCalls.Should().Be(0);
+            }
+
+            aggregateModel.Reset();
+            aggregateModel.AllowCalls = false;
+            using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
+                .From(DataSource.Database(Db))
+                .Where(prediction.Property("avg").EqualTo(Expression.Int(8)))) {
+                var explain = q.Explain();
+                explain.Contains("USING INDEX AvgIndex").Should().BeTrue();
+
+                var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
+                aggregateModel.Error.Should().BeNull();
+                rows.Should().Be(1);
+                aggregateModel.NumberOfCalls.Should().Be(0);
+            }
+
+            Db.DeleteIndex("AvgIndex");
+
+            for (int i = 0; i < 2; i++) {
+                aggregateModel.Reset();
+                aggregateModel.AllowCalls = i == 1;
+
+                using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
+                    .From(DataSource.Database(Db))
+                    .Where(prediction.Property("avg").EqualTo(Expression.Int(8)))) {
+                    var explain = q.Explain();
+                    explain.Contains("USING INDEX SumIndex").Should().BeFalse();
+                    explain.Contains("USING INDEX AvgIndex").Should().BeFalse();
+
+                    var rows = VerifyQuery(q, (n, result) => { result.GetArray(0)?.Count.Should().BeGreaterThan(0); });
+                    aggregateModel.Error.Should().BeNull();
+                    rows.Should().Be(1);
+                    if (i == 0) {
+                        aggregateModel.NumberOfCalls.Should().Be(0);
+                    } else {
+                        aggregateModel.NumberOfCalls.Should().BeGreaterThan(0);
+                    }
+                }
+
+                Db.DeleteIndex("AggIndex");
+            }
+        }
 
         [Fact]
         public void TestEuclidientDistance()
