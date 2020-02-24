@@ -78,7 +78,7 @@ namespace Couchbase.Lite.Sync
         private IReachability _reachability;
         private C4Replicator* _repl;
         private int _retryCount;
-        private bool _stopping;
+        private bool _stopping = true;
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
 
         #endregion
@@ -250,11 +250,11 @@ namespace Couchbase.Lite.Sync
                 if (_stopping) {
                     return;
                 }
-                
-                _stopping = true;
+
                 _reachability?.Stop();
                 _reachability = null;
                 if (_repl != null) {
+                    _stopping = true;
                     Native.c4repl_stop(_repl);
                 } else if(_rawStatus.level == C4ReplicatorActivityLevel.Offline) {
                     StatusChangedCallback(new C4ReplicatorStatus
@@ -639,19 +639,22 @@ namespace Couchbase.Lite.Sync
 
             var err = new C4Error();
             var status = default(C4ReplicatorStatus);
-            _stopping = false;
+            
             _databaseThreadSafety.DoLocked(() =>
             {
-                C4Error localErr;
-                if (otherDB != null) {
-                    _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
-                        &localErr);
-                } else {
-                    _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
+                C4Error localErr = new C4Error();
+                if (_repl == null) {
+                    if (otherDB != null) {
+                        _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
+                            &localErr);
+                    } else {
+                        _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
+                    }
                 }
 
                 err = localErr;
-                if (_repl != null) {
+                if (_repl != null && _stopping) {
+                    _stopping = false;
                     Native.c4repl_start(_repl);
                     status = Native.c4repl_getStatus(_repl);
                     Config.Database.AddActiveReplication(this);
