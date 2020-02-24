@@ -979,7 +979,6 @@ namespace Test
 
                 awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
                 awaiter.Validate();
-
                 replicator.Status.Error.Should()
                     .NotBeNull("because closing the passive side creates an error on the active one");
             }
@@ -1277,11 +1276,8 @@ namespace Test
                 _otherDB.Save(doc1);
             }
 
-
             Db.Delete(Db.GetDocument("doc1"));
-
             Db.Count.Should().Be(0);
-
             using (var doc1 = _otherDB.GetDocument("doc1").ToMutable()) {
                 doc1.SetString("name", "Lion");
                 _otherDB.Save(doc1);
@@ -1647,7 +1643,6 @@ namespace Test
             });
 
             RunReplication(config, 0, 0);
-
             using (var doc = Db.GetDocument("doc1")) {
                 doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 6, 6, 6 });
                 unsafe {
