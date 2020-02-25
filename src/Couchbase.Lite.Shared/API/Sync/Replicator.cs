@@ -581,8 +581,7 @@ namespace Couchbase.Lite.Sync
             StartInternal();
         }
 
-        // Must be called from within the ThreadSafety
-        private void StartInternal()
+        private C4Error SetupC4Replicator()
         {
             _desc = ToString(); // Cache this; it may be called a lot when logging
 
@@ -632,14 +631,12 @@ namespace Couchbase.Lite.Sync
             // Clear the reset flag, it is a one-time thing
             options.Reset = false;
 
-            if(Config.PushFilter!=null)
+            if (Config.PushFilter != null)
                 _nativeParams.PushFilter = PushFilterCallback;
             if (Config.PullFilter != null)
                 _nativeParams.PullFilter = PullValidateCallback;
 
-            var err = new C4Error();
-            var status = default(C4ReplicatorStatus);
-            
+            C4Error err = new C4Error();
             _databaseThreadSafety.DoLocked(() =>
             {
                 C4Error localErr = new C4Error();
@@ -653,6 +650,23 @@ namespace Couchbase.Lite.Sync
                 }
 
                 err = localErr;
+            });
+
+            scheme.Dispose();
+            path.Dispose();
+            host.Dispose();
+
+            return err;
+        }
+
+        // Must be called from within the ThreadSafety
+        private void StartInternal()
+        {
+            var err = SetupC4Replicator();
+            var status = default(C4ReplicatorStatus);
+            
+            _databaseThreadSafety.DoLocked(() =>
+            {
                 if (_repl != null && _stopping) {
                     _stopping = false;
                     Native.c4repl_start(_repl);
@@ -666,10 +680,6 @@ namespace Couchbase.Lite.Sync
                     };
                 }
             });
-
-            scheme.Dispose();
-            path.Dispose();
-            host.Dispose();
 
             UpdateStateProperties(status);
             DispatchQueue.DispatchSync(() => StatusChangedCallback(status));
