@@ -76,6 +76,7 @@ namespace Couchbase.Lite.Sync
         private IReachability _reachability;
         private C4Replicator* _repl;
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
+        private IImmutableSet<string> _pendingDocIds;
 
         #endregion
 
@@ -280,12 +281,13 @@ namespace Couchbase.Lite.Sync
         [NotNull]
         public IImmutableSet<string> GetPendingDocumentIDs()
         {
+            //TODO: Get cache token from LiteCore. If the cache token is different from what is currently stored in the platform, the values need to be updated
             var result = new HashSet<string>();
             if (!IsPushing()) {
                 CBDebug.LogAndThrow(WriteLog.To.Sync,
                     new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
                     Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
-                return result.ToImmutableHashSet<string>();
+                _pendingDocIds = result.ToImmutableHashSet<string>();
             }
 
             var err = SetupC4Replicator();
@@ -310,7 +312,8 @@ namespace Couchbase.Lite.Sync
 
             Array.Clear(pendingDocIds, 0, pendingDocIds.Length);
             pendingDocIds = null;
-            return result.ToImmutableHashSet<string>();
+            _pendingDocIds = result.ToImmutableHashSet<string>();
+            return _pendingDocIds;
         }
 
         /// <summary>
