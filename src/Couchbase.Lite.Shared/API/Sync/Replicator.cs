@@ -48,10 +48,7 @@ namespace Couchbase.Lite.Sync
     {
         #region Constants
 
-        private const int MaxOneShotRetryCount = 2;
-
         private const string Tag = nameof(Replicator);
-        private static readonly TimeSpan MaxRetryDelay = TimeSpan.FromMinutes(10);
 
         [NotNull]
         private static readonly C4ReplicatorMode[] Modes = {
@@ -77,7 +74,6 @@ namespace Couchbase.Lite.Sync
         private C4ReplicatorStatus _rawStatus;
         private IReachability _reachability;
         private C4Replicator* _repl;
-        private int _retryCount;
         private bool _stopping = true;
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
 
@@ -229,13 +225,12 @@ namespace Couchbase.Lite.Sync
                     throw new ObjectDisposedException(CouchbaseLiteErrorMessage.ReplicatorDisposed);
                 }
 
-                if (_repl != null) {
+                if (_repl != null && !_stopping) {
                     WriteLog.To.Sync.W(Tag, $"{this} has already started");
                     return;
                 }
 
                 WriteLog.To.Sync.I(Tag, $"{this}: Starting");
-                _retryCount = 0;
                 StartInternal();
             });
         }
@@ -256,11 +251,6 @@ namespace Couchbase.Lite.Sync
                 if (_repl != null) {
                     _stopping = true;
                     Native.c4repl_stop(_repl);
-                } else if(_rawStatus.level == C4ReplicatorActivityLevel.Offline) {
-                    StatusChangedCallback(new C4ReplicatorStatus
-                    {
-                        level = C4ReplicatorActivityLevel.Stopped
-                    });
                 }
             });
         }
@@ -358,12 +348,6 @@ namespace Couchbase.Lite.Sync
             return replicator.PushFilterCallback(docIDStr, revID.CreateString(), dict, flags);
         }
 
-        private static TimeSpan RetryDelay(int retryCount)
-        {
-            var delaySecs = 1 << Math.Min(retryCount, 30);
-            return TimeSpan.FromSeconds(Math.Min(delaySecs, MaxRetryDelay.TotalSeconds));
-        }
-
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorStatusChangedCallback))]
         #endif
@@ -396,16 +380,6 @@ namespace Couchbase.Lite.Sync
                     Task.WaitAll(array);
                 }
             }
-        }
-
-        private void ClearRepl()
-        {
-            DispatchQueue.DispatchSync(() =>
-            {
-                Native.c4repl_free(_repl);
-                _repl = null;
-                _desc = null;
-            });
         }
 
         private void Dispose(bool finalizing)
@@ -451,44 +425,6 @@ namespace Couchbase.Lite.Sync
             }
 
             return false;
-        }
-
-        private bool HandleError(C4Error error)
-        {
-            if (_stopping) {
-                WriteLog.To.Sync.I(Tag, "Already stopping, ignoring error...");
-                return false;
-            }
-
-            bool transient;
-            if(IsPermanentError(error, out transient)) {
-                if (error.code > 0) {
-                    WriteLog.To.Sync.I(Tag, "Permanent error encountered ({0} / {1}), giving up...", error.domain, error.code);
-                }
-
-                return false;
-            }
-
-            if (!Config.Continuous && _retryCount >= MaxOneShotRetryCount) {
-                WriteLog.To.Sync.I(Tag, "Exceeded one-shot retry count, giving up...");
-                return false; //Too many retries
-            }
-
-            ClearRepl();
-            if (transient) {
-                // On transient error, retry periodically, with exponential backoff
-                var delay = RetryDelay(++_retryCount);
-                WriteLog.To.Sync.I(Tag,
-                    $"{this}: Transient error ({Native.c4error_getMessage(error)}); will retry in {delay}...");
-                DispatchQueue.DispatchAfter(Retry, delay);
-            } else {
-                WriteLog.To.Sync.I(Tag,
-                    $"{this}: Network error ({Native.c4error_getMessage(error)}); will retry when network changes...");
-            }
-
-            // Also retry when the network changes
-            StartReachabilityObserver();
-            return true;
         }
 
         private void OnDocEndedWithConflict(List<ReplicatedDocument> replications)
@@ -563,22 +499,12 @@ namespace Couchbase.Lite.Sync
             {
                 if (_repl == null && e.Status == NetworkReachabilityStatus.Reachable) {
                     WriteLog.To.Sync.I(Tag, $"{this}: Server may now be reachable; retrying...");
-                    Retry();
                 }
             });
-        }
 
-        // Must be called from within the ThreadSafety
-        private void Retry()
-        {
-            if (_repl != null || _rawStatus.level != C4ReplicatorActivityLevel.Offline || _stopping) {
-                WriteLog.To.Sync.I(Tag,
-                    $"{this}: Not in a state to retry, giving up (_repl != null {_repl != null}, level {_rawStatus.level}, _stopping {_stopping}");
-                return;
+            if (_repl != null) {
+                Native.c4repl_setHostReachable(_repl, e.Status == NetworkReachabilityStatus.Reachable);
             }
-
-            WriteLog.To.Sync.I(Tag, $"{this}: Retrying...");
-            StartInternal();
         }
 
         private C4Error SetupC4Replicator()
@@ -709,12 +635,7 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
-            if (status.level == C4ReplicatorActivityLevel.Stopped) {
-                if (HandleError(status.error)) {
-                    status.level = C4ReplicatorActivityLevel.Offline;
-                }
-            } else if (status.level > C4ReplicatorActivityLevel.Connecting && status.error.code == 0) {
-                _retryCount = 0;
+            if (status.level > C4ReplicatorActivityLevel.Connecting && status.error.code == 0) {
                 _reachability?.Stop();
                 _reachability = null;
             }

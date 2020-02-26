@@ -47,6 +47,9 @@ namespace LiteCore.Interop
         public static extern bool c4repl_retry(C4Replicator* repl, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4repl_setHostReachable(C4Replicator* repl, [MarshalAs(UnmanagedType.U1)]bool reachable);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4ReplicatorStatus c4repl_getStatus(C4Replicator* repl);
 
         public static byte[] c4repl_getPendingDocIDs(C4Replicator* repl, C4Error* outErr)
