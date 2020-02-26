@@ -489,8 +489,7 @@ namespace Couchbase.Lite.Sync
         {
             Debug.Assert(e != null);
 
-            DispatchQueue.DispatchAsync(() =>
-            {
+            DispatchQueue.DispatchAsync(() => {
                 if (_repl == null && e.Status == NetworkReachabilityStatus.Reachable) {
                     WriteLog.To.Sync.I(Tag, $"{this}: Server may now be reachable; retrying...");
                 }
