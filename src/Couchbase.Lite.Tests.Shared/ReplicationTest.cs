@@ -914,22 +914,22 @@ namespace Test
         //public void TestP2PPermanentFailureDuringReceive() => TestP2PError(MockConnectionLifecycleLocation.Receive, false);
 
 
-        [Fact]
-        public void TestP2PFailureDuringClose()
-        {
-            using (var mdoc = new MutableDocument("livesindb"))
-            {
-                mdoc.SetString("name", "db");
-                Db.Save(mdoc);
-            }
+        //[Fact]
+        //public void TestP2PFailureDuringClose()
+        //{
+        //    using (var mdoc = new MutableDocument("livesindb"))
+        //    {
+        //        mdoc.SetString("name", "db");
+        //        Db.Save(mdoc);
+        //    }
 
-            var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, MockConnectionLifecycleLocation.Close,
-                false);
-            RunReplication(config, (int)CouchbaseLiteError.WebSocketUserPermanent, CouchbaseLiteErrorType.CouchbaseLite);
-            config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, MockConnectionLifecycleLocation.Close,
-                false);
-            RunReplication(config, (int)CouchbaseLiteError.WebSocketUserPermanent, CouchbaseLiteErrorType.CouchbaseLite, true);
-        }
+        //    var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, MockConnectionLifecycleLocation.Close,
+        //        false);
+        //    RunReplication(config, (int)CouchbaseLiteError.WebSocketUserPermanent, CouchbaseLiteErrorType.CouchbaseLite);
+        //    config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, MockConnectionLifecycleLocation.Close,
+        //        false);
+        //    RunReplication(config, (int)CouchbaseLiteError.WebSocketUserPermanent, CouchbaseLiteErrorType.CouchbaseLite, true);
+        //}
 
         [Fact]
         public void TestP2PPassiveClose()
