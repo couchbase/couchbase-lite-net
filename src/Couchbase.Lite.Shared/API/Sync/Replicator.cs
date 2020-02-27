@@ -225,7 +225,28 @@ namespace Couchbase.Lite.Sync
                     throw new ObjectDisposedException(CouchbaseLiteErrorMessage.ReplicatorDisposed);
                 }
 
-                StartInternal();
+                var status = default(C4ReplicatorStatus);
+                _databaseThreadSafety.DoLocked(() =>
+                {
+                    var err = SetupC4Replicator();
+                    if (_repl != null && _stopping && err.code == 0) {
+                        WriteLog.To.Sync.I(Tag, $"{this}: Starting");
+                        _stopping = false;
+                        Native.c4repl_start(_repl);
+                        status = Native.c4repl_getStatus(_repl);
+                        Config.Database.ActiveReplications.Add(this);
+                    } else {
+                        status = new C4ReplicatorStatus {
+                            error = err,
+                            level = C4ReplicatorActivityLevel.Stopped,
+                            progress = new C4Progress()
+                        };
+                    }
+                });
+
+                UpdateStateProperties(status);
+                DispatchQueue.DispatchSync(() => StatusChangedCallback(status));
+
             });
         }
 
@@ -240,8 +261,7 @@ namespace Couchbase.Lite.Sync
                     return;
                 }
 
-                _reachability?.Stop();
-                _reachability = null;
+                StopReachabilityObserver();
                 if (_repl != null) {
                     _stopping = true;
                     Native.c4repl_stop(_repl);
@@ -361,10 +381,6 @@ namespace Couchbase.Lite.Sync
         private void WaitPendingConflictTasks(C4ReplicatorStatus status)
         {
             if (status.error.code == 0 && status.error.domain == 0)
-                return;
-
-            bool transient;
-            if (!IsPermanentError(status.error, out transient))
                 return;
 
             if (status.level == C4ReplicatorActivityLevel.Stopped
@@ -494,11 +510,11 @@ namespace Couchbase.Lite.Sync
                 if (_repl == null && e.Status == NetworkReachabilityStatus.Reachable) {
                     WriteLog.To.Sync.I(Tag, $"{this}: Server may now be reachable; retrying...");
                 }
-            });
 
-            if (_repl != null) {
-                Native.c4repl_setHostReachable(_repl, e.Status == NetworkReachabilityStatus.Reachable);
-            }
+                if (_repl != null) {
+                    Native.c4repl_setHostReachable(_repl, e.Status == NetworkReachabilityStatus.Reachable);
+                }
+            });
         }
 
         private C4Error SetupC4Replicator()
@@ -557,22 +573,24 @@ namespace Couchbase.Lite.Sync
                 _nativeParams.PullFilter = PullValidateCallback;
 
             C4Error err = new C4Error();
-            _databaseThreadSafety.DoLocked(() =>
-            {
-                C4Error localErr = new C4Error();
-                if (_repl == null) {
-                    if (otherDB != null) {
-                        _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
-                            &localErr);
-                    } else {
-                        _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
-                    }
-                } else if(!_stopping) {
+            if (_repl != null) {
+                if (!_stopping) {
                     WriteLog.To.Sync.W(Tag, $"{this} has already started");
                 }
+                return err;
+            }
 
-                err = localErr;
-            });
+            C4Error localErr = new C4Error();
+            if (_repl == null) {
+                if (otherDB != null) {
+                    _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
+                        &localErr);
+                } else {
+                    _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
+                }
+            }
+
+            err = localErr;
 
             scheme.Dispose();
             path.Dispose();
@@ -624,6 +642,12 @@ namespace Couchbase.Lite.Sync
             _reachability.Start();
         }
 
+        private void StopReachabilityObserver()
+        {
+            _reachability?.Stop();
+            _reachability = null;
+        }
+
         // Must be called from within the ThreadSafety
         private void StatusChangedCallback(C4ReplicatorStatus status)
         {
@@ -631,15 +655,25 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
+            // idle or busy
             if (status.level > C4ReplicatorActivityLevel.Connecting && status.error.code == 0) {
-                _reachability?.Stop();
-                _reachability = null;
+                StopReachabilityObserver();
             }
 
             UpdateStateProperties(status);
+
+            // offline
+            if(status.level == C4ReplicatorActivityLevel.Offline) {
+                StartReachabilityObserver();
+            }
+
+            //  stopped
             if (status.level == C4ReplicatorActivityLevel.Stopped) {
-                ClearRepl();
-                Config.Database.RemoveActiveReplication(this);
+                StopReachabilityObserver();
+                _databaseThreadSafety.DoLocked(() =>
+                {
+                    Config.Database.RemoveActiveReplication(this);
+                });
             }
 
             try {
