@@ -2030,6 +2030,7 @@ namespace Test
                 throw;
             } finally {
                 _repl.RemoveChangeListener(token);
+                _repl.Dispose();
             }
         }
 
