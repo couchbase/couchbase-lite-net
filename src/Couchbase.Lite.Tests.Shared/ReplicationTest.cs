@@ -74,7 +74,7 @@ namespace Test
             Database.Delete($"otherdb{nextCounter}", Directory);
             _otherDB = OpenDB($"otherdb{nextCounter}");
             //uncomment the code below when you need to see more detail log
-            //Database.Log.Console.Level = LogLevel.Debug;
+            Database.Log.Console.Level = LogLevel.Debug;
         }
         /*
 #if !WINDOWS_UWP
@@ -914,184 +914,196 @@ namespace Test
         //public void TestP2PPermanentFailureDuringReceive() => TestP2PError(MockConnectionLifecycleLocation.Receive, false);
 
 
-        //[Fact]
-        //public void TestP2PFailureDuringClose()
-        //{
-        //    using (var mdoc = new MutableDocument("livesindb")) {
-        //        mdoc.SetString("name", "db");
-        //        Db.Save(mdoc);
-        //    }
+        [Fact]
+        public void TestP2PFailureDuringClose()
+        {
+            using (var mdoc = new MutableDocument("livesindb"))
+            {
+                mdoc.SetString("name", "db");
+                Db.Save(mdoc);
+            }
 
-        //    var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, MockConnectionLifecycleLocation.Close,
-        //        false);
-        //    RunReplication(config, (int)CouchbaseLiteError.WebSocketUserPermanent, CouchbaseLiteErrorType.CouchbaseLite);
-        //    config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, MockConnectionLifecycleLocation.Close,
-        //        false);
-        //    RunReplication(config, (int)CouchbaseLiteError.WebSocketUserPermanent, CouchbaseLiteErrorType.CouchbaseLite, true);
-        //}
+            var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, MockConnectionLifecycleLocation.Close,
+                false);
+            RunReplication(config, (int)CouchbaseLiteError.WebSocketUserPermanent, CouchbaseLiteErrorType.CouchbaseLite);
+            config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, MockConnectionLifecycleLocation.Close,
+                false);
+            RunReplication(config, (int)CouchbaseLiteError.WebSocketUserPermanent, CouchbaseLiteErrorType.CouchbaseLite, true);
+        }
 
-        //[Fact]
-        //public void TestP2PPassiveClose()
-        //{
-        //    var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.MessageStream));
-        //    var awaiter = new ListenerAwaiter(listener);
-        //    var serverConnection = new MockServerConnection(listener, ProtocolType.MessageStream);
-        //    var errorLogic = new ReconnectErrorLogic();
-        //    var config = new ReplicatorConfiguration(Db,
-        //        new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.MessageStream,
-        //            new MockConnectionFactory(errorLogic)))
-        //    {
-        //        Continuous = true
-        //    };
+        [Fact]
+        public void TestP2PPassiveClose()
+        {
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.MessageStream));
+            var awaiter = new ListenerAwaiter(listener);
+            var serverConnection = new MockServerConnection(listener, ProtocolType.MessageStream);
+            var errorLogic = new ReconnectErrorLogic();
+            var config = new ReplicatorConfiguration(Db,
+                new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.MessageStream,
+                    new MockConnectionFactory(errorLogic)))
+            {
+                Continuous = true
+            };
 
-        //    using (var replicator = new Replicator(config)) {
-        //        replicator.Start();
+            using (var replicator = new Replicator(config))
+            {
+                replicator.Start();
 
-        //        var count = 0;
-        //        while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
-        //            Thread.Sleep(500);
-        //            count.Should().BeLessThan(10, "because otherwise the replicator never went idle");
-        //        }
-        //        var connection = listener.Connections;
-        //        errorLogic.ErrorActive = true;
-        //        listener.Close(serverConnection);
-        //        count = 0;
-        //        while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped) {
-        //            Thread.Sleep(500);
-        //            count.Should().BeLessThan(10, "because otherwise the replicator never stopped");
-        //        }
+                var count = 0;
+                while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Idle)
+                {
+                    Thread.Sleep(500);
+                    count.Should().BeLessThan(10, "because otherwise the replicator never went idle");
+                }
+                var connection = listener.Connections;
+                errorLogic.ErrorActive = true;
+                listener.Close(serverConnection);
+                count = 0;
+                while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped)
+                {
+                    Thread.Sleep(500);
+                    count.Should().BeLessThan(10, "because otherwise the replicator never stopped");
+                }
 
 
-        //        awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
-        //        awaiter.Validate();
+                awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
+                awaiter.Validate();
 
-        //        replicator.Status.Error.Should()
-        //            .NotBeNull("because closing the passive side creates an error on the active one");
-        //    }
-        //}
+                replicator.Status.Error.Should()
+                    .NotBeNull("because closing the passive side creates an error on the active one");
+            }
+        }
 
-        //[Fact]
-        //public void TestP2PPassiveCloseAll()
-        //{
-        //    using (var doc = new MutableDocument("test")) {
-        //        doc.SetString("name", "Smokey");
-        //        Db.Save(doc);
-        //    }
+        [Fact]
+        public void TestP2PPassiveCloseAll()
+        {
+            using (var doc = new MutableDocument("test"))
+            {
+                doc.SetString("name", "Smokey");
+                Db.Save(doc);
+            }
 
-        //    var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.MessageStream));
-        //    var serverConnection1 = new MockServerConnection(listener, ProtocolType.MessageStream);
-        //    var serverConnection2 = new MockServerConnection(listener, ProtocolType.MessageStream);
-        //    var closeWait1 = new ManualResetEventSlim();
-        //    var closeWait2 = new ManualResetEventSlim();
-        //    var errorLogic = new ReconnectErrorLogic();
-        //    var config = new ReplicatorConfiguration(Db,
-        //        new MessageEndpoint("p2ptest1", serverConnection1, ProtocolType.MessageStream,
-        //            new MockConnectionFactory(errorLogic)))
-        //    {
-        //        Continuous = true
-        //    };
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.MessageStream));
+            var serverConnection1 = new MockServerConnection(listener, ProtocolType.MessageStream);
+            var serverConnection2 = new MockServerConnection(listener, ProtocolType.MessageStream);
+            var closeWait1 = new ManualResetEventSlim();
+            var closeWait2 = new ManualResetEventSlim();
+            var errorLogic = new ReconnectErrorLogic();
+            var config = new ReplicatorConfiguration(Db,
+                new MessageEndpoint("p2ptest1", serverConnection1, ProtocolType.MessageStream,
+                    new MockConnectionFactory(errorLogic)))
+            {
+                Continuous = true
+            };
 
-        //    var config2 = new ReplicatorConfiguration(Db,
-        //        new MessageEndpoint("p2ptest2", serverConnection2, ProtocolType.MessageStream,
-        //            new MockConnectionFactory(errorLogic)))
-        //    {
-        //        Continuous = true
-        //    };
+            var config2 = new ReplicatorConfiguration(Db,
+                new MessageEndpoint("p2ptest2", serverConnection2, ProtocolType.MessageStream,
+                    new MockConnectionFactory(errorLogic)))
+            {
+                Continuous = true
+            };
 
-        //    using (var replicator = new Replicator(config))
-        //    using (var replicator2 = new Replicator(config2)) {
-        //        replicator.Start();
-        //        replicator2.Start();
+            using (var replicator = new Replicator(config))
+            using (var replicator2 = new Replicator(config2))
+            {
+                replicator.Start();
+                replicator2.Start();
 
-        //        var count = 0;
-        //        while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Idle &&
-        //               replicator2.Status.Activity != ReplicatorActivityLevel.Idle) {
-        //            Thread.Sleep(500);
-        //            count.Should().BeLessThan(10, "because otherwise the replicator(s) never went idle");
-        //        }
+                var count = 0;
+                while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Idle &&
+                       replicator2.Status.Activity != ReplicatorActivityLevel.Idle)
+                {
+                    Thread.Sleep(500);
+                    count.Should().BeLessThan(10, "because otherwise the replicator(s) never went idle");
+                }
 
-        //        errorLogic.ErrorActive = true;
-        //        listener.AddChangeListener((sender, args) =>
-        //        {
-        //            if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-        //                if (args.Connection == serverConnection1) {
-        //                    closeWait1.Set();
-        //                } else {
-        //                    closeWait2.Set();
-        //                }
-        //            }
-        //        });
-        //        var connection = listener.Connections;
-        //        listener.CloseAll();
-        //        count = 0;
-        //        while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped &&
-        //               replicator2.Status.Activity != ReplicatorActivityLevel.Stopped) {
-        //            Thread.Sleep(500);
-        //            count.Should().BeLessThan(10, "because otherwise the replicator(s) never stopped");
-        //        }
+                errorLogic.ErrorActive = true;
+                listener.AddChangeListener((sender, args) =>
+                {
+                    if (args.Status.Activity == ReplicatorActivityLevel.Stopped)
+                    {
+                        if (args.Connection == serverConnection1)
+                        {
+                            closeWait1.Set();
+                        }
+                        else
+                        {
+                            closeWait2.Set();
+                        }
+                    }
+                });
+                var connection = listener.Connections;
+                listener.CloseAll();
+                count = 0;
+                while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped &&
+                       replicator2.Status.Activity != ReplicatorActivityLevel.Stopped)
+                {
+                    Thread.Sleep(500);
+                    count.Should().BeLessThan(10, "because otherwise the replicator(s) never stopped");
+                }
 
-        //        closeWait1.Wait(TimeSpan.FromSeconds(5)).Should()
-        //            .BeTrue("because otherwise the first listener did not stop");
-        //        closeWait2.Wait(TimeSpan.FromSeconds(5)).Should()
-        //            .BeTrue("because otherwise the second listener did not stop");
+                closeWait1.Wait(TimeSpan.FromSeconds(5)).Should()
+                    .BeTrue("because otherwise the first listener did not stop");
+                closeWait2.Wait(TimeSpan.FromSeconds(5)).Should()
+                    .BeTrue("because otherwise the second listener did not stop");
 
-        //        replicator.Status.Error.Should()
-        //            .NotBeNull("because closing the passive side creates an error on the active one");
-        //        replicator2.Status.Error.Should()
-        //            .NotBeNull("because closing the passive side creates an error on the active one");
-        //    }
-        //}
+                replicator.Status.Error.Should()
+                    .NotBeNull("because closing the passive side creates an error on the active one");
+                replicator2.Status.Error.Should()
+                    .NotBeNull("because closing the passive side creates an error on the active one");
+            }
+        }
 
-        //[Fact]
-        //public void TestP2PChangeListener()
-        //{
-        //    var statuses = new List<ReplicatorActivityLevel>();
-        //    var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.ByteStream));
-        //    var awaiter = new ListenerAwaiter(listener);
-        //    var serverConnection = new MockServerConnection(listener, ProtocolType.ByteStream);
-        //    var config = new ReplicatorConfiguration(Db,
-        //        new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.ByteStream,
-        //            new MockConnectionFactory(null)))
-        //    {
-        //        Continuous = true
-        //    };
-        //    listener.AddChangeListener((sender, args) =>
-        //    {
-        //        statuses.Add(args.Status.Activity);
-        //    });
-        //    var connection = listener.Connections;
-        //    RunReplication(config, 0, 0);
-        //    awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
-        //    awaiter.Validate();
-        //    statuses.Count.Should()
-        //        .BeGreaterThan(1, "because otherwise there were no callbacks to the change listener");
-        //}
+        [Fact]
+        public void TestP2PChangeListener()
+        {
+            var statuses = new List<ReplicatorActivityLevel>();
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.ByteStream));
+            var awaiter = new ListenerAwaiter(listener);
+            var serverConnection = new MockServerConnection(listener, ProtocolType.ByteStream);
+            var config = new ReplicatorConfiguration(Db,
+                new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.ByteStream,
+                    new MockConnectionFactory(null)))
+            {
+                Continuous = true
+            };
+            listener.AddChangeListener((sender, args) =>
+            {
+                statuses.Add(args.Status.Activity);
+            });
+            var connection = listener.Connections;
+            RunReplication(config, 0, 0);
+            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
+            awaiter.Validate();
+            statuses.Count.Should()
+                .BeGreaterThan(1, "because otherwise there were no callbacks to the change listener");
+        }
 
-        //[Fact]
-        //public void TestRemoveChangeListener()
-        //{
-        //    var statuses = new List<ReplicatorActivityLevel>();
-        //    var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.ByteStream));
-        //    var awaiter = new ListenerAwaiter(listener);
-        //    var serverConnection = new MockServerConnection(listener, ProtocolType.ByteStream);
-        //    var config = new ReplicatorConfiguration(Db,
-        //        new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.ByteStream,
-        //            new MockConnectionFactory(null)))
-        //    {
-        //        Continuous = true
-        //    };
-        //    var token = listener.AddChangeListener((sender, args) =>
-        //    {
-        //        statuses.Add(args.Status.Activity);
-        //    });
-        //    var connection = listener.Connections;
-        //    listener.RemoveChangeListener(token);
-        //    RunReplication(config, 0, 0);
-        //    awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
-        //    awaiter.Validate();
+        [Fact]
+        public void TestRemoveChangeListener()
+        {
+            var statuses = new List<ReplicatorActivityLevel>();
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.ByteStream));
+            var awaiter = new ListenerAwaiter(listener);
+            var serverConnection = new MockServerConnection(listener, ProtocolType.ByteStream);
+            var config = new ReplicatorConfiguration(Db,
+                new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.ByteStream,
+                    new MockConnectionFactory(null)))
+            {
+                Continuous = true
+            };
+            var token = listener.AddChangeListener((sender, args) =>
+            {
+                statuses.Add(args.Status.Activity);
+            });
+            var connection = listener.Connections;
+            listener.RemoveChangeListener(token);
+            RunReplication(config, 0, 0);
+            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
+            awaiter.Validate();
 
-        //    statuses.Count.Should().Be(0);
-        //}
+            statuses.Count.Should().Be(0);
+        }
 
         #endregion
 
@@ -2138,6 +2150,7 @@ namespace Test
                 throw;
             } finally {
                 _repl.RemoveChangeListener(token);
+                _repl.Dispose();
             }
         }
 
