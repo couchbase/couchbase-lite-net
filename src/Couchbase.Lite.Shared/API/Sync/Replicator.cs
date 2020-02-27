@@ -225,12 +225,6 @@ namespace Couchbase.Lite.Sync
                     throw new ObjectDisposedException(CouchbaseLiteErrorMessage.ReplicatorDisposed);
                 }
 
-                if (_repl != null && !_stopping) {
-                    WriteLog.To.Sync.W(Tag, $"{this} has already started");
-                    return;
-                }
-
-                WriteLog.To.Sync.I(Tag, $"{this}: Starting");
                 StartInternal();
             });
         }
@@ -573,6 +567,8 @@ namespace Couchbase.Lite.Sync
                     } else {
                         _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
                     }
+                } else if(!_stopping) {
+                    WriteLog.To.Sync.W(Tag, $"{this} has already started");
                 }
 
                 err = localErr;
@@ -590,10 +586,10 @@ namespace Couchbase.Lite.Sync
         {
             var err = SetupC4Replicator();
             var status = default(C4ReplicatorStatus);
-            
             _databaseThreadSafety.DoLocked(() =>
             {
-                if (_repl != null && _stopping) {
+                if (_repl != null && _stopping && err.code  == 0) {
+                    WriteLog.To.Sync.I(Tag, $"{this}: Starting");
                     _stopping = false;
                     Native.c4repl_start(_repl);
                     status = Native.c4repl_getStatus(_repl);
