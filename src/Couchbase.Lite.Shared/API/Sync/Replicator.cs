@@ -219,44 +219,43 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public void Start()
         {
-            DispatchQueue.DispatchSync(() =>
-            {
-                if (_disposed) {
-                    throw new ObjectDisposedException(CouchbaseLiteErrorMessage.ReplicatorDisposed);
-                }
+            if (_disposed) {
+                throw new ObjectDisposedException(CouchbaseLiteErrorMessage.ReplicatorDisposed);
+            }
 
-                var status = default(C4ReplicatorStatus);
-                _databaseThreadSafety.DoLocked(() =>
+            var status = default(C4ReplicatorStatus);
+            DispatchQueue.DispatchSync(() => {
+                var err = SetupC4Replicator();
+                if (_repl != null && _stopping && err.code == 0)
                 {
-                    var err = SetupC4Replicator();
-                    if (_repl != null && _stopping && err.code == 0) {
-                        WriteLog.To.Sync.I(Tag, $"{this}: Starting");
-                        _stopping = false;
-                        Native.c4repl_start(_repl);
-                        status = Native.c4repl_getStatus(_repl);
+                    WriteLog.To.Sync.I(Tag, $"{this}: Starting");
+                    _stopping = false;
+                    Native.c4repl_start(_repl);
+                    _databaseThreadSafety.DoLocked(() => {
                         Config.Database.ActiveReplications.Add(this);
-                    } else {
-                        status = new C4ReplicatorStatus {
-                            error = err,
-                            level = C4ReplicatorActivityLevel.Stopped,
-                            progress = new C4Progress()
-                        };
-                    }
-                });
+                    });
 
-                UpdateStateProperties(status);
-                DispatchQueue.DispatchSync(() => StatusChangedCallback(status));
-
+                    status = Native.c4repl_getStatus(_repl);
+                } else {
+                    status = new C4ReplicatorStatus {
+                        error = err,
+                        level = C4ReplicatorActivityLevel.Stopped,
+                        progress = new C4Progress()
+                    };
+                }
             });
+
+            UpdateStateProperties(status);
+            DispatchQueue.DispatchSync(() => StatusChangedCallback(status));
         }
+
 
         /// <summary>
         /// Stops the replication
         /// </summary>
         public void Stop()
         {
-            DispatchQueue.DispatchSync(() =>
-            {
+            DispatchQueue.DispatchSync(() => {
                 if (_stopping) {
                     return;
                 }
@@ -580,17 +579,17 @@ namespace Couchbase.Lite.Sync
                 return err;
             }
 
-            C4Error localErr = new C4Error();
-            if (_repl == null) {
-                if (otherDB != null) {
+            _databaseThreadSafety.DoLocked(() => {
+                C4Error localErr = new C4Error();
+                if (otherDB != null)  {
                     _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
                         &localErr);
                 } else {
                     _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
                 }
-            }
 
-            err = localErr;
+                err = localErr;
+            });
 
             scheme.Dispose();
             path.Dispose();
