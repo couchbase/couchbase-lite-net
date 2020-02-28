@@ -603,6 +603,7 @@ namespace Test
             } finally {
                 _repl.RemoveChangeListener(token);
                 _repl.RemoveChangeListener(token1);
+                _repl.Dispose();
             }
 
             _replicationEvents.Should().HaveCount(2);
