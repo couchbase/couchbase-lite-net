@@ -287,31 +287,38 @@ namespace Couchbase.Lite.Sync
                 CBDebug.LogAndThrow(WriteLog.To.Sync,
                     new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
                     Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
-                _pendingDocIds = result.ToImmutableHashSet<string>();
             }
 
-            var err = SetupC4Replicator();
+            DispatchQueue.DispatchSync(() => {
+                var errSetupRepl = SetupC4Replicator();
+                if (errSetupRepl.code > 0) {
+                    CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString(), true);
+                }
+            });
+
+            C4Error err = new C4Error();
             byte[] pendingDocIds = null;
-            if (err.code == 0) {
-                pendingDocIds = Native.c4repl_getPendingDocIDs(_repl, &err);
-            }
+            pendingDocIds = Native.c4repl_getPendingDocIDs(_repl, &err);
 
             if (err.code > 0) {
                 CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(err), Tag, err.ToString(), true);
             }
 
             if (pendingDocIds != null) {
-                var flval = Native.FLValue_FromData(pendingDocIds, FLTrust.Trusted);
-                var flarr = Native.FLValue_AsArray(flval);
-                var cnt = (int)Native.FLArray_Count(flarr);
-                for (int i = 0; i < cnt; i++) {
-                    var flv = Native.FLArray_Get(flarr, (uint)i);
-                    result.Add(Native.FLValue_AsString(flv));
-                }
+                _databaseThreadSafety.DoLocked(() => {
+                    var flval = Native.FLValue_FromData(pendingDocIds, FLTrust.Trusted);
+                    var flarr = Native.FLValue_AsArray(flval);
+                    var cnt = (int)Native.FLArray_Count(flarr);
+                    for (int i = 0; i < cnt; i++) {
+                        var flv = Native.FLArray_Get(flarr, (uint)i);
+                        result.Add(Native.FLValue_AsString(flv));
+                    }
+
+                    Array.Clear(pendingDocIds, 0, pendingDocIds.Length);
+                    pendingDocIds = null;
+                });
             }
 
-            Array.Clear(pendingDocIds, 0, pendingDocIds.Length);
-            pendingDocIds = null;
             _pendingDocIds = result.ToImmutableHashSet<string>();
             return _pendingDocIds;
         }
@@ -327,7 +334,6 @@ namespace Couchbase.Lite.Sync
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         public bool IsDocumentPending([NotNull]string documentID)
         {
-            
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(documentID), documentID);
             bool isDocPending = false;
 
@@ -335,15 +341,17 @@ namespace Couchbase.Lite.Sync
                 CBDebug.LogAndThrow(WriteLog.To.Sync,
                     new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
                     Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
-                return isDocPending;
             }
 
-            var err = SetupC4Replicator();
-            
-            if (err.code == 0) {
-                isDocPending = Native.c4repl_isDocumentPending(_repl, documentID, &err);
-            }
+            DispatchQueue.DispatchSync(() => {
+                var errSetupRepl = SetupC4Replicator();
+                if (errSetupRepl.code > 0) {
+                    CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString(), true);
+                }
+            });
 
+            C4Error err = new C4Error();
+            isDocPending = Native.c4repl_isDocumentPending(_repl, documentID, &err);
             if (err.code > 0) {
                 CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(err), Tag, err.ToString(), true);
             }
