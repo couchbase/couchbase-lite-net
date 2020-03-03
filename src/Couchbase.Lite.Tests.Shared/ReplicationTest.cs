@@ -1816,6 +1816,11 @@ namespace Test
                 var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
                 {
+                    if(args.Status.Activity == ReplicatorActivityLevel.Offline) {
+                        docIdIsPending = replicator.IsDocumentPending(DocIdForTest);
+                        docIdIsPending.Should().BeFalse();
+                    }
+
                     wa.RunConditionalAssert(() =>
                     {
                         return args.Status.Activity == ReplicatorActivityLevel.Stopped;
@@ -1891,6 +1896,11 @@ namespace Test
                 var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
                 {
+                    if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
+                        pendingDocIds = replicator.GetPendingDocumentIDs();
+                        pendingDocIds.Count.Should().Be(0);
+                    }
+
                     wa.RunConditionalAssert(() =>
                     {
                         return args.Status.Activity == ReplicatorActivityLevel.Stopped;
