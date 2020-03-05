@@ -9,12 +9,12 @@
                 <Link>libLiteCore.so</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </Content>
-            <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libc++.so.1">
-                <Link>libc++.so.1</Link>
+            <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libstdc++.so">
+                <Link>libstdc++.so</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </Content>
-            <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libc++abi.so.1">
-                <Link>libc++abi.so.1</Link>
+            <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libstdc++.so.6">
+                <Link>libstdc++.so.6</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </Content>
             <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libicuuc.so.54">
