@@ -76,6 +76,7 @@ namespace Test
             //uncomment the code below when you need to see more detail log
             //Database.SetLogLevel(LogDomain.Replicator, LogLevel.Verbose);
         }
+        /*
 #if !WINDOWS_UWP
         //[Fact]
         //public async Task TestReplicatorStopsWhenEndpointInvalid()
@@ -1699,7 +1700,7 @@ namespace Test
         //    flags.HasFlag(C4DocumentFlags.DocConflicted).Should().BeFalse();
         //    flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
         //}
-
+        
         private void TestConflictResolverExceptionThrown(TestConflictResolver resolver, bool continueWithWorkingResolver = false, bool withBlob = false)
         {
             CreateReplicationConflict("doc1");
@@ -1962,7 +1963,7 @@ namespace Test
         }
 
 #endif
-
+*/
 #if COUCHBASE_ENTERPRISE
         private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous)
         {
