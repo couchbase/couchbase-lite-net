@@ -39,7 +39,8 @@ namespace LiteCore.Interop
         Offline,
         Connecting,
         Idle,
-        Busy
+        Busy,
+        Stopping,
     }
 
     [Flags]
@@ -50,7 +51,7 @@ namespace LiteCore.Interop
         Suspended     = 0x4
     }
 
-	internal unsafe partial struct C4Address
+	internal unsafe struct C4Address
     {
         public FLSlice scheme;
         public FLSlice hostname;

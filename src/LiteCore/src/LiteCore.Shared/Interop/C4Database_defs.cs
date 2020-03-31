@@ -89,7 +89,7 @@ namespace LiteCore.Interop
         public fixed byte bytes[16];
     }
 
-	internal unsafe partial struct C4RawDocument
+	internal unsafe struct C4RawDocument
     {
         public FLSlice key;
         public FLSlice meta;

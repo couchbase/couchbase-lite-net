@@ -55,7 +55,7 @@ namespace LiteCore.Interop
         public FLSlice body;
     }
 
-	internal unsafe partial struct C4Document
+	internal unsafe struct C4Document
     {
         public C4DocumentFlags flags;
         public FLHeapSlice docID;
