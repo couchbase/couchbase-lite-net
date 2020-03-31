@@ -10,10 +10,7 @@ type_map = {"uint32_t":"uint","size_t":"UIntPtr","int32_t":"int","uint8_t":"byte
 bridge_types = ["UIntPtr","string","bool"]
 reverse_bridge_map = {"string":"IntPtr","bool":"byte"}
 skip_types = ["C4FullTextTerm","C4SocketFactory","C4ReplicatorParameters","C4PredictiveModel", "C4ExtraInfo"]
-partials = ["C4Error","C4Slice","C4BlobKey","C4EncryptionKey","C4DatabaseConfig",
-"C4IndexOptions","C4EnumeratorOptions","C4QueryOptions","C4UUID","FLSlice","FLSliceResult",
-"C4FullTextMatch","C4DocPutRequest","C4Document","C4Address","C4QueryEnumerator","C4RawDocument","C4Socket",
-"C4SocketFactory"]
+partials = ["C4Error","C4Slice","C4BlobKey","C4EncryptionKey","C4DatabaseConfig","C4IndexOptions","C4EnumeratorOptions","C4QueryOptions","C4UUID","FLSlice","FLSliceResult","C4FullTextMatch","C4DocPutRequest"]
 delegate_types = ["C4DocDeltaApplier"]
 skip_files = ["c4Listener.h", "Fleece+CoreFoundation.h"]
 

@@ -39,7 +39,9 @@ namespace LiteCore.Interop
         WebSocketCloseMissingExtension = 1010,
         WebSocketCloseCantFulfill      = 1011,
         WebSocketCloseTLSFailure       = 1015,
-        WebSocketCloseFirstAvailable   = 4000,
+        WebSocketCloseAppTransient     = 4001,
+        WebSocketCloseAppPermanent     = 4002,
+        WebSocketCloseFirstAvailable   = 5000,
     }
 
     internal enum C4SocketFraming : byte
@@ -49,7 +51,7 @@ namespace LiteCore.Interop
         WebSocketServerFraming,
     }
 
-	internal unsafe partial struct C4Socket
+	internal unsafe struct C4Socket
     {
         public void* nativeHandle;
     }

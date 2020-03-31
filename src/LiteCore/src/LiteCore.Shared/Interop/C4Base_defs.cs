@@ -122,10 +122,6 @@ namespace LiteCore.Interop
         public fixed byte bytes[20];
     }
 
-	internal unsafe partial struct C4Address
-    {
-    }
-
 	internal unsafe struct C4BlobStore
     {
     }
@@ -139,10 +135,6 @@ namespace LiteCore.Interop
     }
 
 	internal unsafe struct C4DatabaseObserver
-    {
-    }
-
-	internal unsafe partial struct C4Document
     {
     }
 
@@ -166,15 +158,7 @@ namespace LiteCore.Interop
     {
     }
 
-	internal unsafe partial struct C4QueryEnumerator
-    {
-    }
-
 	internal unsafe struct C4QueryObserver
-    {
-    }
-
-	internal unsafe partial struct C4RawDocument
     {
     }
 
@@ -183,14 +167,6 @@ namespace LiteCore.Interop
     }
 
 	internal unsafe struct C4Replicator
-    {
-    }
-
-	internal unsafe partial struct C4Socket
-    {
-    }
-
-	internal unsafe partial struct C4SocketFactory
     {
     }
 
