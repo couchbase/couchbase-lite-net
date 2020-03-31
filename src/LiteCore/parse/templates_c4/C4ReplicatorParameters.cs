@@ -10,5 +10,4 @@
         public IntPtr onBlobProgress;
         public void* callbackContext;
         public C4SocketFactory* socketFactory;
-        private byte _dontStart;
     }

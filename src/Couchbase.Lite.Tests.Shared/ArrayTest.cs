@@ -881,20 +881,6 @@ namespace Test
         }
 
         [Fact]
-        public void TestAddDateTime()
-        {
-            var array = new MutableArrayObject();
-            array.AddValue(new DateTimeOffset(DateTime.Now));
-            using (var doc = new MutableDocument("doc1")) {
-                SaveArray(array, doc, "array", a =>
-                {
-                    a.Count.Should().Be(1);
-                    a.GetValue(0).Should().NotBeNull();
-                });
-            }
-        }
-
-        [Fact]
         public void TestAddInt()
         {
             using (var mDoc = new MutableDocument("test")) {
