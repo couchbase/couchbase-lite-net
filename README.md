@@ -7,7 +7,7 @@ This is the source repo of Couchbase Lite C#.  The main supported platforms are 
 
 ## Documentation Overview
 
-* [Official Documentation](https://developer.couchbase.com/documentation/mobile/2.0/guides/couchbase-lite/index.html)
+* [Official Documentation](https://docs.couchbase.com/couchbase-lite/current/index.html)
 * API References - See the release notes for each release on this repo
 
 ## Getting Couchbase Lite
