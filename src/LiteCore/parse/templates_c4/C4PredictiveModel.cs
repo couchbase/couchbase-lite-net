@@ -1,4 +1,4 @@
-    internal unsafe partial struct C4PredictiveModel
+    internal unsafe struct C4PredictiveModel
     {
         public void* context;
         public IntPtr prediction;

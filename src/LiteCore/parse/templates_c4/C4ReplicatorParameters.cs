@@ -1,4 +1,4 @@
-    internal unsafe partial struct C4ReplicatorParameters
+    internal unsafe struct C4ReplicatorParameters
     {
         public C4ReplicatorMode push;
         public C4ReplicatorMode pull;

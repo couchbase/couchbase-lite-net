@@ -1,4 +1,4 @@
-    internal unsafe partial struct C4SocketFactory
+    internal unsafe struct C4SocketFactory
     {
         public C4SocketFraming framing;
         public void* context;
