@@ -213,7 +213,7 @@ namespace Couchbase.Lite.Support
             }
 
             if (info.Proxy == IntPtr.Zero) {
-                WriteLog.To.Sync.W(Tag, "Call to WinHttpGetProxyForUrl succeed, however, WINHTTP_PROXY_INFO value is invalid.");
+                WriteLog.To.Sync.W(Tag, "Call to WinHttpGetProxyForUrl succeed, however, proxy server list is null.");
                 return Task.FromResult<WebProxy>(null);
             }
 
