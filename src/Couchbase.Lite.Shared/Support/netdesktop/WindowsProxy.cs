@@ -214,6 +214,7 @@ namespace Couchbase.Lite.Support
 
             var url = Marshal.PtrToStringUni(info.Proxy);
             var bypass = Marshal.PtrToStringUni(info.ProxyBypass)?.Split(';', ' ', '\t', '\r', '\n');
+            //TODO: free memory allocated by proxy server list and bypass list
             return Task.FromResult(new WebProxy(new Uri($"http://{url}"), bypass?.Contains("<local>") ?? false, bypass));
         }
 
