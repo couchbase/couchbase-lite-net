@@ -161,6 +161,24 @@ namespace Test
         }
 
         [Fact]
+        public void TestChangeEncryptionKeyNSaveDocOnNewDB()
+        {
+            Database.Delete("master3", Directory);
+
+            var config = new DatabaseConfiguration {
+                Directory = Directory
+            };
+
+            using (var db1 = new Database("master3", config)) {
+                db1.ChangeEncryptionKey(new EncryptionKey("password")); // setting encryption key on the database file, the database file didn't exist yet in this case
+                using (MutableDocument saveDoc = db1.GetDocument("my-doc")?.ToMutable() ?? new MutableDocument("my-doc")) {
+                    saveDoc.SetString("prop", "value");
+                    db1.Save(saveDoc);
+                }
+            }
+        }
+
+        [Fact]
         public void TestAddKey() => Rekey(null, "letmein");
 
         [Fact]
