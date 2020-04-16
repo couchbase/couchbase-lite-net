@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Internal.Query
         private DateTime _lastUpdatedAt;
         private int _observingCount = 0;
         [NotNull]private Parameters _queryParameters = new Parameters();
-        private AtomicBool _willUpdate = false;
+        private AtomicBool _willUpdate = false, _updating = false, _stopping = false;
 
         #endregion
 
@@ -161,6 +161,16 @@ namespace Couchbase.Lite.Internal.Query
         }
 
         #endregion
+
+        internal void Stop()
+        {
+            Database?.RemoveChangeListener(_databaseChangedToken);
+            if (!_updating) {
+                Stopped();
+            } else {
+                _stopping.Set(true);
+            }
+        }
 
         #region Private Methods
 
@@ -283,6 +293,8 @@ namespace Couchbase.Lite.Internal.Query
                 return;
             }
 
+            _updating.Set(true);
+
             // External updates should poll less frequently
             var updateInterval = _updateInterval;
 
@@ -290,10 +302,10 @@ namespace Couchbase.Lite.Internal.Query
             UpdateAfter(updateDelay);
         }
 
-        private void Stop()
+        private void Stopped()
         {
-            Database?.ActiveLiveQueries?.Remove(this);
-            Database?.RemoveChangeListener(_databaseChangedToken);
+            Database?.RemoveActiveLiveQuery(this);
+            _stopping.Set(false);
         }
 
         private void Update()
@@ -320,7 +332,14 @@ namespace Couchbase.Lite.Internal.Query
                 }
             }
 
+            _updating.Set(false);
             _willUpdate.Set(false);
+
+            if (_stopping) {
+                Stopped();
+                return;
+            }
+
             _lastUpdatedAt = DateTime.Now;
 
             var changed = true;
@@ -377,7 +396,7 @@ namespace Couchbase.Lite.Internal.Query
             _changed.Add(cbHandler);
 
             if (Interlocked.Increment(ref _observingCount) == 1) {
-                Database?.ActiveLiveQueries?.Add(this);
+                Database?.AddActiveLiveQuery(this);
                 if (Database != null) {
                     _databaseChangedToken = Database.AddChangeListener(OnDatabaseChanged);
                 } else {
