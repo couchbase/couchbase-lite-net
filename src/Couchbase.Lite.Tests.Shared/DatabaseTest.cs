@@ -849,14 +849,14 @@ namespace Test
         [Fact]
         public void TestDeleteThenAccessBlob()
         {
-            //var doc = GenerateDocument("doc1").ToMutable();
-            //var savedDoc = StoreBlob(Db, doc, Encoding.UTF8.GetBytes("12345"));
+            var doc = GenerateDocument("doc1").ToMutable();
+            var savedDoc = StoreBlob(Db, doc, Encoding.UTF8.GetBytes("12345"));
 
-            //DeleteDB(Db);
-            //var blob = savedDoc.GetBlob("data");
-            //blob.Should().NotBeNull("because the blob should still exist and be accessible");
-            //blob.Length.Should().Be(5, "because the blob's metadata should still be accessible");
-            //blob.Content.Should().BeNull("because the content cannot be read from a closed database");
+            DeleteDB(Db);
+            var blob = savedDoc.GetBlob("data");
+            blob.Should().NotBeNull("because the blob should still exist and be accessible");
+            blob.Length.Should().Be(5, "because the blob's metadata should still be accessible");
+            blob.Content.Should().BeNull("because the content cannot be read from a closed database");
         }
 
         [Fact]
