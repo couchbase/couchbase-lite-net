@@ -45,6 +45,7 @@ using Newtonsoft.Json;
 using NotNull = JetBrains.Annotations.NotNullAttribute;
 using ItemNotNull = JetBrains.Annotations.ItemNotNullAttribute;
 using CanBeNull = JetBrains.Annotations.CanBeNullAttribute;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Couchbase.Lite
 {
