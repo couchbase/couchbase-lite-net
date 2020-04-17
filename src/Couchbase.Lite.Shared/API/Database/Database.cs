@@ -562,14 +562,12 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         public void Delete()
         {
-            StopExpirePurgeTimer(); 
-            ThreadSafety.DoLocked(() =>
-            {
+            ThreadSafety.DoLocked(() => {
                 CheckOpen();
-                ThrowIfActiveItems(true);
-                LiteCoreBridge.Check(err => Native.c4db_delete(_c4db, err));
-                Dispose();
             });
+
+            Close();
+            Delete(Name, Config.Directory);
         }
 
         /// <summary>
@@ -1600,15 +1598,9 @@ namespace Couchbase.Lite
                 }
 
                 WriteLog.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(_c4db)}");
-                C4Error err;
-                Native.c4db_close(_c4db, &err);
-                if (err.code == 0) {
-                    FreeC4Db();
-                } else {
-                    var ex = CouchbaseException.Create(err);
-                    CBDebug.LogAndThrow(WriteLog.To.Database, ex, Tag, ex.Message, false);
-                }
-
+                LiteCoreBridge.Check(err => Native.c4db_close(_c4db, err));
+                FreeC4Db();
+                
                 // Reset closing flag:
                 _isClosing = false;
             });
