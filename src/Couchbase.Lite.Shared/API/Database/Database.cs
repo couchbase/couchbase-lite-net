@@ -1577,14 +1577,12 @@ namespace Couchbase.Lite
                     return;
                 }
 
-                //TODO _docObs might need to be refactored into an IDisposable class
                 foreach (var obs in _docObs) {
                     Native.c4docobs_free((C4DocumentObserver*)obs.Value.Item1);
                     obs.Value.Item2.Free();
                 }
 
                 _docObs.Clear();
-                //end of TODO comments
 
                 if (_unsavedDocuments.Count > 0) {
                     WriteLog.To.Database.W(Tag,
