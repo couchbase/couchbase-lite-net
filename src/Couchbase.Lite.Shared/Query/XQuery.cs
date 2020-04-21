@@ -128,21 +128,6 @@ namespace Couchbase.Lite.Internal.Query
             SkipValue = source.SkipValue;
         }
 
-        unsafe void d()
-        {
-            FromImpl.ThreadSafety.DoLocked(() =>
-            {
-                foreach (var e in _history) {
-                    e.Release();
-                }
-
-                _history.Clear();
-                Native.c4query_release(_c4Query);
-                _c4Query = null;
-                _disposalWatchdog.Dispose();
-            });
-        }
-
         protected virtual unsafe void Dispose(bool finalizing)
         {
             if (!finalizing) {
@@ -321,7 +306,6 @@ namespace Couchbase.Lite.Internal.Query
         {
             Database?.RemoveActiveLiveQuery(this);
             _stopping.Set(false);
-            d();
         }
 
         private void Update()
