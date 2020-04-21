@@ -1577,11 +1577,7 @@ namespace Test
                 }
 
                 doc1Listener.WaitForResult(TimeSpan.FromSeconds(20));
-                //otherDb.Invoking(d => d.Dispose())
-                //    .Should().Throw<CouchbaseLiteException>("because the live query is still active");
             } finally {
-                //query.RemoveChangeListener(token);
-                //query.Dispose();
                 otherDb.Dispose();
             }
         }
