@@ -46,6 +46,7 @@ using NotNull = JetBrains.Annotations.NotNullAttribute;
 using ItemNotNull = JetBrains.Annotations.ItemNotNullAttribute;
 using CanBeNull = JetBrains.Annotations.CanBeNullAttribute;
 using System.Diagnostics.CodeAnalysis;
+using System.Collections.Concurrent;
 
 namespace Couchbase.Lite
 {
@@ -179,11 +180,11 @@ namespace Couchbase.Lite
 
         [@NotNull]
         [@ItemNotNull]
-        internal ICollection<XQuery> ActiveLiveQueries { get; } = new HashSet<XQuery>();
+        internal ConcurrentDictionary<XQuery, int> ActiveLiveQueries { get; } = new ConcurrentDictionary<XQuery, int>();
 
         [@NotNull]
         [@ItemNotNull]
-        internal ICollection<Replicator> ActiveReplications { get; } = new HashSet<Replicator>();
+        internal ConcurrentDictionary<Replicator, int> ActiveReplications { get; } = new ConcurrentDictionary<Replicator, int>();
 
         internal C4BlobStore* BlobStore
         {
@@ -905,15 +906,33 @@ namespace Couchbase.Lite
         {
             ThreadSafety.DoLocked(() => {
                 CheckOpenAndNotClosing();
-                ActiveLiveQueries.Add(query);
+                ActiveLiveQueries.TryAdd(query, 0);
             });
         }
 
         internal void RemoveActiveLiveQuery(XQuery query)
         {
             ThreadSafety.DoLocked(() => {
-                ActiveLiveQueries.Remove(query);
+                ActiveLiveQueries.TryRemove(query, out var dummy);
                 if (ActiveLiveQueries.Count == 0) {
+                    _closeCondition.Set();
+                }
+            });
+        }
+
+        internal void AddActiveReplication(Replicator replicator)
+        {
+            ThreadSafety.DoLocked(() => {
+                CheckOpenAndNotClosing();
+                ActiveReplications.TryAdd(replicator, 0);
+            });
+        }
+
+        internal void RemoveActiveReplication(Replicator replicator)
+        {
+            ThreadSafety.DoLocked(() => {
+                ActiveReplications.TryRemove(replicator, out var dummy);
+                if (ActiveReplications.Count == 0) {
                     _closeCondition.Set();
                 }
             });
@@ -1564,8 +1583,8 @@ namespace Couchbase.Lite
             });
 
             _closeCondition.Reset();
-            foreach (var q in ActiveLiveQueries.ToList()) {
-                q.Stop();
+            foreach (var q in ActiveLiveQueries) {
+                q.Key.Stop();
             }
 
             while (!IsReadyToClose) {

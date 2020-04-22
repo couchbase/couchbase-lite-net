@@ -654,7 +654,7 @@ namespace Couchbase.Lite.Sync
                 if (_repl != null) {
                     Native.c4repl_start(_repl);
                     status = Native.c4repl_getStatus(_repl);
-                    Config.Database.ActiveReplications.Add(this);
+                    Config.Database.AddActiveReplication(this);
                 } else {
                     status = new C4ReplicatorStatus {
                         error = err,
@@ -709,7 +709,7 @@ namespace Couchbase.Lite.Sync
             UpdateStateProperties(status);
             if (status.level == C4ReplicatorActivityLevel.Stopped) {
                 ClearRepl();
-                Config.Database.ActiveReplications.Remove(this);
+                Config.Database.RemoveActiveReplication(this);
             }
 
             try {
