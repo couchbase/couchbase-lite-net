@@ -232,7 +232,7 @@ namespace Couchbase.Lite.Sync
                     _stopping = false;
                     Native.c4repl_start(_repl);
                     _databaseThreadSafety.DoLocked(() => {
-                        Config.Database.ActiveReplications.Add(this);
+                        Config.Database.AddActiveReplication(this);
                     });
 
                     status = Native.c4repl_getStatus(_repl);
