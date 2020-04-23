@@ -48,41 +48,39 @@ namespace Test
         }
 #endif
 
-        //[Fact]
-        //public void TestConcurrentCreate()
-        //{
-        //    const int nDocs = 1000;
-        //    const uint nConcurrent = 10;
+        [Fact]
+        public void TestConcurrentCreate()
+        {
+            const int nDocs = 1000;
+            const uint nConcurrent = 10;
 
-        //    ConcurrentRuns(nConcurrent, (index) =>
-        //    {
-        //        var tag = $"Create{index}";
-        //        CreateDocs(nDocs, tag).Should().HaveCount(nDocs);
-        //    });
+            ConcurrentRuns(nConcurrent, (index) => {
+                var tag = $"Create{index}";
+                CreateDocs(nDocs, tag).Should().HaveCount(nDocs);
+            });
 
-        //    for (uint i = 0; i < nConcurrent; i++) {
-        //        var tag = $"Create{i}";
-        //        VerifyByTagName(tag, nDocs);
-        //    }
-        //}
+            for (uint i = 0; i < nConcurrent; i++) {
+                var tag = $"Create{i}";
+                VerifyByTagName(tag, nDocs);
+            }
+        }
 
-        //[Fact]
-        //public void TestConcurrentCreateInBatch()
-        //{
-        //    const int nDocs = 1000;
-        //    const uint nConcurrent = 10;
+        [Fact]
+        public void TestConcurrentCreateInBatch()
+        {
+            const int nDocs = 1000;
+            const uint nConcurrent = 10;
 
-        //    ConcurrentRuns(nConcurrent, (index) =>
-        //    {
-        //        var tag = $"Create{index}";
-        //        Db.InBatch(() => { CreateDocs(nDocs, tag).Should().HaveCount(nDocs); });
-        //    });
+            ConcurrentRuns(nConcurrent, (index) => {
+                var tag = $"Create{index}";
+                Db.InBatch(() => { CreateDocs(nDocs, tag).Should().HaveCount(nDocs); });
+            });
 
-        //    for (uint i = 0; i < nConcurrent; i++) {
-        //        var tag = $"Create{i}";
-        //        VerifyByTagName(tag, nDocs);
-        //    }
-        //}
+            for (uint i = 0; i < nConcurrent; i++) {
+                var tag = $"Create{i}";
+                VerifyByTagName(tag, nDocs);
+            }
+        }
 
         [Fact]
         public void TestConcurrentUpdate()
@@ -187,55 +185,52 @@ namespace Test
             Db.Count.Should().Be(0, "because all documents were deleted");
         }
 
-        //[Fact]
-        //public void TestConcurrentInBatch()
-        //{
-        //    const int nDocs = 1000;
-        //    const uint nConcurrent = 10;
+        [Fact]
+        public void TestConcurrentInBatch()
+        {
+            const int nDocs = 1000;
+            const uint nConcurrent = 10;
 
-        //    ConcurrentRuns(nConcurrent, (index) =>
-        //    {
-        //        if (Db == null) {
-        //            return;
-        //        }
+            ConcurrentRuns(nConcurrent, (index) => {
+                if (Db == null) {
+                    return;
+                }
 
-        //        Db.InBatch(() =>
-        //        {
-        //            var tag = $"Create{index}";
-        //            CreateDocs(nDocs, tag).Should().HaveCount(nDocs); // Force evaluation, not a needed assert
-        //        });
-        //    });
+                Db.InBatch(() => {
+                    var tag = $"Create{index}";
+                    CreateDocs(nDocs, tag).Should().HaveCount(nDocs); // Force evaluation, not a needed assert
+                });
+            });
 
-        //    for (uint i = 0; i < nConcurrent; i++) {
-        //        var tag = $"Create{i}";
-        //        VerifyByTagName(tag, nDocs);
-        //    }
-        //}
+            for (uint i = 0; i < nConcurrent; i++) {
+                var tag = $"Create{i}";
+                VerifyByTagName(tag, nDocs);
+            }
+        }
 
-        //[Fact]
-        //public void TestConcurrentPurge()
-        //{
-        //    const int nDocs = 1000;
-        //    const uint nConcurrent = 10;
+        [Fact]
+        public void TestConcurrentPurge()
+        {
+            const int nDocs = 1000;
+            const uint nConcurrent = 10;
 
-        //    var docs = CreateDocs(nDocs, "Create").ToList();
-        //    docs.Count.Should().Be(nDocs);
+            var docs = CreateDocs(nDocs, "Create").ToList();
+            docs.Count.Should().Be(nDocs);
 
-        //    ConcurrentRuns(nConcurrent, index =>
-        //    {
-        //        foreach (var doc in docs) {
-        //            try {
-        //                Db.Purge(doc);
-        //            } catch (CouchbaseLiteException e) {
-        //                if (e.Error != CouchbaseLiteError.NotFound) {
-        //                    throw;
-        //                }
-        //            }
-        //        }
-        //    });
+            ConcurrentRuns(nConcurrent, index => {
+                foreach (var doc in docs) {
+                    try {
+                        Db.Purge(doc);
+                    } catch (CouchbaseLiteException e) {
+                        if (e.Error != CouchbaseLiteError.NotFound) {
+                            throw;
+                        }
+                    }
+                }
+            });
 
-        //    Db.Count.Should().Be(0, "because all documents were purged");
-        //}
+            Db.Count.Should().Be(0, "because all documents were purged");
+        }
 
         [Fact]
         public void TestConcurrentCompact()
