@@ -76,7 +76,7 @@ namespace Test
             //uncomment the code below when you need to see more detail log
             Database.Log.Console.Level = LogLevel.Debug;
         }
-        /*
+        
 #if !WINDOWS_UWP
         [Fact]
         public async Task TestReplicatorStopsWhenEndpointInvalid()
@@ -2025,7 +2025,7 @@ namespace Test
         }
 
 #endif
-*/
+
 #if COUCHBASE_ENTERPRISE
         private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous)
         {

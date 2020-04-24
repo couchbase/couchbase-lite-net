@@ -74,7 +74,6 @@ namespace Couchbase.Lite.Sync
         private C4ReplicatorStatus _rawStatus;
         private IReachability _reachability;
         private C4Replicator* _repl;
-        private bool _stopping = true;
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
 
         #endregion
@@ -226,10 +225,11 @@ namespace Couchbase.Lite.Sync
             var status = default(C4ReplicatorStatus);
             DispatchQueue.DispatchSync(() => {
                 var err = SetupC4Replicator();
-                if (_repl != null && _stopping && err.code == 0)
+                if (_repl != null 
+                    && (status.level == C4ReplicatorActivityLevel.Stopped || status.level == C4ReplicatorActivityLevel.Stopping)
+                    && err.code == 0)
                 {
                     WriteLog.To.Sync.I(Tag, $"{this}: Starting");
-                    _stopping = false;
                     Native.c4repl_start(_repl);
                     _databaseThreadSafety.DoLocked(() => {
                         Config.Database.AddActiveReplication(this);
@@ -256,13 +256,14 @@ namespace Couchbase.Lite.Sync
         public void Stop()
         {
             DispatchQueue.DispatchSync(() => {
-                if (_stopping) {
-                    return;
-                }
-
                 StopReachabilityObserver();
                 if (_repl != null) {
-                    _stopping = true;
+                    var status = Native.c4repl_getStatus(_repl);
+                    if (status.level == C4ReplicatorActivityLevel.Stopped
+                        || status.level == C4ReplicatorActivityLevel.Stopping) {
+                        return;
+                    }
+
                     Native.c4repl_stop(_repl);
                 }
             });
@@ -573,7 +574,9 @@ namespace Couchbase.Lite.Sync
 
             C4Error err = new C4Error();
             if (_repl != null) {
-                if (!_stopping) {
+                var status = Native.c4repl_getStatus(_repl);
+                if (status.level != C4ReplicatorActivityLevel.Stopping 
+                    && status.level != C4ReplicatorActivityLevel.Stopped) {
                     WriteLog.To.Sync.W(Tag, $"{this} has already started");
                 }
                 return err;
@@ -605,9 +608,8 @@ namespace Couchbase.Lite.Sync
             var status = default(C4ReplicatorStatus);
             _databaseThreadSafety.DoLocked(() =>
             {
-                if (_repl != null && _stopping && err.code  == 0) {
+                if (_repl != null && err.code  == 0) {
                     WriteLog.To.Sync.I(Tag, $"{this}: Starting");
-                    _stopping = false;
                     Native.c4repl_start(_repl);
                     status = Native.c4repl_getStatus(_repl);
                     Config.Database.AddActiveReplication(this);
@@ -669,10 +671,7 @@ namespace Couchbase.Lite.Sync
             //  stopped
             if (status.level == C4ReplicatorActivityLevel.Stopped) {
                 StopReachabilityObserver();
-                _databaseThreadSafety.DoLocked(() =>
-                {
-                    Config.Database.RemoveActiveReplication(this);
-                });
+                
             }
 
             try {
@@ -680,6 +679,12 @@ namespace Couchbase.Lite.Sync
             } catch (Exception e) {
                 WriteLog.To.Sync.W(Tag, "Exception during StatusChanged callback", e);
             }
+        }
+
+        private void Stopped()
+        {
+            Debug.Assert(_rawStatus.level == C4ReplicatorActivityLevel.Stopped);
+            Config.Database.RemoveActiveReplication(this);
         }
 
         private void UpdateStateProperties(C4ReplicatorStatus state)
@@ -690,7 +695,6 @@ namespace Couchbase.Lite.Sync
             }
 
             _rawStatus = state;
-
             var level = (ReplicatorActivityLevel) state.level;
             var progress = new ReplicatorProgress(state.progress.unitsCompleted, state.progress.unitsTotal);
             Status = new ReplicatorStatus(level, progress, error);
