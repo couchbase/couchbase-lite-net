@@ -39,8 +39,9 @@ namespace LiteCore.Interop
         Offline,    //Connection failed, but waiting to retry.
         Connecting, //Connection is in progress.
         Idle,       //Continuous replicator has caught up and is waiting for changes.
-        Busy,        //Connected and actively working.
-        Stopping,
+        Busy,       //Connected and actively working.
+        /* INTERNAL STATES */
+        Stopping,   //Stopping or going offline
     }     
 
     [Flags]
