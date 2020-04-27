@@ -1728,6 +1728,10 @@ namespace Couchbase.Lite
                 q.Key.Stop();
             }
 
+            foreach (var r in ActiveReplications) {
+                r.Key.Stop();
+            }
+
             while (!IsReadyToClose) {
                 _closeCondition.WaitOne();
                 _closeCondition.Reset();
