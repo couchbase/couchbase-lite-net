@@ -76,29 +76,27 @@ namespace Test
             //uncomment the code below when you need to see more detail log
             //Database.Log.Console.Level = LogLevel.Debug;
         }
-        
-#if !WINDOWS_UWP
-        //[Fact]
-        //public async Task TestReplicatorStopsWhenEndpointInvalid()
-        //{
-        //    // If this IP address happens to exist, then change it.  It needs to be an address that does not
-        //    // exist on the LAN
-        //    var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
-        //    var config = new ReplicatorConfiguration(Db, targetEndpoint);
-        //    using (var repl = new Replicator(config))
-        //    {
-        //        repl.Start();
-        //        var count = 0;
-        //        Thread.Sleep(TimeSpan.FromSeconds(51)); // The combined amount of time this should take to stop
-        //        while (count++ <= 10 && repl.Status.Activity != ReplicatorActivityLevel.Stopped)
-        //        {
-        //            WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
-        //            await Task.Delay(500);
-        //        }
 
-        //        count.Should().BeLessThan(10, "because otherwise the replicator never stopped");
-        //    }
-        //}
+#if !WINDOWS_UWP
+        [Fact]
+        public async Task TestReplicatorStopsWhenEndpointInvalid()
+        {
+            // If this IP address happens to exist, then change it.  It needs to be an address that does not
+            // exist on the LAN
+            var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
+            var config = new ReplicatorConfiguration(Db, targetEndpoint);
+            using (var repl = new Replicator(config)) {
+                repl.Start();
+                var count = 0;
+                Thread.Sleep(TimeSpan.FromSeconds(51)); // The combined amount of time this should take to stop
+                while (count++ <= 10 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                    WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
+                    await Task.Delay(500);
+                }
+
+                count.Should().BeLessThan(10, "because otherwise the replicator never stopped");
+            }
+        }
 #endif
 #if COUCHBASE_ENTERPRISE
         [Fact]
@@ -607,7 +605,6 @@ namespace Test
             } finally {
                 _repl.RemoveChangeListener(token);
                 _repl.RemoveChangeListener(token1);
-                _repl.Dispose();
             }
 
             _replicationEvents.Should().HaveCount(2);
@@ -2112,7 +2109,6 @@ namespace Test
                 throw;
             } finally {
                 _repl.RemoveChangeListener(token);
-                _repl.Dispose();
             }
         }
 
