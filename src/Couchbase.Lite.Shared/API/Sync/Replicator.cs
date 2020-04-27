@@ -192,9 +192,11 @@ namespace Couchbase.Lite.Sync
         /// and/or The token received from <see cref="AddDocumentReplicationListener(TaskScheduler, EventHandler{DocumentReplicationEventArgs})"/></param>
         public void RemoveChangeListener(ListenerToken token)
         {
-            _statusChanged.Remove(token);
-            if(_documentEndedUpdate.Remove(token)==0)
-                Config.Options.ProgressLevel = ReplicatorProgressLevel.Overall;
+            DispatchQueue.DispatchSync(() => {
+                _statusChanged.Remove(token);
+                if (_documentEndedUpdate.Remove(token) == 0)
+                    Config.Options.ProgressLevel = ReplicatorProgressLevel.Overall;
+            });
         }
 
         /// <summary>

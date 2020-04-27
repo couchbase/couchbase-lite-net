@@ -1163,12 +1163,6 @@ namespace Couchbase.Lite
                 return;
             }
 
-            if (!_isClosing) {
-                _isClosing = true;
-
-                ThrowIfActiveItems();
-            }
-
             if (disposing) {
                 //TODO _docObs might need to be refactored into an IDisposable class
                 foreach (var obs in _docObs) {
