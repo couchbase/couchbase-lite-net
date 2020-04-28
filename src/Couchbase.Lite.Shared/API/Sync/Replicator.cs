@@ -420,21 +420,6 @@ namespace Couchbase.Lite.Sync
              return filterFunction(doc, flags);
         }
 
-        private bool IsPermanentError(C4Error error, out bool transient)
-        {
-            // If this is a transient error, or if I'm continuous and the error might go away with a change
-            // in network (i.e. network down, hostname unknown), then go offline and retry later
-            transient = Native.c4error_mayBeTransient(error) ||
-                            (error.domain == C4ErrorDomain.WebSocketDomain && error.code ==
-                             (int)C4WebSocketCustomCloseCode.WebSocketCloseUserTransient);
-
-            if (!transient && !(Config.Continuous && Native.c4error_mayBeNetworkDependent(error))) {
-                return true; // Nope, this is permanent
-            }
-
-            return false;
-        }
-
         private void OnDocEndedWithConflict(List<ReplicatedDocument> replications)
         {
             if (_disposed) {
@@ -643,8 +628,7 @@ namespace Couchbase.Lite.Sync
             //  stopped
             if (status.level == C4ReplicatorActivityLevel.Stopped) {
                 StopReachabilityObserver();
-                if(_conflictTasks.Count == 0)
-                    Stopped();
+                Stopped();
             }
 
             try {
