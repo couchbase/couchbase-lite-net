@@ -99,7 +99,7 @@ namespace Test
             }
         }
 #endif
-#if COUCHBASE_ENTERPRISE
+
         [Fact]
         public void TestReadOnlyConfiguration()
         {
@@ -816,8 +816,9 @@ namespace Test
             _repl.Status.Progress.Total.Should().Be(0UL);
         }
 
+#if COUCHBASE_ENTERPRISE
         #region p2p unit tests
-        
+
         [Fact]
         public void TestShortP2P()
         {
@@ -1101,8 +1102,9 @@ namespace Test
 
             statuses.Count.Should().Be(0);
         }
-        
+
         #endregion
+#endif
 
         #region conflict resolving tests
 
@@ -1656,6 +1658,8 @@ namespace Test
             flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
         }
 
+        #endregion
+
         #region Pending Doc Ids unit tests
 
         [Fact]
@@ -1816,9 +1820,9 @@ namespace Test
                 var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
                 {
-                    if(args.Status.Activity == ReplicatorActivityLevel.Offline) {
-                        docIdIsPending = replicator.IsDocumentPending(DocIdForTest);
-                        docIdIsPending.Should().BeFalse();
+                    if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
+                        pendingDocIds = replicator.GetPendingDocumentIDs();
+                        pendingDocIds.Count.Should().Be(0);
                     }
 
                     wa.RunConditionalAssert(() =>
@@ -1897,8 +1901,8 @@ namespace Test
                 var token = replicator.AddChangeListener((sender, args) =>
                 {
                     if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
-                        pendingDocIds = replicator.GetPendingDocumentIDs();
-                        pendingDocIds.Count.Should().Be(0);
+                        docIdIsPending = replicator.IsDocumentPending(DocIdForTest);
+                        docIdIsPending.Should().BeFalse();
                     }
 
                     wa.RunConditionalAssert(() =>
@@ -2189,8 +2193,6 @@ namespace Test
                 }
             }
         }
-
-#endif
 
 #if COUCHBASE_ENTERPRISE
         private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous)
@@ -2494,4 +2496,3 @@ namespace Test
 
 #endif
 }
-
