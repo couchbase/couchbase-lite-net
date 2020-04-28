@@ -77,11 +77,10 @@ namespace Couchbase.Lite.Internal.Query
             KeyPath = keyPath;
         }
 
-        public QueryTypeExpression(string keyPath, string columnName)
+        public QueryTypeExpression(string keyPath)
         {
             ExpressionType = ExpressionType.KeyPath;
             KeyPath = keyPath;
-            _columnName = columnName;
         }
 
         #endregion
