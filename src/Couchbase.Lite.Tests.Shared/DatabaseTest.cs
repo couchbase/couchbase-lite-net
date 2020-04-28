@@ -1277,18 +1277,13 @@ namespace Test
                 var doc1Listener1 = new WaitAssert();
                 var token1 = query1.AddChangeListener(null, (sender, args) => {
                     foreach (var row in args.Results) {
-                        if (row.GetString("id") == "doc2") {
+                        if (row.GetString("id") == "doc1") {
                             doc1Listener1.Fulfill();
                         }
                     }
                 });
 
                 using (var doc = new MutableDocument("doc1")) {
-                    doc.SetString("value", "string");
-                    otherDb.Save(doc); // Should still trigger since it is pointing to the same DB
-                }
-
-                using (var doc = new MutableDocument("doc2")) {
                     doc.SetString("value", "string");
                     otherDb.Save(doc); // Should still trigger since it is pointing to the same DB
                 }
