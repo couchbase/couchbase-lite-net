@@ -532,10 +532,8 @@ namespace Test
                 foreach (var when in stopWhen) {
                     var stopped = 0;
                     var waitAssert = new WaitAssert();
-                    var token = r.AddChangeListener((sender, args) =>
-                    {
-                        waitAssert.RunConditionalAssert(() =>
-                        {
+                    var token = r.AddChangeListener((sender, args) => {
+                        waitAssert.RunConditionalAssert(() => {
                             VerifyChange(args, 0, 0);
 
                             // On Windows, at least, sometimes the connection is so fast that Connecting never gets called
@@ -817,7 +815,7 @@ namespace Test
         }
 
         #region p2p unit tests
-        /*
+        
         [Fact]
         public void TestShortP2P()
         {
@@ -838,7 +836,6 @@ namespace Test
                 var messageendpoint = new MessageEndpoint($"p2ptest1", server, protocolType,
                         new MockConnectionFactory(null));
                 var uid = messageendpoint.Uid;
-                var replicationDict = _otherDB.Replications;
 
                 // PUSH
                 var config = new ReplicatorConfiguration(Db, messageendpoint) {
@@ -916,14 +913,14 @@ namespace Test
             RunTwoStepContinuous(ReplicatorType.PushAndPull, "p2ptest3");
         }
 
-        [Fact]
-        public void TestP2PRecoverableFailureDuringOpen() => TestP2PError(MockConnectionLifecycleLocation.Connect, true);
+        //[Fact]
+        //public void TestP2PRecoverableFailureDuringOpen() => TestP2PError(MockConnectionLifecycleLocation.Connect, true);
 
-        [Fact]
-        public void TestP2PRecoverableFailureDuringSend() => TestP2PError(MockConnectionLifecycleLocation.Send, true);
+        //[Fact]
+        //public void TestP2PRecoverableFailureDuringSend() => TestP2PError(MockConnectionLifecycleLocation.Send, true);
 
-        [Fact]
-        public void TestP2PRecoverableFailureDuringReceive() => TestP2PError(MockConnectionLifecycleLocation.Receive, true);
+        //[Fact]
+        //public void TestP2PRecoverableFailureDuringReceive() => TestP2PError(MockConnectionLifecycleLocation.Receive, true);
 
         [Fact]
         public void TestP2PPermanentFailureDuringOpen() => TestP2PError(MockConnectionLifecycleLocation.Connect, false);
@@ -1103,622 +1100,565 @@ namespace Test
 
             statuses.Count.Should().Be(0);
         }
-        */
+        
         #endregion
 
         #region conflict resolving tests
-        /*
-    [Fact]
-    public void TestConflictResolverBothRemoteLocalDelete()
-    {
-        int resolveCnt = 0;
-        using (var doc1 = new MutableDocument("doc1"))
+
+        [Fact]
+        public void TestConflictResolverBothRemoteLocalDelete()
         {
-            doc1.SetString("name", "Tiger");
-            Db.Save(doc1);
-        }
-
-        using (var doc1 = new MutableDocument("doc1"))
-        {
-            doc1.SetString("name", "Tiger");
-            _otherDB.Save(doc1);
-        }
-
-        // Force a conflict
-        using (var doc1a = Db.GetDocument("doc1").ToMutable())
-        {
-            doc1a.SetString("name", "Cat");
-            Db.Save(doc1a);
-        }
-
-        Db.Count.Should().Be(1);
-
-        _otherDB.Delete(_otherDB.GetDocument("doc1"));
-
-        var config = CreateConfig(false, true, false);
-        config.ConflictResolver = new TestConflictResolver((conflict) =>
-        {
-            using (var doc1 = Db.GetDocument("doc1"))
-            {
-                Db.Delete(doc1);
+            int resolveCnt = 0;
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1);
             }
-            resolveCnt++;
-            return conflict.LocalDocument;
-        });
 
-        RunReplication(config, 0, 0);
-        resolveCnt.Should().Be(1);
-        Db.Count.Should().Be(0);
-    }
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                _otherDB.Save(doc1);
+            }
 
-    [Fact]
-    public void TestConflictResolverPropertyInReplicationConfig()
-    {
-        var config = CreateConfig(false, true, false);
+            // Force a conflict
+            using (var doc1a = Db.GetDocument("doc1").ToMutable()) {
+                doc1a.SetString("name", "Cat");
+                Db.Save(doc1a);
+            }
 
-        config.ConflictResolver = new TestConflictResolver((conflict) =>
-        {
-            return conflict.RemoteDocument;
-        });
+            Db.Count.Should().Be(1);
 
-        config.ConflictResolver.GetType().Should().Be(typeof(TestConflictResolver));
+            _otherDB.Delete(_otherDB.GetDocument("doc1"));
 
-        using (var replicator = new Replicator(config)) {
-
-            Action badAction = (() => replicator.Config.ConflictResolver = new FakeConflictResolver());
-            badAction.Should().Throw<InvalidOperationException>("Attempt to modify a frozen object is prohibited.");
-        }
-    }
-
-    [Fact]
-    public void TestConflictResolverRemoteWins()
-    {
-        var returnRemoteDoc = true;
-        TestConflictResolverWins(returnRemoteDoc);
-        TestConflictResolverWins(!returnRemoteDoc);
-    }
-
-    [Fact]
-    public void TestConflictResolverMergeDoc()
-    {
-        using (var doc1 = new MutableDocument("doc1")) {
-            doc1.SetString("name", "Jim");
-            Db.Save(doc1);
-        }
-
-        using (var doc1 = new MutableDocument("doc1")) {
-            doc1.SetString("name", "Jim");
-            doc1.SetString("location", "Japan");
-            _otherDB.Save(doc1);
-        }
-
-        var config = CreateConfig(true, true, false);
-        config.ConflictResolver = new TestConflictResolver((conflict) =>
-        {
-            var localDoc = conflict.LocalDocument;
-            var remoteDoc = conflict.RemoteDocument;
-
-            var updateDocDict = localDoc.ToDictionary();
-            var curDocDict = remoteDoc.ToDictionary();
-
-            foreach (var value in curDocDict) {
-                if (updateDocDict.ContainsKey(value.Key) && !value.Value.Equals(updateDocDict[value.Key])) {
-                    updateDocDict[value.Key] = value.Value + ", " + updateDocDict[value.Key];
-                } else if (!updateDocDict.ContainsKey(value.Key)) {
-                    updateDocDict.Add(value.Key, value.Value);
+            var config = CreateConfig(false, true, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                using (var doc1 = Db.GetDocument("doc1")) {
+                    Db.Delete(doc1);
                 }
+                resolveCnt++;
+                return conflict.LocalDocument;
+            });
+
+            RunReplication(config, 0, 0);
+            resolveCnt.Should().Be(1);
+            Db.Count.Should().Be(0);
+        }
+
+        [Fact]
+        public void TestConflictResolverPropertyInReplicationConfig()
+        {
+            var config = CreateConfig(false, true, false);
+
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                return conflict.RemoteDocument;
+            });
+
+            config.ConflictResolver.GetType().Should().Be(typeof(TestConflictResolver));
+
+            using (var replicator = new Replicator(config)) {
+
+                Action badAction = (() => replicator.Config.ConflictResolver = new FakeConflictResolver());
+                badAction.Should().Throw<InvalidOperationException>("Attempt to modify a frozen object is prohibited.");
+            }
+        }
+
+        [Fact]
+        public void TestConflictResolverRemoteWins()
+        {
+            var returnRemoteDoc = true;
+            TestConflictResolverWins(returnRemoteDoc);
+            TestConflictResolverWins(!returnRemoteDoc);
+        }
+
+        [Fact]
+        public void TestConflictResolverMergeDoc()
+        {
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Jim");
+                Db.Save(doc1);
             }
 
-            WriteLine($"Resulting merge: {JsonConvert.SerializeObject(updateDocDict)}");
-
-            var doc1 = new MutableDocument(conflict.DocumentID);
-            doc1.SetData(updateDocDict);
-            return doc1;
-        });
-
-        RunReplication(config, 0, 0);
-
-        using (var doc1a = Db.GetDocument("doc1"))
-        using (var doc1aMutable = doc1a.ToMutable()) {
-            doc1aMutable.SetString("name", "Jim");
-            doc1aMutable.SetString("language", "English");
-            Db.Save(doc1aMutable);
-        }
-
-        using (var doc1a = _otherDB.GetDocument("doc1"))
-        using (var doc1aMutable = doc1a.ToMutable()) {
-            doc1aMutable.SetString("name", "Jim");
-            doc1aMutable.SetString("language", "C#");
-            _otherDB.Save(doc1aMutable);
-        }
-
-        RunReplication(config, 0, 0);
-
-        using (var doc1 = Db.GetDocument("doc1")) {
-            doc1.GetString("name").Should().Be("Jim");
-            var lanStr = doc1.GetString("language");
-            lanStr.Should().Contain("English");
-            lanStr.Should().Contain("C#");
-            doc1.GetString("location").Should().Be("Japan");
-        }
-
-        RunReplication(config, 0, 0);
-
-        using (var doc1 = _otherDB.GetDocument("doc1")) {
-            doc1.GetString("name").Should().Be("Jim");
-            var lanStr = doc1.GetString("language");
-            lanStr.Should().Contain("English");
-            lanStr.Should().Contain("C#");
-            doc1.GetString("location").Should().Be("Japan");
-        }
-    }
-
-    [Fact]
-    public void TestConflictResolverNullDoc()
-    {
-        bool conflictResolved = false;
-        CreateReplicationConflict("doc1");
-
-        var config = CreateConfig(false, true, false);
-
-        config.ConflictResolver = new TestConflictResolver((conflict) =>
-        {
-            conflictResolved = true;
-            return null;
-        });
-
-        RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
-        {
-            conflictResolved.Should().Be(true, "Because the DocumentReplicationEvent be notified after the conflict has being resolved.");
-        });
-
-        Db.GetDocument("doc1").Should().BeNull(); //Because conflict resolver returns null means return a deleted document.
-    }
-
-    [Fact]
-    public void TestConflictResolverDeletedLocalWin()
-    {
-        Document localDoc = null, remoteDoc = null;
-        using (var doc1 = new MutableDocument("doc1"))
-        {
-            doc1.SetString("name", "Tiger");
-            Db.Save(doc1);
-        }
-
-        using (var doc1 = new MutableDocument("doc1"))
-        {
-            doc1.SetString("name", "Tiger");
-            _otherDB.Save(doc1);
-        }
-
-
-        Db.Delete(Db.GetDocument("doc1"));
-
-        Db.Count.Should().Be(0);
-
-        using (var doc1 = _otherDB.GetDocument("doc1").ToMutable())
-        {
-            doc1.SetString("name", "Lion");
-            _otherDB.Save(doc1);
-        }
-
-        var config = CreateConfig(false, true, false);
-        config.ConflictResolver = new TestConflictResolver((conflict) =>
-        {
-            localDoc = conflict.LocalDocument;
-            remoteDoc = conflict.RemoteDocument;
-            return null;
-        });
-
-        RunReplication(config, 0, 0);
-
-        localDoc.Should().BeNull();
-        remoteDoc.Should().NotBeNull();
-
-        Db.Count.Should().Be(0);
-    }
-
-    [Fact]
-    public void TestConflictResolverDeletedRemoteWin()
-    {
-        Document localDoc = null, remoteDoc = null;
-        using (var doc1 = new MutableDocument("doc1"))
-        {
-            doc1.SetString("name", "Tiger");
-            Db.Save(doc1);
-        }
-
-        using (var doc1 = new MutableDocument("doc1"))
-        {
-            doc1.SetString("name", "Tiger");
-            _otherDB.Save(doc1);
-        }
-
-        // Force a conflict
-        using (var doc1a = Db.GetDocument("doc1").ToMutable())
-        {
-            doc1a.SetString("name", "Cat");
-            Db.Save(doc1a);
-        }
-
-        Db.Count.Should().Be(1);
-
-        _otherDB.Delete(_otherDB.GetDocument("doc1"));
-
-        var config = CreateConfig(false, true, false);
-        config.ConflictResolver = new TestConflictResolver((conflict) =>
-        {
-            localDoc = conflict.LocalDocument;
-            remoteDoc = conflict.RemoteDocument;
-            return null;
-        });
-
-        RunReplication(config, 0, 0);
-        remoteDoc.Should().BeNull();
-        localDoc.Should().NotBeNull();
-        Db.Count.Should().Be(0);
-    }
-
-    [Fact]
-    public void TestConflictResolverWrongDocID()
-    {
-        CreateReplicationConflict("doc1");
-
-        var config = CreateConfig(false, true, false);
-        config.ConflictResolver = new TestConflictResolver((conflict) =>
-        {
-            var doc = new MutableDocument("wrong_id");
-            doc.SetString("wrong_id_key", "wrong_id_value");
-            return doc;
-        });
-
-        RunReplication(config, 0, 0);
-
-        using (var db = Db.GetDocument("doc1")) {
-            db.GetString("wrong_id_key").Should().Be("wrong_id_value");
-        }
-    }
-
-    [Fact]
-    public void TestConflictResolverCalledTwice()
-    {
-        int resolveCnt = 0;
-        CreateReplicationConflict("doc1");
-
-        var config = CreateConfig(false, true, false);
-
-        config.ConflictResolver = new TestConflictResolver((conflict) =>
-        {
-            if (resolveCnt == 0)
-            {
-                using (var d = Db.GetDocument("doc1"))
-                using (var doc = d.ToMutable())
-                {
-                    doc.SetString("name", "Cougar");
-                    Db.Save(doc);
-                }
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Jim");
+                doc1.SetString("location", "Japan");
+                _otherDB.Save(doc1);
             }
 
-            resolveCnt++;
-            return conflict.LocalDocument;
-        });
+            var config = CreateConfig(true, true, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                var localDoc = conflict.LocalDocument;
+                var remoteDoc = conflict.RemoteDocument;
 
-        RunReplication(config, 0, 0);
+                var updateDocDict = localDoc.ToDictionary();
+                var curDocDict = remoteDoc.ToDictionary();
 
-        resolveCnt.Should().Be(2);
-        using (var doc = Db.GetDocument("doc1"))
-        {
-            doc.GetString("name").Should().Be("Cougar");
-        }
-    }
-
-    [Fact]
-    public void TestNonBlockingDatabaseOperationConflictResolver()
-    {
-        int resolveCnt = 0;
-        CreateReplicationConflict("doc1");
-        var config = CreateConfig(false, true, false);
-        config.ConflictResolver = new TestConflictResolver((conflict) =>
-        {
-            if (resolveCnt == 0)
-            {
-                using (var d = Db.GetDocument("doc1"))
-                using (var doc = d.ToMutable())
-                {
-                    d.GetString("name").Should().Be("Cat");
-                    doc.SetString("name", "Cougar");
-                    Db.Save(doc);
-                    using (var docCheck = Db.GetDocument("doc1"))
-                    {
-                        docCheck.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
+                foreach (var value in curDocDict) {
+                    if (updateDocDict.ContainsKey(value.Key) && !value.Value.Equals(updateDocDict[value.Key])) {
+                        updateDocDict[value.Key] = value.Value + ", " + updateDocDict[value.Key];
+                    } else if (!updateDocDict.ContainsKey(value.Key)) {
+                        updateDocDict.Add(value.Key, value.Value);
                     }
                 }
+
+                WriteLine($"Resulting merge: {JsonConvert.SerializeObject(updateDocDict)}");
+
+                var doc1 = new MutableDocument(conflict.DocumentID);
+                doc1.SetData(updateDocDict);
+                return doc1;
+            });
+
+            RunReplication(config, 0, 0);
+
+            using (var doc1a = Db.GetDocument("doc1"))
+            using (var doc1aMutable = doc1a.ToMutable()) {
+                doc1aMutable.SetString("name", "Jim");
+                doc1aMutable.SetString("language", "English");
+                Db.Save(doc1aMutable);
             }
-            resolveCnt++;
-            return null;
-        });
 
-        RunReplication(config, 0, 0);
+            using (var doc1a = _otherDB.GetDocument("doc1"))
+            using (var doc1aMutable = doc1a.ToMutable()) {
+                doc1aMutable.SetString("name", "Jim");
+                doc1aMutable.SetString("language", "C#");
+                _otherDB.Save(doc1aMutable);
+            }
 
-        // This will be 0 if the test resolver threw an exception
-        resolveCnt.Should().NotBe(0, "because otherwise the conflict resolver didn't complete");
+            RunReplication(config, 0, 0);
 
-        using (var doc = Db.GetDocument("doc1"))
-        {
-            doc.Should().BeNull();
+            using (var doc1 = Db.GetDocument("doc1")) {
+                doc1.GetString("name").Should().Be("Jim");
+                var lanStr = doc1.GetString("language");
+                lanStr.Should().Contain("English");
+                lanStr.Should().Contain("C#");
+                doc1.GetString("location").Should().Be("Japan");
+            }
+
+            RunReplication(config, 0, 0);
+
+            using (var doc1 = _otherDB.GetDocument("doc1")) {
+                doc1.GetString("name").Should().Be("Jim");
+                var lanStr = doc1.GetString("language");
+                lanStr.Should().Contain("English");
+                lanStr.Should().Contain("C#");
+                doc1.GetString("location").Should().Be("Japan");
+            }
         }
-    }
 
-    [Fact]
-    public void TestNonBlockingConflictResolver()
-    {
-        CreateReplicationConflict("doc1");
-        CreateReplicationConflict("doc2");
-        var config = CreateConfig(false, true, false);
-        ManualResetEvent manualResetEvent = new ManualResetEvent(false);
-        Queue<string> q = new Queue<string>();
-        var wa = new WaitAssert();
-        config.ConflictResolver = new TestConflictResolver((conflict) =>
+        [Fact]
+        public void TestConflictResolverNullDoc()
         {
-            var cnt = 0;
-            lock (q)
-            {
-                q.Enqueue(conflict.LocalDocument.Id);
-                cnt = q.Count;
+            bool conflictResolved = false;
+            CreateReplicationConflict("doc1");
+
+            var config = CreateConfig(false, true, false);
+
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                conflictResolved = true;
+                return null;
+            });
+
+            RunReplication(config, 0, 0, documentReplicated: (sender, args) => {
+                conflictResolved.Should().Be(true, "Because the DocumentReplicationEvent be notified after the conflict has being resolved.");
+            });
+
+            Db.GetDocument("doc1").Should().BeNull(); //Because conflict resolver returns null means return a deleted document.
+        }
+
+        [Fact]
+        public void TestConflictResolverDeletedLocalWin()
+        {
+            Document localDoc = null, remoteDoc = null;
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1);
             }
 
-            if (cnt == 1)
-            {
-                manualResetEvent.WaitOne();
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                _otherDB.Save(doc1);
             }
 
-            q.Enqueue(conflict.LocalDocument.Id);
-            wa.RunConditionalAssert(() => q.Count.Equals(4));
 
-            if (cnt != 1)
-            {
-                manualResetEvent.Set();
+            Db.Delete(Db.GetDocument("doc1"));
+
+            Db.Count.Should().Be(0);
+
+            using (var doc1 = _otherDB.GetDocument("doc1").ToMutable()) {
+                doc1.SetString("name", "Lion");
+                _otherDB.Save(doc1);
             }
 
-            return conflict.RemoteDocument;
-        });
+            var config = CreateConfig(false, true, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                localDoc = conflict.LocalDocument;
+                remoteDoc = conflict.RemoteDocument;
+                return null;
+            });
 
-        RunReplication(config, 0, 0);
+            RunReplication(config, 0, 0);
 
-        wa.WaitForResult(TimeSpan.FromMilliseconds(5000));
+            localDoc.Should().BeNull();
+            remoteDoc.Should().NotBeNull();
 
-        // make sure, first doc starts resolution but finishes last.
-        // in between second doc starts and finishes it.
-        q.ElementAt(0).Should().Be(q.ElementAt(3));
-        q.ElementAt(1).Should().Be(q.ElementAt(2));
+            Db.Count.Should().Be(0);
+        }
 
-        q.Clear();
-    }
-
-    [Fact]
-    public void TestDoubleConflictResolutionOnSameConflicts()
-    {
-        CreateReplicationConflict("doc1");
-
-        var firstReplicatorStart = new ManualResetEventSlim();
-        var secondReplicatorFinish = new ManualResetEventSlim();
-        int resolveCnt = 0;
-
-        var config = CreateConfig(false, true, false);
-        config.ConflictResolver = new TestConflictResolver((conflict) =>
+        [Fact]
+        public void TestConflictResolverDeletedRemoteWin()
         {
-            firstReplicatorStart.Set();
-            secondReplicatorFinish.Wait();
-            Thread.Sleep(500);
-            resolveCnt++;
-            return conflict.LocalDocument;
-        });
-        Replicator replicator = new Replicator(config);
+            Document localDoc = null, remoteDoc = null;
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                Db.Save(doc1);
+            }
 
-        var config1 = CreateConfig(false, true, false);
-        config1.ConflictResolver = new TestConflictResolver((conflict) =>
-        {
-            resolveCnt++;
-            Task.Delay(500).ContinueWith(t => secondReplicatorFinish.Set()); // Set after return
-            return conflict.RemoteDocument;
-        });
-        Replicator replicator1 = new Replicator(config1);
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Tiger");
+                _otherDB.Save(doc1);
+            }
 
-        _waitAssert = new WaitAssert();
-        var token = replicator.AddChangeListener((sender, args) =>
+            // Force a conflict
+            using (var doc1a = Db.GetDocument("doc1").ToMutable()) {
+                doc1a.SetString("name", "Cat");
+                Db.Save(doc1a);
+            }
+
+            Db.Count.Should().Be(1);
+
+            _otherDB.Delete(_otherDB.GetDocument("doc1"));
+
+            var config = CreateConfig(false, true, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                localDoc = conflict.LocalDocument;
+                remoteDoc = conflict.RemoteDocument;
+                return null;
+            });
+
+            RunReplication(config, 0, 0);
+            remoteDoc.Should().BeNull();
+            localDoc.Should().NotBeNull();
+            Db.Count.Should().Be(0);
+        }
+
+        [Fact]
+        public void TestConflictResolverWrongDocID()
         {
-            _waitAssert.RunConditionalAssert(() =>
-            {
-                VerifyChange(args, 0, 0);
-                if (config.Continuous && args.Status.Activity == ReplicatorActivityLevel.Idle
-                                      && args.Status.Progress.Completed == args.Status.Progress.Total)
-                {
-                    ((Replicator)sender).Stop();
+            CreateReplicationConflict("doc1");
+
+            var config = CreateConfig(false, true, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                var doc = new MutableDocument("wrong_id");
+                doc.SetString("wrong_id_key", "wrong_id_value");
+                return doc;
+            });
+
+            RunReplication(config, 0, 0);
+
+            using (var db = Db.GetDocument("doc1")) {
+                db.GetString("wrong_id_key").Should().Be("wrong_id_value");
+            }
+        }
+
+        [Fact]
+        public void TestConflictResolverCalledTwice()
+        {
+            int resolveCnt = 0;
+            CreateReplicationConflict("doc1");
+
+            var config = CreateConfig(false, true, false);
+
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                if (resolveCnt == 0) {
+                    using (var d = Db.GetDocument("doc1"))
+                    using (var doc = d.ToMutable()) {
+                        doc.SetString("name", "Cougar");
+                        Db.Save(doc);
+                    }
                 }
 
-                return args.Status.Activity == ReplicatorActivityLevel.Stopped;
-            });
-        });
-
-        var _waitAssert1 = new WaitAssert();
-        var token1 = replicator1.AddChangeListener((sender, args) =>
-        {
-            _waitAssert1.RunConditionalAssert(() =>
-            {
-                VerifyChange(args, 0, 0);
-                if (config.Continuous && args.Status.Activity == ReplicatorActivityLevel.Idle
-                                      && args.Status.Progress.Completed == args.Status.Progress.Total)
-                {
-                    ((Replicator)sender).Stop();
-                }
-
-                return args.Status.Activity == ReplicatorActivityLevel.Stopped;
-            });
-        });
-
-        replicator.Start();
-        firstReplicatorStart.Wait();
-        replicator1.Start();
-
-        try
-        {
-            _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
-            _waitAssert1.WaitForResult(TimeSpan.FromSeconds(10));
-        }
-        catch
-        {
-            replicator1.Stop();
-            replicator.Stop();
-            throw;
-        }
-        finally
-        {
-            replicator.RemoveChangeListener(token);
-            replicator1.RemoveChangeListener(token1);
-            replicator.Dispose();
-            replicator1.Dispose();
-        }
-
-        using (var doc = Db.GetDocument("doc1"))
-        {
-            doc.GetBlob("blob")?.Content.Should().Contain(new byte[] { 7, 7, 7 });
-        }
-    }
-
-    [Fact]
-    public void TestConflictResolverExceptionWhenDocumentIsPurged()
-    {
-        int resolveCnt = 0;
-        CreateReplicationConflict("doc1");
-
-        var config = CreateConfig(false, true, false);
-
-        config.ConflictResolver = new TestConflictResolver((conflict) =>
-        {
-            if (resolveCnt == 0)
-            {
-                Db.Purge(conflict.DocumentID);
-            }
-            resolveCnt++;
-            return conflict.RemoteDocument;
-        });
-
-        RunReplication(config, 0, 0, documentReplicated: (sender, args) =>
-        {
-            if (!args.IsPush)
-            {
-                args.Documents[0].Error.Error.Should().Be((int)CouchbaseLiteError.NotFound);
-            }
-        });
-    }
-
-    [Fact]
-    public void TestConflictResolverExceptionsReturnDocFromOtherDBThrown()
-    {
-        var tmpDoc = new MutableDocument("doc1");
-        using (var thirdDb = new Database("different_db"))
-        {
-            tmpDoc.SetString("foo", "bar");
-            thirdDb.Save(tmpDoc);
-
-            var differentDbResolver = new TestConflictResolver((conflict) => tmpDoc);
-
-            TestConflictResolverExceptionThrown(differentDbResolver, true);
-            Db.GetDocument("doc1").GetString("name").Should().Be("Human");
-
-            thirdDb.Delete();
-        }
-    }
-
-    [Fact]
-    public void TestConflictResolverExceptionThrownInConflictResolver()
-    {
-        var resolverWithException = new TestConflictResolver((conflict) =>
-        {
-            throw new Exception("Customer side exception");
-        });
-
-        TestConflictResolverExceptionThrown(resolverWithException, false);
-    }
-
-    [Fact]
-    public void TestConflictResolverReturningBlob()
-    {
-        var returnRemoteDoc = true;
-        TestConflictResolverWins(returnRemoteDoc);
-        TestConflictResolverWins(!returnRemoteDoc);
-
-        //return new doc with a blob object
-        CreateReplicationConflict("doc1");
-
-        var config = CreateConfig(false, true, false);
-
-        config.ConflictResolver = new TestConflictResolver((conflict) =>
-        {
-            var evilByteArray = new byte[] { 6, 6, 6 };
-
-            var doc = new MutableDocument();
-            doc.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
-            return doc;
-        });
-
-        RunReplication(config, 0, 0);
-
-        using (var doc = Db.GetDocument("doc1"))
-        {
-            doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 6, 6, 6 });
-        }
-    }
-
-    [Fact]
-    public void TestConflictResolverReturningBlobFromDifferentDB()
-    {
-        var blobFromOtherDbResolver = new TestConflictResolver((conflict) => {
-            var md = conflict.LocalDocument.ToMutable();
-            using (var otherDbDoc = _otherDB.GetDocument("doc1")) {
-                md.SetBlob("blob", otherDbDoc.GetBlob("blob"));
-            }
-            return md;
-        });
-
-        TestConflictResolverExceptionThrown(blobFromOtherDbResolver, false, true);
-    }
-
-    //CBL-623: Revision flags get cleared while saving resolved document
-    [Fact]
-    public void TestConflictResolverPreservesFlags()
-    {
-        //force conflicts and check flags
-        CreateReplicationConflict("doc1", true);
-
-        var config = CreateConfig(false, true, false);
-        C4DocumentFlags flags = (C4DocumentFlags)0;
-        config.ConflictResolver = new TestConflictResolver((conflict) =>
-        {
-            unsafe
-            {
-                flags = conflict.LocalDocument.c4Doc.RawDoc->flags;
-                flags.HasFlag(C4DocumentFlags.DocConflicted).Should().BeTrue();
-                flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+                resolveCnt++;
                 return conflict.LocalDocument;
-            }
-        });
+            });
 
-        RunReplication(config, 0, 0);
+            RunReplication(config, 0, 0);
 
-        using (var doc = Db.GetDocument("doc1"))
-        {
-            doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 6, 6, 6 });
-            unsafe
-            {
-                flags = doc.c4Doc.RawDoc->flags;
+            resolveCnt.Should().Be(2);
+            using (var doc = Db.GetDocument("doc1")) {
+                doc.GetString("name").Should().Be("Cougar");
             }
         }
 
-        flags.HasFlag(C4DocumentFlags.DocConflicted).Should().BeFalse();
-        flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
-    }
-    */
+        [Fact]
+        public void TestNonBlockingDatabaseOperationConflictResolver()
+        {
+            int resolveCnt = 0;
+            CreateReplicationConflict("doc1");
+            var config = CreateConfig(false, true, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                if (resolveCnt == 0) {
+                    using (var d = Db.GetDocument("doc1"))
+                    using (var doc = d.ToMutable()) {
+                        d.GetString("name").Should().Be("Cat");
+                        doc.SetString("name", "Cougar");
+                        Db.Save(doc);
+                        using (var docCheck = Db.GetDocument("doc1")) {
+                            docCheck.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
+                        }
+                    }
+                }
+                resolveCnt++;
+                return null;
+            });
+
+            RunReplication(config, 0, 0);
+
+            // This will be 0 if the test resolver threw an exception
+            resolveCnt.Should().NotBe(0, "because otherwise the conflict resolver didn't complete");
+
+            using (var doc = Db.GetDocument("doc1")) {
+                doc.Should().BeNull();
+            }
+        }
+
+        [Fact]
+        public void TestNonBlockingConflictResolver()
+        {
+            CreateReplicationConflict("doc1");
+            CreateReplicationConflict("doc2");
+            var config = CreateConfig(false, true, false);
+            ManualResetEvent manualResetEvent = new ManualResetEvent(false);
+            Queue<string> q = new Queue<string>();
+            var wa = new WaitAssert();
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                var cnt = 0;
+                lock (q) {
+                    q.Enqueue(conflict.LocalDocument.Id);
+                    cnt = q.Count;
+                }
+
+                if (cnt == 1) {
+                    manualResetEvent.WaitOne();
+                }
+
+                q.Enqueue(conflict.LocalDocument.Id);
+                wa.RunConditionalAssert(() => q.Count.Equals(4));
+
+                if (cnt != 1) {
+                    manualResetEvent.Set();
+                }
+
+                return conflict.RemoteDocument;
+            });
+
+            RunReplication(config, 0, 0);
+
+            wa.WaitForResult(TimeSpan.FromMilliseconds(5000));
+
+            // make sure, first doc starts resolution but finishes last.
+            // in between second doc starts and finishes it.
+            q.ElementAt(0).Should().Be(q.ElementAt(3));
+            q.ElementAt(1).Should().Be(q.ElementAt(2));
+
+            q.Clear();
+        }
+
+        [Fact]
+        public void TestDoubleConflictResolutionOnSameConflicts()
+        {
+            CreateReplicationConflict("doc1");
+
+            var firstReplicatorStart = new ManualResetEventSlim();
+            var secondReplicatorFinish = new ManualResetEventSlim();
+            int resolveCnt = 0;
+
+            var config = CreateConfig(false, true, false);
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                firstReplicatorStart.Set();
+                secondReplicatorFinish.Wait();
+                Thread.Sleep(500);
+                resolveCnt++;
+                return conflict.LocalDocument;
+            });
+            Replicator replicator = new Replicator(config);
+
+            var config1 = CreateConfig(false, true, false);
+            config1.ConflictResolver = new TestConflictResolver((conflict) => {
+                resolveCnt++;
+                Task.Delay(500).ContinueWith(t => secondReplicatorFinish.Set()); // Set after return
+                return conflict.RemoteDocument;
+            });
+            Replicator replicator1 = new Replicator(config1);
+
+            _waitAssert = new WaitAssert();
+            var token = replicator.AddChangeListener((sender, args) => {
+                _waitAssert.RunConditionalAssert(() => {
+                    VerifyChange(args, 0, 0);
+                    if (config.Continuous && args.Status.Activity == ReplicatorActivityLevel.Idle
+                                          && args.Status.Progress.Completed == args.Status.Progress.Total) {
+                        ((Replicator)sender).Stop();
+                    }
+
+                    return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                });
+            });
+
+            var _waitAssert1 = new WaitAssert();
+            var token1 = replicator1.AddChangeListener((sender, args) => {
+                _waitAssert1.RunConditionalAssert(() => {
+                    VerifyChange(args, 0, 0);
+                    if (config.Continuous && args.Status.Activity == ReplicatorActivityLevel.Idle
+                                          && args.Status.Progress.Completed == args.Status.Progress.Total) {
+                        ((Replicator)sender).Stop();
+                    }
+
+                    return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                });
+            });
+
+            replicator.Start();
+            firstReplicatorStart.Wait();
+            replicator1.Start();
+
+            try {
+                _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
+                _waitAssert1.WaitForResult(TimeSpan.FromSeconds(10));
+            } catch {
+                replicator1.Stop();
+                replicator.Stop();
+                throw;
+            } finally {
+                replicator.RemoveChangeListener(token);
+                replicator1.RemoveChangeListener(token1);
+                replicator.Dispose();
+                replicator1.Dispose();
+            }
+
+            using (var doc = Db.GetDocument("doc1")) {
+                doc.GetBlob("blob")?.Content.Should().Contain(new byte[] { 7, 7, 7 });
+            }
+        }
+
+        [Fact]
+        public void TestConflictResolverExceptionWhenDocumentIsPurged()
+        {
+            int resolveCnt = 0;
+            CreateReplicationConflict("doc1");
+
+            var config = CreateConfig(false, true, false);
+
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                if (resolveCnt == 0) {
+                    Db.Purge(conflict.DocumentID);
+                }
+                resolveCnt++;
+                return conflict.RemoteDocument;
+            });
+
+            RunReplication(config, 0, 0, documentReplicated: (sender, args) => {
+                if (!args.IsPush) {
+                    args.Documents[0].Error.Error.Should().Be((int)CouchbaseLiteError.NotFound);
+                }
+            });
+        }
+
+        [Fact]
+        public void TestConflictResolverExceptionsReturnDocFromOtherDBThrown()
+        {
+            var tmpDoc = new MutableDocument("doc1");
+            using (var thirdDb = new Database("different_db")) {
+                tmpDoc.SetString("foo", "bar");
+                thirdDb.Save(tmpDoc);
+
+                var differentDbResolver = new TestConflictResolver((conflict) => tmpDoc);
+
+                TestConflictResolverExceptionThrown(differentDbResolver, true);
+                Db.GetDocument("doc1").GetString("name").Should().Be("Human");
+
+                thirdDb.Delete();
+            }
+        }
+
+        [Fact]
+        public void TestConflictResolverExceptionThrownInConflictResolver()
+        {
+            var resolverWithException = new TestConflictResolver((conflict) => {
+                throw new Exception("Customer side exception");
+            });
+
+            TestConflictResolverExceptionThrown(resolverWithException, false);
+        }
+
+        [Fact]
+        public void TestConflictResolverReturningBlob()
+        {
+            var returnRemoteDoc = true;
+            TestConflictResolverWins(returnRemoteDoc);
+            TestConflictResolverWins(!returnRemoteDoc);
+
+            //return new doc with a blob object
+            CreateReplicationConflict("doc1");
+
+            var config = CreateConfig(false, true, false);
+
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                var evilByteArray = new byte[] { 6, 6, 6 };
+
+                var doc = new MutableDocument();
+                doc.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
+                return doc;
+            });
+
+            RunReplication(config, 0, 0);
+
+            using (var doc = Db.GetDocument("doc1")) {
+                doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 6, 6, 6 });
+            }
+        }
+
+        [Fact]
+        public void TestConflictResolverReturningBlobFromDifferentDB()
+        {
+            var blobFromOtherDbResolver = new TestConflictResolver((conflict) => {
+                var md = conflict.LocalDocument.ToMutable();
+                using (var otherDbDoc = _otherDB.GetDocument("doc1")) {
+                    md.SetBlob("blob", otherDbDoc.GetBlob("blob"));
+                }
+                return md;
+            });
+
+            TestConflictResolverExceptionThrown(blobFromOtherDbResolver, false, true);
+        }
+
+        //CBL-623: Revision flags get cleared while saving resolved document
+        [Fact]
+        public void TestConflictResolverPreservesFlags()
+        {
+            //force conflicts and check flags
+            CreateReplicationConflict("doc1", true);
+
+            var config = CreateConfig(false, true, false);
+            C4DocumentFlags flags = (C4DocumentFlags)0;
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                unsafe {
+                    flags = conflict.LocalDocument.c4Doc.RawDoc->flags;
+                    flags.HasFlag(C4DocumentFlags.DocConflicted).Should().BeTrue();
+                    flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+                    return conflict.LocalDocument;
+                }
+            });
+
+            RunReplication(config, 0, 0);
+
+            using (var doc = Db.GetDocument("doc1")) {
+                doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 6, 6, 6 });
+                unsafe {
+                    flags = doc.c4Doc.RawDoc->flags;
+                }
+            }
+
+            flags.HasFlag(C4DocumentFlags.DocConflicted).Should().BeFalse();
+            flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+        }
+
         #endregion
 
         private void TestConflictResolverExceptionThrown(TestConflictResolver resolver, bool continueWithWorkingResolver = false, bool withBlob = false)
@@ -1730,11 +1670,9 @@ namespace Test
 
             using (var repl = new Replicator(config)) {
                 var wa = new WaitAssert();
-                var token = repl.AddDocumentReplicationListener((sender, args) =>
-                {
+                var token = repl.AddDocumentReplicationListener((sender, args) => {
                     if (args.Documents[0].Id == "doc1" && !args.IsPush) {
-                        wa.RunAssert(() =>
-                        {
+                        wa.RunAssert(() => {
                             WriteLine($"Received document listener callback of size {args.Documents.Count}");
                             args.Documents[0].Error.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite,
                                 $"because otherwise the wrong error ({args.Documents[0].Error.Error}) occurred");
@@ -1746,7 +1684,7 @@ namespace Test
                                 } else {
                                     innerException.Message.Should().Contain("Resolved document's database different_db is different from expected database");
                                 }
-                            } else if(innerException is Exception) {
+                            } else if (innerException is Exception) {
                                 innerException.Message.Should().Be("Customer side exception");
                             }
                         });
@@ -1768,8 +1706,7 @@ namespace Test
                 if (!continueWithWorkingResolver)
                     return;
 
-                config.ConflictResolver = new TestConflictResolver((conflict) => 
-                {
+                config.ConflictResolver = new TestConflictResolver((conflict) => {
                     var doc = new MutableDocument("doc1");
                     doc.SetString("name", "Human");
                     return doc;
@@ -1784,8 +1721,7 @@ namespace Test
 
             var config = CreateConfig(false, true, false);
 
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
                 if (returnRemoteDoc) {
                     return conflict.RemoteDocument;
                 } else
@@ -1807,12 +1743,10 @@ namespace Test
 
         private void CreateReplicationConflict(string id, bool checkFlags = false)
         {
-            unsafe
-            {
-                var oddByteArray = new byte[] {1, 3, 5};
+            unsafe {
+                var oddByteArray = new byte[] { 1, 3, 5 };
                 C4DocumentFlags flags = (C4DocumentFlags)0;
-                using (var doc1 = new MutableDocument(id))
-                {
+                using (var doc1 = new MutableDocument(id)) {
                     doc1.SetString("name", "Tiger");
                     doc1.SetBlob("blob", new Blob("text/plaintext", oddByteArray));
                     Db.Save(doc1);
@@ -1822,8 +1756,7 @@ namespace Test
                     }
                 }
 
-                using (var doc1 = new MutableDocument(id))
-                {
+                using (var doc1 = new MutableDocument(id)) {
                     doc1.SetString("name", "Tiger");
                     doc1.SetBlob("blob", new Blob("text/plaintext", oddByteArray));
                     _otherDB.Save(doc1);
@@ -1835,9 +1768,8 @@ namespace Test
 
                 // Force a conflict
                 using (var doc1a = Db.GetDocument(id))
-                using (var doc1aMutable = doc1a.ToMutable())
-                {
-                    var evilByteArray = new byte[] {6, 6, 6};
+                using (var doc1aMutable = doc1a.ToMutable()) {
+                    var evilByteArray = new byte[] { 6, 6, 6 };
 
                     doc1aMutable.SetString("name", "Cat");
                     doc1aMutable.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
@@ -1849,9 +1781,8 @@ namespace Test
                 }
 
                 using (var doc1a = _otherDB.GetDocument(id))
-                using (var doc1aMutable = doc1a.ToMutable())
-                {
-                    var luckyByteArray = new byte[] {7, 7, 7};
+                using (var doc1aMutable = doc1a.ToMutable()) {
+                    var luckyByteArray = new byte[] { 7, 7, 7 };
 
                     doc1aMutable.SetString("name", "Lion");
                     doc1aMutable.SetBlob("blob", new Blob("text/plaintext", luckyByteArray));
@@ -1875,14 +1806,12 @@ namespace Test
             }
 
             var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, protocolType));
-            var server = new MockServerConnection(listener, protocolType)
-            {
+            var server = new MockServerConnection(listener, protocolType) {
                 ErrorLogic = errorLocation
             };
 
             var config = new ReplicatorConfiguration(Db,
-                new MessageEndpoint("p2ptest1", server, protocolType, new MockConnectionFactory(errorLocation)))
-            {
+                new MessageEndpoint("p2ptest1", server, protocolType, new MockConnectionFactory(errorLocation))) {
                 ReplicatorType = ReplicatorType.Push,
                 Continuous = false
             };
@@ -1912,8 +1841,7 @@ namespace Test
             var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.ByteStream));
             var server = new MockServerConnection(listener, ProtocolType.ByteStream);
             var config = new ReplicatorConfiguration(Db,
-                new MessageEndpoint(uid, server, ProtocolType.ByteStream, new MockConnectionFactory(null)))
-            {
+                new MessageEndpoint(uid, server, ProtocolType.ByteStream, new MockConnectionFactory(null))) {
                 ReplicatorType = type,
                 Continuous = true
             };
@@ -2079,10 +2007,8 @@ namespace Test
         {
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
-            var token = _repl.AddChangeListener((sender, args) =>
-            {
-                _waitAssert.RunConditionalAssert(() =>
-                {
+            var token = _repl.AddChangeListener((sender, args) => {
+                _waitAssert.RunConditionalAssert(() => {
                     VerifyChange(args, expectedErrCode, expectedErrDomain);
                     if (config.Continuous && args.Status.Activity == ReplicatorActivityLevel.Idle
                                           && args.Status.Progress.Completed == args.Status.Progress.Total) {
@@ -2103,7 +2029,7 @@ namespace Test
 
             _repl.Start();
             try {
-                _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
+                _waitAssert.WaitForResult(TimeSpan.FromSeconds(100000));
             } catch {
                 _repl.Stop();
                 throw;
@@ -2131,8 +2057,7 @@ namespace Test
             public IMessageEndpointConnection CreateConnection(MessageEndpoint endpoint)
             {
                 var retVal =
-                    new MockClientConnection(endpoint)
-                    {
+                    new MockClientConnection(endpoint) {
                         ErrorLogic = _errorLogic,
                     };
                 return retVal;
