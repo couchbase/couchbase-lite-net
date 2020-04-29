@@ -1262,6 +1262,7 @@ namespace Test
         [Fact]
         public void TestCloseWithActiveLiveQueries()
         {
+            Database.Delete("closeDB", Db.Config.Directory);
             using (var otherDb = new Database("closeDB", Db.Config)) {
                 var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
                 var query1 = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
@@ -1302,6 +1303,7 @@ namespace Test
         [Fact]
         public void TestDeleteWithActiveLiveQueries()
         {
+            Database.Delete("deleteDB", Db.Config.Directory);
             using (var otherDb = new Database("deleteDB", Db.Config)) {
                 var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
                 var query1 = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
