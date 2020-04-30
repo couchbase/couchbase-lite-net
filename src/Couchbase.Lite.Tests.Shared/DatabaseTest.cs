@@ -1259,17 +1259,17 @@ namespace Test
             }
         }
 
-        //[Fact]
-        //public void TestCloseWithActiveLiveQueries()
-        //{
-        //    WithActiveLiveQueries(true);
-        //}
+        [Fact]
+        public void TestCloseWithActiveLiveQueries()
+        {
+            WithActiveLiveQueries(true);
+        }
 
-        //[Fact]
-        //public void TestDeleteWithActiveLiveQueries()
-        //{
-        //    WithActiveLiveQueries(false);
-        //}
+        [Fact]
+        public void TestDeleteWithActiveLiveQueries()
+        {
+            WithActiveLiveQueries(false);
+        }
 
         [ForIssue("couchbase-lite-android/1231")]
         [Fact]
@@ -1320,6 +1320,7 @@ namespace Test
 
         private void WithActiveLiveQueries(bool isCloseNotDelete)
         {
+            Database.Delete("closeDB", Db.Config.Directory);
             using (var otherDb = new Database("closeDB", Db.Config)) {
                 var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
                 var query1 = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
@@ -1359,6 +1360,8 @@ namespace Test
                 otherDb.ActiveLiveQueries.Count.Should().Be(0);
                 otherDb.IsClosedLocked.Should().Be(true);
             }
+
+            Database.Delete("closeDB", Db.Config.Directory);
         }
 
         private bool ResolveConflict(MutableDocument updatedDoc, Document currentDoc)
