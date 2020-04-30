@@ -126,7 +126,7 @@ namespace Couchbase.Lite
         private GCHandle _obsContext;
         private C4Database* _c4db;
         private bool _isClosing;
-        private ManualResetEvent _closeCondition = new ManualResetEvent(false);
+        private AutoResetEvent _closeCondition = new AutoResetEvent(true);
 
         #endregion
 
@@ -1124,6 +1124,8 @@ namespace Couchbase.Lite
             }
 
             FreeC4Db();
+
+            _closeCondition.Dispose();
         }
 
         [@CanBeNull]
@@ -1582,13 +1584,13 @@ namespace Couchbase.Lite
                 }
             });
 
-            _closeCondition.Reset();
             foreach (var q in ActiveLiveQueries) {
                 q.Key.Stop();
             }
 
             while (!IsReadyToClose) {
                 _closeCondition.WaitOne();
+                _closeCondition.Reset();
             }
 
             ThreadSafety.DoLocked(() => {
