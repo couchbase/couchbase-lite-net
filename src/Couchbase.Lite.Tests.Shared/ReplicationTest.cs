@@ -46,6 +46,7 @@ using ProtocolType = Couchbase.Lite.P2P.ProtocolType;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
+using Couchbase.Lite.Query;
 #else
 using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
 #endif
@@ -1661,6 +1662,145 @@ namespace Test
 
         #endregion
 
+        [Fact]
+        public void TestCloseWithActiveReplications()
+        {
+            WithActiveReplications(true);
+        }
+
+        [Fact]
+        public void TestDeleteWithActiveReplications()
+        {
+            WithActiveReplications(false);
+        }
+
+        [Fact]
+        public void TestCloseWithActiveReplicationAndQuery()
+        {
+            WithActiveReplicationAndQuery(true);
+        }
+
+        [Fact]
+        public void TestDeleteWithActiveReplicationAndQuery()
+        {
+            WithActiveReplicationAndQuery(false);
+        }
+
+        private void WithActiveReplicationAndQuery(bool isCloseNotDelete)
+        {
+            WaitAssert waitIdleAssert = new WaitAssert();
+            WaitAssert waitStoppedAssert = new WaitAssert();
+            Database.Delete("closeDB", Db.Config.Directory);
+            using (var otherDb = new Database("closeDB", Db.Config)) {
+                var config = CreateConfig(true, true, true, otherDb);
+                using (var repl = new Replicator(config)) {
+
+                    var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(Db));
+                    var doc1Listener = new WaitAssert();
+                    query.AddChangeListener(null, (sender, args) => {
+                        foreach (var row in args.Results) {
+                            if (row.GetString("id") == "doc1") {
+                                doc1Listener.Fulfill();
+                            }
+                        }
+                    });
+
+                    repl.AddChangeListener((sender, args) => {
+                        waitIdleAssert.RunConditionalAssert(() => {
+                            return args.Status.Activity == ReplicatorActivityLevel.Idle;
+                        });
+
+                        waitStoppedAssert.RunConditionalAssert(() => {
+                            return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                        });
+                    });
+
+                    repl.Start();
+
+                    using (var doc = new MutableDocument("doc1")) {
+                        doc.SetString("value", "string");
+                        Db.Save(doc); // Should still trigger since it is pointing to the same DB
+                    }
+
+                    doc1Listener.WaitForResult(TimeSpan.FromSeconds(20));
+                    waitIdleAssert.WaitForResult(TimeSpan.FromSeconds(10));
+
+                    Db.ActiveReplications.Count.Should().Be(1);
+                    Db.ActiveLiveQueries.Count.Should().Be(1);
+
+                    if (isCloseNotDelete)
+                        Db.Close();
+                    else
+                        Db.Delete();
+
+                    Db.ActiveReplications.Count.Should().Be(0);
+                    Db.ActiveLiveQueries.Count.Should().Be(0);
+                    Db.IsClosedLocked.Should().Be(true);
+
+                    waitStoppedAssert.WaitForResult(TimeSpan.FromSeconds(30));
+                }
+            }
+        }
+
+        private void WithActiveReplications(bool isCloseNotDelete)
+        {
+            WaitAssert waitIdleAssert = new WaitAssert();
+            WaitAssert waitStoppedAssert = new WaitAssert();
+            WaitAssert waitIdleAssert1 = new WaitAssert();
+            WaitAssert waitStoppedAssert1 = new WaitAssert();
+            Database.Delete("closeDB", Db.Config.Directory);
+            using (var otherDb = new Database("closeDB", Db.Config)) {
+                var config = CreateConfig(true, true, true, otherDb);
+                using (var repl = new Replicator(config))
+                using (var repl1 = new Replicator(config)) {
+                    var token = repl.AddChangeListener((sender, args) => {
+                        waitIdleAssert.RunConditionalAssert(() => {
+                            return args.Status.Activity == ReplicatorActivityLevel.Idle;
+                        });
+
+                        waitStoppedAssert.RunConditionalAssert(() => {
+                            return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                        });
+                    });
+
+                    var token1 = repl1.AddChangeListener((sender, args) => {
+                        waitIdleAssert1.RunConditionalAssert(() => {
+                            return args.Status.Activity == ReplicatorActivityLevel.Idle;
+                        });
+
+                        waitStoppedAssert1.RunConditionalAssert(() => {
+                            return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                        });
+                    });
+
+                    repl.Start();
+                    repl1.Start();
+
+                    using (var doc = new MutableDocument("doc1")) {
+                        doc.SetString("value", "string");
+                        otherDb.Save(doc); // Should still trigger since it is pointing to the same DB
+                    }
+
+                    waitIdleAssert.WaitForResult(TimeSpan.FromSeconds(10));
+                    waitIdleAssert1.WaitForResult(TimeSpan.FromSeconds(10));
+
+                    Db.ActiveReplications.Count.Should().Be(2);
+
+                    if (isCloseNotDelete)
+                        Db.Close();
+                    else
+                        Db.Delete();
+
+                    Db.ActiveReplications.Count.Should().Be(0);
+                    Db.IsClosedLocked.Should().Be(true);
+
+                    waitStoppedAssert.WaitForResult(TimeSpan.FromSeconds(30));
+                    waitStoppedAssert1.WaitForResult(TimeSpan.FromSeconds(30));
+
+                }
+            }
+        }
+
         private void TestConflictResolverExceptionThrown(TestConflictResolver resolver, bool continueWithWorkingResolver = false, bool withBlob = false)
         {
             CreateReplicationConflict("doc1");
@@ -2029,7 +2169,7 @@ namespace Test
 
             _repl.Start();
             try {
-                _waitAssert.WaitForResult(TimeSpan.FromSeconds(100000));
+                _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
             } catch {
                 _repl.Stop();
                 throw;
