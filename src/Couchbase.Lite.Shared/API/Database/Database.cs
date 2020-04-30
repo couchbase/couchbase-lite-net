@@ -1096,21 +1096,7 @@ namespace Couchbase.Lite
             }
 
             if (disposing) {
-                //TODO _docObs might need to be refactored into an IDisposable class
-                foreach (var obs in _docObs) {
-                    Native.c4docobs_free((C4DocumentObserver *)obs.Value.Item1);
-                    obs.Value.Item2.Free();
-                }
-
-                _docObs.Clear();
-                //end of TODO comments
-
-                if (_unsavedDocuments.Count > 0) {
-                    WriteLog.To.Database.W(Tag,
-                        $"Closing database with {_unsavedDocuments.Count} such as {_unsavedDocuments.Any()}");
-                }
-
-                _unsavedDocuments.Clear();
+                ClearUnsavedDocsAndFreeDocObservers();
             }
 
             if (_obs != null) {
@@ -1506,6 +1492,33 @@ namespace Couchbase.Lite
             _c4db = null;
         }
 
+        private void FreeC4DbObserver()
+        {
+            if (_obs != null) {
+                Native.c4dbobs_free(_obs);
+                _obsContext.Free();
+            }
+        }
+
+        private void ClearUnsavedDocsAndFreeDocObservers()
+        {
+            //TODO _docObs might need to be refactored into an IDisposable class
+            foreach (var obs in _docObs) {
+                Native.c4docobs_free((C4DocumentObserver*)obs.Value.Item1);
+                obs.Value.Item2.Free();
+            }
+
+            _docObs.Clear();
+            //end of TODO comments
+
+            if (_unsavedDocuments.Count > 0) {
+                WriteLog.To.Database.W(Tag,
+                    $"Closing database with {_unsavedDocuments.Count} such as {_unsavedDocuments.Any()}");
+            }
+
+            _unsavedDocuments.Clear();
+        }
+
         private void PurgeExpired(object state)
         {
             // Don't throw exceptions here because they can bring down
@@ -1598,24 +1611,8 @@ namespace Couchbase.Lite
                     return;
                 }
 
-                foreach (var obs in _docObs) {
-                    Native.c4docobs_free((C4DocumentObserver*)obs.Value.Item1);
-                    obs.Value.Item2.Free();
-                }
-
-                _docObs.Clear();
-
-                if (_unsavedDocuments.Count > 0) {
-                    WriteLog.To.Database.W(Tag,
-                        $"Closing database with {_unsavedDocuments.Count} such as {_unsavedDocuments.Any()}");
-                }
-
-                _unsavedDocuments.Clear();
-
-                if (_obs != null) {
-                    Native.c4dbobs_free(_obs);
-                    _obsContext.Free();
-                }
+                ClearUnsavedDocsAndFreeDocObservers();
+                FreeC4DbObserver();
 
                 WriteLog.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(_c4db)}");
                 LiteCoreBridge.Check(err => Native.c4db_close(_c4db, err));
@@ -1623,6 +1620,8 @@ namespace Couchbase.Lite
                 
                 // Reset closing flag:
                 _isClosing = false;
+
+                _closeCondition.Dispose();
             });
         }
 
