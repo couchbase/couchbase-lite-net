@@ -1259,17 +1259,17 @@ namespace Test
             }
         }
 
-        //[Fact]
-        //public void TestCloseWithActiveLiveQueries()
-        //{
-        //    WithActiveLiveQueries(true);
-        //}
+        [Fact]
+        public void TestCloseWithActiveLiveQueries()
+        {
+            WithActiveLiveQueries(true);
+        }
 
-        //[Fact]
-        //public void TestDeleteWithActiveLiveQueries()
-        //{
-        //    WithActiveLiveQueries(false);
-        //}
+        [Fact]
+        public void TestDeleteWithActiveLiveQueries()
+        {
+            WithActiveLiveQueries(false);
+        }
 
         [ForIssue("couchbase-lite-android/1231")]
         [Fact]
