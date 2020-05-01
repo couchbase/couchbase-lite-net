@@ -1099,10 +1099,7 @@ namespace Couchbase.Lite
                 ClearUnsavedDocsAndFreeDocObservers();
             }
 
-            if (_obs != null) {
-                Native.c4dbobs_free(_obs);
-                _obsContext.Free();
-            }
+            FreeC4DbObserver();
 
             WriteLog.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(_c4db)}");
             if (!IsShell) {
