@@ -59,6 +59,7 @@ namespace Couchbase.Lite.Internal.Query
         private int _observingCount = 0;
         [NotNull]private Parameters _queryParameters = new Parameters();
         private AtomicBool _willUpdate = false;
+        private bool _updating = false, _stopping = false;
 
         #endregion
 
@@ -161,6 +162,14 @@ namespace Couchbase.Lite.Internal.Query
         }
 
         #endregion
+
+        internal void Stop()
+        {
+            if (_updating)
+                _stopping = true;
+            else
+                Stopped();
+        }
 
         #region Private Methods
 
@@ -290,14 +299,20 @@ namespace Couchbase.Lite.Internal.Query
             UpdateAfter(updateDelay);
         }
 
-        private void Stop()
+        private void Stopped()
         {
-            Database?.ActiveLiveQueries?.Remove(this);
+            Database?.RemoveActiveLiveQuery(this);
             Database?.RemoveChangeListener(_databaseChangedToken);
+            _stopping = false;
         }
 
         private void Update()
         {
+            if (!_willUpdate)
+                return;
+
+            _updating = true;
+
             WriteLog.To.Query.I(Tag, $"{this}: Querying...");
             var oldEnum = _history.LastOrDefault();
             QueryResultSet newEnum = null;
@@ -320,7 +335,14 @@ namespace Couchbase.Lite.Internal.Query
                 }
             }
 
+            _updating = false;
             _willUpdate.Set(false);
+
+            if (_stopping) {
+                Stopped();
+                return;
+            }
+
             _lastUpdatedAt = DateTime.Now;
 
             var changed = true;
@@ -377,7 +399,7 @@ namespace Couchbase.Lite.Internal.Query
             _changed.Add(cbHandler);
 
             if (Interlocked.Increment(ref _observingCount) == 1) {
-                Database?.ActiveLiveQueries?.Add(this);
+                Database?.AddActiveLiveQuery(this);
                 if (Database != null) {
                     _databaseChangedToken = Database.AddChangeListener(OnDatabaseChanged);
                 } else {
@@ -385,7 +407,7 @@ namespace Couchbase.Lite.Internal.Query
                                         Changed events will not continue to fire");
                 }
 
-                Task.Factory.StartNew(Update);
+                UpdateAfter(new TimeSpan(0));
             }
 
             return new ListenerToken(cbHandler, "query");

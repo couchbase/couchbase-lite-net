@@ -1259,6 +1259,18 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestCloseWithActiveLiveQueries()
+        {
+            WithActiveLiveQueries(true);
+        }
+
+        [Fact]
+        public void TestDeleteWithActiveLiveQueries()
+        {
+            WithActiveLiveQueries(false);
+        }
+
         [ForIssue("couchbase-lite-android/1231")]
         [Fact]
         public void TestOverwriteDocWithNewDocInstance()
@@ -1304,6 +1316,52 @@ namespace Test
                     });
                 }
             }
+        }
+
+        private void WithActiveLiveQueries(bool isCloseNotDelete)
+        {
+            Database.Delete("closeDB", Db.Config.Directory);
+            using (var otherDb = new Database("closeDB", Db.Config)) {
+                var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
+                var query1 = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
+                var doc1Listener = new WaitAssert();
+                var token = query.AddChangeListener(null, (sender, args) => {
+                    foreach (var row in args.Results) {
+                        if (row.GetString("id") == "doc1") {
+                            doc1Listener.Fulfill();
+                        }
+                    }
+                });
+
+                var doc1Listener1 = new WaitAssert();
+                var token1 = query1.AddChangeListener(null, (sender, args) => {
+                    foreach (var row in args.Results) {
+                        if (row.GetString("id") == "doc1") {
+                            doc1Listener1.Fulfill();
+                        }
+                    }
+                });
+
+                using (var doc = new MutableDocument("doc1")) {
+                    doc.SetString("value", "string");
+                    otherDb.Save(doc); // Should still trigger since it is pointing to the same DB
+                }
+
+                otherDb.ActiveLiveQueries.Count.Should().Be(2);
+
+                doc1Listener.WaitForResult(TimeSpan.FromSeconds(20));
+                doc1Listener1.WaitForResult(TimeSpan.FromSeconds(20));
+
+                if (isCloseNotDelete)
+                    otherDb.Close();
+                else
+                    otherDb.Delete();
+
+                otherDb.ActiveLiveQueries.Count.Should().Be(0);
+                otherDb.IsClosedLocked.Should().Be(true);
+            }
+
+            Database.Delete("closeDB", Db.Config.Directory);
         }
 
         private bool ResolveConflict(MutableDocument updatedDoc, Document currentDoc)
