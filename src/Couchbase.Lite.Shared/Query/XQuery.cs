@@ -164,12 +164,10 @@ namespace Couchbase.Lite.Internal.Query
 
         internal void Stop()
         {
-            Database?.RemoveChangeListener(_databaseChangedToken);
-            if (!_updating) {
-                Stopped();
-            } else {
+            if (_updating)
                 _stopping.Set(true);
-            }
+            else
+                Stopped();
         }
 
         #region Private Methods
@@ -293,8 +291,6 @@ namespace Couchbase.Lite.Internal.Query
                 return;
             }
 
-            _updating.Set(true);
-
             // External updates should poll less frequently
             var updateInterval = _updateInterval;
 
@@ -305,11 +301,17 @@ namespace Couchbase.Lite.Internal.Query
         private void Stopped()
         {
             Database?.RemoveActiveLiveQuery(this);
+            Database?.RemoveChangeListener(_databaseChangedToken);
             _stopping.Set(false);
         }
 
         private void Update()
         {
+            if (!_willUpdate)
+                return;
+
+            _updating.Set(true);
+
             WriteLog.To.Query.I(Tag, $"{this}: Querying...");
             var oldEnum = _history.LastOrDefault();
             QueryResultSet newEnum = null;
@@ -404,7 +406,7 @@ namespace Couchbase.Lite.Internal.Query
                                         Changed events will not continue to fire");
                 }
 
-                Task.Factory.StartNew(Update);
+                UpdateAfter(new TimeSpan(0));
             }
 
             return new ListenerToken(cbHandler, "query");

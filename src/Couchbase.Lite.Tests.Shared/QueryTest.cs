@@ -1578,6 +1578,8 @@ namespace Test
 
                 doc1Listener.WaitForResult(TimeSpan.FromSeconds(20));
             } finally {
+                query.RemoveChangeListener(token);
+                query.Dispose();
                 otherDb.Dispose();
             }
         }
