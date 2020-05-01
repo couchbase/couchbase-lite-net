@@ -1688,10 +1688,10 @@ namespace Test
 
         private void WithActiveReplicationAndQuery(bool isCloseNotDelete)
         {
-            WaitAssert waitIdleAssert = new WaitAssert();
-            WaitAssert waitStoppedAssert = new WaitAssert();
             Database.Delete("closeDB", Db.Config.Directory);
             using (var otherDb = new Database("closeDB", Db.Config)) {
+                WaitAssert waitIdleAssert = new WaitAssert();
+                WaitAssert waitStoppedAssert = new WaitAssert();
                 var config = CreateConfig(true, true, true, otherDb);
                 using (var repl = new Replicator(config)) {
 
@@ -1739,17 +1739,20 @@ namespace Test
 
                     waitStoppedAssert.WaitForResult(TimeSpan.FromSeconds(30));
                 }
+
+                Database.Delete("closeDB", Db.Config.Directory);
             }
         }
 
         private void WithActiveReplications(bool isCloseNotDelete)
         {
-            WaitAssert waitIdleAssert = new WaitAssert();
-            WaitAssert waitStoppedAssert = new WaitAssert();
-            WaitAssert waitIdleAssert1 = new WaitAssert();
-            WaitAssert waitStoppedAssert1 = new WaitAssert();
             Database.Delete("closeDB", Db.Config.Directory);
             using (var otherDb = new Database("closeDB", Db.Config)) {
+                WaitAssert waitIdleAssert = new WaitAssert();
+                WaitAssert waitStoppedAssert = new WaitAssert();
+                WaitAssert waitIdleAssert1 = new WaitAssert();
+                WaitAssert waitStoppedAssert1 = new WaitAssert();
+
                 var config = CreateConfig(true, true, true, otherDb);
                 using (var repl = new Replicator(config))
                 using (var repl1 = new Replicator(config)) {
@@ -1796,8 +1799,9 @@ namespace Test
 
                     waitStoppedAssert.WaitForResult(TimeSpan.FromSeconds(30));
                     waitStoppedAssert1.WaitForResult(TimeSpan.FromSeconds(30));
-
                 }
+
+                Database.Delete("closeDB", Db.Config.Directory);
             }
         }
 
