@@ -293,8 +293,6 @@ namespace Couchbase.Lite.Internal.Query
                 return;
             }
 
-            _updating.Set(true);
-
             // External updates should poll less frequently
             var updateInterval = _updateInterval;
 
