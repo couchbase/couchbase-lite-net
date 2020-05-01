@@ -1600,7 +1600,6 @@ namespace Couchbase.Lite
 
             while (!IsReadyToClose) {
                 _closeCondition.WaitOne();
-                _closeCondition.Reset();
             }
 
             ThreadSafety.DoLocked(() => {
