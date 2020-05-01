@@ -1739,9 +1739,9 @@ namespace Test
 
                     waitStoppedAssert.WaitForResult(TimeSpan.FromSeconds(30));
                 }
-
-                Database.Delete("closeDB", Db.Config.Directory);
             }
+
+            Database.Delete("closeDB", Db.Config.Directory);
         }
 
         private void WithActiveReplications(bool isCloseNotDelete)
@@ -1800,9 +1800,9 @@ namespace Test
                     waitStoppedAssert.WaitForResult(TimeSpan.FromSeconds(30));
                     waitStoppedAssert1.WaitForResult(TimeSpan.FromSeconds(30));
                 }
-
-                Database.Delete("closeDB", Db.Config.Directory);
             }
+
+            Database.Delete("closeDB", Db.Config.Directory);
         }
 
         private void TestConflictResolverExceptionThrown(TestConflictResolver resolver, bool continueWithWorkingResolver = false, bool withBlob = false)
