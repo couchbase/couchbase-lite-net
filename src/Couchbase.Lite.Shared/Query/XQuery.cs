@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Internal.Query
         private DateTime _lastUpdatedAt;
         private int _observingCount = 0;
         [NotNull]private Parameters _queryParameters = new Parameters();
-        private AtomicBool _willUpdate = false, _updating = false, _stopping = false;
+        private AtomicBool _observing = false, _willUpdate = false, _updating = false, _stopping = false;
 
         #endregion
 
@@ -164,9 +164,12 @@ namespace Couchbase.Lite.Internal.Query
 
         internal void Stop()
         {
+            if (!_observing)
+                return;
+
             FromImpl?.ThreadSafety?.DoLocked(() => {
                 Database?.RemoveChangeListener(_databaseChangedToken);
-
+                _observing.Set(false);
                 _willUpdate.Set(false); // cancels the delayed update started by -databaseChanged
                 if (!_updating) {
                     Stopped();
@@ -420,6 +423,7 @@ namespace Couchbase.Lite.Internal.Query
                                         Changed events will not continue to fire");
                 }
 
+                _observing.Set(true);
                 _willUpdate.Set(false);
                 Task.Factory.StartNew(Update);
             }
