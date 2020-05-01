@@ -1603,25 +1603,10 @@ namespace Couchbase.Lite
 
             while (!IsReadyToClose) {
                 _closeCondition.WaitOne();
-                _closeCondition.Reset();
             }
 
             ThreadSafety.DoLocked(() => {
-                if (IsClosed) {
-                    return;
-                }
-
-                ClearUnsavedDocsAndFreeDocObservers();
-                FreeC4DbObserver();
-
-                WriteLog.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(_c4db)}");
-                LiteCoreBridge.Check(err => Native.c4db_close(_c4db, err));
-                FreeC4Db();
-                
-                // Reset closing flag:
-                _isClosing = false;
-
-                _closeCondition.Dispose();
+                Dispose(true);
             });
         }
 

@@ -58,7 +58,8 @@ namespace Couchbase.Lite.Internal.Query
         private DateTime _lastUpdatedAt;
         private int _observingCount = 0;
         [NotNull]private Parameters _queryParameters = new Parameters();
-        private AtomicBool _willUpdate = false, _updating = false, _stopping = false;
+        private AtomicBool _willUpdate = false;
+        private bool _updating = false, _stopping = false;
 
         #endregion
 
@@ -165,7 +166,7 @@ namespace Couchbase.Lite.Internal.Query
         internal void Stop()
         {
             if (_updating)
-                _stopping.Set(true);
+                _stopping = true;
             else
                 Stopped();
         }
@@ -302,7 +303,7 @@ namespace Couchbase.Lite.Internal.Query
         {
             Database?.RemoveActiveLiveQuery(this);
             Database?.RemoveChangeListener(_databaseChangedToken);
-            _stopping.Set(false);
+            _stopping = false;
         }
 
         private void Update()
@@ -310,7 +311,7 @@ namespace Couchbase.Lite.Internal.Query
             if (!_willUpdate)
                 return;
 
-            _updating.Set(true);
+            _updating = true;
 
             WriteLog.To.Query.I(Tag, $"{this}: Querying...");
             var oldEnum = _history.LastOrDefault();
@@ -334,7 +335,7 @@ namespace Couchbase.Lite.Internal.Query
                 }
             }
 
-            _updating.Set(false);
+            _updating = false;
             _willUpdate.Set(false);
 
             if (_stopping) {

@@ -1555,35 +1555,6 @@ namespace Test
             }
         }
 
-        [Fact]
-        public void TestLiveQueryBlocksClose()
-        {
-            var otherDb = new Database(Db.Name, Db.Config);
-            var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
-            var doc1Listener = new WaitAssert();
-            var token = query.AddChangeListener(null, (sender, args) =>
-            {
-                foreach (var row in args.Results) {
-                    if (row.GetString("id") == "doc1") {
-                        doc1Listener.Fulfill();
-                    }
-                }
-            });
-
-            try {
-                using (var doc = new MutableDocument("doc1")) {
-                    doc.SetString("value", "string");
-                    Db.Save(doc); // Should still trigger since it is pointing to the same DB
-                }
-
-                doc1Listener.WaitForResult(TimeSpan.FromSeconds(20));
-            } finally {
-                query.RemoveChangeListener(token);
-                query.Dispose();
-                otherDb.Dispose();
-            }
-        }
-
         [ForIssue("couchbase-lite-android/1356")]
         [Fact]
         public void TestCountFunctions()
