@@ -164,12 +164,16 @@ namespace Couchbase.Lite.Internal.Query
 
         internal void Stop()
         {
-            Database?.RemoveChangeListener(_databaseChangedToken);
-            if (!_updating) {
-                Stopped();
-            } else {
-                _stopping.Set(true);
-            }
+            FromImpl?.ThreadSafety?.DoLocked(() => {
+                Database?.RemoveChangeListener(_databaseChangedToken);
+
+                _willUpdate.Set(false); // cancels the delayed update started by -databaseChanged
+                if (!_updating) {
+                    Stopped();
+                } else {
+                    _stopping.Set(true);
+                }
+            });
         }
 
         #region Private Methods
@@ -289,17 +293,19 @@ namespace Couchbase.Lite.Internal.Query
 
         private void OnDatabaseChanged(object sender, DatabaseChangedEventArgs e)
         {
-            if (_willUpdate) {
-                return;
-            }
+            FromImpl?.ThreadSafety?.DoLocked(() => {
+                if (_willUpdate) {
+                    return; // Already a pending update scheduled
+                }
 
-            _updating.Set(true);
+                _updating.Set(true);
 
-            // External updates should poll less frequently
-            var updateInterval = _updateInterval;
+                // External updates should poll less frequently
+                var updateInterval = _updateInterval;
 
-            var updateDelay = _lastUpdatedAt + updateInterval - DateTime.Now;
-            UpdateAfter(updateDelay);
+                var updateDelay = _lastUpdatedAt + updateInterval - DateTime.Now;
+                UpdateAfter(updateDelay);
+            });
         }
 
         private void Stopped()
@@ -332,46 +338,56 @@ namespace Couchbase.Lite.Internal.Query
                 }
             }
 
-            _updating.Set(false);
-            _willUpdate.Set(false);
+            FromImpl?.ThreadSafety?.DoLocked(() => {
+                _updating.Set(false);
+                _willUpdate.Set(false);
 
-            if (_stopping) {
-                Stopped();
-                return;
-            }
-
-            _lastUpdatedAt = DateTime.Now;
-
-            var changed = true;
-            if (newEnum != null) {
-                if (oldEnum != null) {
-                    WriteLog.To.Query.I(Tag, $"{this}: Changed!");
+                if (_stopping) {
+                    Stopped();
+                    return;
                 }
-            } else if (error != null) {
-                WriteLog.To.Query.E(Tag, $"{this}: Update failed: {error}");
-            } else {
-                changed = false;
-                WriteLog.To.Query.V(Tag, $"{this}: ...no change");
-            }
 
-            if (changed) {
-                _changed.Fire(this, new QueryChangedEventArgs(newEnum, error));
-            }
+                _lastUpdatedAt = DateTime.Now;
+
+                var changed = true;
+                if (newEnum != null) {
+                    if (oldEnum != null) {
+                        WriteLog.To.Query.I(Tag, $"{this}: Changed!");
+                    }
+                } else if (error != null) {
+                    WriteLog.To.Query.E(Tag, $"{this}: Update failed: {error}");
+                } else {
+                    changed = false;
+                    WriteLog.To.Query.V(Tag, $"{this}: ...no change");
+                }
+
+                if (changed) {
+                    _changed.Fire(this, new QueryChangedEventArgs(newEnum, error));
+                }
+            });
         }
 
         private async void UpdateAfter(TimeSpan updateDelay)
         {
-            if (_willUpdate.Set(true)) {
+            if (_willUpdate) {
                 return;
             }
+
+            _willUpdate.Set(true);
 
             if (updateDelay > TimeSpan.Zero) {
                 await Task.Delay(updateDelay).ConfigureAwait(false);
             }
-            
-            if (_willUpdate) {
-                Update();
-            }
+
+            FromImpl?.ThreadSafety?.DoLocked(() => {
+                if (!_willUpdate) {
+                    return;
+                }
+
+                _updating.Set(true);
+            });
+
+            Update();
         }
 
         #endregion
@@ -404,6 +420,7 @@ namespace Couchbase.Lite.Internal.Query
                                         Changed events will not continue to fire");
                 }
 
+                _willUpdate.Set(false);
                 Task.Factory.StartNew(Update);
             }
 
@@ -472,8 +489,6 @@ namespace Couchbase.Lite.Internal.Query
             if (Interlocked.Decrement(ref _observingCount) == 0) {
                 Stop();
             }
-
-            _willUpdate.Set(false);
         }
 
         #endregion

@@ -1361,7 +1361,7 @@ namespace Test
                 otherDb.IsClosedLocked.Should().Be(true);
             }
 
-            Database.Delete("closeDB", Db.Config.Directory);
+            //Database.Delete("closeDB", Db.Config.Directory);
         }
 
         private bool ResolveConflict(MutableDocument updatedDoc, Document currentDoc)
