@@ -165,10 +165,11 @@ namespace Couchbase.Lite.Internal.Query
 
         internal void Stop()
         {
-            if (_updating)
+            if (_updating) {
                 _stopping = true;
-            else
+            } else {
                 Stopped();
+            }
         }
 
         #region Private Methods
