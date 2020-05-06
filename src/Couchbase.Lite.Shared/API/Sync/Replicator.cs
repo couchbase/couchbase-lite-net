@@ -192,12 +192,10 @@ namespace Couchbase.Lite.Sync
         /// and/or The token received from <see cref="AddDocumentReplicationListener(TaskScheduler, EventHandler{DocumentReplicationEventArgs})"/></param>
         public void RemoveChangeListener(ListenerToken token)
         {
-            DispatchQueue.DispatchSync(() =>
-            {
-                _statusChanged.Remove(token);
-                if (_documentEndedUpdate.Remove(token) == 0)
-                    Config.Options.ProgressLevel = ReplicatorProgressLevel.Overall;
-            });
+            _statusChanged.Remove(token);
+            if (_documentEndedUpdate.Remove(token) == 0) {
+                Config.Options.ProgressLevel = ReplicatorProgressLevel.Overall;
+            }
         }
 
         /// <summary>
@@ -221,13 +219,13 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public void Start()
         {
-            if (_disposed) {
-                throw new ObjectDisposedException(CouchbaseLiteErrorMessage.ReplicatorDisposed);
-            }
-
             var status = default(C4ReplicatorStatus);
             DispatchQueue.DispatchSync(() =>
             {
+                if (_disposed) {
+                    throw new ObjectDisposedException(CouchbaseLiteErrorMessage.ReplicatorDisposed);
+                }
+
                 var err = SetupC4Replicator();
                 if (err.code > 0) {
                     WriteLog.To.Sync.E(Tag, $"Setup replicator {this} failed.");
