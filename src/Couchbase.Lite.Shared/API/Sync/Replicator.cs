@@ -257,6 +257,7 @@ namespace Couchbase.Lite.Sync
         {
             DispatchQueue.DispatchSync(() =>
             {
+                StopReachabilityObserver();
                 if (_repl != null) {
                     if (_rawStatus.level == C4ReplicatorActivityLevel.Stopped
                         || _rawStatus.level == C4ReplicatorActivityLevel.Stopping) {
