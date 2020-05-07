@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -75,6 +76,7 @@ namespace Couchbase.Lite.Sync
         private IReachability _reachability;
         private C4Replicator* _repl;
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
+        private IImmutableSet<string> _pendingDocIds;
 
         #endregion
 
@@ -269,9 +271,104 @@ namespace Couchbase.Lite.Sync
             });
         }
 
+        /// <summary>
+        /// Gets a list of document IDs that are going to be pushed, but have not been pushed yet
+        /// <item type="bullet">
+        /// <description>API is a snapshot and results may change between the time the call was made and the time</description>
+        /// </item>
+        /// </summary>
+        /// <returns>An immutable set of strings, each of which is a document ID</returns>
+        /// <exception cref="CouchbaseLiteException">Thrown if no push replication</exception>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        [NotNull]
+        public IImmutableSet<string> GetPendingDocumentIDs()
+        {
+            //TODO: Get cache token from LiteCore. If the cache token is different from what is currently stored in the platform, the values need to be updated
+            var result = new HashSet<string>();
+            if (!IsPushing()) {
+                CBDebug.LogAndThrow(WriteLog.To.Sync,
+                    new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
+                    Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
+            }
+
+            DispatchQueue.DispatchSync(() => {
+                var errSetupRepl = SetupC4Replicator();
+                if (errSetupRepl.code > 0) {
+                    CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString(), true);
+                }
+            });
+
+            C4Error err = new C4Error();
+            byte[] pendingDocIds = null;
+            pendingDocIds = Native.c4repl_getPendingDocIDs(_repl, &err);
+
+            if (err.code > 0) {
+                CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(err), Tag, err.ToString(), true);
+            }
+
+            if (pendingDocIds != null) {
+                _databaseThreadSafety.DoLocked(() => {
+                    var flval = Native.FLValue_FromData(pendingDocIds, FLTrust.Trusted);
+                    var flarr = Native.FLValue_AsArray(flval);
+                    var cnt = (int) Native.FLArray_Count(flarr);
+                    for (int i = 0; i < cnt; i++) {
+                        var flv = Native.FLArray_Get(flarr, (uint) i);
+                        result.Add(Native.FLValue_AsString(flv));
+                    }
+
+                    Array.Clear(pendingDocIds, 0, pendingDocIds.Length);
+                    pendingDocIds = null;
+                });
+            }
+
+            _pendingDocIds = result.ToImmutableHashSet<string>();
+            return _pendingDocIds;
+        }
+
+        /// <summary>
+        /// Checks whether or not a document with the given ID has any pending revisions to push
+        /// </summary>
+        /// <param name="documentID">The document ID</param>
+        /// <returns>A bool which represents whether or not the document with the corresponding ID has one or more pending revisions.  
+        /// <c>true</c> means that one or more revisions have not been pushed to the remote yet, 
+        /// and <c>false</c> means that all revisions on the document have been pushed</returns>
+        /// <exception cref="CouchbaseLiteException">Thrown if no push replication</exception>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        public bool IsDocumentPending([NotNull]string documentID)
+        {
+            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(documentID), documentID);
+            bool isDocPending = false;
+
+            if (!IsPushing()) {
+                CBDebug.LogAndThrow(WriteLog.To.Sync,
+                    new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
+                    Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
+            }
+
+            DispatchQueue.DispatchSync(() => {
+                var errSetupRepl = SetupC4Replicator();
+                if (errSetupRepl.code > 0) {
+                    CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString(), true);
+                }
+            });
+
+            C4Error err = new C4Error();
+            isDocPending = Native.c4repl_isDocumentPending(_repl, documentID, &err);
+            if (err.code > 0) {
+                CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(err), Tag, err.ToString(), true);
+            }
+
+            return isDocPending;
+        }
+
         #endregion
 
         #region Private Methods
+
+        private bool IsPushing()
+        {
+            return Config.ReplicatorType.HasFlag(ReplicatorType.Push);
+        }
 
         private static C4ReplicatorMode Mkmode(bool active, bool continuous)
         {

@@ -47,6 +47,7 @@ using ProtocolType = Couchbase.Lite.P2P.ProtocolType;
 using Xunit;
 using Xunit.Abstractions;
 using Couchbase.Lite.Query;
+using System.Collections.Immutable;
 #else
 using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
 #endif
@@ -1685,6 +1686,273 @@ namespace Test
         {
             WithActiveReplicationAndQuery(false);
         }
+
+        #region Pending Doc Ids unit tests
+
+        [Fact]
+        public void TestPendingDocIDsPullOnlyException()
+        {
+            LoadDocs();
+            var config = CreateConfig(false, true, false, _otherDB);
+            using (var replicator = new Replicator(config)) {
+                var wa = new WaitAssert();
+                var token = replicator.AddChangeListener((sender, args) =>
+                {
+                    wa.RunConditionalAssert(() =>
+                    {
+                        if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
+                            Action badAct = () => ((Replicator) sender).GetPendingDocumentIDs();
+                            badAct.Should().Throw<CouchbaseLiteException>().WithMessage(CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
+                        }
+
+                        return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                    });
+
+                });
+
+                replicator.Start();
+
+                wa.WaitForResult(TimeSpan.FromSeconds(10));
+
+                Try.Condition(() => replicator.Status.Activity == ReplicatorActivityLevel.Stopped)
+                    .Times(5)
+                    .Delay(TimeSpan.FromMilliseconds(500))
+                    .Go().Should().BeTrue();
+
+                replicator.RemoveChangeListener(token);
+            }
+        }
+
+        [Fact]
+        public void TestPendingDocIDsWithCreate() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.CREATE);
+
+        [Fact]
+        public void TestPendingDocIDsWithUpdate() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.UPDATE);
+
+        [Fact]
+        public void TestPendingDocIDsWithDelete() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.DELETE);
+
+        [Fact]
+        public void TestPendingDocIDsWithPurge() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.PURGE);
+
+        [Fact]
+        public void TestPendingDocIDsWithFilter() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.FILTER);
+
+        [Fact]
+        public void TestIsDocumentPendingPullOnlyException()
+        {
+            LoadDocs();
+            var config = CreateConfig(false, true, false, _otherDB);
+            using (var replicator = new Replicator(config)) {
+                var wa = new WaitAssert();
+                var token = replicator.AddChangeListener((sender, args) =>
+                {
+                    wa.RunConditionalAssert(() =>
+                    {
+                        if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
+                            Action badAct = () => ((Replicator) sender).IsDocumentPending("doc-001");
+                            badAct.Should().Throw<CouchbaseLiteException>().WithMessage(CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
+                        }
+
+                        return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                    });
+
+                });
+
+                replicator.Start();
+
+                wa.WaitForResult(TimeSpan.FromSeconds(10));
+
+                Try.Condition(() => replicator.Status.Activity == ReplicatorActivityLevel.Stopped)
+                    .Times(5)
+                    .Delay(TimeSpan.FromMilliseconds(500))
+                    .Go().Should().BeTrue();
+
+                replicator.RemoveChangeListener(token);
+            }
+        }
+
+        [Fact]
+        public void TestIsDocumentPendingWithCreate() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.CREATE);
+
+        [Fact]
+        public void TestIsDocumentPendingWithUpdate() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.UPDATE);
+
+        [Fact]
+        public void TestIsDocumentPendingWithDelete() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.DELETE);
+
+        [Fact]
+        public void TestIsDocumentPendingWithPurge() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.PURGE);
+
+        [Fact]
+        public void TestIsDocumentPendingWithFilter() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.FILTER);
+
+        #endregion
+
+        #region Pending Doc Ids Helper methods
+
+        enum PENDING_DOC_ID_SEL { CREATE = 0, UPDATE, DELETE, PURGE, FILTER }
+
+        private HashSet<string> LoadDocs()
+        {
+            var result = new HashSet<string>();
+            var n = 0ul;
+            while (n < 20) {
+                var docID = $"doc-{++n:D3}";
+                using (var doc = new MutableDocument(docID)) {
+                    result.Add(docID);
+                    doc.SetString(docID, docID);
+                    Db.Save(doc);
+                }
+            }
+            return result;
+        }
+
+        private void ValidatePendingDocumentIds(PENDING_DOC_ID_SEL selection)
+        {
+            IImmutableSet<string> pendingDocIds;
+            var idsSet = LoadDocs();
+            var config = CreateConfig(true, false, false);
+            var DocIdForTest = "doc-001";
+            if (selection == PENDING_DOC_ID_SEL.UPDATE) {
+                using (var d = Db.GetDocument(DocIdForTest))
+                using (var md = d.ToMutable()) {
+                    md.SetString("addString", "This is a new string.");
+                    Db.Save(md);
+                }
+            } else if (selection == PENDING_DOC_ID_SEL.DELETE) {
+                using (var d = Db.GetDocument(DocIdForTest)) {
+                    Db.Delete(d);
+                }
+            } else if (selection == PENDING_DOC_ID_SEL.PURGE) {
+                using (var d = Db.GetDocument(DocIdForTest)) {
+                    Db.Purge(d);
+                    idsSet.Remove(DocIdForTest);
+                }
+            } else if (selection == PENDING_DOC_ID_SEL.FILTER) {
+                config.PushFilter = (doc, isPush) =>
+                {
+                    if (doc.Id.Equals(DocIdForTest))
+                        return true;
+                    return false;
+                };
+            }
+
+            using (var replicator = new Replicator(config)) {
+                var wa = new WaitAssert();
+                var token = replicator.AddChangeListener((sender, args) =>
+                {
+                    if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
+                        pendingDocIds = replicator.GetPendingDocumentIDs();
+                        pendingDocIds.Count.Should().Be(0);
+                    }
+
+                    wa.RunConditionalAssert(() =>
+                    {
+                        return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                    });
+                });
+
+                pendingDocIds = replicator.GetPendingDocumentIDs();
+                if (selection == PENDING_DOC_ID_SEL.FILTER) {
+                    pendingDocIds.Count.Should().Be(1);
+                    pendingDocIds.ElementAt(0).Should().Be(DocIdForTest);
+                } else {
+                    idsSet.ToImmutableSortedSet<string>().Should().BeEquivalentTo(pendingDocIds);
+                    idsSet.Count.Should().Be(pendingDocIds.Count);
+                }
+
+                replicator.Start();
+
+                wa.WaitForResult(TimeSpan.FromSeconds(50));
+
+                Try.Condition(() => replicator.Status.Activity == ReplicatorActivityLevel.Stopped)
+                    .Times(5)
+                    .Delay(TimeSpan.FromMilliseconds(500))
+                    .Go().Should().BeTrue();
+
+                replicator.GetPendingDocumentIDs().Count.Should().Be(0);
+                replicator.RemoveChangeListener(token);
+            }
+
+            Thread.Sleep(500); //it takes a while to get the replicator to actually released...
+        }
+
+        private void ValidateIsDocumentPending(PENDING_DOC_ID_SEL selection)
+        {
+            bool docIdIsPending;
+            var DocIdForTest = "doc-001";
+            var idsSet = LoadDocs();
+            var config = CreateConfig(true, false, false);
+            if (selection == PENDING_DOC_ID_SEL.UPDATE) {
+                using (var d = Db.GetDocument(DocIdForTest))
+                using (var md = d.ToMutable()) {
+                    md.SetString("addString", "This is a new string.");
+                    Db.Save(md);
+                }
+            } else if (selection == PENDING_DOC_ID_SEL.DELETE) {
+                using (var d = Db.GetDocument(DocIdForTest)) {
+                    Db.Delete(d);
+                }
+            } else if (selection == PENDING_DOC_ID_SEL.PURGE) {
+                using (var d = Db.GetDocument(DocIdForTest)) {
+                    Db.Purge(d);
+                }
+            } else if (selection == PENDING_DOC_ID_SEL.FILTER) {
+                config.PushFilter = (doc, isPush) =>
+                {
+                    if (doc.Id.Equals(DocIdForTest))
+                        return true;
+                    return false;
+                };
+            }
+
+            using (var replicator = new Replicator(config)) {
+                var wa = new WaitAssert();
+                var token = replicator.AddChangeListener((sender, args) =>
+                {
+                    if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
+                        docIdIsPending = replicator.IsDocumentPending(DocIdForTest);
+                        docIdIsPending.Should().BeFalse();
+                    }
+
+                    wa.RunConditionalAssert(() =>
+                    {
+                        return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                    });
+                });
+
+                docIdIsPending = replicator.IsDocumentPending(DocIdForTest);
+                if (selection == PENDING_DOC_ID_SEL.CREATE || selection == PENDING_DOC_ID_SEL.UPDATE
+                    || selection == PENDING_DOC_ID_SEL.DELETE) {
+                    docIdIsPending.Should().BeTrue();
+                    docIdIsPending = replicator.IsDocumentPending("IdNotThere");
+                    docIdIsPending.Should().BeFalse();
+                } else if (selection == PENDING_DOC_ID_SEL.FILTER) {
+                    docIdIsPending.Should().BeTrue();
+                    docIdIsPending = replicator.IsDocumentPending("doc-002");
+                    docIdIsPending.Should().BeFalse();
+                } else if (selection == PENDING_DOC_ID_SEL.PURGE) {
+                    docIdIsPending.Should().BeFalse();
+                }
+
+                replicator.Start();
+
+                wa.WaitForResult(TimeSpan.FromSeconds(50));
+
+                Try.Condition(() => replicator.Status.Activity == ReplicatorActivityLevel.Stopped)
+                    .Times(5)
+                    .Delay(TimeSpan.FromMilliseconds(500))
+                    .Go().Should().BeTrue();
+
+                replicator.IsDocumentPending(DocIdForTest).Should().BeFalse();
+                replicator.RemoveChangeListener(token);
+            }
+
+            Thread.Sleep(500); //it takes a while to get the replicator to actually released...
+        }
+
+        #endregion
 
         private void WithActiveReplicationAndQuery(bool isCloseNotDelete)
         {
