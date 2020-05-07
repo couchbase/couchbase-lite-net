@@ -110,7 +110,7 @@ namespace Couchbase.Lite
         [@NotNull]
         private readonly Event<DatabaseChangedEventArgs> _databaseChanged = 
             new Event<DatabaseChangedEventArgs>();
-        
+
         [@NotNull]
         private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
 
@@ -229,7 +229,8 @@ namespace Couchbase.Lite
         internal bool IsClosedLocked
         {
             get {
-                return ThreadSafety.DoLocked(() => {
+                return ThreadSafety.DoLocked(() =>
+                {
                     return IsClosed;
                 });
             }
@@ -248,7 +249,8 @@ namespace Couchbase.Lite
         private bool IsReadyToClose
         {
             get {
-                return ThreadSafety.DoLocked(() => {
+                return ThreadSafety.DoLocked(() =>
+                {
                     return ActiveReplications.Count == 0 && ActiveLiveQueries.Count == 0;
                 });
             }
@@ -291,7 +293,7 @@ namespace Couchbase.Lite
         internal Database([@NotNull]Database other)
             : this(other.Name, other.Config)
         {
-            
+
         }
 
         #if !COUCHBASE_ENTERPRISE
@@ -302,7 +304,7 @@ namespace Couchbase.Lite
         {
             Name = "tmp";
             Config = new DatabaseConfiguration(true);
-            _c4db = (C4Database*)Native.c4db_retain(c4db);
+            _c4db = (C4Database*) Native.c4db_retain(c4db);
             IsShell = true;
         }
 
@@ -340,25 +342,25 @@ namespace Couchbase.Lite
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
             var destPath = DatabasePath(name, config?.Directory);
-			LiteCoreBridge.Check(err =>
-			{
-				var nativeConfig = DBConfig;
+            LiteCoreBridge.Check(err =>
+            {
+                var nativeConfig = DBConfig;
 
                 #if COUCHBASE_ENTERPRISE
-				if (config?.EncryptionKey != null) {
-					var key = config.EncryptionKey;
-					var i = 0;
-					nativeConfig.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
-					foreach (var b in key.KeyData) {
-						nativeConfig.encryptionKey.bytes[i++] = b;
-					}
-				}
+                if (config?.EncryptionKey != null) {
+                    var key = config.EncryptionKey;
+                    var i = 0;
+                    nativeConfig.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
+                    foreach (var b in key.KeyData) {
+                        nativeConfig.encryptionKey.bytes[i++] = b;
+                    }
+                }
                 #endif
 
-				return Native.c4db_copy(path, destPath, &nativeConfig, err);
-			});
+                return Native.c4db_copy(path, destPath, &nativeConfig, err);
+            });
 
-		}
+        }
 
         /// <summary>
         /// Deletes a database of the given name in the given directory.  If a <c>null</c> directory
@@ -392,14 +394,14 @@ namespace Couchbase.Lite
             return Directory.Exists(DatabasePath(name, directory));
         }
 
-		/// <summary>
-		/// [DEPRECATED] Sets the log level for the given domains(s)
-		/// </summary>
-		/// <param name="domains">The log domain(s)</param>
-		/// <param name="level">The log level</param>
-		[Obsolete("Currently SetLogLevel will only affect the console logger and not the file logger. Domains will be used as an on/off switch of sorts, and you can no longer set level per domain.")]
+        /// <summary>
+        /// [DEPRECATED] Sets the log level for the given domains(s)
+        /// </summary>
+        /// <param name="domains">The log domain(s)</param>
+        /// <param name="level">The log level</param>
+        [Obsolete("Currently SetLogLevel will only affect the console logger and not the file logger. Domains will be used as an on/off switch of sorts, and you can no longer set level per domain.")]
         [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-		public static void SetLogLevel(LogDomain domains, LogLevel level)
+        public static void SetLogLevel(LogDomain domains, LogLevel level)
         {
             Log.Console.Level = level;
             Log.Console.Domains = domains;
@@ -475,9 +477,9 @@ namespace Couchbase.Lite
                 if (count == 0) {
                     var handle = GCHandle.Alloc(this);
                     var docObs = Native.c4docobs_create(_c4db, id, _DocumentObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
-                    _docObs[id] = Tuple.Create((IntPtr)docObs, handle);
+                    _docObs[id] = Tuple.Create((IntPtr) docObs, handle);
                 }
-                
+
                 return new ListenerToken(cbHandler, "doc");
             });
         }
@@ -564,7 +566,8 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         public void Delete()
         {
-            ThreadSafety.DoLocked(() => {
+            ThreadSafety.DoLocked(() =>
+            {
                 CheckOpen();
             });
 
@@ -811,7 +814,7 @@ namespace Couchbase.Lite
                     if (_documentChanged.Remove(token, out var docID) == 0) {
                         if (_docObs.TryGetValue(docID, out var observer)) {
                             _docObs.Remove(docID);
-                            Native.c4docobs_free((C4DocumentObserver *)observer.Item1);
+                            Native.c4docobs_free((C4DocumentObserver*) observer.Item1);
                             observer.Item2.Free();
                         }
                     }
@@ -858,7 +861,7 @@ namespace Couchbase.Lite
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(conflictHandler), conflictHandler);
             Document baseDoc = null;
             var saved = false;
-            do { 
+            do {
                 saved = Save(doc, baseDoc, ConcurrencyControl.FailOnConflict, false);
                 baseDoc = new Document(this, doc.Id);
                 if (!baseDoc.Exists) {
@@ -896,7 +899,7 @@ namespace Couchbase.Lite
                 }
             });
         }
-        #endif
+#endif
 
         #endregion
 
@@ -904,7 +907,8 @@ namespace Couchbase.Lite
 
         internal void AddActiveLiveQuery(XQuery query)
         {
-            ThreadSafety.DoLocked(() => {
+            ThreadSafety.DoLocked(() =>
+            {
                 CheckOpenAndNotClosing();
                 ActiveLiveQueries.TryAdd(query, 0);
             });
@@ -912,7 +916,8 @@ namespace Couchbase.Lite
 
         internal void RemoveActiveLiveQuery(XQuery query)
         {
-            ThreadSafety.DoLocked(() => {
+            ThreadSafety.DoLocked(() =>
+            {
                 ActiveLiveQueries.TryRemove(query, out var dummy);
                 if (ActiveLiveQueries.Count == 0) {
                     _closeCondition.Set();
@@ -922,7 +927,8 @@ namespace Couchbase.Lite
 
         internal void AddActiveReplication(Replicator replicator)
         {
-            ThreadSafety.DoLocked(() => {
+            ThreadSafety.DoLocked(() =>
+            {
                 CheckOpenAndNotClosing();
                 ActiveReplications.TryAdd(replicator, 0);
             });
@@ -930,7 +936,8 @@ namespace Couchbase.Lite
 
         internal void RemoveActiveReplication(Replicator replicator)
         {
-            ThreadSafety.DoLocked(() => {
+            ThreadSafety.DoLocked(() =>
+            {
                 ActiveReplications.TryRemove(replicator, out var dummy);
                 if (ActiveReplications.Count == 0) {
                     _closeCondition.Set();
@@ -1014,7 +1021,7 @@ namespace Couchbase.Lite
         {
             var nextExpiration = Native.c4db_nextDocExpiration(_c4db);
             if (nextExpiration > 0) {
-                var delta = DateTimeOffset.FromUnixTimeMilliseconds((long)nextExpiration) - DateTimeOffset.UtcNow;
+                var delta = DateTimeOffset.FromUnixTimeMilliseconds((long) nextExpiration) - DateTimeOffset.UtcNow;
                 var expirationTimeSpan = delta > delay ? delta : delay;
                 if (expirationTimeSpan.TotalMilliseconds >= UInt32.MaxValue) {
                     _expirePurgeTimer?.Change(TimeSpan.FromMilliseconds(UInt32.MaxValue - 1), TimeSpan.FromMilliseconds(-1));
@@ -1051,8 +1058,8 @@ namespace Couchbase.Lite
             if (String.IsNullOrWhiteSpace(name)) {
                 return directoryToUse;
             }
-            
-            return System.IO.Path.Combine(directoryToUse, $"{name}.{DBExtension}") ?? 
+
+            return System.IO.Path.Combine(directoryToUse, $"{name}.{DBExtension}") ??
                 throw new RuntimeException("Path.Combine failed to return a non-null value!");
         }
 
@@ -1061,9 +1068,10 @@ namespace Couchbase.Lite
         #endif
         private static void DbObserverCallback(C4DatabaseObserver* db, void* context)
         {
-            var dbObj = GCHandle.FromIntPtr((IntPtr)context).Target as Database;
-            dbObj?._callbackFactory.StartNew(() => {
-              dbObj.PostDatabaseChanged();
+            var dbObj = GCHandle.FromIntPtr((IntPtr) context).Target as Database;
+            dbObj?._callbackFactory.StartNew(() =>
+            {
+                dbObj.PostDatabaseChanged();
             });
         }
 
@@ -1077,14 +1085,16 @@ namespace Couchbase.Lite
             }
 
             var dbObj = GCHandle.FromIntPtr((IntPtr) context).Target as Database;
-            dbObj?._callbackFactory.StartNew(() => {
+            dbObj?._callbackFactory.StartNew(() =>
+            {
                 dbObj.PostDocChanged(docId.CreateString());
             });
         }
 
+        // Must be called inside self lock
         private void CheckOpen()
         {
-            if(IsClosed) {
+            if (IsClosed) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
             }
         }
@@ -1129,7 +1139,7 @@ namespace Couchbase.Lite
 
         private void Open()
         {
-            if(_c4db != null) {
+            if (_c4db != null) {
                 return;
             }
 
@@ -1146,11 +1156,11 @@ namespace Couchbase.Lite
             var encrypted = "";
 
             #if COUCHBASE_ENTERPRISE
-            if(Config.EncryptionKey != null) {
+            if (Config.EncryptionKey != null) {
                 var key = Config.EncryptionKey;
                 var i = 0;
                 config.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
-                foreach(var b in key.KeyData) {
+                foreach (var b in key.KeyData) {
                     config.encryptionKey.bytes[i++] = b;
                 }
 
@@ -1174,37 +1184,37 @@ namespace Couchbase.Lite
 
         private void PostDatabaseChanged()
         {
-			ThreadSafety.DoLocked(() =>
-			{
-				if (_obs == null || IsClosed) {
-					return;
-				}
+            ThreadSafety.DoLocked(() =>
+            {
+                if (_obs == null || IsClosed) {
+                    return;
+                }
 
-				const uint maxChanges = 100u;
+                const uint maxChanges = 100u;
                 var external = false;
-				uint nChanges;
-				var changes = new C4DatabaseChange[maxChanges];
-			    var docIDs = new List<string>();
-				do {
-					// Read changes in batches of MaxChanges:
-					bool newExternal;
-					nChanges = Native.c4dbobs_getChanges(_obs, changes, maxChanges, &newExternal);
-				    if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
-				        if (docIDs.Count > 0) {
+                uint nChanges;
+                var changes = new C4DatabaseChange[maxChanges];
+                var docIDs = new List<string>();
+                do {
+                    // Read changes in batches of MaxChanges:
+                    bool newExternal;
+                    nChanges = Native.c4dbobs_getChanges(_obs, changes, maxChanges, &newExternal);
+                    if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
+                        if (docIDs.Count > 0) {
                             // Only notify if there are actually changes to send
-				            var args = new DatabaseChangedEventArgs(this, docIDs);
-				            _databaseChanged.Fire(this, args);
-				            docIDs = new List<string>();
-				        }
-				    }
+                            var args = new DatabaseChangedEventArgs(this, docIDs);
+                            _databaseChanged.Fire(this, args);
+                            docIDs = new List<string>();
+                        }
+                    }
 
-				    external = newExternal;
-				    for (var i = 0; i < nChanges; i++) {
-				        docIDs.Add(changes[i].docID.CreateString());
-				    }
+                    external = newExternal;
+                    for (var i = 0; i < nChanges; i++) {
+                        docIDs.Add(changes[i].docID.CreateString());
+                    }
                     Native.c4dbobs_releaseChanges(changes, nChanges);
-				} while (nChanges > 0);
-			});
+                } while (nChanges > 0);
+            });
         }
 
         private void PostDocChanged([@NotNull]string documentID)
@@ -1221,8 +1231,8 @@ namespace Couchbase.Lite
 
             _documentChanged.Fire(documentID, this, change);
         }
-        
-        private bool Save([@NotNull]Document document, [@CanBeNull]Document baseDocument, 
+
+        private bool Save([@NotNull]Document document, [@CanBeNull]Document baseDocument,
             ConcurrencyControl concurrencyControl, bool deletion)
         {
             Debug.Assert(document != null);
@@ -1279,7 +1289,7 @@ namespace Couchbase.Lite
 
                         Save(document, &newDoc, curDoc, deletion);
                     }
-                    
+
                     committed = true; // Weird, but if the next call fails I don't want to call it again in the catch block
                     LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, true, e));
                     document.ReplaceC4Doc(new C4DocumentWrapper(newDoc));
@@ -1298,7 +1308,7 @@ namespace Couchbase.Lite
 
             return success;
         }
-        
+
         private void Save([@NotNull]Document doc, C4Document** outDoc, C4Document* baseDoc, bool deletion)
         {
             var revFlags = (C4RevisionFlags) 0;
@@ -1306,7 +1316,7 @@ namespace Couchbase.Lite
                 revFlags = C4RevisionFlags.Deleted;
             }
 
-            var body = (FLSliceResult)FLSlice.Null;
+            var body = (FLSliceResult) FLSlice.Null;
             if (!deletion && !doc.IsEmpty) {
                 try {
                     body = doc.Encode();
@@ -1320,7 +1330,7 @@ namespace Couchbase.Lite
                     Native.c4db_getFLSharedKeys(_c4db), FLSlice.Null);
                 ThreadSafety.DoLocked(() =>
                 {
-                    if (Native.c4doc_dictContainsBlobs((FLDict *)Native.FLDoc_GetRoot(fleeceDoc))) {
+                    if (Native.c4doc_dictContainsBlobs((FLDict*) Native.FLDoc_GetRoot(fleeceDoc))) {
                         revFlags |= C4RevisionFlags.HasAttachments;
                     }
 
@@ -1337,9 +1347,9 @@ namespace Couchbase.Lite
                 {
                     ThreadSafety.DoLocked(() =>
                     {
-                        *outDoc = (C4Document*)NativeHandler.Create()
-                            .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                err => NativeRaw.c4doc_update(rawDoc, (FLSlice)body, revFlags, err));
+                        *outDoc = (C4Document*) NativeHandler.Create()
+                            .AllowError((int) C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
+                                err => NativeRaw.c4doc_update(rawDoc, (FLSlice) body, revFlags, err));
                     });
                 });
             } else {
@@ -1348,7 +1358,7 @@ namespace Couchbase.Lite
                     using (var docID_ = new C4String(doc.Id)) {
                         *outDoc = (C4Document*) NativeHandler.Create()
                             .AllowError((int) C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                err => NativeRaw.c4doc_create(_c4db, docID_.AsFLSlice(), (FLSlice)body, revFlags, err));
+                                err => NativeRaw.c4doc_create(_c4db, docID_.AsFLSlice(), (FLSlice) body, revFlags, err));
                     }
                 });
             }
@@ -1367,7 +1377,7 @@ namespace Couchbase.Lite
                     resolvedDoc = remoteDoc;
             }
 
-            if (resolvedDoc!=null && !ReferenceEquals(resolvedDoc, localDoc)) {
+            if (resolvedDoc != null && !ReferenceEquals(resolvedDoc, localDoc)) {
                 resolvedDoc.Database = this;
             }
 
@@ -1375,7 +1385,7 @@ namespace Couchbase.Lite
             var winningRevID = remoteDoc.RevisionID;
             var losingRevID = localDoc.RevisionID;
 
-            FLSliceResult mergedBody = (FLSliceResult)FLSlice.Null;
+            FLSliceResult mergedBody = (FLSliceResult) FLSlice.Null;
             C4RevisionFlags mergedFlags = 0;
             if (resolvedDoc != null)
                 mergedFlags = resolvedDoc.c4Doc != null ? resolvedDoc.c4Doc.RawDoc->selectedRev.flags : 0;
@@ -1384,7 +1394,7 @@ namespace Couchbase.Lite
                 if (resolvedDoc != null) {
                     // Unless the remote revision is being used as-is, we need a new revision:
                     mergedBody = resolvedDoc.Encode();
-                    if (mergedBody.Equals((FLSliceResult)FLSlice.Null))
+                    if (mergedBody.Equals((FLSliceResult) FLSlice.Null))
                         throw new RuntimeException(CouchbaseLiteErrorMessage.ResolvedDocContainsNull);
                     isDeleted = resolvedDoc.IsDeleted;
                 } else {
@@ -1401,15 +1411,15 @@ namespace Couchbase.Lite
             using (var losingRevID_ = new C4String(losingRevID)) {
                 C4Error err;
                 var retVal = NativeRaw.c4doc_resolveConflict(rawDoc, winningRevID_.AsFLSlice(),
-                    losingRevID_.AsFLSlice(), (FLSlice)mergedBody, mergedFlags, &err) 
+                    losingRevID_.AsFLSlice(), (FLSlice) mergedBody, mergedFlags, &err)
                     && Native.c4doc_save(rawDoc, 0, &err);
                 Native.FLSliceResult_Release(mergedBody);
 
                 if (!retVal) {
-                    if (err.code == (int)C4ErrorCode.Conflict) {
+                    if (err.code == (int) C4ErrorCode.Conflict) {
                         return false;
                     } else {
-                        throw new CouchbaseLiteException((C4ErrorCode)err.code, 
+                        throw new CouchbaseLiteException((C4ErrorCode) err.code,
                             CouchbaseLiteErrorMessage.ResolvedDocFailedLiteCore);
                     }
                 }
@@ -1501,7 +1511,7 @@ namespace Couchbase.Lite
         {
             //TODO _docObs might need to be refactored into an IDisposable class
             foreach (var obs in _docObs) {
-                Native.c4docobs_free((C4DocumentObserver*)obs.Value.Item1);
+                Native.c4docobs_free((C4DocumentObserver*) obs.Value.Item1);
                 obs.Value.Item2.Free();
             }
 
@@ -1584,7 +1594,8 @@ namespace Couchbase.Lite
             // be a deadlock while the purge job waits for the lock that is held
             // by the disposal which is waiting for timer callbacks to finish
             StopExpirePurgeTimer();
-            ThreadSafety.DoLocked(() => {
+            ThreadSafety.DoLocked(() =>
+            {
                 if (IsClosed) {
                     return;
                 }
@@ -1598,11 +1609,16 @@ namespace Couchbase.Lite
                 q.Key.Stop();
             }
 
+            foreach (var r in ActiveReplications) {
+                r.Key.Stop();
+            }
+
             while (!IsReadyToClose) {
                 _closeCondition.WaitOne();
             }
 
-            ThreadSafety.DoLocked(() => {
+            ThreadSafety.DoLocked(() =>
+            {
                 Dispose(true);
             });
         }

@@ -35,13 +35,14 @@ namespace LiteCore.Interop
 
     internal enum C4ReplicatorActivityLevel : int
     {
-        Stopped,
-        Offline,
-        Connecting,
-        Idle,
-        Busy,
-        Stopping,
-    }
+        Stopped,    //Finished, or got a fatal error.
+        Offline,    //Connection failed, but waiting to retry.
+        Connecting, //Connection is in progress.
+        Idle,       //Continuous replicator has caught up and is waiting for changes.
+        Busy,       //Connected and actively working.
+        /* INTERNAL STATES */
+        Stopping,   //Stopping or going offline
+    }     
 
     [Flags]
     internal enum C4ReplicatorStatusFlags : int

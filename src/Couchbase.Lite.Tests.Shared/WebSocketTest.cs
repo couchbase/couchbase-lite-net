@@ -247,10 +247,12 @@ namespace Test
                 var ReplicatorType = typeof(Replicator);
                 var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
                 var config = new ReplicatorConfiguration(Db, targetEndpoint);
-                Replicator replicator = new Replicator(config);
-                method = ReplicatorType.GetMethod("ReachabilityChanged", BindingFlags.NonPublic | BindingFlags.Instance);
-                res = method.Invoke(replicator, new object[2] { asender, e });
-            } catch { }
+                using (Replicator replicator = new Replicator(config)) {
+                    method = ReplicatorType.GetMethod("ReachabilityChanged", BindingFlags.NonPublic | BindingFlags.Instance);
+                    res = method.Invoke(replicator, new object[2] { asender, e });
+                }
+            }
+            catch { }
         }
 
         [Fact]
