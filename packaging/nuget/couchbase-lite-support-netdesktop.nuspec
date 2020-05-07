@@ -36,8 +36,8 @@
     <file target="runtimes\win7-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\x64\LiteCore.pdb" />
     <file target="runtimes\osx-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libLiteCore.dylib" />
     <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libLiteCore.so" />
-    <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libc++.so.1" />
-    <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libc++abi.so.1" />
+    <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libstdc++.so" />
+    <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libstdc++.so.6" />
     <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libicudata.so.54" />
     <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libicui18n.so.54" />
     <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libicuuc.so.54" />

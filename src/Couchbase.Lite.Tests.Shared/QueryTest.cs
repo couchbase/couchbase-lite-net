@@ -54,6 +54,7 @@ namespace Test
         private static readonly ISelectResult Sequence = SelectResult.Expression(Meta.Sequence);
         private static readonly ISelectResult IsDeleted = SelectResult.Expression(Meta.IsDeleted);
         private static readonly ISelectResult Expiration = SelectResult.Expression(Meta.Expiration);
+        private static readonly ISelectResult RevID = SelectResult.Expression(Meta.RevisionID);
 
         Type queryTypeExpressionType = typeof(QueryTypeExpression);
 
@@ -63,6 +64,56 @@ namespace Test
 
         }
 #endif
+
+        [Fact]
+        public void TestMetaRevisionID()
+        {
+            var docId = "doc1";
+            // Create doc:
+            using (var doc = new MutableDocument(docId)) {
+                doc.SetInt("answer", 42);
+                doc.SetString("a", "string");
+                Db.Save(doc);
+
+                using (var q = QueryBuilder.Select(RevID)
+                    .From(DataSource.Database(Db))
+                    .Where(Meta.ID.EqualTo(Expression.String(docId)))) {
+
+                    VerifyQuery(q, (n, row) => {
+                        row.GetString(0).Should().Equals(doc.RevisionID);
+                    });
+
+                    // Update doc:
+                    doc.SetString("foo", "bar");
+                    Db.Save(doc);
+
+                    VerifyQuery(q, (n, row) => {
+                        row.GetString(0).Should().Equals(doc.RevisionID);
+                    });
+                }
+
+                // Use meta.revisionID in WHERE clause
+                using (var q = QueryBuilder.Select(DocID)
+                .From(DataSource.Database(Db))
+                .Where(Meta.RevisionID.EqualTo(Expression.String(docId)))) {
+
+                    VerifyQuery(q, (n, row) => {
+                        row.GetString(0).Should().Equals(docId);
+                    });
+                }
+
+                // Delete doc:
+                Db.Delete(doc);
+
+                using (var q = QueryBuilder.Select(RevID)
+                .From(DataSource.Database(Db))
+                .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(true)))) {
+                    VerifyQuery(q, (n, row) => {
+                        row.GetString(0).Should().Equals(doc.RevisionID);
+                    });
+                }
+            }
+        }
 
         [Fact]
         public void TestQueryDocumentExpirationAfterDocsExpired()
@@ -904,17 +955,12 @@ namespace Test
         {
             LoadNumbers(5);
 
-            var DOC_ID = Meta.ID;
-            var DOC_SEQ = Meta.Sequence;
             var NUMBER1 = Expression.Property("number1");
-
-            var RES_DOC_ID = SelectResult.Expression(DOC_ID);
-            var RES_DOC_SEQ = SelectResult.Expression(DOC_SEQ);
             var RES_NUMBER1 = SelectResult.Expression(NUMBER1);
 
-            using (var q = QueryBuilder.Select(RES_DOC_ID, RES_DOC_SEQ, RES_NUMBER1)
+            using (var q = QueryBuilder.Select(DocID, Sequence, RevID, RES_NUMBER1)
                 .From(DataSource.Database(Db))
-                .OrderBy(Ordering.Expression(DOC_SEQ))) {
+                .OrderBy(Ordering.Expression(Meta.Sequence))) {
                 var expectedDocIDs = new[] {"doc1", "doc2", "doc3", "doc4", "doc5"};
                 var expectedSeqs = new[] {1, 2, 3, 4, 5};
                 var expectedNumbers = expectedSeqs;
@@ -927,10 +973,16 @@ namespace Test
                     var seq = row.GetInt(1);
                     var seq2 = row.GetInt("sequence");
                     seq.Should().Be(seq2, "because these calls are two ways of accessing the same info");
-                    var number = row.GetInt(2);
+                    var revID1 = row.GetString(2);
+                    var revID2 = row.GetString("revisionID");
+                    revID1.Should().Be(revID2, "because these calls are two ways of accessing the same info");
+                    var number = row.GetInt(3);
 
                     docID.Should().Be(expectedDocIDs[n - 1]);
                     seq.Should().Be(expectedSeqs[n - 1]);
+                    using (var d = Db.GetDocument(docID)) {
+                        revID1.Should().Be(d.RevisionID);
+                    }
                     number.Should().Be(expectedNumbers[n - 1]);
                 });
 
@@ -1552,33 +1604,6 @@ namespace Test
                     var results = q.Execute();
                     results.Select(x => x.GetString(0)).Should().ContainInOrder(data.Item3);
                 }
-            }
-        }
-
-        [Fact]
-        public void TestLiveQueryBlocksClose()
-        {
-            var otherDb = new Database(Db.Name, Db.Config);
-            var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
-            var doc1Listener = new WaitAssert();
-            var token = query.AddChangeListener(null, (sender, args) =>
-            {
-                foreach (var row in args.Results) {
-                    if (row.GetString("id") == "doc1") {
-                        doc1Listener.Fulfill();
-                    }
-                }
-            });
-
-            try {
-                using (var doc = new MutableDocument("doc1")) {
-                    doc.SetString("value", "string");
-                    Db.Save(doc); // Should still trigger since it is pointing to the same DB
-                }
-
-                doc1Listener.WaitForResult(TimeSpan.FromSeconds(20));
-            } finally {
-                otherDb.Dispose();
             }
         }
 

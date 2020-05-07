@@ -194,11 +194,10 @@ namespace Couchbase.Lite.Sync
         /// and/or The token received from <see cref="AddDocumentReplicationListener(TaskScheduler, EventHandler{DocumentReplicationEventArgs})"/></param>
         public void RemoveChangeListener(ListenerToken token)
         {
-            DispatchQueue.DispatchSync(() => {
-                _statusChanged.Remove(token);
-                if (_documentEndedUpdate.Remove(token) == 0)
-                    Config.Options.ProgressLevel = ReplicatorProgressLevel.Overall;
-            });
+            _statusChanged.Remove(token);
+            if (_documentEndedUpdate.Remove(token) == 0) {
+                Config.Options.ProgressLevel = ReplicatorProgressLevel.Overall;
+            }
         }
 
         /// <summary>
@@ -222,12 +221,13 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public void Start()
         {
-            if (_disposed) {
-                throw new ObjectDisposedException(CouchbaseLiteErrorMessage.ReplicatorDisposed);
-            }
-
             var status = default(C4ReplicatorStatus);
-            DispatchQueue.DispatchSync(() => {
+            DispatchQueue.DispatchSync(() =>
+            {
+                if (_disposed) {
+                    throw new ObjectDisposedException(CouchbaseLiteErrorMessage.ReplicatorDisposed);
+                }
+
                 var err = SetupC4Replicator();
                 if (err.code > 0) {
                     WriteLog.To.Sync.E(Tag, $"Setup replicator {this} failed.");
@@ -257,7 +257,9 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public void Stop()
         {
-            DispatchQueue.DispatchSync(() => {
+            DispatchQueue.DispatchSync(() =>
+            {
+                StopReachabilityObserver();
                 if (_repl != null) {
                     if (_rawStatus.level == C4ReplicatorActivityLevel.Stopped
                         || _rawStatus.level == C4ReplicatorActivityLevel.Stopping) {
@@ -387,7 +389,7 @@ namespace Couchbase.Lite.Sync
             for (int i = 0; i < (int) numDocs; i++) {
                 var current = docs[i];
                 if (!pushing && current->error.domain == C4ErrorDomain.LiteCoreDomain &&
-                    current->error.code == (int)C4ErrorCode.Conflict) {
+                    current->error.code == (int) C4ErrorCode.Conflict) {
                     replicatedDocumentsContainConflict.Add(new ReplicatedDocument(current->docID.CreateString() ?? "",
                         current->flags, current->error, current->errorIsTransient));
                 } else {
@@ -396,7 +398,7 @@ namespace Couchbase.Lite.Sync
                 }
             }
 
-            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
 
             if (documentReplications.Count > 0) {
                 replicator?.DispatchQueue.DispatchAsync(() =>
@@ -418,7 +420,7 @@ namespace Couchbase.Lite.Sync
         #endif
         private static bool PullValidateCallback(FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
-            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
             if (replicator == null) {
                 WriteLog.To.Database.E(Tag, "Pull filter context pointing to invalid object {0}, aborting and returning true...",
                     replicator);
@@ -440,7 +442,7 @@ namespace Couchbase.Lite.Sync
         #endif
         private static bool PushFilterCallback(FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
-            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
             if (replicator == null) {
                 WriteLog.To.Database.E(Tag, "Push filter context pointing to invalid object {0}, aborting and returning true...",
                     replicator);
@@ -462,7 +464,7 @@ namespace Couchbase.Lite.Sync
         #endif
         private static void StatusChangedCallback(C4Replicator* repl, C4ReplicatorStatus status, void* context)
         {
-            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
             if (replicator == null)
                 return;
 
@@ -514,7 +516,7 @@ namespace Couchbase.Lite.Sync
         private bool filterCallback(Func<Document, DocumentFlags, bool> filterFunction, string docID, string revID, FLDict* value, DocumentFlags flags)
         {
             var doc = new Document(Config.Database, docID, revID, value);
-             return filterFunction(doc, flags);
+            return filterFunction(doc, flags);
         }
 
         private void OnDocEndedWithConflict(List<ReplicatedDocument> replications)
@@ -523,7 +525,7 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
-            for(int i = 0; i < replications.Count; i++) {
+            for (int i = 0; i < replications.Count; i++) {
                 var replication = replications[i];
                 // Conflict pulling a document -- the revision was added but app needs to resolve it:
                 var safeDocID = new SecureLogString(replication.Id, LogMessageSensitivity.PotentiallyInsecure);
@@ -601,7 +603,7 @@ namespace Couchbase.Lite.Sync
         {
             C4Error err = new C4Error();
             if (_repl != null) {
-                Native.c4repl_setOptions(_repl, ((FLSlice)Config.Options.FLEncode()).ToArrayFast());
+                Native.c4repl_setOptions(_repl, ((FLSlice) Config.Options.FLEncode()).ToArrayFast());
                 return err;
             }
 
@@ -658,14 +660,15 @@ namespace Couchbase.Lite.Sync
             if (Config.PullFilter != null)
                 _nativeParams.PullFilter = PullValidateCallback;
 
-            DispatchQueue.DispatchSync(() => { 
+            DispatchQueue.DispatchSync(() =>
+            {
                 C4Error localErr = new C4Error();
-#if COUCHBASE_ENTERPRISE
-                if (otherDB != null)  
+            #if COUCHBASE_ENTERPRISE
+                if (otherDB != null)
                     _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
                         &localErr);
                 else
-#endif
+            #endif
                     _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
                 err = localErr;
             });
@@ -680,11 +683,11 @@ namespace Couchbase.Lite.Sync
         private void StartReachabilityObserver()
         {
             if (_reachability != null) {
-                return;   
+                return;
             }
 
             var remoteUrl = (Config.Target as URLEndpoint)?.Url;
-            if(remoteUrl == null) {
+            if (remoteUrl == null) {
                 return;
             }
 
@@ -708,7 +711,7 @@ namespace Couchbase.Lite.Sync
             }
 
             // idle or busy
-            if ((status.level > C4ReplicatorActivityLevel.Connecting 
+            if ((status.level > C4ReplicatorActivityLevel.Connecting
                 && status.level != C4ReplicatorActivityLevel.Stopping)
                 && status.error.code == 0) {
                 StopReachabilityObserver();
@@ -717,7 +720,7 @@ namespace Couchbase.Lite.Sync
             UpdateStateProperties(status);
 
             // offline
-            if(status.level == C4ReplicatorActivityLevel.Offline) {
+            if (status.level == C4ReplicatorActivityLevel.Offline) {
                 StartReachabilityObserver();
             }
 

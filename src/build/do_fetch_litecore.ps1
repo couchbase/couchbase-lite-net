@@ -64,10 +64,10 @@ if(Test-Path "litecore-macosx$suffix.zip"){
 if(Test-Path "litecore-linux$suffix.tar.gz"){
     & 7z x litecore-linux$suffix.tar.gz
     & 7z e -y litecore-linux$suffix.tar lib/libLiteCore.so lib/libsqlite3.so `
-     lib/libc++.so.1.0 lib/libc++abi.so.1.0 lib/libicudata.so.54.1 `
+     lib/libstdc++.so lib/libstdc++.so.6 lib/libicudata.so.54.1 `
      lib/libicui18n.so.54.1 lib/libicuuc.so.54.1
-    Move-Item -Force libc++.so.1.0 libc++.so.1
-    Move-Item -Force libc++abi.so.1.0 libc++abi.so.1
+    Move-Item -Force libstdc++.so libstdc++.so
+    Move-Item -Force libstdc++.so.6 libstdc++.so.6
     Move-Item -Force libicudata.so.54.1 libicudata.so.54
     Move-Item -Force libicui18n.so.54.1 libicui18n.so.54
     Move-Item -Force libicuuc.so.54.1 libicuuc.so.54

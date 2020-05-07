@@ -30,13 +30,10 @@ namespace Couchbase.Lite.Query
     {
         #region Constants
 
-        private const string IDColumnName = "id";
         private const string IDKeyPath = "_id";
-        private const string SequenceColumnName = "sequence";
+        private const string RevIDKeyPath = "_revisionID";
         private const string SequenceKeyPath = "_sequence";
-        private const string IsDeletedColumnName = "deleted";
         private const string IsDeletedKeyPath = "_deleted";
-        private const string ExpirationColumnName = "expiration";
         private const string ExpirationKeyPath = "_expiration";
 
         #endregion
@@ -48,24 +45,29 @@ namespace Couchbase.Lite.Query
         /// an entry in the database
         /// </summary>
         [NotNull]
-        public static IMetaExpression ID => new QueryTypeExpression(IDKeyPath, IDColumnName);
+        public static IMetaExpression ID => new QueryTypeExpression(IDKeyPath);
 
         /// <summary>
         /// A query expression that retrieves the document sequence from
         /// an entry in the database
         /// </summary>
         [NotNull]
-        public static IMetaExpression Sequence => new QueryTypeExpression(SequenceKeyPath, SequenceColumnName);
+        public static IMetaExpression Sequence => new QueryTypeExpression(SequenceKeyPath);
 
         /// <summary>
         /// A metadata expression refering to the deleted boolean flag of the document.
         /// </summary>
-        public static IMetaExpression IsDeleted => new QueryTypeExpression(IsDeletedKeyPath, IsDeletedColumnName);
+        public static IMetaExpression IsDeleted => new QueryTypeExpression(IsDeletedKeyPath);
 
         /// <summary>
         /// A metadata expression refering to the expiration date of the document.
         /// </summary>
-        public static IMetaExpression Expiration => new QueryTypeExpression(ExpirationKeyPath, ExpirationColumnName);
+        public static IMetaExpression Expiration => new QueryTypeExpression(ExpirationKeyPath);
+
+        /// <summary>
+        /// A metadata expression refering to the revision ID of the document.
+        /// </summary>
+        public static IMetaExpression RevisionID => new QueryTypeExpression(RevIDKeyPath);
 
         #endregion
     }

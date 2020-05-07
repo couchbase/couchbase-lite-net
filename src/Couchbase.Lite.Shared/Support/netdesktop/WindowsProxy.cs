@@ -212,6 +212,11 @@ namespace Couchbase.Lite.Support
                 return Task.FromResult<WebProxy>(null);
             }
 
+            if (info.Proxy == IntPtr.Zero) {
+                WriteLog.To.Sync.W(Tag, "Call to WinHttpGetProxyForUrl succeed, however, proxy server list is null.");
+                return Task.FromResult<WebProxy>(null);
+            }
+
             var url = Marshal.PtrToStringUni(info.Proxy);
             var bypass = Marshal.PtrToStringUni(info.ProxyBypass)?.Split(';', ' ', '\t', '\r', '\n');
             //TODO: free memory allocated by proxy server list and bypass list
