@@ -1761,12 +1761,7 @@ namespace Test
                 replicator.Start();
 
                 wa.WaitForResult(TimeSpan.FromSeconds(10));
-
-                Try.Condition(() => replicator.Status.Activity == ReplicatorActivityLevel.Stopped)
-                    .Times(5)
-                    .Delay(TimeSpan.FromMilliseconds(500))
-                    .Go().Should().BeTrue();
-
+                replicator.Status.Activity.Should().Be(ReplicatorActivityLevel.Stopped);
                 replicator.RemoveChangeListener(token);
             }
         }
