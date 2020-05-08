@@ -1693,18 +1693,23 @@ namespace Test
         public void TestPendingDocIDsPullOnlyException()
         {
             LoadDocs();
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("name", "Cat");
+                _otherDB.Save(doc2);
+            }
+
             var config = CreateConfig(false, true, false);
             using (var replicator = new Replicator(config)) {
                 var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
                 {
-                    if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
-                        Action badAct = () => ((Replicator) sender).GetPendingDocumentIDs();
-                        badAct.Should().Throw<CouchbaseLiteException>().WithMessage(CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
-                    }
-
                     wa.RunConditionalAssert(() =>
                     {
+                        if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
+                            Action badAct = () => ((Replicator) sender).GetPendingDocumentIDs();
+                            badAct.Should().Throw<CouchbaseLiteException>().WithMessage(CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
+                        }
+
                         return args.Status.Activity == ReplicatorActivityLevel.Stopped;
                     });
                 });
@@ -1739,18 +1744,23 @@ namespace Test
         public void TestIsDocumentPendingPullOnlyException()
         {
             LoadDocs();
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("name", "Cat");
+                _otherDB.Save(doc2);
+            }
+
             var config = CreateConfig(false, true, false);
             using (var replicator = new Replicator(config)) {
                 var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
                 {
-                    if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
-                        Action badAct = () => ((Replicator) sender).IsDocumentPending("doc-001");
-                        badAct.Should().Throw<CouchbaseLiteException>().WithMessage(CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
-                    }
-
                     wa.RunConditionalAssert(() =>
                     {
+                        if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
+                            Action badAct = () => ((Replicator) sender).IsDocumentPending("doc-001");
+                            badAct.Should().Throw<CouchbaseLiteException>().WithMessage(CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
+                        }
+
                         return args.Status.Activity == ReplicatorActivityLevel.Stopped;
                     });
 
@@ -1839,13 +1849,13 @@ namespace Test
                 var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
                 {
-                    if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
-                        pendingDocIds = replicator.GetPendingDocumentIDs();
-                        pendingDocIds.Count.Should().Be(0);
-                    }
-
                     wa.RunConditionalAssert(() =>
                     {
+                        if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
+                            pendingDocIds = replicator.GetPendingDocumentIDs();
+                            pendingDocIds.Count.Should().Be(0);
+                        }
+
                         return args.Status.Activity == ReplicatorActivityLevel.Stopped;
                     });
                 });
