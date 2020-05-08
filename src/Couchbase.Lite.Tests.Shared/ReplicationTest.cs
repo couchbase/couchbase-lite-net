@@ -1698,16 +1698,15 @@ namespace Test
                 var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
                 {
+                    if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
+                        Action badAct = () => ((Replicator) sender).GetPendingDocumentIDs();
+                        badAct.Should().Throw<CouchbaseLiteException>().WithMessage(CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
+                    }
+
                     wa.RunConditionalAssert(() =>
                     {
-                        if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
-                            Action badAct = () => ((Replicator) sender).GetPendingDocumentIDs();
-                            badAct.Should().Throw<CouchbaseLiteException>().WithMessage(CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
-                        }
-
                         return args.Status.Activity == ReplicatorActivityLevel.Stopped;
                     });
-
                 });
 
                 replicator.Start();
@@ -1747,13 +1746,13 @@ namespace Test
                 var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
                 {
+                    if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
+                        Action badAct = () => ((Replicator) sender).IsDocumentPending("doc-001");
+                        badAct.Should().Throw<CouchbaseLiteException>().WithMessage(CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
+                    }
+
                     wa.RunConditionalAssert(() =>
                     {
-                        if (args.Status.Activity == ReplicatorActivityLevel.Busy) {
-                            Action badAct = () => ((Replicator) sender).IsDocumentPending("doc-001");
-                            badAct.Should().Throw<CouchbaseLiteException>().WithMessage(CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs);
-                        }
-
                         return args.Status.Activity == ReplicatorActivityLevel.Stopped;
                     });
 
