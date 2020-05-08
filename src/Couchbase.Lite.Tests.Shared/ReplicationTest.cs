@@ -1760,7 +1760,7 @@ namespace Test
 
                 replicator.Start();
 
-                wa.WaitForResult(TimeSpan.FromSeconds(10));
+                wa.WaitForResult(TimeSpan.FromSeconds(50));
                 replicator.Status.Activity.Should().Be(ReplicatorActivityLevel.Stopped);
                 replicator.RemoveChangeListener(token);
             }
