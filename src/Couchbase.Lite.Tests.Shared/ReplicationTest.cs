@@ -1693,7 +1693,7 @@ namespace Test
         public void TestPendingDocIDsPullOnlyException()
         {
             LoadDocs();
-            var config = CreateConfig(false, true, false, _otherDB);
+            var config = CreateConfig(false, true, false);
             using (var replicator = new Replicator(config)) {
                 var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
@@ -1739,7 +1739,7 @@ namespace Test
         public void TestIsDocumentPendingPullOnlyException()
         {
             LoadDocs();
-            var config = CreateConfig(false, true, false, _otherDB);
+            var config = CreateConfig(false, true, false);
             using (var replicator = new Replicator(config)) {
                 var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
@@ -1793,7 +1793,7 @@ namespace Test
         {
             var result = new HashSet<string>();
             var n = 0ul;
-            while (n < 20) {
+            while (n < 50) {
                 var docID = $"doc-{++n:D3}";
                 using (var doc = new MutableDocument(docID)) {
                     result.Add(docID);
@@ -1801,6 +1801,7 @@ namespace Test
                     Db.Save(doc);
                 }
             }
+
             return result;
         }
 
