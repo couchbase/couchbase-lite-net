@@ -283,7 +283,6 @@ namespace Couchbase.Lite.Sync
         [NotNull]
         public IImmutableSet<string> GetPendingDocumentIDs()
         {
-            //TODO: Get cache token from LiteCore. If the cache token is different from what is currently stored in the platform, the values need to be updated
             var result = new HashSet<string>();
             if (!IsPushing()) {
                 CBDebug.LogAndThrow(WriteLog.To.Sync,

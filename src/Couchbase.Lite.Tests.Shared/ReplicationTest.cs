@@ -1711,10 +1711,12 @@ namespace Test
 
                 replicator.Start();
 
-                wa.WaitForResult(TimeSpan.FromSeconds(50));
-                replicator.Status.Activity.Should().Be(ReplicatorActivityLevel.Stopped);
-
-                replicator.RemoveChangeListener(token);
+                try {
+                    wa.WaitForResult(TimeSpan.FromSeconds(100));
+                    replicator.Status.Activity.Should().Be(ReplicatorActivityLevel.Stopped);
+                } finally {
+                    replicator.RemoveChangeListener(token);
+                }
             }
         }
 
@@ -1756,9 +1758,13 @@ namespace Test
 
                 replicator.Start();
 
-                wa.WaitForResult(TimeSpan.FromSeconds(50));
-                replicator.Status.Activity.Should().Be(ReplicatorActivityLevel.Stopped);
-                replicator.RemoveChangeListener(token);
+                try {
+                    wa.WaitForResult(TimeSpan.FromSeconds(100));
+                    replicator.Status.Activity.Should().Be(ReplicatorActivityLevel.Stopped);
+                } finally {
+                    replicator.RemoveChangeListener(token);
+                }
+
             }
         }
 
