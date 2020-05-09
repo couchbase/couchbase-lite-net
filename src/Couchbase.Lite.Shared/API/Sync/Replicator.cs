@@ -33,7 +33,7 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
-
+using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
 
@@ -297,14 +297,11 @@ namespace Couchbase.Lite.Sync
                 }
             });
 
-            C4Error err = new C4Error();
-            byte[] pendingDocIds = null;
-            pendingDocIds = Native.c4repl_getPendingDocIDs(_repl, &err);
-
-            if (err.code > 0) {
-                CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(err), Tag, err.ToString(), true);
-            }
-
+            byte[] pendingDocIds = LiteCoreBridge.Check(err =>
+            {
+                return Native.c4repl_getPendingDocIDs(_repl, err);
+            });
+            
             if (pendingDocIds != null) {
                 _databaseThreadSafety.DoLocked(() => {
                     var flval = Native.FLValue_FromData(pendingDocIds, FLTrust.Trusted);
@@ -351,11 +348,11 @@ namespace Couchbase.Lite.Sync
                 }
             });
 
-            C4Error err = new C4Error();
-            isDocPending = Native.c4repl_isDocumentPending(_repl, documentID, &err);
-            if (err.code > 0) {
-                CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(err), Tag, err.ToString(), true);
-            }
+            LiteCoreBridge.Check(err => 
+            {
+                isDocPending = Native.c4repl_isDocumentPending(_repl, documentID, err);
+                return isDocPending;
+            });
 
             return isDocPending;
         }

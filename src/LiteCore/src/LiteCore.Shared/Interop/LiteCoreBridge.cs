@@ -27,9 +27,9 @@ namespace LiteCore
 
     internal static unsafe class LiteCoreBridge
     {
-        public static void Check(C4TryLogicDelegate1 block)
+        public static bool Check(C4TryLogicDelegate1 block)
         {
-            NativeHandler.Create().Execute(block);
+            return NativeHandler.Create().Execute(block);
         }
 
         public static void* Check(C4TryLogicDelegate2 block)
@@ -40,6 +40,11 @@ namespace LiteCore
         public static void Check(C4TryLogicDelegate3 block)
         {
             NativeHandler.Create().Execute(block);
+        }
+
+        public static byte[] Check(C4TryLogicDelegate4 block)
+        {
+            return NativeHandler.Create().Execute(block);
         }
     }
 }
