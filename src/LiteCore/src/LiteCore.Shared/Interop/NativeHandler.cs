@@ -45,7 +45,7 @@ namespace LiteCore.Interop
     /// </summary>
     internal unsafe delegate int C4TryLogicDelegate3(C4Error* err);
 
-    internal unsafe delegate FLSlice C4TryLogicDelegate4(C4Error* err);
+    internal unsafe delegate byte[] C4TryLogicDelegate4(C4Error* err);
 
     #endregion
 
@@ -195,13 +195,13 @@ namespace LiteCore.Interop
             return retVal;
         }
 
-        public unsafe FLSlice Execute(C4TryLogicDelegate4 block)
+        public unsafe byte[] Execute(C4TryLogicDelegate4 block)
         {
             Debug.Assert(block != null);
 
             C4Error err;
             var retVal = block(&err);
-            if(retVal.buf != null || err.code == 0) {
+            if(retVal != null || err.code == 0) {
                 Exception = null;
                 return retVal;
             }
