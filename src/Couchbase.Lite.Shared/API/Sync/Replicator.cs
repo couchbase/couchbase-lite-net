@@ -201,7 +201,7 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// Resets the local checkpoint of the replicator, meaning that it will read all changes since the beginning
+        /// [DEPRECATED] Resets the local checkpoint of the replicator, meaning that it will read all changes since the beginning
         /// of time from the remote database.  This can only be called when the replicator is in a stopped state.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown if this method is called while the replicator is
@@ -219,7 +219,10 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Starts the replication
         /// </summary>
-        public void Start()
+        /// <param name="reset">Resets the local checkpoint of the replicator, meaning that it will read all changes since the beginning
+        /// of time from the remote database.
+        /// </param>
+        public void Start(bool reset)
         {
             var status = default(C4ReplicatorStatus);
             DispatchQueue.DispatchSync(() =>
@@ -235,7 +238,8 @@ namespace Couchbase.Lite.Sync
 
                 if (_repl != null) {
                     WriteLog.To.Sync.I(Tag, $"{this}: Starting");
-                    Native.c4repl_start(_repl);
+                    Native.c4repl_start(_repl, reset);
+                    Config.Options.Reset = reset;
                     Config.Database.AddActiveReplication(this);
                     status = Native.c4repl_getStatus(_repl);
                 } else {

@@ -37,7 +37,7 @@ namespace LiteCore.Interop
         public static extern C4Replicator* c4repl_newWithSocket(C4Database* db, C4Socket* openSocket, C4ReplicatorParameters @params, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4repl_start(C4Replicator* repl);
+        public static extern void c4repl_start(C4Replicator* repl, [MarshalAs(UnmanagedType.U1)]bool reset);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4repl_stop(C4Replicator* repl);
