@@ -30,12 +30,14 @@ using Couchbase.Lite.Logging;
 
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Query;
 
 using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
 
 using Newtonsoft.Json;
+using System.Collections.Immutable;
 
 using Test.Util;
 #if COUCHBASE_ENTERPRISE
@@ -46,8 +48,6 @@ using ProtocolType = Couchbase.Lite.P2P.ProtocolType;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
-using Couchbase.Lite.Query;
-using System.Collections.Immutable;
 #else
 using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
 #endif
