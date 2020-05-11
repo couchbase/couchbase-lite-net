@@ -112,6 +112,7 @@
     <PackageReference Include="xunit.runner.devices">
       <Version>2.5.25</Version>
     </PackageReference>
+	<PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
   </ItemGroup>
   <ItemGroup Condition=" '$(Configuration)' == 'Debug' ">
     <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.6.0-b0022" />
