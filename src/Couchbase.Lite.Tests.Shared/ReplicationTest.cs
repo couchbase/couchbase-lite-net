@@ -88,7 +88,7 @@ namespace Test
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
             var config = new ReplicatorConfiguration(Db, targetEndpoint);
             using (var repl = new Replicator(config)) {
-                repl.Start(false);
+                repl.Start();
                 var count = 0;
                 Thread.Sleep(TimeSpan.FromSeconds(51)); // The combined amount of time this should take to stop
                 while (count++ <= 10 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
@@ -506,7 +506,7 @@ namespace Test
         {
             var config = CreateConfig(true, true, true);
             using (var repl = new Replicator(config)) {
-                repl.Start(false);
+                repl.Start();
                 while (repl.Status.Activity != ReplicatorActivityLevel.Idle) {
                     WriteLine($"Replication status still {repl.Status.Activity}, waiting for idle...");
                     await Task.Delay(500);
@@ -555,7 +555,7 @@ namespace Test
                     });
 
                     WriteLine("***** Start Replicator *****");
-                    r.Start(false);
+                    r.Start();
                     try {
                         waitAssert.WaitForResult(TimeSpan.FromSeconds(5));
                     } finally {
@@ -596,7 +596,7 @@ namespace Test
                 });
             });
 
-            _repl.Start(false);
+            _repl.Start();
             try {
                 _waitAssert.WaitForResult(TimeSpan.FromSeconds(30));
             } catch {
@@ -655,7 +655,7 @@ namespace Test
                     }
                 });
 
-                repl.Start(false);
+                repl.Start();
 
                 wa.WaitForResult(TimeSpan.FromSeconds(10));
                 repl.Stop();
@@ -963,7 +963,7 @@ namespace Test
             };
 
             using (var replicator = new Replicator(config)) {
-                replicator.Start(false);
+                replicator.Start();
 
                 var count = 0;
                 while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
@@ -1015,8 +1015,8 @@ namespace Test
 
             using (var replicator = new Replicator(config))
             using (var replicator2 = new Replicator(config2)) {
-                replicator.Start(false);
-                replicator2.Start(false);
+                replicator.Start();
+                replicator2.Start();
 
                 var count = 0;
                 while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Idle &&
@@ -1516,9 +1516,9 @@ namespace Test
                 });
             });
 
-            replicator.Start(false);
+            replicator.Start();
             firstReplicatorStart.Wait();
-            replicator1.Start(false);
+            replicator1.Start();
 
             try {
                 _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
@@ -1714,7 +1714,7 @@ namespace Test
                     });
                 });
 
-                replicator.Start(false);
+                replicator.Start();
 
                 try {
                     wa.WaitForResult(TimeSpan.FromSeconds(100));
@@ -1766,7 +1766,7 @@ namespace Test
 
                 });
 
-                replicator.Start(false);
+                replicator.Start();
 
                 try {
                     wa.WaitForResult(TimeSpan.FromSeconds(100));
@@ -1869,7 +1869,7 @@ namespace Test
                     idsSet.Count.Should().Be(pendingDocIds.Count);
                 }
 
-                replicator.Start(false);
+                replicator.Start();
 
                 wa.WaitForResult(TimeSpan.FromSeconds(50));
 
@@ -1943,7 +1943,7 @@ namespace Test
                     docIdIsPending.Should().BeFalse();
                 }
 
-                replicator.Start(false);
+                replicator.Start();
 
                 wa.WaitForResult(TimeSpan.FromSeconds(50));
 
@@ -1990,7 +1990,7 @@ namespace Test
                         });
                     });
 
-                    repl.Start(false);
+                    repl.Start();
 
                     using (var doc = new MutableDocument("doc1")) {
                         doc.SetString("value", "string");
@@ -2051,8 +2051,8 @@ namespace Test
                         });
                     });
 
-                    repl.Start(false);
-                    repl1.Start(false);
+                    repl.Start();
+                    repl1.Start();
 
                     using (var doc = new MutableDocument("doc1")) {
                         doc.SetString("value", "string");
@@ -2110,7 +2110,7 @@ namespace Test
                     }
                 });
 
-                repl.Start(false);
+                repl.Start();
 
                 wa.WaitForResult(TimeSpan.FromSeconds(10));
 
@@ -2266,7 +2266,7 @@ namespace Test
             };
 
             using (var replicator = new Replicator(config)) {
-                replicator.Start(false);
+                replicator.Start();
 
                 Database firstSource = null;
                 Database secondSource = null;
