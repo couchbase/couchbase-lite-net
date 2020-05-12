@@ -226,7 +226,7 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// Starts the replication
+        /// Starts the replication with an option to reset the checkpoint.
         /// </summary>
         /// <param name="reset">Resets the local checkpoint of the replicator, meaning that it will read all changes since the beginning
         /// of time from the remote database.
