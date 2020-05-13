@@ -17,7 +17,13 @@ pipeline {
                                 powershell '''
                                 New-Item -Type Directory tmp
                                 Get-ChildItem -Path $pwd -Exclude "tmp" -Force | Move-Item -Destination "tmp"
-                                & 'C:\\Program Files\\Git\\bin\\git.exe' clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $env:CHANGE_TARGET --depth 1
+								# Sometimes a PR depends on a PR in the EE repo as well.  This needs to be convention based, so if there is a branch with the name PR-###
+								# (with the GH PR number) in the EE repo then use that, otherwise use the name of the target branch (master, release/XXX etc)  
+								& 'C:\\Program Files\\Git\\bin\\git.exe' clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $env:BRANCH_NAME --depth 1 couchbase-lite-net-ee
+								if($LASTEXITCODE -ne 0) {
+									& 'C:\\Program Files\\Git\\bin\\git.exe' clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $env:CHANGE_TARGET --depth 1 couchbase-lite-net-ee
+								}
+								
                                 Get-ChildItem couchbase-lite-net-ee\\* -Force | Move-Item -Destination .
                                 Get-ChildItem -Force tmp\\* | Move-Item -Destination couchbase-lite-net
                                 Remove-Item tmp
