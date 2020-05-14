@@ -68,7 +68,6 @@ pipeline {
 								git clone https://github.com/couchbase/couchbase-lite-net-ee --branch $BRANCH_NAME --depth 1 couchbase-lite-net-ee || \
 									git clone https://github.com/couchbase/couchbase-lite-net-ee --branch $CHANGE_TARGET --depth 1 couchbase-lite-net-ee
 								
-                                git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $CHANGE_TARGET --depth 1
                                 mv couchbase-lite-net-ee/* .
                                 mv tmp/* couchbase-lite-net
                                 rmdir tmp
