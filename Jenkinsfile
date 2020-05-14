@@ -65,9 +65,9 @@ pipeline {
                                 shopt -s extglob dotglob
                                 mkdir tmp
                                 mv !(tmp) tmp
-								git clone https://github.com/couchbase/couchbase-lite-net-ee --branch $BRANCH_NAME --depth 1 couchbase-lite-net-ee || \
-									git clone https://github.com/couchbase/couchbase-lite-net-ee --branch $CHANGE_TARGET --depth 1 couchbase-lite-net-ee
-								
+								git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $BRANCH_NAME --depth 1 couchbase-lite-net-ee || \
+									git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $CHANGE_TARGET --depth 1 couchbase-lite-net-ee
+
                                 mv couchbase-lite-net-ee/* .
                                 mv tmp/* couchbase-lite-net
                                 rmdir tmp
@@ -102,7 +102,8 @@ pipeline {
                                 shopt -s extglob dotglob
                                 mkdir tmp
                                 mv !(tmp) tmp
-                                git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $CHANGE_TARGET --depth 1
+								git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $BRANCH_NAME --depth 1 couchbase-lite-net-ee || \
+									git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $CHANGE_TARGET --depth 1 couchbase-lite-net-ee
                                 mv couchbase-lite-net-ee/* .
                                 mv tmp/* couchbase-lite-net
                                 rmdir tmp
