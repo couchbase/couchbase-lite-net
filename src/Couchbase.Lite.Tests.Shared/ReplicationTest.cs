@@ -2438,15 +2438,11 @@ namespace Test
                 });
             });
 
-            if (reset) {
-                _repl.ResetCheckpoint();
-            }
-
             if (documentReplicated != null) {
                 _repl.AddDocumentReplicationListener(documentReplicated);
             }
 
-            _repl.Start();
+            _repl.Start(reset);
             try {
                 _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
             } catch {
