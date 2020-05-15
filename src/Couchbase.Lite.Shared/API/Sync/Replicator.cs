@@ -247,7 +247,8 @@ namespace Couchbase.Lite.Sync
 
                 if (_repl != null) {
                     WriteLog.To.Sync.I(Tag, $"{this}: Starting");
-                    Native.c4repl_start(_repl, reset);
+                    Native.c4repl_start(_repl, Config.Options.Reset || reset);
+                    Config.Options.Reset = false;
                     Config.Database.AddActiveReplication(this);
                     status = Native.c4repl_getStatus(_repl);
                 } else {
