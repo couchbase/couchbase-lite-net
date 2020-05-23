@@ -238,12 +238,12 @@ namespace Couchbase.Lite
         /// <summary>
         /// A required client certificate was not provided
         /// </summary>
-        TLSClientCertRequired = C4NetworkErrorCode.TLSClientCertRequired + NetworkBase,
+        TLSClientCertRequired = C4NetworkErrorCode.TLSCertRequiredByPeer + NetworkBase,
 
         /// <summary>
         /// Client certificate was rejected by the server
         /// </summary>
-        TLSClientCertRejected = C4NetworkErrorCode.TLSClientCertRejected + NetworkBase,
+        TLSClientCertRejected = C4NetworkErrorCode.TLSCertRejectedByPeer + NetworkBase,
 
         /// <summary>
         /// Self-signed cert, or unknow anchor cert

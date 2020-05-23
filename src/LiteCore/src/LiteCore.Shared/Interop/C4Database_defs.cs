@@ -52,6 +52,13 @@ namespace LiteCore.Interop
         KeySizeAES256 = 32,
     }
 
+    internal enum C4MaintenanceType : uint
+    {
+        Compact,
+        Reindex,
+        IntegrityCheck,
+    }
+
 	internal unsafe partial struct C4EncryptionKey
     {
         public C4EncryptionAlgorithm algorithm;

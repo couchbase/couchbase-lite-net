@@ -58,6 +58,9 @@ namespace LiteCore.Interop
         public static extern void c4enum_free(C4DocEnumerator* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4listener_free(C4Listener* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4raw_free(C4RawDocument* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
