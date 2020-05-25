@@ -60,6 +60,7 @@ namespace Couchbase.Lite
         internal const string InvalidQueryMissingSelectOrFrom = "Invalid query: missing Select or From.";
         internal const string NoDocEditInReplicationFilter = "Documents from a replication filter cannot be edited.";
         internal const string PullOnlyPendingDocIDs = "Pending Document IDs are not supported on pull-only replicators.";
+        internal const string ReadOnlyObject = "This configuration object is readonly.";
     }
 }
 
