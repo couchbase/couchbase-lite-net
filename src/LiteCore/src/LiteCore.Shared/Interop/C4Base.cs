@@ -30,6 +30,17 @@ namespace LiteCore.Interop
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate void C4ExtraInfoDestructor(void* ptr);
 
+    internal unsafe static partial class Native
+    {
+        public static void c4db_release(C4Database* db) => c4base_release(db);
+
+        public static void* c4db_retain(C4Database* db) => c4base_retain(db);
+
+        public static void c4query_release(C4Query* query) => c4base_release(query);
+
+        public static void FLSliceResult_Release(FLSliceResult flSliceResult) => _FLBuf_Release(flSliceResult.buf);
+    }
+
     [ExcludeFromCodeCoverage]
     internal partial struct C4Error
     {

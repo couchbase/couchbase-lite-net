@@ -75,14 +75,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern int c4_getObjectCount();
 
-        public static void c4db_release(C4Database* db) => c4base_release(db);
-
-        public static void* c4db_retain(C4Database* db) => c4base_retain(db);
-
-        public static void c4query_release(C4Query* query) => c4base_release(query);
-
-        public static void FLSliceResult_Release(FLSliceResult flSliceResult) => _FLBuf_Release(flSliceResult.buf);
-
         public static string c4error_getMessage(C4Error error)
         {
             using(var retVal = NativeRaw.c4error_getMessage(error)) {
