@@ -28,6 +28,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Document_native.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Index_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Index_native.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Listener_defs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Listener_native.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer_native.cs" />
