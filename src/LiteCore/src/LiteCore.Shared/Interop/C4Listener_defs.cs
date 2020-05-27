@@ -45,7 +45,7 @@ namespace LiteCore.Interop
         public C4Cert* certificate;
         private byte _requireClientCerts;
         public C4Cert* rootClientCerts;
-        //public C4ListenerCertAuthCallback certAuthCallback;
+        public IntPtr certAuthCallback;
         public void* tlsCallbackContext;
 
         public bool requireClientCerts
@@ -65,7 +65,7 @@ namespace LiteCore.Interop
         public FLSlice networkInterface;
         public C4ListenerAPIs apis;
         public C4TLSConfig* tlsConfig;
-        //public C4ListenerHTTPAuthCallback httpAuthCallback;
+        public IntPtr httpAuthCallback;
         public void* callbackContext;
         public FLSlice directory;
         private byte _allowCreateDBs;
