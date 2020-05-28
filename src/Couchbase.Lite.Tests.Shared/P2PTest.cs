@@ -167,9 +167,9 @@ namespace Test
         public void TestStatus()
         {
             int exCnt = 0;
-            HashSet<ulong> maxConnectionCount = new HashSet<ulong>(), 
+            HashSet<ulong> maxConnectionCount = new HashSet<ulong>(),
                 maxActiveCount = new HashSet<ulong>();
-            
+
             _config = new URLEndpointListenerConfiguration(_otherDB);
             _config.Port = WSPort;
             _config.DisableTLS = true;
@@ -254,6 +254,34 @@ namespace Test
         }
 
 #endif
+
+        protected override void Dispose(bool disposing)
+        {
+            Exception ex = null;
+
+            base.Dispose(disposing);
+            var name = _otherDB?.Name;
+            _otherDB?.Dispose();
+            _otherDB = null;
+
+            var success = Try.Condition(() =>
+            {
+                try {
+                    if (name != null) {
+                        Database.Delete(name, Directory);
+                    }
+                } catch (Exception e) {
+                    ex = e;
+                    return false;
+                }
+
+                return true;
+            }).Times(5).Delay(TimeSpan.FromSeconds(1)).WriteProgress(WriteLine).Go();
+
+            if (!success) {
+                throw ex;
+            }
+        }
 
     }
 }
