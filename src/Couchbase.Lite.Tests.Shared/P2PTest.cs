@@ -137,6 +137,7 @@ namespace Test
                 expectedException = ex;
             } finally {
                 listener.Stop();
+                listener1.Stop();
             }
 
             expectedException.Domain.Should().Be(CouchbaseLiteErrorType.POSIX);
