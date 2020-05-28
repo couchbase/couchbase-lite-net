@@ -11,5 +11,5 @@ type_map = {"int32_t":"int","uint32_t":"uint","int64_t":"long","uint64_t":"ulong
             "size_t*":"UIntPtr*","C4SequenceNumber":"ulong","C4SequenceNumber*":"ulong*","unsigned":"uint",
             "FLSharedKeys":"FLSharedKeys*","char*":"byte*","FLEncoder":"FLEncoder*","C4LogDomain":"C4LogDomain*",
             "FLDict":"FLDict*","C4FullTextID":"ulong","C4RemoteID":"uint","C4String*":"FLSlice*","FLDoc":"FLDoc*",
-            "C4Timestamp": "long"}
+            "C4Timestamp": "long", "FLMutableArray":"FLMutableArray*", "uint16_t":"ushort", "unsigned*":"uint*"}
 reserved = ["string","params","ref"]
