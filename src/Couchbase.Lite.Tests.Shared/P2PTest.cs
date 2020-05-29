@@ -49,8 +49,7 @@ namespace Test
         const ushort WSPort = 4984;
         const ushort WSSPort = 4985;
 
-        private static int Counter;
-        private Database _otherDB;
+        const string dbName = "otherDb";
 
         URLEndpointListener _listener;
         URLEndpointListenerConfiguration _config;
@@ -60,10 +59,7 @@ namespace Test
         public P2PTest()
 #endif
         {
-            ReopenDB();
-            var nextCounter = Interlocked.Increment(ref Counter);
-            Database.Delete($"otherdb{nextCounter}", Directory);
-            _otherDB = OpenDB($"otherdb{nextCounter}");
+
         }
 
 #if COUCHBASE_ENTERPRISE
@@ -71,7 +67,7 @@ namespace Test
         [Fact]
         public void TestPort()
         {
-            using (var db = new Database("testPort")) {
+            using (var db = new Database(dbName)) {
                 int exCnt = 0;
                 //init a listener
                 _config = new URLEndpointListenerConfiguration(db);
@@ -94,33 +90,38 @@ namespace Test
                     _listener.Port.Should().Be(0, "Listener's port should be 0 because the listener is stopped.");
                 }
             }
+
+            Database.Delete(dbName, Directory);
         }
 
         [Fact]
         public void TestEmptyPort()
         {
             int exCnt = 0;
-            //init a listener
-            _config = new URLEndpointListenerConfiguration(_otherDB);
-            _config.Port = 0;
-            _config.DisableTLS = true;
+            using (var otherDB = new Database(dbName)) {
+                //init a listener
+                _config = new URLEndpointListenerConfiguration(otherDB);
+                _config.Port = 0;
+                _config.DisableTLS = true;
 
-            _listener = new URLEndpointListener(_config);
-            _listener.Port.Should().Be(0, "Listener's port should be 0 because the listener has not yet started.");
+                _listener = new URLEndpointListener(_config);
+                _listener.Port.Should().Be(0, "Listener's port should be 0 because the listener has not yet started.");
 
-            try {
-                //start the listener
-                _listener.Start();
-            } catch {
-                exCnt++;
-            } finally {
-                exCnt.Should().Be(0, "Because listener start should work without exception thrown.");
-                _listener.Port.Should().NotBe(0);
-                //stop the listener
-                _listener.Stop();
-                _listener.Port.Should().Be(0, "Listener's port should be 0 because the listener is stopped.");
+                try {
+                    //start the listener
+                    _listener.Start();
+                } catch {
+                    exCnt++;
+                } finally {
+                    exCnt.Should().Be(0, "Because listener start should work without exception thrown.");
+                    _listener.Port.Should().NotBe(0);
+                    //stop the listener
+                    _listener.Stop();
+                    _listener.Port.Should().Be(0, "Listener's port should be 0 because the listener is stopped.");
+                }
             }
 
+            Database.Delete(dbName, Directory);
         }
 
         [Fact]
@@ -128,42 +129,50 @@ namespace Test
         {
             CouchbasePosixException expectedException = null;
             var listener = ListenerWithTLS(false, null);
-            var config = new URLEndpointListenerConfiguration(_otherDB);
-            config.Port = listener.Config.Port;
-            config.DisableTLS = true;
-            var listener1 = new URLEndpointListener(config);
+            using (var otherDb = new Database(dbName)) {
+                var config = new URLEndpointListenerConfiguration(otherDb);
+                config.Port = listener.Config.Port;
+                config.DisableTLS = true;
+                var listener1 = new URLEndpointListener(config);
 
-            try {
-                listener1.Start();
-            } catch (CouchbasePosixException ex) {
-                expectedException = ex;
-            } finally {
-                listener.Stop();
-                listener1.Stop();
+                try {
+                    listener1.Start();
+                } catch (CouchbasePosixException ex) {
+                    expectedException = ex;
+                } finally {
+                    listener.Stop();
+                    listener1.Stop();
+                }
+
+                expectedException.Domain.Should().Be(CouchbaseLiteErrorType.POSIX);
+                expectedException.Error.Should().Be(PosixBase.GetCode(nameof(PosixWindows.EADDRINUSE)));
             }
 
-            expectedException.Domain.Should().Be(CouchbaseLiteErrorType.POSIX);
-            expectedException.Error.Should().Be(PosixBase.GetCode(nameof(PosixWindows.EADDRINUSE)));
+            Database.Delete(dbName, Directory);
         }
 
         [Fact]
         public void TestUrls()
         {
             int exCnt = 0;
-            var config = new URLEndpointListenerConfiguration(_otherDB);
-            var listener = new URLEndpointListener(config);
-            listener.Urls.Count.Should().Be(0);
-
-            try {
-                listener.Start();
-            } catch {
-                exCnt++;
-            } finally {
-                exCnt.Should().Be(0, "Because listener start should work without exception thrown.");
-                listener.Urls.Count.Should().NotBe(0);
-                listener.Stop();
+            using (var otherDb = new Database(dbName)) {
+                var config = new URLEndpointListenerConfiguration(otherDb);
+                var listener = new URLEndpointListener(config);
                 listener.Urls.Count.Should().Be(0);
+
+                try {
+                    listener.Start();
+                } catch {
+                    exCnt++;
+                } finally {
+                    exCnt.Should().Be(0, "Because listener start should work without exception thrown.");
+                    listener.Urls.Count.Should().NotBe(0);
+                    listener.Stop();
+                    listener.Urls.Count.Should().Be(0);
+                }
             }
+
+            Database.Delete(dbName, Directory);
         }
 
         [Fact]
@@ -173,70 +182,74 @@ namespace Test
             HashSet<ulong> maxConnectionCount = new HashSet<ulong>(),
                 maxActiveCount = new HashSet<ulong>();
 
-            _config = new URLEndpointListenerConfiguration(_otherDB);
-            _config.Port = WSPort;
-            _config.DisableTLS = true;
+            using (var otherDb = new Database(dbName)) {
+                _config = new URLEndpointListenerConfiguration(otherDb);
+                _config.Port = WSPort;
+                _config.DisableTLS = true;
 
-            //init a listener
-            _listener = new URLEndpointListener(_config);
-            _listener.Status.ConnectionCount.Should().Be(0, "Listener's connection count should be 0 because the listener has not yet started.");
-            _listener.Status.ActiveConnectionCount.Should().Be(0, "Listener's active connection count should be 0 because the listener has not yet started.");
+                //init a listener
+                _listener = new URLEndpointListener(_config);
+                _listener.Status.ConnectionCount.Should().Be(0, "Listener's connection count should be 0 because the listener has not yet started.");
+                _listener.Status.ActiveConnectionCount.Should().Be(0, "Listener's active connection count should be 0 because the listener has not yet started.");
 
-            try {
-                //start the listener
-                _listener.Start();
-            } catch {
-                exCnt++;
-            } finally {
-                exCnt.Should().Be(0, "Because listener start should work without exception thrown.");
-                _listener.Status.ConnectionCount.Should().Be(0, "Listener's connection count should be 0 because no client connection has been established.");
-                _listener.Status.ActiveConnectionCount.Should().Be(0, "Listener's active connection count should be 0 because no client connection has been established.");
+                try {
+                    //start the listener
+                    _listener.Start();
+                } catch {
+                    exCnt++;
+                } finally {
+                    exCnt.Should().Be(0, "Because listener start should work without exception thrown.");
+                    _listener.Status.ConnectionCount.Should().Be(0, "Listener's connection count should be 0 because no client connection has been established.");
+                    _listener.Status.ActiveConnectionCount.Should().Be(0, "Listener's active connection count should be 0 because no client connection has been established.");
 
-                using (var doc1 = new MutableDocument("doc1"))
-                using (var doc2 = new MutableDocument("doc2")) {
-                    doc1.SetString("name", "Sam");
-                    Db.Save(doc1);
-                    doc2.SetString("name", "Mary");
-                    _otherDB.Save(doc2);
-                }
-
-                var targetEndpoint = new URLEndpoint(new Uri($"{_listener.Urls[0]}".Replace("http", "ws")));
-                var config = new ReplicatorConfiguration(Db, targetEndpoint);
-                using (var repl = new Replicator(config)) {
-                    var waitAssert = new WaitAssert();
-                    var token = repl.AddChangeListener((sender, args) =>
-                    {
-                        waitAssert.RunConditionalAssert(() =>
-                        {
-                            maxConnectionCount.Add(_listener.Status.ConnectionCount);
-                            maxActiveCount.Add(_listener.Status.ActiveConnectionCount);
-
-                            return args.Status.Activity == ReplicatorActivityLevel.Stopped;
-                        });
-                    });
-
-                    repl.Start();
-                    try {
-                        waitAssert.WaitForResult(TimeSpan.FromSeconds(100));
-                    } finally {
-                        repl.RemoveChangeListener(token);
+                    using (var doc1 = new MutableDocument("doc1"))
+                    using (var doc2 = new MutableDocument("doc2")) {
+                        doc1.SetString("name", "Sam");
+                        Db.Save(doc1);
+                        doc2.SetString("name", "Mary");
+                        otherDb.Save(doc2);
                     }
+
+                    var targetEndpoint = new URLEndpoint(new Uri($"{_listener.Urls[0]}".Replace("http", "ws")));
+                    var config = new ReplicatorConfiguration(Db, targetEndpoint);
+                    using (var repl = new Replicator(config)) {
+                        var waitAssert = new WaitAssert();
+                        var token = repl.AddChangeListener((sender, args) =>
+                        {
+                            waitAssert.RunConditionalAssert(() =>
+                            {
+                                maxConnectionCount.Add(_listener.Status.ConnectionCount);
+                                maxActiveCount.Add(_listener.Status.ActiveConnectionCount);
+
+                                return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                            });
+                        });
+
+                        repl.Start();
+                        try {
+                            waitAssert.WaitForResult(TimeSpan.FromSeconds(100));
+                        } finally {
+                            repl.RemoveChangeListener(token);
+                        }
+                    }
+
+                    maxConnectionCount.Max().Should().Be(1);
+                    maxActiveCount.Max().Should().Be(1);
+
+                    //stop the listener
+                    _listener.Stop();
+                    _listener.Status.ConnectionCount.Should().Be(0, "Listener's connection count should be 0 because the connection is stopped.");
+                    _listener.Status.ActiveConnectionCount.Should().Be(0, "Listener's active connection count should be 0 because the connection is stopped.");
                 }
-
-                maxConnectionCount.Max().Should().Be(1);
-                maxActiveCount.Max().Should().Be(1);
-
-                //stop the listener
-                _listener.Stop();
-                _listener.Status.ConnectionCount.Should().Be(0, "Listener's connection count should be 0 because the connection is stopped.");
-                _listener.Status.ActiveConnectionCount.Should().Be(0, "Listener's active connection count should be 0 because the connection is stopped.");
             }
+
+            Database.Delete(dbName, Directory);
         }
 
         private URLEndpointListener ListenerWithTLS(bool tls, ListenerAuthenticator auth)
         {
             int exCnt = 0;
-            var config = new URLEndpointListenerConfiguration(_otherDB);
+            var config = new URLEndpointListenerConfiguration(Db);
             config.Port = tls ? WSSPort : WSPort;
             config.DisableTLS = !tls;
             config.Authenticator = auth;
@@ -257,34 +270,6 @@ namespace Test
         }
 
 #endif
-
-        protected override void Dispose(bool disposing)
-        {
-            Exception ex = null;
-
-            base.Dispose(disposing);
-            var name = _otherDB?.Name;
-            _otherDB?.Dispose();
-            _otherDB = null;
-
-            var success = Try.Condition(() =>
-            {
-                try {
-                    if (name != null) {
-                        Database.Delete(name, Directory);
-                    }
-                } catch (Exception e) {
-                    ex = e;
-                    return false;
-                }
-
-                return true;
-            }).Times(5).Delay(TimeSpan.FromSeconds(1)).WriteProgress(WriteLine).Go();
-
-            if (!success) {
-                throw ex;
-            }
-        }
 
     }
 }
