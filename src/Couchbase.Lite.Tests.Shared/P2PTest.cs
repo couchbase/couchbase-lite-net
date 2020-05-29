@@ -71,26 +71,28 @@ namespace Test
         [Fact]
         public void TestPort()
         {
-            int exCnt = 0;
-            //init a listener
-            _config = new URLEndpointListenerConfiguration(_otherDB);
-            _config.Port = WSPort;
-            _config.DisableTLS = true;
+            using (var db = new Database("testPort")) {
+                int exCnt = 0;
+                //init a listener
+                _config = new URLEndpointListenerConfiguration(db);
+                _config.Port = WSPort;
+                _config.DisableTLS = true;
 
-            _listener = new URLEndpointListener(_config);
-            _listener.Port.Should().Be(0, "Listener's port should be 0 because the listener has not yet started.");
+                _listener = new URLEndpointListener(_config);
+                _listener.Port.Should().Be(0, "Listener's port should be 0 because the listener has not yet started.");
 
-            try {
-                //start the listener
-                _listener.Start();
-            } catch {
-                exCnt++;
-            } finally {
-                exCnt.Should().Be(0, "Because listener start should work without exception thrown.");
-                _listener.Port.Should().Be(WSPort);
-                //stop the listener
-                _listener.Stop();
-                _listener.Port.Should().Be(0, "Listener's port should be 0 because the listener is stopped.");
+                try {
+                    //start the listener
+                    _listener.Start();
+                } catch {
+                    exCnt++;
+                } finally {
+                    exCnt.Should().Be(0, "Because listener start should work without exception thrown.");
+                    _listener.Port.Should().Be(WSPort);
+                    //stop the listener
+                    _listener.Stop();
+                    _listener.Port.Should().Be(0, "Listener's port should be 0 because the listener is stopped.");
+                }
             }
         }
 
