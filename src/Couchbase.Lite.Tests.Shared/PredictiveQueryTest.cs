@@ -382,6 +382,12 @@ namespace Test
             var input = Expression.Value("string");
             var prediction = Function.Prediction(model, input);
 
+            //Due to possibility of optimization on new SQLite, SQLite skips these expensive query calls if there is no document before running a query.
+            using (var doc = new MutableDocument()) {
+                doc.SetInt("number", 1);
+                SaveDocument(doc);
+            }
+
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction))
                 .From(DataSource.Database(Db))) {
                 q.Invoking(x => x.Execute()).Should().Throw<CouchbaseSQLiteException>()
