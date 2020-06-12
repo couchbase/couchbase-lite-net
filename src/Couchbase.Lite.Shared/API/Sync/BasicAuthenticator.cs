@@ -43,13 +43,19 @@ namespace Couchbase.Lite.Sync
         /// Gets the username that this object holds
         /// </summary>
         [NotNull]
+        public string Username { get; }
+
+        /// <summary>
+        /// Gets the password that this object holds
+        /// </summary>
+        [NotNull]
         public string Password { get; }
 
         /// <summary>
         /// Gets the password that this object holds
         /// </summary>
         [NotNull]
-        public string Username { get; }
+        public byte[] PasswordData { get; }
 
         #endregion
 
@@ -64,6 +70,12 @@ namespace Couchbase.Lite.Sync
         {
             Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
             Password = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(password), password);
+        }
+
+        public BasicAuthenticator([NotNull]string username, [NotNull]byte[] password)
+        {
+            Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
+            PasswordData = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(password), password);
         }
 
         #endregion

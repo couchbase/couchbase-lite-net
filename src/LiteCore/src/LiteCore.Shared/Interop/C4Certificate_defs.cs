@@ -45,19 +45,19 @@ namespace LiteCore.Interop
 
 	internal unsafe struct C4CertNameInfo
     {
-        public C4StringResult id;
-        public C4StringResult value;
+        public FLSlice id;
+        public FLSliceResult value;
     }
 
 	internal unsafe struct C4CertNameComponent
     {
-        public C4CertNameAttributeID attributeID;
+        public FLSlice attributeID;
         public FLSlice value;
     }
 
 	internal unsafe struct C4CertIssuerParameters
     {
-        public unsigned validityInSeconds;
+        public uint validityInSeconds;
         public FLSlice serialNumber;
         public int maxPathLen;
         private byte _isCA;

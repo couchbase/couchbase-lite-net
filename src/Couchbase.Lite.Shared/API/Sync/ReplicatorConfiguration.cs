@@ -118,8 +118,13 @@ namespace Couchbase.Lite.Sync
         private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
         private C4SocketFactory _socketFactory;
         private IConflictResolver _resolver;
+        #if COUCHBASE_ENTERPRISE
+        private C4ReplicatorServerCertVerificationMode _serverCertificateVerificationMode 
+            = C4ReplicatorServerCertVerificationMode.ServerCertCACert;
+        private X509Certificate2 _serverCertificate;
+        #endif
 
-        #endregion
+#endregion
 
         #region Properties
 
@@ -278,8 +283,30 @@ namespace Couchbase.Lite.Sync
             get => _socketFactory.open != IntPtr.Zero ? _socketFactory : LiteCore.Interop.SocketFactory.InternalFactory;
             set => _freezer.SetValue(ref _socketFactory, value);
         }
-        
-        #endregion
+
+        #if COUCHBASE_ENTERPRISE
+        /// <summary>
+        /// This property specifies how the replicator will verify the server identity when using TLS communication.
+        /// </summary>
+        internal C4ReplicatorServerCertVerificationMode ServerCertificateVerificationMode
+        {
+            get => _serverCertificateVerificationMode;
+            set => _freezer.SetValue(ref _serverCertificateVerificationMode, value);
+        }
+
+        /// <summary>
+        /// This property allows the developer to know what the current server certificate is when using TLS communication. 
+        /// The developer could save the certificate and pin the certificate next time when setting up the replicator to 
+        /// provide an SSH type of authentication.
+        /// </summary>
+        internal X509Certificate2 ServerCertificate
+        {
+            get => _serverCertificate;
+            set => _freezer.SetValue(ref _serverCertificate, value);
+        }
+        #endif
+
+#endregion
 
         #region Constructors
 
