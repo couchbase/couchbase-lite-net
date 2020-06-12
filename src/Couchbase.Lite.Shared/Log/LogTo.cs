@@ -246,6 +246,9 @@ namespace Couchbase.Lite.Internal.Logging
         [NotNull]
         internal DomainLogger Sync => _allLoggers[2];
 
+        [NotNull]
+        internal DomainLogger Listener => _allLoggers[3];
+
         #endregion
 
         #region Constructors
@@ -254,14 +257,20 @@ namespace Couchbase.Lite.Internal.Logging
         {
             var domainStrings = new[] {
                 "DB", "Query", "Sync"
+                #if COUCHBASE_ENTERPRISE
+                , "Listener"
+                #endif
             };
 
             var domains = new[] {
                 LogDomain.Database, LogDomain.Query, LogDomain.Replicator
+                #if COUCHBASE_ENTERPRISE
+                , LogDomain.Listener
+                #endif
             };
 
             _allLoggers = new DomainLogger[domains.Length];
-            for(int i = 0; i < 3; i++) {
+            for(int i = 0; i < domainStrings.Length; i++) {
                 CreateAndAddLogger(domainStrings[i], domains[i], i);
             }
         }

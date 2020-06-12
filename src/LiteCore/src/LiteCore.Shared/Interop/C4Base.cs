@@ -38,6 +38,10 @@ namespace LiteCore.Interop
 
         public static void c4query_release(C4Query* query) => c4base_release(query);
 
+        public static void c4cert_release(C4Cert* cert) => c4base_release(cert);
+
+        public static void* c4cert_retain(C4Cert* cert) => c4base_retain(cert);
+
         public static void FLSliceResult_Release(FLSliceResult flSliceResult) => _FLBuf_Release(flSliceResult.buf);
     }
 
