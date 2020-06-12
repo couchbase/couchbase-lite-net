@@ -39,7 +39,11 @@ namespace Couchbase.Lite.Logging
         /// Gets all the logging interfaces so logic can be applied to
         /// all of them
         /// </summary>
-        All = Couchbase | Database | Query | Replicator | Network,
+        All = Couchbase | Database | Query | Replicator | Network
+        #if COUCHBASE_ENTERPRISE
+        | Listener
+        #endif
+            ,
 
 		/// <summary>
 		/// Internal Use Only, has no effect from the outside
@@ -66,19 +70,26 @@ namespace Couchbase.Lite.Logging
 		Replicator = 1 << 3,
 
         /// <summary>
-        /// Gest the logging domain for network related logging (web socket connections,
+        /// Gets the logging domain for network related logging (web socket connections,
         /// BLIP protocol, etc)
         /// </summary>
-        Network = 1 << 4
+        Network = 1 << 4,
+
+        #if COUCHBASE_ENTERPRISE
+        /// <summary>
+        /// Gets the logging domain for P2P Listener
+        /// </summary>
+        Listener = 1 << 5
+        #endif
 
         #endregion
     }
 
-	/// <summary>
-	/// Defines the Couchbase Lite log verbosity levels.  The default level is
-	/// <see cref="Warning"/>.
-	/// </summary>
-	public enum LogLevel
+    /// <summary>
+    /// Defines the Couchbase Lite log verbosity levels.  The default level is
+    /// <see cref="Warning"/>.
+    /// </summary>
+    public enum LogLevel
 	{
 		/// <summary>
 		/// Debug log messages, only present in debug builds.  Information useful for
