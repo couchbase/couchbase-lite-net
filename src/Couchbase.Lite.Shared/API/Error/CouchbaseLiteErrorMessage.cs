@@ -61,6 +61,11 @@ namespace Couchbase.Lite
         internal const string NoDocEditInReplicationFilter = "Documents from a replication filter cannot be edited.";
         internal const string PullOnlyPendingDocIDs = "Pending Document IDs are not supported on pull-only replicators.";
         internal const string ReadOnlyObject = "This configuration object is readonly.";
+        internal const string IdentityNotFound = "The identity is not present in the {0}";
+        internal const string FailToConvertC4Cert = "Couldn't convert from C4Cert to {0} Array: {1}";
+        internal const string DuplicateCertificate = "Certificate already exists with the label";
+        internal const string MissingCommonName = "The Common Name attribute is required";
+        internal const string FailToRemoveKeyPair = "Couldn't remove a keypair with error: {0}";
     }
 }
 
