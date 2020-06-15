@@ -183,6 +183,16 @@ namespace Couchbase.Lite.Fleece
 
                 _vec.AddRange(Enumerable.Repeat(MValue.Empty, newSize - count));
             }
+
+            if (IsMutable) {
+                for (int i = 0; i < _vec.Count; i++) {
+                    var v = _vec[i];
+                    if (v.IsEmpty) {
+                        var val = Native.FLArray_Get(_flArr, (uint) i);
+                        _vec[i] = new MValue(FLSliceExtensions.ToObject(val));
+                    }
+                }
+            }
         }
 
         private void SetValue(int index, object val, bool isInserting = false)
