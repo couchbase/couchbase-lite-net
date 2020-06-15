@@ -2078,6 +2078,7 @@ namespace Test
             _config = new URLEndpointListenerConfiguration(_otherDB);
             _config.Port = WSPort;
             _config.DisableTLS = true;
+            _config.Authenticator = null;
 
             //init a listener
             _listener = new URLEndpointListener(_config);
@@ -2135,7 +2136,7 @@ namespace Test
             }
         }
 
-        private URLEndpointListener ListenerWithTLS(bool tls, ListenerAuthenticator auth)
+        private URLEndpointListener ListenerWithTLS(bool tls, IListenerAuthenticator auth)
         {
             int exCnt = 0;
             var config = new URLEndpointListenerConfiguration(Db);
