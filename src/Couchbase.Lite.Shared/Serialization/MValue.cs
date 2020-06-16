@@ -127,7 +127,8 @@ namespace Couchbase.Lite.Internal.Serialization
             switch (type) {
                 case FLValueType.Array:
                     cache = true;
-                    return parent?.MutableChildren == true ? new MutableArrayObject(mv, parent) 
+                    return parent?.MutableChildren == true 
+                        ? new MutableArrayObject(mv, parent) 
                         : new ArrayObject(mv, parent);
                 case FLValueType.Dict:
                     cache = true;

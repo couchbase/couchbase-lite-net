@@ -1231,6 +1231,41 @@ namespace Test
         }
 
         [Fact]
+        public void TestGetArrayAfterDbSave()
+        {
+            using (var doc = new MutableDocument("doc1")) {
+                var phones = new MutableArrayObject();
+                phones.AddString("650-000-0001").AddString("650-000-0002");
+                doc.SetArray("mobile", phones);
+                SaveDocument(doc);
+            }
+
+            using (var doc1 = Db.GetDocument("doc1"))
+            using (var mDoc1 = doc1.ToMutable()) {
+                var phones1 = mDoc1.GetArray("mobile");
+                for (int i = 0; i < phones1.Count; i++) {
+                    if (i == 0)
+                        phones1[i].ToString().Should().Be("650-000-0001");
+                    if (i == 1)
+                        phones1[i].ToString().Should().Be("650-000-0002");
+                }
+
+                phones1.AddString("650-000-0003");
+                phones1.GetString(0).Should().Be("650-000-0001");
+                phones1.GetString(1).Should().Be("650-000-0002");
+                SaveDocument(mDoc1);
+            }
+
+            using (var doc2 = Db.GetDocument("doc1"))
+            using (var mDoc2 = doc2.ToMutable()) {
+                mDoc2.GetArray("mobile")
+                .Should()
+                .ContainInOrder(new[] { "650-000-0001", "650-000-0002", "650-000-0003" },
+                    "because both arrays should receive the update");
+            }
+        }
+
+        [Fact]
         public void TestCount()
         {
             var doc = new MutableDocument("doc1");
