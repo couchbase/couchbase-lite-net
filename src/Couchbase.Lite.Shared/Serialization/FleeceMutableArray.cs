@@ -330,7 +330,7 @@ namespace Couchbase.Lite.Fleece
                     if (item.IsEmpty) {
                         Native.FLEncoder_WriteValue(enc, Native.FLArray_Get((FLArray*)_flArr, (uint)i));
                     } else {
-                        item.NativeObject.FLEncode(enc);
+                        item.FLEncode(enc);
                     }
                 }
 

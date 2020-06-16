@@ -139,7 +139,7 @@ namespace Couchbase.Lite
                 _dict.Clear();
                 if (dictionary != null) {
                     foreach (var item in dictionary) {
-                        _dict.Set(item.Key, new MValue(DataOps.ToCouchbaseObject(item.Value)));
+                        _dict.Set(item.Key, new MValue(item.Value));
                     }
                 }
 
