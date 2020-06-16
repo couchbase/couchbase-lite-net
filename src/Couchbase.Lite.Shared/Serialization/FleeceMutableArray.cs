@@ -183,10 +183,6 @@ namespace Couchbase.Lite.Fleece
 
                 _vec.AddRange(Enumerable.Repeat(MValue.Empty, newSize - count));
             }
-
-            if (IsMutable) {
-                PopulateArr();
-            }
         }
 
         private void SetValue(int index, object val, bool isInserting = false)
@@ -337,7 +333,7 @@ namespace Couchbase.Lite.Fleece
                     if (item.IsEmpty) {
                         Native.FLEncoder_WriteValue(enc, Native.FLArray_Get(_flArr, (uint)i));
                     } else {
-                        item.NativeObject.FLEncode(enc);
+                        item.FLEncode(enc);
                     }
                 }
 
