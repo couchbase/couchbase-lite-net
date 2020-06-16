@@ -162,7 +162,7 @@ namespace Couchbase.Lite.Fleece
                 var v = _vec[i];
                 if (v.IsEmpty) {
                     var val = Native.FLArray_Get(_flArr, (uint)i);
-                    _vec[i] = new MValue(val);
+                    _vec[i] = new MValue(FLSliceExtensions.ToObject(val));
                 }
             }
         }
@@ -185,13 +185,7 @@ namespace Couchbase.Lite.Fleece
             }
 
             if (IsMutable) {
-                for (int i = 0; i < _vec.Count; i++) {
-                    var v = _vec[i];
-                    if (v.IsEmpty) {
-                        var val = Native.FLArray_Get(_flArr, (uint) i);
-                        _vec[i] = new MValue(FLSliceExtensions.ToObject(val));
-                    }
-                }
+                PopulateArr();
             }
         }
 
