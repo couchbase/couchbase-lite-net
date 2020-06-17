@@ -73,6 +73,27 @@ namespace Couchbase.Lite
     }
 
     /// <summary>
+    /// Maintenance Type used when performing database maintenance .
+    /// </summary>
+    public enum MaintenanceType
+    {
+        /// <summary>
+        /// Compact the database file and delete unused attachments.
+        /// </summary>
+        Compact,
+
+        /// <summary>
+        /// [VOLATILE] Rebuild the entire database's indexes.
+        /// </summary>
+        Reindex,
+
+        /// <summary>
+        /// [VOLATILE] Check for the database’s corruption. If found, an error will be returned.
+        /// </summary>
+        IntegrityCheck
+    }
+
+    /// <summary>
     /// A Couchbase Lite database.  This class is responsible for CRUD operations revolving around
     /// <see cref="Document"/> instances.  It is portable between platforms if the file is retrieved,
     /// and can be seeded with pre-populated data if desired.
@@ -504,11 +525,25 @@ namespace Couchbase.Lite
         public void Close() => Dispose();
 
         /// <summary>
-        /// Compacts the database file by deleting unused attachment files and vacuuming
+        /// Performs database maintenance.
+        /// </summary>
+        /// <param name="type">Maintenance type</param>
+        public void PerformMaintenance(MaintenanceType type)
+        {
+            ThreadSafety.DoLockedBridge(err =>
+            {
+                CheckOpen();
+                return Native.c4db_maintenance(_c4db, (C4MaintenanceType) type, err);
+            });
+        }
+
+        /// <summary>
+        /// [DEPRECATED] Compacts the database file by deleting unused attachment files and vacuuming
         /// the SQLite database
         /// </summary>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        [Obsolete("This method deprecated, please use PerformMaintenance(MaintenanceType type) to compact the database file.")]
         public void Compact()
         {
             ThreadSafety.DoLockedBridge(err =>

@@ -112,6 +112,10 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4db_maintenance(C4Database* database, C4MaintenanceType type, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_compact(C4Database* database, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
