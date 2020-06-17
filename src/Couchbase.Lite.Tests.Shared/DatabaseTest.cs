@@ -1074,6 +1074,121 @@ namespace Test
         }
 
         [Fact]
+        public void TestPerformMaintenanceCompact()
+        {
+            var docs = CreateDocs(20);
+
+            Db.InBatch(() =>
+            {
+                foreach (var doc in docs) {
+                    var docToUse = doc;
+                    for (int i = 0; i < 25; i++) {
+                        var mDoc = docToUse.ToMutable();
+                        mDoc.SetInt("number", i);
+                        SaveDocument(mDoc);
+                    };
+                }
+            });
+
+            foreach (var doc in docs) {
+                var content = Encoding.UTF8.GetBytes(doc.Id);
+                var blob = new Blob("text/plain", content);
+                var mDoc = doc.ToMutable();
+                mDoc.SetBlob("blob", blob);
+                SaveDocument(mDoc);
+            }
+
+            Db.Count.Should().Be(20, "because that is the number of documents that were added");
+
+            var attsDir = new DirectoryInfo(Path.Combine(Db.Path, "Attachments"));
+            var atts = attsDir.EnumerateFiles();
+            atts.Should().HaveCount(20, "because there should be one blob per document");
+
+            Db.PerformMaintenance(MaintenanceType.Compact);
+
+            foreach (var doc in docs) {
+                var savedDoc = Db.GetDocument(doc.Id);
+                Db.Delete(savedDoc);
+                Db.GetDocument(savedDoc.Id).Should().BeNull("because the document was just deleted");
+            }
+
+            Db.Count.Should().Be(0, "because all documents were deleted");
+            Db.PerformMaintenance(MaintenanceType.Compact);
+
+            atts = attsDir.EnumerateFiles();
+            atts.Should().BeEmpty("because the blobs should be collected by the compaction");
+        }
+
+        [Fact]
+        public void TestPerformMaintenanceReindex()
+        {
+            var docs = CreateDocs(20);
+
+            // Reindex when there is no index
+            Db.PerformMaintenance(MaintenanceType.Reindex);
+
+            //Create an index
+            var key = Expression.Property("key");
+            var keyItem = ValueIndexItem.Expression(key);
+            var keyIndex = IndexBuilder.ValueIndex(keyItem);
+            Db.CreateIndex("KeyIndex", keyIndex);
+            Db.GetIndexes().Count.Should().Be(1);
+
+            var q = QueryBuilder.Select(SelectResult.Expression(key))
+                .From(DataSource.Database(Db))
+                .Where(key.GreaterThan(Expression.Int(9)));
+            q.Explain().Contains("USING INDEX KeyIndex").Should().BeTrue();
+
+            //Reindex
+            Db.PerformMaintenance(MaintenanceType.Reindex);
+
+            //Check if the index is still there and used
+            Db.GetIndexes().Count.Should().Be(1);
+            q.Explain().Contains("USING INDEX KeyIndex").Should().BeTrue();
+        }
+
+        [Fact]
+        public void TestPerformMaintenanceIntegrityCheck()
+        {
+            var docs = CreateDocs(20);
+
+            // Update each doc 25 times
+            Db.InBatch(() =>
+            {
+                foreach (var doc in docs) {
+                    var docToUse = doc;
+                    for (int i = 0; i < 25; i++) {
+                        var mDoc = docToUse.ToMutable();
+                        mDoc.SetInt("number", i);
+                        SaveDocument(mDoc);
+                    };
+                }
+            });
+
+            // Add each doc with a blob object
+            foreach (var doc in docs) {
+                var content = Encoding.UTF8.GetBytes(doc.Id);
+                var blob = new Blob("text/plain", content);
+                var mDoc = doc.ToMutable();
+                mDoc.SetBlob("blob", blob);
+                SaveDocument(mDoc);
+            }
+
+            Db.Count.Should().Be(20, "because that is the number of documents that were added");
+
+            // Integrity Check
+            Db.PerformMaintenance(MaintenanceType.IntegrityCheck);
+
+            foreach (var doc in docs) {
+                Db.Delete(doc);
+            }
+
+            Db.Count.Should().Be(0);
+            // Integrity Check
+            Db.PerformMaintenance(MaintenanceType.IntegrityCheck);
+        }
+
+        [Fact]
         public void TestCreateConfiguration()
         {
             var builder1 = new DatabaseConfiguration();
