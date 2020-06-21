@@ -45,7 +45,7 @@ namespace LiteCore.Interop
         public static extern bool c4listener_unshareDB(C4Listener* listener, C4Database* db, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLMutableArray* c4listener_getURLs(C4Listener* listener, C4Database* db);
+        public static extern FLMutableArray* c4listener_getURLs(C4Listener* listener, C4Database* db, C4ListenerAPIs api, C4Error* err);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern ushort c4listener_getPort(C4Listener* listener);

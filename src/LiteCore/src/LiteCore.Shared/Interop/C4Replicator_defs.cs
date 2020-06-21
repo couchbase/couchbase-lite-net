@@ -44,6 +44,12 @@ namespace LiteCore.Interop
         Stopping,   //Stopping or going offline
     }     
 
+    internal enum C4ReplicatorServerCertVerificationMode : int
+    {
+        ServerCertCACert = 0,
+        ServerCertSelfSigned
+    }
+
     [Flags]
     internal enum C4ReplicatorStatusFlags : int
     {

@@ -45,7 +45,7 @@ namespace LiteCore.Interop
 
 	internal unsafe struct C4CertNameInfo
     {
-        public C4CertNameAttributeID id;
+        public C4StringResult id;
         public C4StringResult value;
     }
 
