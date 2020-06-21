@@ -218,9 +218,14 @@ namespace Couchbase.Lite
                 ThreadSafety.DoLocked(() =>
                 {
                     CheckOpen();
-                    C4UUID* publicUUID = null;
-                    LiteCoreBridge.Check(err => Native.c4db_getUUIDs(_c4db, publicUUID, null, err));
-                    retVal = Native.FLSlice_Copy(new FLSlice(publicUUID->bytes, (ulong) C4UUID.Size));
+                    var publicUUID = new C4UUID();
+                    C4Error err;
+                    var uuidSuccess = Native.c4db_getUUIDs(_c4db, &publicUUID, null, &err);
+                    if (!uuidSuccess) {
+                        throw CouchbaseException.Create(err);
+                    }
+                    
+                    retVal = Native.FLSlice_Copy(new FLSlice(publicUUID.bytes, (ulong) C4UUID.Size));
                 });
 
                 return retVal;

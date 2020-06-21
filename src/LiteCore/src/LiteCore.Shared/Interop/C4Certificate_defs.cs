@@ -45,7 +45,7 @@ namespace LiteCore.Interop
 
 	internal unsafe struct C4CertNameInfo
     {
-        public FLSlice id;
+        public FLSliceResult id;
         public FLSliceResult value;
     }
 

@@ -541,10 +541,36 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestPasswordAuthenticator()
+        {
+            var auth = new ListenerPasswordAuthenticator((sender, username, password) =>
+            {
+                return username == "daniel" && Encoding.Unicode.GetString(password) == "123";
+            });
+
+            _listener = ListenerWithTLS(false, auth);
+
+            // Replicator - No authenticator
+            var targetEndpoint = new URLEndpoint(new Uri($"{_listener.Urls[0]}".Replace("http", "ws")));
+            var config = new ReplicatorConfiguration(Db, targetEndpoint);
+            RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
+
+            // Replicator - Wrong Credentials
+            config.Authenticator = new BasicAuthenticator("daniel", "456");
+            RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
+
+            // Replicator - Success
+            config.Authenticator = new BasicAuthenticator("daniel", "123");
+            RunReplication(config, 0, 0);
+
+            _listener.Stop();
+        }
+
         private URLEndpointListener ListenerWithTLS(bool tls, IListenerAuthenticator auth)
         {
             int exCnt = 0;
-            var config = new URLEndpointListenerConfiguration(Db);
+            var config = new URLEndpointListenerConfiguration(_otherDB);
             config.Port = tls ? WSSPort : WSPort;
             config.DisableTLS = !tls;
             config.Authenticator = auth;
