@@ -1,4 +1,5 @@
-﻿Push-Location $PSScriptRoot
+﻿[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bOR [Net.SecurityProtocolType]::Tls12
+Push-Location $PSScriptRoot
 Remove-Item *.nupkg
 if(-Not (Test-Path ..\..\nuget.exe)) {
     Invoke-WebRequest https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile ..\..\nuget.exe
