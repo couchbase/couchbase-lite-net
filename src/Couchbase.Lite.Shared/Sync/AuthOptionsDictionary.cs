@@ -72,6 +72,16 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
+        /// Gets or sets the password for the credentials (not applicable in all cases)
+        /// </summary>
+        [CanBeNull]
+        public byte[] PasswordData
+        {
+            get => this[PasswordKey] as byte[];
+            set => this[PasswordKey] = value;
+        }
+
+        /// <summary>
         /// Gets or sets the type of authentication to be used
         /// </summary>
         public AuthType Type

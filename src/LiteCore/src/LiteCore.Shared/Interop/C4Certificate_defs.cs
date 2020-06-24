@@ -43,6 +43,17 @@ namespace LiteCore.Interop
         RSA,
     }
 
+    internal enum C4SignatureDigestAlgorithm : int
+    {
+        SignatureDigestNone = 0,
+        SignatureDigestSHA1 = 4,
+        SignatureDigestSHA224,
+        SignatureDigestSHA256,
+        SignatureDigestSHA384,
+        SignatureDigestSHA512,
+        SignatureDigestRIPEMD160,
+    }
+
 	internal unsafe struct C4CertNameInfo
     {
         public FLSliceResult id;
@@ -104,5 +115,13 @@ namespace LiteCore.Interop
                 _addBasicConstraints = Convert.ToByte(value);
             }
         }
+    }
+
+    internal unsafe struct C4ExternalKeyCallbacks
+    {
+        public IntPtr publicKeyData;
+        public IntPtr decrypt;
+        public IntPtr sign;
+        public IntPtr free;
     }
 }

@@ -54,7 +54,10 @@ def parse_enum(filename):
             if definition:
                 in_enum = 1
                 current_name = definition.group(3)
-                name_to_type[current_name] = type_map[definition.group(2)]
+                if definition.group(2) in type_map:
+                    name_to_type[current_name] = type_map[definition.group(2)]
+                else:
+                    name_to_type[current_name] = definition.group(2)
                 if definition.group(1) == "OPTIONS":
                     flags.append(current_name)
             elif re.match(r'\s*typedef enum {', line):
