@@ -55,6 +55,15 @@ namespace LiteCore.Interop
             }
         }
 
+        public static string c4cert_subjectNameComponent(C4Cert* x, byte[] y)
+        {
+            fixed(byte *y_ = y) {
+                using(var retVal = NativeRaw.c4cert_subjectNameComponent(x, new FLSlice(y_, (ulong)y.Length))) {
+                    return ((FLSlice)retVal).CreateString();
+                }
+            }
+        }
+
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4cert_subjectNameAtIndex(C4Cert* cert, uint index, C4CertNameInfo* outInfo);
@@ -90,6 +99,13 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4cert_isSigned(C4Cert* x);
+
+        public static bool c4cert_sendSigningRequest(C4Cert* certRequest, C4Address address, byte[] optionsDictFleece, C4CertSigningCallback callback, void* context, C4Error* outError)
+        {
+            fixed(byte *optionsDictFleece_ = optionsDictFleece) {
+                return NativeRaw.c4cert_sendSigningRequest(certRequest, address, new FLSlice(optionsDictFleece_, optionsDictFleece == null ? 0 : (ulong)optionsDictFleece.Length), callback, context, outError);
+            }
+        }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Cert* c4cert_signRequest(C4Cert* certRequest, C4CertIssuerParameters* @params, C4KeyPair* issuerPrivateKey, C4Cert* issuerCert, C4Error* outError);
@@ -146,10 +162,17 @@ namespace LiteCore.Interop
         public static extern FLSliceResult c4cert_subjectName(C4Cert* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4cert_subjectNameComponent(C4Cert* x, FLSlice y);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Cert* c4cert_createRequest(C4CertNameComponent* nameComponents, UIntPtr nameCount, C4CertUsage certUsages, C4KeyPair* subjectKey, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Cert* c4cert_requestFromData(FLSlice certRequestData, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4cert_sendSigningRequest(C4Cert* certRequest, C4Address address, FLSlice optionsDictFleece, C4CertSigningCallback callback, void* context, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult c4cert_copyChainData(C4Cert* x);

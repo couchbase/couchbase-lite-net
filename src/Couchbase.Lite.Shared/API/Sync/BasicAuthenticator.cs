@@ -46,8 +46,9 @@ namespace Couchbase.Lite.Sync
         public string Username { get; }
 
         /// <summary>
-        /// Gets the password that this object holds
+        /// [DEPRECATED] Gets the password that this object holds
         /// </summary>
+        /// [Obsolete("This property is deprecated, please use byte[] PasswordData instead.")]
         [NotNull]
         public string Password { get; }
 
@@ -62,16 +63,22 @@ namespace Couchbase.Lite.Sync
         #region Constructors
 
         /// <summary>
-        /// Constructor
+        /// [DEPRECATED] Constructor
         /// </summary>
         /// <param name="username">The username to send through HTTP Basic authentication</param>
         /// <param name="password">The password to send through HTTP Basic authentication</param>
+        /// [Obsolete("This constructor is deprecated, please use BasicAuthenticator([NotNull]string username, [NotNull]byte[] password) instead.")]
         public BasicAuthenticator([NotNull]string username, [NotNull]string password)
         {
             Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
             Password = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(password), password);
         }
 
+        /// <summary>
+        /// Construct a basic authenticator with username and password
+        /// </summary>
+        /// <param name="username">The username to send through HTTP Basic authentication</param>
+        /// <param name="password">The password to send through HTTP Basic authentication</param>
         public BasicAuthenticator([NotNull]string username, [NotNull]byte[] password)
         {
             Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
