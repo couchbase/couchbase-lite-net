@@ -950,6 +950,51 @@ namespace Test
             }
         }
 
+        // Verify fix of CBL-1107 Fix bad interpretation of '$' properties
+        [Fact]
+        public void TestQueryDocumentWithDollarSign()
+        {
+            var prod1 = new MutableDocument("doc1");
+            prod1.SetString("$type", "book")
+                .SetString("$description", "about cats")
+                .SetString("$price", "$100");
+
+            var prod2 = new MutableDocument("doc2");
+            prod2.SetString("$type", "book")
+                .SetString("$description", "about dogs")
+                .SetString("$price", "$95");
+
+            var prod3 = new MutableDocument("doc3");
+            prod3.SetString("$type", "animal")
+                .SetString("$description", "puppy")
+                .SetString("$price", "$195");
+
+            Db.Save(prod1);
+            Db.Save(prod2);
+            Db.Save(prod3);
+
+            int bookPriceLessThan100Cnt = 0;
+            int totalBooksCnt = 0;
+
+            using (var q = QueryBuilder.Select(DocID, 
+                    SelectResult.Expression(Expression.Property("$type")),
+                    SelectResult.Expression(Expression.Property("$price")))
+                .From(DataSource.Database(Db))
+                .Where(Expression.Property("$type").EqualTo(Expression.String("book")))) {
+
+                var res = q.Execute();
+                foreach (var r in res) {
+                    totalBooksCnt++;
+                    var p = r.GetString("$price").Remove(0, 1);
+                    if (Convert.ToInt32(p) < 100)
+                        bookPriceLessThan100Cnt++;
+                }
+            }
+
+            totalBooksCnt.Should().Be(2);
+            bookPriceLessThan100Cnt.Should().Be(1);
+        }
+
         [Fact]
         public void TestMeta()
         {
