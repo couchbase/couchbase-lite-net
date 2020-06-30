@@ -23,6 +23,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -77,6 +78,9 @@ namespace Couchbase.Lite.Sync
         private C4Replicator* _repl;
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
         private IImmutableSet<string> _pendingDocIds;
+        #if COUCHBASE_ENTERPRISE
+        private X509Certificate2 _serverCertificate;
+        #endif
 
         #endregion
 
@@ -94,6 +98,15 @@ namespace Couchbase.Lite.Sync
         public ReplicatorStatus Status { get; set; }
 
         internal SerialQueue DispatchQueue { get; } = new SerialQueue();
+
+        #if COUCHBASE_ENTERPRISE
+        /// <summary>
+        /// This property allows the developer to know what the current server certificate is when using TLS communication. 
+        /// The developer could save the certificate and pin the certificate next time when setting up the replicator to 
+        /// provide an SSH type of authentication.
+        /// </summary>
+        internal X509Certificate2 ServerCertificate { get; }
+        #endif
 
         #endregion
 
