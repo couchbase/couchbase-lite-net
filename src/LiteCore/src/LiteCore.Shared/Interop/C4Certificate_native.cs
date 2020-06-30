@@ -137,12 +137,61 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4KeyPair* c4keypair_generate(C4KeyPairAlgorithm algorithm, uint sizeInBits, [MarshalAs(UnmanagedType.U1)]bool persistent, C4Error* outError);
 
+        public static C4KeyPair* c4keypair_fromPublicKeyData(byte[] publicKeyData, C4Error* outError)
+        {
+            fixed(byte *publicKeyData_ = publicKeyData) {
+                return NativeRaw.c4keypair_fromPublicKeyData(new FLSlice(publicKeyData_, publicKeyData == null ? 0 : (ulong)publicKeyData.Length), outError);
+            }
+        }
+
+        public static C4KeyPair* c4keypair_fromPrivateKeyData(byte[] privateKeyData, byte[] passwordOrNull, C4Error* outError)
+        {
+            fixed(byte *privateKeyData_ = privateKeyData)
+            fixed(byte *passwordOrNull_ = passwordOrNull) {
+                return NativeRaw.c4keypair_fromPrivateKeyData(new FLSlice(privateKeyData_, privateKeyData == null ? 0 : (ulong)privateKeyData.Length), new FLSlice(passwordOrNull_, passwordOrNull == null ? 0 : (ulong)passwordOrNull.Length), outError);
+            }
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4keypair_hasPrivateKey(C4KeyPair* x);
+
+        public static byte[] c4keypair_publicKeyDigest(C4KeyPair* x)
+        {
+            using(var retVal = NativeRaw.c4keypair_publicKeyDigest(x)) {
+                return ((FLSlice)retVal).ToArrayFast();
+            }
+        }
+
+        public static byte[] c4keypair_publicKeyData(C4KeyPair* x)
+        {
+            using(var retVal = NativeRaw.c4keypair_publicKeyData(x)) {
+                return ((FLSlice)retVal).ToArrayFast();
+            }
+        }
+
+        public static byte[] c4keypair_privateKeyData(C4KeyPair* x)
+        {
+            using(var retVal = NativeRaw.c4keypair_privateKeyData(x)) {
+                return ((FLSlice)retVal).ToArrayFast();
+            }
+        }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4keypair_isPersistent(C4KeyPair* x);
+
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4KeyPair* c4keypair_persistentWithPublicKey(C4KeyPair* x, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4keypair_removePersistent(C4KeyPair* x, C4Error* outError);
+
+        public static C4KeyPair* c4keypair_fromExternal(C4KeyPairAlgorithm algorithm, ulong keySizeInBits, void* externalKey, C4ExternalKeyCallbacks callbacks, C4Error* outError)
+        {
+            return NativeRaw.c4keypair_fromExternal(algorithm, (UIntPtr)keySizeInBits, externalKey, callbacks, outError);
+        }
 
 
     }
@@ -183,6 +232,24 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Cert* c4cert_load(FLSlice name, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4KeyPair* c4keypair_fromPublicKeyData(FLSlice publicKeyData, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4KeyPair* c4keypair_fromPrivateKeyData(FLSlice privateKeyData, FLSlice passwordOrNull, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4keypair_publicKeyDigest(C4KeyPair* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4keypair_publicKeyData(C4KeyPair* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4keypair_privateKeyData(C4KeyPair* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4KeyPair* c4keypair_fromExternal(C4KeyPairAlgorithm algorithm, UIntPtr keySizeInBits, void* externalKey, C4ExternalKeyCallbacks callbacks, C4Error* outError);
 
 
     }

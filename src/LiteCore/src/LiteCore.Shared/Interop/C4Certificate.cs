@@ -215,6 +215,7 @@ namespace LiteCore.Interop
 
         public CertIssuerParameters()
         {
+            // Default Cert Issuer Parameters
             _c4CertIssuerParams.validityInSeconds = OneYearInSec;
             _c4CertIssuerParams.serialNumber = new C4String("1").AsFLSlice();
             _c4CertIssuerParams.maxPathLen = -1;
