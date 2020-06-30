@@ -119,9 +119,7 @@ namespace Couchbase.Lite.Sync
         private C4SocketFactory _socketFactory;
         private IConflictResolver _resolver;
         #if COUCHBASE_ENTERPRISE
-        private C4ReplicatorServerCertVerificationMode _serverCertificateVerificationMode 
-            = C4ReplicatorServerCertVerificationMode.ServerCertCACert;
-        private X509Certificate2 _serverCertificate;
+        private bool _onlySelfSignedServerCert;
         #endif
 
 #endregion
@@ -286,23 +284,14 @@ namespace Couchbase.Lite.Sync
 
         #if COUCHBASE_ENTERPRISE
         /// <summary>
-        /// This property specifies how the replicator will verify the server identity when using TLS communication.
+        /// When the property is set to true, the replicator will accept only self-signed server certificates and 
+        /// reject non-self-sign server certificates. The default value is false which means that the replicator 
+        /// will verify the server certificates with the system root certificates.
         /// </summary>
-        internal C4ReplicatorServerCertVerificationMode ServerCertificateVerificationMode
+        internal bool OnlySelfSignedServerCert
         {
-            get => _serverCertificateVerificationMode;
-            set => _freezer.SetValue(ref _serverCertificateVerificationMode, value);
-        }
-
-        /// <summary>
-        /// This property allows the developer to know what the current server certificate is when using TLS communication. 
-        /// The developer could save the certificate and pin the certificate next time when setting up the replicator to 
-        /// provide an SSH type of authentication.
-        /// </summary>
-        internal X509Certificate2 ServerCertificate
-        {
-            get => _serverCertificate;
-            set => _freezer.SetValue(ref _serverCertificate, value);
+            get => _onlySelfSignedServerCert;
+            set => _freezer.SetValue(ref _onlySelfSignedServerCert, value);
         }
         #endif
 

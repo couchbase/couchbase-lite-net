@@ -42,12 +42,6 @@ namespace LiteCore.Interop
         Busy,       //Connected and actively working.
         /* INTERNAL STATES */
         Stopping,   //Stopping or going offline
-    }     
-
-    internal enum C4ReplicatorServerCertVerificationMode : int
-    {
-        ServerCertCACert = 0,
-        ServerCertSelfSigned
     }
 
     [Flags]
