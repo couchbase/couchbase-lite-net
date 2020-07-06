@@ -325,6 +325,9 @@ namespace Couchbase.Lite.Sync
             var retVal = new ReplicatorConfiguration(Database, Target)
             {
                 Authenticator = Authenticator,
+                #if COUCHBASE_ENTERPRISE
+                OnlySelfSignedServerCert = OnlySelfSignedServerCert,
+                #endif
                 Continuous = Continuous,
                 PushFilter = PushFilter,
                 PullFilter = PullFilter,

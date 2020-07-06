@@ -73,6 +73,9 @@ namespace LiteCore.Interop
             }
         }
 
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4Cert* c4repl_getPeerTLSCertificate(C4Replicator* repl, C4Error* outErr);
+
 
     }
 

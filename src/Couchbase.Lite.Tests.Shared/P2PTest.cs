@@ -66,8 +66,6 @@ namespace Test
         private Database _otherDB;
         private Replicator _repl;
         private WaitAssert _waitAssert;
-        private bool _isFilteredCallback;
-        private List<DocumentReplicationEventArgs> _replicationEvents = new List<DocumentReplicationEventArgs>();
         URLEndpointListener _listener;
         URLEndpointListenerConfiguration _config;
 #if !WINDOWS_UWP
@@ -557,11 +555,11 @@ namespace Test
             RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
 
             // Replicator - Wrong Credentials
-            config.Authenticator = new BasicAuthenticator("daniel", "456");
+            config.Authenticator = new BasicAuthenticator("daniel", Encoding.Unicode.GetBytes("456"));
             RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
 
             // Replicator - Success
-            config.Authenticator = new BasicAuthenticator("daniel", "123");
+            config.Authenticator = new BasicAuthenticator("daniel", Encoding.Unicode.GetBytes("123"));
             RunReplication(config, 0, 0);
 
             _listener.Stop();
