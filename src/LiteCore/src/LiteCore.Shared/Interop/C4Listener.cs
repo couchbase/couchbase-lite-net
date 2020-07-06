@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LiteCore.Util;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
@@ -210,10 +211,10 @@ namespace LiteCore.Interop
         /// <summary>
         /// name or address of interface to listen on; else all
         /// </summary>
-        public FLSlice NetworkInterface
+        public string NetworkInterface
         {
-            get => _c4ListenerConfig.networkInterface;
-            set => _c4ListenerConfig.networkInterface = value;
+            get => _c4ListenerConfig.networkInterface.CreateString();
+            set => _c4ListenerConfig.networkInterface = new C4String(value).AsFLSlice();
         }
 
         /// <summary>

@@ -50,6 +50,7 @@ namespace Couchbase.Lite.Sync
         private const string PasswordKey = "password";
         private const string TypeKey = "type";
         private const string UsernameKey = "username";
+        private const string ClientCertKeyKey = "clientCertKey";
 
         #endregion
 
@@ -61,6 +62,9 @@ namespace Couchbase.Lite.Sync
 
         #region Properties
 
+        /// <summary>
+        /// [DEPRECATED] Gets the password that this object holds
+        /// </summary>
         /// <summary>
         /// Gets or sets the password for the credentials (not applicable in all cases)
         /// </summary>
@@ -115,6 +119,7 @@ namespace Couchbase.Lite.Sync
             Type = AuthType.HttpBasic;
             Username = String.Empty;
             Password = String.Empty;
+            PasswordData = null;
         }
 
         internal AuthOptionsDictionary(Dictionary<string, object> raw) : base(raw)
