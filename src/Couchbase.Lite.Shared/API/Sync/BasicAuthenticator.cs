@@ -16,6 +16,7 @@
 //  limitations under the License.
 // 
 
+using System;
 using System.Diagnostics;
 
 using Couchbase.Lite.Internal.Logging;
@@ -96,9 +97,14 @@ namespace Couchbase.Lite.Sync
             var authDict = new AuthOptionsDictionary
             {
                 Username = Username,
-                Password = Password,
                 Type = AuthType.HttpBasic
             };
+
+            // TODO string Password will be deprecated and replaced with byte array password
+            if (String.IsNullOrEmpty(Password))
+                authDict.PasswordData = PasswordData;
+            else
+                authDict.Password = Password;
 
             options.Auth = authDict;
         }
