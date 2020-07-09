@@ -31,7 +31,12 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// HTTP Basic (RFC 2617)
         /// </summary>
-        HttpBasic
+        HttpBasic,
+
+        /// <summary>
+        /// TLS client cert
+        /// </summary>
+        ClientCert = 4
     }
 
     /// <summary>
@@ -50,7 +55,6 @@ namespace Couchbase.Lite.Sync
         private const string PasswordKey = "password";
         private const string TypeKey = "type";
         private const string UsernameKey = "username";
-        private const string ClientCertKeyKey = "clientCertKey";
 
         #endregion
 
