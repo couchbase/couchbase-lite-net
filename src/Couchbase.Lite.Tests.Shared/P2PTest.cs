@@ -741,6 +741,35 @@ namespace Test
             store.Close();
         }
 
+
+        private void CreateGetDeleteServerIdentity(bool isServer)
+        {
+            string commonName = isServer ? "CBL-Server" : "CBL-Client";
+            string label = isServer ? ServerCertLabel : ClientCertLabel;
+            TLSIdentity id;
+
+            // Delete 
+            TLSIdentity.DeleteIdentity(label).Should().BeTrue();
+
+            //Get
+            id = TLSIdentity.GetIdentity(label);
+            id.Should().BeNull();
+
+            // Create
+            id = TLSIdentity.CreateIdentity(isServer,
+                new Dictionary<string, string>() { { Certificate.CommonName, commonName } },
+                null,
+                label);
+            id.Should().NotBeNull();
+            id.Certs.Count.Should().Be(1);
+
+            // Delete
+            TLSIdentity.DeleteIdentity(label).Should().BeTrue();
+
+            // Get
+            TLSIdentity.GetIdentity(label).Should().Be(null);
+        }
+
         private void CreateDuplicateServerIdentity(bool isServer)
         {
             string commonName = isServer ? "CBL-Server" : "CBL-Client";
