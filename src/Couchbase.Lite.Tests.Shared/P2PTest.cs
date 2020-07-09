@@ -59,8 +59,9 @@ namespace Test
 #endif
     public sealed class P2PTest : TestCase
     {
-        const ushort WSPort = 0;
-        const ushort WSSPort = 0;
+        const ushort Port = 0;
+        const string ServerCertLabel = "CBL-Server-Cert";
+        const string ClientCertLabel = "CBL-Client-Cert";
 
         private static int Counter;
         private Database _otherDB;
@@ -380,7 +381,7 @@ namespace Test
             int exCnt = 0;
 
             _config = new URLEndpointListenerConfiguration(_otherDB);
-            _config.Port = WSPort;
+            _config.Port = Port;
             _config.DisableTLS = true;
 
             //init a listener
@@ -480,7 +481,7 @@ namespace Test
                 maxActiveCount = new HashSet<ulong>();
 
             _config = new URLEndpointListenerConfiguration(_otherDB);
-            _config.Port = WSPort;
+            _config.Port = Port;
             _config.DisableTLS = true;
 
             //init a listener
@@ -565,11 +566,228 @@ namespace Test
             _listener.Stop();
         }
 
+        #endregion
+
+        #region TLSIdentity tests
+
+        [Fact]
+        public void TestCreateGetDeleteServerIdentity() => CreateGetDeleteServerIdentity(true);
+
+        [Fact]
+        public void TestCreateDuplicateServerIdentity() => CreateDuplicateServerIdentity(true);
+
+        [Fact]
+        public void TestCreateGetDeleteClientIdentity() => CreateGetDeleteServerIdentity(false);
+
+        [Fact]
+        public void TestCreateDuplicateClientIdentity() => CreateDuplicateServerIdentity(false);
+
+        [Fact]
+        public void TestGetIdentityWithCertCollection()
+        {
+            TLSIdentity id;
+            X509Certificate2Collection certs = new X509Certificate2Collection();
+            X509Chain certChain = new X509Chain();
+            TLSIdentity.DeleteIdentity(ClientCertLabel);
+            X509Certificate2 cert = Certificate.CreateX509Certificate2(false,
+                new Dictionary<string, string>() { { Certificate.CommonName, "CA-P2PTest1" } },
+                null,
+                ClientCertLabel,
+                false);
+            //certChain.Build(cert);
+            certs.Add(cert);
+
+            id = TLSIdentity.GetIdentity(certs);
+            id.Should().NotBeNull();
+
+            // Delete
+            TLSIdentity.DeleteIdentity(ClientCertLabel).Should().BeTrue();
+        }
+        
+        [Fact]
+        public void TestCreateIdentityFromCertCollectionAndImportIdentity()
+        {
+            TLSIdentity id;
+            X509Certificate2Collection certs = new X509Certificate2Collection();
+            X509Chain certChain = new X509Chain();
+            TLSIdentity.DeleteIdentity(ClientCertLabel);
+
+            //needs to know how to move the cert to the test location
+            X509Certificate2 cert = GetMyCert();
+
+            bool validChain = certChain.Build(cert);
+
+            if (!validChain) {
+                // Whatever you want to do about that.
+
+                foreach (var status in certChain.ChainStatus) {
+                    // In reality you can == this, since X509Chain.ChainStatus builds
+                    // an object per flag, but since it's [Flags] let's play it safe.
+                    if ((status.Status & X509ChainStatusFlags.PartialChain) != 0) {
+                        // Incomplete chain.
+                    }
+                }
+            }
+
+            foreach (var element in certChain.ChainElements) {
+                certs.Add(element.Certificate);
+            }
+
+            var hasPK = certs[0].HasPrivateKey;
+
+            id = TLSIdentity.CreateIdentity(certs, null, ClientCertLabel);
+            id.Should().NotBeNull();
+
+            TLSIdentity.DeleteIdentity(ClientCertLabel).Should().BeTrue();
+
+            // Import
+            id = TLSIdentity.ImportIdentity(certs, null, ClientCertLabel);
+
+            // Get
+            id = TLSIdentity.GetIdentity(ClientCertLabel);
+            id.Should().NotBeNull();
+
+            // Delete
+            TLSIdentity.DeleteIdentity(ClientCertLabel).Should().BeTrue();
+        }
+
+        [Fact]
+        public void TestCreateIdentityWithNoAttributesOrEmptyAttributes()
+        {
+            // Delete 
+            TLSIdentity.DeleteIdentity(ServerCertLabel).Should().BeTrue();
+
+            //Get
+            var id = TLSIdentity.GetIdentity(ServerCertLabel);
+            id.Should().BeNull();
+
+            // Create id with empty Attributes
+            Action badAction = (() => TLSIdentity.CreateIdentity(true,
+                new Dictionary<string, string>() { },
+                null,
+                ServerCertLabel));
+            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.CreateCertAttributeEmpty);
+
+            // Create id with null Attributes
+            badAction = (() => TLSIdentity.CreateIdentity(true,
+                null,
+                null,
+                ServerCertLabel));
+            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.CreateCertAttributeEmpty);
+        }
+
+        [Fact]
+        public void TestCertificateExpiration()
+        {
+            TLSIdentity id;
+
+            // Delete 
+            TLSIdentity.DeleteIdentity(ServerCertLabel).Should().BeTrue();
+
+            //Get
+            id = TLSIdentity.GetIdentity(ServerCertLabel);
+            id.Should().BeNull();
+
+            var fiveMinToExpireCert = DateTimeOffset.UtcNow.AddMinutes(5);
+            id = TLSIdentity.CreateIdentity(true,
+                new Dictionary<string, string>() { { Certificate.CommonName, "CA-P2PTest" } },
+                fiveMinToExpireCert,
+                ServerCertLabel);
+
+            (id.Expiration - fiveMinToExpireCert).Should().BeGreaterThan(TimeSpan.MinValue);
+
+            // Delete 
+            TLSIdentity.DeleteIdentity(ServerCertLabel).Should().BeTrue();
+        }
+
+        #endregion
+
+        #region TLSIdentity tests helpers
+
+        static private X509Certificate2 GetMyCert()
+        {
+            //TODO move the cert into the test local location
+            X509Certificate2 cert = null;
+
+            // Load the certificate
+            var store = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
+            store.Open(OpenFlags.ReadOnly);
+            X509Certificate2Collection certCollection = store.Certificates.Find
+            (
+                X509FindType.FindBySubjectName,
+                "certs",
+                false    // Including invalid certificates
+            );
+
+            if (certCollection.Count > 0) {
+                cert = certCollection[0];
+            }
+
+            store.Close();
+
+            return cert;
+        }
+
+        private void AddRootCert()
+        {
+            X509Store store = new X509Store("Trust");
+            store.Open(OpenFlags.ReadWrite);
+
+            string certString = "MIIDGjCCAgKgAwIBAgICApowDQYJKoZIhvcNAQEFBQAwLjELMAkGA1UEBhMCQ1oxDjAMBgNVBAoTBVJlYmV4MQ8wDQYDVQQDEwZUZXN0Q0EwHhcNMDAwMTAxMDAwMDAwWhcNNDkxMjMxMDAwMDAwWjAuMQswCQYDVQQGEwJDWjEOMAwGA1UEChMFUmViZXgxDzANBgNVBAMTBlRlc3RDQTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMgeRAcaNLTFaaBhFx8RDJ8b9K655dNUXmO11mbImDbPq4qVeZXDgAjnzPov8iBscwfqBvBpF38LsxBIPA2i1d0RMsQruOhJHttA9I0enElUXXj63sOEVNMSQeg1IMyvNeEotag+Gcx6SF+HYnariublETaZGzwAOD2SM49mfqUyfkgeTjdO6qp8xnoEr7dS5pEBHDg70byj/JEeZd3gFea9TiOXhbCrI89dKeWYBeoHFYhhkaSB7q9EOaUEzKo/BQ6PBHFu6odfGkOjXuwfPkY/wUy9U4uj75LmdhzvJf6ifsJS9BQZF4//JcUYSxiyzpxDYqSbTF3g9w5Ds2LOAscCAwEAAaNCMEAwDgYDVR0PAQH/BAQDAgB/MA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFD1v20tPgvHTEK/0eLO09j0rL2qXMA0GCSqGSIb3DQEBBQUAA4IBAQAZIjcdR3EZiFJ67gfCnPBrxVgFNvaRAMCYEYYIGDCAUeB4bLTu9dvun9KFhgVNqjgx+xTTpx9d/5mAZx5W3YAG6faQPCaHccLefB1M1hVPmo8md2uw1a44RHU9LlM0V5Lw8xTKRkQiZz3Ysu0sY27RvLrTptbbfkE4Rp9qAMguZT9cFrgPAzh+0zuo8NNj9Jz7/SSa83yIFmflCsHYSuNyKIy2iaX9TCVbTrwJmRIB65gqtTb6AKtFGIPzsb6nayHvgGHFchrFovcNrvRpE71F38oVG+eCjT23JfiIZim+yJLppSf56167u8etDcQ39j2b9kzWlHIVkVM0REpsKF7S";
+            X509Certificate2 rootCert = new X509Certificate2(Convert.FromBase64String(certString));
+            if (!store.Certificates.Contains(rootCert))
+                store.Add(rootCert);
+
+            store.Close();
+        }
+
+        private void CreateDuplicateServerIdentity(bool isServer)
+        {
+            string commonName = isServer ? "CBL-Server" : "CBL-Client";
+            string label = isServer ? ServerCertLabel : ClientCertLabel;
+            TLSIdentity id;
+            Dictionary<string, string> attr = new Dictionary<string, string>() { { Certificate.CommonName, commonName } };
+
+            // Delete 
+            TLSIdentity.DeleteIdentity(label).Should().BeTrue();
+
+            // Create
+            id = TLSIdentity.CreateIdentity(isServer,
+                attr,
+                null,
+                label);
+            id.Should().NotBeNull();
+            id.Certs.Count.Should().Be(1);
+
+            //Get
+            id = TLSIdentity.GetIdentity(label);
+            id.Should().NotBeNull();
+
+            // Create again with the same label
+            Action badAction = (() => TLSIdentity.CreateIdentity(isServer,
+                attr,
+                null,
+                label));
+            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.DuplicateCertificate);
+        }
+
+        private byte[] GetPublicKeyHashFromCert(X509Certificate2 cert)
+        {
+            return cert.GetPublicKey();
+        }
+        #endregion
+
+        private URLEndpoint LocalEndPoint(bool tls, Uri uri)
+        {
+            var scheme = tls ? "wss" : "ws";
+            return new URLEndpoint(new Uri($"{uri}".Replace("ws", "wss")));
+        }
+
         private URLEndpointListener ListenerWithTLS(bool tls, IListenerAuthenticator auth)
         {
             int exCnt = 0;
+            
             var config = new URLEndpointListenerConfiguration(_otherDB);
-            config.Port = tls ? WSSPort : WSPort;
             config.DisableTLS = !tls;
             config.Authenticator = auth;
 
@@ -588,7 +806,7 @@ namespace Test
                 return null;
         }
 
-        #endregion
+        
 
         private ReplicatorConfiguration CreateFailureP2PConfiguration(ProtocolType protocolType, MockConnectionLifecycleLocation location, bool recoverable)
         {
