@@ -638,15 +638,17 @@ namespace Couchbase.Lite.Sync
         {
             var auth = _options?.Auth;
             if (auth != null) {
-                var username = auth.Username;
-                
-                // TODO string Password will be deprecated and replaced with byte array password
-                var password = auth.PasswordData != null ?
-                     Encoding.Unicode.GetString(auth.PasswordData)
-                     : auth.Password;
+                if (auth.Type == AuthType.HttpBasic) {
+                    var username = auth.Username;
 
-                if (username != null && password != null) {
-                    _logic.Credential = new NetworkCredential(username, password);
+                    // TODO string Password will be deprecated and replaced with byte array password
+                    var password = auth.PasswordData != null ?
+                         Encoding.Unicode.GetString(auth.PasswordData)
+                         : auth.Password;
+
+                    if (username != null && password != null) {
+                        _logic.Credential = new NetworkCredential(username, password);
+                    }
                 }
             }
         }
