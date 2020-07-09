@@ -166,6 +166,7 @@ namespace LiteCore.Interop
 
         private C4ListenerConfig _c4ListenerConfig;
         private C4ListenerHTTPAuthCallback _onHTTPAuthCallback;
+        private TLSConfig _tlsConfig;
 
         #endregion
 
@@ -229,10 +230,16 @@ namespace LiteCore.Interop
         /// <summary>
         /// TLS configuration, or NULL for no TLS
         /// </summary>
-        public C4TLSConfig* TlsConfig
+        public TLSConfig TlsConfig
         {
-            get => _c4ListenerConfig.tlsConfig;
-            set => _c4ListenerConfig.tlsConfig = value;
+            get => _tlsConfig;
+            set {
+                _tlsConfig = value;
+                if (_tlsConfig != null) {
+                    var c4tlsConfig = _tlsConfig.C4TLSConfig;
+                    _c4ListenerConfig.tlsConfig = &c4tlsConfig;
+                }
+            }
         }
 
         #region For REST listeners only:
@@ -293,8 +300,9 @@ namespace LiteCore.Interop
 
         #region Constructors
 
-        public ListenerConfig()
+        public ListenerConfig(TLSConfig tlsConfig)
         {
+            _tlsConfig = tlsConfig;
         }
 
         ~ListenerConfig()
