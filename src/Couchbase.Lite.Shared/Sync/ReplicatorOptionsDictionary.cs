@@ -188,6 +188,15 @@ namespace Couchbase.Lite.Sync
             }
         }
 
+        internal ServerCertificateVerificationMode ServerCertificateVerificationMode
+        {
+            get => this.GetCast<bool>(OnlySelfSignedServerCert)
+                ? ServerCertificateVerificationMode.SelfSignedCert
+                : ServerCertificateVerificationMode.CACert;
+            set => this[OnlySelfSignedServerCert] =
+                value == ServerCertificateVerificationMode.SelfSignedCert;
+        }
+
         internal string CookieString => this.GetCast<string>(CookiesKey);
 
         internal string Protocols => this.GetCast<string>(ProtocolsOptionKey);

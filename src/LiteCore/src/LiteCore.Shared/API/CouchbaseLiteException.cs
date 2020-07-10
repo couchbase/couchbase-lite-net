@@ -246,7 +246,7 @@ namespace Couchbase.Lite
         TLSClientCertRejected = C4NetworkErrorCode.TLSCertRejectedByPeer + NetworkBase,
 
         /// <summary>
-        /// Self-signed cert, or unknow anchor cert
+        /// Self-signed cert, or unknown anchor cert
         /// </summary>
         TLSCertUnknownRoot = C4NetworkErrorCode.TLSCertUnknownRoot + NetworkBase,
 
@@ -360,12 +360,12 @@ namespace Couchbase.Lite
         /// <summary>
         /// Exceptions during P2P replication that are transient will be assigned this error code
         /// </summary>
-        WebSocketUserTransient = C4WebSocketCustomCloseCode.WebSocketCloseUserTransient + HTTPBase,
+        WebSocketUserTransient = C4WebSocketCloseCode.WebSocketCloseAppTransient + HTTPBase,
 
         /// <summary>
         /// Exceptions during P2P replication that are permanent will be assigned this error code
         /// </summary>
-        WebSocketUserPermanent = C4WebSocketCustomCloseCode.WebSocketCloseUserPermanent + HTTPBase
+        WebSocketUserPermanent = C4WebSocketCloseCode.WebSocketCloseAppPermanent + HTTPBase
     }
 
     /// <summary>

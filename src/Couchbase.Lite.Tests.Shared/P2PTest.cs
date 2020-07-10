@@ -183,14 +183,14 @@ namespace Test
             RunTwoStepContinuous(ReplicatorType.PushAndPull, "p2ptest3");
         }
 
-        //[Fact]
-        //public void TestP2PRecoverableFailureDuringOpen() => TestP2PError(MockConnectionLifecycleLocation.Connect, true);
+        [Fact]
+        public void TestP2PRecoverableFailureDuringOpen() => TestP2PError(MockConnectionLifecycleLocation.Connect, true);
 
-        //[Fact]
-        //public void TestP2PRecoverableFailureDuringSend() => TestP2PError(MockConnectionLifecycleLocation.Send, true);
+        [Fact]
+        public void TestP2PRecoverableFailureDuringSend() => TestP2PError(MockConnectionLifecycleLocation.Send, true);
 
-        //[Fact]
-        //public void TestP2PRecoverableFailureDuringReceive() => TestP2PError(MockConnectionLifecycleLocation.Receive, true);
+        [Fact]
+        public void TestP2PRecoverableFailureDuringReceive() => TestP2PError(MockConnectionLifecycleLocation.Receive, true);
 
         [Fact]
         public void TestP2PPermanentFailureDuringOpen() => TestP2PError(MockConnectionLifecycleLocation.Connect, false);
@@ -590,7 +590,7 @@ namespace Test
             X509Chain certChain = new X509Chain();
             TLSIdentity.DeleteIdentity(ClientCertLabel);
             X509Certificate2 cert = Certificate.CreateX509Certificate2(false,
-                new Dictionary<string, string>() { { Certificate.CommonName, "CA-P2PTest1" } },
+                new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "CA-P2PTest1" } },
                 null,
                 ClientCertLabel,
                 false);
@@ -632,8 +632,6 @@ namespace Test
             foreach (var element in certChain.ChainElements) {
                 certs.Add(element.Certificate);
             }
-
-            var hasPK = certs[0].HasPrivateKey;
 
             // Import
             id = TLSIdentity.ImportIdentity(certs, null, ClientCertLabel);
@@ -685,7 +683,7 @@ namespace Test
 
             var fiveMinToExpireCert = DateTimeOffset.UtcNow.AddMinutes(5);
             id = TLSIdentity.CreateIdentity(true,
-                new Dictionary<string, string>() { { Certificate.CommonName, "CA-P2PTest" } },
+                new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "CA-P2PTest" } },
                 fiveMinToExpireCert,
                 ServerCertLabel);
 
@@ -706,7 +704,7 @@ namespace Test
             X509Certificate2 cert = null;
 
             // Load the certificate
-            var store = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
+            var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
             store.Open(OpenFlags.ReadOnly);
             X509Certificate2Collection certCollection = store.Certificates.Find
             (
@@ -753,7 +751,7 @@ namespace Test
 
             // Create
             id = TLSIdentity.CreateIdentity(isServer,
-                new Dictionary<string, string>() { { Certificate.CommonName, commonName } },
+                new Dictionary<string, string>() { { Certificate.CommonNameAttribute, commonName } },
                 null,
                 label);
             id.Should().NotBeNull();
@@ -771,7 +769,7 @@ namespace Test
             string commonName = isServer ? "CBL-Server" : "CBL-Client";
             string label = isServer ? ServerCertLabel : ClientCertLabel;
             TLSIdentity id;
-            Dictionary<string, string> attr = new Dictionary<string, string>() { { Certificate.CommonName, commonName } };
+            Dictionary<string, string> attr = new Dictionary<string, string>() { { Certificate.CommonNameAttribute, commonName } };
 
             // Delete 
             TLSIdentity.DeleteIdentity(label).Should().BeTrue();
@@ -853,8 +851,7 @@ namespace Test
                 ReplicatorType = ReplicatorType.Push,
                 Continuous = false
             };
-
-            var connection = listener.Connections;
+            
             return config;
         }
 

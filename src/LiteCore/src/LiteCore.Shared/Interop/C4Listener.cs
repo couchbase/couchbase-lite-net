@@ -230,17 +230,7 @@ namespace LiteCore.Interop
         /// <summary>
         /// TLS configuration, or NULL for no TLS
         /// </summary>
-        public TLSConfig TlsConfig
-        {
-            get => _tlsConfig;
-            set {
-                _tlsConfig = value;
-                if (_tlsConfig != null) {
-                    var c4tlsConfig = _tlsConfig.C4TLSConfig;
-                    _c4ListenerConfig.tlsConfig = &c4tlsConfig;
-                }
-            }
-        }
+        public TLSConfig TlsConfig { get; set; }
 
         #region For REST listeners only:
 
@@ -299,11 +289,6 @@ namespace LiteCore.Interop
         #endregion
 
         #region Constructors
-
-        public ListenerConfig(TLSConfig tlsConfig)
-        {
-            _tlsConfig = tlsConfig;
-        }
 
         ~ListenerConfig()
         {

@@ -98,7 +98,7 @@ namespace Couchbase.Lite.Sync
     /// <summary>
     /// A class representing configuration options for a <see cref="Replicator"/>
     /// </summary>
-    public sealed class ReplicatorConfiguration
+    public sealed partial class ReplicatorConfiguration
     {
         #region Constants
 
@@ -118,9 +118,6 @@ namespace Couchbase.Lite.Sync
         private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
         private C4SocketFactory _socketFactory;
         private IConflictResolver _resolver;
-        #if COUCHBASE_ENTERPRISE
-        private bool _onlySelfSignedServerCert;
-        #endif
 
 #endregion
 
@@ -282,20 +279,7 @@ namespace Couchbase.Lite.Sync
             set => _freezer.SetValue(ref _socketFactory, value);
         }
 
-        #if COUCHBASE_ENTERPRISE
-        /// <summary>
-        /// When the property is set to true, the replicator will accept only self-signed server certificates and 
-        /// reject non-self-sign server certificates. The default value is false which means that the replicator 
-        /// will verify the server certificates with the system root certificates.
-        /// </summary>
-        internal bool OnlySelfSignedServerCert
-        {
-            get => _onlySelfSignedServerCert;
-            set => _freezer.SetValue(ref _onlySelfSignedServerCert, value);
-        }
-        #endif
-
-#endregion
+        #endregion
 
         #region Constructors
 
@@ -326,7 +310,7 @@ namespace Couchbase.Lite.Sync
             {
                 Authenticator = Authenticator,
                 #if COUCHBASE_ENTERPRISE
-                OnlySelfSignedServerCert = OnlySelfSignedServerCert,
+                ServerCertificateVerificationMode = ServerCertificateVerificationMode,
                 #endif
                 Continuous = Continuous,
                 PushFilter = PushFilter,
