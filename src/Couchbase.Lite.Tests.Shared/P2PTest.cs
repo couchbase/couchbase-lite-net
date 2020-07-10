@@ -635,11 +635,6 @@ namespace Test
 
             var hasPK = certs[0].HasPrivateKey;
 
-            id = TLSIdentity.CreateIdentity(certs, null, ClientCertLabel);
-            id.Should().NotBeNull();
-
-            TLSIdentity.DeleteIdentity(ClientCertLabel).Should().BeTrue();
-
             // Import
             id = TLSIdentity.ImportIdentity(certs, null, ClientCertLabel);
 
