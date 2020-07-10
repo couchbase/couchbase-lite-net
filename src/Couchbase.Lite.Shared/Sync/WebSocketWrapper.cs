@@ -727,7 +727,10 @@ namespace Couchbase.Lite.Sync
                 return retVal;
             }
 
-            if (sslPolicyErrors != SslPolicyErrors.None) {
+            var onlySelfSigned = _options.ServerCertificateVerificationMode ==
+                ServerCertificateVerificationMode.SelfSignedCert;
+
+            if (!onlySelfSigned && sslPolicyErrors != SslPolicyErrors.None) {
                 WriteLog.To.Sync.W(Tag, $"Error validating TLS chain: {sslPolicyErrors}");
                 if (chain?.ChainStatus != null) {
                     for (var i = 0; i < chain.ChainStatus.Length; i++) {
@@ -736,9 +739,28 @@ namespace Couchbase.Lite.Sync
                         if (status.Status != X509ChainStatusFlags.NoError) {
                             WriteLog.To.Sync.V(Tag,
                                 $"Error {status.Status} ({status.StatusInformation}) for certificate:{Environment.NewLine}{element.Certificate}");
+                            if (status.Status == X509ChainStatusFlags.UntrustedRoot) {
+                                throw new AuthenticationException("The certificate does not terminate in a trusted root CA.");
+                            }
                         }
                     }
                 }
+            } else if (onlySelfSigned) {
+                if (chain.ChainElements.Count != 1) {
+                    throw new AuthenticationException("A certificate chain was received in self-signed mode");
+                }
+
+                if (chain.ChainStatus[0].Status != X509ChainStatusFlags.UntrustedRoot &&
+                    chain.ChainStatus[0].Status != X509ChainStatusFlags.NoError) {
+                    return false;
+                }
+
+                if (chain.ChainElements[0].Certificate.IssuerName.Name
+                    != chain.ChainElements[0].Certificate.SubjectName.Name) {
+                    throw new ArgumentException("A non self-signed certificate was received in self-signed mode.");
+                }
+
+                return true;
             }
 
             return sslPolicyErrors == SslPolicyErrors.None;

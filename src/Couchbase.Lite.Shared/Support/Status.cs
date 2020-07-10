@@ -115,7 +115,11 @@ namespace Couchbase.Lite
                     #endif
                         break;
                     case AuthenticationException ae:
-                        if (ae.Message == "The remote certificate is invalid according to the validation procedure.") {
+                        if (ae.Message == "The certificate does not terminate in a trusted root CA.") {
+                            message = ae.Message;
+                            c4err.domain = C4ErrorDomain.NetworkDomain;
+                            c4err.code = (int) C4NetworkErrorCode.TLSCertUnknownRoot;
+                        } else {
                             message = ae.Message;
                             c4err.domain = C4ErrorDomain.NetworkDomain;
                             c4err.code = (int) C4NetworkErrorCode.TLSCertUntrusted;

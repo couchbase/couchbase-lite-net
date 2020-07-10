@@ -22,7 +22,7 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
-    internal sealed class WaitAssert
+    public sealed class WaitAssert
     {
         private ManualResetEvent _mre = new ManualResetEvent(false);
         private Exception _caughtException;
