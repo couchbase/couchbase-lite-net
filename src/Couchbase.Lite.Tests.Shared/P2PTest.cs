@@ -605,7 +605,7 @@ namespace Test
         }
         
         [Fact]
-        public void TestCreateIdentityFromCertCollectionAndImportIdentity()
+        public void TestImportIdentityFromCertCollection()
         {
             TLSIdentity id;
             X509Certificate2Collection certs = new X509Certificate2Collection();
