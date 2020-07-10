@@ -689,7 +689,8 @@ namespace Test
                 fiveMinToExpireCert,
                 ServerCertLabel);
 
-            (id.Expiration - fiveMinToExpireCert).Should().BeGreaterThan(TimeSpan.MinValue);
+            (id.Expiration - DateTimeOffset.UtcNow).Should().BeGreaterThan(TimeSpan.MinValue);
+            (id.Expiration - DateTimeOffset.UtcNow).Should().BeLessOrEqualTo(TimeSpan.FromMinutes(5));
 
             // Delete 
             TLSIdentity.DeleteIdentity(ServerCertLabel).Should().BeTrue();
