@@ -188,6 +188,7 @@ namespace Couchbase.Lite.Sync
             }
         }
 
+        #if COUCHBASE_ENTERPRISE
         internal ServerCertificateVerificationMode ServerCertificateVerificationMode
         {
             get => this.GetCast<bool>(OnlySelfSignedServerCert)
@@ -196,6 +197,7 @@ namespace Couchbase.Lite.Sync
             set => this[OnlySelfSignedServerCert] =
                 value == ServerCertificateVerificationMode.SelfSignedCert;
         }
+        #endif
 
         internal string CookieString => this.GetCast<string>(CookiesKey);
 

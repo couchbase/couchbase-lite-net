@@ -727,8 +727,12 @@ namespace Couchbase.Lite.Sync
                 return retVal;
             }
 
+            #if COUCHBASE_ENTERPRISE
             var onlySelfSigned = _options.ServerCertificateVerificationMode ==
                 ServerCertificateVerificationMode.SelfSignedCert;
+            #else
+            var onlySelfSigned = false;
+            #endif
 
             if (!onlySelfSigned && sslPolicyErrors != SslPolicyErrors.None) {
                 WriteLog.To.Sync.W(Tag, $"Error validating TLS chain: {sslPolicyErrors}");
