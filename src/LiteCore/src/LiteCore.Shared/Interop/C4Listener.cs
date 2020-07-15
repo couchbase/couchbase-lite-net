@@ -215,7 +215,11 @@ namespace LiteCore.Interop
         public string NetworkInterface
         {
             get => _c4ListenerConfig.networkInterface.CreateString();
-            set => _c4ListenerConfig.networkInterface = new C4String(value).AsFLSlice();
+            set {
+                using (var networkInterface_ = new C4String(value)) {
+                    _c4ListenerConfig.networkInterface = networkInterface_.AsFLSlice();
+                }
+            }
         }
 
         /// <summary>
