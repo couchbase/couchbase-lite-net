@@ -161,7 +161,11 @@ namespace LiteCore.Interop
         public string SerialNumber
         {
             get => _c4CertIssuerParams.serialNumber.CreateString();
-            set => _c4CertIssuerParams.serialNumber = new C4String(value).AsFLSlice();
+            set {
+                using (var serialNumber_ = new C4String(value)) {
+                    _c4CertIssuerParams.serialNumber = serialNumber_.AsFLSlice();
+                }
+            }
         }
 
         /// <summary>
@@ -217,7 +221,10 @@ namespace LiteCore.Interop
         {
             // Default Cert Issuer Parameters
             _c4CertIssuerParams.validityInSeconds = OneYearInSec;
-            _c4CertIssuerParams.serialNumber = new C4String("1").AsFLSlice();
+            using (var serialNumber_ = new C4String("1")) {
+                _c4CertIssuerParams.serialNumber = serialNumber_.AsFLSlice();
+            }
+
             _c4CertIssuerParams.maxPathLen = -1;
             _c4CertIssuerParams.isCA = false;
             _c4CertIssuerParams.addAuthorityIdentifier = true;
