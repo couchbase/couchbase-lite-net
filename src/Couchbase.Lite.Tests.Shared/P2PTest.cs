@@ -66,6 +66,8 @@ namespace Test
         private Database _otherDB;
         private Replicator _repl;
         private WaitAssert _waitAssert;
+
+        private X509Store _store;
 #if !WINDOWS_UWP
         public P2PTest(ITestOutputHelper output) : base(output)
 #else
@@ -76,6 +78,7 @@ namespace Test
             var nextCounter = Interlocked.Increment(ref Counter);
             Database.Delete($"otherdb{nextCounter}", Directory);
             _otherDB = OpenDB($"otherdb{nextCounter}");
+            _store = new X509Store(StoreName.My);
             //uncomment the code below when you need to see more detail log
             //Database.Log.Console.Level = LogLevel.Debug;
         }
@@ -387,23 +390,23 @@ namespace Test
         //[Fact]
         public void TestGetIdentityWithCertCollection()
         {
-            TLSIdentity id;
-            X509Certificate2Collection certs = new X509Certificate2Collection();
-            X509Chain certChain = new X509Chain();
-            TLSIdentity.DeleteIdentity(ClientCertLabel);
-            X509Certificate2 cert = Certificate.CreateX509Certificate2(false,
-                new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "CA-P2PTest1" } },
-                null,
-                ClientCertLabel,
-                false);
-            //certChain.Build(cert);
-            certs.Add(cert);
+            //TLSIdentity id;
+            //X509Certificate2Collection certs = new X509Certificate2Collection();
+            //X509Chain certChain = new X509Chain();
+            //TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+            //X509Certificate2 cert = Certificate.CreateX509Certificate2(false,
+            //    new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "CA-P2PTest1" } },
+            //    null,
+            //    ClientCertLabel,
+            //    false);
+            ////certChain.Build(cert);
+            //certs.Add(cert);
 
-            id = TLSIdentity.GetIdentity(certs);
-            id.Should().NotBeNull();
+            //id = TLSIdentity.GetIdentity(certs);
+            //id.Should().NotBeNull();
 
-            // Delete
-            TLSIdentity.DeleteIdentity(ClientCertLabel).Should().BeTrue();
+            //// Delete
+            //TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
         }
         
         //[Fact]
@@ -412,63 +415,50 @@ namespace Test
             TLSIdentity id;
             X509Certificate2Collection certs = new X509Certificate2Collection();
             X509Chain certChain = new X509Chain();
-            TLSIdentity.DeleteIdentity(ClientCertLabel);
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
 
             //needs to know how to move the cert to the test location
-            X509Certificate2 cert = GetMyCert();
+            certs.Add(GetMyCert());
 
-            bool validChain = certChain.Build(cert);
-
-            if (!validChain) {
-                // Whatever you want to do about that.
-
-                foreach (var status in certChain.ChainStatus) {
-                    // In reality you can == this, since X509Chain.ChainStatus builds
-                    // an object per flag, but since it's [Flags] let's play it safe.
-                    if ((status.Status & X509ChainStatusFlags.PartialChain) != 0) {
-                        // Incomplete chain.
-                    }
-                }
-            }
-
-            foreach (var element in certChain.ChainElements) {
-                certs.Add(element.Certificate);
-            }
 
             // Import
-            id = TLSIdentity.ImportIdentity(certs, null, ClientCertLabel);
+            id = TLSIdentity.ImportIdentity(_store, certs, ClientCertLabel, null);
 
             // Get
-            id = TLSIdentity.GetIdentity(ClientCertLabel);
+            id = TLSIdentity.GetIdentity(_store, ClientCertLabel, null);
             id.Should().NotBeNull();
 
             // Delete
-            TLSIdentity.DeleteIdentity(ClientCertLabel).Should().BeTrue();
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
         }
 
         [Fact]
         public void TestCreateIdentityWithNoAttributesOrEmptyAttributes()
         {
             // Delete 
-            TLSIdentity.DeleteIdentity(ServerCertLabel).Should().BeTrue();
+            TLSIdentity.DeleteIdentity(_store, ServerCertLabel, null);
 
             //Get
-            var id = TLSIdentity.GetIdentity(ServerCertLabel);
+            var id = TLSIdentity.GetIdentity(_store, ServerCertLabel, null);
             id.Should().BeNull();
 
             // Create id with empty Attributes
             Action badAction = (() => TLSIdentity.CreateIdentity(true,
                 new Dictionary<string, string>() { },
                 null,
-                ServerCertLabel));
+                _store,
+                ServerCertLabel,
+                null));
             badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.CreateCertAttributeEmpty);
 
             // Create id with null Attributes
             badAction = (() => TLSIdentity.CreateIdentity(true,
                 null,
                 null,
-                ServerCertLabel));
-            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.CreateCertAttributeEmpty);
+                _store,
+                ServerCertLabel,
+                null));
+            badAction.Should().Throw<ArgumentNullException>();
         }
 
         [Fact]
@@ -477,23 +467,25 @@ namespace Test
             TLSIdentity id;
 
             // Delete 
-            TLSIdentity.DeleteIdentity(ServerCertLabel).Should().BeTrue();
+            TLSIdentity.DeleteIdentity(_store, ServerCertLabel, null);
 
             //Get
-            id = TLSIdentity.GetIdentity(ServerCertLabel);
+            id = TLSIdentity.GetIdentity(_store, ServerCertLabel, null);
             id.Should().BeNull();
 
             var fiveMinToExpireCert = DateTimeOffset.UtcNow.AddMinutes(5);
             id = TLSIdentity.CreateIdentity(true,
                 new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "CA-P2PTest" } },
                 fiveMinToExpireCert,
-                ServerCertLabel);
+                _store,
+                ServerCertLabel,
+                null);
 
             (id.Expiration - DateTimeOffset.UtcNow).Should().BeGreaterThan(TimeSpan.MinValue);
             (id.Expiration - DateTimeOffset.UtcNow).Should().BeLessOrEqualTo(TimeSpan.FromMinutes(5));
 
             // Delete 
-            TLSIdentity.DeleteIdentity(ServerCertLabel).Should().BeTrue();
+            TLSIdentity.DeleteIdentity(_store, ServerCertLabel, null);
         }
 
         #endregion
@@ -545,25 +537,27 @@ namespace Test
             TLSIdentity id;
 
             // Delete 
-            TLSIdentity.DeleteIdentity(label).Should().BeTrue();
+            TLSIdentity.DeleteIdentity(_store, label, null);
 
             //Get
-            id = TLSIdentity.GetIdentity(label);
+            id = TLSIdentity.GetIdentity(_store, label, null);
             id.Should().BeNull();
 
             // Create
             id = TLSIdentity.CreateIdentity(isServer,
                 new Dictionary<string, string>() { { Certificate.CommonNameAttribute, commonName } },
                 null,
-                label);
+                _store,
+                label,
+                null);
             id.Should().NotBeNull();
             id.Certs.Count.Should().Be(1);
 
             // Delete
-            TLSIdentity.DeleteIdentity(label).Should().BeTrue();
+            TLSIdentity.DeleteIdentity(_store, label, null);
 
             // Get
-            TLSIdentity.GetIdentity(label).Should().Be(null);
+            TLSIdentity.GetIdentity(_store, label, null).Should().Be(null);
         }
 
         private void CreateDuplicateServerIdentity(bool isServer)
@@ -574,25 +568,29 @@ namespace Test
             Dictionary<string, string> attr = new Dictionary<string, string>() { { Certificate.CommonNameAttribute, commonName } };
 
             // Delete 
-            TLSIdentity.DeleteIdentity(label).Should().BeTrue();
+            TLSIdentity.DeleteIdentity(_store, label, null);
 
             // Create
             id = TLSIdentity.CreateIdentity(isServer,
                 attr,
                 null,
-                label);
+                _store,
+                label,
+                null);
             id.Should().NotBeNull();
             id.Certs.Count.Should().Be(1);
 
             //Get
-            id = TLSIdentity.GetIdentity(label);
+            id = TLSIdentity.GetIdentity(_store, label, null);
             id.Should().NotBeNull();
 
             // Create again with the same label
             Action badAction = (() => TLSIdentity.CreateIdentity(isServer,
                 attr,
                 null,
-                label));
+                _store,
+                label,
+                null));
             badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.DuplicateCertificate);
         }
 
@@ -800,6 +798,8 @@ namespace Test
             var name = _otherDB?.Name;
             _otherDB?.Dispose();
             _otherDB = null;
+
+            _store.Dispose();
 
             var success = Try.Condition(() => {
                 try {

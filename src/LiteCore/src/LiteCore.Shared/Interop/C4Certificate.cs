@@ -127,7 +127,7 @@ namespace LiteCore.Interop
     }
 
     [ExcludeFromCodeCoverage]
-    internal sealed class CertIssuerParameters : IDisposable
+    internal sealed class CertIssuerParameters
     {
 
         #region Constants
@@ -139,6 +139,7 @@ namespace LiteCore.Interop
         #region Variables
 
         private C4CertIssuerParameters _c4CertIssuerParams;
+        private C4String _serialNumber;
 
         #endregion
 
@@ -162,9 +163,9 @@ namespace LiteCore.Interop
         {
             get => _c4CertIssuerParams.serialNumber.CreateString();
             set {
-                using (var serialNumber_ = new C4String(value)) {
-                    _c4CertIssuerParams.serialNumber = serialNumber_.AsFLSlice();
-                }
+                _serialNumber.Dispose();
+                _serialNumber = new C4String(value);
+                _c4CertIssuerParams.serialNumber = _serialNumber.AsFLSlice();
             }
         }
 
@@ -243,7 +244,8 @@ namespace LiteCore.Interop
 
         private unsafe void Dispose(bool finalizing)
         {
-            
+            // This is safe even during the finalizer because it is a struct
+            _serialNumber.Dispose();
         }
 
         #endregion
