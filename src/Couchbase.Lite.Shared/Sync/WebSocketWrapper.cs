@@ -728,7 +728,7 @@ namespace Couchbase.Lite.Sync
             }
 
             // Mono doesn't pass chain information?
-            if (chain.ChainElements.Count == 0 && certificate is X509Certificate2 cert2) {
+            if (chain?.ChainElements?.Count == 0 && certificate is X509Certificate2 cert2) {
                 chain = X509Chain.Create();
                 chain.Build(cert2);
             }
@@ -742,16 +742,24 @@ namespace Couchbase.Lite.Sync
 
             if (!onlySelfSigned && sslPolicyErrors != SslPolicyErrors.None) {
                 WriteLog.To.Sync.W(Tag, $"Error validating TLS chain: {sslPolicyErrors}");
-                if (chain?.ChainStatus != null) {
+                if (chain.ChainElements != null) {
                     foreach(var element in chain.ChainElements) {
-                        foreach (var status in element.ChainElementStatus) {
-                            if (status.Status != X509ChainStatusFlags.NoError) {
-                                WriteLog.To.Sync.V(Tag,
-                                    $"Error {status.Status} ({status.StatusInformation}) for certificate:{Environment.NewLine}{element.Certificate}");
-                                if (status.Status == X509ChainStatusFlags.UntrustedRoot) {
-                                    throw new AuthenticationException("The certificate does not terminate in a trusted root CA.");
+                        if (element.ChainElementStatus != null) {
+                            foreach (var status in element.ChainElementStatus) {
+                                if (status.Status != X509ChainStatusFlags.NoError) {
+                                    WriteLog.To.Sync.V(Tag,
+                                        $"Error {status.Status} ({status.StatusInformation}) for certificate:{Environment.NewLine}{element.Certificate}");
+                                    if (status.Status == X509ChainStatusFlags.UntrustedRoot) {
+                                        throw new AuthenticationException("The certificate does not terminate in a trusted root CA.");
+                                    }
                                 }
                             }
+                        }
+                    }
+                } else if(chain.ChainStatus != null) {
+                    foreach(var status in chain.ChainStatus) {
+                        if(status.Status == X509ChainStatusFlags.PartialChain) {
+                            throw new AuthenticationException("The certificate does not terminate in a trusted root CA.");
                         }
                     }
                 }
@@ -761,6 +769,7 @@ namespace Couchbase.Lite.Sync
                 }
 
                 if (chain.ChainStatus[0].Status != X509ChainStatusFlags.UntrustedRoot &&
+                    chain.ChainStatus[0].Status != X509ChainStatusFlags.PartialChain &&
                     chain.ChainStatus[0].Status != X509ChainStatusFlags.NoError) {
                     return false;
                 }

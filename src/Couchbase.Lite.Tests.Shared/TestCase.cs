@@ -73,17 +73,6 @@ namespace Test
 
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
-        protected bool HasPersistentKeyStorage
-        {
-            get {
-                #if NETCOREAPP
-                return !RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
-                #else
-                return false;
-                #endif
-
-            }
-        }
 
 #if NETCOREAPP2_0 && !CBL_NO_VERSION_CHECK
         static TestCase()

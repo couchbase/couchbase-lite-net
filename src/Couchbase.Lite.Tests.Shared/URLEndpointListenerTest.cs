@@ -106,8 +106,6 @@ namespace Test
         [Fact]
         public void TestPort()
         {
-            if (!HasPersistentKeyStorage) return;
-
             //init and start a listener
             _listener = CreateListener(false);
             _listener.Port.Should().Be(WsPort);
@@ -119,8 +117,6 @@ namespace Test
         [Fact]
         public void TestEmptyPort()
         {
-            if (!HasPersistentKeyStorage) return;
-
             //init and start a listener
             var config = CreateListenerConfig(false, null, null, true);
             _listener = Listen(config, 0, 0);
@@ -135,8 +131,6 @@ namespace Test
         [Fact]
         public void TestBusyPort()
         {
-            if (!HasPersistentKeyStorage) return;
-
             var listener = CreateListener(false);
             //listener1 uses the same port as listener
             var config = CreateListenerConfig(false);
@@ -149,8 +143,6 @@ namespace Test
         [Fact]
         public void TestUrls()
         {
-            if (!HasPersistentKeyStorage) return;
-
             var listener = CreateListener(false);
 
             listener.Urls.Count.Should().NotBe(0);
@@ -161,8 +153,6 @@ namespace Test
         [Fact]
         public void TestStatus()
         {
-            if (!HasPersistentKeyStorage) return;
-
             HashSet<ulong> maxConnectionCount = new HashSet<ulong>(),
                 maxActiveCount = new HashSet<ulong>();
 
@@ -214,8 +204,6 @@ namespace Test
         [Fact]
         public void TestPasswordAuthenticator()
         {
-            if (!HasPersistentKeyStorage) return;
-
             var auth = new ListenerPasswordAuthenticator((sender, username, password) =>
             {
                 return username == "daniel" && Encoding.Unicode.GetString(password) == "123";
@@ -276,8 +264,6 @@ namespace Test
         [Fact]
         public void TestTLSIdentity()
         {
-            if (!HasPersistentKeyStorage) return;
-
             // TLS is disabled
             _listener = CreateListener(false);
             _listener.TlsIdentity.Should().BeNull();
