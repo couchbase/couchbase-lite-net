@@ -48,6 +48,7 @@ using ProtocolType = Couchbase.Lite.P2P.ProtocolType;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
+using System.Reflection;
 #else
 using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
 #endif
@@ -387,46 +388,42 @@ namespace Test
         [Fact]
         public void TestCreateDuplicateClientIdentity() => CreateDuplicateServerIdentity(false);
 
-        //[Fact]
+        [Fact]
         public void TestGetIdentityWithCertCollection()
         {
+          
             //TLSIdentity id;
-            //X509Certificate2Collection certs = new X509Certificate2Collection();
-            //X509Chain certChain = new X509Chain();
             //TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
-            //X509Certificate2 cert = Certificate.CreateX509Certificate2(false,
-            //    new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "CA-P2PTest1" } },
-            //    null,
-            //    ClientCertLabel,
-            //    false);
-            ////certChain.Build(cert);
-            //certs.Add(cert);
 
             //id = TLSIdentity.GetIdentity(certs);
             //id.Should().NotBeNull();
+            //id.Certs.Count.Should().Be(2);
 
             //// Delete
             //TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
         }
         
-        //[Fact]
+        [Fact]
         public void TestImportIdentityFromCertCollection()
         {
             TLSIdentity id;
-            X509Certificate2Collection certs = new X509Certificate2Collection();
-            X509Chain certChain = new X509Chain();
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
-
-            //needs to know how to move the cert to the test location
-            certs.Add(GetMyCert());
 
 
             // Import
-            id = TLSIdentity.ImportIdentity(_store, certs, ClientCertLabel, null);
+            using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("certs.p12"))
+            using (var sr = new BinaryReader(stream)) {
+                id = TLSIdentity.ImportIdentity(_store, sr.ReadBytes((int)stream.Length), "123", ClientCertLabel, null);
+                id.Should().NotBeNull();
+                id.Certs.Count.Should().Be(2);
+                id.Certs[0].GetRSAPrivateKey().Should().NotBeNull("because otherwise the private data key failed to be read");
+            }
 
             // Get
             id = TLSIdentity.GetIdentity(_store, ClientCertLabel, null);
             id.Should().NotBeNull();
+            id.Certs.Count.Should().Be(2);
+            id.Certs[0].GetRSAPrivateKey().Should().NotBeNull("because otherwise the private data key failed to persist");
 
             // Delete
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);

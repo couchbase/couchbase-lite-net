@@ -38,6 +38,7 @@ using LiteCore.Interop;
 
 using Newtonsoft.Json;
 using System.Collections.Immutable;
+using System.Reflection;
 
 using Test.Util;
 #if COUCHBASE_ENTERPRISE
@@ -67,16 +68,16 @@ namespace Test
 
         public bool DisableDefaultServerCertPinning { get; set; }
 
-        //public X509Certificate2 DefaultServerCert
-        //{
-        //    get {
-        //        using (var cert = GetTestAsset("SelfSigned.cer")) 
-        //        using (var ms = new MemoryStream()) {
-        //            cert.CopyTo(ms);
-        //            return new X509Certificate2(ms.ToArray());
-        //        }
-        //    }
-        //}
+        public X509Certificate2 DefaultServerCert
+        {
+            get {
+                using (var cert = typeof(ReplicatorTestBase).GetTypeInfo().Assembly.GetManifestResourceStream("SelfSigned.cer"))
+                using (var ms = new MemoryStream()) {
+                    cert.CopyTo(ms);
+                    return new X509Certificate2(ms.ToArray());
+                }
+            }
+        }
 
 #if !WINDOWS_UWP
         protected ReplicatorTestBase(ITestOutputHelper output) : base(output)
@@ -117,13 +118,13 @@ namespace Test
                 Authenticator = authenticator
             };
 
-            //if ((target as URLEndpoint)?.Url?.Scheme == "wss") {
-            //    if (serverCert != null) {
-            //        c.PinnedServerCertificate = serverCert;
-            //    } else if (!DisableDefaultServerCertPinning) {
-            //        c.PinnedServerCertificate = DefaultServerCert;
-            //    }
-            //}
+            if ((target as URLEndpoint)?.Url?.Scheme == "wss") {
+                if (serverCert != null) {
+                    c.PinnedServerCertificate = serverCert;
+                } else if (!DisableDefaultServerCertPinning) {
+                    c.PinnedServerCertificate = DefaultServerCert;
+                }
+            }
 
             if (continuous) {
                 c.CheckpointInterval = TimeSpan.FromSeconds(1);

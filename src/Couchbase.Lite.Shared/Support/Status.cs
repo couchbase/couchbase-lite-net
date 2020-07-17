@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
@@ -118,14 +119,42 @@ namespace Couchbase.Lite
                         if (ae.Message == "The certificate does not terminate in a trusted root CA.") {
                             message = ae.Message;
                             c4err.domain = C4ErrorDomain.NetworkDomain;
-                            c4err.code = (int) C4NetworkErrorCode.TLSCertUnknownRoot;
+                            c4err.code = (int)C4NetworkErrorCode.TLSCertUnknownRoot;
                         } else {
                             message = ae.Message;
                             c4err.domain = C4ErrorDomain.NetworkDomain;
-                            c4err.code = (int) C4NetworkErrorCode.TLSCertUntrusted;
+                            c4err.code = (int)C4NetworkErrorCode.TLSCertUntrusted;
+                        }
+                        
+              
+
+                        break;
+#if !__MOBILE__
+                    case Win32Exception we:
+                        if ((uint)we.ErrorCode == 0x80004005) {
+                            message = "The server rejected the client certificate (0x80004005)";
+                        } else {
+                            message = ae.Message;
+                        }
+
+                        c4err.domain = C4ErrorDomain.NetworkDomain;
+                        c4err.code = (int)C4NetworkErrorCode.TLSCertUntrusted;
+
+                        break;
+#else
+                    case Mono.Security.Interface.TlsException tlse:
+                        if(tlse.Alert.Description == Mono.Security.Interface.AlertDescription.CertificateUnknown) {
+                            message = "The certificate does not terminate in a trusted root CA.";
+                            c4err.domain = C4ErrorDomain.NetworkDomain;
+                            c4err.code = (int)C4NetworkErrorCode.TLSCertUnknownRoot;
+                        } else {
+                            message = tlse.Message;
+                            c4err.domain = C4ErrorDomain.NetworkDomain;
+                            c4err.code = (int)C4NetworkErrorCode.TLSCertUntrusted;
                         }
 
                         break;
+#endif
                 }
             }
 
@@ -141,9 +170,9 @@ namespace Couchbase.Lite
             *outError = Native.c4error_make(c4err.domain, c4err.code, message ?? e.Message);
         }
 
-        #endregion
+#endregion
 
-        #region Private Methods
+#region Private Methods
 
         private static IEnumerable<Exception> FlattenedExceptions([NotNull]Exception top)
         {
@@ -164,6 +193,6 @@ namespace Couchbase.Lite
             yield return top;
         }
 
-        #endregion
+#endregion
     }
 }

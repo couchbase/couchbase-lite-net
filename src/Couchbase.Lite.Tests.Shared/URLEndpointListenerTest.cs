@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -82,6 +83,7 @@ namespace Test
         #region Variables
 
         private URLEndpointListener _listener;
+        private X509Store _store;
 
         #endregion
 
@@ -89,9 +91,13 @@ namespace Test
 
 #if !WINDOWS_UWP
         public URLEndpointListenerTest(ITestOutputHelper output) : base(output)
-        {
-        }
+#else
+        public URLEndpointListenerTest()
 #endif
+        {
+            _store = new X509Store(StoreName.My);
+        }
+
 
         #endregion
 
@@ -236,8 +242,6 @@ namespace Test
         [Fact]
         public void TestServerCertVerificationModeSelfSigned()
         {
-            if (!HasPersistentKeyStorage) return;
-
             var listener = CreateListener();
             listener.TlsIdentity.Should()
                 .NotBeNull("because otherwise the TLS identity was not created for the listener");
@@ -287,11 +291,13 @@ namespace Test
             _listener.TlsIdentity.Should().BeNull();
 
             // User Identity
-            TLSIdentity.DeleteIdentity(ServerCertLabel).Should().BeTrue();
+            TLSIdentity.DeleteIdentity(_store, ServerCertLabel, null);
             var id = TLSIdentity.CreateIdentity(false,
                 new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "CBL-Server" } },
                 null,
-                ServerCertLabel);
+                _store,
+                ServerCertLabel,
+                null);
             var config = CreateListenerConfig(true, null, id);
             _listener = new URLEndpointListener(config);
             _listener.TlsIdentity.Should().BeNull();
@@ -372,6 +378,13 @@ namespace Test
         }
 
         #endregion
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            _store.Dispose();
+        }
     }
 }
 #endif
