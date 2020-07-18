@@ -35,6 +35,7 @@ using Newtonsoft.Json;
 using Test.Util;
 using LiteCore;
 using LiteCore.Interop;
+using System.Reflection;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -328,11 +329,9 @@ namespace Test
 				while ((line = tr.ReadLine()) != null)
 				{
 #else
-			using (var tr = new StreamReader(File.Open(path, FileMode.Open)))
-			{
-				string line;
-				while ((line = tr.ReadLine()) != null)
-				{
+                    using (var tr = new StreamReader(typeof(TestCase).GetTypeInfo().Assembly.GetManifestResourceStream(path.Replace("C/tests/data/", "")))) {
+                        string line;
+                        while ((line = tr.ReadLine()) != null) {
 #endif
 					if (!callback(line))
 					{

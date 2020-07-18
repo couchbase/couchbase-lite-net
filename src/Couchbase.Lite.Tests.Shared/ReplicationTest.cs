@@ -64,7 +64,7 @@ namespace Test
         protected Replicator _repl;
         protected WaitAssert _waitAssert;
 
-        public Database OtherDb { get; private set; }
+        public Database OtherDb { get; internal set; }
 
         public bool DisableDefaultServerCertPinning { get; set; }
 

@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+#if COUCHBASE_ENTERPRISE    
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -58,34 +60,17 @@ namespace Test
 #if WINDOWS_UWP
     [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
 #endif
-    public sealed class P2PTest : TestCase
+    public sealed class P2PTest : ReplicatorTestBase
     {
-        const string ServerCertLabel = "CBL-Server-Cert";
-        const string ClientCertLabel = "CBL-Client-Cert";
-
-        private static int Counter;
-        private Database _otherDB;
-        private Replicator _repl;
-        private WaitAssert _waitAssert;
-
-        private X509Store _store;
 #if !WINDOWS_UWP
         public P2PTest(ITestOutputHelper output) : base(output)
 #else
         public P2PTest()
 #endif
         {
-            ReopenDB();
-            var nextCounter = Interlocked.Increment(ref Counter);
-            Database.Delete($"otherdb{nextCounter}", Directory);
-            _otherDB = OpenDB($"otherdb{nextCounter}");
-            _store = new X509Store(StoreName.My);
             //uncomment the code below when you need to see more detail log
             //Database.Log.Console.Level = LogLevel.Debug;
         }
-
-#if COUCHBASE_ENTERPRISE        
-        #region p2p unit tests
         
         [Fact]
         public void TestShortP2P()
@@ -99,10 +84,10 @@ namespace Test
 
                 using (var mdoc = new MutableDocument("livesinotherdb")) {
                     mdoc.SetString("name", "otherdb");
-                    _otherDB.Save(mdoc);
+                    OtherDb.Save(mdoc);
                 }
 
-                var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, protocolType));
+                var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(OtherDb, protocolType));
                 var server = new MockServerConnection(listener, protocolType);
                 var messageendpoint = new MessageEndpoint($"p2ptest1", server, protocolType,
                         new MockConnectionFactory(null));
@@ -114,7 +99,7 @@ namespace Test
                     Continuous = false
                 };
                 RunReplication(config, 0, 0);
-                _otherDB.Count.Should().Be(2UL, "because it contains the original and new");
+                OtherDb.Count.Should().Be(2UL, "because it contains the original and new");
                 Db.Count.Should().Be(1UL, "because there is no pull, so the first db should only have the original");
 
                 // PULL
@@ -132,10 +117,10 @@ namespace Test
                     Db.Save(mdoc);
                 }
 
-                using (var savedDoc = _otherDB.GetDocument("livesindb"))
+                using (var savedDoc = OtherDb.GetDocument("livesindb"))
                 using (var mdoc = savedDoc.ToMutable()) {
                     mdoc.SetBoolean("modified", true);
-                    _otherDB.Save(mdoc);
+                    OtherDb.Save(mdoc);
                 }
 
                 // PUSH & PULL
@@ -151,34 +136,34 @@ namespace Test
                         .BeTrue("because the property change should have come from the other DB");
                 }
 
-                using (var savedDoc = _otherDB.GetDocument("livesinotherdb")) {
+                using (var savedDoc = OtherDb.GetDocument("livesinotherdb")) {
                     savedDoc.GetBoolean("modified").Should()
                         .BeTrue("because the property change should come from the original DB");
                 }
 
                 Db.Delete();
                 ReopenDB();
-                _otherDB.Delete();
-                _otherDB.Dispose();
-                _otherDB = OpenDB(_otherDB.Name);
+                OtherDb.Delete();
+                OtherDb.Dispose();
+                OtherDb = OpenDB(OtherDb.Name);
             }
         }
 
         [Fact]
         public void TestContinuousP2P()
         {
-            _otherDB.Delete();
-            _otherDB = OpenDB(_otherDB.Name);
+            OtherDb.Delete();
+            OtherDb = OpenDB(OtherDb.Name);
             Db.Delete();
             ReopenDB();
             RunTwoStepContinuous(ReplicatorType.Push, "p2ptest1");
-            _otherDB.Delete();
-            _otherDB = OpenDB(_otherDB.Name);
+            OtherDb.Delete();
+            OtherDb = OpenDB(OtherDb.Name);
             Db.Delete();
             ReopenDB();
             RunTwoStepContinuous(ReplicatorType.Pull, "p2ptest2");
-            _otherDB.Delete();
-            _otherDB = OpenDB(_otherDB.Name);
+            OtherDb.Delete();
+            OtherDb = OpenDB(OtherDb.Name);
             Db.Delete();
             ReopenDB();
             RunTwoStepContinuous(ReplicatorType.PushAndPull, "p2ptest3");
@@ -221,7 +206,7 @@ namespace Test
         [Fact]
         public void TestP2PPassiveClose()
         {
-            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.MessageStream));
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(OtherDb, ProtocolType.MessageStream));
             var awaiter = new ListenerAwaiter(listener);
             var serverConnection = new MockServerConnection(listener, ProtocolType.MessageStream);
             var errorLogic = new ReconnectErrorLogic();
@@ -264,7 +249,7 @@ namespace Test
                 Db.Save(doc);
             }
 
-            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.MessageStream));
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(OtherDb, ProtocolType.MessageStream));
             var serverConnection1 = new MockServerConnection(listener, ProtocolType.MessageStream);
             var serverConnection2 = new MockServerConnection(listener, ProtocolType.MessageStream);
             var closeWait1 = new ManualResetEventSlim();
@@ -329,7 +314,7 @@ namespace Test
         public void TestP2PChangeListener()
         {
             var statuses = new List<ReplicatorActivityLevel>();
-            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.ByteStream));
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(OtherDb, ProtocolType.ByteStream));
             var awaiter = new ListenerAwaiter(listener);
             var serverConnection = new MockServerConnection(listener, ProtocolType.ByteStream);
             var config = new ReplicatorConfiguration(Db,
@@ -352,7 +337,7 @@ namespace Test
         public void TestRemoveChangeListener()
         {
             var statuses = new List<ReplicatorActivityLevel>();
-            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.ByteStream));
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(OtherDb, ProtocolType.ByteStream));
             var awaiter = new ListenerAwaiter(listener);
             var serverConnection = new MockServerConnection(listener, ProtocolType.ByteStream);
             var config = new ReplicatorConfiguration(Db,
@@ -371,231 +356,6 @@ namespace Test
 
             statuses.Count.Should().Be(0);
         }
-        
-        #endregion
-
-        #region TLSIdentity tests
-
-        [Fact]
-        public void TestCreateGetDeleteServerIdentity() => CreateGetDeleteServerIdentity(true);
-
-        [Fact]
-        public void TestCreateDuplicateServerIdentity() => CreateDuplicateServerIdentity(true);
-
-        [Fact]
-        public void TestCreateGetDeleteClientIdentity() => CreateGetDeleteServerIdentity(false);
-
-        [Fact]
-        public void TestCreateDuplicateClientIdentity() => CreateDuplicateServerIdentity(false);
-
-        [Fact]
-        public void TestGetIdentityWithCertCollection()
-        {
-          
-            //TLSIdentity id;
-            //TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
-
-            //id = TLSIdentity.GetIdentity(certs);
-            //id.Should().NotBeNull();
-            //id.Certs.Count.Should().Be(2);
-
-            //// Delete
-            //TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
-        }
-        
-        [Fact]
-        public void TestImportIdentityFromCertCollection()
-        {
-            TLSIdentity id;
-            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
-
-
-            // Import
-            using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("certs.p12"))
-            using (var sr = new BinaryReader(stream)) {
-                id = TLSIdentity.ImportIdentity(_store, sr.ReadBytes((int)stream.Length), "123", ClientCertLabel, null);
-                id.Should().NotBeNull();
-                id.Certs.Count.Should().Be(2);
-                id.Certs[0].GetRSAPrivateKey().Should().NotBeNull("because otherwise the private data key failed to be read");
-            }
-
-            // Get
-            id = TLSIdentity.GetIdentity(_store, ClientCertLabel, null);
-            id.Should().NotBeNull();
-            id.Certs.Count.Should().Be(2);
-            id.Certs[0].GetRSAPrivateKey().Should().NotBeNull("because otherwise the private data key failed to persist");
-
-            // Delete
-            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
-        }
-
-        [Fact]
-        public void TestCreateIdentityWithNoAttributesOrEmptyAttributes()
-        {
-            // Delete 
-            TLSIdentity.DeleteIdentity(_store, ServerCertLabel, null);
-
-            //Get
-            var id = TLSIdentity.GetIdentity(_store, ServerCertLabel, null);
-            id.Should().BeNull();
-
-            // Create id with empty Attributes
-            Action badAction = (() => TLSIdentity.CreateIdentity(true,
-                new Dictionary<string, string>() { },
-                null,
-                _store,
-                ServerCertLabel,
-                null));
-            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.CreateCertAttributeEmpty);
-
-            // Create id with null Attributes
-            badAction = (() => TLSIdentity.CreateIdentity(true,
-                null,
-                null,
-                _store,
-                ServerCertLabel,
-                null));
-            badAction.Should().Throw<ArgumentNullException>();
-        }
-
-        [Fact]
-        public void TestCertificateExpiration()
-        {
-            TLSIdentity id;
-
-            // Delete 
-            TLSIdentity.DeleteIdentity(_store, ServerCertLabel, null);
-
-            //Get
-            id = TLSIdentity.GetIdentity(_store, ServerCertLabel, null);
-            id.Should().BeNull();
-
-            var fiveMinToExpireCert = DateTimeOffset.UtcNow.AddMinutes(5);
-            id = TLSIdentity.CreateIdentity(true,
-                new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "CA-P2PTest" } },
-                fiveMinToExpireCert,
-                _store,
-                ServerCertLabel,
-                null);
-
-            (id.Expiration - DateTimeOffset.UtcNow).Should().BeGreaterThan(TimeSpan.MinValue);
-            (id.Expiration - DateTimeOffset.UtcNow).Should().BeLessOrEqualTo(TimeSpan.FromMinutes(5));
-
-            // Delete 
-            TLSIdentity.DeleteIdentity(_store, ServerCertLabel, null);
-        }
-
-        #endregion
-
-        #region TLSIdentity tests helpers
-
-        static private X509Certificate2 GetMyCert()
-        {
-            //TODO move the cert into the test local location
-            X509Certificate2 cert = null;
-
-            // Load the certificate
-            var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
-            store.Open(OpenFlags.ReadOnly);
-            X509Certificate2Collection certCollection = store.Certificates.Find
-            (
-                X509FindType.FindBySubjectName,
-                "certs",
-                false    // Including invalid certificates
-            );
-
-            if (certCollection.Count > 0) {
-                cert = certCollection[0];
-            }
-
-            store.Close();
-
-            return cert;
-        }
-
-        private void AddRootCert()
-        {
-            X509Store store = new X509Store("Trust");
-            store.Open(OpenFlags.ReadWrite);
-
-            string certString = "MIIDGjCCAgKgAwIBAgICApowDQYJKoZIhvcNAQEFBQAwLjELMAkGA1UEBhMCQ1oxDjAMBgNVBAoTBVJlYmV4MQ8wDQYDVQQDEwZUZXN0Q0EwHhcNMDAwMTAxMDAwMDAwWhcNNDkxMjMxMDAwMDAwWjAuMQswCQYDVQQGEwJDWjEOMAwGA1UEChMFUmViZXgxDzANBgNVBAMTBlRlc3RDQTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMgeRAcaNLTFaaBhFx8RDJ8b9K655dNUXmO11mbImDbPq4qVeZXDgAjnzPov8iBscwfqBvBpF38LsxBIPA2i1d0RMsQruOhJHttA9I0enElUXXj63sOEVNMSQeg1IMyvNeEotag+Gcx6SF+HYnariublETaZGzwAOD2SM49mfqUyfkgeTjdO6qp8xnoEr7dS5pEBHDg70byj/JEeZd3gFea9TiOXhbCrI89dKeWYBeoHFYhhkaSB7q9EOaUEzKo/BQ6PBHFu6odfGkOjXuwfPkY/wUy9U4uj75LmdhzvJf6ifsJS9BQZF4//JcUYSxiyzpxDYqSbTF3g9w5Ds2LOAscCAwEAAaNCMEAwDgYDVR0PAQH/BAQDAgB/MA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFD1v20tPgvHTEK/0eLO09j0rL2qXMA0GCSqGSIb3DQEBBQUAA4IBAQAZIjcdR3EZiFJ67gfCnPBrxVgFNvaRAMCYEYYIGDCAUeB4bLTu9dvun9KFhgVNqjgx+xTTpx9d/5mAZx5W3YAG6faQPCaHccLefB1M1hVPmo8md2uw1a44RHU9LlM0V5Lw8xTKRkQiZz3Ysu0sY27RvLrTptbbfkE4Rp9qAMguZT9cFrgPAzh+0zuo8NNj9Jz7/SSa83yIFmflCsHYSuNyKIy2iaX9TCVbTrwJmRIB65gqtTb6AKtFGIPzsb6nayHvgGHFchrFovcNrvRpE71F38oVG+eCjT23JfiIZim+yJLppSf56167u8etDcQ39j2b9kzWlHIVkVM0REpsKF7S";
-            X509Certificate2 rootCert = new X509Certificate2(Convert.FromBase64String(certString));
-            if (!store.Certificates.Contains(rootCert))
-                store.Add(rootCert);
-
-            store.Close();
-        }
-
-
-        private void CreateGetDeleteServerIdentity(bool isServer)
-        {
-            string commonName = isServer ? "CBL-Server" : "CBL-Client";
-            string label = isServer ? ServerCertLabel : ClientCertLabel;
-            TLSIdentity id;
-
-            // Delete 
-            TLSIdentity.DeleteIdentity(_store, label, null);
-
-            //Get
-            id = TLSIdentity.GetIdentity(_store, label, null);
-            id.Should().BeNull();
-
-            // Create
-            id = TLSIdentity.CreateIdentity(isServer,
-                new Dictionary<string, string>() { { Certificate.CommonNameAttribute, commonName } },
-                null,
-                _store,
-                label,
-                null);
-            id.Should().NotBeNull();
-            id.Certs.Count.Should().Be(1);
-
-            // Delete
-            TLSIdentity.DeleteIdentity(_store, label, null);
-
-            // Get
-            TLSIdentity.GetIdentity(_store, label, null).Should().Be(null);
-        }
-
-        private void CreateDuplicateServerIdentity(bool isServer)
-        {
-            string commonName = isServer ? "CBL-Server" : "CBL-Client";
-            string label = isServer ? ServerCertLabel : ClientCertLabel;
-            TLSIdentity id;
-            Dictionary<string, string> attr = new Dictionary<string, string>() { { Certificate.CommonNameAttribute, commonName } };
-
-            // Delete 
-            TLSIdentity.DeleteIdentity(_store, label, null);
-
-            // Create
-            id = TLSIdentity.CreateIdentity(isServer,
-                attr,
-                null,
-                _store,
-                label,
-                null);
-            id.Should().NotBeNull();
-            id.Certs.Count.Should().Be(1);
-
-            //Get
-            id = TLSIdentity.GetIdentity(_store, label, null);
-            id.Should().NotBeNull();
-
-            // Create again with the same label
-            Action badAction = (() => TLSIdentity.CreateIdentity(isServer,
-                attr,
-                null,
-                _store,
-                label,
-                null));
-            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.DuplicateCertificate);
-        }
-
-        private byte[] GetPublicKeyHashFromCert(X509Certificate2 cert)
-        {
-            return cert.GetPublicKey();
-        }
-        #endregion
 
         private ReplicatorConfiguration CreateFailureP2PConfiguration(ProtocolType protocolType, MockConnectionLifecycleLocation location, bool recoverable)
         {
@@ -607,7 +367,7 @@ namespace Test
                 errorLocation.WithPermanentException();
             }
 
-            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, protocolType));
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(OtherDb, protocolType));
             var server = new MockServerConnection(listener, protocolType) {
                 ErrorLogic = errorLocation
             };
@@ -639,7 +399,7 @@ namespace Test
 
         private void RunTwoStepContinuous(ReplicatorType type, string uid)
         {
-            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(_otherDB, ProtocolType.ByteStream));
+            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(OtherDb, ProtocolType.ByteStream));
             var server = new MockServerConnection(listener, ProtocolType.ByteStream);
             var config = new ReplicatorConfiguration(Db,
                 new MessageEndpoint(uid, server, ProtocolType.ByteStream, new MockConnectionFactory(null))) {
@@ -657,17 +417,17 @@ namespace Test
                 if (type == ReplicatorType.Push) {
                     firstSource = Db;
                     secondSource = Db;
-                    firstTarget = _otherDB;
-                    secondTarget = _otherDB;
+                    firstTarget = OtherDb;
+                    secondTarget = OtherDb;
                 } else if (type == ReplicatorType.Pull) {
-                    firstSource = _otherDB;
-                    secondSource = _otherDB;
+                    firstSource = OtherDb;
+                    secondSource = OtherDb;
                     firstTarget = Db;
                     secondTarget = Db;
                 } else {
                     firstSource = Db;
-                    secondSource = _otherDB;
-                    firstTarget = _otherDB;
+                    secondSource = OtherDb;
+                    firstTarget = OtherDb;
                     secondTarget = Db;
                 }
 
@@ -782,39 +542,7 @@ namespace Test
                 return retVal;
             }
         }
-
-#endif
-
-        protected override void Dispose(bool disposing)
-        {
-            Exception ex = null;
-            _repl?.Dispose();
-            _repl = null;
-
-            base.Dispose(disposing);
-            var name = _otherDB?.Name;
-            _otherDB?.Dispose();
-            _otherDB = null;
-
-            _store.Dispose();
-
-            var success = Try.Condition(() => {
-                try {
-                    if (name != null) {
-                        Database.Delete(name, Directory);
-                    }
-                } catch (Exception e) {
-                    ex = e;
-                    return false;
-                }
-
-                return true;
-            }).Times(5).Delay(TimeSpan.FromSeconds(1)).WriteProgress(WriteLine).Go();
-
-            if (!success) {
-                throw ex;
-            }
-        }
     }
 }
 
+#endif
