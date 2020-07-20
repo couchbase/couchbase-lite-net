@@ -47,7 +47,9 @@ using ItemNotNull = JetBrains.Annotations.ItemNotNullAttribute;
 using CanBeNull = JetBrains.Annotations.CanBeNullAttribute;
 using System.Diagnostics.CodeAnalysis;
 using System.Collections.Concurrent;
+#if COUCHBASE_ENTERPRISE
 using Couchbase.Lite.P2P;
+#endif
 
 namespace Couchbase.Lite
 {
