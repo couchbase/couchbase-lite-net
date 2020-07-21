@@ -734,8 +734,7 @@ namespace Couchbase.Lite.Sync
             }
 
 #if COUCHBASE_ENTERPRISE
-            var onlySelfSigned = _options.ServerCertificateVerificationMode ==
-                ServerCertificateVerificationMode.SelfSignedCert;
+            var onlySelfSigned = _options.AcceptOnlySelfSignedServerCertificate;
             #else
             var onlySelfSigned = false;
             #endif

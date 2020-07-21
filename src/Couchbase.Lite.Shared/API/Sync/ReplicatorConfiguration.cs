@@ -310,7 +310,7 @@ namespace Couchbase.Lite.Sync
             {
                 Authenticator = Authenticator,
                 #if COUCHBASE_ENTERPRISE
-                ServerCertificateVerificationMode = ServerCertificateVerificationMode,
+                AcceptOnlySelfSignedServerCertificate = AcceptOnlySelfSignedServerCertificate,
                 #endif
                 Continuous = Continuous,
                 PushFilter = PushFilter,
