@@ -189,13 +189,10 @@ namespace Couchbase.Lite.Sync
         }
 
         #if COUCHBASE_ENTERPRISE
-        internal ServerCertificateVerificationMode ServerCertificateVerificationMode
+        internal bool AcceptOnlySelfSignedServerCertificate
         {
-            get => this.GetCast<bool>(OnlySelfSignedServerCert)
-                ? ServerCertificateVerificationMode.SelfSignedCert
-                : ServerCertificateVerificationMode.CACert;
-            set => this[OnlySelfSignedServerCert] =
-                value == ServerCertificateVerificationMode.SelfSignedCert;
+            get => this.GetCast<bool>(OnlySelfSignedServerCert);
+            set => this[OnlySelfSignedServerCert] = value;
         }
         #endif
 

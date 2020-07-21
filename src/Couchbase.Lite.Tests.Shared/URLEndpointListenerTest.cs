@@ -243,7 +243,7 @@ namespace Test
                 ReplicatorType.PushAndPull,
                 false,
                 null,
-                ServerCertificateVerificationMode.CACert,
+                false,
                 null,
                 (int)CouchbaseLiteError.TLSCertUnknownRoot,
                 CouchbaseLiteErrorType.CouchbaseLite
@@ -254,7 +254,7 @@ namespace Test
                 ReplicatorType.PushAndPull,
                 false,
                 null,
-                ServerCertificateVerificationMode.SelfSignedCert,
+                true,
                 null,
                 0,
                 0
