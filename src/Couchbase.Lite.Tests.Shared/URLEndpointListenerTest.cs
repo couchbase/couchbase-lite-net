@@ -247,6 +247,7 @@ namespace Test
                 null,
                 false,
                 null,
+                //TODO: Need to handle Linux throwing different error TLSCertUntrusted (5008)
                 (int)CouchbaseLiteError.TLSCertUnknownRoot,
                 CouchbaseLiteErrorType.CouchbaseLite
             );
