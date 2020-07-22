@@ -327,7 +327,8 @@ namespace Test
 
             var config = new URLEndpointListenerConfiguration(OtherDb);
             //In order to get the test to pass on Linux, Port needs to be 0.
-            config.Port = tls ? WssPort : WsPort; 
+            config.Port = 0;
+            //config.Port = tls ? WssPort : WsPort; 
             config.DisableTLS = !tls;
             config.Authenticator = auth;
 
