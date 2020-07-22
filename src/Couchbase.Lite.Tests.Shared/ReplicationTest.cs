@@ -89,7 +89,7 @@ namespace Test
             ReopenOtherDb();
             
             //uncomment the code below when you need to see more detail log
-            Database.Log.Console.Level = LogLevel.Debug;
+            //Database.Log.Console.Level = LogLevel.Debug;
         }
 
         protected void OpenOtherDb()
