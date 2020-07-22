@@ -169,7 +169,7 @@ namespace Test
                 Db.Save(doc1);
             }
 
-            var targetEndpoint = new URLEndpoint(new Uri($"{_listener.Urls[0]}".Replace("http", "ws")));
+            var targetEndpoint = _listener.LocalEndpoint();
             var config = new ReplicatorConfiguration(Db, targetEndpoint);
             using (var repl = new Replicator(config)) {
                 var waitAssert = new WaitAssert();
@@ -212,7 +212,7 @@ namespace Test
             _listener = CreateListener(false, auth);
 
             // Replicator - No authenticator
-            var targetEndpoint = new URLEndpoint(new Uri($"{_listener.Urls[0]}".Replace("http", "ws")));
+            var targetEndpoint = _listener.LocalEndpoint();
             var config = new ReplicatorConfiguration(Db, targetEndpoint);
             RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
 
