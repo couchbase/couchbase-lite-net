@@ -80,12 +80,12 @@ namespace Couchbase.Lite.Sync
 
         #region Variables
 
-        [NotNull]private readonly byte[] _buffer = new byte[MaxReceivedBytesPending];
-        [NotNull]private readonly SerialQueue _c4Queue = new SerialQueue();
-        [NotNull]private readonly HTTPLogic _logic;
-        [NotNull]private readonly ReplicatorOptionsDictionary _options;
+        [NotNull] private readonly byte[] _buffer = new byte[MaxReceivedBytesPending];
+        [NotNull] private readonly SerialQueue _c4Queue = new SerialQueue();
+        [NotNull] private readonly HTTPLogic _logic;
+        [NotNull] private readonly ReplicatorOptionsDictionary _options;
 
-        [NotNull]private readonly SerialQueue _queue = new SerialQueue();
+        [NotNull] private readonly SerialQueue _queue = new SerialQueue();
 
         private readonly unsafe C4Socket* _socket;
         private TcpClient _client;
@@ -96,7 +96,7 @@ namespace Couchbase.Lite.Sync
         private ManualResetEventSlim _receivePause;
         private BlockingCollection<byte[]> _writeQueue;
         private readonly object _writeQueueLock = new object(); // Used to avoid disposal race
-        
+
         private readonly IReachability _reachability = Service.GetInstance<IReachability>() ?? new Reachability();
 
         #endregion
@@ -127,7 +127,7 @@ namespace Couchbase.Lite.Sync
 
         // Normal closure (requested by client)
         public unsafe void CloseSocket()
-		{
+        {
             // Wait my turn!
             _queue.DispatchAsync(() =>
             {
@@ -156,7 +156,7 @@ namespace Couchbase.Lite.Sync
                     return;
                 }
 
-                _receivedBytesPending -= (uint)byteCount;
+                _receivedBytesPending -= (uint) byteCount;
                 _receivePause?.Set();
             });
         }
@@ -188,7 +188,7 @@ namespace Couchbase.Lite.Sync
 
                 try {
                     _client.Client.DualMode = true;
-                } catch(ArgumentException) {
+                } catch (ArgumentException) {
                     WriteLog.To.Sync.I(Tag, "IPv4/IPv6 dual mode not supported on this device, falling back to IPv4");
                     _client = new TcpClient(AddressFamily.InterNetwork);
                 }
@@ -260,7 +260,7 @@ namespace Couchbase.Lite.Sync
         private async void connectProxyAsync(IProxy proxy, string user, string password)
         {
             try {
-                Uri destinationUri = new Uri("http://"+_logic.UrlRequest.Host + ":" + _logic.UrlRequest.Port);
+                Uri destinationUri = new Uri("http://" + _logic.UrlRequest.Host + ":" + _logic.UrlRequest.Port);
                 var proxyServer = await proxy.CreateProxyAsync(destinationUri);
                 if (proxyServer == null) {
                     OpenConnectionToRemote();
@@ -291,14 +291,14 @@ namespace Couchbase.Lite.Sync
             ResetConnections();
 
             WriteLog.To.Sync.I(Tag, $"WebSocket CLOSED WITH STATUS {closeCode} \"{reason}\"");
-            var c4Err = Native.c4error_make(C4ErrorDomain.WebSocketDomain, (int)closeCode, reason);
+            var c4Err = Native.c4error_make(C4ErrorDomain.WebSocketDomain, (int) closeCode, reason);
             _c4Queue.DispatchAsync(() =>
             {
                 if (_closed) {
                     WriteLog.To.Sync.W(Tag, "Double close detected, ignoring...");
                     return;
                 }
-                
+
                 Native.c4socket_closed(_socket, c4Err);
                 _closed = true;
             });
@@ -324,7 +324,7 @@ namespace Couchbase.Lite.Sync
                     WriteLog.To.Sync.W(Tag, "Double close detected, ignoring...");
                     return;
                 }
-                
+
                 Native.c4socket_closed(_socket, c4errCopy);
                 _closed = true;
             });
@@ -359,7 +359,7 @@ namespace Couchbase.Lite.Sync
         private bool NetworkTaskSuccessful(Task t)
         {
             if (t.IsCanceled) {
-                DidClose(new SocketException((int)SocketError.TimedOut));
+                DidClose(new SocketException((int) SocketError.TimedOut));
                 return false;
             }
 
@@ -395,10 +395,9 @@ namespace Couchbase.Lite.Sync
         {
             // STEP 2: Open the socket connection to the remote host
 
-            if(_logic.HasProxy) {
+            if (_logic.HasProxy) {
                 _queue.DispatchAsync(StartInternal);
-            }
-            else if (_client != null && !_client.Connected) {
+            } else if (_client != null && !_client.Connected) {
                 try {
                     _client.ConnectAsync(_logic.UrlRequest.Host, _logic.UrlRequest.Port)
                     .ContinueWith(t =>
@@ -439,10 +438,10 @@ namespace Couchbase.Lite.Sync
                     _receivePause?.Wait(cancelSource.Token);
                 } catch (ObjectDisposedException) {
                     return;
-                } catch(OperationCanceledException){
+                } catch (OperationCanceledException) {
                     return;
                 }
-                
+
                 try {
                     var stream = NetworkStream;
                     if (stream == null) {
@@ -480,7 +479,7 @@ namespace Couchbase.Lite.Sync
             if (original == null) {
                 return;
             }
-            
+
             // This will protect us against future nullification of the original source
             var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(original.Token);
             while (!cancelSource.IsCancellationRequested) {
@@ -534,8 +533,8 @@ namespace Couchbase.Lite.Sync
         {
             _queue.DispatchAsync(() =>
             {
-                if(NetworkStream != null && e.Status == NetworkReachabilityStatus.Unreachable) {
-                    DidClose(new SocketException((int)SocketError.NetworkUnreachable));
+                if (NetworkStream != null && e.Status == NetworkReachabilityStatus.Unreachable) {
+                    DidClose(new SocketException((int) SocketError.NetworkUnreachable));
                 }
             });
         }
@@ -546,7 +545,7 @@ namespace Couchbase.Lite.Sync
             // messages cause checksum errors!
             _queue.DispatchAsync(() =>
             {
-                _receivedBytesPending += (uint)data.Length;
+                _receivedBytesPending += (uint) data.Length;
                 WriteLog.To.Sync.V(Tag, $"<<< received {data.Length} bytes [now {_receivedBytesPending} pending]");
                 var socket = _socket;
                 _c4Queue.DispatchAsync(() =>
@@ -589,7 +588,7 @@ namespace Couchbase.Lite.Sync
             } else if (httpStatus != 101) {
                 var closeCode = C4WebSocketCloseCode.WebSocketClosePolicyError;
                 if (httpStatus >= 300 && httpStatus < 1000) {
-                    closeCode = (C4WebSocketCloseCode)httpStatus;
+                    closeCode = (C4WebSocketCloseCode) httpStatus;
                 }
 
                 var reason = parser.Reason;
@@ -727,58 +726,18 @@ namespace Couchbase.Lite.Sync
                 return retVal;
             }
 
-            // Mono doesn't pass chain information?
-            if (chain?.ChainElements?.Count == 0 && certificate is X509Certificate2 cert2) {
-                chain = X509Chain.Create();
-                chain.Build(cert2);
-            }
-
-#if COUCHBASE_ENTERPRISE
-            var onlySelfSigned = _options.AcceptOnlySelfSignedServerCertificate;
-            #else
-            var onlySelfSigned = false;
-            #endif
-
-            if (!onlySelfSigned && sslPolicyErrors != SslPolicyErrors.None) {
+            if (sslPolicyErrors != SslPolicyErrors.None) {
                 WriteLog.To.Sync.W(Tag, $"Error validating TLS chain: {sslPolicyErrors}");
-                if (chain.ChainElements != null) {
-                    foreach(var element in chain.ChainElements) {
-                        if (element.ChainElementStatus != null) {
-                            foreach (var status in element.ChainElementStatus) {
-                                if (status.Status != X509ChainStatusFlags.NoError) {
-                                    WriteLog.To.Sync.V(Tag,
-                                        $"Error {status.Status} ({status.StatusInformation}) for certificate:{Environment.NewLine}{element.Certificate}");
-                                    if (status.Status == X509ChainStatusFlags.UntrustedRoot) {
-                                        throw new AuthenticationException("The certificate does not terminate in a trusted root CA.");
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else if(chain.ChainStatus != null) {
-                    foreach(var status in chain.ChainStatus) {
-                        if(status.Status == X509ChainStatusFlags.PartialChain) {
-                            throw new AuthenticationException("The certificate does not terminate in a trusted root CA.");
+                if (chain?.ChainStatus != null) {
+                    for (var i = 0; i < chain.ChainStatus.Length; i++) {
+                        var element = chain.ChainElements[i];
+                        var status = chain.ChainStatus[i];
+                        if (status.Status != X509ChainStatusFlags.NoError) {
+                            WriteLog.To.Sync.V(Tag,
+                                $"Error {status.Status} ({status.StatusInformation}) for certificate:{Environment.NewLine}{element.Certificate}");
                         }
                     }
                 }
-            } else if (onlySelfSigned) {
-                if (chain.ChainElements.Count != 1) {
-                    throw new AuthenticationException("A certificate chain was received in self-signed mode");
-                }
-
-                if (chain.ChainStatus[0].Status != X509ChainStatusFlags.UntrustedRoot &&
-                    chain.ChainStatus[0].Status != X509ChainStatusFlags.PartialChain &&
-                    chain.ChainStatus[0].Status != X509ChainStatusFlags.NoError) {
-                    return false;
-                }
-
-                if (chain.ChainElements[0].Certificate.IssuerName.Name
-                    != chain.ChainElements[0].Certificate.SubjectName.Name) {
-                    throw new ArgumentException("A non self-signed certificate was received in self-signed mode.");
-                }
-
-                return true;
             }
 
             return sslPolicyErrors == SslPolicyErrors.None;
@@ -799,4 +758,5 @@ namespace Couchbase.Lite.Sync
         #endregion
     }
 }
+
 
