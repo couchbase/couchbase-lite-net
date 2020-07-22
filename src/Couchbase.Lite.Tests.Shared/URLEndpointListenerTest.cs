@@ -169,9 +169,11 @@ namespace Test
             using (var doc2 = new MutableDocument("doc2")) {
                 doc1.SetString("name", "Sam");
                 Db.Save(doc1);
+                doc2.SetString("name", "Mary");
+                OtherDb.Save(doc2);
             }
 
-            var targetEndpoint = new URLEndpoint(new Uri($"{_listener.Urls[0]}".Replace("http", "ws")));
+            var targetEndpoint = _listener.LocalEndpoint();
             var config = new ReplicatorConfiguration(Db, targetEndpoint);
             using (var repl = new Replicator(config)) {
                 var waitAssert = new WaitAssert();
@@ -195,7 +197,7 @@ namespace Test
             }
 
             maxConnectionCount.Max().Should().Be(1);
-            maxActiveCount.Max().Should().Be(1);
+            maxActiveCount.Max().Should().Be(1); //ios gets 0 (websocketwarpper has some updates, need to check if anything there causing the issue)
 
             //stop the listener
             _listener.Stop();
@@ -214,7 +216,7 @@ namespace Test
             _listener = CreateListener(false, auth);
 
             // Replicator - No authenticator
-            var targetEndpoint = new URLEndpoint(new Uri($"{_listener.Urls[0]}".Replace("http", "ws")));
+            var targetEndpoint = _listener.LocalEndpoint();
             var config = new ReplicatorConfiguration(Db, targetEndpoint);
             RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
 
