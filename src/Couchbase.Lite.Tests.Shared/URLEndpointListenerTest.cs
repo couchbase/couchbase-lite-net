@@ -109,8 +109,8 @@ namespace Test
             //init and start a listener
             _listener = CreateListener(false);
             //In order to get the test to pass on Linux, temp modify to this:
-            _listener.Port.Should().BeGreaterThan(0);
-            //_listener.Port.Should().Be(WsPort);
+            //_listener.Port.Should().BeGreaterThan(0);
+            _listener.Port.Should().Be(WsPort);
             //stop the listener
             _listener.Stop();
             _listener.Port.Should().Be(0, "Listener's port should be 0 because the listener is stopped.");
@@ -307,12 +307,12 @@ namespace Test
             _listener?.Stop();
 
             var config = new URLEndpointListenerConfiguration(OtherDb);
-            //if (useDynamicPort) {
+            if (useDynamicPort) {
             //In order to get the test to pass on Linux, Port needs to be 0.
-            config.Port = 0;
-            //} else {
-            //    config.Port = tls ? WssPort : WsPort;
-            //}
+                config.Port = 0;
+            } else {
+                config.Port = tls ? WssPort : WsPort;
+            }
 
             config.DisableTLS = !tls;
             config.Authenticator = auth;
@@ -327,7 +327,7 @@ namespace Test
 
             var config = new URLEndpointListenerConfiguration(OtherDb);
             //In order to get the test to pass on Linux, Port needs to be 0.
-            config.Port = 0;// tls ? WssPort : WsPort; 
+            config.Port = tls ? WssPort : WsPort; 
             config.DisableTLS = !tls;
             config.Authenticator = auth;
 
