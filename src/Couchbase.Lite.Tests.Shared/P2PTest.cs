@@ -42,10 +42,8 @@ using Newtonsoft.Json;
 using System.Collections.Immutable;
 
 using Test.Util;
-#if COUCHBASE_ENTERPRISE
 using Couchbase.Lite.P2P;
 using ProtocolType = Couchbase.Lite.P2P.ProtocolType;
-#endif
 
 #if !WINDOWS_UWP
 using Xunit;
