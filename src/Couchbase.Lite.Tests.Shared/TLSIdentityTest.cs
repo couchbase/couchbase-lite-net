@@ -209,8 +209,8 @@ namespace Test
                 request.CertificateExtensions.Add(sanBuilder.Build());
 
                 var certificate = request.CreateSelfSigned(new DateTimeOffset(DateTime.UtcNow.AddDays(-1)), new DateTimeOffset(DateTime.UtcNow.AddDays(3650)));
-
-                return certificate.Export(X509ContentType.Pfx, password);
+                var certs = new X509Certificate2Collection(certificate);
+                return certs.Export(X509ContentType.Pfx, password);
             }
         }
 
