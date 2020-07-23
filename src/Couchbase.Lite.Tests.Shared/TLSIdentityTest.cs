@@ -50,6 +50,7 @@ using ProtocolType = Couchbase.Lite.P2P.ProtocolType;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
+using System.Security.Cryptography;
 #else
 using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
 #endif
@@ -88,11 +89,10 @@ namespace Test
         [Fact]
         public void TestCreateDuplicateClientIdentity() => CreateDuplicateServerIdentity(false);
 
-        //[Fact]
+        [Fact]
         public void TestGetIdentityWithCertCollection()
         {
             TLSIdentity id;
-            X509Chain certChain = new X509Chain();
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
             TLSIdentity identity = TLSIdentity.CreateIdentity(false,
                 new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "CA-P2PTest1" } },
@@ -110,38 +110,14 @@ namespace Test
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
         }
         
-        //[Fact]
+        [Fact]
         public void TestImportIdentityFromCertCollection()
         {
             TLSIdentity id;
-            X509Certificate2Collection certs = new X509Certificate2Collection();
-            X509Chain certChain = new X509Chain();
-            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
-
-            //needs to know how to move the cert to the test location
-            X509Certificate2 cert = GetMyCert();
-
-            bool validChain = certChain.Build(cert);
-
-            if (!validChain) {
-                // Whatever you want to do about that.
-
-                foreach (var status in certChain.ChainStatus) {
-                    // In reality you can == this, since X509Chain.ChainStatus builds
-                    // an object per flag, but since it's [Flags] let's play it safe.
-                    if ((status.Status & X509ChainStatusFlags.PartialChain) != 0) {
-                        // Incomplete chain.
-                    }
-                }
-            }
-
-            foreach (var element in certChain.ChainElements) {
-                certs.Add(element.Certificate);
-            }
+            var pkc12 = BuildSelfSignedServerCertificate(ClientCertLabel, "123");
 
             // Import
-            var pkc12 = certs.Export(X509ContentType.Pfx, "123");
-            id = TLSIdentity.ImportIdentity(_store, pkc12, "123", null, ClientCertLabel);
+            id = TLSIdentity.ImportIdentity(_store, pkc12, "123", ClientCertLabel, null);
 
             // Get
             id = TLSIdentity.GetIdentity(_store, ClientCertLabel, null);
@@ -211,28 +187,32 @@ namespace Test
 
         #region TLSIdentity tests helpers
 
-        static private X509Certificate2 GetMyCert()
+        static private byte[] BuildSelfSignedServerCertificate(string CertificateName, string password)
         {
-            //TODO move the cert into the test local location
-            X509Certificate2 cert = null;
+            SubjectAlternativeNameBuilder sanBuilder = new SubjectAlternativeNameBuilder();
+            sanBuilder.AddDnsName("localhost");
+            sanBuilder.AddDnsName(Environment.MachineName);
 
-            // Load the certificate
-            var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
-            store.Open(OpenFlags.ReadOnly);
-            X509Certificate2Collection certCollection = store.Certificates.Find
-            (
-                X509FindType.FindBySubjectName,
-                "certs",
-                false    // Including invalid certificates
-            );
+            X500DistinguishedName distinguishedName = new X500DistinguishedName($"CN={CertificateName}");
 
-            if (certCollection.Count > 0) {
-                cert = certCollection[0];
+            using (RSA rsa = RSA.Create(2048)) {
+                var request = new CertificateRequest(distinguishedName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+
+                request.CertificateExtensions.Add(
+                    new X509KeyUsageExtension(X509KeyUsageFlags.DataEncipherment | X509KeyUsageFlags.KeyEncipherment | X509KeyUsageFlags.DigitalSignature, false));
+
+
+                request.CertificateExtensions.Add(
+                   new X509EnhancedKeyUsageExtension(
+                       new OidCollection { new Oid("1.3.6.1.5.5.7.3.1") }, false));
+
+                request.CertificateExtensions.Add(sanBuilder.Build());
+
+                var certificate = request.CreateSelfSigned(new DateTimeOffset(DateTime.UtcNow.AddDays(-1)), new DateTimeOffset(DateTime.UtcNow.AddDays(3650)));
+                certificate.FriendlyName = CertificateName;
+
+                return certificate.Export(X509ContentType.Pfx, password);
             }
-
-            store.Close();
-
-            return cert;
         }
 
         private void AddRootCert()
