@@ -135,11 +135,11 @@ namespace Test
 
         #if COUCHBASE_ENTERPRISE
         protected ReplicatorConfiguration CreateConfig(IEndpoint target, ReplicatorType type, bool continuous,
-            bool verifyMode, Authenticator authenticator = null,
+            bool acceptOnlySelfSignedServerCertificate, Authenticator authenticator = null,
             X509Certificate2 serverCert = null)
         {
             var c = CreateConfig(target, type, continuous, authenticator, serverCert);
-            c.AcceptOnlySelfSignedServerCertificate = verifyMode;
+            c.AcceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate;
 
             return c;
         }
@@ -164,10 +164,10 @@ namespace Test
 
         #if COUCHBASE_ENTERPRISE
         protected void RunReplication(IEndpoint target, ReplicatorType type, bool continuous,
-            Authenticator authenticator, bool verifyMode,
+            Authenticator authenticator, bool acceptOnlySelfSignedServerCertificate,
             X509Certificate2 serverCert, int expectedErrCode, CouchbaseLiteErrorType expectedErrorDomain)
         {
-            var config = CreateConfig(target, type, continuous, verifyMode, authenticator,
+            var config = CreateConfig(target, type, continuous, acceptOnlySelfSignedServerCertificate, authenticator,
                 serverCert);
             RunReplication(config, expectedErrCode, expectedErrorDomain);
         }

@@ -227,6 +227,41 @@ namespace Test
         }
 
         [Fact]
+        public void TestClientCertAuthenticator()
+        {
+            var auth = new ListenerCertificateAuthenticator((sender, cert) =>
+            {
+
+                return true;
+            });
+
+            _listener = CreateListener(true, auth);
+
+            // User Identity
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+            var id = TLSIdentity.CreateIdentity(false,
+                new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "daniel" } },
+                null,
+                _store,
+                ClientCertLabel,
+                null);
+
+            RunReplication(
+                _listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull,
+                false,
+                new ClientCertificateAuthenticator(id),
+                true,
+                _listener.TlsIdentity.Certs[0],
+                0,
+                0
+            );
+
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+            _listener.Stop();
+        }
+
+        [Fact]
         public void TestServerCertVerificationModeSelfSigned()
         {
             var listener = CreateListener();
