@@ -416,20 +416,6 @@ namespace Test
             _listener.Stop();
         }
 
-                null,
-                _store,
-                ServerCertLabel,
-                null);
-            var config = CreateListenerConfig(true, null, id);
-            _listener = new URLEndpointListener(config);
-            _listener.TlsIdentity.Should().BeNull();
-            _listener.Start();
-            _listener.TlsIdentity.Should().NotBeNull();
-            _listener.TlsIdentity.Should().BeEquivalentTo(config.TlsIdentity);
-            _listener.Stop();
-            _listener.TlsIdentity.Should().BeNull();
-        }
-
         #endregion
 
         #region Private Methods
