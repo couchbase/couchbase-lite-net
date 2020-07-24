@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -32,6 +33,7 @@ using Couchbase.Lite.P2P;
 using Couchbase.Lite.Sync;
 
 using FluentAssertions;
+using LiteCore.Interop;
 
 #if !WINDOWS_UWP
 using Xunit;
@@ -117,7 +119,7 @@ namespace Test
         public void TestEmptyPort()
         {
             //init and start a listener
-            var config = CreateListenerConfig(false, null, null, true);
+            var config = CreateListenerConfig(false, true, null, null);
             _listener = Listen(config, 0, 0);
 
             _listener.Port.Should().NotBe(0, "Because the port is dynamically assigned.");
@@ -132,7 +134,7 @@ namespace Test
         {
             _listener = CreateListener(false);
             //listener1 uses the same port as listener
-            var config = CreateListenerConfig(false);
+            var config = CreateListenerConfig(false, true);
             var listener1 = Listen(config, PosixBase.GetCode(nameof(PosixWindows.EADDRINUSE)), CouchbaseLiteErrorType.POSIX);
 
             _listener.Stop();
@@ -162,7 +164,7 @@ namespace Test
                 _store,
                 ServerCertLabel,
                 null);
-            var config = CreateListenerConfig(true, null, id);
+            var config = CreateListenerConfig(true, true, null, id);
             _listener = new URLEndpointListener(config);
             _listener.TlsIdentity.Should().BeNull();
             _listener.Start();
@@ -296,7 +298,56 @@ namespace Test
             _listener.Stop();
         }
 
-        [Fact]
+        //InnerException = {System.Security.Authentication.AuthenticationException: A call to SSPI failed, see inner exception. 
+        //System.ComponentModel.Win32Exception: The certificate chain was issued by an authority that is not trusted
+        //[Fact]
+        public void TestClientCertAuthenticatorRootCerts()
+        {
+            TLSIdentity id;
+            X509Chain chain = new X509Chain();
+            var rootCerts = BuildSelfSignedServerCertificate("RootCert");
+
+            foreach (var cert in rootCerts) {
+                if (!chain.Build(cert)) {
+                    var status = chain.ChainStatus;
+                }
+            }
+
+            var auth = new ListenerCertificateAuthenticator(rootCerts);
+
+            _listener = CreateListener(true, auth);
+
+            var serverCert = _listener.TlsIdentity.Certs[0];
+
+            // User Identity
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+            //var certs = BuildSelfSignedServerCertificate(ClientCertLabel);
+            //var data = certs.Export(X509ContentType.Pfx, "123");
+            //// Import
+            //id = TLSIdentity.ImportIdentity(_store, data, "123", ClientCertLabel, null);
+            id = TLSIdentity.CreateIdentity(false,
+                new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "daniel" } },
+                null,
+                _store,
+                ClientCertLabel,
+                null);
+            RunReplication(
+                _listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull,
+                false,
+                new ClientCertificateAuthenticator(id),
+                true,
+                serverCert,
+                0,
+                0
+            );
+
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+            _listener.Stop();
+        }
+
+        [Fact] //Expected object to be <null> because otherwise an unexpected error occurred, but found Couchbase.Lite.CouchbaseLiteException with message "CouchbaseLiteException (LiteCoreDomain / 26): unexpected exception."
+        //android
         public void TestAcceptSelfSignedCertWithPinnedCertificate()
         {
             _listener = CreateListener();
@@ -409,19 +460,78 @@ namespace Test
         //[Fact] //mac getting CouchbaseLiteException (NetworkDomain / 2): Unknown network interface name or address.
         public void TestEmptyNetworkInterface()
         {
-            var config = CreateListenerConfig(false);
+            var config = CreateListenerConfig(false, true);
             config.NetworkInterface = "0.0.0.0";
-            config.Port = WssPort;
             _listener = Listen(config, 0, 0);
             _listener.Stop();
+        }
+
+        //[Fact] //CouchbaseLiteException (NetworkDomain / 2) Unknown network interface name or address.
+        public void TestUnavailableNetworkInterface()
+        {
+            var config = CreateListenerConfig(false, true);
+            config.NetworkInterface = "1.1.1.256";
+            Listen(config, (int) C4NetworkErrorCode.UnknownHost, CouchbaseLiteErrorType.CouchbaseLite);
+
+            config.NetworkInterface = "blah";
+            Listen(config, (int) C4NetworkErrorCode.UnknownHost, CouchbaseLiteErrorType.CouchbaseLite);
+        }
+
+        //[Fact] //CouchbaseLiteException (POSIXDomain / 101): The requested address is not valid in its context.
+        public void TestNetworkInterfaceName()
+        {
+            var config = CreateListenerConfig(false, true);
+            foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
+                if (ni.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 
+                    || ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet) {
+                    foreach (UnicastIPAddressInformation ip in ni.GetIPProperties().UnicastAddresses) {
+                        if (ip.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork) {
+                            config.NetworkInterface = ip.Address.ToString();
+                            _listener = Listen(config, 0, 0);
+                            _listener.Stop();
+                        }
+                    }
+                }
+            }
+        }
+
+        //[Fact]
+        public void TestMultipleListenersOnSameDatabase()
+        {
+            _listener = CreateListener();
+            var _listener2 = CreateListener();
+
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetString("name", "Sam");
+                Db.Save(doc1);
+                doc2.SetString("name", "Mary");
+                OtherDb.Save(doc2);
+            }
+
+            RunReplication(
+                _listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull,
+                false,
+                null,
+                false, //accept only self signed server cert
+                _listener.TlsIdentity.Certs[0],
+                0,
+                0
+            );
+
+            _listener.Stop();
+            _listener2.Stop();
+
+            OtherDb.Count.Should().Be(2);
         }
 
         #endregion
 
         #region Private Methods
 
-        private URLEndpointListenerConfiguration CreateListenerConfig(bool tls = true, 
-            IListenerAuthenticator auth = null, TLSIdentity id = null, bool useDynamicPort = false)
+        private URLEndpointListenerConfiguration CreateListenerConfig(bool tls = true, bool useDynamicPort = false,
+            IListenerAuthenticator auth = null, TLSIdentity id = null)
         {
             _listener?.Stop();
 
