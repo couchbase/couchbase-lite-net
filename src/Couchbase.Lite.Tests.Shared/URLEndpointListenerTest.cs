@@ -301,50 +301,50 @@ namespace Test
         //InnerException = {System.Security.Authentication.AuthenticationException: A call to SSPI failed, see inner exception. 
         //System.ComponentModel.Win32Exception: The certificate chain was issued by an authority that is not trusted
         //[Fact]
-        public void TestClientCertAuthenticatorRootCerts()
-        {
-            TLSIdentity id;
-            X509Chain chain = new X509Chain();
-            var rootCerts = BuildSelfSignedServerCertificate("RootCert");
+        //public void TestClientCertAuthenticatorRootCerts()
+        //{
+        //    TLSIdentity id;
+        //    X509Chain chain = new X509Chain();
+        //    var rootCerts = BuildSelfSignedServerCertificate("RootCert");
 
-            foreach (var cert in rootCerts) {
-                if (!chain.Build(cert)) {
-                    var status = chain.ChainStatus;
-                }
-            }
+        //    foreach (var cert in rootCerts) {
+        //        if (!chain.Build(cert)) {
+        //            var status = chain.ChainStatus;
+        //        }
+        //    }
 
-            var auth = new ListenerCertificateAuthenticator(rootCerts);
+        //    var auth = new ListenerCertificateAuthenticator(rootCerts);
 
-            _listener = CreateListener(true, auth);
+        //    _listener = CreateListener(true, auth);
 
-            var serverCert = _listener.TlsIdentity.Certs[0];
+        //    var serverCert = _listener.TlsIdentity.Certs[0];
 
-            // User Identity
-            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
-            //var certs = BuildSelfSignedServerCertificate(ClientCertLabel);
-            //var data = certs.Export(X509ContentType.Pfx, "123");
-            //// Import
-            //id = TLSIdentity.ImportIdentity(_store, data, "123", ClientCertLabel, null);
-            id = TLSIdentity.CreateIdentity(false,
-                new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "daniel" } },
-                null,
-                _store,
-                ClientCertLabel,
-                null);
-            RunReplication(
-                _listener.LocalEndpoint(),
-                ReplicatorType.PushAndPull,
-                false,
-                new ClientCertificateAuthenticator(id),
-                true,
-                serverCert,
-                0,
-                0
-            );
+        //    // User Identity
+        //    TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+        //    //var certs = BuildSelfSignedServerCertificate(ClientCertLabel);
+        //    //var data = certs.Export(X509ContentType.Pfx, "123");
+        //    //// Import
+        //    //id = TLSIdentity.ImportIdentity(_store, data, "123", ClientCertLabel, null);
+        //    id = TLSIdentity.CreateIdentity(false,
+        //        new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "daniel" } },
+        //        null,
+        //        _store,
+        //        ClientCertLabel,
+        //        null);
+        //    RunReplication(
+        //        _listener.LocalEndpoint(),
+        //        ReplicatorType.PushAndPull,
+        //        false,
+        //        new ClientCertificateAuthenticator(id),
+        //        true,
+        //        serverCert,
+        //        0,
+        //        0
+        //    );
 
-            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
-            _listener.Stop();
-        }
+        //    TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+        //    _listener.Stop();
+        //}
 
         [Fact] //Expected object to be <null> because otherwise an unexpected error occurred, but found Couchbase.Lite.CouchbaseLiteException with message "CouchbaseLiteException (LiteCoreDomain / 26): unexpected exception."
         //android
