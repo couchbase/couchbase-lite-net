@@ -173,7 +173,7 @@ namespace Test
         [Fact]
         public void TestP2PRecoverableFailureDuringSend() => TestP2PError(MockConnectionLifecycleLocation.Send, true);
 
-        //[Fact] //hang with LiteCore July 22nd
+        [Fact]
         public void TestP2PRecoverableFailureDuringReceive() => TestP2PError(MockConnectionLifecycleLocation.Receive, true);
 
         [Fact]

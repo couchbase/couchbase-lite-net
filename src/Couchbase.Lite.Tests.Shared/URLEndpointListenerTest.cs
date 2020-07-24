@@ -130,23 +130,56 @@ namespace Test
         [Fact]
         public void TestBusyPort()
         {
-            var listener = CreateListener(false);
+            _listener = CreateListener(false);
             //listener1 uses the same port as listener
             var config = CreateListenerConfig(false);
             var listener1 = Listen(config, PosixBase.GetCode(nameof(PosixWindows.EADDRINUSE)), CouchbaseLiteErrorType.POSIX);
 
-            listener.Stop();
+            _listener.Stop();
             listener1.Stop();
+        }
+
+        [Fact]
+        public void TestTLSIdentity()
+        {
+            // TLS is disabled
+            _listener = CreateListener(false);
+            _listener.TlsIdentity.Should().BeNull();
+            _listener.Stop();
+            _listener.TlsIdentity.Should().BeNull();
+
+            // Anonymous Identity
+            _listener = CreateListener(true);
+            _listener.TlsIdentity.Should().NotBeNull();
+            _listener.Stop();
+            _listener.TlsIdentity.Should().BeNull();
+
+            // User Identity
+            TLSIdentity.DeleteIdentity(_store, ServerCertLabel, null);
+            var id = TLSIdentity.CreateIdentity(false,
+                new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "CBL-Server" } },
+                null,
+                _store,
+                ServerCertLabel,
+                null);
+            var config = CreateListenerConfig(true, null, id);
+            _listener = new URLEndpointListener(config);
+            _listener.TlsIdentity.Should().BeNull();
+            _listener.Start();
+            _listener.TlsIdentity.Should().NotBeNull();
+            _listener.TlsIdentity.Should().BeEquivalentTo(config.TlsIdentity);
+            _listener.Stop();
+            _listener.TlsIdentity.Should().BeNull();
         }
 
         [Fact]
         public void TestUrls()
         {
-            var listener = CreateListener(false);
+            _listener = CreateListener(false);
 
-            listener.Urls.Count.Should().NotBe(0);
-            listener.Stop();
-            listener.Urls.Count.Should().Be(0);
+            _listener.Urls.Count.Should().NotBe(0);
+            _listener.Stop();
+            _listener.Urls.Count.Should().Be(0);
         }
 
         //[Fact] mac failed with latest LiteCore
@@ -166,6 +199,8 @@ namespace Test
             using (var doc2 = new MutableDocument("doc2")) {
                 doc1.SetString("name", "Sam");
                 Db.Save(doc1);
+                doc2.SetString("name", "Mary");
+                OtherDb.Save(doc2);
             }
 
             var targetEndpoint = _listener.LocalEndpoint();
@@ -251,7 +286,7 @@ namespace Test
                 ReplicatorType.PushAndPull,
                 false,
                 new ClientCertificateAuthenticator(id),
-                true,
+                false,
                 _listener.TlsIdentity.Certs[0],
                 0,
                 0
@@ -262,58 +297,125 @@ namespace Test
         }
 
         [Fact]
-        public void TestServerCertVerificationModeSelfSigned()
+        public void TestAcceptSelfSignedCertWithPinnedCertificate()
         {
-            var listener = CreateListener();
-            listener.TlsIdentity.Should()
+            _listener = CreateListener();
+            _listener.TlsIdentity.Should()
                 .NotBeNull("because otherwise the TLS identity was not created for the listener");
-            listener.TlsIdentity.Certs.Should().HaveCount(1,
+            _listener.TlsIdentity.Certs.Should().HaveCount(1,
+                "because otherwise bogus certs were used");
+
+            // listener = cert1; replicator.pin = cert2; acceptSelfSigned = true => fail
+            RunReplication(
+                _listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull,
+                false,
+                null, //authenticator
+                true, //accept only self signed server cert
+                DefaultServerCert, //server cert <-- should trust the cert in order to get TLSCertUnknownRoot exception?
+                (int) CouchbaseLiteError.TLSCertUntrusted, //should be TLSCertUnknownRoot?
+                CouchbaseLiteErrorType.CouchbaseLite
+            );
+
+            // listener = cert1; replicator.pin = cert1; acceptSelfSigned = false => pass
+            RunReplication(
+                _listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull,
+                false,
+                null,
+                false, //accept only self signed server cert
+                _listener.TlsIdentity.Certs[0], //server cert
+                0,
+                0
+            );
+
+            _listener.Stop();
+        }
+
+        [Fact]
+        public void TestAcceptOnlySelfSignedCertMode()
+        {
+            _listener = CreateListener();
+            _listener.TlsIdentity.Should()
+                .NotBeNull("because otherwise the TLS identity was not created for the listener");
+            _listener.TlsIdentity.Certs.Should().HaveCount(1,
                 "because otherwise bogus certs were used");
 
             DisableDefaultServerCertPinning = true;
 
             RunReplication(
-                listener.LocalEndpoint(),
+                _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
                 null,
-                false,
+                false, //accept only self signed server cert
                 null,
                 (int)CouchbaseLiteError.TLSCertUnknownRoot,
                 CouchbaseLiteErrorType.CouchbaseLite
             );
 
             RunReplication(
-                listener.LocalEndpoint(),
+                _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
                 false,
                 null,
-                true,
+                true, //accept only self signed server cert
                 null,
                 0,
                 0
             );
+
+            _listener.Stop();
         }
 
         [Fact]
-        public void TestTLSIdentity()
+        public void TestDoNotAcceptSelfSignedMode()
         {
-            // TLS is disabled
-            _listener = CreateListener(false);
-            _listener.TlsIdentity.Should().BeNull();
-            _listener.Stop();
-            _listener.TlsIdentity.Should().BeNull();
+            _listener = CreateListener();
+            _listener.TlsIdentity.Should()
+                .NotBeNull("because otherwise the TLS identity was not created for the listener");
+            _listener.TlsIdentity.Certs.Should().HaveCount(1,
+                "because otherwise bogus certs were used");
 
-            // Anonymous Identity
-            _listener = CreateListener(true);
-            _listener.TlsIdentity.Should().NotBeNull();
-            _listener.Stop();
-            _listener.TlsIdentity.Should().BeNull();
+            DisableDefaultServerCertPinning = true;
 
-            // User Identity
-            TLSIdentity.DeleteIdentity(_store, ServerCertLabel, null);
-            var id = TLSIdentity.CreateIdentity(false,
-                new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "CBL-Server" } },
+            // Replicator - TLS Error
+            RunReplication(
+                _listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull,
+                false,
+                null,
+                false, //accept only self signed server cert
+                null,
+                (int) CouchbaseLiteError.TLSCertUnknownRoot,
+                CouchbaseLiteErrorType.CouchbaseLite
+            );
+
+            // Replicator - Success
+            RunReplication(
+                _listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull,
+                false,
+                null,
+                false, //accept only self signed server cert
+                _listener.TlsIdentity.Certs[0],
+                0,
+                0
+            );
+
+            _listener.Stop();
+        }
+
+        [Fact]
+        public void TestEmptyNetworkInterface()
+        {
+            var config = CreateListenerConfig(false);
+            config.NetworkInterface = "0.0.0.0";
+            config.Port = WssPort;
+            _listener = Listen(config, 0, 0);
+            _listener.Stop();
+        }
+
                 null,
                 _store,
                 ServerCertLabel,
