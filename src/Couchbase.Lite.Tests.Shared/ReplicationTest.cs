@@ -285,6 +285,7 @@ namespace Test
         }
 #endif
 
+#if COUCHBASE_ENTERPRISE
         [Fact]
         public void TestReadOnlyConfiguration()
         {
@@ -1018,7 +1019,7 @@ namespace Test
             _repl.Status.Progress.Total.Should().Be(0UL);
         }
 
-        #region conflict resolving tests
+        //conflict resolving tests
 
         [Fact]
         public void TestConflictResolverBothRemoteLocalDelete()
@@ -1483,6 +1484,7 @@ namespace Test
                 });
             });
         }
+#endif
 
         [Fact]
         public void TestConflictResolverExceptionsReturnDocFromOtherDBThrown()
@@ -1511,6 +1513,8 @@ namespace Test
             TestConflictResolverExceptionThrown(resolverWithException, false);
         }
 
+
+#if COUCHBASE_ENTERPRISE
         [Fact]
         public void TestConflictResolverReturningBlob()
         {
@@ -1537,6 +1541,7 @@ namespace Test
                 doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 6, 6, 6 });
             }
         }
+#endif
 
         [Fact]
         public void TestConflictResolverReturningBlobFromDifferentDB()
@@ -1552,6 +1557,8 @@ namespace Test
             TestConflictResolverExceptionThrown(blobFromOtherDbResolver, false, true);
         }
 
+
+#if COUCHBASE_ENTERPRISE
         //CBL-623: Revision flags get cleared while saving resolved document
         [Fact]
         public void TestConflictResolverPreservesFlags()
@@ -1583,7 +1590,7 @@ namespace Test
             flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
         }
 
-        #endregion
+        //end conflict resolveing tests
 
         [Fact]
         public void TestCloseWithActiveReplications()
@@ -1609,7 +1616,7 @@ namespace Test
             WithActiveReplicationAndQuery(false);
         }
 
-        #region Pending Doc Ids unit tests
+        // Pending Doc Ids unit tests
 
         [Fact]
         public void TestPendingDocIDsPullOnlyException()
@@ -1715,9 +1722,9 @@ namespace Test
         [Fact]
         public void TestIsDocumentPendingWithFilter() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.FILTER);
 
-        #endregion
+        //end pending doc id tests
 
-        #region Pending Doc Ids Helper methods
+#endif
 
         enum PENDING_DOC_ID_SEL { CREATE = 0, UPDATE, DELETE, PURGE, FILTER }
 
@@ -1737,6 +1744,8 @@ namespace Test
             return result;
         }
 
+
+#if COUCHBASE_ENTERPRISE
         private void ValidatePendingDocumentIds(PENDING_DOC_ID_SEL selection)
         {
             IImmutableSet<string> pendingDocIds;
@@ -1880,8 +1889,6 @@ namespace Test
 
             Thread.Sleep(500); //it takes a while to get the replicator to actually released...
         }
-
-        #endregion
 
         private void WithActiveReplicationAndQuery(bool isCloseNotDelete)
         {
@@ -2081,6 +2088,7 @@ namespace Test
                 }
             }
         }
+#endif
 
         private void CreateReplicationConflict(string id, bool checkFlags = false)
         {
@@ -2136,6 +2144,8 @@ namespace Test
             }
         }
 
+
+#if COUCHBASE_ENTERPRISE
         private void TestPushDocWithFilter(bool continuous)
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -2156,7 +2166,6 @@ namespace Test
             _isFilteredCallback = false;
         }
 
-#if COUCHBASE_ENTERPRISE
         private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous)
         {
             var target = OtherDb;
