@@ -1484,7 +1484,6 @@ namespace Test
                 });
             });
         }
-#endif
 
         [Fact]
         public void TestConflictResolverExceptionsReturnDocFromOtherDBThrown()
@@ -1513,8 +1512,6 @@ namespace Test
             TestConflictResolverExceptionThrown(resolverWithException, false);
         }
 
-
-#if COUCHBASE_ENTERPRISE
         [Fact]
         public void TestConflictResolverReturningBlob()
         {
@@ -1541,7 +1538,6 @@ namespace Test
                 doc.GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 6, 6, 6 });
             }
         }
-#endif
 
         [Fact]
         public void TestConflictResolverReturningBlobFromDifferentDB()
@@ -1557,8 +1553,6 @@ namespace Test
             TestConflictResolverExceptionThrown(blobFromOtherDbResolver, false, true);
         }
 
-
-#if COUCHBASE_ENTERPRISE
         //CBL-623: Revision flags get cleared while saving resolved document
         [Fact]
         public void TestConflictResolverPreservesFlags()
