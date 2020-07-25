@@ -24,7 +24,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
+using System.Net;
 using System.Reflection;
+using System.Security;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -242,7 +244,7 @@ namespace Test
         {
             var auth = new ListenerPasswordAuthenticator((sender, username, password) =>
             {
-                return username == "daniel" && Encoding.Unicode.GetString(password) == "123";
+                return username == "daniel" && new NetworkCredential(string.Empty, password).Password == "123";
             });
 
             _listener = CreateListener(false, auth);
@@ -251,16 +253,29 @@ namespace Test
             var targetEndpoint = _listener.LocalEndpoint();
             var config = new ReplicatorConfiguration(Db, targetEndpoint);
             RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
+            var pw = "123";
+            var wrongPw = "456";
+            SecureString pwSecureString = null;
+            SecureString wrongPwSecureString = null;
+            unsafe {
+                fixed (char* pw_ = pw)
+                fixed (char* wrongPw_ = wrongPw) {
+                    pwSecureString = new SecureString(pw_, pw.Length);
+                    wrongPwSecureString = new SecureString(wrongPw_, wrongPw.Length);
+                }
+            }
 
             // Replicator - Wrong Credentials
-            config.Authenticator = new BasicAuthenticator("daniel", Encoding.Unicode.GetBytes("456"));
+            config.Authenticator = new BasicAuthenticator("daniel", wrongPwSecureString);
             RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
 
             // Replicator - Success
-            config.Authenticator = new BasicAuthenticator("daniel", Encoding.Unicode.GetBytes("123"));
+            config.Authenticator = new BasicAuthenticator("daniel", pwSecureString);
             RunReplication(config, 0, 0);
 
             _listener.Stop();
+            pwSecureString.Dispose();
+            wrongPwSecureString.Dispose();
         }
 
         [Fact]

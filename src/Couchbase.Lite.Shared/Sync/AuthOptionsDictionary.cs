@@ -17,7 +17,7 @@
 // 
 using System;
 using System.Collections.Generic;
-
+using System.Security;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Sync
@@ -83,9 +83,9 @@ namespace Couchbase.Lite.Sync
         /// Gets or sets the password for the credentials (not applicable in all cases)
         /// </summary>
         [CanBeNull]
-        public byte[] PasswordData
+        public string PasswordSecureString
         {
-            get => this[PasswordKey] as byte[];
+            get => this[PasswordKey] as string;
             set => this[PasswordKey] = value;
         }
 
@@ -123,7 +123,7 @@ namespace Couchbase.Lite.Sync
             Type = AuthType.HttpBasic;
             Username = String.Empty;
             Password = String.Empty;
-            PasswordData = null;
+            PasswordSecureString = null;
         }
 
         internal AuthOptionsDictionary(Dictionary<string, object> raw) : base(raw)

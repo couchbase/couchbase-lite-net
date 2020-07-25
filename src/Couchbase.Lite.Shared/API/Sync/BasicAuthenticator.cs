@@ -18,7 +18,8 @@
 
 using System;
 using System.Diagnostics;
-
+using System.Net;
+using System.Security;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
@@ -57,7 +58,7 @@ namespace Couchbase.Lite.Sync
         /// Gets the password that this object holds
         /// </summary>
         [NotNull]
-        public byte[] PasswordData { get; }
+        public SecureString PasswordSecureString { get; }
 
         #endregion
 
@@ -80,10 +81,10 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="username">The username to send through HTTP Basic authentication</param>
         /// <param name="password">The password to send through HTTP Basic authentication</param>
-        public BasicAuthenticator([NotNull]string username, [NotNull]byte[] password)
+        public BasicAuthenticator([NotNull]string username, [NotNull]SecureString password)
         {
             Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
-            PasswordData = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(password), password);
+            PasswordSecureString = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(password), password);
         }
 
         #endregion
@@ -102,7 +103,7 @@ namespace Couchbase.Lite.Sync
 
             // TODO string Password will be deprecated and replaced with byte array password
             if (String.IsNullOrEmpty(Password))
-                authDict.PasswordData = PasswordData;
+                authDict.PasswordSecureString = new NetworkCredential(string.Empty, PasswordSecureString).Password;
             else
                 authDict.Password = Password;
 
