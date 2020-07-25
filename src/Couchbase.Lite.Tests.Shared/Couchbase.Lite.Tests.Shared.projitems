@@ -24,7 +24,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)LogTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MigrationTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)NotificationTest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)TLSIdentityTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PerfTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PredictiveQueryTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)QueryTest.cs" />
@@ -45,7 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)C\tests\data\*.*">
-        <LogicalName>%(Filename)%(Extension)</LogicalName>
+      <LogicalName>%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\C\tests\data\iTunesMusicLibrary.json">
       <LogicalName>iTunesMusicLibrary.json</LogicalName>

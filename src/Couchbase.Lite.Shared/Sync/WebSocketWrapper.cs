@@ -641,8 +641,8 @@ namespace Couchbase.Lite.Sync
                     var username = auth.Username;
 
                     // TODO string Password will be deprecated and replaced with byte array password
-                    var password = auth.PasswordData != null ?
-                         Encoding.Unicode.GetString(auth.PasswordData)
+                    var password = auth.PasswordSecureString != null ?
+                         new NetworkCredential(string.Empty, auth.PasswordSecureString).Password
                          : auth.Password;
 
                     if (username != null && password != null) {
