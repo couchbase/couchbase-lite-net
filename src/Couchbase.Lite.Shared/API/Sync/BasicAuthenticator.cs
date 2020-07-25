@@ -103,7 +103,7 @@ namespace Couchbase.Lite.Sync
 
             // TODO string Password will be deprecated and replaced with byte array password
             if (String.IsNullOrEmpty(Password))
-                authDict.PasswordSecureString = new NetworkCredential(string.Empty, PasswordSecureString).Password;
+                authDict.Password = new NetworkCredential(string.Empty, PasswordSecureString).Password;
             else
                 authDict.Password = Password;
 

@@ -80,16 +80,6 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// Gets or sets the password for the credentials (not applicable in all cases)
-        /// </summary>
-        [CanBeNull]
-        public string PasswordSecureString
-        {
-            get => this[PasswordKey] as string;
-            set => this[PasswordKey] = value;
-        }
-
-        /// <summary>
         /// Gets or sets the type of authentication to be used
         /// </summary>
         public AuthType Type
@@ -123,7 +113,6 @@ namespace Couchbase.Lite.Sync
             Type = AuthType.HttpBasic;
             Username = String.Empty;
             Password = String.Empty;
-            PasswordSecureString = null;
         }
 
         internal AuthOptionsDictionary(Dictionary<string, object> raw) : base(raw)

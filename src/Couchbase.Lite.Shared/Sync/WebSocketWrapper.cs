@@ -639,12 +639,7 @@ namespace Couchbase.Lite.Sync
             if (auth != null) {
                 if (auth.Type == AuthType.HttpBasic) {
                     var username = auth.Username;
-
-                    // TODO string Password will be deprecated and replaced with byte array password
-                    var password = auth.PasswordSecureString != null ?
-                         new NetworkCredential(string.Empty, auth.PasswordSecureString).Password
-                         : auth.Password;
-
+                    var password = auth.Password;
                     if (username != null && password != null) {
                         _logic.Credential = new NetworkCredential(username, password);
                     }
