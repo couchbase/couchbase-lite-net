@@ -67,10 +67,7 @@ namespace Couchbase.Lite.Sync
         #region Properties
 
         /// <summary>
-        /// [DEPRECATED] Gets the password that this object holds
-        /// </summary>
-        /// <summary>
-        /// Gets or sets the password for the credentials (not applicable in all cases)
+        /// [DEPRECATED] Gets or sets the password for the credentials (not applicable in all cases)
         /// </summary>
         [CanBeNull]
         public string Password

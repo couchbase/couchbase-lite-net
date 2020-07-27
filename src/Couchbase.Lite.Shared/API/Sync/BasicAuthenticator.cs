@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Sync
         /// Gets the password that this object holds
         /// </summary>
         [NotNull]
-        public SecureString PasswordSecureString { get; }
+        internal SecureString PasswordSecureString { get; }
 
         #endregion
 
@@ -81,7 +81,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="username">The username to send through HTTP Basic authentication</param>
         /// <param name="password">The password to send through HTTP Basic authentication</param>
-        public BasicAuthenticator([NotNull]string username, [NotNull]SecureString password)
+        internal BasicAuthenticator([NotNull]string username, [NotNull]SecureString password)
         {
             Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
             PasswordSecureString = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(password), password);
