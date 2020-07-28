@@ -140,7 +140,6 @@ namespace Test
         {
             var c = CreateConfig(target, type, continuous, authenticator, serverCert);
             c.AcceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate;
-
             return c;
         }
         #endif
