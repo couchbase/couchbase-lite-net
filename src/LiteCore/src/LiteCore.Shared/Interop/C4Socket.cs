@@ -23,13 +23,6 @@ using System.Runtime.InteropServices;
 
 namespace LiteCore.Interop
 {
-    internal enum C4WebSocketCustomCloseCode
-    {
-        WebSocketCloseFirstAvailable = C4WebSocketCloseCode.WebSocketCloseFirstAvailable,
-        WebSocketCloseUserTransient,
-        WebSocketCloseUserPermanent
-    }
-
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]   
     internal unsafe delegate void SocketOpenDelegate(C4Socket* socket, C4Address* address, FLSlice options, void* context);
 

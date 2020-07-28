@@ -47,6 +47,9 @@ using ItemNotNull = JetBrains.Annotations.ItemNotNullAttribute;
 using CanBeNull = JetBrains.Annotations.CanBeNullAttribute;
 using System.Diagnostics.CodeAnalysis;
 using System.Collections.Concurrent;
+#if COUCHBASE_ENTERPRISE
+using Couchbase.Lite.P2P;
+#endif
 
 namespace Couchbase.Lite
 {
@@ -206,6 +209,30 @@ namespace Couchbase.Lite
         [@NotNull]
         [@ItemNotNull]
         internal ConcurrentDictionary<Replicator, int> ActiveReplications { get; } = new ConcurrentDictionary<Replicator, int>();
+
+#if COUCHBASE_ENTERPRISE
+        internal ConcurrentDictionary<URLEndpointListener, int> ActiveListeners { get; } = new ConcurrentDictionary<URLEndpointListener, int>();
+#endif
+        internal FLSliceResult PublicUUID
+        {
+            get {
+                var retVal = new FLSliceResult(null, 0UL);
+                ThreadSafety.DoLocked(() =>
+                {
+                    CheckOpen();
+                    var publicUUID = new C4UUID();
+                    C4Error err;
+                    var uuidSuccess = Native.c4db_getUUIDs(_c4db, &publicUUID, null, &err);
+                    if (!uuidSuccess) {
+                        throw CouchbaseException.Create(err);
+                    }
+                    
+                    retVal = Native.FLSlice_Copy(new FLSlice(publicUUID.bytes, (ulong) C4UUID.Size));
+                });
+
+                return retVal;
+            }
+        }
 
         internal C4BlobStore* BlobStore
         {
@@ -792,6 +819,7 @@ namespace Couchbase.Lite
                     var millisSinceEpoch = expiration.Value.ToUnixTimeMilliseconds();
                     succeed = Native.c4doc_setExpiration(_c4db, docId, millisSinceEpoch, err);
                 }
+
                 SchedulePurgeExpired(TimeSpan.Zero);
                 return succeed;
             });
@@ -979,6 +1007,28 @@ namespace Couchbase.Lite
                 }
             });
         }
+
+        #if COUCHBASE_ENTERPRISE
+        internal void AddActiveListener(URLEndpointListener listener)
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpenAndNotClosing();
+                ActiveListeners.TryAdd(listener, 0);
+            });
+        }
+
+        internal void RemoveActiveListener(URLEndpointListener listener)
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                ActiveListeners.TryRemove(listener, out var dummy);
+                if (ActiveListeners.Count == 0) {
+                    _closeCondition.Set();
+                }
+            });
+        }
+        #endif
 
         internal void ResolveConflict([@NotNull]string docID, [@CanBeNull]IConflictResolver conflictResolver)
         {
@@ -1647,6 +1697,12 @@ namespace Couchbase.Lite
             foreach (var r in ActiveReplications) {
                 r.Key.Stop();
             }
+
+#if COUCHBASE_ENTERPRISE
+            foreach (var l in ActiveListeners) {
+                l.Key.Stop();
+            }
+#endif
 
             while (!IsReadyToClose) {
                 _closeCondition.WaitOne();

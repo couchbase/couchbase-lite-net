@@ -98,7 +98,7 @@ namespace Couchbase.Lite.Sync
     /// <summary>
     /// A class representing configuration options for a <see cref="Replicator"/>
     /// </summary>
-    public sealed class ReplicatorConfiguration
+    public sealed partial class ReplicatorConfiguration
     {
         #region Constants
 
@@ -119,7 +119,7 @@ namespace Couchbase.Lite.Sync
         private C4SocketFactory _socketFactory;
         private IConflictResolver _resolver;
 
-        #endregion
+#endregion
 
         #region Properties
 
@@ -278,7 +278,7 @@ namespace Couchbase.Lite.Sync
             get => _socketFactory.open != IntPtr.Zero ? _socketFactory : LiteCore.Interop.SocketFactory.InternalFactory;
             set => _freezer.SetValue(ref _socketFactory, value);
         }
-        
+
         #endregion
 
         #region Constructors
@@ -309,6 +309,9 @@ namespace Couchbase.Lite.Sync
             var retVal = new ReplicatorConfiguration(Database, Target)
             {
                 Authenticator = Authenticator,
+                #if COUCHBASE_ENTERPRISE
+                AcceptOnlySelfSignedServerCertificate = AcceptOnlySelfSignedServerCertificate,
+                #endif
                 Continuous = Continuous,
                 PushFilter = PushFilter,
                 PullFilter = PullFilter,

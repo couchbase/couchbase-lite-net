@@ -23,6 +23,7 @@ using System.Diagnostics;
 using Couchbase.Lite.Internal.Logging;
 
 using NotNull = JetBrains.Annotations.NotNullAttribute;
+using CanBeNull = JetBrains.Annotations.CanBeNullAttribute;
 using ContractAnnotation = JetBrains.Annotations.ContractAnnotationAttribute;
 
 namespace Couchbase.Lite.Util
@@ -40,12 +41,12 @@ namespace Couchbase.Lite.Util
         }
 
         [ContractAnnotation("=> halt")]
-        public static void LogAndThrow([NotNull]DomainLogger logger, [NotNull]Exception e, [NotNull]string tag, [NotNull]string message, bool fatal)
+        public static void LogAndThrow([NotNull]DomainLogger logger, [NotNull]Exception e, [NotNull]string tag, [CanBeNull]string message, bool fatal)
         {
             if (fatal) {
-                logger.E(tag, message, e);
+                logger.E(tag, message ?? e.Message, e);
             } else {
-                logger.W(tag, message, e);
+                logger.W(tag, message ?? e.Message, e);
             }
 
             throw e;

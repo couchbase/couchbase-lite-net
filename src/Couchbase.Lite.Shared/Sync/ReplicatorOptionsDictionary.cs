@@ -40,13 +40,16 @@ namespace Couchbase.Lite.Sync
         private const string ChannelsKey = "channels";
         private const string CheckpointIntervalKey = "checkpointInterval";
         private const string ClientCertKey = "clientCert";
+        private const string ClientCertKeyKey = "clientCertKey";
         private const string CookiesKey = "cookies";
         private const string DocIDsKey = "docIDs";
         private const string FilterKey = "filter";
         private const string FilterParamsKey = "filterParams";
         private const string HeadersKey = "headers";
         private const string LevelKey = "progress";
+        private const string RootCertsKey = "rootCerts";
         private const string PinnedCertKey = "pinnedCert";
+        private const string OnlySelfSignedServerCert = "onlySelfSignedServer";
         private const string ProtocolsOptionKey = "WS-Protocols";
         private const string RemoteDBUniqueIDKey = "remoteDBUniqueID";
         private const string ResetKey = "reset";
@@ -184,6 +187,14 @@ namespace Couchbase.Lite.Sync
                 }
             }
         }
+
+        #if COUCHBASE_ENTERPRISE
+        internal bool AcceptOnlySelfSignedServerCertificate
+        {
+            get => this.GetCast<bool>(OnlySelfSignedServerCert);
+            set => this[OnlySelfSignedServerCert] = value;
+        }
+        #endif
 
         internal string CookieString => this.GetCast<string>(CookiesKey);
 

@@ -16,8 +16,10 @@
 //  limitations under the License.
 // 
 
+using System;
 using System.Diagnostics;
-
+using System.Net;
+using System.Security;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
@@ -43,27 +45,46 @@ namespace Couchbase.Lite.Sync
         /// Gets the username that this object holds
         /// </summary>
         [NotNull]
+        public string Username { get; }
+
+        /// <summary>
+        /// [DEPRECATED] Gets the password that this object holds
+        /// </summary>
+        /// [Obsolete("This property is deprecated, please use byte[] PasswordData instead.")]
+        [NotNull]
         public string Password { get; }
 
         /// <summary>
         /// Gets the password that this object holds
         /// </summary>
         [NotNull]
-        public string Username { get; }
+        internal SecureString PasswordSecureString { get; }
 
         #endregion
 
         #region Constructors
 
         /// <summary>
-        /// Constructor
+        /// [DEPRECATED] Constructor
         /// </summary>
         /// <param name="username">The username to send through HTTP Basic authentication</param>
         /// <param name="password">The password to send through HTTP Basic authentication</param>
+        /// [Obsolete("This constructor is deprecated, please use BasicAuthenticator([NotNull]string username, [NotNull]byte[] password) instead.")]
         public BasicAuthenticator([NotNull]string username, [NotNull]string password)
         {
             Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
             Password = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(password), password);
+        }
+
+        /// <summary>
+        /// Construct a basic authenticator with username and password
+        /// </summary>
+        /// <param name="username">The username to send through HTTP Basic authentication</param>
+        /// <param name="password">The password to send through HTTP Basic authentication</param>
+        internal BasicAuthenticator([NotNull]string username, [NotNull]SecureString password)
+        {
+            Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
+            PasswordSecureString = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(password), password);
         }
 
         #endregion
@@ -77,9 +98,14 @@ namespace Couchbase.Lite.Sync
             var authDict = new AuthOptionsDictionary
             {
                 Username = Username,
-                Password = Password,
                 Type = AuthType.HttpBasic
             };
+
+            // TODO string Password will be deprecated and replaced with byte array password
+            if (String.IsNullOrEmpty(Password))
+                authDict.Password = new NetworkCredential(string.Empty, PasswordSecureString).Password;
+            else
+                authDict.Password = Password;
 
             options.Auth = authDict;
         }

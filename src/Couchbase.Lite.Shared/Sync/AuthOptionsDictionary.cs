@@ -17,7 +17,7 @@
 // 
 using System;
 using System.Collections.Generic;
-
+using System.Security;
 using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Sync
@@ -31,7 +31,12 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// HTTP Basic (RFC 2617)
         /// </summary>
-        HttpBasic
+        HttpBasic,
+
+        /// <summary>
+        /// TLS client cert
+        /// </summary>
+        ClientCert = 4
     }
 
     /// <summary>
@@ -62,7 +67,7 @@ namespace Couchbase.Lite.Sync
         #region Properties
 
         /// <summary>
-        /// Gets or sets the password for the credentials (not applicable in all cases)
+        /// [DEPRECATED] Gets or sets the password for the credentials (not applicable in all cases)
         /// </summary>
         [CanBeNull]
         public string Password
