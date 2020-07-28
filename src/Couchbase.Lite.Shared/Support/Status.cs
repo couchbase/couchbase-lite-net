@@ -159,6 +159,7 @@ namespace Couchbase.Lite
 
                         break;
 #else
+#if COUCHBASE_ENTERPRISE
                         // Only happens on Xamarin iOS but keep it here in case Xamarin Android decides to
                         // join the party of using public exceptions
                     case Mono.Security.Interface.TlsException tlse:
@@ -173,6 +174,7 @@ namespace Couchbase.Lite
                         }
 
                         break;
+#endif
 #endif
                 }
             }
