@@ -191,7 +191,7 @@ namespace Couchbase.Lite
 
 #endregion
 
-#region Private Methods
+        #region Private Methods
 
         private static IEnumerable<Exception> FlattenedExceptions([NotNull]Exception top)
         {
@@ -212,6 +212,6 @@ namespace Couchbase.Lite
             yield return top;
         }
 
-#endregion
+        #endregion
     }
 }
