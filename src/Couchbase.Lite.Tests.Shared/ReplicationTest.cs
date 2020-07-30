@@ -63,6 +63,7 @@ namespace Test
 
         protected Replicator _repl;
         protected WaitAssert _waitAssert;
+        protected TimeSpan _timeout;
 
         public Database OtherDb { get; internal set; }
 
@@ -87,7 +88,8 @@ namespace Test
         {
             ReopenDB();
             ReopenOtherDb();
-            
+            _timeout = TimeSpan.FromSeconds(15);
+
             //uncomment the code below when you need to see more detail log
             //Database.Log.Console.Level = LogLevel.Debug;
         }
@@ -109,9 +111,9 @@ namespace Test
         }
 
         protected ReplicatorConfiguration CreateConfig(IEndpoint target, ReplicatorType type, bool continuous,
-            Authenticator authenticator = null, X509Certificate2 serverCert = null)
+            Authenticator authenticator = null, X509Certificate2 serverCert = null, Database sourceDb = null)
         {
-            var c = new ReplicatorConfiguration(Db, target)
+            var c = new ReplicatorConfiguration(sourceDb ?? Db, target)
             {
                 ReplicatorType = type,
                 Continuous = continuous,

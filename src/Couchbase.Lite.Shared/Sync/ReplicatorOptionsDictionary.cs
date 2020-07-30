@@ -269,7 +269,7 @@ namespace Couchbase.Lite.Sync
             }
 
             if (ClientCert != null) {
-                this[ClientCertKey] = ClientCert.Export(X509ContentType.Pfx);
+                this[ClientCertKey] = ClientCert.Export(X509ContentType.Cert);
             }
 
             Headers["User-Agent"] = HTTPLogic.UserAgent;

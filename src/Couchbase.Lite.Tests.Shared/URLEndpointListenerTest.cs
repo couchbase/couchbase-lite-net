@@ -30,6 +30,8 @@ using System.Security;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Threading;
+
 using Couchbase.Lite;
 using Couchbase.Lite.P2P;
 using Couchbase.Lite.Sync;
@@ -280,13 +282,16 @@ namespace Test
             wrongPwSecureString.Dispose();
         }
 
-        //[Fact]
+        [Fact]
         public void TestClientCertAuthenticator()
         {
             var auth = new ListenerCertificateAuthenticator((sender, cert) =>
             {
+                if (cert.Count != 1) {
+                    return false;
+                }
 
-                return true;
+                return cert[0].SubjectName.Name?.Replace("CN=", "") == "daniel";
             });
 
             _listener = CreateListener(true, true, auth);
@@ -315,30 +320,31 @@ namespace Test
             _listener.Stop();
         }
 
-        //InnerException = {System.Security.Authentication.AuthenticationException: A call to SSPI failed, see inner exception. 
-        //System.ComponentModel.Win32Exception: The certificate chain was issued by an authority that is not trusted
-        //[Fact]
+        [Fact]
         public void TestClientCertAuthenticatorRootCerts()
         {
-            TLSIdentity id;
-            var rootCerts = BuildSelfSignedServerCertificate("RootCert");
-            var auth = new ListenerCertificateAuthenticator(rootCerts);
+            byte[] caData, clientData;
+            using(var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client-ca.der"))
+            using (var reader = new BinaryReader(stream)) {
+                caData = reader.ReadBytes((int)stream.Length);
+            }
 
+            using(var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client.p12"))
+            using (var reader = new BinaryReader(stream)) {
+                clientData = reader.ReadBytes((int)stream.Length);
+            }
+
+            var rootCert = new X509Certificate2(caData);
+            var auth = new ListenerCertificateAuthenticator(new X509Certificate2Collection(rootCert));
             _listener = CreateListener(true, true, auth);
             var serverCert = _listener.TlsIdentity.Certs[0];
 
-            // User Identity
+            // Cleanup
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
-            var certs = BuildSelfSignedServerCertificate(ClientCertLabel);
-            var data = certs.Export(X509ContentType.Pfx, "123");
-            // Import
-            id = TLSIdentity.ImportIdentity(_store, data, "123", ClientCertLabel, null);
-            //id = TLSIdentity.CreateIdentity(false,
-            //    new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "daniel" } },
-            //    null,
-            //    _store,
-            //    ClientCertLabel,
-            //    null);
+
+            // Create client identity
+            var id = TLSIdentity.ImportIdentity(_store, clientData, "123", ClientCertLabel, null);
+
             RunReplication(
                 _listener.LocalEndpoint(),
                 ReplicatorType.PushAndPull,
@@ -535,9 +541,181 @@ namespace Test
             OtherDb.Count.Should().Be(2);
         }
 
+        // A three way replication with one database acting as both a listener
+        // and a replicator
+        [Fact]
+        public void TestReplicatorAndListenerOnSameDatabase()
+        {
+            using (var doc = new MutableDocument()) {
+                OtherDb.Save(doc);
+            }
+
+            CreateListener();
+            using (var doc1 = new MutableDocument()) {
+                Db.Save(doc1);
+            }
+
+            var target = new DatabaseEndpoint(Db);
+            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb:OtherDb);
+            var repl1 = new Replicator(config1);
+
+            Database.Delete("db2", Directory);
+            var db2 = OpenDB("db2");
+            using (var doc2 = new MutableDocument()) {
+                db2.Save(doc2);
+            }
+
+            var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
+                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: db2);
+            var repl2 = new Replicator(config2);
+
+            var wait1 = new ManualResetEventSlim();
+            var wait2 = new ManualResetEventSlim();
+            EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
+            {
+                if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
+                    args.Status.Progress.Total) {
+                    if (OtherDb.Count == 3 && Db.Count == 3 && db2.Count == 3) {
+                        ((Replicator)sender).Stop();
+                    }
+
+                    if (sender == repl1) {
+                        wait1.Set();
+                    } else {
+                        wait2.Set();
+                    }
+                }
+            };
+
+            var token1 = repl1.AddChangeListener(changeListener);
+            var token2 = repl2.AddChangeListener(changeListener);
+
+            repl1.Start();
+            repl2.Start();
+            WaitHandle.WaitAll(new[] {wait1.WaitHandle, wait2.WaitHandle}, _timeout)
+                .Should().BeTrue();
+
+            repl1.RemoveChangeListener(token1);
+            repl2.RemoveChangeListener(token2);
+
+            Db.Count.Should().Be(3, "because otherwise not all docs were received into Db");
+            OtherDb.Count.Should().Be(3, "because otherwise not all docs were received into OtherDb");
+            db2.Count.Should().Be(3, "because otherwise not all docs were received into db2");
+            
+            db2.Dispose();
+            repl1.Dispose();
+            repl2.Dispose();
+            wait1.Dispose();
+            wait2.Dispose();
+
+            _listener.Stop();
+        }
+
+        //[Fact] TODO: Examine how to get LiteCore to not report 4002
+        public void TestReadOnlyListener()
+        {
+            using (var doc1 = new MutableDocument()) {
+                Db.Save(doc1);
+            }
+
+            var config = new URLEndpointListenerConfiguration(OtherDb)
+            {
+                ReadOnly = true
+            };
+
+            Listen(config);
+            RunReplication(_listener.LocalEndpoint(), ReplicatorType.PushAndPull,
+                false, null, null,
+                (int)CouchbaseLiteError.HTTPForbidden,
+                CouchbaseLiteErrorType.CouchbaseLite);
+
+            _listener.Stop();
+        }
+
+        [Fact]
+        public void TestCloseWithActiveListener()
+        {
+            Listen(CreateListenerConfig());
+            OtherDb.Close();
+            _listener.Port.Should().Be(0);
+            _listener.Urls.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void TestReplicatorServerCertNoTLS() => CheckReplicatorServerCert(false, false);
+
+        [Fact]
+        public void TestReplicatorServerCertWithTLS() => CheckReplicatorServerCert(true, true);
+
+        [Fact]
+        public void TestReplicatorServerCertWithTLSError() => CheckReplicatorServerCert(true, false);
         #endregion
 
         #region Private Methods
+
+        private void RunReplicatorServerCert(Replicator repl, bool hasIdle, X509Certificate2 serverCert)
+        {
+            using(var waitIdle = new ManualResetEventSlim())
+            using (var waitStopped = new ManualResetEventSlim()) {
+                repl.AddChangeListener((sender, args) =>
+                {
+                    var level = args.Status.Activity;
+                    var correctError = hasIdle ? args.Status.Error == null : args.Status.Error != null;
+                    if (level == ReplicatorActivityLevel.Idle) {
+                        waitIdle.Set();
+                    } else if (level == ReplicatorActivityLevel.Stopped && correctError) {
+                        waitStopped.Set();
+                    }
+                });
+
+                repl.ServerCertificate.Should().BeNull();
+                repl.Start();
+
+                if (hasIdle) {
+                    waitIdle.Wait(_timeout).Should().BeTrue();
+                    if (serverCert == null) {
+                        repl.ServerCertificate.Should().BeNull();
+                    } else {
+                        serverCert.Thumbprint.Should().Be(repl.ServerCertificate?.Thumbprint);
+                    }
+
+                    repl.Stop();
+                }
+
+                waitStopped.Wait(_timeout).Should().BeTrue();
+                if (serverCert == null) {
+                    repl.ServerCertificate.Should().BeNull();
+                } else {
+                    serverCert.Thumbprint.Should().Be(repl.ServerCertificate?.Thumbprint);
+                }
+            }
+        }
+
+        private void CheckReplicatorServerCert(bool listenerTls, bool replicatorTls)
+        {
+            var listener = CreateListener(listenerTls);
+            var serverCert = listenerTls ? listener.TlsIdentity.Certs[0] : null;
+            var config = CreateConfig(listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull, true, sourceDb: OtherDb,
+                serverCert: replicatorTls ? serverCert : null);
+            X509Certificate2 receivedServerCert = null;
+
+            using (var repl = new Replicator(config)) {
+                RunReplicatorServerCert(repl, listenerTls == replicatorTls, serverCert);
+                receivedServerCert = repl.ServerCertificate;
+            }
+
+            if (listenerTls != replicatorTls) {
+                config = CreateConfig(listener.LocalEndpoint(),
+                    ReplicatorType.PushAndPull, true, sourceDb: OtherDb,
+                    serverCert: receivedServerCert);
+                using (var repl = new Replicator(config)) {
+                    RunReplicatorServerCert(repl, true, serverCert);
+                }
+            }
+
+            _listener.Stop();
+        }
 
         private URLEndpointListenerConfiguration CreateListenerConfig(bool tls = true, bool useDynamicPort = true,
             IListenerAuthenticator auth = null, TLSIdentity id = null)
@@ -608,13 +786,6 @@ namespace Test
             }
 
             return _listener;
-        }
-
-        private X509Certificate2 CreateClientCert(string name)
-        {
-            var ecdsa = ECDsa.Create();
-            var req = new CertificateRequest($"cn={name}", ecdsa, HashAlgorithmName.SHA256);
-            return req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(1));
         }
 
         #endregion

@@ -42,6 +42,16 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.Sync
 {
+    internal sealed class TlsCertificateReceivedEventArgs : EventArgs
+    {
+        public X509Certificate2 PeerCertificate { get; }
+
+        public TlsCertificateReceivedEventArgs(X509Certificate2 peerCert)
+        {
+            PeerCertificate = new X509Certificate2(peerCert);
+        }
+    }
+
     // This class is the workhorse of the flow of data during replication and needs
     // to be airtight.  Some notes:  The network stream absolutely must not be written
     // to and read from at the same time.  The documentation mentions two unique threads,
@@ -79,6 +89,8 @@ namespace Couchbase.Lite.Sync
         #endregion
 
         #region Variables
+
+        public event EventHandler<TlsCertificateReceivedEventArgs> PeerCertificateReceived; 
 
         [NotNull] private readonly byte[] _buffer = new byte[MaxReceivedBytesPending];
         [NotNull] private readonly SerialQueue _c4Queue = new SerialQueue();
@@ -712,6 +724,10 @@ namespace Couchbase.Lite.Sync
 
         private bool ValidateServerCert(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
+            if (certificate is X509Certificate2 c2) {
+                PeerCertificateReceived?.Invoke(this, new TlsCertificateReceivedEventArgs(c2));
+            }
+
             if (_options.PinnedServerCertificate != null) {
                 var retVal = certificate.Equals(_options.PinnedServerCertificate);
                 if (!retVal) {

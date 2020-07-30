@@ -40,6 +40,7 @@ using LiteCore.Interop;
 
 using Newtonsoft.Json;
 using System.Collections.Immutable;
+using System.Reflection;
 
 using Test.Util;
 using Couchbase.Lite.P2P;
@@ -110,22 +111,25 @@ namespace Test
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
         }
         
-        //[Fact] mac failed with latest LiteCore
-        public void TestImportIdentityFromCertCollection()
+        [Fact]
+        public void TestImportIdentity()
         {
             TLSIdentity id;
-            var pkc12 = BuildSelfSignedServerCertificate(ClientCertLabel);
-            var data = pkc12.Export(X509ContentType.Pfx, "123");
+            byte[] data = null;
+            using(var stream = typeof(TLSIdentityTest).GetTypeInfo().Assembly.GetManifestResourceStream("certs.p12"))
+            using (var reader = new BinaryReader(stream)) {
+                data = reader.ReadBytes((int)stream.Length);
+            }
 
             // Import
-            id = TLSIdentity.ImportIdentity(_store, data, "123", ClientCertLabel, null);
+            id = TLSIdentity.ImportIdentity(_store, data, "123", ServerCertLabel, null);
+            id.Should().NotBeNull();
+            id.Certs.Count.Should().Be(2);
+            ValidateCertsInStore(id.Certs, _store).Should().BeTrue();
 
             // Get
-            id = TLSIdentity.GetIdentity(_store, ClientCertLabel, null);
+            id = TLSIdentity.GetIdentity(_store, ServerCertLabel, null);
             id.Should().NotBeNull();
-
-            // Delete
-            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
         }
 
         [Fact]
@@ -188,6 +192,22 @@ namespace Test
 
         #region TLSIdentity tests helpers
 
+        private static bool ValidateCertsInStore(X509Certificate2Collection certs, X509Store store)
+        {
+            if (!certs[0].HasPrivateKey) {
+                return false;
+            }
+
+            foreach (var cert in certs) {
+                var found = store.Certificates.Find(X509FindType.FindByThumbprint, cert.Thumbprint, false);
+                if (found.Count != 1) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private void CreateGetDeleteServerIdentity(bool isServer)
         {
             string commonName = isServer ? "CBL-Server" : "CBL-Client";
@@ -210,19 +230,13 @@ namespace Test
                 null);
             id.Should().NotBeNull();
             id.Certs.Count.Should().Be(1);
-            _store.Certificates.Find(X509FindType.FindByThumbprint, id.Certs[0].Thumbprint, false)
-                .Count.Should()
-                .Be(1);
-            id.Certs[0].HasPrivateKey.Should().BeTrue();
+            ValidateCertsInStore(id.Certs, _store).Should().BeTrue();
 
             // Get
             id = TLSIdentity.GetIdentity(_store, label, null);
             id.Should().NotBeNull();
             id.Certs.Count.Should().Be(1);
-            _store.Certificates.Find(X509FindType.FindByThumbprint, id.Certs[0].Thumbprint, false)
-                .Count.Should()
-                .Be(1);
-            id.Certs[0].HasPrivateKey.Should().BeTrue();
+            ValidateCertsInStore(id.Certs, _store).Should().BeTrue();
 
             // Delete
             TLSIdentity.DeleteIdentity(_store, label, null);

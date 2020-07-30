@@ -101,7 +101,7 @@ namespace Couchbase.Lite.Sync
         /// The developer could save the certificate and pin the certificate next time when setting up the replicator to 
         /// provide an SSH type of authentication.
         /// </summary>
-        internal X509Certificate2 ServerCertificate { get; set; }
+        public X509Certificate2 ServerCertificate { get; private set; }
 
         #endregion
 
@@ -381,6 +381,15 @@ namespace Couchbase.Lite.Sync
 
         #endregion
 
+        #region Internal Methods
+
+        internal void WatchForCertificate(WebSocketWrapper wrapper)
+        {
+            wrapper.PeerCertificateReceived += OnTlsCertificate;
+        }
+
+        #endregion
+
         #region Private Methods
 
         private bool IsPushing()
@@ -431,6 +440,12 @@ namespace Couchbase.Lite.Sync
                     replicator.OnDocEndedWithConflict(replicatedDocumentsContainConflict);
                 });
             }
+        }
+
+        private void OnTlsCertificate(object sender, TlsCertificateReceivedEventArgs e)
+        {
+            ((WebSocketWrapper) sender).PeerCertificateReceived -= OnTlsCertificate;
+            ServerCertificate = e.PeerCertificate;
         }
 
         #if __IOS__
@@ -526,7 +541,6 @@ namespace Couchbase.Lite.Sync
 
                 Stop();
                 Native.c4repl_free(_repl);
-                ServerCertificate = null;
                 _repl = null;
                 _disposed = true;
             });

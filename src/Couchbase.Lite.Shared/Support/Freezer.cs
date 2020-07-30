@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Support
         public void PerformAction([NotNull]Action a, [CallerMemberName]string caller = null)
         {
             if (_frozen) {
-                throw new InvalidOperationException($"Attempt to modify a frozen object '{caller}' ({_message})");
+                throw new InvalidOperationException($"{CouchbaseLiteErrorMessage.ReadOnlyObject} '{caller}' ({_message})");
             }
 
             a();
@@ -52,7 +52,7 @@ namespace Couchbase.Lite.Support
         public void SetValue<T>(ref T location, T newValue, [CallerMemberName]string caller = null)
         {
             if (_frozen) {
-                throw new InvalidOperationException($"Attempt to modify a frozen object '{caller}' ({_message})");
+                throw new InvalidOperationException($"{CouchbaseLiteErrorMessage.ReadOnlyObject} '{caller}' ({_message})");
             }
 
             location = newValue;
