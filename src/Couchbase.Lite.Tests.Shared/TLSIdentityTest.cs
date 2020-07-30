@@ -194,6 +194,8 @@ namespace Test
 
         private static bool ValidateCertsInStore(X509Certificate2Collection certs, X509Store store)
         {
+            store.Close();
+            store.Open(OpenFlags.ReadOnly);
             if (!certs[0].HasPrivateKey) {
                 return false;
             }

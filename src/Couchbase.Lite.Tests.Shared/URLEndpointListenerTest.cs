@@ -193,8 +193,8 @@ namespace Test
         [Fact]
         public void TestStatus()
         {
-            HashSet<ulong> maxConnectionCount = new HashSet<ulong>(),
-                maxActiveCount = new HashSet<ulong>();
+            ulong maxConnectionCount = 0UL;
+            ulong maxActiveCount = 0UL;
 
             //init and start a listener
             _listener = CreateListener(false);
@@ -203,8 +203,8 @@ namespace Test
             _listener.Status.ConnectionCount.Should().Be(0, "Listener's connection count should be 0 because no client connection has been established.");
             _listener.Status.ActiveConnectionCount.Should().Be(0, "Listener's active connection count should be 0 because no client connection has been established.");
 
-            using (var doc1 = new MutableDocument("doc1"))
-            using (var doc2 = new MutableDocument("doc2")) {
+            using (var doc1 = new MutableDocument())
+            using (var doc2 = new MutableDocument()) {
                 doc1.SetString("name", "Sam");
                 Db.Save(doc1);
                 doc2.SetString("name", "Mary");
@@ -217,16 +217,27 @@ namespace Test
                 var waitAssert = new WaitAssert();
                 var token = repl.AddChangeListener((sender, args) =>
                 {
+                    WriteLine($"Yeehaw {_listener.Status.ConnectionCount} / {_listener.Status.ActiveConnectionCount}");
+
+                    maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
+                    maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
+
                     waitAssert.RunConditionalAssert(() =>
                     {
-                        maxConnectionCount.Add(_listener.Status.ConnectionCount);
-                        maxActiveCount.Add(_listener.Status.ActiveConnectionCount); 
-
                         return args.Status.Activity == ReplicatorActivityLevel.Stopped;
                     });
                 });
 
                 repl.Start();
+                while(repl.Status.Activity != ReplicatorActivityLevel.Busy) {
+                    Thread.Sleep(100);
+                }
+
+                // For some reason running on mac throws off the timing enough so that the active connection count
+                // of 1 is never seen.  So record the value right after it becomes busy.
+                maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
+                maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
+
                 try {
                     waitAssert.WaitForResult(TimeSpan.FromSeconds(100));
                 } finally {
@@ -234,8 +245,8 @@ namespace Test
                 }
             }
 
-            maxConnectionCount.Max().Should().Be(1);
-            maxActiveCount.Max().Should().Be(1); //ios gets 0 (websocketwarpper has some updates, need to check if anything there causing the issue)
+            maxConnectionCount.Should().Be(1);
+            maxActiveCount.Should().Be(1);
 
             //stop the listener
             _listener.Stop();
