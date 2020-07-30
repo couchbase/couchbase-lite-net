@@ -167,6 +167,7 @@ namespace LiteCore.Interop
         private C4ListenerConfig _c4ListenerConfig;
         private C4ListenerHTTPAuthCallback _onHTTPAuthCallback;
         private TLSConfig _tlsConfig;
+        private C4String _networkInterface;
 
         #endregion
 
@@ -177,7 +178,7 @@ namespace LiteCore.Interop
         /// </summary>
         public C4ListenerConfig C4ListenerConfig => _c4ListenerConfig;
 
-        public unsafe object Context
+        public object Context
         {
             get => GCHandle.FromIntPtr((IntPtr) _c4ListenerConfig.callbackContext).Target;
             set {
@@ -216,9 +217,9 @@ namespace LiteCore.Interop
         {
             get => _c4ListenerConfig.networkInterface.CreateString();
             set {
-                using (var networkInterface_ = new C4String(value)) {
-                    _c4ListenerConfig.networkInterface = networkInterface_.AsFLSlice();
-                }
+                _networkInterface.Dispose();
+                _networkInterface = new C4String(value);
+                _c4ListenerConfig.networkInterface = _networkInterface.AsFLSlice();
             }
         }
 
@@ -303,9 +304,10 @@ namespace LiteCore.Interop
 
         #region Private Methods
 
-        private unsafe void Dispose(bool finalizing)
+        private void Dispose(bool finalizing)
         {
             Context = null;
+            _networkInterface.Dispose();
         }
 
         #endregion

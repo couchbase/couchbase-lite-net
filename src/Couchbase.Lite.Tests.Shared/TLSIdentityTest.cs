@@ -71,6 +71,8 @@ namespace Test
 #endif
         {
             _store = new X509Store(StoreName.My);
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+            TLSIdentity.DeleteIdentity(_store, ServerCertLabel, null);
         }
 
         #region TLSIdentity tests
@@ -208,12 +210,26 @@ namespace Test
                 null);
             id.Should().NotBeNull();
             id.Certs.Count.Should().Be(1);
+            _store.Certificates.Find(X509FindType.FindByThumbprint, id.Certs[0].Thumbprint, false)
+                .Count.Should()
+                .Be(1);
+            id.Certs[0].HasPrivateKey.Should().BeTrue();
+
+            // Get
+            id = TLSIdentity.GetIdentity(_store, label, null);
+            id.Should().NotBeNull();
+            id.Certs.Count.Should().Be(1);
+            _store.Certificates.Find(X509FindType.FindByThumbprint, id.Certs[0].Thumbprint, false)
+                .Count.Should()
+                .Be(1);
+            id.Certs[0].HasPrivateKey.Should().BeTrue();
 
             // Delete
             TLSIdentity.DeleteIdentity(_store, label, null);
 
             // Get
-            TLSIdentity.GetIdentity(_store, label, null);
+            id = TLSIdentity.GetIdentity(_store, label, null);
+            id.Should().BeNull();
         }
 
         private void CreateDuplicateServerIdentity(bool isServer)
@@ -258,6 +274,9 @@ namespace Test
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
+            
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+            TLSIdentity.DeleteIdentity(_store, ServerCertLabel, null);
             _store.Dispose();
         }
 
