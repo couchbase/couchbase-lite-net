@@ -180,7 +180,7 @@ namespace Test
             _listener.TlsIdentity.Should().BeNull();
         }
 
-        [Fact] //mac failed with latest LiteCore
+        [Fact]
         public void TestUrls()
         {
             var listener = CreateListener(false);
@@ -305,6 +305,11 @@ namespace Test
                 return cert[0].SubjectName.Name?.Replace("CN=", "") == "daniel";
             });
 
+            var badAuth = new ListenerCertificateAuthenticator((sender, cert) =>
+            {
+                return cert.Count == 100; // Obviously fail
+            });
+
             _listener = CreateListener(true, true, auth);
 
             // User Identity
@@ -327,8 +332,33 @@ namespace Test
                 0
             );
 
-            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+            RunReplication(
+                _listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull,
+                false,
+                null, // Don't send client cert
+                false,
+                _listener.TlsIdentity.Certs[0],
+                (int)CouchbaseLiteError.TLSHandshakeFailed,
+                CouchbaseLiteErrorType.CouchbaseLite
+            );
+
             _listener.Stop();
+            _listener = CreateListener(true, true, badAuth);
+
+            RunReplication(
+                _listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull,
+                false,
+                new ClientCertificateAuthenticator(id), // send wrong client cert
+                false,
+                _listener.TlsIdentity.Certs[0],
+                (int)CouchbaseLiteError.TLSHandshakeFailed,
+                CouchbaseLiteErrorType.CouchbaseLite
+            );
+
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+            
         }
 
         [Fact]
@@ -371,8 +401,7 @@ namespace Test
             _listener.Stop();
         }
 
-        [Fact] //Expected object to be <null> because otherwise an unexpected error occurred, but found Couchbase.Lite.CouchbaseLiteException with message "CouchbaseLiteException (LiteCoreDomain / 26): unexpected exception."
-        //android
+        [Fact]
         public void TestAcceptSelfSignedCertWithPinnedCertificate()
         {
             _listener = CreateListener();
@@ -388,8 +417,8 @@ namespace Test
                 false,
                 null, //authenticator
                 true, //accept only self signed server cert
-                DefaultServerCert, //server cert <-- should trust the cert in order to get TLSCertUnknownRoot exception?
-                (int) CouchbaseLiteError.TLSCertUntrusted, //should be TLSCertUnknownRoot?
+                DefaultServerCert, //server cert
+                (int) CouchbaseLiteError.TLSCertUnknownRoot,
                 CouchbaseLiteErrorType.CouchbaseLite
             );
 

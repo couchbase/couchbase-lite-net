@@ -25,6 +25,7 @@ using System.Net.Sockets;
 using System.Security.Authentication;
 
 using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Sync;
 
 using JetBrains.Annotations;
 
@@ -51,27 +52,15 @@ namespace Couchbase.Lite
                     break;
                 }
 
-#if __ANDROID__
-
-                // Not only does Xamarin Android throw a non-public exception for TLS handshake failure,
-                // but the internal exception doesn't even have error information....
-                if(inner.GetType().Name == "MonoBtlsException") {
-                    if(inner.Message.Contains("CERTIFICATE_VERIFY_FAILED")) {
-                        message = "The certificate does not terminate in a trusted root CA.";
-                        c4err.domain = C4ErrorDomain.NetworkDomain;
-                        c4err.code = (int)C4NetworkErrorCode.TLSCertUnknownRoot;
-                    } else {
-                        message = inner.Message;
-                        c4err.domain = C4ErrorDomain.NetworkDomain;
-                        c4err.code = (int)C4NetworkErrorCode.TLSCertUntrusted;
-                    }
-                }
-#endif
-
                 switch (inner) {
                     case CouchbaseException ce:
                         c4err = ce.LiteCoreError;
                         message = ce.Message;
+                        break;
+                    case TlsCertificateException tlse:
+                        message = tlse.Message;
+                        c4err.domain = C4ErrorDomain.NetworkDomain;
+                        c4err.code = (int)tlse.Code;
                         break;
                     case SocketException se:
                         switch (se.SocketErrorCode) {
@@ -132,48 +121,6 @@ namespace Couchbase.Lite
                         }
                     #endif
                         break;
-                    case AuthenticationException ae:
-                        if (ae.Message == "The certificate does not terminate in a trusted root CA.") {
-                            message = ae.Message;
-                            c4err.domain = C4ErrorDomain.NetworkDomain;
-                            c4err.code = (int)C4NetworkErrorCode.TLSCertUnknownRoot;
-                        } else {
-                            message = ae.InnerException?.Message ?? ae.Message;
-                            c4err.domain = C4ErrorDomain.NetworkDomain;
-                            c4err.code = (int)C4NetworkErrorCode.TLSCertUntrusted;
-                        }
-                        
-              
-
-                        break;
-#if !__MOBILE__
-                    case Win32Exception we:
-                        if ((uint)we.ErrorCode == 0x80004005) {
-                            message = "The server rejected the client certificate (0x80004005)";
-                        } else {
-                            message = we.Message;
-                        }
-
-                        c4err.domain = C4ErrorDomain.NetworkDomain;
-                        c4err.code = (int)C4NetworkErrorCode.TLSCertUntrusted;
-
-                        break;
-#else
-                        // Only happens on Xamarin iOS but keep it here in case Xamarin Android decides to
-                        // join the party of using public exceptions
-                    case Mono.Security.Interface.TlsException tlse:
-                        if(tlse.Alert.Description == Mono.Security.Interface.AlertDescription.CertificateUnknown) {
-                            message = "The certificate does not terminate in a trusted root CA.";
-                            c4err.domain = C4ErrorDomain.NetworkDomain;
-                            c4err.code = (int)C4NetworkErrorCode.TLSCertUnknownRoot;
-                        } else {
-                            message = tlse.Message;
-                            c4err.domain = C4ErrorDomain.NetworkDomain;
-                            c4err.code = (int)C4NetworkErrorCode.TLSCertUntrusted;
-                        }
-
-                        break;
-#endif
                 }
             }
 

@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 
 using Couchbase.Lite.Internal.Logging;
@@ -236,7 +237,17 @@ namespace Couchbase.Lite.Sync
             }
 
             if (ContainsKey(ClientCertKey)) {
-                ClientCert = new X509Certificate2(this.GetCast<byte[]>(ClientCertKey));
+#if !__MOBILE__
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                    // Key information cannot be exported on macOS, but is magically found
+                    // again just by the certificate
+                    ClientCert = new X509Certificate2(this.GetCast<byte[]>(ClientCertKey));
+                } else
+#endif
+                {
+                    // Otherwise, the key information is required...
+                    ClientCert = new X509Certificate2(this.GetCast<byte[]>(ClientCertKey), "temp");
+                }
             }
 
             if (ContainsKey(CookiesKey)) {
@@ -253,9 +264,9 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        #endregion
+#endregion
 
-        #region Overrides
+#region Overrides
 
         internal override void BuildInternal()
         {
@@ -269,7 +280,17 @@ namespace Couchbase.Lite.Sync
             }
 
             if (ClientCert != null) {
-                this[ClientCertKey] = ClientCert.Export(X509ContentType.Cert);
+#if !__MOBILE__
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                    // Key information cannot be exported on macOS
+                    this[ClientCertKey] = ClientCert.Export(X509ContentType.Cert);
+                } else
+#endif
+                {
+                    // Otherwise, the key information is required...but needs a password
+                    // or else Mono throws an exception...
+                    this[ClientCertKey] = ClientCert.Export(X509ContentType.Pkcs12, "temp");
+                }
             }
 
             Headers["User-Agent"] = HTTPLogic.UserAgent;
@@ -289,6 +310,6 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        #endregion
+#endregion
     }
 }
