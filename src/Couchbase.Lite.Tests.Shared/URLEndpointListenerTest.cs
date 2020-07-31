@@ -446,7 +446,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestDoNotAcceptSelfSignedMode()
+        public void TestDoNotAcceptSelfSignedMode() //aka testPinnedServerCertificate in iOS
         {
             _listener = CreateListener();
             _listener.TlsIdentity.Should()
@@ -660,9 +660,137 @@ namespace Test
 
         [Fact]
         public void TestReplicatorServerCertWithTLSError() => CheckReplicatorServerCert(true, false);
+
+        [Fact]
+        public void TestMultipleReplicatorsToListener()
+        {
+            _listener = Listen(CreateListenerConfig()); // writable listener
+
+            // save a doc on listenerDB
+            using (var doc = new MutableDocument()) {
+                OtherDb.Save(doc);
+            }
+
+            ValidateMultipleReplicationsTo(ReplicatorType.PushAndPull);
+        }
+
+        [Fact]
+        public void TestMultipleReplicatorsOnReadOnlyListener()
+        {
+            var config = CreateListenerConfig();
+            config.ReadOnly = true;
+            _listener = Listen(config);
+
+            // save a doc on listener DB
+            using (var doc = new MutableDocument()) {
+                OtherDb.Save(doc);
+            }
+
+            ValidateMultipleReplicationsTo(ReplicatorType.Pull);
+        }
+
         #endregion
 
         #region Private Methods
+
+        // Two replicators, replicates docs to the listener; validates connection status
+        private void ValidateMultipleReplicationsTo(ReplicatorType replicatorType)
+        {
+            ulong maxConnectionCount = 0UL;
+            ulong maxActiveCount = 0UL;
+
+            var existingDocsInListener = _listener.Config.Database.Count;
+            existingDocsInListener.Should().Be(1);
+
+            using (var doc1 = new MutableDocument()) {
+                Db.Save(doc1);
+            }
+
+            var target = _listener.LocalEndpoint();
+            var serverCert = _listener.TlsIdentity.Certs[0];
+            var config1 = CreateConfig(target, replicatorType, true, 
+                serverCert: serverCert, sourceDb: Db);
+            var repl1 = new Replicator(config1);
+
+            Database.Delete("db2", Directory);
+            var db2 = OpenDB("db2");
+            using (var doc2 = new MutableDocument()) {
+                db2.Save(doc2);
+            }
+
+            var config2 = CreateConfig(target, replicatorType, true,
+                serverCert: serverCert, sourceDb: db2);
+            var repl2 = new Replicator(config2);
+
+            var wait1 = new ManualResetEventSlim();
+            var wait2 = new ManualResetEventSlim();
+            EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
+            {
+                maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
+                maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
+
+                if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
+                    args.Status.Progress.Total) {
+
+                    if ((replicatorType == ReplicatorType.PushAndPull && OtherDb.Count == 3
+                    && Db.Count == 3 && db2.Count == 3) || (replicatorType == ReplicatorType.Pull && OtherDb.Count == 1
+                    && Db.Count == 2 && db2.Count == 2)) {
+                        ((Replicator) sender).Stop();
+                    }
+
+                    if (sender == repl1) {
+                        wait1.Set();
+                    } else {
+                        wait2.Set();
+                    }
+
+                } 
+            };
+
+            var token1 = repl1.AddChangeListener(changeListener);
+            var token2 = repl2.AddChangeListener(changeListener);
+
+            repl1.Start();
+            repl2.Start();
+
+            while (repl1.Status.Activity != ReplicatorActivityLevel.Busy ||
+                repl2.Status.Activity != ReplicatorActivityLevel.Busy) {
+                Thread.Sleep(100);
+            }
+
+            // For some reason running on mac throws off the timing enough so that the active connection count
+            // of 1 is never seen.  So record the value right after it becomes busy.
+            maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
+            maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
+
+            WaitHandle.WaitAll(new[] { wait1.WaitHandle, wait2.WaitHandle }, _timeout)
+                .Should().BeTrue();
+
+            maxConnectionCount.Should().Be(2);
+            maxActiveCount.Should().Be(2);
+
+            // all data are transferred to/from
+            if (replicatorType == ReplicatorType.PushAndPull) {
+                _listener.Config.Database.Count.Should().Be(existingDocsInListener + 2UL);
+                Db.Count.Should().Be(existingDocsInListener + 2UL);
+                db2.Count.Should().Be(existingDocsInListener + 2UL);
+            } else if(replicatorType == ReplicatorType.Pull) {
+                _listener.Config.Database.Count.Should().Be(1);
+                Db.Count.Should().Be(existingDocsInListener + 1UL);
+                db2.Count.Should().Be(existingDocsInListener + 1UL);
+            }
+
+            repl1.RemoveChangeListener(token1);
+            repl2.RemoveChangeListener(token2);
+
+            db2.Dispose();
+            repl1.Dispose();
+            repl2.Dispose();
+            wait1.Dispose();
+            wait2.Dispose();
+
+            _listener.Stop();
+        }
 
         private void RunReplicatorServerCert(Replicator repl, bool hasIdle, X509Certificate2 serverCert)
         {
