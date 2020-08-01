@@ -281,8 +281,9 @@ namespace Couchbase.Lite.Sync
 
             if (ClientCert != null) {
 #if !__MOBILE__
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-                    // Key information cannot be exported on macOS
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                    || RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                    // Key information cannot be exported on macOS or Windows
                     this[ClientCertKey] = ClientCert.Export(X509ContentType.Cert);
                 } else
 #endif
