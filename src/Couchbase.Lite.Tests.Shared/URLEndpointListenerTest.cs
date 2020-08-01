@@ -766,14 +766,13 @@ namespace Test
                     && Db.Count == 2 && db2.Count == 2)) {
                         ((Replicator) sender).Stop();
                     }
-
+                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
                     if (sender == repl1) {
                         wait1.Set();
                     } else {
                         wait2.Set();
                     }
-
-                } 
+                }
             };
 
             var token1 = repl1.AddChangeListener(changeListener);
@@ -963,6 +962,7 @@ namespace Test
             base.Dispose(disposing);
 
             _store.Dispose();
+            _listener.Dispose();
         }
     }
 }

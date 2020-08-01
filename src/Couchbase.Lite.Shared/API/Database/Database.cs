@@ -981,6 +981,10 @@ namespace Couchbase.Lite
         {
             ThreadSafety.DoLocked(() =>
             {
+                if (IsClosed) {
+                    return;
+                }
+
                 ActiveLiveQueries.TryRemove(query, out var dummy);
                 if (ActiveLiveQueries.Count == 0) {
                     _closeCondition.Set();
@@ -1001,6 +1005,10 @@ namespace Couchbase.Lite
         {
             ThreadSafety.DoLocked(() =>
             {
+                if (IsClosed) {
+                    return;
+                }
+
                 ActiveReplications.TryRemove(replicator, out var dummy);
                 if (ActiveReplications.Count == 0) {
                     _closeCondition.Set();
@@ -1022,6 +1030,10 @@ namespace Couchbase.Lite
         {
             ThreadSafety.DoLocked(() =>
             {
+                if (IsClosed) {
+                    return;
+                }
+
                 ActiveListeners.TryRemove(listener, out var dummy);
                 if (ActiveListeners.Count == 0) {
                     _closeCondition.Set();
@@ -1705,7 +1717,21 @@ namespace Couchbase.Lite
 #endif
 
             while (!IsReadyToClose) {
-                _closeCondition.WaitOne();
+                if (!_closeCondition.WaitOne(TimeSpan.FromSeconds(5), true)) {
+                    WriteLog.To.Database.W(Tag, "Taking a while for active items to stop, double checking...");
+                    var stopped =
+                        ActiveReplications.Keys.Where(x => x.Status.Activity == ReplicatorActivityLevel.Stopped);
+
+                    int removedCount = 0;
+                    foreach (var r in stopped) {
+                        ActiveReplications.TryRemove(r, out var dummy);
+                        removedCount++;
+                    }
+
+                    if (removedCount > 0) {
+                        WriteLog.To.Database.W(Tag, $"Removed {removedCount} stale entries...");
+                    }
+                }
             }
 
             ThreadSafety.DoLocked(() =>

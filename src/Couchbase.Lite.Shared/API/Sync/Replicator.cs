@@ -741,6 +741,12 @@ namespace Couchbase.Lite.Sync
         private void StatusChangedCallback(C4ReplicatorStatus status)
         {
             if (_disposed) {
+                if (status.level == C4ReplicatorActivityLevel.Stopped) {
+                    // If disposed before stopped, missing this causes
+                    // a database close hang
+                    Config.Database.RemoveActiveReplication(this);
+                }
+
                 return;
             }
 
