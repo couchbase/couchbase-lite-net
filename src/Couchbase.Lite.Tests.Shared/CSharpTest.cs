@@ -501,7 +501,7 @@ Transfer-Encoding: chunked";
                 new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.GetCode(nameof(PosixWindows.ECONNRESET))),
                 new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.GetCode(nameof(PosixWindows.ECONNREFUSED))),
                 #if !WINDOWS_UWP
-                new C4Error(C4NetworkErrorCode.TLSCertUntrusted),
+                new C4Error(C4ErrorDomain.LiteCoreDomain, (int)C4NetworkErrorCode.TLSCertRejectedByPeer),
                 #endif
                 new C4Error(C4ErrorDomain.LiteCoreDomain, (int)C4ErrorCode.UnexpectedError) 
             };
