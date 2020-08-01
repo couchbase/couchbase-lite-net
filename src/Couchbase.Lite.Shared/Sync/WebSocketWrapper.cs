@@ -730,29 +730,43 @@ namespace Couchbase.Lite.Sync
                     clientCerts = new X509CertificateCollection(new[] { _options.ClientCert as X509Certificate });
                 }
 
-                // STEP 3A: TLS handshake
-                stream.AuthenticateAsClientAsync(_logic.UrlRequest?.Host, clientCerts, SslProtocols.Tls12, false).ContinueWith(
-                    t =>
-                    {
-                        if(_validationException != null) {
-                            DidClose(_validationException);
-                            _validationException = null;
-                            return;
-                        }
+                try {
+                    // STEP 3A: TLS handshake
+                    stream.AuthenticateAsClientAsync(_logic.UrlRequest?.Host, clientCerts, SslProtocols.Tls12, false)
+                        .ContinueWith(
+                            t =>
+                            {
+                                if (_validationException != null) {
+                                    DidClose(_validationException);
+                                    _validationException = null;
+                                    return;
+                                }
 
-                        if(t.Exception?.InnerException != null) {
-                            // Failed before the server validation step, probably client certificate error
-                            DidClose(new TlsCertificateException("Authentication failed prior to server certificate (bad / missing client cert?)",
-                                C4NetworkErrorCode.TLSHandshakeFailed, t.Exception.InnerException));
-                            return;
-                        }
+                                if (t.Exception?.InnerException != null) {
+                                    // Failed before the server validation step, probably client certificate error
+                                    DidClose(new TlsCertificateException(
+                                        "Authentication failed prior to server certificate (bad / missing client cert?)",
+                                        C4NetworkErrorCode.TLSHandshakeFailed, t.Exception.InnerException));
+                                    return;
+                                }
 
-                        if (!NetworkTaskSuccessful(t)) {
-                            return;
-                        }
+                                if (!NetworkTaskSuccessful(t)) {
+                                    return;
+                                }
 
-                        _queue.DispatchAsync(OnSocketReady);
-                    });
+                                _queue.DispatchAsync(OnSocketReady);
+                            });
+                } catch (Exception e) {
+                    // I can't believe I have to do this, but .NET Core will throw the exception
+                    // here on Linux instead of passing it to the continuation
+                    var toThrow = _validationException ?? new TlsCertificateException(
+                        "Authentication failed prior to server certificate (bad / missing client cert?)",
+                        C4NetworkErrorCode.TLSHandshakeFailed, e);
+                    DidClose(toThrow);
+                    _validationException = null;
+                    return;
+                }
+
                 NetworkStream = stream;
             } else {
                 NetworkStream = _client?.GetStream();
