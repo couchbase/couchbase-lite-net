@@ -690,7 +690,7 @@ namespace Test
         [Fact]
         public void TestReplicatorServerCertWithTLSError() => CheckReplicatorServerCert(true, false);
 
-        [Fact]
+        //[Fact]
         public void TestMultipleReplicatorsToListener()
         {
             _listener = Listen(CreateListenerConfig()); // writable listener
