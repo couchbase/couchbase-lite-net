@@ -1224,7 +1224,7 @@ namespace Test
             Db.Count.Should().Be(0);
         }
 
-        [Fact]
+        //[Fact] https://issues.couchbase.com/browse/CBL-1174
         public void TestConflictResolverDeletedRemoteWin()
         {
             Document localDoc = null, remoteDoc = null;
@@ -1513,7 +1513,7 @@ namespace Test
             TestConflictResolverExceptionThrown(resolverWithException, false);
         }
 
-        [Fact]
+        //[Fact] https://issues.couchbase.com/browse/CBL-1174
         public void TestConflictResolverReturningBlob()
         {
             var returnRemoteDoc = true;
