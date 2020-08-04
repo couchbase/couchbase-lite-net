@@ -1924,16 +1924,16 @@ namespace Test
                     doc1Listener.WaitForResult(TimeSpan.FromSeconds(20));
                     waitIdleAssert.WaitForResult(TimeSpan.FromSeconds(10));
 
-                    Db.ActiveReplications.Count.Should().Be(1);
-                    Db.ActiveLiveQueries.Count.Should().Be(1);
+                    Db.ActiveStoppables.Count.Should().Be(2);
+                    //Db.ActiveLiveQueries.Count.Should().Be(1);
 
                     if (isCloseNotDelete)
                         Db.Close();
                     else
                         Db.Delete();
 
-                    Db.ActiveReplications.Count.Should().Be(0);
-                    Db.ActiveLiveQueries.Count.Should().Be(0);
+                    Db.ActiveStoppables.Count.Should().Be(0);
+                    //Db.ActiveLiveQueries.Count.Should().Be(0);
                     Db.IsClosedLocked.Should().Be(true);
 
                     waitStoppedAssert.WaitForResult(TimeSpan.FromSeconds(30));
@@ -1986,14 +1986,14 @@ namespace Test
                     waitIdleAssert.WaitForResult(TimeSpan.FromSeconds(10));
                     waitIdleAssert1.WaitForResult(TimeSpan.FromSeconds(10));
 
-                    Db.ActiveReplications.Count.Should().Be(2);
+                    Db.ActiveStoppables.Count.Should().Be(2);
 
                     if (isCloseNotDelete)
                         Db.Close();
                     else
                         Db.Delete();
 
-                    Db.ActiveReplications.Count.Should().Be(0);
+                    Db.ActiveStoppables.Count.Should().Be(0);
                     Db.IsClosedLocked.Should().Be(true);
 
                     waitStoppedAssert.WaitForResult(TimeSpan.FromSeconds(30));

@@ -202,17 +202,9 @@ namespace Couchbase.Lite
             }
         }
 
-        [@NotNull]
-        [@ItemNotNull]
-        internal ConcurrentDictionary<XQuery, int> ActiveLiveQueries { get; } = new ConcurrentDictionary<XQuery, int>();
+        internal ConcurrentDictionary<IStoppable, int> ActiveStoppables { get; } = new ConcurrentDictionary<IStoppable, int>();
 
-        [@NotNull]
-        [@ItemNotNull]
-        internal ConcurrentDictionary<Replicator, int> ActiveReplications { get; } = new ConcurrentDictionary<Replicator, int>();
 
-#if COUCHBASE_ENTERPRISE
-        internal ConcurrentDictionary<URLEndpointListener, int> ActiveListeners { get; } = new ConcurrentDictionary<URLEndpointListener, int>();
-#endif
         internal FLSliceResult PublicUUID
         {
             get {
@@ -299,7 +291,7 @@ namespace Couchbase.Lite
             get {
                 return ThreadSafety.DoLocked(() =>
                 {
-                    return ActiveReplications.Count == 0 && ActiveLiveQueries.Count == 0;
+                    return ActiveStoppables.Count == 0;// && ActiveLiveQueries.Count == 0;
                 });
             }
         }
@@ -968,16 +960,16 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        internal void AddActiveLiveQuery(XQuery query)
+        internal void AddActiveStoppable(IStoppable query)
         {
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpenAndNotClosing();
-                ActiveLiveQueries.TryAdd(query, 0);
+                ActiveStoppables.TryAdd(query, 0);
             });
         }
 
-        internal void RemoveActiveLiveQuery(XQuery query)
+        internal void RemoveActiveStoppable(IStoppable query)
         {
             ThreadSafety.DoLocked(() =>
             {
@@ -985,62 +977,13 @@ namespace Couchbase.Lite
                     return;
                 }
 
-                ActiveLiveQueries.TryRemove(query, out var dummy);
-                if (ActiveLiveQueries.Count == 0) {
+                ActiveStoppables.TryRemove(query, out var dummy);
+                if (ActiveStoppables.Count == 0) {
                     _closeCondition.Set();
                 }
             });
         }
 
-        internal void AddActiveReplication(Replicator replicator)
-        {
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpenAndNotClosing();
-                ActiveReplications.TryAdd(replicator, 0);
-            });
-        }
-
-        internal void RemoveActiveReplication(Replicator replicator)
-        {
-            ThreadSafety.DoLocked(() =>
-            {
-                if (IsClosed) {
-                    return;
-                }
-
-                ActiveReplications.TryRemove(replicator, out var dummy);
-                if (ActiveReplications.Count == 0) {
-                    _closeCondition.Set();
-                }
-            });
-        }
-
-        #if COUCHBASE_ENTERPRISE
-        internal void AddActiveListener(URLEndpointListener listener)
-        {
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpenAndNotClosing();
-                ActiveListeners.TryAdd(listener, 0);
-            });
-        }
-
-        internal void RemoveActiveListener(URLEndpointListener listener)
-        {
-            ThreadSafety.DoLocked(() =>
-            {
-                if (IsClosed) {
-                    return;
-                }
-
-                ActiveListeners.TryRemove(listener, out var dummy);
-                if (ActiveListeners.Count == 0) {
-                    _closeCondition.Set();
-                }
-            });
-        }
-        #endif
 
         internal void ResolveConflict([@NotNull]string docID, [@CanBeNull]IConflictResolver conflictResolver)
         {
@@ -1555,22 +1498,7 @@ namespace Couchbase.Lite
             }
         }
 
-        private void ThrowIfActiveItems(bool deletion = false)
-        {
-            if (ActiveReplications.Any()) {
-                var c4err = Native.c4error_make(C4ErrorDomain.LiteCoreDomain, (int) C4ErrorCode.Busy,
-                    deletion ? CouchbaseLiteErrorMessage.DeleteDBFailedReplications
-                    : CouchbaseLiteErrorMessage.CloseDBFailedReplications);
-                throw new CouchbaseLiteException(c4err);
-            }
 
-            if (ActiveLiveQueries.Any()) {
-                var c4err = Native.c4error_make(C4ErrorDomain.LiteCoreDomain, (int) C4ErrorCode.Busy,
-                    deletion ? CouchbaseLiteErrorMessage.DeleteDBFailedQueryListeners
-                    : CouchbaseLiteErrorMessage.CloseDBFailedQueryListeners);
-                throw new CouchbaseLiteException(c4err);
-            }
-        }
 
         private void VerifyDB([@NotNull]Document document)
         {
@@ -1702,36 +1630,29 @@ namespace Couchbase.Lite
                 }
             });
 
-            foreach (var q in ActiveLiveQueries) {
+            foreach (var q in ActiveStoppables) {
                 q.Key.Stop();
             }
 
-            foreach (var r in ActiveReplications) {
-                r.Key.Stop();
-            }
 
-#if COUCHBASE_ENTERPRISE
-            foreach (var l in ActiveListeners) {
-                l.Key.Stop();
-            }
-#endif
 
             while (!IsReadyToClose) {
-                if (!_closeCondition.WaitOne(TimeSpan.FromSeconds(5), true)) {
-                    WriteLog.To.Database.W(Tag, "Taking a while for active items to stop, double checking...");
-                    var stopped =
-                        ActiveReplications.Keys.Where(x => x.Status.Activity == ReplicatorActivityLevel.Stopped);
+                _closeCondition.WaitOne();
+                //if (!_closeCondition.WaitOne(TimeSpan.FromSeconds(5), true)) {
+                //    WriteLog.To.Database.W(Tag, "Taking a while for active items to stop, double checking...");
+                //    var stopped =
+                //        ActiveReplications.Keys.Where(x => x.Status.Activity == ReplicatorActivityLevel.Stopped);
 
-                    int removedCount = 0;
-                    foreach (var r in stopped) {
-                        ActiveReplications.TryRemove(r, out var dummy);
-                        removedCount++;
-                    }
+                //    int removedCount = 0;
+                //    foreach (var r in stopped) {
+                //        ActiveReplications.TryRemove(r, out var dummy);
+                //        removedCount++;
+                //    }
 
-                    if (removedCount > 0) {
-                        WriteLog.To.Database.W(Tag, $"Removed {removedCount} stale entries...");
-                    }
-                }
+                //    if (removedCount > 0) {
+                //        WriteLog.To.Database.W(Tag, $"Removed {removedCount} stale entries...");
+                //    }
+                //}
             }
 
             ThreadSafety.DoLocked(() =>

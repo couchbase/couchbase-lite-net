@@ -46,7 +46,7 @@ namespace Couchbase.Lite.Sync
     /// (i.e. pusher and puller are no longer separate) between a database and a URL
     /// or a database and another database on the same filesystem.
     /// </summary>
-    public sealed unsafe class Replicator : IDisposable
+    public sealed unsafe class Replicator : IDisposable, IStoppable
     {
         #region Constants
 
@@ -258,7 +258,7 @@ namespace Couchbase.Lite.Sync
                     WriteLog.To.Sync.I(Tag, $"{this}: Starting");
                     Native.c4repl_start(_repl, Config.Options.Reset || reset);
                     Config.Options.Reset = false;
-                    Config.Database.AddActiveReplication(this);
+                    Config.Database.AddActiveStoppable(this);
                     status = Native.c4repl_getStatus(_repl);
                 } else {
                     status = new C4ReplicatorStatus {
@@ -744,7 +744,7 @@ namespace Couchbase.Lite.Sync
                 if (status.level == C4ReplicatorActivityLevel.Stopped) {
                     // If disposed before stopped, missing this causes
                     // a database close hang
-                    Config.Database.RemoveActiveReplication(this);
+                    Config.Database.RemoveActiveStoppable(this);
                 }
 
                 return;
@@ -780,7 +780,7 @@ namespace Couchbase.Lite.Sync
         private void Stopped()
         {
             Debug.Assert(_rawStatus.level == C4ReplicatorActivityLevel.Stopped);
-            Config.Database.RemoveActiveReplication(this);
+            Config.Database.RemoveActiveStoppable(this);
         }
 
         private void UpdateStateProperties(C4ReplicatorStatus state)
