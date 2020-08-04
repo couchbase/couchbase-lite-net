@@ -353,6 +353,10 @@ namespace Test
             awaiter.Validate();
 
             statuses.Count.Should().Be(0);
+
+            //this is the possible cause as Jay mentioned the issues for iOS
+            message endpoint was not stopping when database is closed.
+            currently we are stopping the replicator and listener in case database is closed. but it was not happening with message endpoint listener.
         }*/
 
         private ReplicatorConfiguration CreateFailureP2PConfiguration(ProtocolType protocolType, MockConnectionLifecycleLocation location, bool recoverable)
