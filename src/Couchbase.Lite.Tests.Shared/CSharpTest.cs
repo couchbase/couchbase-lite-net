@@ -487,9 +487,6 @@ Transfer-Encoding: chunked";
                 new SocketException((int) SocketError.TimedOut),
                 new SocketException((int) SocketError.ConnectionAborted),
                 new SocketException((int) SocketError.ConnectionRefused),
-                #if !WINDOWS_UWP
-                new AuthenticationException("The remote certificate is invalid according to the validation procedure."),
-                #endif
                 new InvalidOperationException("Test message")
             };
 
@@ -500,9 +497,6 @@ Transfer-Encoding: chunked";
                 new C4Error(C4NetworkErrorCode.Timeout),
                 new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.GetCode(nameof(PosixWindows.ECONNRESET))),
                 new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.GetCode(nameof(PosixWindows.ECONNREFUSED))),
-                #if !WINDOWS_UWP
-                new C4Error(C4NetworkErrorCode.TLSCertUntrusted),
-                #endif
                 new C4Error(C4ErrorDomain.LiteCoreDomain, (int)C4ErrorCode.UnexpectedError) 
             };
 

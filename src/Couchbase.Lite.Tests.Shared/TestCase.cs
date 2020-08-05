@@ -36,6 +36,8 @@ using Test.Util;
 using LiteCore;
 using LiteCore.Interop;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
+using System.Security.Cryptography;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -284,7 +286,7 @@ namespace Test
             }
         }
 
-        #if !CBL_NO_EXTERN_FILES
+#if !CBL_NO_EXTERN_FILES
         protected void LoadJSONResource(string resourceName)
         {
             Db.InBatch(() =>

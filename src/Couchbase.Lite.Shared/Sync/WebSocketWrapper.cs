@@ -42,6 +42,39 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.Sync
 {
+    internal sealed class TlsCertificateReceivedEventArgs : EventArgs
+    {
+        public X509Certificate2 PeerCertificate { get; }
+
+        public TlsCertificateReceivedEventArgs(X509Certificate2 peerCert)
+        {
+            PeerCertificate = new X509Certificate2(peerCert);
+        }
+    }
+
+    internal sealed class TlsCertificateException : Exception
+    {
+        public C4NetworkErrorCode Code { get; }
+
+        public TlsCertificateException(string message, C4NetworkErrorCode code, X509ChainStatusFlags statusFlags)
+            : base($"{message} ({statusFlags})")
+        {
+            Code = code;
+        }
+
+        public TlsCertificateException(string message, C4NetworkErrorCode code, SslPolicyErrors policyErrors)
+            : base($"{message} ({policyErrors})")
+        {
+            Code = code;
+        }
+
+        public TlsCertificateException(string message, C4NetworkErrorCode code, Exception inner)
+            : base(message, inner)
+        {
+            Code = code;
+        }
+    }
+
     // This class is the workhorse of the flow of data during replication and needs
     // to be airtight.  Some notes:  The network stream absolutely must not be written
     // to and read from at the same time.  The documentation mentions two unique threads,
@@ -80,12 +113,16 @@ namespace Couchbase.Lite.Sync
 
         #region Variables
 
+        public event EventHandler<TlsCertificateReceivedEventArgs> PeerCertificateReceived; 
+
         [NotNull] private readonly byte[] _buffer = new byte[MaxReceivedBytesPending];
         [NotNull] private readonly SerialQueue _c4Queue = new SerialQueue();
         [NotNull] private readonly HTTPLogic _logic;
         [NotNull] private readonly ReplicatorOptionsDictionary _options;
 
         [NotNull] private readonly SerialQueue _queue = new SerialQueue();
+
+        private TlsCertificateException _validationException;
 
         private readonly unsafe C4Socket* _socket;
         private TcpClient _client;
@@ -693,16 +730,43 @@ namespace Couchbase.Lite.Sync
                     clientCerts = new X509CertificateCollection(new[] { _options.ClientCert as X509Certificate });
                 }
 
-                // STEP 3A: TLS handshake
-                stream.AuthenticateAsClientAsync(_logic.UrlRequest?.Host, clientCerts, SslProtocols.Tls12, false).ContinueWith(
-                    t =>
-                    {
-                        if (!NetworkTaskSuccessful(t)) {
-                            return;
-                        }
+                try {
+                    // STEP 3A: TLS handshake
+                    stream.AuthenticateAsClientAsync(_logic.UrlRequest?.Host, clientCerts, SslProtocols.Tls12, false)
+                        .ContinueWith(
+                            t =>
+                            {
+                                if (_validationException != null) {
+                                    DidClose(_validationException);
+                                    _validationException = null;
+                                    return;
+                                }
 
-                        _queue.DispatchAsync(OnSocketReady);
-                    });
+                                if (t.Exception?.InnerException != null) {
+                                    // Failed before the server validation step, probably client certificate error
+                                    DidClose(new TlsCertificateException(
+                                        "Authentication failed prior to server certificate (bad / missing client cert?)",
+                                        C4NetworkErrorCode.TLSHandshakeFailed, t.Exception.InnerException));
+                                    return;
+                                }
+
+                                if (!NetworkTaskSuccessful(t)) {
+                                    return;
+                                }
+
+                                _queue.DispatchAsync(OnSocketReady);
+                            });
+                } catch (Exception e) {
+                    // I can't believe I have to do this, but .NET Core will throw the exception
+                    // here on Linux instead of passing it to the continuation
+                    var toThrow = _validationException ?? new TlsCertificateException(
+                        "Authentication failed prior to server certificate (bad / missing client cert?)",
+                        C4NetworkErrorCode.TLSHandshakeFailed, e);
+                    DidClose(toThrow);
+                    _validationException = null;
+                    return;
+                }
+
                 NetworkStream = stream;
             } else {
                 NetworkStream = _client?.GetStream();
@@ -712,30 +776,94 @@ namespace Couchbase.Lite.Sync
 
         private bool ValidateServerCert(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
+            if (certificate is X509Certificate2 c2) {
+                PeerCertificateReceived?.Invoke(this, new TlsCertificateReceivedEventArgs(c2));
+            }
+
             if (_options.PinnedServerCertificate != null) {
                 var retVal = certificate.Equals(_options.PinnedServerCertificate);
                 if (!retVal) {
                     WriteLog.To.Sync.W(Tag, "Server certificate did not match the pinned one!");
+                    _validationException = new TlsCertificateException("The certificate does not match the pinned certificate",
+                        C4NetworkErrorCode.TLSCertUnknownRoot, X509ChainStatusFlags.ExplicitDistrust);
                 }
 
                 return retVal;
             }
 
-            if (sslPolicyErrors != SslPolicyErrors.None) {
+            // Mono doesn't pass chain information?
+            if (chain?.ChainElements?.Count == 0 && certificate is X509Certificate2 cert2) {
+                chain = X509Chain.Create();
+                chain.Build(cert2);
+            }
+
+#if COUCHBASE_ENTERPRISE
+            var onlySelfSigned = _options.AcceptOnlySelfSignedServerCertificate;
+            #else
+            var onlySelfSigned = false;
+            #endif
+
+            if (!onlySelfSigned && sslPolicyErrors != SslPolicyErrors.None) {
                 WriteLog.To.Sync.W(Tag, $"Error validating TLS chain: {sslPolicyErrors}");
-                if (chain?.ChainStatus != null) {
-                    for (var i = 0; i < chain.ChainStatus.Length; i++) {
-                        var element = chain.ChainElements[i];
-                        var status = chain.ChainStatus[i];
-                        if (status.Status != X509ChainStatusFlags.NoError) {
-                            WriteLog.To.Sync.V(Tag,
-                                $"Error {status.Status} ({status.StatusInformation}) for certificate:{Environment.NewLine}{element.Certificate}");
+                if (chain.ChainElements != null) {
+                    foreach(var element in chain.ChainElements) {
+                        if (element.ChainElementStatus != null) {
+                            foreach (var status in element.ChainElementStatus) {
+                                if (status.Status != X509ChainStatusFlags.NoError) {
+                                    WriteLog.To.Sync.V(Tag,
+                                        $"Error {status.Status} ({status.StatusInformation}) for certificate:{Environment.NewLine}{element.Certificate}");
+                                    if (status.Status == X509ChainStatusFlags.UntrustedRoot) {
+                                        _validationException = new TlsCertificateException("The certificate does not terminate in a trusted root CA.",
+                                            C4NetworkErrorCode.TLSCertUnknownRoot, X509ChainStatusFlags.UntrustedRoot);
+                                        return false;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
+
+                if(chain.ChainStatus != null) {
+                    foreach(var status in chain.ChainStatus) {
+                        if(status.Status == X509ChainStatusFlags.PartialChain) {
+                            _validationException = new TlsCertificateException("The certificate does not terminate in a trusted root CA.",
+                                            C4NetworkErrorCode.TLSCertUnknownRoot, X509ChainStatusFlags.PartialChain);
+                            return false;
+                        }
+                    }
+                }
+            } else if (onlySelfSigned) {
+                if (chain.ChainElements.Count != 1) {
+                    _validationException = new TlsCertificateException("A non self-signed certificate was received in self-signed mode.",
+                        C4NetworkErrorCode.TLSCertUnknownRoot, X509ChainStatusFlags.ExplicitDistrust);
+                    return false;
+                }
+
+                if (chain.ChainStatus[0].Status != X509ChainStatusFlags.UntrustedRoot &&
+                    chain.ChainStatus[0].Status != X509ChainStatusFlags.PartialChain &&
+                    chain.ChainStatus[0].Status != X509ChainStatusFlags.NoError) {
+                    _validationException = new TlsCertificateException("Certificate verification failed",
+                        C4NetworkErrorCode.TLSCertUnknownRoot, chain.ChainStatus[0].Status);
+                    return false;
+                }
+
+                if (chain.ChainElements[0].Certificate.IssuerName.Name
+                    != chain.ChainElements[0].Certificate.SubjectName.Name) {
+                    _validationException = new TlsCertificateException("A non self-signed certificate was received in self-signed mode.",
+                        C4NetworkErrorCode.TLSCertUnknownRoot, X509ChainStatusFlags.ExplicitDistrust);
+                    return false;
+                }
+
+                return true;
             }
 
-            return sslPolicyErrors == SslPolicyErrors.None;
+            if(sslPolicyErrors == SslPolicyErrors.None) {
+                return true;
+            }
+
+            _validationException = new TlsCertificateException("Certificate verification failed",
+                        C4NetworkErrorCode.TLSCertUntrusted, sslPolicyErrors);
+            return false;
         }
 
         private async Task WaitForResponse(Stream stream)

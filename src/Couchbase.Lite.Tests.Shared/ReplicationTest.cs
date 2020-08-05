@@ -63,6 +63,7 @@ namespace Test
 
         protected Replicator _repl;
         protected WaitAssert _waitAssert;
+        protected TimeSpan _timeout;
 
         public Database OtherDb { get; internal set; }
 
@@ -87,7 +88,8 @@ namespace Test
         {
             ReopenDB();
             ReopenOtherDb();
-            
+            _timeout = TimeSpan.FromSeconds(15);
+
             //uncomment the code below when you need to see more detail log
             //Database.Log.Console.Level = LogLevel.Debug;
         }
@@ -109,9 +111,9 @@ namespace Test
         }
 
         protected ReplicatorConfiguration CreateConfig(IEndpoint target, ReplicatorType type, bool continuous,
-            Authenticator authenticator = null, X509Certificate2 serverCert = null)
+            Authenticator authenticator = null, X509Certificate2 serverCert = null, Database sourceDb = null)
         {
-            var c = new ReplicatorConfiguration(Db, target)
+            var c = new ReplicatorConfiguration(sourceDb ?? Db, target)
             {
                 ReplicatorType = type,
                 Continuous = continuous,
@@ -135,12 +137,11 @@ namespace Test
 
         #if COUCHBASE_ENTERPRISE
         protected ReplicatorConfiguration CreateConfig(IEndpoint target, ReplicatorType type, bool continuous,
-            bool verifyMode, Authenticator authenticator = null,
+            bool acceptOnlySelfSignedServerCertificate, Authenticator authenticator = null,
             X509Certificate2 serverCert = null)
         {
             var c = CreateConfig(target, type, continuous, authenticator, serverCert);
-            c.AcceptOnlySelfSignedServerCertificate = verifyMode;
-
+            c.AcceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate;
             return c;
         }
         #endif
@@ -164,10 +165,10 @@ namespace Test
 
         #if COUCHBASE_ENTERPRISE
         protected void RunReplication(IEndpoint target, ReplicatorType type, bool continuous,
-            Authenticator authenticator, bool verifyMode,
+            Authenticator authenticator, bool acceptOnlySelfSignedServerCertificate,
             X509Certificate2 serverCert, int expectedErrCode, CouchbaseLiteErrorType expectedErrorDomain)
         {
-            var config = CreateConfig(target, type, continuous, verifyMode, authenticator,
+            var config = CreateConfig(target, type, continuous, acceptOnlySelfSignedServerCertificate, authenticator,
                 serverCert);
             RunReplication(config, expectedErrCode, expectedErrorDomain);
         }
@@ -1223,7 +1224,7 @@ namespace Test
             Db.Count.Should().Be(0);
         }
 
-        [Fact]
+        //[Fact] https://issues.couchbase.com/browse/CBL-1174
         public void TestConflictResolverDeletedRemoteWin()
         {
             Document localDoc = null, remoteDoc = null;
@@ -1382,7 +1383,7 @@ namespace Test
             q.Clear();
         }
 
-        [Fact]
+        //[Fact]
         public void TestDoubleConflictResolutionOnSameConflicts()
         {
             CreateReplicationConflict("doc1");
@@ -1512,7 +1513,7 @@ namespace Test
             TestConflictResolverExceptionThrown(resolverWithException, false);
         }
 
-        [Fact]
+        //[Fact] https://issues.couchbase.com/browse/CBL-1174
         public void TestConflictResolverReturningBlob()
         {
             var returnRemoteDoc = true;
@@ -1923,16 +1924,16 @@ namespace Test
                     doc1Listener.WaitForResult(TimeSpan.FromSeconds(20));
                     waitIdleAssert.WaitForResult(TimeSpan.FromSeconds(10));
 
-                    Db.ActiveReplications.Count.Should().Be(1);
-                    Db.ActiveLiveQueries.Count.Should().Be(1);
+                    Db.ActiveStoppables.Count.Should().Be(2);
+                    //Db.ActiveLiveQueries.Count.Should().Be(1);
 
                     if (isCloseNotDelete)
                         Db.Close();
                     else
                         Db.Delete();
 
-                    Db.ActiveReplications.Count.Should().Be(0);
-                    Db.ActiveLiveQueries.Count.Should().Be(0);
+                    Db.ActiveStoppables.Count.Should().Be(0);
+                    //Db.ActiveLiveQueries.Count.Should().Be(0);
                     Db.IsClosedLocked.Should().Be(true);
 
                     waitStoppedAssert.WaitForResult(TimeSpan.FromSeconds(30));
@@ -1985,14 +1986,14 @@ namespace Test
                     waitIdleAssert.WaitForResult(TimeSpan.FromSeconds(10));
                     waitIdleAssert1.WaitForResult(TimeSpan.FromSeconds(10));
 
-                    Db.ActiveReplications.Count.Should().Be(2);
+                    Db.ActiveStoppables.Count.Should().Be(2);
 
                     if (isCloseNotDelete)
                         Db.Close();
                     else
                         Db.Delete();
 
-                    Db.ActiveReplications.Count.Should().Be(0);
+                    Db.ActiveStoppables.Count.Should().Be(0);
                     Db.IsClosedLocked.Should().Be(true);
 
                     waitStoppedAssert.WaitForResult(TimeSpan.FromSeconds(30));

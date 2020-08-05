@@ -46,7 +46,7 @@ namespace Couchbase.Lite.Sync
     /// (i.e. pusher and puller are no longer separate) between a database and a URL
     /// or a database and another database on the same filesystem.
     /// </summary>
-    public sealed unsafe class Replicator : IDisposable
+    public sealed unsafe class Replicator : IDisposable, IStoppable
     {
         #region Constants
 
@@ -101,7 +101,7 @@ namespace Couchbase.Lite.Sync
         /// The developer could save the certificate and pin the certificate next time when setting up the replicator to 
         /// provide an SSH type of authentication.
         /// </summary>
-        internal X509Certificate2 ServerCertificate { get; set; }
+        public X509Certificate2 ServerCertificate { get; private set; }
 
         #endregion
 
@@ -258,7 +258,7 @@ namespace Couchbase.Lite.Sync
                     WriteLog.To.Sync.I(Tag, $"{this}: Starting");
                     Native.c4repl_start(_repl, Config.Options.Reset || reset);
                     Config.Options.Reset = false;
-                    Config.Database.AddActiveReplication(this);
+                    Config.Database.AddActiveStoppable(this);
                     status = Native.c4repl_getStatus(_repl);
                 } else {
                     status = new C4ReplicatorStatus {
@@ -381,6 +381,15 @@ namespace Couchbase.Lite.Sync
 
         #endregion
 
+        #region Internal Methods
+
+        internal void WatchForCertificate(WebSocketWrapper wrapper)
+        {
+            wrapper.PeerCertificateReceived += OnTlsCertificate;
+        }
+
+        #endregion
+
         #region Private Methods
 
         private bool IsPushing()
@@ -431,6 +440,12 @@ namespace Couchbase.Lite.Sync
                     replicator.OnDocEndedWithConflict(replicatedDocumentsContainConflict);
                 });
             }
+        }
+
+        private void OnTlsCertificate(object sender, TlsCertificateReceivedEventArgs e)
+        {
+            ((WebSocketWrapper) sender).PeerCertificateReceived -= OnTlsCertificate;
+            ServerCertificate = e.PeerCertificate;
         }
 
         #if __IOS__
@@ -526,7 +541,6 @@ namespace Couchbase.Lite.Sync
 
                 Stop();
                 Native.c4repl_free(_repl);
-                ServerCertificate = null;
                 _repl = null;
                 _disposed = true;
             });
@@ -727,6 +741,12 @@ namespace Couchbase.Lite.Sync
         private void StatusChangedCallback(C4ReplicatorStatus status)
         {
             if (_disposed) {
+                if (status.level == C4ReplicatorActivityLevel.Stopped) {
+                    // If disposed before stopped, missing this causes
+                    // a database close hang
+                    Config.Database.RemoveActiveStoppable(this);
+                }
+
                 return;
             }
 
@@ -760,7 +780,7 @@ namespace Couchbase.Lite.Sync
         private void Stopped()
         {
             Debug.Assert(_rawStatus.level == C4ReplicatorActivityLevel.Stopped);
-            Config.Database.RemoveActiveReplication(this);
+            Config.Database.RemoveActiveStoppable(this);
         }
 
         private void UpdateStateProperties(C4ReplicatorStatus state)

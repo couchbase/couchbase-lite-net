@@ -26,6 +26,7 @@ using JetBrains.Annotations;
 
 using LiteCore.Interop;
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 
 namespace Couchbase.Lite.Sync
 {
@@ -120,6 +121,8 @@ namespace Couchbase.Lite.Sync
             var id = Interlocked.Increment(ref _NextID);
             socket->nativeHandle = (void*)id;
             var socketWrapper = new WebSocketWrapper(uri, socket, replicationOptions);
+            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
+            replicator?.WatchForCertificate(socketWrapper);
             Sockets.AddOrUpdate(id, socketWrapper, (k, v) => socketWrapper);
             socketWrapper.Start();
         }

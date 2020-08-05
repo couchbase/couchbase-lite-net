@@ -171,6 +171,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Support\iOS\iOSReachability.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\iOS\iOSRuntimePlatform.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\iOS\MainThreadTaskScheduler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Support\IStoppable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\IThreadSafety.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\netdesktop\DefaultDirectoryResolver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Support\netdesktop\DesktopConsoleLogger.cs" />

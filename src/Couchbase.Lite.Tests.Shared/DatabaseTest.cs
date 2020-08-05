@@ -1462,7 +1462,7 @@ namespace Test
                     otherDb.Save(doc); // Should still trigger since it is pointing to the same DB
                 }
 
-                otherDb.ActiveLiveQueries.Count.Should().Be(2);
+                otherDb.ActiveStoppables.Count.Should().Be(2);
 
                 doc1Listener.WaitForResult(TimeSpan.FromSeconds(20));
                 doc1Listener1.WaitForResult(TimeSpan.FromSeconds(20));
@@ -1472,7 +1472,7 @@ namespace Test
                 else
                     otherDb.Delete();
 
-                otherDb.ActiveLiveQueries.Count.Should().Be(0);
+                otherDb.ActiveStoppables.Count.Should().Be(0);
                 otherDb.IsClosedLocked.Should().Be(true);
             }
 

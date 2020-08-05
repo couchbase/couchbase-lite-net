@@ -36,7 +36,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal class XQuery : IQuery
+    internal class XQuery : IQuery, IStoppable
     {
         #region Constants
 
@@ -163,7 +163,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
-        internal void Stop()
+        public void Stop()
         {
             if (_updating) {
                 _stopping = true;
@@ -302,7 +302,7 @@ namespace Couchbase.Lite.Internal.Query
 
         private void Stopped()
         {
-            Database?.RemoveActiveLiveQuery(this);
+            Database?.RemoveActiveStoppable(this);
             Database?.RemoveChangeListener(_databaseChangedToken);
             _stopping = false;
         }
@@ -400,7 +400,7 @@ namespace Couchbase.Lite.Internal.Query
             _changed.Add(cbHandler);
 
             if (Interlocked.Increment(ref _observingCount) == 1) {
-                Database?.AddActiveLiveQuery(this);
+                Database?.AddActiveStoppable(this);
                 if (Database != null) {
                     _databaseChangedToken = Database.AddChangeListener(OnDatabaseChanged);
                 } else {
