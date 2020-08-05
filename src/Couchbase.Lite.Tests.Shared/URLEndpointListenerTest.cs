@@ -616,9 +616,10 @@ namespace Test
                 if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
                     args.Status.Progress.Total) {
                     if (OtherDb.Count == 3 && Db.Count == 3 && db2.Count == 3) {
-                        ((Replicator)sender).Stop();
+                        ((Replicator) sender).Stop();
                     }
 
+                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
                     if (sender == repl1) {
                         wait1.Set();
                     } else {

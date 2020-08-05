@@ -1634,8 +1634,6 @@ namespace Couchbase.Lite
                 q.Key.Stop();
             }
 
-
-
             while (!IsReadyToClose) {
                 _closeCondition.WaitOne();
                 //if (!_closeCondition.WaitOne(TimeSpan.FromSeconds(5), true)) {
