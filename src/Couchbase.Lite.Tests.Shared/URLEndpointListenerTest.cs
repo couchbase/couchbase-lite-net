@@ -145,6 +145,7 @@ namespace Test
 
             _listener.Stop();
             listener1.Stop();
+            listener1.Dispose();
         }
 
         [Fact]
@@ -183,11 +184,11 @@ namespace Test
         [Fact]
         public void TestUrls()
         {
-            var listener = CreateListener(false);
+            _listener = CreateListener(false);
 
-            listener.Urls.Count.Should().NotBe(0);
-            listener.Stop();
-            listener.Urls.Count.Should().Be(0);
+            _listener.Urls.Count.Should().NotBe(0);
+            _listener.Stop();
+            _listener.Urls.Count.Should().Be(0);
         }
 
         [Fact]
