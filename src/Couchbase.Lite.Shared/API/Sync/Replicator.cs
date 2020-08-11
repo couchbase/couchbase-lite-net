@@ -524,26 +524,38 @@ namespace Couchbase.Lite.Sync
 
         private void Dispose(bool finalizing)
         {
-            DispatchQueue.DispatchSync(() =>
-            {
-                if (_disposed) {
-                    return;
-                }
+            if (!finalizing) {
+                DispatchQueue.DispatchSync(() =>
+                {
+                    if (_disposed) {
+                        return;
+                    }
 
-                if (!finalizing) {
                     _nativeParams?.Dispose();
                     if (Status.Activity != ReplicatorActivityLevel.Stopped) {
                         var newStatus = new ReplicatorStatus(ReplicatorActivityLevel.Stopped, Status.Progress, null);
-                        _statusChanged.Fire(this, new ReplicatorStatusChangedEventArgs(newStatus));
                         Status = newStatus;
+                        _statusChanged.Fire(this, new ReplicatorStatusChangedEventArgs(newStatus));
                     }
-                }
 
-                Stop();
-                Native.c4repl_free(_repl);
-                _repl = null;
-                _disposed = true;
-            });
+                    Stop();
+                    Native.c4repl_free(_repl);
+                    _repl = null;
+                    Config.Database.RemoveActiveStoppable(this);
+                    _disposed = true;
+                });
+            } else {
+                if (_repl != null) {
+                    // Don't need to worry about active stoppable.  The fact
+                    // that it's in here means by definition it is already out
+                    // of the active stoppable collection (or it wouldn't be
+                    // getting garbage collected now).  Just make sure the native
+                    // resources are freed.
+                    Native.c4repl_free(_repl);
+                    _repl = null;
+                }
+            }
+            
         }
 
         private bool filterCallback(Func<Document, DocumentFlags, bool> filterFunction, string docID, string revID, FLDict* value, DocumentFlags flags)
@@ -741,11 +753,6 @@ namespace Couchbase.Lite.Sync
         private void StatusChangedCallback(C4ReplicatorStatus status)
         {
             if (_disposed) {
-                if (status.level == C4ReplicatorActivityLevel.Stopped) {
-                    // If disposed before stopped, missing this causes
-                    // a database close hang
-                    Config.Database.RemoveActiveStoppable(this);
-                }
 
                 return;
             }
