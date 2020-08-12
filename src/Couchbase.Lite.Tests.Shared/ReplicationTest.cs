@@ -1224,7 +1224,7 @@ namespace Test
             Db.Count.Should().Be(0);
         }
 
-        //[Fact] https://issues.couchbase.com/browse/CBL-1174
+        [Fact]
         public void TestConflictResolverDeletedRemoteWin()
         {
             Document localDoc = null, remoteDoc = null;
@@ -1383,7 +1383,7 @@ namespace Test
             q.Clear();
         }
 
-        //[Fact]
+        [Fact]
         public void TestDoubleConflictResolutionOnSameConflicts()
         {
             CreateReplicationConflict("doc1");
@@ -1513,7 +1513,7 @@ namespace Test
             TestConflictResolverExceptionThrown(resolverWithException, false);
         }
 
-        //[Fact] https://issues.couchbase.com/browse/CBL-1174
+        [Fact]
         public void TestConflictResolverReturningBlob()
         {
             var returnRemoteDoc = true;
