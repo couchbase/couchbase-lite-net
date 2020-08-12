@@ -1358,7 +1358,7 @@ namespace Test
                 }
 
                 if (cnt == 1) {
-                    manualResetEvent.WaitOne();
+                    manualResetEvent.WaitOne(TimeSpan.FromSeconds(5));
                 }
 
                 q.Enqueue(conflict.LocalDocument.Id);
