@@ -701,12 +701,12 @@ namespace Couchbase.Lite.Sync
                 _logic[header.Key] = header.Value;
             }
 
-            var cookieString = _options.CookieString;
-            if (cookieString != null) {
+            var sessionCookieString = _options.CookieString;
+            if (sessionCookieString != null) {
                 // https://github.com/couchbase/couchbase-lite-net/issues/974
                 // Don't overwrite a possible entry in the above headers unless there is
                 // actually a value
-                _logic["Cookie"] = cookieString;
+                _logic["Cookie"] = sessionCookieString;
             }
 
             // These ones should be overwritten.  The user has no business setting them.

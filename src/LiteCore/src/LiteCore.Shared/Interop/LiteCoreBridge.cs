@@ -46,5 +46,10 @@ namespace LiteCore
         {
             return NativeHandler.Create().Execute(block);
         }
+
+        public static string Check(C4TryLogicDelegate5 block)
+        {
+            return NativeHandler.Create().Execute(block);
+        }
     }
 }

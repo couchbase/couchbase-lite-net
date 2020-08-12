@@ -989,6 +989,59 @@ namespace Couchbase.Lite
             });
         }
 
+        internal string GetCookies([NotNull] Uri uri)
+        {
+            string cookies = null;
+            ThreadSafety.DoLocked(() =>
+            {
+                if (uri == null) {
+                    WriteLog.To.Sync.V(Tag, "The Uri used to get cookies is null.");
+                } else {
+                    var addr = new C4Address();
+                    var scheme = new C4String();
+                    var host = new C4String();
+                    var path = new C4String();
+                    var pathStr = String.Concat(uri.Segments.Take(uri.Segments.Length - 1));
+                    scheme = new C4String(uri.Scheme);
+                    host = new C4String(uri.Host);
+                    path = new C4String(pathStr);
+                    addr.scheme = scheme.AsFLSlice();
+                    addr.hostname = host.AsFLSlice();
+                    addr.port = (ushort) uri.Port;
+                    addr.path = path.AsFLSlice();
+
+                    cookies = (string) LiteCoreBridge.Check(err =>
+                    {
+                        return Native.c4db_getCookies(_c4db, addr, err);
+                    });
+
+                    if (String.IsNullOrEmpty(cookies)) {
+                        WriteLog.To.Sync.V(Tag, "There is no saved HTTP cookies.");
+                    }
+                }
+            });
+
+            return cookies;
+        }
+
+        internal bool SaveCookie(string cookie, [NotNull] Uri uri)
+        {
+            bool cookieSaved = false;
+            ThreadSafety.DoLocked(() =>
+            {
+                if (uri == null) {
+                    WriteLog.To.Sync.V(Tag, "The Uri used to set cookie is null.");
+                } else {
+                    var pathStr = String.Concat(uri.Segments.Take(uri.Segments.Length - 1));
+                    cookieSaved = (bool) LiteCoreBridge.Check(err =>
+                    {
+                        return Native.c4db_setCookie(_c4db, cookie, uri.Host, pathStr, err);
+                    });
+                }
+            });
+
+            return cookieSaved;
+        }
 
         internal void ResolveConflict([@NotNull]string docID, [@CanBeNull]IConflictResolver conflictResolver)
         {

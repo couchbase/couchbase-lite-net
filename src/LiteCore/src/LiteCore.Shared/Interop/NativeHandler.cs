@@ -47,6 +47,8 @@ namespace LiteCore.Interop
 
     internal unsafe delegate byte[] C4TryLogicDelegate4(C4Error* err);
 
+    internal unsafe delegate string C4TryLogicDelegate5(C4Error* err);
+
     #endregion
 
     /// <summary>
@@ -202,6 +204,22 @@ namespace LiteCore.Interop
             C4Error err;
             var retVal = block(&err);
             if(retVal != null || err.code == 0) {
+                Exception = null;
+                return retVal;
+            }
+
+            Exception = CouchbaseException.Create(err);
+            ThrowOrHandle();
+            return retVal;
+        }
+
+        public unsafe string Execute(C4TryLogicDelegate5 block)
+        {
+            Debug.Assert(block != null);
+
+            C4Error err;
+            var retVal = block(&err);
+            if (retVal != null || err.code == 0) {
                 Exception = null;
                 return retVal;
             }
