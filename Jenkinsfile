@@ -25,6 +25,7 @@ pipeline {
                                 }
 								
                                 Get-ChildItem couchbase-lite-net-ee\\* -Force | Move-Item -Destination .
+								New-Item -Type Directory couchbase-lite-net
                                 Get-ChildItem -Force tmp\\* | Move-Item -Destination couchbase-lite-net
                                 Remove-Item tmp
 
@@ -69,6 +70,7 @@ pipeline {
                                     git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $CHANGE_TARGET --depth 1 couchbase-lite-net-ee
 
                                 mv couchbase-lite-net-ee/* .
+								mkdir couchbase-lite-net
                                 mv tmp/* couchbase-lite-net
                                 rmdir tmp
 
