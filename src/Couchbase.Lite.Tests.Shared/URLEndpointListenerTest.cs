@@ -653,7 +653,7 @@ namespace Test
             _listener.Stop();
         }
 
-        //[Fact] //TODO: Examine how to get LiteCore to not report 4002
+        [Fact]
         public void TestReadOnlyListener()
         {
             using (var doc1 = new MutableDocument()) {
@@ -705,7 +705,7 @@ namespace Test
             ValidateMultipleReplicationsTo(ReplicatorType.PushAndPull);
         }
 
-        //[Fact] uwp failed: http://uberjenkins.sc.couchbase.com/job/couchbase-lite-net-uwp/924/console
+        [Fact]
         public void TestMultipleReplicatorsOnReadOnlyListener()
         {
             var config = CreateListenerConfig();
