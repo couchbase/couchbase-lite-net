@@ -295,7 +295,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestClientCertAuthenticator()
+        public void TestClientCertAuthWithCallback()
         {
             var auth = new ListenerCertificateAuthenticator((sender, cert) =>
             {
@@ -363,6 +363,44 @@ namespace Test
         }
 
         [Fact]
+        public void TestClientCertAuthRootCertsError()
+        {
+            byte[] caData;
+            using (var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client-ca.der"))
+            using (var reader = new BinaryReader(stream)) {
+                caData = reader.ReadBytes((int) stream.Length);
+            }
+
+            var rootCert = new X509Certificate2(caData);
+            var auth = new ListenerCertificateAuthenticator(new X509Certificate2Collection(rootCert));
+            _listener = CreateListener(true, true, auth);
+
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+            // Create wrong client identity
+            var id = TLSIdentity.CreateIdentity(false,
+                new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "daniel" } },
+                null,
+                _store,
+                ClientCertLabel,
+                null);
+
+            id.Should().NotBeNull();
+            RunReplication(
+                _listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull,
+                false,
+                new ClientCertificateAuthenticator(id),
+                true,
+                _listener.TlsIdentity.Certs[0],
+                (int) CouchbaseLiteError.TLSHandshakeFailed, //not TLSClientCertRejected as mac has..
+                CouchbaseLiteErrorType.CouchbaseLite
+            );
+
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+            _listener.Stop();
+        }
+
+        [Fact]
         public void TestClientCertAuthenticatorRootCerts()
         {
             byte[] caData, clientData;
@@ -399,6 +437,50 @@ namespace Test
             );
 
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+            _listener.Stop();
+        }
+
+        [Fact]
+        public void TestListenerWithImportIdentity()
+        {
+            byte[] serverData = null;
+            using (var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client.p12"))
+            using (var reader = new BinaryReader(stream)) {
+                serverData = reader.ReadBytes((int) stream.Length);
+            }
+
+            // Cleanup
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+
+            // Import identity
+            var id = TLSIdentity.ImportIdentity(_store, serverData, "123", ServerCertLabel, null);
+            
+            // Create listener and start
+            var config = CreateListenerConfig(true, true, null, id);
+            _listener = Listen(config);
+
+            _listener.TlsIdentity.Should().NotBeNull();
+
+            using (var doc1 = new MutableDocument("doc1")){
+                doc1.SetString("name", "Sam");
+                Db.Save(doc1);
+            }
+
+            OtherDb.Count.Should().Be(0);
+
+            RunReplication(
+                _listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull,
+                false,
+                null, //authenticator
+                false, //accept only self signed server cert
+                _listener.TlsIdentity.Certs[0], //server cert
+                0,
+                0
+            );
+
+            OtherDb.Count.Should().Be(1);
+
             _listener.Stop();
         }
 
@@ -513,7 +595,7 @@ namespace Test
             _listener.Stop();
         }
 
-        [Fact] //mac getting CouchbaseLiteException (NetworkDomain / 2): Unknown network interface name or address.
+        [Fact]
         public void TestEmptyNetworkInterface()
         {
             var config = CreateListenerConfig(false);
@@ -522,7 +604,7 @@ namespace Test
             _listener.Stop();
         }
 
-        [Fact] //CouchbaseLiteException (NetworkDomain / 2) Unknown network interface name or address.
+        [Fact]
         public void TestUnavailableNetworkInterface()
         {
             var config = CreateListenerConfig(false);
@@ -591,7 +673,7 @@ namespace Test
                 OtherDb.Save(doc);
             }
 
-            CreateListener();
+            _listener = CreateListener();
             using (var doc1 = new MutableDocument()) {
                 Db.Save(doc1);
             }
@@ -692,7 +774,7 @@ namespace Test
         [Fact]
         public void TestReplicatorServerCertWithTLSError() => CheckReplicatorServerCert(true, false);
 
-        //[Fact] android failed (Expected boolean to be true, but found False.)
+        [Fact]
         public void TestMultipleReplicatorsToListener()
         {
             _listener = Listen(CreateListenerConfig()); // writable listener
@@ -720,9 +802,87 @@ namespace Test
             ValidateMultipleReplicationsTo(ReplicatorType.Pull);
         }
 
+        [Fact]
+        public void TestCloseWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(true);
+
         #endregion
 
         #region Private Methods
+
+        private void WithActiveReplicationsAndURLEndpointListener(bool isCloseNotDelete)
+        {
+            ManualResetEventSlim waitIdleAssert1 = new ManualResetEventSlim();
+            ManualResetEventSlim waitStoppedAssert1 = new ManualResetEventSlim();
+            ManualResetEventSlim waitIdleAssert2 = new ManualResetEventSlim();
+            ManualResetEventSlim waitStoppedAssert2 = new ManualResetEventSlim();
+
+            using (var doc = new MutableDocument()) {
+                OtherDb.Save(doc);
+            }
+
+            _listener = CreateListener();
+            using (var doc1 = new MutableDocument()) {
+                Db.Save(doc1);
+            }
+
+            var target = new DatabaseEndpoint(Db);
+            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
+            var repl1 = new Replicator(config1);
+
+            Database.Delete("db2", Directory);
+            var db2 = OpenDB("db2");
+            using (var doc2 = new MutableDocument()) {
+                db2.Save(doc2);
+            }
+
+            var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
+                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: db2);
+            var repl2 = new Replicator(config2);
+
+            EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
+            {
+                if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
+                    if (sender == repl1) {
+                        waitIdleAssert1.Set();
+                    } else {
+                        waitIdleAssert2.Set();
+                    }
+                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                    if (sender == repl1) {
+                        waitStoppedAssert1.Set();
+                    } else {
+                        waitStoppedAssert2.Set();
+                    }
+                }
+            };
+
+            var token1 = repl1.AddChangeListener(changeListener);
+            var token2 = repl2.AddChangeListener(changeListener);
+
+            repl1.Start();
+            repl2.Start();
+
+            OtherDb.ActiveStoppables.Count.Should().Be(2);
+
+            WaitHandle.WaitAll(new[] { waitIdleAssert1.WaitHandle, waitIdleAssert2.WaitHandle }, _timeout)
+                .Should().BeTrue();
+
+            if (isCloseNotDelete) {
+                Db.Close();
+                db2.Close();
+                OtherDb.Close();
+            } else {
+                Db.Delete();
+                db2.Delete();
+                OtherDb.Delete();
+            }
+
+            WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, _timeout)
+                .Should().BeTrue();
+
+            OtherDb.ActiveStoppables.Count.Should().Be(0);
+            Db.IsClosedLocked.Should().Be(true);
+        }
 
         // Two replicators, replicates docs to the listener; validates connection status
         private void ValidateMultipleReplicationsTo(ReplicatorType replicatorType)
