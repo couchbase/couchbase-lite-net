@@ -532,6 +532,7 @@ namespace Couchbase.Lite.Sync
 
                 if (!finalizing) {
                     _nativeParams?.Dispose();
+                    Config.Options.Dispose();
                     if (Status.Activity != ReplicatorActivityLevel.Stopped) {
                         var newStatus = new ReplicatorStatus(ReplicatorActivityLevel.Stopped, Status.Progress, null);
                         _statusChanged.Fire(this, new ReplicatorStatusChangedEventArgs(newStatus));
