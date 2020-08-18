@@ -33,7 +33,7 @@ namespace Couchbase.Lite.Sync
     /// <summary>
     ///  A container for options that have to do with a <see cref="Replicator"/>
     /// </summary>
-    internal sealed class ReplicatorOptionsDictionary : OptionsDictionary
+    internal sealed class ReplicatorOptionsDictionary : OptionsDictionary, IDisposable
     {
         #region Constants
 
@@ -55,6 +55,13 @@ namespace Couchbase.Lite.Sync
         private const string RemoteDBUniqueIDKey = "remoteDBUniqueID";
         private const string ResetKey = "reset";
         private const string Tag = nameof(ReplicatorOptionsDictionary);
+
+        #endregion
+
+        #region Variables
+
+        private GCHandle _pinnedCertHandle;
+        private GCHandle _clientCertHandle;
 
         #endregion
 
@@ -157,7 +164,6 @@ namespace Couchbase.Lite.Sync
         [CanBeNull]
         public X509Certificate2 PinnedServerCertificate { get; set; }
 
-        [CanBeNull]
         public ReplicatorProgressLevel ProgressLevel
         {
             get => (ReplicatorProgressLevel)this.GetCast<int>(LevelKey);
@@ -213,6 +219,11 @@ namespace Couchbase.Lite.Sync
             Headers = new Dictionary<string, string>();
         }
 
+        ~ReplicatorOptionsDictionary()
+        {
+            Dispose(true);
+        }
+
         internal ReplicatorOptionsDictionary([NotNull]Dictionary<string, object> raw) : base(raw)
         {
             if (ContainsKey(AuthOption)) {
@@ -233,21 +244,11 @@ namespace Couchbase.Lite.Sync
             }
 
             if (ContainsKey(PinnedCertKey)) {
-                PinnedServerCertificate = new X509Certificate2(this.GetCast<byte[]>(PinnedCertKey));
+                PinnedServerCertificate = GCHandle.FromIntPtr((IntPtr)this.GetCast<long>(PinnedCertKey)).Target as X509Certificate2;
             }
 
             if (ContainsKey(ClientCertKey)) {
-#if !__MOBILE__
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-                    // Key information cannot be exported on macOS, but is magically found
-                    // again just by the certificate
-                    ClientCert = new X509Certificate2(this.GetCast<byte[]>(ClientCertKey));
-                } else
-#endif
-                {
-                    // Otherwise, the key information is required...
-                    ClientCert = new X509Certificate2(this.GetCast<byte[]>(ClientCertKey), "temp");
-                }
+                ClientCert = GCHandle.FromIntPtr((IntPtr)this.GetCast<long>(ClientCertKey)).Target as X509Certificate2;
             }
 
             if (ContainsKey(CookiesKey)) {
@@ -266,6 +267,21 @@ namespace Couchbase.Lite.Sync
 
 #endregion
 
+#region Private Methods
+
+        private void Dispose(bool finalizing)
+        {
+            if (_clientCertHandle.IsAllocated) {
+                _clientCertHandle.Free();
+            }
+
+            if (_pinnedCertHandle.IsAllocated) {
+                _pinnedCertHandle.Free();
+            }
+        }
+
+#endregion
+
 #region Overrides
 
         internal override void BuildInternal()
@@ -276,22 +292,19 @@ namespace Couchbase.Lite.Sync
             }
 
             if (PinnedServerCertificate != null) {
-                this[PinnedCertKey] = PinnedServerCertificate.Export(X509ContentType.Cert);
+                if (!_pinnedCertHandle.IsAllocated) {
+                    _pinnedCertHandle = GCHandle.Alloc(PinnedServerCertificate, GCHandleType.Weak);
+                }
+
+                this[PinnedCertKey] = GCHandle.ToIntPtr(_pinnedCertHandle).ToInt64();
             }
 
             if (ClientCert != null) {
-#if !__MOBILE__
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-                    || RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                    // Key information cannot be exported on macOS or Windows
-                    this[ClientCertKey] = ClientCert.Export(X509ContentType.Cert);
-                } else
-#endif
-                {
-                    // Otherwise, the key information is required...but needs a password
-                    // or else Mono throws an exception...
-                    this[ClientCertKey] = ClientCert.Export(X509ContentType.Pkcs12, "temp");
+                if (!_clientCertHandle.IsAllocated) {
+                    _clientCertHandle = GCHandle.Alloc(ClientCert, GCHandleType.Weak);
                 }
+
+                this[ClientCertKey] = GCHandle.ToIntPtr(_clientCertHandle).ToInt64();
             }
 
             Headers["User-Agent"] = HTTPLogic.UserAgent;
@@ -305,10 +318,21 @@ namespace Couchbase.Lite.Sync
                 case CookiesKey:
                     return value is string;
                 case PinnedCertKey:
-                    return value is byte[];
+                case ClientCertKey:
+                    return value is long;
                 default:
                     return true;
             }
+        }
+
+#endregion
+
+#region IDisposable
+
+        public void Dispose()
+        {
+            Dispose(false);
+            GC.SuppressFinalize(this);
         }
 
 #endregion
