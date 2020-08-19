@@ -145,6 +145,9 @@ namespace Test
                 OtherDb.Dispose();
                 OtherDb = OpenDB(OtherDb.Name);
             }
+
+            Db.Delete();
+            OtherDb.Delete();
         }
 
         [Fact]
@@ -159,6 +162,7 @@ namespace Test
             OtherDb = OpenDB(OtherDb.Name);
             Db.Delete();
             ReopenDB();
+            Thread.Sleep(500); //Since Delete call 
             RunTwoStepContinuous(ReplicatorType.Pull, "p2ptest2");
             OtherDb.Delete();
             OtherDb = OpenDB(OtherDb.Name);
@@ -391,6 +395,7 @@ namespace Test
 
             var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, location, recoverable);
             RunReplication(config, expectedCode, expectedDomain);
+            Thread.Sleep(500);
             config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, location, recoverable);
             RunReplication(config, expectedCode, expectedDomain, true);
         }

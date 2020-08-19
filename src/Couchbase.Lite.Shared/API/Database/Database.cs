@@ -291,7 +291,7 @@ namespace Couchbase.Lite
             get {
                 return ThreadSafety.DoLocked(() =>
                 {
-                    return ActiveStoppables.Count == 0;// && ActiveLiveQueries.Count == 0;
+                    return ActiveStoppables.Count == 0;
                 });
             }
         }
