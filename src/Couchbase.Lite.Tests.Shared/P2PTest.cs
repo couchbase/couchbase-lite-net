@@ -158,15 +158,10 @@ namespace Test
             Db.Delete();
             ReopenDB();
             RunTwoStepContinuous(ReplicatorType.Push, "p2ptest1");
-            OtherDb.Delete();
             OtherDb = OpenDB(OtherDb.Name);
-            Db.Delete();
             ReopenDB();
-            Thread.Sleep(500); //Since Delete call 
             RunTwoStepContinuous(ReplicatorType.Pull, "p2ptest2");
-            OtherDb.Delete();
             OtherDb = OpenDB(OtherDb.Name);
-            Db.Delete();
             ReopenDB();
             RunTwoStepContinuous(ReplicatorType.PushAndPull, "p2ptest3");
         }
@@ -402,6 +397,11 @@ namespace Test
 
         private void RunTwoStepContinuous(ReplicatorType type, string uid)
         {
+            int idleCnt = 0;
+            WaitAssert waitIdleAssert1 = new WaitAssert();
+            WaitAssert waitIdleAssert2 = new WaitAssert();
+            WaitAssert waitStoppedAssert1 = new WaitAssert();
+
             var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(OtherDb, ProtocolType.ByteStream));
             var server = new MockServerConnection(listener, ProtocolType.ByteStream);
             var config = new ReplicatorConfiguration(Db,
@@ -411,6 +411,20 @@ namespace Test
             };
 
             using (var replicator = new Replicator(config)) {
+                var token = replicator.AddChangeListener((sender, args) => {
+                     waitIdleAssert1.RunConditionalAssert(() => {
+                         return idleCnt == 0 && args.Status.Activity == ReplicatorActivityLevel.Idle;
+                     });
+
+                    waitIdleAssert2.RunConditionalAssert(() => {
+                        return idleCnt == 1 && args.Status.Activity == ReplicatorActivityLevel.Idle;
+                    });
+
+                    waitStoppedAssert1.RunConditionalAssert(() => {
+                         return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                     });
+                 });
+
                 replicator.Start();
 
                 Database firstSource = null;
@@ -440,15 +454,8 @@ namespace Test
                     firstSource.Save(mdoc);
                 }
 
-                var count = 0;
-                while (replicator.Status.Progress.Completed == 0 ||
-                       replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
-                    Thread.Sleep(500);
-                    count++;
-                    count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
-                }
-
-                var previousCompleted = replicator.Status.Progress.Completed;
+                waitIdleAssert1.WaitForResult(TimeSpan.FromSeconds(15));
+                idleCnt++;
                 firstTarget.Count.Should().Be(1);
 
                 using (var savedDoc = secondSource.GetDocument("livesindb"))
@@ -457,23 +464,20 @@ namespace Test
                     secondSource.Save(mdoc);
                 }
 
-                count = 0;
-                while (replicator.Status.Progress.Completed == previousCompleted ||
-                       replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
-                    Thread.Sleep(500);
-                    count++;
-                    count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
-                }
-
+                waitIdleAssert2.WaitForResult(TimeSpan.FromSeconds(15));
+                idleCnt++;
                 using (var savedDoc = secondTarget.GetDocument("livesindb")) {
                     savedDoc.GetInt("version").Should().Be(2);
                 }
 
                 replicator.Stop();
-                while (replicator.Status.Activity != ReplicatorActivityLevel.Stopped) {
-                    Thread.Sleep(100);
-                }
+
+                waitStoppedAssert1.WaitForResult(TimeSpan.FromSeconds(30));
+                replicator.RemoveChangeListener(token);
             }
+
+            OtherDb.Delete();
+            Db.Delete();
         }
 
         private void VerifyChange(ReplicatorStatusChangedEventArgs change, int errorCode, CouchbaseLiteErrorType domain)
