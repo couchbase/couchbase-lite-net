@@ -182,14 +182,14 @@ namespace Couchbase.Lite.Support
                 const uint loadWithAlteredSearchPath = 8;
                 var ptr = LoadLibraryEx(foundPath, IntPtr.Zero, loadWithAlteredSearchPath);
                 if (ptr == IntPtr.Zero) {
-                    if (CheckVS2015Redist()) {
+                    if (CheckVSRedist(architecture)) {
                         throw new BadImageFormatException(
                             "Could not load LiteCore.dll!  Nothing is going to work!\r\n" +
                             $"LiteCore found in: ${foundPath}");
                     }
 
                     throw new DllNotFoundException("LiteCore.dll failed to load!  Please ensure that the Visual\r\n" +
-                                                   "Studio 2015 C++ runtime is installed from https://www.microsoft.com/en-us/download/details.aspx?id=48145");
+                                                   "Studio 2015-2019 C++ runtime is installed from https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads");
                 }
             }
         }
@@ -198,15 +198,38 @@ namespace Couchbase.Lite.Support
 
         #region Private Methods
 
-        private static bool CheckVS2015Redist()
+        private static bool CheckVSRedist(string architecture)
         {
-            // https://github.com/bitbeans/RedistributableChecker/blob/master/RedistributableChecker/RedistributablePackage.cs
-            var id = IntPtr.Size == 4
-                ? "{e2803110-78b3-4664-a479-3611a381656a}" // vs2015x86
-                : "{d992c12e-cab2-426f-bde3-fb8c53950b0d}"; // vs2015x64
-            var key = Registry.LocalMachine.OpenSubKey($@"SOFTWARE\Classes\Installer\Dependencies\{id}", false);
-            var version = key?.GetValue("Version");
-            return ((string) version)?.StartsWith("14") == true;
+            // https://stackoverflow.com/a/34209692/1155387
+            var key = Registry.ClassesRoot.OpenSubKey(@"Installer\Dependencies", false);
+            var subkeys = key.GetSubKeyNames();
+            foreach (var subkey in subkeys.Where(x => x.StartsWith("VC,redist"))) {
+                var keyComponents = subkey.Split(',');
+                if (keyComponents.Length != 5) {
+                    Console.WriteLine($"Unexpected registry key format {subkey}...");
+                    continue;
+                }
+
+                if (!keyComponents[1].EndsWith(architecture)) {
+                    Console.WriteLine($"Found C++ runtime, but architecture wrong ({keyComponents[1]} is not valid for {architecture})");
+                    continue;
+                }
+
+                if (!Single.TryParse(keyComponents[3], out var version)) {
+                    Console.WriteLine($"Unparseable version found: {keyComponents[3]}");
+                    continue;
+                }
+
+                if (version < 14.10) {
+                    Console.WriteLine($"Found C++ runtime, but version too old ({keyComponents[3]} < 14.10)");
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
+
         }
 
         [DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)]
