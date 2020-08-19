@@ -440,7 +440,7 @@ namespace Test
             _listener.Stop();
         }
 
-        [Fact]
+        //[Fact]
         public void TestListenerWithImportIdentity()
         {
             byte[] serverData = null;
@@ -805,22 +805,81 @@ namespace Test
         [Fact]
         public void TestCloseWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(true);
 
+        [Fact]
+        public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
+
+        [Fact]
+        public void TestCloseWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(true);
+
+        [Fact]
+        public void TestDeleteWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(false);
+
         #endregion
 
         #region Private Methods
 
+        private void WithActiveReplicatorAndURLEndpointListeners(bool isCloseNotDelete)
+        {
+            WaitAssert waitIdleAssert1 = new WaitAssert();
+            WaitAssert waitStoppedAssert1 = new WaitAssert();
+
+            _listener = CreateListener();
+            var _listener2 = CreateListener();
+
+            _listener.Config.Database.ActiveStoppables.Count.Should().Be(1);
+            _listener2.Config.Database.ActiveStoppables.Count.Should().Be(1);
+
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetString("name", "Sam");
+                Db.Save(doc1);
+                doc2.SetString("name", "Mary");
+                OtherDb.Save(doc2);
+            }
+
+            var target = new DatabaseEndpoint(Db);
+            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
+            var repl1 = new Replicator(config1);
+            repl1.AddChangeListener((sender, args) => {
+                waitIdleAssert1.RunConditionalAssert(() => {
+                    return args.Status.Activity == ReplicatorActivityLevel.Idle;
+                });
+
+                waitStoppedAssert1.RunConditionalAssert(() => {
+                    return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                });
+            });
+
+            repl1.Start();
+
+            waitIdleAssert1.WaitForResult(TimeSpan.FromSeconds(10));
+            OtherDb.ActiveStoppables.Count.Should().Be(2);
+
+            if (isCloseNotDelete) {
+                OtherDb.Close();
+            } else {
+                OtherDb.Delete();
+            }
+
+            OtherDb.ActiveStoppables.Count.Should().Be(0);
+            OtherDb.IsClosedLocked.Should().Be(true);
+
+            waitStoppedAssert1.WaitForResult(TimeSpan.FromSeconds(30));
+        }
+
         private void WithActiveReplicationsAndURLEndpointListener(bool isCloseNotDelete)
         {
-            ManualResetEventSlim waitIdleAssert1 = new ManualResetEventSlim();
-            ManualResetEventSlim waitStoppedAssert1 = new ManualResetEventSlim();
-            ManualResetEventSlim waitIdleAssert2 = new ManualResetEventSlim();
-            ManualResetEventSlim waitStoppedAssert2 = new ManualResetEventSlim();
-
+            WaitAssert waitIdleAssert1 = new WaitAssert();
+            WaitAssert waitIdleAssert2 = new WaitAssert();
+            WaitAssert waitStoppedAssert1 = new WaitAssert();
+            WaitAssert waitStoppedAssert2 = new WaitAssert();
             using (var doc = new MutableDocument()) {
                 OtherDb.Save(doc);
             }
 
             _listener = CreateListener();
+            _listener.Config.Database.ActiveStoppables.Count.Should().Be(1);
+
             using (var doc1 = new MutableDocument()) {
                 Db.Save(doc1);
             }
@@ -839,49 +898,50 @@ namespace Test
                 serverCert: _listener.TlsIdentity.Certs[0], sourceDb: db2);
             var repl2 = new Replicator(config2);
 
-            EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
-            {
-                if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
-                    if (sender == repl1) {
-                        waitIdleAssert1.Set();
-                    } else {
-                        waitIdleAssert2.Set();
-                    }
-                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                    if (sender == repl1) {
-                        waitStoppedAssert1.Set();
-                    } else {
-                        waitStoppedAssert2.Set();
-                    }
-                }
-            };
+            repl1.AddChangeListener((sender, args) => {
+                waitIdleAssert1.RunConditionalAssert(() => {
+                    return args.Status.Activity == ReplicatorActivityLevel.Idle;
+                });
 
-            var token1 = repl1.AddChangeListener(changeListener);
-            var token2 = repl2.AddChangeListener(changeListener);
+                waitStoppedAssert1.RunConditionalAssert(() => {
+                    return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                });
+            });
+
+            repl2.AddChangeListener((sender, args) => {
+                waitIdleAssert2.RunConditionalAssert(() => {
+                    return args.Status.Activity == ReplicatorActivityLevel.Idle;
+                });
+
+                waitStoppedAssert2.RunConditionalAssert(() => {
+                    return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                });
+            });
 
             repl1.Start();
             repl2.Start();
 
-            OtherDb.ActiveStoppables.Count.Should().Be(2);
+            waitIdleAssert2.WaitForResult(TimeSpan.FromSeconds(10));
+            waitIdleAssert1.WaitForResult(TimeSpan.FromSeconds(10));
 
-            WaitHandle.WaitAll(new[] { waitIdleAssert1.WaitHandle, waitIdleAssert2.WaitHandle }, _timeout)
-                .Should().BeTrue();
+            OtherDb.ActiveStoppables.Count.Should().Be(2);
+            db2.ActiveStoppables.Count.Should().Be(1);
 
             if (isCloseNotDelete) {
-                Db.Close();
                 db2.Close();
                 OtherDb.Close();
             } else {
-                Db.Delete();
                 db2.Delete();
                 OtherDb.Delete();
             }
 
-            WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, _timeout)
-                .Should().BeTrue();
-
             OtherDb.ActiveStoppables.Count.Should().Be(0);
-            Db.IsClosedLocked.Should().Be(true);
+            db2.ActiveStoppables.Count.Should().Be(0);
+            OtherDb.IsClosedLocked.Should().Be(true);
+            db2.IsClosedLocked.Should().Be(true);
+
+            waitStoppedAssert2.WaitForResult(TimeSpan.FromSeconds(30));
+            waitStoppedAssert1.WaitForResult(TimeSpan.FromSeconds(30));
         }
 
         // Two replicators, replicates docs to the listener; validates connection status
