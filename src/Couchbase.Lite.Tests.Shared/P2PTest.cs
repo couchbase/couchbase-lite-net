@@ -67,7 +67,7 @@ namespace Test
 #endif
         {
             //uncomment the code below when you need to see more detail log
-            Database.Log.Console.Level = LogLevel.Debug;
+            //Database.Log.Console.Level = LogLevel.Debug;
         }
         
         [Fact]
