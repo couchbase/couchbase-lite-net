@@ -203,6 +203,9 @@ namespace Test
         [Fact]
         public void TestP2PPassiveClose()
         {
+            WaitAssert waitIdleAssert1 = new WaitAssert();
+            WaitAssert waitStoppedAssert1 = new WaitAssert();
+
             var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(OtherDb, ProtocolType.MessageStream));
             var awaiter = new ListenerAwaiter(listener);
             var serverConnection = new MockServerConnection(listener, ProtocolType.MessageStream);
@@ -214,22 +217,23 @@ namespace Test
             };
 
             using (var replicator = new Replicator(config)) {
+                replicator.AddChangeListener((sender, args) => {
+                     waitIdleAssert1.RunConditionalAssert(() => {
+                         return args.Status.Activity == ReplicatorActivityLevel.Idle;
+                     });
+
+                     waitStoppedAssert1.RunConditionalAssert(() => {
+                         return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                     });
+                 });
                 replicator.Start();
 
-                var count = 0;
-                while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
-                    Thread.Sleep(500);
-                    count.Should().BeLessThan(10, "because otherwise the replicator never went idle");
-                }
+                waitIdleAssert1.WaitForResult(TimeSpan.FromSeconds(15));
                 var connection = listener.Connections;
                 errorLogic.ErrorActive = true;
                 listener.Close(serverConnection);
-                count = 0;
-                while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped) {
-                    Thread.Sleep(500);
-                    count.Should().BeLessThan(10, "because otherwise the replicator never stopped");
-                }
-
+  
+                waitStoppedAssert1.WaitForResult(TimeSpan.FromSeconds(15));
                 awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
                 awaiter.Validate();
 
@@ -241,6 +245,11 @@ namespace Test
         [Fact]
         public void TestP2PPassiveCloseAll()
         {
+            var waitIdleAssert1 = new ManualResetEventSlim();
+            var waitIdleAssert2 = new ManualResetEventSlim();
+            var waitStoppedAssert1 = new ManualResetEventSlim();
+            var waitStoppedAssert2 = new ManualResetEventSlim();
+
             using (var doc = new MutableDocument("test")) {
                 doc.SetString("name", "Smokey");
                 Db.Save(doc);
@@ -266,15 +275,31 @@ namespace Test
 
             using (var replicator = new Replicator(config))
             using (var replicator2 = new Replicator(config2)) {
+                EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
+                {
+                    if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
+                        args.Status.Progress.Total) {
+
+                        if (sender == replicator) {
+                            waitIdleAssert1.Set();
+                        } else {
+                            waitIdleAssert2.Set();
+                        }
+                    } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                        if (sender == replicator) {
+                            waitStoppedAssert1.Set();
+                        } else {
+                            waitStoppedAssert2.Set();
+                        }
+                    }
+                };
+                replicator.AddChangeListener(changeListener);
+                replicator2.AddChangeListener(changeListener);
                 replicator.Start();
                 replicator2.Start();
 
-                var count = 0;
-                while (count++ < 15 && replicator.Status.Activity != ReplicatorActivityLevel.Idle &&
-                       replicator2.Status.Activity != ReplicatorActivityLevel.Idle) {
-                    Thread.Sleep(500);
-                    count.Should().BeLessThan(15, "because otherwise the replicator(s) never went idle");
-                }
+                WaitHandle.WaitAll(new[] { waitIdleAssert1.WaitHandle, waitIdleAssert2.WaitHandle }, TimeSpan.FromMinutes(15))
+                .Should().BeTrue();
 
                 errorLogic.ErrorActive = true;
                 listener.AddChangeListener((sender, args) => {
@@ -288,12 +313,9 @@ namespace Test
                 });
                 var connection = listener.Connections;
                 listener.CloseAll();
-                count = 0;
-                while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped &&
-                       replicator2.Status.Activity != ReplicatorActivityLevel.Stopped) {
-                    Thread.Sleep(500);
-                    count.Should().BeLessThan(10, "because otherwise the replicator(s) never stopped");
-                }
+
+                WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, TimeSpan.FromMinutes(15))
+                .Should().BeTrue();
 
                 closeWait1.Wait(TimeSpan.FromSeconds(5)).Should()
                     .BeTrue("because otherwise the first listener did not stop");
