@@ -67,7 +67,7 @@ namespace Test
 #endif
         {
             //uncomment the code below when you need to see more detail log
-            //Database.Log.Console.Level = LogLevel.Debug;
+            Database.Log.Console.Level = LogLevel.Debug;
         }
         
         [Fact]
@@ -142,12 +142,8 @@ namespace Test
                 Db.Delete();
                 ReopenDB();
                 OtherDb.Delete();
-                OtherDb.Dispose();
                 OtherDb = OpenDB(OtherDb.Name);
             }
-
-            Db.Delete();
-            OtherDb.Delete();
         }
 
         [Fact]
@@ -346,7 +342,7 @@ namespace Test
             });
             var connection = listener.Connections;
             RunReplication(config, 0, 0);
-            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
+            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(15)).Should().BeTrue();
             awaiter.Validate();
             statuses.Count.Should()
                 .BeGreaterThan(1, "because otherwise there were no callbacks to the change listener");
@@ -412,7 +408,7 @@ namespace Test
 
             var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, location, recoverable);
             RunReplication(config, expectedCode, expectedDomain);
-            Thread.Sleep(500);
+
             config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, location, recoverable);
             RunReplication(config, expectedCode, expectedDomain, true);
         }
@@ -544,7 +540,7 @@ namespace Test
 
             _repl.Start(reset);
             try {
-                _waitAssert.WaitForResult(TimeSpan.FromSeconds(15));
+                _waitAssert.WaitForResult(TimeSpan.FromSeconds(30));
             } catch {
                 _repl.Stop();
                 throw;
