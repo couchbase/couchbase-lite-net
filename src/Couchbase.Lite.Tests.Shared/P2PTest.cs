@@ -294,7 +294,7 @@ namespace Test
                 replicator.Start();
                 replicator2.Start();
 
-                WaitHandle.WaitAll(new[] { waitIdleAssert1.WaitHandle, waitIdleAssert2.WaitHandle }, TimeSpan.FromMinutes(15))
+                WaitHandle.WaitAll(new[] { waitIdleAssert1.WaitHandle, waitIdleAssert2.WaitHandle }, TimeSpan.FromSeconds(15))
                 .Should().BeTrue();
 
                 errorLogic.ErrorActive = true;
@@ -310,7 +310,7 @@ namespace Test
                 var connection = listener.Connections;
                 listener.CloseAll();
 
-                WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, TimeSpan.FromMinutes(15))
+                WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, TimeSpan.FromSeconds(15))
                 .Should().BeTrue();
 
                 closeWait1.Wait(TimeSpan.FromSeconds(5)).Should()
@@ -342,7 +342,7 @@ namespace Test
             });
             var connection = listener.Connections;
             RunReplication(config, 0, 0);
-            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(15)).Should().BeTrue();
+            awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
             awaiter.Validate();
             statuses.Count.Should()
                 .BeGreaterThan(1, "because otherwise there were no callbacks to the change listener");
@@ -520,6 +520,11 @@ namespace Test
         private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, CouchbaseLiteErrorType expectedErrDomain, bool reset = false,
             EventHandler<DocumentReplicationEventArgs> documentReplicated = null)
         {
+            var timeOut = TimeSpan.FromSeconds(10);
+            if(expectedErrCode != 0) {
+                timeOut = TimeSpan.FromSeconds(30);
+            }
+
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
             var token = _repl.AddChangeListener((sender, args) => {
@@ -540,7 +545,7 @@ namespace Test
 
             _repl.Start(reset);
             try {
-                _waitAssert.WaitForResult(TimeSpan.FromSeconds(30));
+                _waitAssert.WaitForResult(timeOut);
             } catch {
                 _repl.Stop();
                 throw;
