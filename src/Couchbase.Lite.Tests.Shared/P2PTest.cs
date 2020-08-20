@@ -70,7 +70,7 @@ namespace Test
             //Database.Log.Console.Level = LogLevel.Debug;
         }
         
-        /*[Fact]
+        [Fact]
         public void TestShortP2P()
         {
             //var testNo = 1;
@@ -355,7 +355,7 @@ namespace Test
             awaiter.Validate();
 
             statuses.Count.Should().Be(0);
-        }*/
+        }
 
         private ReplicatorConfiguration CreateFailureP2PConfiguration(ProtocolType protocolType, MockConnectionLifecycleLocation location, bool recoverable)
         {
