@@ -475,6 +475,7 @@ namespace Test
                 }
 
                 waitIdleAssert1.WaitForResult(TimeSpan.FromSeconds(15));
+                Thread.Sleep(100);
                 idleCnt++;
                 firstTarget.Count.Should().Be(1);
 
@@ -485,6 +486,7 @@ namespace Test
                 }
 
                 waitIdleAssert2.WaitForResult(TimeSpan.FromSeconds(15));
+                Thread.Sleep(100);
                 idleCnt++;
                 using (var savedDoc = secondTarget.GetDocument("livesindb")) {
                     savedDoc.GetInt("version").Should().Be(2);
