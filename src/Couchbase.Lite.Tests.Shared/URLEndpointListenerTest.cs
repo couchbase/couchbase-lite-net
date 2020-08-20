@@ -669,6 +669,11 @@ namespace Test
         [Fact]
         public void TestReplicatorAndListenerOnSameDatabase()
         {
+            Db.Delete();
+            ReopenDB();
+            OtherDb.Delete();
+            ReopenOtherDb();
+
             using (var doc = new MutableDocument()) {
                 OtherDb.Save(doc);
             }
