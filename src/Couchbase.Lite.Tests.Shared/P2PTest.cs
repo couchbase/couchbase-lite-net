@@ -191,6 +191,7 @@ namespace Test
             var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, MockConnectionLifecycleLocation.Close,
                 false);
             RunReplication(config, (int)CouchbaseLiteError.WebSocketUserPermanent, CouchbaseLiteErrorType.CouchbaseLite);
+
             config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, MockConnectionLifecycleLocation.Close,
                 false);
             RunReplication(config, (int)CouchbaseLiteError.WebSocketUserPermanent, CouchbaseLiteErrorType.CouchbaseLite, true);
@@ -294,7 +295,7 @@ namespace Test
                 replicator.Start();
                 replicator2.Start();
 
-                WaitHandle.WaitAll(new[] { waitIdleAssert1.WaitHandle, waitIdleAssert2.WaitHandle }, TimeSpan.FromSeconds(15))
+                WaitHandle.WaitAll(new[] { waitIdleAssert1.WaitHandle, waitIdleAssert2.WaitHandle }, TimeSpan.FromSeconds(30))
                 .Should().BeTrue();
 
                 errorLogic.ErrorActive = true;
@@ -310,7 +311,7 @@ namespace Test
                 var connection = listener.Connections;
                 listener.CloseAll();
 
-                WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, TimeSpan.FromSeconds(15))
+                WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, TimeSpan.FromSeconds(30))
                 .Should().BeTrue();
 
                 closeWait1.Wait(TimeSpan.FromSeconds(5)).Should()
@@ -552,6 +553,8 @@ namespace Test
             } finally {
                 _repl.RemoveChangeListener(token);
             }
+
+            Thread.Sleep(500);
         }
 
         private class MockConnectionFactory : IMessageEndpointDelegate
