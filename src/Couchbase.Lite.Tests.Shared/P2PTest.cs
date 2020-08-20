@@ -75,6 +75,11 @@ namespace Test
         {
             //var testNo = 1;
             foreach (var protocolType in new[] { ProtocolType.ByteStream, ProtocolType.MessageStream }) {
+                Db.Delete();
+                ReopenDB();
+                OtherDb.Delete();
+                ReopenOtherDb();
+
                 using (var mdoc = new MutableDocument("livesindb")) {
                     mdoc.SetString("name", "db");
                     Db.Save(mdoc);
@@ -138,27 +143,14 @@ namespace Test
                     savedDoc.GetBoolean("modified").Should()
                         .BeTrue("because the property change should come from the original DB");
                 }
-
-                Db.Delete();
-                ReopenDB();
-                OtherDb.Delete();
-                OtherDb = OpenDB(OtherDb.Name);
             }
         }
 
         [Fact]
         public void TestContinuousP2P()
         {
-            OtherDb.Delete();
-            OtherDb = OpenDB(OtherDb.Name);
-            Db.Delete();
-            ReopenDB();
             RunTwoStepContinuous(ReplicatorType.Push, "p2ptest1");
-            OtherDb = OpenDB(OtherDb.Name);
-            ReopenDB();
             RunTwoStepContinuous(ReplicatorType.Pull, "p2ptest2");
-            OtherDb = OpenDB(OtherDb.Name);
-            ReopenDB();
             RunTwoStepContinuous(ReplicatorType.PushAndPull, "p2ptest3");
         }
 
@@ -416,6 +408,11 @@ namespace Test
 
         private void RunTwoStepContinuous(ReplicatorType type, string uid)
         {
+            OtherDb.Delete();
+            Db.Delete();
+            ReopenDB();
+            ReopenOtherDb();
+
             int idleCnt = 0;
             WaitAssert waitIdleAssert1 = new WaitAssert();
             WaitAssert waitIdleAssert2 = new WaitAssert();
@@ -494,9 +491,6 @@ namespace Test
                 waitStoppedAssert1.WaitForResult(TimeSpan.FromSeconds(30));
                 replicator.RemoveChangeListener(token);
             }
-
-            OtherDb.Delete();
-            Db.Delete();
         }
 
         private void VerifyChange(ReplicatorStatusChangedEventArgs change, int errorCode, CouchbaseLiteErrorType domain)
@@ -521,18 +515,21 @@ namespace Test
         private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, CouchbaseLiteErrorType expectedErrDomain, bool reset = false,
             EventHandler<DocumentReplicationEventArgs> documentReplicated = null)
         {
+            var waitStoppedAssert1 = new ManualResetEventSlim();
             Misc.SafeSwap(ref _repl, new Replicator(config));
-            _waitAssert = new WaitAssert();
-            var token = _repl.AddChangeListener((sender, args) => {
-                _waitAssert.RunConditionalAssert(() => {
-                    VerifyChange(args, expectedErrCode, expectedErrDomain);
-                    if (config.Continuous && args.Status.Activity == ReplicatorActivityLevel.Idle
-                                          && args.Status.Progress.Completed == args.Status.Progress.Total) {
-                        ((Replicator)sender).Stop();
-                    }
 
-                    return args.Status.Activity == ReplicatorActivityLevel.Stopped;
-                });
+            var token = _repl.AddChangeListener((sender, args) =>
+            {
+
+                VerifyChange(args, expectedErrCode, expectedErrDomain);
+                if (config.Continuous && args.Status.Activity == ReplicatorActivityLevel.Idle
+                                      && args.Status.Progress.Completed == args.Status.Progress.Total) {
+                    ((Replicator) sender).Stop();
+                }
+
+                if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                    waitStoppedAssert1.Set();
+                }
             });
 
             if (documentReplicated != null) {
@@ -540,16 +537,18 @@ namespace Test
             }
 
             _repl.Start(reset);
+
             try {
-                _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
+                waitStoppedAssert1.Wait(TimeSpan.FromSeconds(15));
             } catch {
                 _repl.Stop();
                 throw;
             } finally {
                 _repl.RemoveChangeListener(token);
+                waitStoppedAssert1.Dispose();
             }
 
-            Thread.Sleep(1000);
+            Thread.Sleep(500);
         }
 
         private class MockConnectionFactory : IMessageEndpointDelegate
