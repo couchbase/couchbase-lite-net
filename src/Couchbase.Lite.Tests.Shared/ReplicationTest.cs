@@ -107,8 +107,6 @@ namespace Test
 
         protected void ReopenOtherDb()
         {
-            OtherDb?.Close();
-            OtherDb = null;
             OpenOtherDb();
         }
 
