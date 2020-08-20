@@ -173,7 +173,7 @@ namespace Test
         [Fact]
         public void TestP2PRecoverableFailureDuringSend() => TestP2PError(MockConnectionLifecycleLocation.Send, true);
 
-        //[Fact]
+        [Fact]
         public void TestP2PRecoverableFailureDuringReceive() => TestP2PError(MockConnectionLifecycleLocation.Receive, true);
 
         [Fact]
@@ -241,7 +241,7 @@ namespace Test
 
 //        Exception thrown at 0x00007FFE3090A799 in dotnet.exe: Microsoft C++ exception: EEFileLoadException at memory location 0x000000C288E79D88.
 //Exception thrown at 0x00007FFE3090A799 in dotnet.exe: Microsoft C++ exception: [rethrow] at memory location 0x0000000000000000.
-        //[Fact]
+        [Fact]
         public void TestP2PPassiveCloseAll()
         {
             using (var doc = new MutableDocument("test")) {
