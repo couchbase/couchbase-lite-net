@@ -782,6 +782,9 @@ namespace Test
         [Fact]
         public void TestMultipleReplicatorsToListener()
         {
+            OtherDb.Delete();
+            ReopenOtherDb();
+
             _listener = Listen(CreateListenerConfig()); // writable listener
 
             // save a doc on listenerDB
@@ -795,6 +798,9 @@ namespace Test
         [Fact]
         public void TestMultipleReplicatorsOnReadOnlyListener()
         {
+            OtherDb.Delete();
+            ReopenOtherDb();
+
             var config = CreateListenerConfig();
             config.ReadOnly = true;
             _listener = Listen(config);
@@ -962,6 +968,9 @@ namespace Test
         // Two replicators, replicates docs to the listener; validates connection status
         private void ValidateMultipleReplicationsTo(ReplicatorType replicatorType)
         {
+            Db.Delete();
+            ReopenDB();
+
             ulong maxConnectionCount = 0UL;
             ulong maxActiveCount = 0UL;
 
