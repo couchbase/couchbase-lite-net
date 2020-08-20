@@ -1,5 +1,5 @@
 ﻿//
-//  P2PTest.cs
+//  MessageEndpointListenerTest.cs
 //
 //  Copyright (c) 2020 Couchbase, Inc All rights reserved.
 //
@@ -58,10 +58,10 @@ namespace Test
 #if WINDOWS_UWP
     [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
 #endif
-    public sealed class P2PTest : ReplicatorTestBase
+    public sealed class MessageEndpointListenerTest : ReplicatorTestBase
     {
 #if !WINDOWS_UWP
-        public P2PTest(ITestOutputHelper output) : base(output)
+        public MessageEndpointListenerTest(ITestOutputHelper output) : base(output)
 #else
         public P2PTest()
 #endif
@@ -391,6 +391,8 @@ namespace Test
 
         private void TestP2PError(MockConnectionLifecycleLocation location, bool recoverable)
         {
+            Db.Delete();
+            ReopenDB();
             using (var mdoc = new MutableDocument("livesindb")) {
                 mdoc.SetString("name", "db");
                 Db.Save(mdoc);

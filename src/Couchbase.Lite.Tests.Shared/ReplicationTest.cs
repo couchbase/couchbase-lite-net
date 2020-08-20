@@ -2330,8 +2330,8 @@ namespace Test
 
         public void Validate()
         {
-            _mre.Dispose();
             _exceptions.Should().BeEmpty("because otherwise an unexpected error occurred");
+            _mre.Dispose();
         }
 
         private void CheckForStopped(object sender, MessageEndpointListenerChangedEventArgs e)
