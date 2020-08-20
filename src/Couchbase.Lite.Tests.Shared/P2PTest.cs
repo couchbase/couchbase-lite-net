@@ -428,12 +428,14 @@ namespace Test
 
             using (var replicator = new Replicator(config)) {
                 var token = replicator.AddChangeListener((sender, args) => {
-                     waitIdleAssert1.RunConditionalAssert(() => {
-                         return idleCnt == 0 && args.Status.Activity == ReplicatorActivityLevel.Idle;
+                    var c = args.Status.Progress.Completed;
+                    var t = args.Status.Progress.Total;
+                    waitIdleAssert1.RunConditionalAssert(() => {
+                         return idleCnt == 0 && c==t && args.Status.Activity == ReplicatorActivityLevel.Idle;
                      });
 
                     waitIdleAssert2.RunConditionalAssert(() => {
-                        return idleCnt == 1 && args.Status.Activity == ReplicatorActivityLevel.Idle;
+                        return idleCnt == 1 && c == t && args.Status.Activity == ReplicatorActivityLevel.Idle;
                     });
 
                     waitStoppedAssert1.RunConditionalAssert(() => {

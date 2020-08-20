@@ -2342,7 +2342,6 @@ namespace Test
 
             if (e.Status.Activity == ReplicatorActivityLevel.Stopped) {
                 _listener.RemoveChangeListener(_token);
-                Thread.Sleep(100);
                 _mre.Set();
             }
         }
