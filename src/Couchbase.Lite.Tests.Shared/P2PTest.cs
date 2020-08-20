@@ -521,11 +521,6 @@ namespace Test
         private void RunReplication(ReplicatorConfiguration config, int expectedErrCode, CouchbaseLiteErrorType expectedErrDomain, bool reset = false,
             EventHandler<DocumentReplicationEventArgs> documentReplicated = null)
         {
-            var timeOut = TimeSpan.FromSeconds(10);
-            if(expectedErrCode != 0) {
-                timeOut = TimeSpan.FromSeconds(30);
-            }
-
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
             var token = _repl.AddChangeListener((sender, args) => {
@@ -546,7 +541,7 @@ namespace Test
 
             _repl.Start(reset);
             try {
-                _waitAssert.WaitForResult(timeOut);
+                _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
             } catch {
                 _repl.Stop();
                 throw;
@@ -554,7 +549,7 @@ namespace Test
                 _repl.RemoveChangeListener(token);
             }
 
-            Thread.Sleep(500);
+            Thread.Sleep(1000);
         }
 
         private class MockConnectionFactory : IMessageEndpointDelegate
