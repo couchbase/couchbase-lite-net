@@ -88,7 +88,7 @@ namespace Test
         {
             Db.Delete();
             ReopenDB();
-            OtherDb?.Delete();
+
             ReopenOtherDb();
             _timeout = TimeSpan.FromSeconds(15);
 
@@ -107,6 +107,8 @@ namespace Test
 
         protected void ReopenOtherDb()
         {
+            OtherDb?.Delete();
+            OtherDb = null;
             OpenOtherDb();
         }
 

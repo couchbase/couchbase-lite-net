@@ -671,7 +671,7 @@ namespace Test
         {
             Db.Delete();
             ReopenDB();
-            OtherDb.Delete();
+            
             ReopenOtherDb();
 
             using (var doc = new MutableDocument()) {
@@ -782,7 +782,6 @@ namespace Test
         [Fact]
         public void TestMultipleReplicatorsToListener()
         {
-            OtherDb.Delete();
             ReopenOtherDb();
 
             _listener = Listen(CreateListenerConfig()); // writable listener
@@ -798,7 +797,6 @@ namespace Test
         [Fact]
         public void TestMultipleReplicatorsOnReadOnlyListener()
         {
-            OtherDb.Delete();
             ReopenOtherDb();
 
             var config = CreateListenerConfig();
@@ -882,7 +880,7 @@ namespace Test
         {
             Db.Delete();
             ReopenDB();
-            OtherDb.Delete();
+
             ReopenOtherDb();
             var waitIdleAssert1 = new ManualResetEventSlim();
             var waitIdleAssert2 = new ManualResetEventSlim();
