@@ -86,7 +86,9 @@ namespace Test
         protected ReplicatorTestBase()
 #endif
         {
+            Db.Delete();
             ReopenDB();
+            OtherDb?.Delete();
             ReopenOtherDb();
             _timeout = TimeSpan.FromSeconds(15);
 

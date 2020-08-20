@@ -234,6 +234,9 @@ namespace Test
         [Fact]
         public void TestP2PPassiveCloseAll()
         {
+            Db.Delete();
+            ReopenDB();
+
             var waitIdleAssert1 = new ManualResetEventSlim();
             var waitIdleAssert2 = new ManualResetEventSlim();
             var waitStoppedAssert1 = new ManualResetEventSlim();
@@ -391,6 +394,12 @@ namespace Test
 
         private void TestP2PError(MockConnectionLifecycleLocation location, bool recoverable)
         {
+            TestP2PErrorByteStream(location, recoverable);
+            TestP2PErrorMessageStream(location, recoverable);
+        }
+
+        private void TestP2PErrorByteStream(MockConnectionLifecycleLocation location, bool recoverable)
+        {
             Db.Delete();
             ReopenDB();
             using (var mdoc = new MutableDocument("livesindb")) {
@@ -399,12 +408,25 @@ namespace Test
             }
 
             var expectedDomain = recoverable ? 0 : CouchbaseLiteErrorType.CouchbaseLite;
-            var expectedCode = recoverable ? 0 : (int)CouchbaseLiteError.WebSocketUserPermanent;
+            var expectedCode = recoverable ? 0 : (int) CouchbaseLiteError.WebSocketUserPermanent;
 
             var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, location, recoverable);
             RunReplication(config, expectedCode, expectedDomain);
+        }
 
-            config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, location, recoverable);
+        private void TestP2PErrorMessageStream(MockConnectionLifecycleLocation location, bool recoverable)
+        {
+            Db.Delete();
+            ReopenDB();
+            using (var mdoc = new MutableDocument("livesindb")) {
+                mdoc.SetString("name", "db");
+                Db.Save(mdoc);
+            }
+
+            var expectedDomain = recoverable ? 0 : CouchbaseLiteErrorType.CouchbaseLite;
+            var expectedCode = recoverable ? 0 : (int) CouchbaseLiteError.WebSocketUserPermanent;
+
+            var config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, location, recoverable);
             RunReplication(config, expectedCode, expectedDomain, true);
         }
 

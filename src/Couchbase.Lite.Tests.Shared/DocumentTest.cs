@@ -1507,6 +1507,7 @@ namespace Test
             doc.SetString("string", "str");
             Db.Save(doc);
 
+            Db.Close();
             ReopenDB();
 
             var gotDoc = Db.GetDocument("doc1");
@@ -1637,11 +1638,13 @@ namespace Test
             doc.SetString("name", "Jim");
             Db.Save(doc);
 
+            Db.Close();
             ReopenDB();
 
             var gotDoc = Db.GetDocument("doc1");
             gotDoc.GetBlob("data").Content.Should().Equal(content, "because the data should have been retrieved correctly");
 
+            Db.Close();
             ReopenDB();
 
             doc = Db.GetDocument("doc1").ToMutable();

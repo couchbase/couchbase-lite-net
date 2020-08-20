@@ -169,7 +169,6 @@ namespace Test
 
         protected void ReopenDB()
         {
-            Db.Dispose();
             Db = OpenDB(Db.Name);
         }
 
