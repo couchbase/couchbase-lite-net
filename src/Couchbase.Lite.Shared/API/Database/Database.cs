@@ -989,7 +989,7 @@ namespace Couchbase.Lite
             });
         }
 
-        internal string GetCookies([NotNull] Uri uri)
+        internal string GetCookies([@NotNull] Uri uri)
         {
             string cookies = null;
             ThreadSafety.DoLocked(() =>
@@ -1024,7 +1024,7 @@ namespace Couchbase.Lite
             return cookies;
         }
 
-        internal bool SaveCookie(string cookie, [NotNull] Uri uri)
+        internal bool SaveCookie(string cookie, [@NotNull] Uri uri)
         {
             bool cookieSaved = false;
             ThreadSafety.DoLocked(() =>
