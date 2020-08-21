@@ -114,6 +114,7 @@ namespace Couchbase.Lite.Sync
         #region Variables
 
         public event EventHandler<TlsCertificateReceivedEventArgs> PeerCertificateReceived; 
+        public event EventHandler<string> CookiesToSetReceived;
 
         [NotNull] private readonly byte[] _buffer = new byte[MaxReceivedBytesPending];
         [NotNull] private readonly SerialQueue _c4Queue = new SerialQueue();
@@ -603,6 +604,14 @@ namespace Couchbase.Lite.Sync
         {
             // STEP 7: Determine if the HTTP response was a success
             _logic.ReceivedResponse(parser);
+
+            string cookiesString = null;
+            if (parser.Headers?.TryGetValue("Set-Cookie", out cookiesString) == true) {
+                if (!String.IsNullOrEmpty(cookiesString)) {
+                    CookiesToSetReceived?.Invoke(this, cookiesString);
+                }
+            }
+
             var httpStatus = _logic.HttpStatus;
 
             if (_logic.ShouldRetry) {
@@ -701,12 +710,12 @@ namespace Couchbase.Lite.Sync
                 _logic[header.Key] = header.Value;
             }
 
-            var sessionCookieString = _options.CookieString;
-            if (sessionCookieString != null) {
+            var cookieString = _options.CookieString;
+            if (cookieString != null) {
                 // https://github.com/couchbase/couchbase-lite-net/issues/974
                 // Don't overwrite a possible entry in the above headers unless there is
                 // actually a value
-                _logic["Cookie"] = sessionCookieString;
+                _logic["Cookie"] = cookieString;
             }
 
             // These ones should be overwritten.  The user has no business setting them.

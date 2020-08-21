@@ -123,6 +123,7 @@ namespace Couchbase.Lite.Sync
             var socketWrapper = new WebSocketWrapper(uri, socket, replicationOptions);
             var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
             replicator?.WatchForCertificate(socketWrapper);
+            replicator?.CheckForCookiesToSet(socketWrapper);
             Sockets.AddOrUpdate(id, socketWrapper, (k, v) => socketWrapper);
             socketWrapper.Start();
         }
