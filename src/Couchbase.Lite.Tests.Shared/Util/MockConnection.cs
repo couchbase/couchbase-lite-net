@@ -20,8 +20,9 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.P2P;
 
 namespace Couchbase.Lite
@@ -172,6 +173,8 @@ namespace Couchbase.Lite
         #region Variables
 
         private MockServerConnection _server;
+        private ManualResetEventSlim _serverWait = new ManualResetEventSlim();
+        private const string Tag = nameof(MockClientConnection);
 
         #endregion
 
@@ -198,6 +201,9 @@ namespace Couchbase.Lite
         {
             await base.Open(connection).ConfigureAwait(false);
             _server?.ClientOpened(this);
+            while(!_serverWait.Wait(TimeSpan.FromSeconds(1))) {
+                WriteLog.To.Sync.W(Tag, "Connection appears stuck waiting for server");
+            }
         }
 
         public override Task Close(Exception error)
@@ -219,6 +225,11 @@ namespace Couchbase.Lite
             }
 
             return Task.CompletedTask;
+        }
+
+        public void ServerConnected()
+        {
+            _serverWait.Set();
         }
 
         public void ServerDisconnected()
@@ -279,6 +290,14 @@ namespace Couchbase.Lite
             }
 
             return Task.CompletedTask;
+        }
+
+        public override async Task Open(IReplicatorConnection connection)
+        {
+            await base.Open(connection).ConfigureAwait(false);
+
+            // HACK: Sorry, I hope this is only needed for this mock
+            (connection as Internal.P2P.CouchbaseSocket).OpenCompletion = _client.ServerConnected;
         }
 
         protected override void PerformWrite(byte[] message)

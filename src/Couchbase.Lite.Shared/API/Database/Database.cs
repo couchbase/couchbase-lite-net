@@ -150,7 +150,7 @@ namespace Couchbase.Lite
         private GCHandle _obsContext;
         private C4Database* _c4db;
         private bool _isClosing;
-        private AutoResetEvent _closeCondition = new AutoResetEvent(true);
+        private ManualResetEventSlim _closeCondition = new ManualResetEventSlim(true);
 
         #endregion
 
@@ -965,7 +965,9 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpenAndNotClosing();
-                ActiveStoppables.TryAdd(query, 0);
+                if(ActiveStoppables.TryAdd(query, 0)) {
+                    _closeCondition.Reset();
+                }
             });
         }
 
@@ -977,7 +979,10 @@ namespace Couchbase.Lite
                     return;
                 }
 
-                ActiveStoppables.TryRemove(query, out var dummy);
+                if(!ActiveStoppables.TryRemove(query, out var dummy)) {
+                    return;
+                }
+
                 if (ActiveStoppables.Count == 0) {
                     _closeCondition.Set();
                 }
@@ -1619,38 +1624,29 @@ namespace Couchbase.Lite
             // be a deadlock while the purge job waits for the lock that is held
             // by the disposal which is waiting for timer callbacks to finish
             StopExpirePurgeTimer();
-            ThreadSafety.DoLocked(() =>
+            var isClosed = ThreadSafety.DoLocked(() =>
             {
                 if (IsClosed) {
-                    return;
+                    return true;
                 }
 
                 if (!_isClosing) {
                     _isClosing = true;
                 }
+
+                return false;
             });
+
+            if(isClosed) {
+                return;
+            }
 
             foreach (var q in ActiveStoppables) {
                 q.Key.Stop();
             }
 
-            while (!IsReadyToClose) {
-                _closeCondition.WaitOne();
-                //if (!_closeCondition.WaitOne(TimeSpan.FromSeconds(5), true)) {
-                //    WriteLog.To.Database.W(Tag, "Taking a while for active items to stop, double checking...");
-                //    var stopped =
-                //        ActiveReplications.Keys.Where(x => x.Status.Activity == ReplicatorActivityLevel.Stopped);
-
-                //    int removedCount = 0;
-                //    foreach (var r in stopped) {
-                //        ActiveReplications.TryRemove(r, out var dummy);
-                //        removedCount++;
-                //    }
-
-                //    if (removedCount > 0) {
-                //        WriteLog.To.Database.W(Tag, $"Removed {removedCount} stale entries...");
-                //    }
-                //}
+            while (!_closeCondition.Wait(TimeSpan.FromSeconds(5))) {
+                WriteLog.To.Database.W(Tag, "Taking a while for active items to stop...");
             }
 
             ThreadSafety.DoLocked(() =>
