@@ -524,13 +524,13 @@ namespace Couchbase.Lite.Sync
 
         private void Dispose(bool finalizing)
         {
-            DispatchQueue.DispatchSync(() =>
-            {
-                if (_disposed) {
-                    return;
-                }
+            if(!finalizing) {
+                DispatchQueue.DispatchSync(() =>
+                {
+                    if (_disposed) {
+                        return;
+                    }
 
-                if (!finalizing) {
                     _nativeParams?.Dispose();
                     Config.Options.Dispose();
                     if (Status.Activity != ReplicatorActivityLevel.Stopped) {
@@ -538,13 +538,16 @@ namespace Couchbase.Lite.Sync
                         _statusChanged.Fire(this, new ReplicatorStatusChangedEventArgs(newStatus));
                         Status = newStatus;
                     }
-                }
 
-                Stop();
-                Native.c4repl_free(_repl);
-                _repl = null;
-                _disposed = true;
-            });
+                    Stop();
+                    Native.c4repl_free(_repl);
+                    _repl = null;
+                    _disposed = true;
+                });
+            } else {
+                 Native.c4repl_free(_repl);
+                 _repl = null;
+            }
         }
 
         private bool filterCallback(Func<Document, DocumentFlags, bool> filterFunction, string docID, string revID, FLDict* value, DocumentFlags flags)
@@ -742,12 +745,6 @@ namespace Couchbase.Lite.Sync
         private void StatusChangedCallback(C4ReplicatorStatus status)
         {
             if (_disposed) {
-                if (status.level == C4ReplicatorActivityLevel.Stopped) {
-                    // If disposed before stopped, missing this causes
-                    // a database close hang
-                    Config.Database.RemoveActiveStoppable(this);
-                }
-
                 return;
             }
 
