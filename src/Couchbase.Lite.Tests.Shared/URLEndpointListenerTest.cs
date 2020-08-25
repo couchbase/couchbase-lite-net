@@ -440,7 +440,7 @@ namespace Test
             _listener.Stop();
         }
 
-        //[Fact]
+        [Fact]
         public void TestListenerWithImportIdentity()
         {
             byte[] serverData = null;
