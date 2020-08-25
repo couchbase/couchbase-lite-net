@@ -633,11 +633,7 @@ namespace Couchbase.Lite.Sync
 
             DispatchQueue.DispatchAsync(() =>
             {
-                if (_repl == null && e.Status == NetworkReachabilityStatus.Reachable) {
-                    WriteLog.To.Sync.I(Tag, $"{this}: Server may now be reachable; retrying...");
-                }
-
-                if (_repl != null && _reachability != null) {
+                if (_repl != null /* just to be safe */) {
                     Native.c4repl_setHostReachable(_repl, e.Status == NetworkReachabilityStatus.Reachable);
                 }
             });
