@@ -441,6 +441,50 @@ namespace Test
         }
 
         [Fact]
+        public void TestListenerWithImportIdentity()
+        {
+            byte[] serverData = null;
+            using (var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client.p12"))
+            using (var reader = new BinaryReader(stream)) {
+                serverData = reader.ReadBytes((int) stream.Length);
+            }
+
+            // Cleanup
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+
+            // Import identity
+            var id = TLSIdentity.ImportIdentity(_store, serverData, "123", ServerCertLabel, null);
+
+            // Create listener and start
+            var config = CreateListenerConfig(true, true, null, id);
+            _listener = Listen(config);
+
+            _listener.TlsIdentity.Should().NotBeNull();
+
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("name", "Sam");
+                Db.Save(doc1);
+            }
+
+            OtherDb.Count.Should().Be(0);
+
+            RunReplication(
+                _listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull,
+                false,
+                null, //authenticator
+                false, //accept only self signed server cert
+                _listener.TlsIdentity.Certs[0], //server cert
+                0,
+                0
+            );
+
+            OtherDb.Count.Should().Be(1);
+
+            _listener.Stop();
+        }
+
+        [Fact]
         public void TestAcceptSelfSignedCertWithPinnedCertificate()
         {
             _listener = CreateListener();
