@@ -1433,6 +1433,15 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestDatabaseSaveAndGetCookies()
+        {
+            var uri = new Uri("http://www.example.com");
+            var cookieStr = "id=a3fWa; Domain:example.com; Secure; HttpOnly";
+            Db.SaveCookie(cookieStr, uri);
+            Db.GetCookies(uri).Should().Be("id=a3fWa");
+        }
+
         private void WithActiveLiveQueries(bool isCloseNotDelete)
         {
             Database.Delete("closeDB", Db.Config.Directory);
