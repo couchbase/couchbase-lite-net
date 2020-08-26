@@ -1783,17 +1783,6 @@ namespace Test
 
         //end pending doc id tests
 
-        //cookies test
-
-        /*
-* Test CBL WebSocket that process the cookies from the headers and save to the cookie stores.
-* Test CBL WebSocket that gets the cookies from the cookie store and put into the header correctly.
-* Test end-to-end replication with cookies. (This requires a mock server e.g. TCP Message Endpoint Server or something else like proxy testing).
-
-First, you do 1 -3 and for 4, you can do the proxy testing as Jay did or decide whether you want to do the Mock Server testing.*/
-        
-        //end cookies test
-
 #endif
 
         enum PENDING_DOC_ID_SEL { CREATE = 0, UPDATE, DELETE, PURGE, FILTER }
