@@ -1137,7 +1137,7 @@ namespace Couchbase.Lite
         }
 
         // Must be called inside self lock
-        private void CheckOpen()
+        internal void CheckOpen()
         {
             if (IsClosed) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);

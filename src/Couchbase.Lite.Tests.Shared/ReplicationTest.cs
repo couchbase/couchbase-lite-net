@@ -1717,6 +1717,28 @@ namespace Test
         [Fact]
         public void TestIsDocumentPendingWithFilter() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.FILTER);
 
+        [Fact]
+        public void TestGetPendingDocIdsWithCloseDb()
+        {
+            var config = CreateConfig(true, false, false);
+            using (var replicator = new Replicator(config)) {
+                Db.Close();
+                Action badAct = () => replicator.GetPendingDocumentIDs();
+                badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
+            }
+        }
+
+        [Fact]
+        public void TestIsDocumentPendingWithCloseDb()
+        {
+            var config = CreateConfig(true, false, false);
+            using (var replicator = new Replicator(config)) {
+                Db.Close();
+                Action badAct = () => replicator.IsDocumentPending("doc1");
+                badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
+            }
+        }
+
         //end pending doc id tests
 
 #endif

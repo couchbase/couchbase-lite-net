@@ -305,6 +305,8 @@ namespace Couchbase.Lite.Sync
         [NotNull]
         public IImmutableSet<string> GetPendingDocumentIDs()
         {
+            CheckDbOpen();
+
             var result = new HashSet<string>();
             if (!IsPushing()) {
                 CBDebug.LogAndThrow(WriteLog.To.Sync,
@@ -355,6 +357,8 @@ namespace Couchbase.Lite.Sync
         public bool IsDocumentPending([NotNull]string documentID)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(documentID), documentID);
+            CheckDbOpen();
+
             bool isDocPending = false;
 
             if (!IsPushing()) {
@@ -716,6 +720,11 @@ namespace Couchbase.Lite.Sync
             host.Dispose();
 
             return err;
+        }
+
+        private void CheckDbOpen()
+        {
+            Config.Database.CheckOpen();
         }
 
         private void StartReachabilityObserver()
