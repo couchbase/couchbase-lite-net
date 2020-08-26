@@ -272,17 +272,10 @@ namespace Test
             // exist on the network
             var uri = new Uri("ws://www.cbltest.com:4984/app");
             //hijack this test to test cookies
-            var cookieStr = "id=a3fWa; Domain:cbltest.com; Secure; HttpOnly";
-            Db.SaveCookie(cookieStr, uri);
             var targetEndpoint = new URLEndpoint(uri);
             var config = new ReplicatorConfiguration(Db, targetEndpoint);
             using (var repl = new Replicator(config)) {
                 repl.Start();
-
-                //test cookies
-                config.Options.Cookies.ElementAt(0).Value.Should().Be("a3fWa");
-                config.Options.Cookies.ElementAt(0).Name.Should().Be("id");
-
                 var count = 0;
                 Thread.Sleep(TimeSpan.FromSeconds(51)); // The combined amount of time this should take to stop
                 while (count++ <= 10 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
