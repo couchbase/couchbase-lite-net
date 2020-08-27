@@ -1588,28 +1588,16 @@ namespace Test
         //end conflict resolveing tests
 
         [Fact]
-        public void TestCloseWithActiveReplications()
-        {
-            WithActiveReplications(true);
-        }
+        public void TestCloseWithActiveReplications() => WithActiveReplications(true);
 
         [Fact]
-        public void TestDeleteWithActiveReplications()
-        {
-            WithActiveReplications(false);
-        }
+        public void TestDeleteWithActiveReplications() => WithActiveReplications(false);
 
         [Fact]
-        public void TestCloseWithActiveReplicationAndQuery()
-        {
-            WithActiveReplicationAndQuery(true);
-        }
+        public void TestCloseWithActiveReplicationAndQuery() => WithActiveReplicationAndQuery(true);
 
         [Fact]
-        public void TestDeleteWithActiveReplicationAndQuery()
-        {
-            WithActiveReplicationAndQuery(false);
-        }
+        public void TestDeleteWithActiveReplicationAndQuery() => WithActiveReplicationAndQuery(false);
 
         // Pending Doc Ids unit tests
 
@@ -1726,6 +1714,13 @@ namespace Test
                 Action badAct = () => replicator.GetPendingDocumentIDs();
                 badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
             }
+
+            ReopenDB();
+            using (var replicator = new Replicator(config)) {
+                OtherDb.Close();
+                Action badAct = () => replicator.GetPendingDocumentIDs();
+                badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
+            }
         }
 
         [Fact]
@@ -1734,6 +1729,13 @@ namespace Test
             var config = CreateConfig(true, false, false);
             using (var replicator = new Replicator(config)) {
                 Db.Close();
+                Action badAct = () => replicator.IsDocumentPending("doc1");
+                badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
+            }
+
+            ReopenDB();
+            using (var replicator = new Replicator(config)) {
+                OtherDb.Close();
                 Action badAct = () => replicator.IsDocumentPending("doc1");
                 badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
             }
