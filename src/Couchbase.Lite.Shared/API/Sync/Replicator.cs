@@ -355,7 +355,6 @@ namespace Couchbase.Lite.Sync
         public bool IsDocumentPending([NotNull]string documentID)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(documentID), documentID);
-
             bool isDocPending = false;
 
             if (!IsPushing()) {
