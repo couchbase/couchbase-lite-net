@@ -1084,6 +1084,14 @@ namespace Couchbase.Lite
             }
         }
 
+        internal void CheckOpenLocked()
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+            });
+        }
+
         #endregion
 
         #region Private Methods
@@ -1137,7 +1145,7 @@ namespace Couchbase.Lite
         }
 
         // Must be called inside self lock
-        internal void CheckOpen()
+        private void CheckOpen()
         {
             if (IsClosed) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
