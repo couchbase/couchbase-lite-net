@@ -1084,6 +1084,14 @@ namespace Couchbase.Lite
             }
         }
 
+        internal void CheckOpenLocked()
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+            });
+        }
+
         #endregion
 
         #region Private Methods

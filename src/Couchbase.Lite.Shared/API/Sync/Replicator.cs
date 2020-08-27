@@ -639,6 +639,7 @@ namespace Couchbase.Lite.Sync
 
         private C4Error SetupC4Replicator()
         {
+            Config.Database.CheckOpenLocked();
             C4Error err = new C4Error();
             if (_repl != null) {
                 Native.c4repl_setOptions(_repl, ((FLSlice) Config.Options.FLEncode()).ToArrayFast());
@@ -666,6 +667,7 @@ namespace Couchbase.Lite.Sync
                 addr.port = (ushort) remoteUrl.Port;
                 addr.path = path.AsFLSlice();
             } else {
+                Config.OtherDB?.CheckOpenLocked();
                 otherDB = Config.OtherDB;
             }
 
