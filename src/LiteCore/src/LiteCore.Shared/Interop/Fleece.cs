@@ -21,7 +21,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Net;
 using System.Runtime.InteropServices;
+using System.Security;
 using System.Text;
 
 using Couchbase.Lite;
@@ -548,6 +550,9 @@ namespace LiteCore.Interop
                     break;
                 case Blob b:
                     b.FLEncode(enc);
+                    break;
+                case SecureString ss:
+                    new NetworkCredential(string.Empty, ss).Password.FLEncode(enc);
                     break;
                 default:
                     throw new ArgumentException($"Cannot encode {obj.GetType().FullName} to Fleece!");
