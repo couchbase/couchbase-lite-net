@@ -772,6 +772,57 @@ namespace Test
         [Fact]
         public void TestDeleteWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(false);
 
+        [Fact]
+        public void TestStopListener()
+        {
+            var idleWait = new WaitAssert();
+            var offlineWait = new WaitAssert();
+            var stoppedWait = new WaitAssert();
+
+            var config = CreateListenerConfig(false);
+            _listener = Listen(config);
+
+            var target = new DatabaseEndpoint(Db);
+            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
+            using (var repl = new Replicator(config1)) {
+
+                var token1 = repl.AddChangeListener((sender, args) =>
+                {
+                    idleWait.RunConditionalAssert(() => {
+                        return args.Status.Activity == ReplicatorActivityLevel.Idle;
+                    });
+
+                    offlineWait.RunConditionalAssert(() => {
+                        return args.Status.Activity == ReplicatorActivityLevel.Offline;
+                    });
+
+                    stoppedWait.RunConditionalAssert(() => {
+                        return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                    });
+                });
+
+                repl.Start();
+
+                // Wait until idle then stop the listener
+                idleWait.WaitForResult(TimeSpan.FromSeconds(10));
+
+                _listener.Stop();
+
+                // Wait until the replicator is offline then stop the replicator
+                offlineWait.WaitForResult(TimeSpan.FromSeconds(10));
+
+                // Check error
+                var err = repl.Status.Error;
+
+                // Stop replicator
+                repl.Stop();
+
+                // Wait for the replicator to be stopped
+                stoppedWait.WaitForResult(TimeSpan.FromSeconds(10));
+            }
+
+        }
+
         #endregion
 
         #region Private Methods
