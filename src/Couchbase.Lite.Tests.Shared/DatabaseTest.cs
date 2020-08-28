@@ -1437,7 +1437,7 @@ namespace Test
         public void TestDatabaseSaveAndGetCookies()
         {
             var uri = new Uri("http://www.example.com");
-            var cookieStr = "id=a3fWa; Domain:example.com; Secure; HttpOnly";
+            var cookieStr = "id=a3fWa; expires:\"Tue, 20-Oct-2020 05:54:52 GMT\"; Domain:example.com; Secure; HttpOnly";
             Db.SaveCookie(cookieStr, uri);
             Db.GetCookies(uri).Should().Be("id=a3fWa");
         }
