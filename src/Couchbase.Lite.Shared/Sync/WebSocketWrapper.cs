@@ -677,8 +677,9 @@ namespace Couchbase.Lite.Sync
                 if (auth.Type == AuthType.HttpBasic) {
                     var username = auth.Username;
                     var password = auth.Password;
-                    if (username != null && password != null) {
-                        _logic.Credential = new NetworkCredential(username, password);
+                    var passwordSS = auth.PasswordSecureString;
+                    if (username != null && (password != null || passwordSS != null)) {
+                        _logic.Credential = new NetworkCredential(username, password ?? new NetworkCredential(string.Empty, passwordSS).Password);
                     }
                 }
             }
