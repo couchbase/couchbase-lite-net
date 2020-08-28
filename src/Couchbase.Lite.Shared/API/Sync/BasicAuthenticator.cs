@@ -50,7 +50,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// [DEPRECATED] Gets the password that this object holds
         /// </summary>
-        /// [Obsolete("This property is deprecated, please use byte[] PasswordData instead.")]
+        /// [Obsolete("This property is deprecated, please use SecureString PasswordSecureString instead.")]
         [NotNull]
         public string Password { get; }
 
@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Sync
         /// Gets the password that this object holds
         /// </summary>
         [NotNull]
-        internal SecureString PasswordSecureString { get; }
+        public SecureString PasswordSecureString { get; }
 
         #endregion
 
@@ -69,7 +69,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="username">The username to send through HTTP Basic authentication</param>
         /// <param name="password">The password to send through HTTP Basic authentication</param>
-        /// [Obsolete("This constructor is deprecated, please use BasicAuthenticator([NotNull]string username, [NotNull]byte[] password) instead.")]
+        /// [Obsolete("This constructor is deprecated, please use BasicAuthenticator([NotNull]string username, [NotNull]SecureString password) instead.")]
         public BasicAuthenticator([NotNull]string username, [NotNull]string password)
         {
             Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
@@ -81,7 +81,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="username">The username to send through HTTP Basic authentication</param>
         /// <param name="password">The password to send through HTTP Basic authentication</param>
-        internal BasicAuthenticator([NotNull]string username, [NotNull]SecureString password)
+        public BasicAuthenticator([NotNull]string username, [NotNull]SecureString password)
         {
             Username = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(username), username);
             PasswordSecureString = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(password), password);
