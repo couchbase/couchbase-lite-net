@@ -166,6 +166,9 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Adds a documents ended listener on this replication object (similar to a C# event)
         /// </summary>
+        /// <remarks>
+        /// Make sure add documents ended listener on this replication object before starting the replicator.
+        /// </remarks>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
         public ListenerToken AddDocumentReplicationListener([NotNull]EventHandler<DocumentReplicationEventArgs> handler)
@@ -180,6 +183,9 @@ namespace Couchbase.Lite.Sync
         /// with the ability to specify a <see cref="TaskScheduler"/> to schedule the 
         /// handler to run on)
         /// </summary>
+        /// <remarks>
+        /// Make sure add documents ended listener on this replication object before starting the replicator.
+        /// </remarks>
         /// <param name="scheduler">The <see cref="TaskScheduler"/> to run the <c>handler</c> on
         /// (<c>null</c> for default)</param>
         /// <param name="handler">The logic to run during the callback</param>
