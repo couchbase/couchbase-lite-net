@@ -537,7 +537,7 @@ namespace Couchbase.Lite
         public ListenerToken AddDocumentChangeListener([@NotNull]string id, [@NotNull]EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
 
         /// <summary>
-        /// Closes the database
+        /// Close database synchronously. Before closing the database, the active replicators, listeners and live queries will be stopped.
         /// </summary>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.Busy"/> if there are still active replicators
         /// or query listeners when the close call occurred</exception>
@@ -612,7 +612,7 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Deletes a database
+        /// Close and delete the database synchronously. Before closing the database, the active replicators, listeners and live queries will be stopped.
         /// </summary>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.Busy"/> if there are still active replicators
