@@ -672,7 +672,7 @@ namespace Test
 
             repl1.Start();
             repl2.Start();
-            WaitHandle.WaitAll(new[] {wait1.WaitHandle, wait2.WaitHandle}, _timeout)
+            WaitHandle.WaitAll(new[] {wait1.WaitHandle, wait2.WaitHandle}, TimeSpan.FromSeconds(20))
                 .Should().BeTrue();
 
             repl1.RemoveChangeListener(token1);
@@ -682,13 +682,15 @@ namespace Test
             OtherDb.Count.Should().Be(3, "because otherwise not all docs were received into OtherDb");
             urlepTestDb.Count.Should().Be(3, "because otherwise not all docs were received into urlepTestDb");
             
-            urlepTestDb.Dispose();
             repl1.Dispose();
             repl2.Dispose();
             wait1.Dispose();
             wait2.Dispose();
+            urlepTestDb.Delete();
 
             _listener.Stop();
+
+            Thread.Sleep(500); // wait for everything to stop
         }
 
         [Fact]
@@ -901,13 +903,15 @@ namespace Test
             OtherDb.IsClosedLocked.Should().Be(true);
             db2.IsClosedLocked.Should().Be(true);
 
-            WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, _timeout)
+            WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, TimeSpan.FromSeconds(20))
                 .Should().BeTrue();
 
             waitIdleAssert1.Dispose();
             waitIdleAssert2.Dispose();
             waitStoppedAssert1.Dispose();
             waitStoppedAssert2.Dispose();
+
+            Thread.Sleep(500);
         }
 
         // Two replicators, replicates docs to the listener; validates connection status
