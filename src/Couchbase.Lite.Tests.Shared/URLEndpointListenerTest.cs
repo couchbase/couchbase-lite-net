@@ -775,9 +775,9 @@ namespace Test
         [Fact]
         public void TestStopListener()
         {
-            var idleWait = new WaitAssert();
-            var offlineWait = new WaitAssert();
-            var stoppedWait = new WaitAssert();
+            var idleWait = new ManualResetEventSlim();
+            var offlineWait = new ManualResetEventSlim();
+            var stoppedWait = new ManualResetEventSlim();
 
             var config = CreateListenerConfig(false);
             _listener = Listen(config);
@@ -788,28 +788,24 @@ namespace Test
 
                 var token1 = repl.AddChangeListener((sender, args) =>
                 {
-                    idleWait.RunConditionalAssert(() => {
-                        return args.Status.Activity == ReplicatorActivityLevel.Idle;
-                    });
-
-                    offlineWait.RunConditionalAssert(() => {
-                        return args.Status.Activity == ReplicatorActivityLevel.Offline;
-                    });
-
-                    stoppedWait.RunConditionalAssert(() => {
-                        return args.Status.Activity == ReplicatorActivityLevel.Stopped;
-                    });
+                    if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
+                        idleWait.Set();
+                    } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                        stoppedWait.Set();
+                    } else if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
+                        offlineWait.Set();
+                    }
                 });
 
                 repl.Start();
 
                 // Wait until idle then stop the listener
-                idleWait.WaitForResult(TimeSpan.FromSeconds(10));
+                idleWait.Wait(TimeSpan.FromSeconds(15));
 
                 _listener.Stop();
 
                 // Wait until the replicator is offline then stop the replicator
-                offlineWait.WaitForResult(TimeSpan.FromSeconds(10));
+                offlineWait.Wait(TimeSpan.FromSeconds(15));
 
                 // Check error
                 var err = repl.Status.Error;
@@ -818,7 +814,7 @@ namespace Test
                 repl.Stop();
 
                 // Wait for the replicator to be stopped
-                stoppedWait.WaitForResult(TimeSpan.FromSeconds(10));
+                stoppedWait.Wait(TimeSpan.FromSeconds(15));
             }
 
         }
