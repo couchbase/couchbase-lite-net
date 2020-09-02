@@ -829,10 +829,6 @@ namespace Test
 
         private void WithActiveReplicationsAndURLEndpointListener(bool isCloseNotDelete)
         {
-            Db.Delete();
-            ReopenDB();
-
-            ReopenOtherDb();
             var waitIdleAssert1 = new ManualResetEventSlim();
             var waitIdleAssert2 = new ManualResetEventSlim();
             var waitStoppedAssert1 = new ManualResetEventSlim();
