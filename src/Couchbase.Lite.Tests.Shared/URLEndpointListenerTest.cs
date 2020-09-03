@@ -851,14 +851,14 @@ namespace Test
             var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
             var repl1 = new Replicator(config1);
 
-            Database.Delete("db2", Directory);
-            var db2 = OpenDB("db2");
+            Database.Delete("urlepTestDb", Directory);
+            var urlepTestDb = OpenDB("urlepTestDb");
             using (var doc2 = new MutableDocument()) {
-                db2.Save(doc2);
+                urlepTestDb.Save(doc2);
             }
 
             var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
-                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: db2);
+                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: urlepTestDb);
             var repl2 = new Replicator(config2);
 
             EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
@@ -888,20 +888,20 @@ namespace Test
                 .Should().BeTrue();
 
             OtherDb.ActiveStoppables.Count.Should().Be(2);
-            db2.ActiveStoppables.Count.Should().Be(1);
+            urlepTestDb.ActiveStoppables.Count.Should().Be(1);
 
             if (isCloseNotDelete) {
-                db2.Close();
+                urlepTestDb.Close();
                 OtherDb.Close();
             } else {
-                db2.Delete();
+                urlepTestDb.Delete();
                 OtherDb.Delete();
             }
 
             OtherDb.ActiveStoppables.Count.Should().Be(0);
-            db2.ActiveStoppables.Count.Should().Be(0);
+            urlepTestDb.ActiveStoppables.Count.Should().Be(0);
             OtherDb.IsClosedLocked.Should().Be(true);
-            db2.IsClosedLocked.Should().Be(true);
+            urlepTestDb.IsClosedLocked.Should().Be(true);
 
             WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, TimeSpan.FromSeconds(20))
                 .Should().BeTrue();
