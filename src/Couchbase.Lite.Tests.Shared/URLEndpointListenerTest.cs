@@ -600,14 +600,14 @@ namespace Test
             var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb:OtherDb);
             var repl1 = new Replicator(config1);
 
-            Database.Delete("db2", Directory);
-            var db2 = OpenDB("db2");
+            Database.Delete("urlepTestDb", Directory);
+            var urlepTestDb = OpenDB("urlepTestDb");
             using (var doc2 = new MutableDocument()) {
-                db2.Save(doc2);
+                urlepTestDb.Save(doc2);
             }
 
             var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
-                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: db2);
+                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: urlepTestDb);
             var repl2 = new Replicator(config2);
 
             var wait1 = new ManualResetEventSlim();
@@ -616,7 +616,7 @@ namespace Test
             {
                 if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
                     args.Status.Progress.Total) {
-                    if (OtherDb.Count == 3 && Db.Count == 3 && db2.Count == 3) {
+                    if (OtherDb.Count == 3 && Db.Count == 3 && urlepTestDb.Count == 3) {
                         ((Replicator) sender).Stop();
                     }
 
@@ -642,9 +642,9 @@ namespace Test
 
             Db.Count.Should().Be(3, "because otherwise not all docs were received into Db");
             OtherDb.Count.Should().Be(3, "because otherwise not all docs were received into OtherDb");
-            db2.Count.Should().Be(3, "because otherwise not all docs were received into db2");
+            urlepTestDb.Count.Should().Be(3, "because otherwise not all docs were received into urlepTestDb");
             
-            db2.Dispose();
+            urlepTestDb.Dispose();
             repl1.Dispose();
             repl2.Dispose();
             wait1.Dispose();
@@ -692,7 +692,7 @@ namespace Test
         [Fact]
         public void TestReplicatorServerCertWithTLSError() => CheckReplicatorServerCert(true, false);
 
-        //[Fact] android failed (Expected boolean to be true, but found False.)
+        [Fact]
         public void TestMultipleReplicatorsToListener()
         {
             _listener = Listen(CreateListenerConfig()); // writable listener
@@ -705,7 +705,7 @@ namespace Test
             ValidateMultipleReplicationsTo(ReplicatorType.PushAndPull);
         }
 
-        //[Fact]
+        [Fact]
         public void TestMultipleReplicatorsOnReadOnlyListener()
         {
             var config = CreateListenerConfig();
@@ -743,14 +743,14 @@ namespace Test
                 serverCert: serverCert, sourceDb: Db);
             var repl1 = new Replicator(config1);
 
-            Database.Delete("db2", Directory);
-            var db2 = OpenDB("db2");
+            Database.Delete("urlepTestDb", Directory);
+            var urlepTestDb = OpenDB("urlepTestDb");
             using (var doc2 = new MutableDocument()) {
-                db2.Save(doc2);
+                urlepTestDb.Save(doc2);
             }
 
             var config2 = CreateConfig(target, replicatorType, true,
-                serverCert: serverCert, sourceDb: db2);
+                serverCert: serverCert, sourceDb: urlepTestDb);
             var repl2 = new Replicator(config2);
 
             var wait1 = new ManualResetEventSlim();
@@ -764,8 +764,8 @@ namespace Test
                     args.Status.Progress.Total) {
 
                     if ((replicatorType == ReplicatorType.PushAndPull && OtherDb.Count == 3
-                    && Db.Count == 3 && db2.Count == 3) || (replicatorType == ReplicatorType.Pull && OtherDb.Count == 1
-                    && Db.Count == 2 && db2.Count == 2)) {
+                    && Db.Count == 3 && urlepTestDb.Count == 3) || (replicatorType == ReplicatorType.Pull && OtherDb.Count == 1
+                    && Db.Count == 2 && urlepTestDb.Count == 2)) {
                         ((Replicator) sender).Stop();
                     }
                 } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
@@ -793,7 +793,7 @@ namespace Test
             maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
             maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
 
-            WaitHandle.WaitAll(new[] { wait1.WaitHandle, wait2.WaitHandle }, _timeout)
+            WaitHandle.WaitAll(new[] { wait1.WaitHandle, wait2.WaitHandle }, TimeSpan.FromSeconds(20))
                 .Should().BeTrue();
 
             maxConnectionCount.Should().Be(2);
@@ -803,23 +803,25 @@ namespace Test
             if (replicatorType == ReplicatorType.PushAndPull) {
                 _listener.Config.Database.Count.Should().Be(existingDocsInListener + 2UL);
                 Db.Count.Should().Be(existingDocsInListener + 2UL);
-                db2.Count.Should().Be(existingDocsInListener + 2UL);
+                urlepTestDb.Count.Should().Be(existingDocsInListener + 2UL);
             } else if(replicatorType == ReplicatorType.Pull) {
                 _listener.Config.Database.Count.Should().Be(1);
                 Db.Count.Should().Be(existingDocsInListener + 1UL);
-                db2.Count.Should().Be(existingDocsInListener + 1UL);
+                urlepTestDb.Count.Should().Be(existingDocsInListener + 1UL);
             }
 
             repl1.RemoveChangeListener(token1);
             repl2.RemoveChangeListener(token2);
 
-            db2.Dispose();
             repl1.Dispose();
             repl2.Dispose();
             wait1.Dispose();
             wait2.Dispose();
+            urlepTestDb.Delete();
 
             _listener.Stop();
+
+            Thread.Sleep(500);
         }
 
         private void RunReplicatorServerCert(Replicator repl, bool hasIdle, X509Certificate2 serverCert)
