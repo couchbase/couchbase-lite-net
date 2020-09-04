@@ -295,7 +295,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestClientCertAuthenticator()
+        public void TestClientCertAuthWithCallback()
         {
             var auth = new ListenerCertificateAuthenticator((sender, cert) =>
             {
@@ -360,6 +360,44 @@ namespace Test
 
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
             
+        }
+
+        [Fact]
+        public void TestClientCertAuthRootCertsError()
+        {
+            byte[] caData;
+            using (var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client-ca.der"))
+            using (var reader = new BinaryReader(stream)) {
+                caData = reader.ReadBytes((int) stream.Length);
+            }
+
+            var rootCert = new X509Certificate2(caData);
+            var auth = new ListenerCertificateAuthenticator(new X509Certificate2Collection(rootCert));
+            _listener = CreateListener(true, true, auth);
+
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+            // Create wrong client identity
+            var id = TLSIdentity.CreateIdentity(false,
+                new Dictionary<string, string>() { { Certificate.CommonNameAttribute, "daniel" } },
+                null,
+                _store,
+                ClientCertLabel,
+                null);
+
+            id.Should().NotBeNull();
+            RunReplication(
+                _listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull,
+                false,
+                new ClientCertificateAuthenticator(id),
+                true,
+                _listener.TlsIdentity.Certs[0],
+                (int) CouchbaseLiteError.TLSHandshakeFailed, //not TLSClientCertRejected as mac has..
+                CouchbaseLiteErrorType.CouchbaseLite
+            );
+
+            TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
+            _listener.Stop();
         }
 
         [Fact]
@@ -513,7 +551,7 @@ namespace Test
             _listener.Stop();
         }
 
-        [Fact] //mac getting CouchbaseLiteException (NetworkDomain / 2): Unknown network interface name or address.
+        [Fact]
         public void TestEmptyNetworkInterface()
         {
             var config = CreateListenerConfig(false);
@@ -522,7 +560,7 @@ namespace Test
             _listener.Stop();
         }
 
-        [Fact] //CouchbaseLiteException (NetworkDomain / 2) Unknown network interface name or address.
+        [Fact]
         public void TestUnavailableNetworkInterface()
         {
             var config = CreateListenerConfig(false);
@@ -634,7 +672,7 @@ namespace Test
 
             repl1.Start();
             repl2.Start();
-            WaitHandle.WaitAll(new[] {wait1.WaitHandle, wait2.WaitHandle}, _timeout)
+            WaitHandle.WaitAll(new[] {wait1.WaitHandle, wait2.WaitHandle}, TimeSpan.FromSeconds(20))
                 .Should().BeTrue();
 
             repl1.RemoveChangeListener(token1);
@@ -644,13 +682,15 @@ namespace Test
             OtherDb.Count.Should().Be(3, "because otherwise not all docs were received into OtherDb");
             urlepTestDb.Count.Should().Be(3, "because otherwise not all docs were received into urlepTestDb");
             
-            urlepTestDb.Dispose();
             repl1.Dispose();
             repl2.Dispose();
             wait1.Dispose();
             wait2.Dispose();
+            urlepTestDb.Delete();
 
             _listener.Stop();
+
+            Thread.Sleep(500); // wait for everything to stop
         }
 
         [Fact]
@@ -720,9 +760,159 @@ namespace Test
             ValidateMultipleReplicationsTo(ReplicatorType.Pull);
         }
 
+        [Fact]
+        public void TestCloseWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(true);
+
+        [Fact]
+        public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
+
+        [Fact]
+        public void TestCloseWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(true);
+
+        [Fact]
+        public void TestDeleteWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(false);
+
         #endregion
 
         #region Private Methods
+
+        private void WithActiveReplicatorAndURLEndpointListeners(bool isCloseNotDelete)
+        {
+            Db.Delete();
+            ReopenDB();
+
+            ReopenOtherDb();
+            WaitAssert waitIdleAssert1 = new WaitAssert();
+            WaitAssert waitStoppedAssert1 = new WaitAssert();
+
+            _listener = CreateListener();
+            var _listener2 = CreateListener();
+
+            _listener.Config.Database.ActiveStoppables.Count.Should().Be(1);
+            _listener2.Config.Database.ActiveStoppables.Count.Should().Be(1);
+
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetString("name", "Sam");
+                Db.Save(doc1);
+                doc2.SetString("name", "Mary");
+                OtherDb.Save(doc2);
+            }
+
+            var target = new DatabaseEndpoint(Db);
+            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
+            var repl1 = new Replicator(config1);
+            repl1.AddChangeListener((sender, args) => {
+                waitIdleAssert1.RunConditionalAssert(() => {
+                    return args.Status.Activity == ReplicatorActivityLevel.Idle;
+                });
+
+                waitStoppedAssert1.RunConditionalAssert(() => {
+                    return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                });
+            });
+
+            repl1.Start();
+
+            waitIdleAssert1.WaitForResult(TimeSpan.FromSeconds(10));
+            OtherDb.ActiveStoppables.Count.Should().Be(2);
+
+            if (isCloseNotDelete) {
+                OtherDb.Close();
+            } else {
+                OtherDb.Delete();
+            }
+
+            OtherDb.ActiveStoppables.Count.Should().Be(0);
+            OtherDb.IsClosedLocked.Should().Be(true);
+
+            waitStoppedAssert1.WaitForResult(TimeSpan.FromSeconds(30));
+        }
+
+        private void WithActiveReplicationsAndURLEndpointListener(bool isCloseNotDelete)
+        {
+            var waitIdleAssert1 = new ManualResetEventSlim();
+            var waitIdleAssert2 = new ManualResetEventSlim();
+            var waitStoppedAssert1 = new ManualResetEventSlim();
+            var waitStoppedAssert2 = new ManualResetEventSlim();
+
+            using (var doc = new MutableDocument()) {
+                OtherDb.Save(doc);
+            }
+
+            _listener = CreateListener();
+            _listener.Config.Database.ActiveStoppables.Count.Should().Be(1);
+
+            using (var doc1 = new MutableDocument()) {
+                Db.Save(doc1);
+            }
+
+            var target = new DatabaseEndpoint(Db);
+            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
+            var repl1 = new Replicator(config1);
+
+            Database.Delete("urlepTestDb", Directory);
+            var urlepTestDb = OpenDB("urlepTestDb");
+            using (var doc2 = new MutableDocument()) {
+                urlepTestDb.Save(doc2);
+            }
+
+            var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
+                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: urlepTestDb);
+            var repl2 = new Replicator(config2);
+
+            EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
+            {
+                if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
+                    args.Status.Progress.Total) {
+                    if (sender == repl1) {
+                        waitIdleAssert1.Set();
+                    } else {
+                        waitIdleAssert2.Set();
+                    }
+                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                    if (sender == repl1) {
+                        waitStoppedAssert1.Set();
+                    } else {
+                        waitStoppedAssert2.Set();
+                    }
+                }
+            };
+
+            repl1.AddChangeListener(changeListener);
+            repl2.AddChangeListener(changeListener);
+            repl1.Start();
+            repl2.Start();
+
+            WaitHandle.WaitAll(new[] { waitIdleAssert1.WaitHandle, waitIdleAssert2.WaitHandle }, _timeout)
+                .Should().BeTrue();
+
+            OtherDb.ActiveStoppables.Count.Should().Be(2);
+            urlepTestDb.ActiveStoppables.Count.Should().Be(1);
+
+            if (isCloseNotDelete) {
+                urlepTestDb.Close();
+                OtherDb.Close();
+            } else {
+                urlepTestDb.Delete();
+                OtherDb.Delete();
+            }
+
+            OtherDb.ActiveStoppables.Count.Should().Be(0);
+            urlepTestDb.ActiveStoppables.Count.Should().Be(0);
+            OtherDb.IsClosedLocked.Should().Be(true);
+            urlepTestDb.IsClosedLocked.Should().Be(true);
+
+            WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, TimeSpan.FromSeconds(20))
+                .Should().BeTrue();
+
+            waitIdleAssert1.Dispose();
+            waitIdleAssert2.Dispose();
+            waitStoppedAssert1.Dispose();
+            waitStoppedAssert2.Dispose();
+
+            Thread.Sleep(500);
+        }
 
         // Two replicators, replicates docs to the listener; validates connection status
         private void ValidateMultipleReplicationsTo(ReplicatorType replicatorType)
