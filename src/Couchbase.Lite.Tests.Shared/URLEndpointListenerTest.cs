@@ -772,6 +772,44 @@ namespace Test
         [Fact]
         public void TestDeleteWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(false);
 
+        [Fact]
+        public void TestStopListener()
+        {
+            ManualResetEventSlim waitIdleAssert = new ManualResetEventSlim();
+            ManualResetEventSlim waitStoppedAssert = new ManualResetEventSlim();
+
+            var config = CreateListenerConfig(false);
+            _listener = Listen(config);
+
+            var target = _listener.LocalEndpoint();
+            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true,
+                serverCert: null);
+            using (var repl = new Replicator(config1)) {
+                var token = repl.AddChangeListener((sender, args) =>
+                {
+                    if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
+                        waitIdleAssert.Set();
+                        // Stop listener aka server
+                        _listener.Stop();
+                    } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                        waitStoppedAssert.Set();
+                    }
+                });
+
+                repl.Start();
+
+                // Wait until idle then stop the listener
+                waitIdleAssert.Wait(TimeSpan.FromSeconds(15)).Should().BeTrue();
+
+                // Wait for the replicator to be stopped
+                waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).Should().BeTrue();
+
+                // Check error
+                var error = repl.Status.Error.As<CouchbaseWebsocketException>();
+                error.Error.Should().Be((int)CouchbaseLiteError.WebSocketGoingAway);
+            }
+        }
+
         #endregion
 
         #region Private Methods
