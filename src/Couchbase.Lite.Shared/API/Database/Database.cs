@@ -960,18 +960,18 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        internal void AddActiveStoppable(IStoppable query)
+        internal void AddActiveStoppable(IStoppable stoppable)
         {
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpenAndNotClosing();
-                if(ActiveStoppables.TryAdd(query, 0)) {
+                if(ActiveStoppables.TryAdd(stoppable, 0)) {
                     _closeCondition.Reset();
                 }
             });
         }
 
-        internal void RemoveActiveStoppable(IStoppable query)
+        internal void RemoveActiveStoppable(IStoppable stoppable)
         {
             ThreadSafety.DoLocked(() =>
             {
@@ -979,7 +979,7 @@ namespace Couchbase.Lite
                     return;
                 }
 
-                if(!ActiveStoppables.TryRemove(query, out var dummy)) {
+                if(!ActiveStoppables.TryRemove(stoppable, out var dummy)) {
                     return;
                 }
 

@@ -775,48 +775,50 @@ namespace Test
         [Fact]
         public void TestStopListener()
         {
-            var idleWait = new ManualResetEventSlim();
-            var offlineWait = new ManualResetEventSlim();
-            var stoppedWait = new ManualResetEventSlim();
+            ManualResetEventSlim waitIdleAssert = new ManualResetEventSlim();
+            ManualResetEventSlim waitStoppedAssert = new ManualResetEventSlim();
 
             var config = CreateListenerConfig(false);
             _listener = Listen(config);
 
-            var target = new DatabaseEndpoint(Db);
-            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
+            var target = _listener.LocalEndpoint();
+            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true,
+                serverCert: null);
             using (var repl = new Replicator(config1)) {
-
-                var token1 = repl.AddChangeListener((sender, args) =>
+                var token = repl.AddChangeListener((sender, args) =>
                 {
                     if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
-                        idleWait.Set();
+                        waitIdleAssert.Set();
+                        // Stop listener aka server
+                        _listener.Stop();
                     } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                        stoppedWait.Set();
-                    } else if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
-                        offlineWait.Set();
+                        waitStoppedAssert.Set();
                     }
                 });
 
                 repl.Start();
 
                 // Wait until idle then stop the listener
-                idleWait.Wait(TimeSpan.FromSeconds(15));
-
-                _listener.Stop();
-
-                // Wait until the replicator is offline then stop the replicator
-                offlineWait.Wait(TimeSpan.FromSeconds(15));
-
-                // Check error
-                var err = repl.Status.Error;
-
-                // Stop replicator
-                repl.Stop();
+                waitIdleAssert.Wait(TimeSpan.FromSeconds(15)).Should().BeTrue();
 
                 // Wait for the replicator to be stopped
-                stoppedWait.Wait(TimeSpan.FromSeconds(15));
+                waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).Should().BeTrue();
+
+                // Check error
+                var error = repl.Status.Error.As<CouchbaseWebsocketException>();
+                error.Error.Should().Be((int)CouchbaseLiteError.WebSocketGoingAway);
             }
 
+            //RunReplication(
+            //    target,
+            //    ReplicatorType.PushAndPull,
+            //    false,
+            //    null,
+            //    false, //accept only self signed server cert
+            //    null,
+            //    PosixBase.GetCode(nameof(PosixWindows.EADDRINUSE)), 
+            //    CouchbaseLiteErrorType.POSIX
+            //);
         }
 
         #endregion
