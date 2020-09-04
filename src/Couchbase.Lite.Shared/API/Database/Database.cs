@@ -1032,10 +1032,11 @@ namespace Couchbase.Lite
                 if (uri == null) {
                     WriteLog.To.Sync.V(Tag, "The Uri used to set cookie is null.");
                 } else {
+                    var cookieStr = cookie.ToCBLCookieString();
                     var pathStr = String.Concat(uri.Segments.Take(uri.Segments.Length - 1));
                     cookieSaved = (bool) LiteCoreBridge.Check(err =>
                     {
-                        return Native.c4db_setCookie(_c4db, cookie, uri.Host, pathStr, err);
+                        return Native.c4db_setCookie(_c4db, cookieStr, uri.Host, pathStr, err);
                     });
                 }
             });

@@ -1436,10 +1436,27 @@ namespace Test
         [Fact]
         public void TestDatabaseSaveAndGetCookies()
         {
-            var uri = new Uri("http://www.example.com");
-            var cookieStr = "id=a3fWa; expires:\"Tue, 20-Oct-2020 05:54:52 GMT\"; Domain:example.com; Secure; HttpOnly";
+            var uri = new Uri("http://example.com/");
+            var cookieStr = "id=a3fWa; Domain=.example.com; Secure; HttpOnly";
             Db.SaveCookie(cookieStr, uri);
             Db.GetCookies(uri).Should().Be("id=a3fWa");
+            cookieStr = "id=a3fWa; Domain=www.example.com; Secure; HttpOnly";
+            Db.SaveCookie(cookieStr, uri);
+            Db.GetCookies(uri).Should().Be("id=a3fWa");
+            uri = new Uri("http://www.example.com/");
+            cookieStr = "id=a3fWa; Domain=.example.com; Secure; HttpOnly";
+            Action badAction = (() => Db.SaveCookie(cookieStr, uri));
+            badAction.Should().Throw<CouchbaseLiteException>(); //CouchbaseLiteException (LiteCoreDomain / 9): Invalid cookie.
+            cookieStr = "id=a3fWa; Domain=www.example.com; Secure; HttpOnly";
+            Db.SaveCookie(cookieStr, uri);
+            Db.GetCookies(uri).Should().Be("id=a3fWa; id=a3fWa");
+            uri = new Uri("http://exampletest.com/");
+            cookieStr = "id=a3fWa; Expires=Wed, 20 Oct 2100 05:54:52 GMT; Secure; HttpOnly";
+            Db.SaveCookie(cookieStr, uri);
+            Db.GetCookies(uri).Should().Be("id=a3fWa");
+            cookieStr = "id=a3fWa; Expires=Wed, 21 Oct 2015 07:28:00 GMT; Secure; HttpOnly";
+            Db.SaveCookie(cookieStr, uri);
+            Db.GetCookies(uri).Should().BeNull("cookie is expired");
         }
 
         private void WithActiveLiveQueries(bool isCloseNotDelete)

@@ -272,7 +272,7 @@ namespace Test
             // exist on the network
             var uri = new Uri("ws://www.cbltest.com:4984/app");
             //hijack this test to test cookies
-            var cookieStr = "id=a3fWa; expires:\"Tue, 20-Oct-2020 05:54:52 GMT\"; Domain:cbltest.com; Secure; HttpOnly";
+            var cookieStr = "id=a3fWa; Expires=Wed, 20 Oct 2100 05:54:52 GMT; Domain=www.cbltest.com; Secure; HttpOnly";
             Db.SaveCookie(cookieStr, uri);
             var targetEndpoint = new URLEndpoint(uri);
             var config = new ReplicatorConfiguration(Db, targetEndpoint);
