@@ -382,8 +382,7 @@ namespace Test
 
             var config = CreateConfig(true, true, false);
             var exceptions = new List<Exception>();
-            config.PullFilter = (doc, isPush) =>
-            {
+            config.PullFilter = (doc, isPush) => {
                 try {
                     doc.GetInt("Two").Should().Be(2);
                     doc.RevisionID.Should().NotBeNull();
@@ -397,8 +396,7 @@ namespace Test
                 return true;
             };
 
-            config.PushFilter = (doc, isPush) =>
-            {
+            config.PushFilter = (doc, isPush) => {
                 try {
                     doc.GetInt("One").Should().Be(1);
                     doc.RevisionID.Should().NotBeNull();
@@ -437,8 +435,7 @@ namespace Test
 
             var config = CreateConfig(true, true, false);
             var exceptions = new List<Exception>();
-            config.PullFilter = (doc, isPush) =>
-            {
+            config.PullFilter = (doc, isPush) => {
                 try {
                     var nestedBlob = doc.GetArray("outer_arr")?.GetBlob(0);
                     nestedBlob.Should().NotBeNull("because the actual blob object should be intact");
@@ -452,8 +449,7 @@ namespace Test
                 return true;
             };
 
-            config.PushFilter = (doc, isPush) =>
-            {
+            config.PushFilter = (doc, isPush) => {
                 try {
                     var gotContent = doc.GetDictionary("outer_dict")?.GetBlob("inner_blob")?.Content;
                     gotContent.Should().NotBeNull("because the nested blob should be intact in the push");
@@ -725,10 +721,8 @@ namespace Test
                 foreach (var when in stopWhen) {
                     var stopped = 0;
                     var waitAssert = new WaitAssert();
-                    var token = r.AddChangeListener((sender, args) =>
-                    {
-                        waitAssert.RunConditionalAssert(() =>
-                        {
+                    var token = r.AddChangeListener((sender, args) => {
+                        waitAssert.RunConditionalAssert(() => {
                             VerifyChange(args, 0, 0);
 
                             // On Windows, at least, sometimes the connection is so fast that Connecting never gets called
@@ -736,7 +730,7 @@ namespace Test
                                 (when == ReplicatorActivityLevel.Connecting && args.Status.Activity > when))
                                 && Interlocked.Exchange(ref stopped, 1) == 0) {
                                 WriteLine("***** Stop Replicator *****");
-                                ((Replicator) sender).Stop();
+                                ((Replicator)sender).Stop();
                             }
 
                             if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
@@ -778,14 +772,12 @@ namespace Test
             Misc.SafeSwap(ref _repl, new Replicator(config));
             _waitAssert = new WaitAssert();
             var token1 = _repl.AddDocumentReplicationListener(DocumentEndedUpdate);
-            var token = _repl.AddChangeListener((sender, args) =>
-            {
-                _waitAssert.RunConditionalAssert(() =>
-                {
+            var token = _repl.AddChangeListener((sender, args) => {
+                _waitAssert.RunConditionalAssert(() => {
                     VerifyChange(args, 0, 0);
                     if (config.Continuous && args.Status.Activity == ReplicatorActivityLevel.Idle
                                           && args.Status.Progress.Completed == args.Status.Progress.Total) {
-                        ((Replicator) sender).Stop();
+                        ((Replicator)sender).Stop();
                     }
                     return args.Status.Activity == ReplicatorActivityLevel.Stopped;
                 });
@@ -841,13 +833,11 @@ namespace Test
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
                 var wa = new WaitAssert();
-                repl.AddDocumentReplicationListener((sender, args) =>
-                {
+                repl.AddDocumentReplicationListener((sender, args) => {
                     if (args.Documents[0].Id == "doc1") {
-                        wa.RunAssert(() =>
-                        {
+                        wa.RunAssert(() => {
                             args.Documents[0].Error.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
-                            args.Documents[0].Error.Error.Should().Be((int) CouchbaseLiteError.HTTPConflict);
+                            args.Documents[0].Error.Error.Should().Be((int)CouchbaseLiteError.HTTPConflict);
                         });
                     }
                 });
@@ -1058,8 +1048,7 @@ namespace Test
             OtherDb.Delete(OtherDb.GetDocument("doc1"));
 
             var config = CreateConfig(false, true, false);
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
                 using (var doc1 = Db.GetDocument("doc1")) {
                     Db.Delete(doc1);
                 }
@@ -1077,8 +1066,7 @@ namespace Test
         {
             var config = CreateConfig(false, true, false);
 
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
                 return conflict.RemoteDocument;
             });
 
@@ -1114,8 +1102,7 @@ namespace Test
             }
 
             var config = CreateConfig(true, true, false);
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
                 var localDoc = conflict.LocalDocument;
                 var remoteDoc = conflict.RemoteDocument;
 
@@ -1182,8 +1169,7 @@ namespace Test
 
             var config = CreateConfig(false, true, false);
 
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
                 conflictResolved = true;
                 return null;
             });
@@ -1225,8 +1211,7 @@ namespace Test
             }
 
             var config = CreateConfig(false, true, false);
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
                 localDoc = conflict.LocalDocument;
                 remoteDoc = conflict.RemoteDocument;
                 return null;
@@ -1265,8 +1250,7 @@ namespace Test
             OtherDb.Delete(OtherDb.GetDocument("doc1"));
 
             var config = CreateConfig(false, true, false);
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
                 localDoc = conflict.LocalDocument;
                 remoteDoc = conflict.RemoteDocument;
                 return null;
@@ -1284,8 +1268,7 @@ namespace Test
             CreateReplicationConflict("doc1");
 
             var config = CreateConfig(false, true, false);
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
                 var doc = new MutableDocument("wrong_id");
                 doc.SetString("wrong_id_key", "wrong_id_value");
                 return doc;
@@ -1306,8 +1289,7 @@ namespace Test
 
             var config = CreateConfig(false, true, false);
 
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
                 if (resolveCnt == 0) {
                     using (var d = Db.GetDocument("doc1"))
                     using (var doc = d.ToMutable()) {
@@ -1334,8 +1316,7 @@ namespace Test
             int resolveCnt = 0;
             CreateReplicationConflict("doc1");
             var config = CreateConfig(false, true, false);
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
                 if (resolveCnt == 0) {
                     using (var d = Db.GetDocument("doc1"))
                     using (var doc = d.ToMutable()) {
@@ -1370,8 +1351,7 @@ namespace Test
             ManualResetEvent manualResetEvent = new ManualResetEvent(false);
             Queue<string> q = new Queue<string>();
             var wa = new WaitAssert();
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
                 var cnt = 0;
                 lock (q) {
                     q.Enqueue(conflict.LocalDocument.Id);
@@ -1414,8 +1394,7 @@ namespace Test
             int resolveCnt = 0;
 
             var config = CreateConfig(false, true, false);
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
                 firstReplicatorStart.Set();
                 secondReplicatorFinish.Wait();
                 Thread.Sleep(500);
@@ -1425,8 +1404,7 @@ namespace Test
             Replicator replicator = new Replicator(config);
 
             var config1 = CreateConfig(false, true, false);
-            config1.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
+            config1.ConflictResolver = new TestConflictResolver((conflict) => {
                 resolveCnt++;
                 Task.Delay(500).ContinueWith(t => secondReplicatorFinish.Set()); // Set after return
                 return conflict.RemoteDocument;
@@ -1434,14 +1412,12 @@ namespace Test
             Replicator replicator1 = new Replicator(config1);
 
             _waitAssert = new WaitAssert();
-            var token = replicator.AddChangeListener((sender, args) =>
-            {
-                _waitAssert.RunConditionalAssert(() =>
-                {
+            var token = replicator.AddChangeListener((sender, args) => {
+                _waitAssert.RunConditionalAssert(() => {
                     VerifyChange(args, 0, 0);
                     if (config.Continuous && args.Status.Activity == ReplicatorActivityLevel.Idle
                                           && args.Status.Progress.Completed == args.Status.Progress.Total) {
-                        ((Replicator) sender).Stop();
+                        ((Replicator)sender).Stop();
                     }
 
                     return args.Status.Activity == ReplicatorActivityLevel.Stopped;
@@ -1449,14 +1425,12 @@ namespace Test
             });
 
             var _waitAssert1 = new WaitAssert();
-            var token1 = replicator1.AddChangeListener((sender, args) =>
-            {
-                _waitAssert1.RunConditionalAssert(() =>
-                {
+            var token1 = replicator1.AddChangeListener((sender, args) => {
+                _waitAssert1.RunConditionalAssert(() => {
                     VerifyChange(args, 0, 0);
                     if (config.Continuous && args.Status.Activity == ReplicatorActivityLevel.Idle
                                           && args.Status.Progress.Completed == args.Status.Progress.Total) {
-                        ((Replicator) sender).Stop();
+                        ((Replicator)sender).Stop();
                     }
 
                     return args.Status.Activity == ReplicatorActivityLevel.Stopped;
@@ -1494,8 +1468,7 @@ namespace Test
 
             var config = CreateConfig(false, true, false);
 
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
                 if (resolveCnt == 0) {
                     Db.Purge(conflict.DocumentID);
                 }
@@ -1534,8 +1507,7 @@ namespace Test
         [Fact]
         public void TestConflictResolverExceptionThrownInConflictResolver()
         {
-            var resolverWithException = new TestConflictResolver((conflict) =>
-            {
+            var resolverWithException = new TestConflictResolver((conflict) => {
                 throw new Exception("Customer side exception");
             });
 
@@ -1554,8 +1526,7 @@ namespace Test
 
             var config = CreateConfig(false, true, false);
 
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
                 var evilByteArray = new byte[] { 6, 6, 6 };
 
                 var doc = new MutableDocument();
@@ -1573,8 +1544,7 @@ namespace Test
         [Fact]
         public void TestConflictResolverReturningBlobFromDifferentDB()
         {
-            var blobFromOtherDbResolver = new TestConflictResolver((conflict) =>
-            {
+            var blobFromOtherDbResolver = new TestConflictResolver((conflict) => {
                 var md = conflict.LocalDocument.ToMutable();
                 using (var otherDbDoc = OtherDb.GetDocument("doc1")) {
                     md.SetBlob("blob", otherDbDoc.GetBlob("blob"));
@@ -1594,8 +1564,7 @@ namespace Test
 
             var config = CreateConfig(false, true, false);
             C4DocumentFlags flags = (C4DocumentFlags) 0;
-            config.ConflictResolver = new TestConflictResolver((conflict) =>
-            {
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
                 unsafe {
                     flags = conflict.LocalDocument.c4Doc.RawDoc->flags;
                     flags.HasFlag(C4DocumentFlags.DocConflicted).Should().BeTrue();
