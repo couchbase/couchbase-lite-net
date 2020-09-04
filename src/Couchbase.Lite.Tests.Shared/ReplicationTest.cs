@@ -269,9 +269,8 @@ namespace Test
         public async Task TestReplicatorStopsWhenEndpointInvalid()
         {
             // If this IP address happens to exist, then change it.  It needs to be an address that does not
-            // exist on the network
-            var uri = new Uri("ws://www.cbltest.com:4984/app");
-            var targetEndpoint = new URLEndpoint(uri);
+            // exist on the LAN
+            var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
             var config = new ReplicatorConfiguration(Db, targetEndpoint);
             using (var repl = new Replicator(config)) {
                 repl.Start();
@@ -1563,7 +1562,7 @@ namespace Test
             CreateReplicationConflict("doc1", true);
 
             var config = CreateConfig(false, true, false);
-            C4DocumentFlags flags = (C4DocumentFlags) 0;
+            C4DocumentFlags flags = (C4DocumentFlags)0;
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 unsafe {
                     flags = conflict.LocalDocument.c4Doc.RawDoc->flags;
