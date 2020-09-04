@@ -808,17 +808,6 @@ namespace Test
                 var error = repl.Status.Error.As<CouchbaseWebsocketException>();
                 error.Error.Should().Be((int)CouchbaseLiteError.WebSocketGoingAway);
             }
-
-            //RunReplication(
-            //    target,
-            //    ReplicatorType.PushAndPull,
-            //    false,
-            //    null,
-            //    false, //accept only self signed server cert
-            //    null,
-            //    PosixBase.GetCode(nameof(PosixWindows.EADDRINUSE)), 
-            //    CouchbaseLiteErrorType.POSIX
-            //);
         }
 
         #endregion
