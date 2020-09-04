@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -394,6 +395,11 @@ namespace Couchbase.Lite.Sync
             wrapper.PeerCertificateReceived += OnTlsCertificate;
         }
 
+        internal void CheckForCookiesToSet(WebSocketWrapper wrapper)
+        {
+            wrapper.CookiesToSetReceived += OnCookiesToSetReceived;
+        }
+
         #endregion
 
         #region Private Methods
@@ -452,6 +458,18 @@ namespace Couchbase.Lite.Sync
         {
             ((WebSocketWrapper) sender).PeerCertificateReceived -= OnTlsCertificate;
             ServerCertificate = e.PeerCertificate;
+        }
+
+        private void OnCookiesToSetReceived(object sender, string e)
+        {
+            ((WebSocketWrapper) sender).CookiesToSetReceived -= OnCookiesToSetReceived;
+
+            var remoteUrl = (Config.Target as URLEndpoint)?.Url;
+            if (remoteUrl == null) {
+                return;
+            }
+
+            Config.Database.SaveCookie(e, remoteUrl);
         }
 
         #if __IOS__
@@ -668,6 +686,22 @@ namespace Couchbase.Lite.Sync
                 addr.hostname = host.AsFLSlice();
                 addr.port = (ushort) remoteUrl.Port;
                 addr.path = path.AsFLSlice();
+
+                //get cookies from url and add to replicator options
+                var cookiestring = Config.Database.GetCookies(remoteUrl);
+                if (!String.IsNullOrEmpty(cookiestring)) {
+                    var split = cookiestring.Split(';') ?? Enumerable.Empty<string>();
+                    foreach (var entry in split) {
+                        var pieces = entry?.Split('=');
+                        if (pieces?.Length != 2) {
+                            WriteLog.To.Sync.W(Tag, "Garbage cookie value, ignoring");
+                            continue;
+                        }
+
+                        Config.Options.Cookies.Add(new Cookie(pieces[0]?.Trim(), pieces[1]?.Trim()));
+                    }
+                }
+
             } else {
                 Config.OtherDB?.CheckOpenLocked();
                 otherDB = Config.OtherDB;

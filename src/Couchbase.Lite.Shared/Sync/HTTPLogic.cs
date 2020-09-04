@@ -246,4 +246,20 @@ namespace Couchbase.Lite.Sync
 
         #endregion
     }
+
+    internal static class HttpCookieExtension
+    {
+        static Regex rxRemoveCommaFromDate = new Regex(@"\bexpires\b\=.*?(\;|$)", RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.Multiline);
+
+        internal static string ToCBLCookieString(this string cookieHeader)
+        {
+            return rxRemoveCommaFromDate.Replace(cookieHeader, new MatchEvaluator(RemoveComma));
+        }
+
+        private static string RemoveComma(Match match)
+        {
+            return match.Value.Replace(',', ' ');
+        }
+    }
+
 }

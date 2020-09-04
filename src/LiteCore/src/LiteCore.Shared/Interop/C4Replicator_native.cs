@@ -75,6 +75,21 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Cert* c4repl_getPeerTLSCertificate(C4Replicator* repl, C4Error* outErr);
+        public static bool c4db_setCookie(C4Database* db, string setCookieHeader, string fromHost, string fromPath, C4Error* outError)
+        {
+            using(var setCookieHeader_ = new C4String(setCookieHeader))
+            using(var fromHost_ = new C4String(fromHost))
+            using(var fromPath_ = new C4String(fromPath)) {
+                return NativeRaw.c4db_setCookie(db, setCookieHeader_.AsFLSlice(), fromHost_.AsFLSlice(), fromPath_.AsFLSlice(), outError);
+            }
+        }
+
+        public static string c4db_getCookies(C4Database* db, C4Address request, C4Error* error)
+        {
+            using(var retVal = NativeRaw.c4db_getCookies(db, request, error)) {
+                return ((FLSlice)retVal).CreateString();
+            }
+        }
 
 
     }
@@ -90,6 +105,13 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4repl_isDocumentPending(C4Replicator* repl, FLSlice docID, C4Error* outErr);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4db_setCookie(C4Database* db, FLSlice setCookieHeader, FLSlice fromHost, FLSlice fromPath, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4db_getCookies(C4Database* db, C4Address request, C4Error* error);
 
 
     }
