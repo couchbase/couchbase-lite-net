@@ -82,6 +82,7 @@ namespace Test
         private const ushort WssPort = 4985;
         private const string ServerCertLabel = "CBL-Server-Cert";
         private const string ClientCertLabel = "CBL-Client-Cert";
+        private const string UrlepTestDbName = "UrlepTest";
 
         #endregion
 
@@ -89,6 +90,14 @@ namespace Test
 
         private URLEndpointListener _listener;
         private X509Store _store;
+
+        private static int Counter;
+
+        #endregion
+
+        #region Properties
+
+        public Database UrlepTestDb { get; internal set; }
 
         #endregion
 
@@ -100,6 +109,7 @@ namespace Test
         public URLEndpointListenerTest()
 #endif
         {
+            ReopenUrlepTestDb();
             _store = new X509Store(StoreName.My);
         }
 
@@ -637,15 +647,12 @@ namespace Test
             var target = new DatabaseEndpoint(Db);
             var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb:OtherDb);
             var repl1 = new Replicator(config1);
-
-            Database.Delete("urlepTestDb", Directory);
-            var urlepTestDb = OpenDB("urlepTestDb");
             using (var doc2 = new MutableDocument()) {
-                urlepTestDb.Save(doc2);
+                UrlepTestDb.Save(doc2);
             }
 
             var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
-                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: urlepTestDb);
+                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: UrlepTestDb);
             var repl2 = new Replicator(config2);
 
             var wait1 = new ManualResetEventSlim();
@@ -654,7 +661,7 @@ namespace Test
             {
                 if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
                     args.Status.Progress.Total) {
-                    if (OtherDb.Count == 3 && Db.Count == 3 && urlepTestDb.Count == 3) {
+                    if (OtherDb.Count == 3 && Db.Count == 3 && UrlepTestDb.Count == 3) {
                         ((Replicator) sender).Stop();
                     }
 
@@ -680,13 +687,12 @@ namespace Test
 
             Db.Count.Should().Be(3, "because otherwise not all docs were received into Db");
             OtherDb.Count.Should().Be(3, "because otherwise not all docs were received into OtherDb");
-            urlepTestDb.Count.Should().Be(3, "because otherwise not all docs were received into urlepTestDb");
+            UrlepTestDb.Count.Should().Be(3, "because otherwise not all docs were received into UrlepTestDb");
             
             repl1.Dispose();
             repl2.Dispose();
             wait1.Dispose();
             wait2.Dispose();
-            urlepTestDb.Delete();
 
             _listener.Stop();
 
@@ -888,15 +894,12 @@ namespace Test
             var target = new DatabaseEndpoint(Db);
             var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
             var repl1 = new Replicator(config1);
-
-            Database.Delete("urlepTestDb", Directory);
-            var urlepTestDb = OpenDB("urlepTestDb");
             using (var doc2 = new MutableDocument()) {
-                urlepTestDb.Save(doc2);
+                UrlepTestDb.Save(doc2);
             }
 
             var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
-                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: urlepTestDb);
+                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: UrlepTestDb);
             var repl2 = new Replicator(config2);
 
             EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
@@ -926,20 +929,20 @@ namespace Test
                 .Should().BeTrue();
 
             OtherDb.ActiveStoppables.Count.Should().Be(2);
-            urlepTestDb.ActiveStoppables.Count.Should().Be(1);
+            UrlepTestDb.ActiveStoppables.Count.Should().Be(1);
 
             if (isCloseNotDelete) {
-                urlepTestDb.Close();
+                UrlepTestDb.Close();
                 OtherDb.Close();
             } else {
-                urlepTestDb.Delete();
+                UrlepTestDb.Delete();
                 OtherDb.Delete();
             }
 
             OtherDb.ActiveStoppables.Count.Should().Be(0);
-            urlepTestDb.ActiveStoppables.Count.Should().Be(0);
+            UrlepTestDb.ActiveStoppables.Count.Should().Be(0);
             OtherDb.IsClosedLocked.Should().Be(true);
-            urlepTestDb.IsClosedLocked.Should().Be(true);
+            UrlepTestDb.IsClosedLocked.Should().Be(true);
 
             WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, TimeSpan.FromSeconds(20))
                 .Should().BeTrue();
@@ -970,15 +973,12 @@ namespace Test
             var config1 = CreateConfig(target, replicatorType, true, 
                 serverCert: serverCert, sourceDb: Db);
             var repl1 = new Replicator(config1);
-
-            Database.Delete("urlepTestDb", Directory);
-            var urlepTestDb = OpenDB("urlepTestDb");
             using (var doc2 = new MutableDocument()) {
-                urlepTestDb.Save(doc2);
+                UrlepTestDb.Save(doc2);
             }
 
             var config2 = CreateConfig(target, replicatorType, true,
-                serverCert: serverCert, sourceDb: urlepTestDb);
+                serverCert: serverCert, sourceDb: UrlepTestDb);
             var repl2 = new Replicator(config2);
 
             var wait1 = new ManualResetEventSlim();
@@ -992,8 +992,8 @@ namespace Test
                     args.Status.Progress.Total) {
 
                     if ((replicatorType == ReplicatorType.PushAndPull && OtherDb.Count == 3
-                    && Db.Count == 3 && urlepTestDb.Count == 3) || (replicatorType == ReplicatorType.Pull && OtherDb.Count == 1
-                    && Db.Count == 2 && urlepTestDb.Count == 2)) {
+                    && Db.Count == 3 && UrlepTestDb.Count == 3) || (replicatorType == ReplicatorType.Pull && OtherDb.Count == 1
+                    && Db.Count == 2 && UrlepTestDb.Count == 2)) {
                         ((Replicator) sender).Stop();
                     }
                 } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
@@ -1031,11 +1031,11 @@ namespace Test
             if (replicatorType == ReplicatorType.PushAndPull) {
                 _listener.Config.Database.Count.Should().Be(existingDocsInListener + 2UL);
                 Db.Count.Should().Be(existingDocsInListener + 2UL);
-                urlepTestDb.Count.Should().Be(existingDocsInListener + 2UL);
+                UrlepTestDb.Count.Should().Be(existingDocsInListener + 2UL);
             } else if(replicatorType == ReplicatorType.Pull) {
                 _listener.Config.Database.Count.Should().Be(1);
                 Db.Count.Should().Be(existingDocsInListener + 1UL);
-                urlepTestDb.Count.Should().Be(existingDocsInListener + 1UL);
+                UrlepTestDb.Count.Should().Be(existingDocsInListener + 1UL);
             }
 
             repl1.RemoveChangeListener(token1);
@@ -1045,7 +1045,6 @@ namespace Test
             repl2.Dispose();
             wait1.Dispose();
             wait2.Dispose();
-            urlepTestDb.Delete();
 
             _listener.Stop();
 
@@ -1187,11 +1186,31 @@ namespace Test
             return _listener;
         }
 
+        private void OpenUrlepTestDb()
+        {
+            UrlepTestDb.Should().BeNull("because otherwise this is an invalid state to call Open");
+            var nextCounter = Interlocked.Increment(ref Counter);
+            var nextDbName = $"{UrlepTestDb}{nextCounter}";
+            Database.Delete(nextDbName, Directory);
+            UrlepTestDb = OpenDB(nextDbName);
+        }
+
+        private void ReopenUrlepTestDb()
+        {
+            UrlepTestDb?.Close();
+            UrlepTestDb = null;
+            OpenUrlepTestDb();
+        }
+
         #endregion
 
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
+
+            var name = UrlepTestDb?.Name;
+            UrlepTestDb?.Dispose();
+            UrlepTestDb = null;
 
             _store.Dispose();
             _listener.Dispose();
