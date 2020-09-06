@@ -953,6 +953,7 @@ namespace Test
             waitStoppedAssert2.Dispose();
 
             Thread.Sleep(500);
+            ReopenUrlepTestDb();
         }
 
         // Two replicators, replicates docs to the listener; validates connection status
