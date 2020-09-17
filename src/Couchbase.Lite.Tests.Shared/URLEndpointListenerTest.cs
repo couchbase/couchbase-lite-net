@@ -733,7 +733,7 @@ namespace Test
             urlepTestDb.Delete();
 
             _listener.Stop();
-
+            Database.Delete("urlepTestDb", Directory);
             Thread.Sleep(500); // wait for everything to stop
         }
 
@@ -927,69 +927,71 @@ namespace Test
 
             var target = new DatabaseEndpoint(Db);
             var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
-            var repl1 = new Replicator(config1);
+            using (var repl1 = new Replicator(config1)) {
 
-            Database.Delete("urlepTestDb", Directory);
-            var urlepTestDb = OpenDB("urlepTestDb");
-            using (var doc2 = new MutableDocument()) {
-                urlepTestDb.Save(doc2);
-            }
-
-            var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
-                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: urlepTestDb);
-            var repl2 = new Replicator(config2);
-
-            EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
-            {
-                if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
-                    args.Status.Progress.Total) {
-                    if (sender == repl1) {
-                        waitIdleAssert1.Set();
-                    } else {
-                        waitIdleAssert2.Set();
-                    }
-                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                    if (sender == repl1) {
-                        waitStoppedAssert1.Set();
-                    } else {
-                        waitStoppedAssert2.Set();
-                    }
+                Database.Delete("urlepTestDb2", Directory);
+                var urlepTestDb = OpenDB("urlepTestDb2");
+                using (var doc2 = new MutableDocument()) {
+                    urlepTestDb.Save(doc2);
                 }
-            };
 
-            repl1.AddChangeListener(changeListener);
-            repl2.AddChangeListener(changeListener);
-            repl1.Start();
-            repl2.Start();
+                var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
+                    serverCert: _listener.TlsIdentity.Certs[0], sourceDb: urlepTestDb);
+                using (var repl2 = new Replicator(config2)) {
 
-            WaitHandle.WaitAll(new[] { waitIdleAssert1.WaitHandle, waitIdleAssert2.WaitHandle }, _timeout)
-                .Should().BeTrue();
+                    EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
+                    {
+                        if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
+                            args.Status.Progress.Total) {
+                            if (sender == repl1) {
+                                waitIdleAssert1.Set();
+                            } else {
+                                waitIdleAssert2.Set();
+                            }
+                        } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                            if (sender == repl1) {
+                                waitStoppedAssert1.Set();
+                            } else {
+                                waitStoppedAssert2.Set();
+                            }
+                        }
+                    };
 
-            OtherDb.ActiveStoppables.Count.Should().Be(2);
-            urlepTestDb.ActiveStoppables.Count.Should().Be(1);
+                    repl1.AddChangeListener(changeListener);
+                    repl2.AddChangeListener(changeListener);
+                    repl1.Start();
+                    repl2.Start();
 
-            if (isCloseNotDelete) {
-                urlepTestDb.Close();
-                OtherDb.Close();
-            } else {
-                urlepTestDb.Delete();
-                OtherDb.Delete();
+                    WaitHandle.WaitAll(new[] { waitIdleAssert1.WaitHandle, waitIdleAssert2.WaitHandle }, _timeout)
+                        .Should().BeTrue();
+
+                    OtherDb.ActiveStoppables.Count.Should().Be(2);
+                    urlepTestDb.ActiveStoppables.Count.Should().Be(1);
+
+                    if (isCloseNotDelete) {
+                        urlepTestDb.Close();
+                        OtherDb.Close();
+                    } else {
+                        urlepTestDb.Delete();
+                        OtherDb.Delete();
+                    }
+
+                    OtherDb.ActiveStoppables.Count.Should().Be(0);
+                    urlepTestDb.ActiveStoppables.Count.Should().Be(0);
+                    OtherDb.IsClosedLocked.Should().Be(true);
+                    urlepTestDb.IsClosedLocked.Should().Be(true);
+
+                    WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, TimeSpan.FromSeconds(20))
+                        .Should().BeTrue();
+
+                    waitIdleAssert1.Dispose();
+                    waitIdleAssert2.Dispose();
+                    waitStoppedAssert1.Dispose();
+                    waitStoppedAssert2.Dispose();
+
+                    Database.Delete("urlepTestDb2", Directory);
+                }
             }
-
-            OtherDb.ActiveStoppables.Count.Should().Be(0);
-            urlepTestDb.ActiveStoppables.Count.Should().Be(0);
-            OtherDb.IsClosedLocked.Should().Be(true);
-            urlepTestDb.IsClosedLocked.Should().Be(true);
-
-            WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, TimeSpan.FromSeconds(20))
-                .Should().BeTrue();
-
-            waitIdleAssert1.Dispose();
-            waitIdleAssert2.Dispose();
-            waitStoppedAssert1.Dispose();
-            waitStoppedAssert2.Dispose();
-
-            Thread.Sleep(500);
         }
 
         // Two replicators, replicates docs to the listener; validates connection status
@@ -1009,87 +1011,84 @@ namespace Test
             var serverCert = _listener.TlsIdentity.Certs[0];
             var config1 = CreateConfig(target, replicatorType, true, 
                 serverCert: serverCert, sourceDb: Db);
-            var repl1 = new Replicator(config1);
-
-            Database.Delete("urlepTestDb", Directory);
-            var urlepTestDb = OpenDB("urlepTestDb");
-            using (var doc2 = new MutableDocument()) {
-                urlepTestDb.Save(doc2);
-            }
-
-            var config2 = CreateConfig(target, replicatorType, true,
-                serverCert: serverCert, sourceDb: urlepTestDb);
-            var repl2 = new Replicator(config2);
-
-            var wait1 = new ManualResetEventSlim();
-            var wait2 = new ManualResetEventSlim();
-            EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
-            {
-                maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
-                maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
-
-                if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
-                    args.Status.Progress.Total) {
-
-                    if ((replicatorType == ReplicatorType.PushAndPull && OtherDb.Count == 3
-                    && Db.Count == 3 && urlepTestDb.Count == 3) || (replicatorType == ReplicatorType.Pull && OtherDb.Count == 1
-                    && Db.Count == 2 && urlepTestDb.Count == 2)) {
-                        ((Replicator) sender).Stop();
+            using (var repl1 = new Replicator(config1)) {
+                Database.Delete("urlepTestDb1", Directory);
+                using (var urlepTestDb = OpenDB("urlepTestDb1")) {
+                    using (var doc2 = new MutableDocument()) {
+                        urlepTestDb.Save(doc2);
                     }
-                } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                    if (sender == repl1) {
-                        wait1.Set();
-                    } else {
-                        wait2.Set();
+
+                    var config2 = CreateConfig(target, replicatorType, true,
+                        serverCert: serverCert, sourceDb: urlepTestDb);
+                    using (var repl2 = new Replicator(config2)) {
+                        var wait1 = new ManualResetEventSlim();
+                        var wait2 = new ManualResetEventSlim();
+                        EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
+                        {
+                            maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
+                            maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
+
+                            if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
+                                args.Status.Progress.Total) {
+
+                                if ((replicatorType == ReplicatorType.PushAndPull && OtherDb.Count == 3
+                                && Db.Count == 3 && urlepTestDb.Count == 3) || (replicatorType == ReplicatorType.Pull && OtherDb.Count == 1
+                                && Db.Count == 2 && urlepTestDb.Count == 2)) {
+                                    ((Replicator) sender).Stop();
+                                }
+                            } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                                if (sender == repl1) {
+                                    wait1.Set();
+                                } else {
+                                    wait2.Set();
+                                }
+                            }
+                        };
+
+                        var token1 = repl1.AddChangeListener(changeListener);
+                        var token2 = repl2.AddChangeListener(changeListener);
+
+                        repl1.Start();
+                        repl2.Start();
+
+                        while (repl1.Status.Activity != ReplicatorActivityLevel.Busy ||
+                            repl2.Status.Activity != ReplicatorActivityLevel.Busy) {
+                            Thread.Sleep(100);
+                        }
+
+                        // For some reason running on mac throws off the timing enough so that the active connection count
+                        // of 1 is never seen.  So record the value right after it becomes busy.
+                        maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
+                        maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
+
+                        WaitHandle.WaitAll(new[] { wait1.WaitHandle, wait2.WaitHandle }, TimeSpan.FromSeconds(30))
+                            .Should().BeTrue();
+
+                        maxConnectionCount.Should().Be(2);
+                        maxActiveCount.Should().Be(2);
+
+                        // all data are transferred to/from
+                        if (replicatorType == ReplicatorType.PushAndPull) {
+                            _listener.Config.Database.Count.Should().Be(existingDocsInListener + 2UL);
+                            Db.Count.Should().Be(existingDocsInListener + 2UL);
+                            urlepTestDb.Count.Should().Be(existingDocsInListener + 2UL);
+                        } else if (replicatorType == ReplicatorType.Pull) {
+                            _listener.Config.Database.Count.Should().Be(1);
+                            Db.Count.Should().Be(existingDocsInListener + 1UL);
+                            urlepTestDb.Count.Should().Be(existingDocsInListener + 1UL);
+                        }
+
+                        repl1.RemoveChangeListener(token1);
+                        repl2.RemoveChangeListener(token2);
+
+                        wait1.Dispose();
+                        wait2.Dispose();
                     }
                 }
-            };
-
-            var token1 = repl1.AddChangeListener(changeListener);
-            var token2 = repl2.AddChangeListener(changeListener);
-
-            repl1.Start();
-            repl2.Start();
-
-            while (repl1.Status.Activity != ReplicatorActivityLevel.Busy ||
-                repl2.Status.Activity != ReplicatorActivityLevel.Busy) {
-                Thread.Sleep(100);
             }
 
-            // For some reason running on mac throws off the timing enough so that the active connection count
-            // of 1 is never seen.  So record the value right after it becomes busy.
-            maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
-            maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
-
-            WaitHandle.WaitAll(new[] { wait1.WaitHandle, wait2.WaitHandle }, TimeSpan.FromSeconds(30))
-                .Should().BeTrue();
-
-            maxConnectionCount.Should().Be(2);
-            maxActiveCount.Should().Be(2);
-
-            // all data are transferred to/from
-            if (replicatorType == ReplicatorType.PushAndPull) {
-                _listener.Config.Database.Count.Should().Be(existingDocsInListener + 2UL);
-                Db.Count.Should().Be(existingDocsInListener + 2UL);
-                urlepTestDb.Count.Should().Be(existingDocsInListener + 2UL);
-            } else if(replicatorType == ReplicatorType.Pull) {
-                _listener.Config.Database.Count.Should().Be(1);
-                Db.Count.Should().Be(existingDocsInListener + 1UL);
-                urlepTestDb.Count.Should().Be(existingDocsInListener + 1UL);
-            }
-
-            repl1.RemoveChangeListener(token1);
-            repl2.RemoveChangeListener(token2);
-
-            repl1.Dispose();
-            repl2.Dispose();
-            wait1.Dispose();
-            wait2.Dispose();
-            urlepTestDb.Delete();
-
+            Database.Delete("urlepTestDb1", Directory);
             _listener.Stop();
-
-            Thread.Sleep(500);
         }
 
         private void RunReplicatorServerCert(Replicator repl, bool hasIdle, X509Certificate2 serverCert)
