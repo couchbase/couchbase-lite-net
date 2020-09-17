@@ -333,7 +333,7 @@ namespace Test
                 .BeGreaterThan(1, "because otherwise there were no callbacks to the change listener");
         }
 
-        //[Fact] UWP hang
+        [Fact]
         public void TestRemoveChangeListener()
         {
             var statuses = new List<ReplicatorActivityLevel>();
