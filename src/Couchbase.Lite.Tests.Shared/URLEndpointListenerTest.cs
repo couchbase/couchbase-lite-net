@@ -860,10 +860,6 @@ namespace Test
 
         private void WithActiveReplicatorAndURLEndpointListeners(bool isCloseNotDelete)
         {
-            Db.Delete();
-            ReopenDB();
-
-            ReopenOtherDb();
             WaitAssert waitIdleAssert1 = new WaitAssert();
             WaitAssert waitStoppedAssert1 = new WaitAssert();
 
