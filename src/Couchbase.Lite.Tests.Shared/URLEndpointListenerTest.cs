@@ -1065,7 +1065,7 @@ namespace Test
             maxConnectionCount = Math.Max(maxConnectionCount, _listener.Status.ConnectionCount);
             maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
 
-            WaitHandle.WaitAll(new[] { wait1.WaitHandle, wait2.WaitHandle }, TimeSpan.FromSeconds(20))
+            WaitHandle.WaitAll(new[] { wait1.WaitHandle, wait2.WaitHandle }, TimeSpan.FromSeconds(30))
                 .Should().BeTrue();
 
             maxConnectionCount.Should().Be(2);
@@ -1235,6 +1235,7 @@ namespace Test
 
         protected override void Dispose(bool disposing)
         {
+            _listener?.DeleteAnonymousTLSIdentity();
             base.Dispose(disposing);
 
             _store.Dispose();
