@@ -925,12 +925,12 @@ namespace Test
                 Db.Save(doc1);
             }
 
-            var target = new DatabaseEndpoint(Db);
-            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
+            var config1 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
+                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: Db);
             var repl1 = new Replicator(config1);
 
-            Database.Delete("urlepTestDb", Directory);
-            var urlepTestDb = OpenDB("urlepTestDb");
+            Database.Delete("urlepTestDb2", Directory);
+            var urlepTestDb = OpenDB("urlepTestDb2");
             using (var doc2 = new MutableDocument()) {
                 urlepTestDb.Save(doc2);
             }
@@ -965,31 +965,36 @@ namespace Test
             WaitHandle.WaitAll(new[] { waitIdleAssert1.WaitHandle, waitIdleAssert2.WaitHandle }, _timeout)
                 .Should().BeTrue();
 
-            OtherDb.ActiveStoppables.Count.Should().Be(2);
+            Db.ActiveStoppables.Count.Should().Be(1);
             urlepTestDb.ActiveStoppables.Count.Should().Be(1);
+            OtherDb.ActiveStoppables.Count.Should().Be(1);
 
             if (isCloseNotDelete) {
-                urlepTestDb.Close();
-                OtherDb.Close();
+                urlepTestDb.Close(); //repl2
+                Db.Close(); //repl1
+                OtherDb.Close(); //listener
             } else {
-                urlepTestDb.Delete();
-                OtherDb.Delete();
+                urlepTestDb.Delete();//repl2
+                Db.Delete(); //repl1
+                OtherDb.Delete(); //listener
             }
 
-            OtherDb.ActiveStoppables.Count.Should().Be(0);
+            Db.ActiveStoppables.Count.Should().Be(0);
             urlepTestDb.ActiveStoppables.Count.Should().Be(0);
-            OtherDb.IsClosedLocked.Should().Be(true);
+            OtherDb.ActiveStoppables.Count.Should().Be(0);
+            Db.IsClosedLocked.Should().Be(true);
             urlepTestDb.IsClosedLocked.Should().Be(true);
+            OtherDb.IsClosedLocked.Should().Be(true);
 
             WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, TimeSpan.FromSeconds(20))
                 .Should().BeTrue();
 
+            repl1.Dispose();
+            repl2.Dispose();
             waitIdleAssert1.Dispose();
             waitIdleAssert2.Dispose();
             waitStoppedAssert1.Dispose();
             waitStoppedAssert2.Dispose();
-
-            Thread.Sleep(500);
         }
 
         // Two replicators, replicates docs to the listener; validates connection status
@@ -1011,8 +1016,8 @@ namespace Test
                 serverCert: serverCert, sourceDb: Db);
             var repl1 = new Replicator(config1);
 
-            Database.Delete("urlepTestDb", Directory);
-            var urlepTestDb = OpenDB("urlepTestDb");
+            Database.Delete("urlepTestDb1", Directory);
+            var urlepTestDb = OpenDB("urlepTestDb1");
             using (var doc2 = new MutableDocument()) {
                 urlepTestDb.Save(doc2);
             }
@@ -1088,8 +1093,6 @@ namespace Test
             urlepTestDb.Delete();
 
             _listener.Stop();
-
-            Thread.Sleep(500);
         }
 
         private void RunReplicatorServerCert(Replicator repl, bool hasIdle, X509Certificate2 serverCert)
