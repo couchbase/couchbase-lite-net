@@ -918,15 +918,14 @@ namespace Test
                 OtherDb.Save(doc);
             }
 
-            _listener = CreateListener();
+            _listener = CreateListener(false);
             _listener.Config.Database.ActiveStoppables.Count.Should().Be(1);
 
             using (var doc1 = new MutableDocument()) {
                 Db.Save(doc1);
             }
 
-            var config1 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
-                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: Db);
+            var config1 = CreateConfig(new DatabaseEndpoint(OtherDb), ReplicatorType.PushAndPull, true, sourceDb: Db);
             var repl1 = new Replicator(config1);
 
             Database.Delete("urlepTestDb2", Directory);
@@ -935,8 +934,7 @@ namespace Test
                 urlepTestDb.Save(doc2);
             }
 
-            var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
-                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: urlepTestDb);
+            var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true, sourceDb: urlepTestDb);
             var repl2 = new Replicator(config2);
 
             EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
