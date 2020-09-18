@@ -863,8 +863,8 @@ namespace Test
             WaitAssert waitIdleAssert1 = new WaitAssert();
             WaitAssert waitStoppedAssert1 = new WaitAssert();
 
-            _listener = CreateListener();
-            var _listener2 = CreateNewListener();
+            _listener = CreateListener(false);
+            var _listener2 = CreateNewListener(false);
 
             _listener.Config.Database.ActiveStoppables.Count.Should().Be(2);
             _listener2.Config.Database.ActiveStoppables.Count.Should().Be(2);
