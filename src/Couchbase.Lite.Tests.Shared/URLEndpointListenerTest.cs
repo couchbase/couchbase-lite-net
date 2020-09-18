@@ -1228,11 +1228,11 @@ namespace Test
             return _listener;
         }
 
-        private URLEndpointListener CreateNewListener()
+        private URLEndpointListener CreateNewListener(bool tls = true)
         {
             var config = new URLEndpointListenerConfiguration(OtherDb);
             config.Port = 0;
-            config.DisableTLS = false;
+            config.DisableTLS = !tls;
 
             var listener = new URLEndpointListener(config);
             listener.Start();
