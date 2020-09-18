@@ -637,7 +637,7 @@ namespace Test
         public void TestMultipleListenersOnSameDatabase()
         {
             _listener = CreateListener();
-            var _listener2 = CreateListener();
+            var _listener2 = CreateNewListener();
 
             using (var doc1 = new MutableDocument("doc1"))
             using (var doc2 = new MutableDocument("doc2")) {
@@ -864,10 +864,10 @@ namespace Test
             WaitAssert waitStoppedAssert1 = new WaitAssert();
 
             _listener = CreateListener();
-            var _listener2 = CreateListener();
+            var _listener2 = CreateNewListener();
 
-            _listener.Config.Database.ActiveStoppables.Count.Should().Be(1);
-            _listener2.Config.Database.ActiveStoppables.Count.Should().Be(1);
+            _listener.Config.Database.ActiveStoppables.Count.Should().Be(2);
+            _listener2.Config.Database.ActiveStoppables.Count.Should().Be(2);
 
             using (var doc1 = new MutableDocument("doc1"))
             using (var doc2 = new MutableDocument("doc2")) {
@@ -893,7 +893,7 @@ namespace Test
             repl1.Start();
 
             waitIdleAssert1.WaitForResult(TimeSpan.FromSeconds(10));
-            OtherDb.ActiveStoppables.Count.Should().Be(2);
+            OtherDb.ActiveStoppables.Count.Should().Be(3);
 
             if (isCloseNotDelete) {
                 OtherDb.Close();
@@ -1224,6 +1224,17 @@ namespace Test
                 ne.Error.Should().Be(expectedErrCode);
             }
 
+            return _listener;
+        }
+
+        private URLEndpointListener CreateNewListener()
+        {
+            var config = new URLEndpointListenerConfiguration(OtherDb);
+            config.Port = 0;
+            config.DisableTLS = false;
+
+            var listener = new URLEndpointListener(config);
+            listener.Start();
             return _listener;
         }
 
