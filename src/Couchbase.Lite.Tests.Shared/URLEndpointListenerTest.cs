@@ -716,7 +716,7 @@ namespace Test
 
             repl1.Start();
             repl2.Start();
-            WaitHandle.WaitAll(new[] {wait1.WaitHandle, wait2.WaitHandle}, TimeSpan.FromSeconds(20))
+            WaitHandle.WaitAll(new[] {wait1.WaitHandle, wait2.WaitHandle}, TimeSpan.FromSeconds(30))
                 .Should().BeTrue();
 
             repl1.RemoveChangeListener(token1);
