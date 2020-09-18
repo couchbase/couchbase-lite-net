@@ -905,9 +905,6 @@ namespace Test
             OtherDb.IsClosedLocked.Should().Be(true);
 
             waitStoppedAssert1.WaitForResult(TimeSpan.FromSeconds(30));
-
-            _listener.Stop();
-            _listener2.Stop();
         }
 
         private void WithActiveReplicationsAndURLEndpointListener(bool isCloseNotDelete)
