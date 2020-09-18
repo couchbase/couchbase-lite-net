@@ -158,9 +158,10 @@ namespace Test
             _listener.TlsIdentity.Should().BeNull();
 
             // Anonymous Identity
-            _listener = CreateListener(true);
+            _listener = CreateListener();
             _listener.TlsIdentity.Should().NotBeNull();
             _listener.Stop();
+            _listener.DeleteAnonymousTLSIdentity();
             _listener.TlsIdentity.Should().BeNull();
 
             // User Identity
@@ -178,6 +179,7 @@ namespace Test
             _listener.TlsIdentity.Should().NotBeNull();
             _listener.TlsIdentity.Should().BeEquivalentTo(config.TlsIdentity);
             _listener.Stop();
+            _listener.DeleteAnonymousTLSIdentity();
             _listener.TlsIdentity.Should().BeNull();
         }
 
@@ -345,6 +347,7 @@ namespace Test
             );
 
             _listener.Stop();
+            _listener.DeleteAnonymousTLSIdentity();
             _listener = CreateListener(true, true, badAuth);
 
             RunReplication(
@@ -358,8 +361,9 @@ namespace Test
                 CouchbaseLiteErrorType.CouchbaseLite
             );
 
+            _listener.Stop();
+            _listener.DeleteAnonymousTLSIdentity();
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
-            
         }
 
         [Fact]
@@ -398,6 +402,7 @@ namespace Test
 
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
             _listener.Stop();
+            _listener.DeleteAnonymousTLSIdentity();
         }
 
         [Fact]
@@ -438,6 +443,7 @@ namespace Test
 
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
             _listener.Stop();
+            _listener.DeleteAnonymousTLSIdentity();
         }
 
         [Fact]
@@ -482,6 +488,7 @@ namespace Test
             OtherDb.Count.Should().Be(1);
 
             _listener.Stop();
+            _listener.DeleteAnonymousTLSIdentity();
         }
 
         [Fact]
@@ -518,6 +525,7 @@ namespace Test
             );
 
             _listener.Stop();
+            _listener.DeleteAnonymousTLSIdentity();
         }
 
         [Fact]
@@ -555,6 +563,7 @@ namespace Test
             );
 
             _listener.Stop();
+            _listener.DeleteAnonymousTLSIdentity();
         }
 
         [Fact]
@@ -593,6 +602,7 @@ namespace Test
             );
 
             _listener.Stop();
+            _listener.DeleteAnonymousTLSIdentity();
         }
 
         [Fact]
@@ -659,7 +669,9 @@ namespace Test
             );
 
             _listener.Stop();
+            _listener.DeleteAnonymousTLSIdentity();
             _listener2.Stop();
+            _listener2.DeleteAnonymousTLSIdentity();
 
             OtherDb.Count.Should().Be(2);
         }
@@ -733,8 +745,7 @@ namespace Test
             urlepTestDb.Delete();
 
             _listener.Stop();
-
-            Thread.Sleep(500); // wait for everything to stop
+            _listener.DeleteAnonymousTLSIdentity();
         }
 
         [Fact]
@@ -756,6 +767,7 @@ namespace Test
                 CouchbaseLiteErrorType.CouchbaseLite);
 
             _listener.Stop();
+            _listener.DeleteAnonymousTLSIdentity();
         }
 
         [Fact]
@@ -765,6 +777,7 @@ namespace Test
             OtherDb.Close();
             _listener.Port.Should().Be(0);
             _listener.Urls.Should().BeEmpty();
+            _listener.DeleteAnonymousTLSIdentity();
         }
 
         [Fact]
@@ -826,8 +839,7 @@ namespace Test
             _listener = Listen(config);
 
             var target = _listener.LocalEndpoint();
-            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true,
-                serverCert: null);
+            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true);
             using (var repl = new Replicator(config1)) {
                 var token = repl.AddChangeListener((sender, args) =>
                 {
@@ -1091,6 +1103,7 @@ namespace Test
             urlepTestDb.Delete();
 
             _listener.Stop();
+            _listener.DeleteAnonymousTLSIdentity();
         }
 
         private void RunReplicatorServerCert(Replicator repl, bool hasIdle, X509Certificate2 serverCert)
@@ -1155,6 +1168,7 @@ namespace Test
             }
 
             _listener.Stop();
+            _listener.DeleteAnonymousTLSIdentity();
         }
 
         private URLEndpointListenerConfiguration CreateListenerConfig(bool tls = true, bool useDynamicPort = true,
