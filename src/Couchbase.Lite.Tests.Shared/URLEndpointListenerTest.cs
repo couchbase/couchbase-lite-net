@@ -636,32 +636,8 @@ namespace Test
         [Fact]
         public void TestMultipleListenersOnSameDatabase()
         {
-            _listener = CreateListener();
-            var _listener2 = CreateNewListener();
-
-            using (var doc1 = new MutableDocument("doc1"))
-            using (var doc2 = new MutableDocument("doc2")) {
-                doc1.SetString("name", "Sam");
-                Db.Save(doc1);
-                doc2.SetString("name", "Mary");
-                OtherDb.Save(doc2);
-            }
-
-            RunReplication(
-                _listener.LocalEndpoint(),
-                ReplicatorType.PushAndPull,
-                false,
-                null,
-                false, //accept only self signed server cert
-                _listener.TlsIdentity.Certs[0],
-                0,
-                0
-            );
-
-            _listener.Stop();
-            _listener2.Stop();
-
-            OtherDb.Count.Should().Be(2);
+            //change to true to test fix of https://issues.couchbase.com/browse/CBL-1305
+            MultipleListenersOnSameDatabase(false);
         }
 
         // A three way replication with one database acting as both a listener
@@ -858,13 +834,13 @@ namespace Test
 
         #region Private Methods
 
-        private void WithActiveReplicatorAndURLEndpointListeners(bool isCloseNotDelete)
+        private void WithActiveReplicatorAndURLEndpointListeners(bool isCloseNotDelete, bool tls = true)
         {
             WaitAssert waitIdleAssert1 = new WaitAssert();
             WaitAssert waitStoppedAssert1 = new WaitAssert();
 
-            _listener = CreateListener(false);
-            var _listener2 = CreateNewListener(false);
+            _listener = CreateListener(tls);
+            var _listener2 = CreateNewListener(tls);
 
             _listener.Config.Database.ActiveStoppables.Count.Should().Be(2);
             _listener2.Config.Database.ActiveStoppables.Count.Should().Be(2);
@@ -877,8 +853,11 @@ namespace Test
                 OtherDb.Save(doc2);
             }
 
-            var target = new DatabaseEndpoint(Db);
-            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
+            var config1 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true);
+            if (tls) {
+                config1.PinnedServerCertificate = _listener.TlsIdentity.Certs[0];
+            }
+
             var repl1 = new Replicator(config1);
             repl1.AddChangeListener((sender, args) => {
                 waitIdleAssert1.RunConditionalAssert(() => {
@@ -893,11 +872,14 @@ namespace Test
             repl1.Start();
 
             waitIdleAssert1.WaitForResult(TimeSpan.FromSeconds(10));
-            OtherDb.ActiveStoppables.Count.Should().Be(3);
+            OtherDb.ActiveStoppables.Count.Should().Be(2);
+            Db.ActiveStoppables.Count.Should().Be(1);
 
             if (isCloseNotDelete) {
+                Db.Close();
                 OtherDb.Close();
             } else {
+                Db.Delete();
                 OtherDb.Delete();
             }
 
@@ -993,6 +975,36 @@ namespace Test
             waitIdleAssert2.Dispose();
             waitStoppedAssert1.Dispose();
             waitStoppedAssert2.Dispose();
+        }
+
+        private void MultipleListenersOnSameDatabase(bool tls = true)
+        {
+            _listener = CreateListener(tls);
+            var _listener2 = CreateNewListener(tls);
+
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetString("name", "Sam");
+                Db.Save(doc1);
+                doc2.SetString("name", "Mary");
+                OtherDb.Save(doc2);
+            }
+
+            RunReplication(
+                _listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull,
+                false,
+                null,
+                false, //accept only self signed server cert
+                tls == true ? _listener.TlsIdentity.Certs[0] : null,
+                0,
+                0
+            );
+
+            _listener.Stop();
+            _listener2.Stop();
+
+            OtherDb.Count.Should().Be(2);
         }
 
         // Two replicators, replicates docs to the listener; validates connection status
