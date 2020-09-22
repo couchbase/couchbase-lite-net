@@ -636,32 +636,8 @@ namespace Test
         [Fact]
         public void TestMultipleListenersOnSameDatabase()
         {
-            _listener = CreateListener();
-            var _listener2 = CreateNewListener();
-
-            using (var doc1 = new MutableDocument("doc1"))
-            using (var doc2 = new MutableDocument("doc2")) {
-                doc1.SetString("name", "Sam");
-                Db.Save(doc1);
-                doc2.SetString("name", "Mary");
-                OtherDb.Save(doc2);
-            }
-
-            RunReplication(
-                _listener.LocalEndpoint(),
-                ReplicatorType.PushAndPull,
-                false,
-                null,
-                false, //accept only self signed server cert
-                _listener.TlsIdentity.Certs[0],
-                0,
-                0
-            );
-
-            _listener.Stop();
-            _listener2.Stop();
-
-            OtherDb.Count.Should().Be(2);
+            //change to true to test fix of https://issues.couchbase.com/browse/CBL-1305
+            MultipleListenersOnSameDatabase(false);
         }
 
         // A three way replication with one database acting as both a listener
@@ -716,7 +692,7 @@ namespace Test
 
             repl1.Start();
             repl2.Start();
-            WaitHandle.WaitAll(new[] {wait1.WaitHandle, wait2.WaitHandle}, TimeSpan.FromSeconds(20))
+            WaitHandle.WaitAll(new[] {wait1.WaitHandle, wait2.WaitHandle}, TimeSpan.FromSeconds(30))
                 .Should().BeTrue();
 
             repl1.RemoveChangeListener(token1);
@@ -811,10 +787,10 @@ namespace Test
         public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
 
         [Fact]
-        public void TestCloseWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(true);
+        public void TestCloseWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(true, false);
 
         [Fact]
-        public void TestDeleteWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(false);
+        public void TestDeleteWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(false, false);
 
         [Fact]
         public void TestStopListener()
@@ -858,13 +834,13 @@ namespace Test
 
         #region Private Methods
 
-        private void WithActiveReplicatorAndURLEndpointListeners(bool isCloseNotDelete)
+        private void WithActiveReplicatorAndURLEndpointListeners(bool isCloseNotDelete, bool tls = true)
         {
             WaitAssert waitIdleAssert1 = new WaitAssert();
             WaitAssert waitStoppedAssert1 = new WaitAssert();
 
-            _listener = CreateListener();
-            var _listener2 = CreateNewListener();
+            _listener = CreateListener(tls);
+            var _listener2 = CreateNewListener(tls);
 
             _listener.Config.Database.ActiveStoppables.Count.Should().Be(2);
             _listener2.Config.Database.ActiveStoppables.Count.Should().Be(2);
@@ -877,8 +853,11 @@ namespace Test
                 OtherDb.Save(doc2);
             }
 
-            var target = new DatabaseEndpoint(Db);
-            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
+            var config1 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true);
+            if (tls) {
+                config1.PinnedServerCertificate = _listener.TlsIdentity.Certs[0];
+            }
+
             var repl1 = new Replicator(config1);
             repl1.AddChangeListener((sender, args) => {
                 waitIdleAssert1.RunConditionalAssert(() => {
@@ -893,11 +872,14 @@ namespace Test
             repl1.Start();
 
             waitIdleAssert1.WaitForResult(TimeSpan.FromSeconds(10));
-            OtherDb.ActiveStoppables.Count.Should().Be(3);
+            OtherDb.ActiveStoppables.Count.Should().Be(2);
+            Db.ActiveStoppables.Count.Should().Be(1);
 
             if (isCloseNotDelete) {
+                Db.Close();
                 OtherDb.Close();
             } else {
+                Db.Delete();
                 OtherDb.Delete();
             }
 
@@ -905,9 +887,6 @@ namespace Test
             OtherDb.IsClosedLocked.Should().Be(true);
 
             waitStoppedAssert1.WaitForResult(TimeSpan.FromSeconds(30));
-
-            _listener.Stop();
-            _listener2.Stop();
         }
 
         private void WithActiveReplicationsAndURLEndpointListener(bool isCloseNotDelete)
@@ -921,25 +900,23 @@ namespace Test
                 OtherDb.Save(doc);
             }
 
-            _listener = CreateListener();
+            _listener = CreateListener(false);
             _listener.Config.Database.ActiveStoppables.Count.Should().Be(1);
 
             using (var doc1 = new MutableDocument()) {
                 Db.Save(doc1);
             }
 
-            var target = new DatabaseEndpoint(Db);
-            var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
+            var config1 = CreateConfig(new DatabaseEndpoint(OtherDb), ReplicatorType.PushAndPull, true, sourceDb: Db);
             var repl1 = new Replicator(config1);
 
-            Database.Delete("urlepTestDb", Directory);
-            var urlepTestDb = OpenDB("urlepTestDb");
+            Database.Delete("urlepTestDb2", Directory);
+            var urlepTestDb = OpenDB("urlepTestDb2");
             using (var doc2 = new MutableDocument()) {
                 urlepTestDb.Save(doc2);
             }
 
-            var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
-                serverCert: _listener.TlsIdentity.Certs[0], sourceDb: urlepTestDb);
+            var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true, sourceDb: urlepTestDb);
             var repl2 = new Replicator(config2);
 
             EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
@@ -968,31 +945,66 @@ namespace Test
             WaitHandle.WaitAll(new[] { waitIdleAssert1.WaitHandle, waitIdleAssert2.WaitHandle }, _timeout)
                 .Should().BeTrue();
 
-            OtherDb.ActiveStoppables.Count.Should().Be(2);
+            Db.ActiveStoppables.Count.Should().Be(1);
             urlepTestDb.ActiveStoppables.Count.Should().Be(1);
+            OtherDb.ActiveStoppables.Count.Should().Be(1);
 
             if (isCloseNotDelete) {
-                urlepTestDb.Close();
-                OtherDb.Close();
+                urlepTestDb.Close(); //repl2
+                Db.Close(); //repl1
+                OtherDb.Close(); //listener
             } else {
-                urlepTestDb.Delete();
-                OtherDb.Delete();
+                urlepTestDb.Delete();//repl2
+                Db.Delete(); //repl1
+                OtherDb.Delete(); //listener
             }
 
-            OtherDb.ActiveStoppables.Count.Should().Be(0);
+            Db.ActiveStoppables.Count.Should().Be(0);
             urlepTestDb.ActiveStoppables.Count.Should().Be(0);
-            OtherDb.IsClosedLocked.Should().Be(true);
+            OtherDb.ActiveStoppables.Count.Should().Be(0);
+            Db.IsClosedLocked.Should().Be(true);
             urlepTestDb.IsClosedLocked.Should().Be(true);
+            OtherDb.IsClosedLocked.Should().Be(true);
 
             WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, TimeSpan.FromSeconds(20))
                 .Should().BeTrue();
 
+            repl1.Dispose();
+            repl2.Dispose();
             waitIdleAssert1.Dispose();
             waitIdleAssert2.Dispose();
             waitStoppedAssert1.Dispose();
             waitStoppedAssert2.Dispose();
+        }
 
-            Thread.Sleep(500);
+        private void MultipleListenersOnSameDatabase(bool tls = true)
+        {
+            _listener = CreateListener(tls);
+            var _listener2 = CreateNewListener(tls);
+
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc1.SetString("name", "Sam");
+                Db.Save(doc1);
+                doc2.SetString("name", "Mary");
+                OtherDb.Save(doc2);
+            }
+
+            RunReplication(
+                _listener.LocalEndpoint(),
+                ReplicatorType.PushAndPull,
+                false,
+                null,
+                false, //accept only self signed server cert
+                tls == true ? _listener.TlsIdentity.Certs[0] : null,
+                0,
+                0
+            );
+
+            _listener.Stop();
+            _listener2.Stop();
+
+            OtherDb.Count.Should().Be(2);
         }
 
         // Two replicators, replicates docs to the listener; validates connection status
@@ -1014,8 +1026,8 @@ namespace Test
                 serverCert: serverCert, sourceDb: Db);
             var repl1 = new Replicator(config1);
 
-            Database.Delete("urlepTestDb", Directory);
-            var urlepTestDb = OpenDB("urlepTestDb");
+            Database.Delete("urlepTestDb1", Directory);
+            var urlepTestDb = OpenDB("urlepTestDb1");
             using (var doc2 = new MutableDocument()) {
                 urlepTestDb.Save(doc2);
             }
@@ -1091,8 +1103,6 @@ namespace Test
             urlepTestDb.Delete();
 
             _listener.Stop();
-
-            Thread.Sleep(500);
         }
 
         private void RunReplicatorServerCert(Replicator repl, bool hasIdle, X509Certificate2 serverCert)
@@ -1230,11 +1240,11 @@ namespace Test
             return _listener;
         }
 
-        private URLEndpointListener CreateNewListener()
+        private URLEndpointListener CreateNewListener(bool tls = true)
         {
             var config = new URLEndpointListenerConfiguration(OtherDb);
             config.Port = 0;
-            config.DisableTLS = false;
+            config.DisableTLS = !tls;
 
             var listener = new URLEndpointListener(config);
             listener.Start();
