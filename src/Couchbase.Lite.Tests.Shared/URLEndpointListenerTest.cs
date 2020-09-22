@@ -787,10 +787,10 @@ namespace Test
         public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
 
         [Fact]
-        public void TestCloseWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(true);
+        public void TestCloseWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(true, false);
 
         [Fact]
-        public void TestDeleteWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(false);
+        public void TestDeleteWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(false, false);
 
         [Fact]
         public void TestStopListener()
