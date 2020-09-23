@@ -636,8 +636,7 @@ namespace Test
         [Fact]
         public void TestMultipleListenersOnSameDatabase()
         {
-            //change to true to test fix of https://issues.couchbase.com/browse/CBL-1305
-            MultipleListenersOnSameDatabase(false);
+            MultipleListenersOnSameDatabase();
         }
 
         // A three way replication with one database acting as both a listener
@@ -787,10 +786,10 @@ namespace Test
         public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
 
         [Fact]
-        public void TestCloseWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(true, false);
+        public void TestCloseWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(true);
 
         [Fact]
-        public void TestDeleteWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(false, false);
+        public void TestDeleteWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(false);
 
         [Fact]
         public void TestStopListener()
