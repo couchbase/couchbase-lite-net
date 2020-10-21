@@ -653,7 +653,7 @@ namespace LiteCore.Tests
 
         #if COUCHBASE_ENTERPRISE
 
-        [Fact]
+        //[Fact]
         public void TestDatabaseRekey()
         {
             RunTestVariants(() =>
