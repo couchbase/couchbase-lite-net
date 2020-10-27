@@ -789,7 +789,7 @@ namespace Test
             ValidateMultipleReplicationsTo(ReplicatorType.PushAndPull);
         }
 
-        [Fact]
+        //[Fact] uwp
         public void TestMultipleReplicatorsOnReadOnlyListener()
         {
             var config = CreateListenerConfig();
@@ -804,10 +804,10 @@ namespace Test
             ValidateMultipleReplicationsTo(ReplicatorType.Pull);
         }
 
-        [Fact]
+        //[Fact] uwp
         public void TestCloseWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(true);
 
-        [Fact]
+        //[Fact] uwp
         public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
 
         [Fact]

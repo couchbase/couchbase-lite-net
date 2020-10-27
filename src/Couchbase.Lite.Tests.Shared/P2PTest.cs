@@ -147,7 +147,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        //[Fact] uwp
         public void TestContinuousP2P()
         {
             OtherDb.Delete();
@@ -241,7 +241,7 @@ namespace Test
 
 //        Exception thrown at 0x00007FFE3090A799 in dotnet.exe: Microsoft C++ exception: EEFileLoadException at memory location 0x000000C288E79D88.
 //Exception thrown at 0x00007FFE3090A799 in dotnet.exe: Microsoft C++ exception: [rethrow] at memory location 0x0000000000000000.
-        [Fact]
+        //[Fact] uwp
         public void TestP2PPassiveCloseAll()
         {
             using (var doc = new MutableDocument("test")) {
@@ -310,7 +310,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact] uwp
         public void TestP2PChangeListener()
         {
             var statuses = new List<ReplicatorActivityLevel>();
@@ -333,7 +333,7 @@ namespace Test
                 .BeGreaterThan(1, "because otherwise there were no callbacks to the change listener");
         }
 
-        [Fact]
+        //[Fact] uwp
         public void TestRemoveChangeListener()
         {
             var statuses = new List<ReplicatorActivityLevel>();
