@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -845,7 +846,10 @@ namespace Couchbase.Lite.Sync
                     }
                 }
             } else if (onlySelfSigned) {
+                Debug.WriteLine($"CBL P2P Debug {Tag} Print Chain info:");
+                PrintCertChain(chain);
                 if (chain.ChainElements.Count != 1) {
+                    Debug.WriteLine($"CBL P2P Debug {Tag} ValidateServerCert failed due to cert chain ChainElements's Count != 1");
                     _validationException = new TlsCertificateException("A non self-signed certificate was received in self-signed mode.",
                         C4NetworkErrorCode.TLSCertUnknownRoot, X509ChainStatusFlags.ExplicitDistrust);
                     return false;
@@ -861,6 +865,7 @@ namespace Couchbase.Lite.Sync
 
                 if (chain.ChainElements[0].Certificate.IssuerName.Name
                     != chain.ChainElements[0].Certificate.SubjectName.Name) {
+                    Debug.WriteLine($"CBL P2P Debug {Tag} ValidateServerCert failed due to cert chain 1st and only ChainElements's Certificate IssuerName Name != SubjectName Name");
                     _validationException = new TlsCertificateException("A non self-signed certificate was received in self-signed mode.",
                         C4NetworkErrorCode.TLSCertUnknownRoot, X509ChainStatusFlags.ExplicitDistrust);
                     return false;
@@ -876,6 +881,40 @@ namespace Couchbase.Lite.Sync
             _validationException = new TlsCertificateException("Certificate verification failed",
                         C4NetworkErrorCode.TLSCertUntrusted, sslPolicyErrors);
             return false;
+        }
+
+        //Add to debug https://issues.couchbase.com/browse/CBL-1393
+        private void PrintCertChain(X509Chain ch)
+        {
+            Debug.WriteLine("Chain Information");
+            Debug.WriteLine("Chain revocation flag: {0}", ch.ChainPolicy.RevocationFlag);
+            Debug.WriteLine("Chain revocation mode: {0}", ch.ChainPolicy.RevocationMode);
+            Debug.WriteLine("Chain verification flag: {0}", ch.ChainPolicy.VerificationFlags);
+            Debug.WriteLine("Chain verification time: {0}", ch.ChainPolicy.VerificationTime);
+            Debug.WriteLine("Chain status length: {0}", ch.ChainStatus.Length);
+            Debug.WriteLine("Chain application policy count: {0}", ch.ChainPolicy.ApplicationPolicy.Count);
+            Debug.WriteLine("Chain certificate policy count: {0} {1}", ch.ChainPolicy.CertificatePolicy.Count, Environment.NewLine);
+
+            //Output chain element information.
+            Debug.WriteLine("Chain Element Information");
+            Debug.WriteLine("Number of chain elements: {0}", ch.ChainElements.Count);
+            Debug.WriteLine("Chain elements synchronized? {0} {1}", ch.ChainElements.IsSynchronized, Environment.NewLine);
+
+            foreach (X509ChainElement element in ch.ChainElements) {
+                Debug.WriteLine("Element issuer name: {0}", element.Certificate.Issuer);
+                Debug.WriteLine("Element certificate valid until: {0}", element.Certificate.NotAfter);
+                Debug.WriteLine("Element certificate is valid: {0}", element.Certificate.Verify());
+                Debug.WriteLine("Element error status length: {0}", element.ChainElementStatus.Length);
+                Debug.WriteLine("Element information: {0}", element.Information);
+                Debug.WriteLine("Number of element extensions: {0}{1}", element.Certificate.Extensions.Count, Environment.NewLine);
+
+                if (ch.ChainStatus.Length > 1) {
+                    for (int index = 0; index < element.ChainElementStatus.Length; index++) {
+                        Debug.WriteLine(element.ChainElementStatus[index].Status);
+                        Debug.WriteLine(element.ChainElementStatus[index].StatusInformation);
+                    }
+                }
+            }
         }
 
         private async Task WaitForResponse(Stream stream)
