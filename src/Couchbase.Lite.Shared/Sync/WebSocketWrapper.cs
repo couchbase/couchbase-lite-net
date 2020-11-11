@@ -788,9 +788,8 @@ namespace Couchbase.Lite.Sync
 
         private bool ValidateServerCert(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            if (certificate is X509Certificate2 c2) {
-                PeerCertificateReceived?.Invoke(this, new TlsCertificateReceivedEventArgs(c2));
-            }
+            X509Certificate2 cert2 = new X509Certificate2(certificate);
+            PeerCertificateReceived?.Invoke(this, new TlsCertificateReceivedEventArgs(cert2));
 
             if (_options.PinnedServerCertificate != null) {
                 var retVal = certificate.Equals(_options.PinnedServerCertificate);
@@ -804,7 +803,7 @@ namespace Couchbase.Lite.Sync
             }
 
             // Mono doesn't pass chain information?
-            if (chain?.ChainElements?.Count == 0 && certificate is X509Certificate2 cert2) {
+            if (chain?.ChainElements?.Count == 0) {
                 chain = X509Chain.Create();
                 chain.Build(cert2);
             }
@@ -846,6 +845,7 @@ namespace Couchbase.Lite.Sync
                 }
             } else if (onlySelfSigned) {
                 if (chain.ChainElements.Count != 1) {
+                    WriteLog.To.Sync.E(Tag, "ValidateServerCert failed due to cert chain ChainElements's Count != 1");
                     _validationException = new TlsCertificateException("A non self-signed certificate was received in self-signed mode.",
                         C4NetworkErrorCode.TLSCertUnknownRoot, X509ChainStatusFlags.ExplicitDistrust);
                     return false;
@@ -861,6 +861,7 @@ namespace Couchbase.Lite.Sync
 
                 if (chain.ChainElements[0].Certificate.IssuerName.Name
                     != chain.ChainElements[0].Certificate.SubjectName.Name) {
+                    WriteLog.To.Sync.E(Tag, "ValidateServerCert failed due to cert chain 1st and only ChainElements's Certificate IssuerName Name != SubjectName Name");
                     _validationException = new TlsCertificateException("A non self-signed certificate was received in self-signed mode.",
                         C4NetworkErrorCode.TLSCertUnknownRoot, X509ChainStatusFlags.ExplicitDistrust);
                     return false;
