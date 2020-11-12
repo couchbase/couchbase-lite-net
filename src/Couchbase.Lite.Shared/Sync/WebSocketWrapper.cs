@@ -845,8 +845,6 @@ namespace Couchbase.Lite.Sync
                     }
                 }
             } else if (onlySelfSigned) {
-                Debug.WriteLine($"CBL P2P Debug {Tag} Print Chain info:");
-                PrintCertChain(chain);
                 if (chain.ChainElements.Count != 1) {
                     WriteLog.To.Sync.E(Tag, "ValidateServerCert failed due to cert chain ChainElements's Count != 1");
                     _validationException = new TlsCertificateException("A non self-signed certificate was received in self-signed mode.",
