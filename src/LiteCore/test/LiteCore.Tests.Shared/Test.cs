@@ -343,15 +343,33 @@ namespace LiteCore.Tests
         }
         #endif
 
-        protected void ReopenDB()
+        protected void ReopenDB(bool usingGetConfig2 = false)
         {
-            var config = C4DatabaseConfig.Get(Native.c4db_getConfig(Db));
-            LiteCoreBridge.Check(err => Native.c4db_close(Db, err));
-            Native.c4db_release(Db);
-            Db = (C4Database *)LiteCoreBridge.Check(err => {
-                var localConfig = config;
-                return Native.c4db_open(DatabasePath(), &localConfig, err);
-            });
+            if (!usingGetConfig2) {
+                var config = C4DatabaseConfig.Get(Native.c4db_getConfig(Db));
+                LiteCoreBridge.Check(err => Native.c4db_close(Db, err));
+                Native.c4db_release(Db);
+                Db = (C4Database*) LiteCoreBridge.Check(err =>
+                {
+                    var localConfig = config;
+                    return Native.c4db_open(DatabasePath(), &localConfig, err);
+                });
+            } else {
+                C4DatabaseConfig2 config = new C4DatabaseConfig2();
+                config.flags = Native.c4db_getConfig2(Db)->flags;
+                config.encryptionKey = Native.c4db_getConfig2(Db)->encryptionKey;
+
+                using (var directory_ = new C4String(TestDir)) {
+                    config.parentDirectory = directory_.AsFLSlice();
+                }
+
+                LiteCoreBridge.Check(err => Native.c4db_close(Db, err));
+                Native.c4db_release(Db);
+                Db = (C4Database*) LiteCoreBridge.Check(err => {
+                    var localConfig = config;
+                    return Native.c4db_openNamed("cbl_core_test", &localConfig, err);
+                });
+            }
         }
 
         protected void ReopenDBReadOnly()

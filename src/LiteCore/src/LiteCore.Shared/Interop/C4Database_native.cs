@@ -83,6 +83,9 @@ namespace LiteCore.Interop
         public static extern C4DatabaseConfig* c4db_getConfig(C4Database* db);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4DatabaseConfig2* c4db_getConfig2(C4Database* database);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern ulong c4db_getDocumentCount(C4Database* database);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]

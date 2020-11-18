@@ -653,7 +653,7 @@ namespace LiteCore.Tests
 
         #if COUCHBASE_ENTERPRISE
 
-        //[Fact]
+        //[Fact] https://issues.couchbase.com/browse/CBL-1452
         public void TestDatabaseRekey()
         {
             RunTestVariants(() =>
@@ -679,18 +679,23 @@ namespace LiteCore.Tests
 
                 // If we're on the unexcrypted pass, encrypt the db.  Otherwise, decrypt it:
                 var newKey = new C4EncryptionKey();
-                if(Native.c4db_getConfig(Db)->encryptionKey.algorithm == C4EncryptionAlgorithm.None) {
+                if (Native.c4db_getConfig2(Db)->encryptionKey.algorithm == C4EncryptionAlgorithm.None) {
                     newKey.algorithm = C4EncryptionAlgorithm.AES256;
                     var keyBytes = Encoding.ASCII.GetBytes("a different key than default....");
-                    Marshal.Copy(keyBytes, 0, (IntPtr)newKey.bytes, 32);
-                }
+                    Marshal.Copy(keyBytes, 0, (IntPtr) newKey.bytes, 32);
 
-                var tmp = newKey;
-                LiteCoreBridge.Check(err =>
-                {
-                    var local = tmp;
-                    return Native.c4db_rekey(Db, &local, err);
-                });
+                    var tmp = newKey;
+                    LiteCoreBridge.Check(err =>
+                    {
+                        var local = tmp;
+                        return Native.c4db_rekey(Db, &local, err);
+                    });
+                } else {
+                    LiteCoreBridge.Check(err =>
+                    {
+                        return Native.c4db_rekey(Db, null, err);
+                    });
+                }
 
                 // Verify the db works:
                 Native.c4db_getDocumentCount(Db).Should().Be(99);
@@ -700,12 +705,12 @@ namespace LiteCore.Tests
                 Native.FLSliceResult_Release(blobResult);
 
                 // Check thqat db can be reopened with the new key:
-                Native.c4db_getConfig(Db)->encryptionKey.algorithm.Should().Be(newKey.algorithm);
+                Native.c4db_getConfig2(Db)->encryptionKey.algorithm.Should().Be(newKey.algorithm);
                 for(int i = 0; i < 32; i++) {
-                    Native.c4db_getConfig(Db)->encryptionKey.bytes[i].Should().Be(newKey.bytes[i]);
+                    Native.c4db_getConfig2(Db)->encryptionKey.bytes[i].Should().Be(newKey.bytes[i]);
                 }
 
-                ReopenDB();
+                ReopenDB(true);
             });
         }
         #endif
