@@ -52,7 +52,7 @@ pipeline {
                         // }
                     }
                 }
-                stage("Linux Node") {
+                /* stage("Linux Node") {
                     agent { label 's61113u16 (litecore)' }
                     environment {
                         NEXUS_REPO="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
@@ -88,7 +88,7 @@ pipeline {
                             }
                         }
                     }
-                }
+                } */
                 stage("Mac Node") {
                     agent { label 'mobile-mac-mini'  }
                     environment {
