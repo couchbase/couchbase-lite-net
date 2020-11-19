@@ -627,7 +627,7 @@ namespace Test
         }
 
         [ForIssue("couchbase-lite-core/156")]
-        //[Fact] android
+        [Fact] //android
         public void TestPullDocContinuous()
         {
             using (var doc1 = new MutableDocument("doc1")) {
