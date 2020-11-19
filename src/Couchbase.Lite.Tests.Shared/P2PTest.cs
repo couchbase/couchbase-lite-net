@@ -147,25 +147,14 @@ namespace Test
             }
         }
 
-        //[Fact] //.net core windows & uwp
-        public void TestContinuousP2P()
-        {
-            OtherDb.Delete();
-            OtherDb = OpenDB(OtherDb.Name);
-            Db.Delete();
-            ReopenDB();
-            RunTwoStepContinuous(ReplicatorType.Push, "p2ptest1");
-            OtherDb.Delete();
-            OtherDb = OpenDB(OtherDb.Name);
-            Db.Delete();
-            ReopenDB();
-            RunTwoStepContinuous(ReplicatorType.Pull, "p2ptest2");
-            OtherDb.Delete();
-            OtherDb = OpenDB(OtherDb.Name);
-            Db.Delete();
-            ReopenDB();
-            RunTwoStepContinuous(ReplicatorType.PushAndPull, "p2ptest3");
-        }
+        [Fact] 
+        public void TestContinuousPushP2P() => RunTwoStepContinuous(ReplicatorType.Push, "p2ptest1");
+
+        [Fact] 
+        public void TestContinuousPullP2P() => RunTwoStepContinuous(ReplicatorType.Pull, "p2ptest2");
+
+        [Fact] 
+        public void TestContinuousPushAndPullP2P() => RunTwoStepContinuous(ReplicatorType.PushAndPull, "p2ptest3");
 
         [Fact]
         public void TestP2PRecoverableFailureDuringOpen() => TestP2PError(MockConnectionLifecycleLocation.Connect, true);
@@ -399,76 +388,79 @@ namespace Test
 
         private void RunTwoStepContinuous(ReplicatorType type, string uid)
         {
-            var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(OtherDb, ProtocolType.ByteStream));
-            var server = new MockServerConnection(listener, ProtocolType.ByteStream);
-            var config = new ReplicatorConfiguration(Db,
-                new MessageEndpoint(uid, server, ProtocolType.ByteStream, new MockConnectionFactory(null))) {
-                ReplicatorType = type,
-                Continuous = true
-            };
+            using (var OtherDb1 = OpenDB(OtherDb.Name))
+            using (var Db1 = OpenDB(Db.Name)) {
+                var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(OtherDb1, ProtocolType.ByteStream));
+                var server = new MockServerConnection(listener, ProtocolType.ByteStream);
+                var config = new ReplicatorConfiguration(Db1,
+                    new MessageEndpoint(uid, server, ProtocolType.ByteStream, new MockConnectionFactory(null))) {
+                    ReplicatorType = type,
+                    Continuous = true
+                };
 
-            using (var replicator = new Replicator(config)) {
-                replicator.Start();
+                using (var replicator = new Replicator(config)) {
+                    replicator.Start();
 
-                Database firstSource = null;
-                Database secondSource = null;
-                Database firstTarget = null;
-                Database secondTarget = null;
-                if (type == ReplicatorType.Push) {
-                    firstSource = Db;
-                    secondSource = Db;
-                    firstTarget = OtherDb;
-                    secondTarget = OtherDb;
-                } else if (type == ReplicatorType.Pull) {
-                    firstSource = OtherDb;
-                    secondSource = OtherDb;
-                    firstTarget = Db;
-                    secondTarget = Db;
-                } else {
-                    firstSource = Db;
-                    secondSource = OtherDb;
-                    firstTarget = OtherDb;
-                    secondTarget = Db;
-                }
+                    Database firstSource = null;
+                    Database secondSource = null;
+                    Database firstTarget = null;
+                    Database secondTarget = null;
+                    if (type == ReplicatorType.Push) {
+                        firstSource = Db1;
+                        secondSource = Db1;
+                        firstTarget = OtherDb1;
+                        secondTarget = OtherDb1;
+                    } else if (type == ReplicatorType.Pull) {
+                        firstSource = OtherDb1;
+                        secondSource = OtherDb1;
+                        firstTarget = Db1;
+                        secondTarget = Db1;
+                    } else {
+                        firstSource = Db1;
+                        secondSource = OtherDb1;
+                        firstTarget = OtherDb1;
+                        secondTarget = Db1;
+                    }
 
-                using (var mdoc = new MutableDocument("livesindb")) {
-                    mdoc.SetString("name", "db");
-                    mdoc.SetInt("version", 1);
-                    firstSource.Save(mdoc);
-                }
+                    using (var mdoc = new MutableDocument("livesindb")) {
+                        mdoc.SetString("name", "db");
+                        mdoc.SetInt("version", 1);
+                        firstSource.Save(mdoc);
+                    }
 
-                var count = 0;
-                while (replicator.Status.Progress.Completed == 0 ||
-                       replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
-                    Thread.Sleep(500);
-                    count++;
-                    count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
-                }
+                    var count = 0;
+                    while (replicator.Status.Progress.Completed == 0 ||
+                           replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
+                        Thread.Sleep(1000);
+                        count++;
+                        count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
+                    }
 
-                var previousCompleted = replicator.Status.Progress.Completed;
-                firstTarget.Count.Should().Be(1);
+                    var previousCompleted = replicator.Status.Progress.Completed;
+                    firstTarget.Count.Should().Be(1);
 
-                using (var savedDoc = secondSource.GetDocument("livesindb"))
-                using (var mdoc = savedDoc.ToMutable()) {
-                    mdoc.SetInt("version", 2);
-                    secondSource.Save(mdoc);
-                }
+                    using (var savedDoc = secondSource.GetDocument("livesindb"))
+                    using (var mdoc = savedDoc.ToMutable()) {
+                        mdoc.SetInt("version", 2);
+                        secondSource.Save(mdoc);
+                    }
 
-                count = 0;
-                while (replicator.Status.Progress.Completed == previousCompleted ||
-                       replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
-                    Thread.Sleep(500);
-                    count++;
-                    count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
-                }
+                    count = 0;
+                    while (replicator.Status.Progress.Completed == previousCompleted ||
+                           replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
+                        Thread.Sleep(1000);
+                        count++;
+                        count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
+                    }
 
-                using (var savedDoc = secondTarget.GetDocument("livesindb")) {
-                    savedDoc.GetInt("version").Should().Be(2);
-                }
+                    using (var savedDoc = secondTarget.GetDocument("livesindb")) {
+                        savedDoc.GetInt("version").Should().Be(2);
+                    }
 
-                replicator.Stop();
-                while (replicator.Status.Activity != ReplicatorActivityLevel.Stopped) {
-                    Thread.Sleep(100);
+                    replicator.Stop();
+                    while (replicator.Status.Activity != ReplicatorActivityLevel.Stopped) {
+                        Thread.Sleep(100);
+                    }
                 }
             }
         }
