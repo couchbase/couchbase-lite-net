@@ -644,8 +644,7 @@ namespace LiteCore.Tests
                 try {
                     Native.c4db_getDocumentCount(nudb).Should().Be(1L, "because the database copy failed");
                     LiteCoreBridge.Check(err => Native.c4db_delete(nudb, err));
-                }
-                finally {
+                } finally {
                     Native.c4db_release(nudb);
                 }
             });
@@ -653,7 +652,7 @@ namespace LiteCore.Tests
 
         #if COUCHBASE_ENTERPRISE
 
-        //[Fact] https://issues.couchbase.com/browse/CBL-1452
+        [Fact] //https://issues.couchbase.com/browse/CBL-1452
         public void TestDatabaseRekey()
         {
             RunTestVariants(() =>
@@ -704,14 +703,14 @@ namespace LiteCore.Tests
                 ((FLSlice)blobResult).Should().Be(blobToStore);
                 Native.FLSliceResult_Release(blobResult);
 
-                // Check thqat db can be reopened with the new key:
+                // Check that db can be reopened with the new key:
                 Native.c4db_getConfig2(Db)->encryptionKey.algorithm.Should().Be(newKey.algorithm);
                 for(int i = 0; i < 32; i++) {
                     Native.c4db_getConfig2(Db)->encryptionKey.bytes[i].Should().Be(newKey.bytes[i]);
                 }
 
                 ReopenDB(true);
-            });
+            }, null, true);
         }
         #endif
     }

@@ -125,13 +125,13 @@ namespace LiteCore.Tests
             return _query;
         }
 
-        protected override void SetupVariant(int option)
+        protected override void SetupVariant(int option, bool useGetConfig2 = false)
         {
             base.SetupVariant(option);
             ImportJSONLines(JsonPath);
         }
 
-        protected override void TeardownVariant(int option)
+        protected override void TeardownVariant(int option, bool useGetConfig2 = false)
         {
             Native.c4query_release(_query);
             _query = null;

@@ -206,7 +206,7 @@ namespace LiteCore.Tests
             _docCallbackCalls++;
         }
 
-        protected override void SetupVariant(int option)
+        protected override void SetupVariant(int option, bool useGetConfig2 = false)
         {
             base.SetupVariant(option);
 
@@ -214,7 +214,7 @@ namespace LiteCore.Tests
             _docCallbackCalls = 0;
         }
 
-        protected override void TeardownVariant(int option)
+        protected override void TeardownVariant(int option, bool useGetConfig2 = false)
         {
             Native.c4dbobs_free(_dbObserver);
             _dbObserver = null;

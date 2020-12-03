@@ -108,4 +108,30 @@ namespace LiteCore.Interop
             storageEngine = null;
         }
     }
+
+    [ExcludeFromCodeCoverage]
+    internal unsafe partial struct C4DatabaseConfig2
+    {
+        public static C4DatabaseConfig2 Clone(C4DatabaseConfig2* source)
+        {
+            var retVal = new C4DatabaseConfig2 {
+                parentDirectory = source->parentDirectory,
+                flags = source->flags,
+                encryptionKey = source->encryptionKey
+            };
+
+            return retVal;
+        }
+
+        public static C4DatabaseConfig2 Get(C4DatabaseConfig2* source)
+        {
+            var retVal = new C4DatabaseConfig2 {
+                parentDirectory = source->parentDirectory,
+                flags = source->flags,
+                encryptionKey = source->encryptionKey
+            };
+
+            return retVal;
+        }
+    }
 }

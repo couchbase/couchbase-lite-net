@@ -140,38 +140,68 @@ namespace LiteCore.Tests
            });
         }
 
-        protected override void SetupVariant(int option)
+        protected override void SetupVariant(int option, bool useGetConfig2 = false)
         {
             _objectCount = Native.c4_getObjectCount();
-            Versioning = C4DocumentVersioning.RevisionTrees;
             Native.c4_shutdown(null);
 
-            var config = new C4DatabaseConfig();
-            config.flags = C4DatabaseFlags.Create | C4DatabaseFlags.SharedKeys;
-            config.versioning = Versioning;
+            if (!useGetConfig2) {
+                Versioning = C4DocumentVersioning.RevisionTrees;
+                var config = new C4DatabaseConfig();
+                config.flags = C4DatabaseFlags.Create | C4DatabaseFlags.SharedKeys;
+                config.versioning = Versioning;
 
-            var encryptedStr = (option & 1) == 1 ? "encrypted " : String.Empty;
-            WriteLine($"Opening {encryptedStr}SQLite database using {Versioning}");
+                var encryptedStr = (option & 1) == 1 ? "encrypted " : String.Empty;
+                WriteLine($"Opening {encryptedStr} SQLite database using {Versioning}");
 
-            C4Error err;
-            config.storageEngine = C4StorageEngine.SQLite;
-            if ((option & 1) == 1) {
-                config.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
-                var i = 0;
-                foreach (var b in Encoding.UTF8.GetBytes("this is not a random key at all.")) {
-                    config.encryptionKey.bytes[i++] = b;
+                C4Error err;
+                config.storageEngine = C4StorageEngine.SQLite;
+                if ((option & 1) == 1) {
+                    config.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
+                    var i = 0;
+                    foreach (var b in Encoding.UTF8.GetBytes("this is not a random key at all.")) {
+                        config.encryptionKey.bytes[i++] = b;
+                    }
+                }
+
+                Native.c4db_deleteAtPath(DatabasePath(), null);
+                Db = Native.c4db_open(DatabasePath(), &config, &err);
+                ((long) Db).Should().NotBe(0, "because otherwise the database failed to open");
+            } else {
+                using (var directory_ = new C4String(TestDir)) {
+                    var config = new C4DatabaseConfig2() {
+                        parentDirectory = directory_.AsFLSlice(),
+                        flags = C4DatabaseFlags.Create | C4DatabaseFlags.SharedKeys
+                    };
+                    
+                    var encryptedStr = (option & 1) == 1 ? "encrypted " : String.Empty;
+                    WriteLine($"Opening {encryptedStr} SQLite database");
+
+                    C4Error err;
+                    if ((option & 1) == 1) {
+                        config.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
+                        var i = 0;
+                        foreach (var b in Encoding.UTF8.GetBytes("this is not a random key at all.")) {
+                            config.encryptionKey.bytes[i++] = b;
+                        }
+                    }
+
+                    LiteCoreBridge.Check(error => Native.c4db_deleteNamed("cbl_core_test", TestDir, error));
+
+                    Db = Native.c4db_openNamed("cbl_core_test", &config, &err);
+
+                    ((long) Db).Should().NotBe(0, "because otherwise the database failed to open");
                 }
             }
-
-            Native.c4db_deleteAtPath(DatabasePath(), null);
-            Db = Native.c4db_open(DatabasePath(), &config, &err);
-            ((long)Db).Should().NotBe(0, "because otherwise the database failed to open");
         }
 
-        protected override void TeardownVariant(int option)
+        protected override void TeardownVariant(int option, bool useGetConfig2 = false)
         {
-            var config = C4DatabaseConfig.Get(Native.c4db_getConfig(Db));
-            config.Dispose();
+            if (!useGetConfig2) {
+                var config = C4DatabaseConfig.Get(Native.c4db_getConfig(Db));
+                config.Dispose();
+            }
+
             LiteCoreBridge.Check(err => Native.c4db_delete(Db, err));
             Native.c4db_release(Db);
             Db = null;
@@ -343,9 +373,9 @@ namespace LiteCore.Tests
         }
         #endif
 
-        protected void ReopenDB(bool usingGetConfig2 = false)
+        protected void ReopenDB(bool useGetConfig2 = false)
         {
-            if (!usingGetConfig2) {
+            if (!useGetConfig2) {
                 var config = C4DatabaseConfig.Get(Native.c4db_getConfig(Db));
                 LiteCoreBridge.Check(err => Native.c4db_close(Db, err));
                 Native.c4db_release(Db);
@@ -355,14 +385,7 @@ namespace LiteCore.Tests
                     return Native.c4db_open(DatabasePath(), &localConfig, err);
                 });
             } else {
-                C4DatabaseConfig2 config = new C4DatabaseConfig2();
-                config.flags = Native.c4db_getConfig2(Db)->flags;
-                config.encryptionKey = Native.c4db_getConfig2(Db)->encryptionKey;
-
-                using (var directory_ = new C4String(TestDir)) {
-                    config.parentDirectory = directory_.AsFLSlice();
-                }
-
+                var config = C4DatabaseConfig2.Get(Native.c4db_getConfig2(Db));
                 LiteCoreBridge.Check(err => Native.c4db_close(Db, err));
                 Native.c4db_release(Db);
                 Db = (C4Database*) LiteCoreBridge.Check(err => {
