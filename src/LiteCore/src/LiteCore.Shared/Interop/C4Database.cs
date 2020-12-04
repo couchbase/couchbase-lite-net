@@ -110,28 +110,98 @@ namespace LiteCore.Interop
     }
 
     [ExcludeFromCodeCoverage]
-    internal unsafe partial struct C4DatabaseConfig2
+    internal sealed unsafe class DatabaseConfig2 : IDisposable
     {
-        public static C4DatabaseConfig2 Clone(C4DatabaseConfig2* source)
-        {
-            var retVal = new C4DatabaseConfig2 {
-                parentDirectory = source->parentDirectory,
-                flags = source->flags,
-                encryptionKey = source->encryptionKey
-            };
+        #region Variables
 
-            return retVal;
+        private C4DatabaseConfig2 _c4DatabaseConfig2;
+        private C4String _parentDirectory;
+        private C4EncryptionAlgorithm _c4EncryptionAlgorithm = C4EncryptionAlgorithm.None;
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Configuration for a C4Database.
+        /// </summary>
+        public C4DatabaseConfig2 C4DatabaseConfig2 => _c4DatabaseConfig2;
+
+        /// <summary>
+        /// Directory for databases
+        /// </summary>
+        public string ParentDirectory
+        {
+            get => _c4DatabaseConfig2.parentDirectory.CreateString();
+            set {
+                _parentDirectory.Dispose();
+                _parentDirectory = new C4String(value);
+                _c4DatabaseConfig2.parentDirectory = _parentDirectory.AsFLSlice();
+            }
         }
 
-        public static C4DatabaseConfig2 Get(C4DatabaseConfig2* source)
+        /// <summary>
+        /// Create, ReadOnly, NoUpgrade (AutoCompact & SharedKeys always set)
+        /// </summary>
+        public C4DatabaseFlags DatabaseFlags
         {
-            var retVal = new C4DatabaseConfig2 {
-                parentDirectory = source->parentDirectory,
-                flags = source->flags,
-                encryptionKey = source->encryptionKey
-            };
-
-            return retVal;
+            get => _c4DatabaseConfig2.flags;
+            set => _c4DatabaseConfig2.flags = value;
         }
+
+        /// <summary>
+        /// Encryption Key Algorithm to use creating/opening the db
+        /// </summary>
+        public C4EncryptionAlgorithm EncryptionAlgorithm
+        {
+            get => _c4EncryptionAlgorithm;
+            set {
+                _c4EncryptionAlgorithm = value;
+            }
+        }
+
+        #endregion
+
+        #region Constructors
+
+        public DatabaseConfig2()
+        {
+            var encryptionKey = new C4EncryptionKey();
+            encryptionKey.algorithm = _c4EncryptionAlgorithm;
+            _c4DatabaseConfig2.encryptionKey = encryptionKey;
+        }
+
+        public DatabaseConfig2(C4DatabaseConfig2* c4dbConfig)
+        {
+            _c4DatabaseConfig2.encryptionKey = c4dbConfig->encryptionKey;
+            _c4DatabaseConfig2.flags = c4dbConfig->flags;
+            _c4DatabaseConfig2.parentDirectory = c4dbConfig->parentDirectory;
+        }
+
+        ~DatabaseConfig2()
+        {
+            Dispose(true);
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private void Dispose(bool finalizing)
+        {
+            _parentDirectory.Dispose();
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion
     }
 }

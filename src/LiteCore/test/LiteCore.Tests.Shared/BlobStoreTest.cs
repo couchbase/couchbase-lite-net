@@ -55,7 +55,7 @@ namespace LiteCore.Tests
         private C4BlobStore* _store;
         private readonly C4BlobKey _bogusKey = new C4BlobKey();
 
-        protected override void SetupVariant(int options, bool useGetConfig2 = false)
+        protected override void SetupVariant(int options)
         {
             _encrypted = options == 1;
             C4EncryptionKey crypto = new C4EncryptionKey();
@@ -78,7 +78,7 @@ namespace LiteCore.Tests
             }
         }
 
-        protected override void TeardownVariant(int options, bool useGetConfig2 = false)
+        protected override void TeardownVariant(int options)
         {
             LiteCoreBridge.Check(err => Native.c4blob_deleteStore(_store, err));
         }

@@ -49,6 +49,14 @@ namespace LiteCore.Interop
             }
         }
 
+        public static bool c4db_copyNamed(string sourcePath, string destinationName, C4DatabaseConfig2* config, C4Error* error)
+        {
+            using (var sourcePath_ = new C4String(sourcePath))
+            using (var destinationName_ = new C4String(destinationName)) {
+                return NativeRaw.c4db_copyNamed(sourcePath_.AsFLSlice(), destinationName_.AsFLSlice(), config, error);
+            }
+        }
+
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_close(C4Database* database, C4Error* outError);
@@ -173,6 +181,10 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_copy(FLSlice sourcePath, FLSlice destinationPath, C4DatabaseConfig* config, C4Error* error);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4db_copyNamed(FLSlice sourcePath, FLSlice destinationName, C4DatabaseConfig2* config, C4Error* error);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

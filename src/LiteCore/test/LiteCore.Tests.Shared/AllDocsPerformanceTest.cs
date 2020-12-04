@@ -47,7 +47,7 @@ namespace LiteCore.Tests
         }
 #endif
 
-        protected override void SetupVariant(int option, bool useGetConfig2 = false)
+        protected override void SetupVariant(int option)
         {
             base.SetupVariant(option);
 

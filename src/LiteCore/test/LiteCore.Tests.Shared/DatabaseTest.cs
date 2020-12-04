@@ -303,12 +303,12 @@ namespace LiteCore.Tests
             RunTestVariants(() =>
             {
                 C4Error err;
-                Native.c4db_deleteAtPath(DatabasePath(), &err).Should().BeFalse("because the database is open");
+                Native.c4db_deleteNamed(DBName, TestDir, &err).Should().BeFalse("because the database is open");
                 err.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
                 err.code.Should().Be((int) C4ErrorCode.Busy);
 
-                var equivalentPath = DatabasePath() + Path.DirectorySeparatorChar;
-                Native.c4db_deleteAtPath(equivalentPath, &err).Should().BeFalse("because the database is open");
+                var equivalentPath = TestDir + Path.DirectorySeparatorChar;
+                Native.c4db_deleteNamed(DBName, equivalentPath, &err).Should().BeFalse("because the database is open");
                 err.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
                 err.code.Should().Be((int) C4ErrorCode.Busy);
             });
@@ -440,7 +440,7 @@ namespace LiteCore.Tests
             RunTestVariants(() =>
             {
                 C4Error error;
-                var db2 = Native.c4db_open(DatabasePath(), Native.c4db_getConfig(Db), &error);
+                var db2 = Native.c4db_openNamed(DBName, Native.c4db_getConfig2(Db), &error);
                 ((long) db2).Should().NotBe(0);
 
                 Native.c4db_nextDocExpiration(Db).Should().Be(0);
@@ -460,14 +460,16 @@ namespace LiteCore.Tests
         public void TestOpenBundle()
         {
             RunTestVariants(() => {
-                var config = C4DatabaseConfig.Clone(Native.c4db_getConfig(Db));
+                string bundleDBName = "cbl_core_test_bundle";
+                var config2 = new DatabaseConfig2(Native.c4db_getConfig2(Db));
+                var config = config2.C4DatabaseConfig2;
                 var tmp = config;
 
-                var bundlePath = Path.Combine(TestDir, $"cbl_core_test_bundle{Path.DirectorySeparatorChar}");
-                Native.c4db_deleteAtPath(bundlePath, null);
+                var bundlePath = Path.Combine(TestDir, $"{bundleDBName}.cblite2{Path.DirectorySeparatorChar}");
+                Native.c4db_deleteNamed(bundleDBName, TestDir, null);
                 var bundle = (C4Database *)LiteCoreBridge.Check(err => {
                     var localConfig = tmp;
-                    return Native.c4db_open(bundlePath, &localConfig, err);
+                    return Native.c4db_openNamed(bundleDBName, &localConfig, err);
                 });
 
                 var path = Native.c4db_getPath(bundle);
@@ -480,23 +482,14 @@ namespace LiteCore.Tests
                 tmp = config;
                 bundle = (C4Database *)LiteCoreBridge.Check(err => {
                     var localConfig = tmp;
-                    return Native.c4db_open(bundlePath, &localConfig, err);
+                    return Native.c4db_openNamed(bundleDBName, &localConfig, err);
                 });
                 LiteCoreBridge.Check(err => Native.c4db_close(bundle, err));
                 Native.c4db_release(bundle);
 
-                // Reopen with wrong storage type:
-                NativePrivate.c4log_warnOnErrors(false);
-                var engine = config.storageEngine;
-                config.storageEngine = "b0gus";
-                ((long)Native.c4db_open(bundlePath, &config, null)).Should().Be(0, "because the storage engine is nonsense");
-                config.storageEngine = engine;
-
                 // Open nonexistent bundle
-                ((long)Native.c4db_open($"no_such_bundle{Path.DirectorySeparatorChar}", &config, null)).Should().Be(0, "because the bundle does not exist");
+                ((long)Native.c4db_openNamed($"no_such_bundle{Path.DirectorySeparatorChar}", &config, null)).Should().Be(0, "because the bundle does not exist");
                 NativePrivate.c4log_warnOnErrors(true);
-
-                config.Dispose();
             });
         }
 
@@ -542,6 +535,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
+                string nuDBName = "nudb";
                 var doc1ID = "doc001";
                 var doc2ID = "doc002";
 
@@ -549,61 +543,60 @@ namespace LiteCore.Tests
                 CreateRev(doc2ID, RevID, FleeceBody);
 
                 var srcPath = Native.c4db_getPath(Db);
-                var destPath = Path.Combine(Path.GetTempPath(), $"nudb.cblite2{Path.DirectorySeparatorChar}");
                 C4Error error;
-                var config = *(Native.c4db_getConfig(Db));
+                var config = DBConfig2;
 
-                if (!Native.c4db_deleteAtPath(destPath, &error)) {
+                if (!Native.c4db_deleteNamed(nuDBName, config.ParentDirectory, &error)) {
                     error.code.Should().Be(0);
                 }
                 
                 LiteCoreBridge.Check(err =>
                 {
-                    var localConfig = config;
-                    return Native.c4db_copy(srcPath, destPath, &localConfig, err);
+                    var localConfig = config.C4DatabaseConfig2;
+                    return Native.c4db_copyNamed(srcPath, nuDBName, &localConfig, err);
                 });
+
                 var nudb = (C4Database*)LiteCoreBridge.Check(err =>
                 {
-                    var localConfig = config;
-                    return Native.c4db_open(destPath, &localConfig, err);
+                    var localConfig = config.C4DatabaseConfig2;
+                    return Native.c4db_openNamed(nuDBName, &localConfig, err);
                 });
 
                 try {
                     Native.c4db_getDocumentCount(nudb).Should().Be(2L, "because the database was seeded");
                     LiteCoreBridge.Check(err => Native.c4db_delete(nudb, err));
-                }
-                finally {
+                } finally {
                     Native.c4db_release(nudb);
                 }
 
                 nudb = (C4Database*)LiteCoreBridge.Check(err =>
                 {
-                    var localConfig = config;
-                    return Native.c4db_open(destPath, &localConfig, err);
+                    var localConfig = config.C4DatabaseConfig2;
+                    return Native.c4db_openNamed(nuDBName, &localConfig, err);
                 });
 
                 try {
                     CreateRev(nudb, doc1ID, RevID, FleeceBody);
                     Native.c4db_getDocumentCount(nudb).Should().Be(1L, "because a document was inserted");
-                }
-                finally {
+                } finally {
                     Native.c4db_release(nudb);
                 }
 
-                var originalDest = destPath;
-                destPath = Path.Combine(Path.GetTempPath(), "bogus", $"nudb.cblite2{Path.DirectorySeparatorChar}");
+                var bogusPath = $"{TestDir}bogus{Path.DirectorySeparatorChar}bogus";
+                DatabaseConfig2 bogusConfig = new DatabaseConfig2(Native.c4db_getConfig2(Db));
+                bogusConfig.ParentDirectory = bogusPath;
                 Action a = () => LiteCoreBridge.Check(err =>
                 {
-                    var localConfig = config;
-                    return Native.c4db_copy(srcPath, destPath, &localConfig, err);
+                    var localConfig = bogusConfig.C4DatabaseConfig2;
+                    return Native.c4db_copyNamed(srcPath, nuDBName, &localConfig, err);
                 });
                 a.Should().Throw<CouchbaseLiteException>().Where(e =>
                     e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
 
                 nudb = (C4Database*)LiteCoreBridge.Check(err =>
                 {
-                    var localConfig = config;
-                    return Native.c4db_open(originalDest, &localConfig, err);
+                    var localConfig = DBConfig2.C4DatabaseConfig2;
+                    return Native.c4db_openNamed(nuDBName, &localConfig, err);
                 });
 
                 try {
@@ -615,14 +608,18 @@ namespace LiteCore.Tests
 
                 var originalSrc = srcPath;
                 srcPath = $"{srcPath}bogus{Path.DirectorySeparatorChar}";
-                destPath = originalDest;
+                a = () => LiteCoreBridge.Check(err =>
+                {
+                    var localConfig = DBConfig2.C4DatabaseConfig2;
+                    return Native.c4db_copyNamed(srcPath, nuDBName, &localConfig, err);
+                });
                 a.Should().Throw<CouchbaseLiteException>().Where(e =>
                     e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
 
                 nudb = (C4Database*)LiteCoreBridge.Check(err =>
                 {
-                    var localConfig = config;
-                    return Native.c4db_open(destPath, &localConfig, err);
+                    var localConfig = DBConfig2.C4DatabaseConfig2;
+                    return Native.c4db_openNamed(nuDBName, &localConfig, err);
                 });
 
                 try {
@@ -637,8 +634,8 @@ namespace LiteCore.Tests
                     e.Error == PosixBase.GetCode(nameof(PosixBase.EEXIST)) && e.Domain == CouchbaseLiteErrorType.POSIX);
                 nudb = (C4Database*)LiteCoreBridge.Check(err =>
                 {
-                    var localConfig = config;
-                    return Native.c4db_open(destPath, &localConfig, err);
+                    var localConfig = DBConfig2.C4DatabaseConfig2;
+                    return Native.c4db_openNamed(nuDBName, &localConfig, err);
                 });
 
                 try {
@@ -652,7 +649,7 @@ namespace LiteCore.Tests
 
         #if COUCHBASE_ENTERPRISE
 
-        [Fact] //https://issues.couchbase.com/browse/CBL-1452
+        [Fact]
         public void TestDatabaseRekey()
         {
             RunTestVariants(() =>
@@ -709,8 +706,8 @@ namespace LiteCore.Tests
                     Native.c4db_getConfig2(Db)->encryptionKey.bytes[i].Should().Be(newKey.bytes[i]);
                 }
 
-                ReopenDB(true);
-            }, null, true);
+                ReopenDB();
+            });
         }
         #endif
     }

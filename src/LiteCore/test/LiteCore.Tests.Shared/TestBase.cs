@@ -54,8 +54,8 @@ namespace LiteCore.Tests
 
         protected Exception CurrentException { get; private set; }
 
-        protected abstract void SetupVariant(int option, bool useGetConfig2 = false);
-        protected abstract void TeardownVariant(int option, bool useGetConfig2 = false);
+        protected abstract void SetupVariant(int option);
+        protected abstract void TeardownVariant(int option);
 
 #if !WINDOWS_UWP
         protected TestBase(ITestOutputHelper output)
@@ -80,13 +80,13 @@ namespace LiteCore.Tests
             }
         }
 
-        protected void RunTestVariants(Action a, [CallerMemberName]string caller = null, bool useGetConfig2 = false)
+        protected void RunTestVariants(Action a, [CallerMemberName]string caller = null)
         {
             var exceptions = new ConcurrentDictionary<int, List<Exception>>();
             WriteLine($"Begin {caller}");
             for(int i = 0; i < NumberOfOptions; i++) {
                 CurrentException = null;
-                SetupVariant(i, useGetConfig2);
+                SetupVariant(i);
                 try {
                     a();
                 } catch(Exception e) {
@@ -95,7 +95,7 @@ namespace LiteCore.Tests
                 } finally {
                     try {
                         WriteLine("Finished variant");
-                        TeardownVariant(i, useGetConfig2);
+                        TeardownVariant(i);
                     } catch(Exception e) {
                         WriteLine($"Warning: error tearing down {e}");
                     }

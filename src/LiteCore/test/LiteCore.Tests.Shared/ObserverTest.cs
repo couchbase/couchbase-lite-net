@@ -130,7 +130,7 @@ namespace LiteCore.Tests
 
                     // Open another database on the same file
                     var otherdb = (C4Database*)LiteCoreBridge.Check(err =>
-                       Native.c4db_open(DatabasePath(), Native.c4db_getConfig(Db), err));
+                       Native.c4db_openNamed(DBName, Native.c4db_getConfig2(Db), err));
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(otherdb, err));
                     try {
                         CreateRev(otherdb, "C", FLSlice.Constant("1-cc"), FleeceBody);
@@ -206,7 +206,7 @@ namespace LiteCore.Tests
             _docCallbackCalls++;
         }
 
-        protected override void SetupVariant(int option, bool useGetConfig2 = false)
+        protected override void SetupVariant(int option)
         {
             base.SetupVariant(option);
 
@@ -214,7 +214,7 @@ namespace LiteCore.Tests
             _docCallbackCalls = 0;
         }
 
-        protected override void TeardownVariant(int option, bool useGetConfig2 = false)
+        protected override void TeardownVariant(int option)
         {
             Native.c4dbobs_free(_dbObserver);
             _dbObserver = null;

@@ -53,7 +53,9 @@ namespace LiteCore.Tests
 #endif
 
         internal static readonly FLSlice FleeceBody;
-        
+
+        internal static string DBName = "cbl_core_test";
+
         #if COUCHBASE_ENTERPRISE
         protected override int NumberOfOptions => 2;
         #else
@@ -63,6 +65,7 @@ namespace LiteCore.Tests
         private int _objectCount = 0;
 
         internal C4Database* Db { get; private set; }
+        internal DatabaseConfig2 DBConfig2 { get; private set; }
         internal C4DocumentVersioning Versioning { get; private set; }
         protected string Storage { get; private set; }
 
@@ -130,77 +133,49 @@ namespace LiteCore.Tests
 
         protected void DeleteAndRecreateDB()
         {
-            var config = *Native.c4db_getConfig(Db);
             LiteCoreBridge.Check(err => Native.c4db_delete(Db, err));
             Native.c4db_release(Db);
-            Db = (C4Database*)LiteCoreBridge.Check(err =>
-           {
-               var localConfig = config;
-               return Native.c4db_open(DatabasePath(), &localConfig, err);
-           });
+            Db = (C4Database*) LiteCoreBridge.Check(err =>
+            {
+                var localConfig = DBConfig2.C4DatabaseConfig2;
+                return Native.c4db_openNamed(DBName, &localConfig, err);
+            });
         }
 
-        protected override void SetupVariant(int option, bool useGetConfig2 = false)
+        protected override void SetupVariant(int option)
         {
             _objectCount = Native.c4_getObjectCount();
+            DBConfig2 = new DatabaseConfig2() {
+                ParentDirectory = TestDir,
+                DatabaseFlags = C4DatabaseFlags.Create
+            };
+
             Native.c4_shutdown(null);
 
-            if (!useGetConfig2) {
-                Versioning = C4DocumentVersioning.RevisionTrees;
-                var config = new C4DatabaseConfig();
-                config.flags = C4DatabaseFlags.Create | C4DatabaseFlags.SharedKeys;
-                config.versioning = Versioning;
+            var c4dbConfig2 = DBConfig2.C4DatabaseConfig2;
+            DBConfig2.DatabaseFlags = C4DatabaseFlags.Create | C4DatabaseFlags.SharedKeys;
+            var encryptedStr = (option & 1) == 1 ? "encrypted " : String.Empty;
+            WriteLine($"Opening {encryptedStr} SQLite database");
 
-                var encryptedStr = (option & 1) == 1 ? "encrypted " : String.Empty;
-                WriteLine($"Opening {encryptedStr} SQLite database using {Versioning}");
-
-                C4Error err;
-                config.storageEngine = C4StorageEngine.SQLite;
-                if ((option & 1) == 1) {
-                    config.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
-                    var i = 0;
-                    foreach (var b in Encoding.UTF8.GetBytes("this is not a random key at all.")) {
-                        config.encryptionKey.bytes[i++] = b;
-                    }
-                }
-
-                Native.c4db_deleteAtPath(DatabasePath(), null);
-                Db = Native.c4db_open(DatabasePath(), &config, &err);
-                ((long) Db).Should().NotBe(0, "because otherwise the database failed to open");
-            } else {
-                using (var directory_ = new C4String(TestDir)) {
-                    var config = new C4DatabaseConfig2() {
-                        parentDirectory = directory_.AsFLSlice(),
-                        flags = C4DatabaseFlags.Create | C4DatabaseFlags.SharedKeys
-                    };
-                    
-                    var encryptedStr = (option & 1) == 1 ? "encrypted " : String.Empty;
-                    WriteLine($"Opening {encryptedStr} SQLite database");
-
-                    C4Error err;
-                    if ((option & 1) == 1) {
-                        config.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
-                        var i = 0;
-                        foreach (var b in Encoding.UTF8.GetBytes("this is not a random key at all.")) {
-                            config.encryptionKey.bytes[i++] = b;
-                        }
-                    }
-
-                    LiteCoreBridge.Check(error => Native.c4db_deleteNamed("cbl_core_test", TestDir, error));
-
-                    Db = Native.c4db_openNamed("cbl_core_test", &config, &err);
-
-                    ((long) Db).Should().NotBe(0, "because otherwise the database failed to open");
+            C4Error err;
+            if ((option & 1) == 1) {
+                DBConfig2.EncryptionAlgorithm = C4EncryptionAlgorithm.AES256;
+                var i = 0;
+                foreach (var b in Encoding.UTF8.GetBytes("this is not a random key at all.")) {
+                    c4dbConfig2.encryptionKey.bytes[i++] = b;
                 }
             }
+
+            LiteCoreBridge.Check(error => Native.c4db_deleteNamed(DBName, TestDir, error));
+
+            Db = Native.c4db_openNamed(DBName, &c4dbConfig2, &err);
+
+            ((long) Db).Should().NotBe(0, "because otherwise the database failed to open");
         }
 
-        protected override void TeardownVariant(int option, bool useGetConfig2 = false)
+        protected override void TeardownVariant(int option)
         {
-            if (!useGetConfig2) {
-                var config = C4DatabaseConfig.Get(Native.c4db_getConfig(Db));
-                config.Dispose();
-            }
+            DBConfig2.Dispose();
 
             LiteCoreBridge.Check(err => Native.c4db_delete(Db, err));
             Native.c4db_release(Db);
@@ -253,7 +228,7 @@ namespace LiteCore.Tests
             }
         }
 
-        protected string DatabasePath() => Path.Combine(TestDir, "cbl_core_test");
+        protected string DatabasePath() => Path.Combine(TestDir, DBName);
 
         private void Log(C4LogLevel level, FLSlice s)
         {
@@ -371,39 +346,32 @@ namespace LiteCore.Tests
 
             return numDocs;
         }
-        #endif
+#endif
 
-        protected void ReopenDB(bool useGetConfig2 = false)
+        protected void ReopenDB()
         {
-            if (!useGetConfig2) {
-                var config = C4DatabaseConfig.Get(Native.c4db_getConfig(Db));
-                LiteCoreBridge.Check(err => Native.c4db_close(Db, err));
-                Native.c4db_release(Db);
-                Db = (C4Database*) LiteCoreBridge.Check(err =>
-                {
-                    var localConfig = config;
-                    return Native.c4db_open(DatabasePath(), &localConfig, err);
-                });
-            } else {
-                var config = C4DatabaseConfig2.Get(Native.c4db_getConfig2(Db));
-                LiteCoreBridge.Check(err => Native.c4db_close(Db, err));
-                Native.c4db_release(Db);
-                Db = (C4Database*) LiteCoreBridge.Check(err => {
-                    var localConfig = config;
-                    return Native.c4db_openNamed("cbl_core_test", &localConfig, err);
-                });
-            }
+            var config = DBConfig2.C4DatabaseConfig2;
+            // Update _dbConfig in case db was reopened with different flags or encryption:
+            config.flags = Native.c4db_getConfig2(Db)->flags;
+            config.encryptionKey = Native.c4db_getConfig2(Db)->encryptionKey;
+
+            LiteCoreBridge.Check(err => Native.c4db_close(Db, err));
+            Native.c4db_release(Db);
+            Db = (C4Database*) LiteCoreBridge.Check(err =>
+            {
+                var localConfig = config;
+                return Native.c4db_openNamed(DBName, &localConfig, err);
+            });
         }
 
         protected void ReopenDBReadOnly()
         {
-            var config = C4DatabaseConfig.Get(Native.c4db_getConfig(Db));
             LiteCoreBridge.Check(err => Native.c4db_close(Db, err));
             Native.c4db_release(Db);
-            config.flags = (config.flags & ~C4DatabaseFlags.Create) | C4DatabaseFlags.ReadOnly;
+            DBConfig2.DatabaseFlags = (DBConfig2.DatabaseFlags & ~C4DatabaseFlags.Create) | C4DatabaseFlags.ReadOnly;
             Db = (C4Database *)LiteCoreBridge.Check(err => {
-                var localConfig = config;
-                return Native.c4db_open(DatabasePath(), &localConfig, err);
+                var localConfig = DBConfig2.C4DatabaseConfig2;
+                return Native.c4db_openNamed(DBName, &localConfig, err);
             });
         }
 
