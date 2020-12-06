@@ -542,20 +542,6 @@ namespace LiteCore.Tests
         }
 
         [Fact]
-        public void TestStringInStruct()
-        {
-            var s1 = new TestString();
-            s1.TestStr = "test";
-
-            var s2 = new TestString();
-
-            s2.TestStr = "test modify1";
-
-            var s3 = s1;
-
-        }
-
-        [Fact]
         public void TestDatabaseCopy()
         {
             RunTestVariants(() =>
