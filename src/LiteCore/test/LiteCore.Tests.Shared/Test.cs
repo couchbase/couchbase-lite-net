@@ -65,7 +65,7 @@ namespace LiteCore.Tests
         private int _objectCount = 0;
 
         internal C4Database* Db { get; private set; }
-        internal DatabaseConfig2 DBConfig2 { get; private set; }
+        internal C4DatabaseConfig2 DBConfig2 { get; set; }
         internal C4DocumentVersioning Versioning { get; private set; }
         protected string Storage { get; private set; }
 
@@ -137,7 +137,7 @@ namespace LiteCore.Tests
             Native.c4db_release(Db);
             Db = (C4Database*) LiteCoreBridge.Check(err =>
             {
-                var localConfig = DBConfig2.C4DatabaseConfig2;
+                var localConfig = DBConfig2;
                 return Native.c4db_openNamed(DBName, &localConfig, err);
             });
         }
@@ -145,30 +145,32 @@ namespace LiteCore.Tests
         protected override void SetupVariant(int option)
         {
             _objectCount = Native.c4_getObjectCount();
-            DBConfig2 = new DatabaseConfig2() {
-                ParentDirectory = TestDir,
-                DatabaseFlags = C4DatabaseFlags.Create
-            };
 
             Native.c4_shutdown(null);
 
-            var c4dbConfig2 = DBConfig2.C4DatabaseConfig2;
-            DBConfig2.DatabaseFlags = C4DatabaseFlags.Create | C4DatabaseFlags.SharedKeys;
             var encryptedStr = (option & 1) == 1 ? "encrypted " : String.Empty;
             WriteLine($"Opening {encryptedStr} SQLite database");
 
             C4Error err;
+            var encryptionKey = new C4EncryptionKey();
             if ((option & 1) == 1) {
-                DBConfig2.EncryptionAlgorithm = C4EncryptionAlgorithm.AES256;
+                encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
                 var i = 0;
                 foreach (var b in Encoding.UTF8.GetBytes("this is not a random key at all.")) {
-                    c4dbConfig2.encryptionKey.bytes[i++] = b;
+                    encryptionKey.bytes[i++] = b;
                 }
             }
 
+            DBConfig2 = new C4DatabaseConfig2() {
+                ParentDirectory = TestDir,
+                flags = C4DatabaseFlags.Create | C4DatabaseFlags.SharedKeys,
+                encryptionKey = encryptionKey
+            };
+
             LiteCoreBridge.Check(error => Native.c4db_deleteNamed(DBName, TestDir, error));
 
-            Db = Native.c4db_openNamed(DBName, &c4dbConfig2, &err);
+            var config = DBConfig2;
+            Db = Native.c4db_openNamed(DBName, &config, &err);
 
             ((long) Db).Should().NotBe(0, "because otherwise the database failed to open");
         }
@@ -350,7 +352,7 @@ namespace LiteCore.Tests
 
         protected void ReopenDB()
         {
-            var config = DBConfig2.C4DatabaseConfig2;
+            var config = DBConfig2;
             // Update _dbConfig in case db was reopened with different flags or encryption:
             config.flags = Native.c4db_getConfig2(Db)->flags;
             config.encryptionKey = Native.c4db_getConfig2(Db)->encryptionKey;
@@ -366,11 +368,12 @@ namespace LiteCore.Tests
 
         protected void ReopenDBReadOnly()
         {
+            var config = DBConfig2;
             LiteCoreBridge.Check(err => Native.c4db_close(Db, err));
             Native.c4db_release(Db);
-            DBConfig2.DatabaseFlags = (DBConfig2.DatabaseFlags & ~C4DatabaseFlags.Create) | C4DatabaseFlags.ReadOnly;
+            config.flags = (config.flags & ~C4DatabaseFlags.Create) | C4DatabaseFlags.ReadOnly;
             Db = (C4Database *)LiteCoreBridge.Check(err => {
-                var localConfig = DBConfig2.C4DatabaseConfig2;
+                var localConfig = config;
                 return Native.c4db_openNamed(DBName, &localConfig, err);
             });
         }

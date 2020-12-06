@@ -461,9 +461,8 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() => {
                 string bundleDBName = "cbl_core_test_bundle";
-                var config2 = new DatabaseConfig2(Native.c4db_getConfig2(Db));
-                var config = config2.C4DatabaseConfig2;
-                var tmp = config;
+                var config2 = C4DatabaseConfig2.Clone(Native.c4db_getConfig2(Db));
+                var tmp = config2;
 
                 var bundlePath = Path.Combine(TestDir, $"{bundleDBName}.cblite2{Path.DirectorySeparatorChar}");
                 Native.c4db_deleteNamed(bundleDBName, TestDir, null);
@@ -478,8 +477,8 @@ namespace LiteCore.Tests
                 Native.c4db_release(bundle);
 
                 // Reopen without the 'create' flag:
-                config.flags &= ~C4DatabaseFlags.Create;
-                tmp = config;
+                config2.flags &= ~C4DatabaseFlags.Create;
+                tmp = config2;
                 bundle = (C4Database *)LiteCoreBridge.Check(err => {
                     var localConfig = tmp;
                     return Native.c4db_openNamed(bundleDBName, &localConfig, err);
@@ -488,7 +487,7 @@ namespace LiteCore.Tests
                 Native.c4db_release(bundle);
 
                 // Open nonexistent bundle
-                ((long)Native.c4db_openNamed($"no_such_bundle{Path.DirectorySeparatorChar}", &config, null)).Should().Be(0, "because the bundle does not exist");
+                ((long)Native.c4db_openNamed($"no_such_bundle{Path.DirectorySeparatorChar}", &config2, null)).Should().Be(0, "because the bundle does not exist");
                 NativePrivate.c4log_warnOnErrors(true);
             });
         }
@@ -530,6 +529,32 @@ namespace LiteCore.Tests
             });
         }
 
+        struct TestString
+        {
+            string _testStr; 
+            public string TestStr
+            {
+                get => _testStr;
+                set {
+                    _testStr = value;
+                }
+            }
+        }
+
+        [Fact]
+        public void TestStringInStruct()
+        {
+            var s1 = new TestString();
+            s1.TestStr = "test";
+
+            var s2 = new TestString();
+
+            s2.TestStr = "test modify1";
+
+            var s3 = s1;
+
+        }
+
         [Fact]
         public void TestDatabaseCopy()
         {
@@ -552,13 +577,13 @@ namespace LiteCore.Tests
                 
                 LiteCoreBridge.Check(err =>
                 {
-                    var localConfig = config.C4DatabaseConfig2;
+                    var localConfig = config;
                     return Native.c4db_copyNamed(srcPath, nuDBName, &localConfig, err);
                 });
 
                 var nudb = (C4Database*)LiteCoreBridge.Check(err =>
                 {
-                    var localConfig = config.C4DatabaseConfig2;
+                    var localConfig = config;
                     return Native.c4db_openNamed(nuDBName, &localConfig, err);
                 });
 
@@ -571,7 +596,7 @@ namespace LiteCore.Tests
 
                 nudb = (C4Database*)LiteCoreBridge.Check(err =>
                 {
-                    var localConfig = config.C4DatabaseConfig2;
+                    var localConfig = config;
                     return Native.c4db_openNamed(nuDBName, &localConfig, err);
                 });
 
@@ -583,19 +608,20 @@ namespace LiteCore.Tests
                 }
 
                 var bogusPath = $"{TestDir}bogus{Path.DirectorySeparatorChar}bogus";
-                DatabaseConfig2 bogusConfig = new DatabaseConfig2(Native.c4db_getConfig2(Db));
+                C4DatabaseConfig2 bogusConfig = C4DatabaseConfig2.Clone(Native.c4db_getConfig2(Db));
                 bogusConfig.ParentDirectory = bogusPath;
                 Action a = () => LiteCoreBridge.Check(err =>
                 {
-                    var localConfig = bogusConfig.C4DatabaseConfig2;
+                    var localConfig = bogusConfig;
                     return Native.c4db_copyNamed(srcPath, nuDBName, &localConfig, err);
                 });
                 a.Should().Throw<CouchbaseLiteException>().Where(e =>
                     e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
 
+                DBConfig2 = *(Native.c4db_getConfig2(Db));
                 nudb = (C4Database*)LiteCoreBridge.Check(err =>
                 {
-                    var localConfig = DBConfig2.C4DatabaseConfig2;
+                    var localConfig = DBConfig2;
                     return Native.c4db_openNamed(nuDBName, &localConfig, err);
                 });
 
@@ -610,7 +636,7 @@ namespace LiteCore.Tests
                 srcPath = $"{srcPath}bogus{Path.DirectorySeparatorChar}";
                 a = () => LiteCoreBridge.Check(err =>
                 {
-                    var localConfig = DBConfig2.C4DatabaseConfig2;
+                    var localConfig = DBConfig2;
                     return Native.c4db_copyNamed(srcPath, nuDBName, &localConfig, err);
                 });
                 a.Should().Throw<CouchbaseLiteException>().Where(e =>
@@ -618,7 +644,7 @@ namespace LiteCore.Tests
 
                 nudb = (C4Database*)LiteCoreBridge.Check(err =>
                 {
-                    var localConfig = DBConfig2.C4DatabaseConfig2;
+                    var localConfig = DBConfig2;
                     return Native.c4db_openNamed(nuDBName, &localConfig, err);
                 });
 
@@ -634,7 +660,7 @@ namespace LiteCore.Tests
                     e.Error == PosixBase.GetCode(nameof(PosixBase.EEXIST)) && e.Domain == CouchbaseLiteErrorType.POSIX);
                 nudb = (C4Database*)LiteCoreBridge.Check(err =>
                 {
-                    var localConfig = DBConfig2.C4DatabaseConfig2;
+                    var localConfig = DBConfig2;
                     return Native.c4db_openNamed(nuDBName, &localConfig, err);
                 });
 
