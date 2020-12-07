@@ -49,6 +49,14 @@ namespace LiteCore.Interop
             }
         }
 
+        public static bool c4db_copyNamed(string sourcePath, string destinationName, C4DatabaseConfig2* config, C4Error* error)
+        {
+            using (var sourcePath_ = new C4String(sourcePath))
+            using (var destinationName_ = new C4String(destinationName)) {
+                return NativeRaw.c4db_copyNamed(sourcePath_.AsFLSlice(), destinationName_.AsFLSlice(), config, error);
+            }
+        }
+
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_close(C4Database* database, C4Error* outError);
@@ -61,6 +69,14 @@ namespace LiteCore.Interop
         {
             using(var dbPath_ = new C4String(dbPath)) {
                 return NativeRaw.c4db_deleteAtPath(dbPath_.AsFLSlice(), outError);
+            }
+        }
+
+        public static bool c4db_deleteNamed(string dbName, string inDirectory, C4Error* outError)
+        {
+            using(var dbName_ = new C4String(dbName))
+            using(var inDirectory_ = new C4String(inDirectory)) {
+                return NativeRaw.c4db_deleteNamed(dbName_.AsFLSlice(), inDirectory_.AsFLSlice(), outError);
             }
         }
 
@@ -81,6 +97,9 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4DatabaseConfig* c4db_getConfig(C4Database* db);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4DatabaseConfig2* c4db_getConfig2(C4Database* database);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern ulong c4db_getDocumentCount(C4Database* database);
@@ -165,7 +184,15 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4db_copyNamed(FLSlice sourcePath, FLSlice destinationName, C4DatabaseConfig2* config, C4Error* error);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_deleteAtPath(FLSlice dbPath, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4db_deleteNamed(FLSlice dbName, FLSlice inDirectory, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult c4db_getPath(C4Database* db);

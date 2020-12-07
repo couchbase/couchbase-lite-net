@@ -150,8 +150,8 @@ namespace LiteCore.Tests
 
         private C4Database* OpenDB()
         {
-            var database = (C4Database *)LiteCoreBridge.Check(err => Native.c4db_open(DatabasePath(), 
-                Native.c4db_getConfig(Db), err));
+            var database = (C4Database *)LiteCoreBridge.Check(err => Native.c4db_openNamed(DBName, 
+                Native.c4db_getConfig2(Db), err));
             return database;
         }
 

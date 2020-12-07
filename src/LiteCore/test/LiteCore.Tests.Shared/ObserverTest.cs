@@ -130,7 +130,7 @@ namespace LiteCore.Tests
 
                     // Open another database on the same file
                     var otherdb = (C4Database*)LiteCoreBridge.Check(err =>
-                       Native.c4db_open(DatabasePath(), Native.c4db_getConfig(Db), err));
+                       Native.c4db_openNamed(DBName, Native.c4db_getConfig2(Db), err));
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(otherdb, err));
                     try {
                         CreateRev(otherdb, "C", FLSlice.Constant("1-cc"), FleeceBody);
