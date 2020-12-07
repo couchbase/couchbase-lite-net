@@ -307,9 +307,14 @@ namespace Couchbase.Lite.Sync
 
                 _logic.HasProxy = true;
                 //create remote endpoint
-                IPAddress add = IPAddress.Parse(proxyServer.Address.Host);
+                IPAddress add;
                 //connect remote proxy endpoint
-                await _client.ConnectAsync(add, proxyServer.Address.Port).ConfigureAwait(false);
+                if (!IPAddress.TryParse(proxyServer.Address.Host, out add)) {
+                    await _client.ConnectAsync(proxyServer.Address.Host, proxyServer.Address.Port).ConfigureAwait(false);
+                } else {
+                    await _client.ConnectAsync(add, proxyServer.Address.Port).ConfigureAwait(false);
+                }
+
                 NetworkStream = _client.GetStream();
                 var proxyRequest = _logic.ProxyRequest();
                 NetworkStream.Write(proxyRequest, 0, proxyRequest.Length);
