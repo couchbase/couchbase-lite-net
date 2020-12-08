@@ -306,14 +306,9 @@ namespace Couchbase.Lite.Sync
                 }
 
                 _logic.HasProxy = true;
-                //create remote endpoint
-                IPAddress add;
-                //connect remote proxy endpoint
-                if (!IPAddress.TryParse(proxyServer.Address.Host, out add)) {
-                    await _client.ConnectAsync(proxyServer.Address.Host, proxyServer.Address.Port).ConfigureAwait(false);
-                } else {
-                    await _client.ConnectAsync(add, proxyServer.Address.Port).ConfigureAwait(false);
-                }
+
+                //create remote endpoint (proxyServer.Address.Host can be either IPAddress or DNS)
+                await _client.ConnectAsync(proxyServer.Address.Host, proxyServer.Address.Port).ConfigureAwait(false);
 
                 NetworkStream = _client.GetStream();
                 var proxyRequest = _logic.ProxyRequest();
