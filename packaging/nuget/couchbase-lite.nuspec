@@ -18,7 +18,7 @@
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-      <group targetFramework="netcoreapp2.0">
+      <group targetFramework="netcoreapp2.1">
         <dependency id="Newtonsoft.Json" version="11.0.1" />
         <dependency id="SimpleInjector" version="4.0.12" />
 		<dependency id="System.Collections.Immutable" version="1.3.0" />
@@ -55,9 +55,9 @@
     <file target="lib\netstandard2.0\" src="src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.dll" />
     <file target="lib\netstandard2.0\" src="src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.pdb" />
     <file target="lib\netstandard2.0\" src="src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.xml" />
-    <file target="lib\netcoreapp2.0\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp2.0\Couchbase.Lite.dll" />
-    <file target="lib\netcoreapp2.0\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp2.0\Couchbase.Lite.pdb" />
-    <file target="lib\netcoreapp2.0\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp2.0\Couchbase.Lite.xml" />
+    <file target="lib\netcoreapp2.1\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp2.1\Couchbase.Lite.dll" />
+    <file target="lib\netcoreapp2.1\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp2.1\Couchbase.Lite.pdb" />
+    <file target="lib\netcoreapp2.1\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp2.1\Couchbase.Lite.xml" />
     <file target="lib\monoandroid44\" src="src\Couchbase.Lite\bin\Packaging\monoandroid80\Couchbase.Lite.dll" />
     <file target="lib\monoandroid44\" src="src\Couchbase.Lite\bin\Packaging\monoandroid80\Couchbase.Lite.pdb" />
     <file target="lib\monoandroid44\" src="src\Couchbase.Lite\bin\Packaging\monoandroid80\Couchbase.Lite.xml" />
