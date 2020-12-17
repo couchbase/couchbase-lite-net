@@ -16,7 +16,6 @@ image: Visual Studio 2017
 clone_depth: 1
 
 install:
-    - nuget restore
     - git submodule update --init --recursive
     - nuget install OpenCover -OutputDirectory src\Couchbase.Lite.TestCoverage\packages -Version 4.7.922
     - nuget install xunit.runner.console -OutputDirectory src\Couchbase.Lite.TestCoverage\packages -Version 2.4.1
