@@ -138,7 +138,7 @@ namespace Couchbase.Lite.DI
                     if (attribute.Lazy) {
                         _Collection.Register(interfaceType, type, Lifestyle.Singleton);
                     } else {
-                        _Collection.RegisterSingleton(interfaceType, Activator.CreateInstance(type));
+                        _Collection.RegisterInstance(interfaceType, Activator.CreateInstance(type));
                     }
                 }
             }
@@ -181,7 +181,7 @@ namespace Couchbase.Lite.DI
         public static void Register<TService>(TService instance)
             where TService : class
         {
-            _Collection.RegisterSingleton(instance);
+            _Collection.RegisterInstance(instance);
         }
 
         /// <summary>
