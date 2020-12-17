@@ -18,6 +18,7 @@ clone_depth: 1
 install:
     - git submodule update --init --recursive
     - nuget install OpenCover -OutputDirectory src\Couchbase.Lite.TestCoverage\packages -Version 4.7.922
+    - nuget install xunit.core -OutputDirectory src\Couchbase.Lite.TestCoverage\packages -Version 2.4.1
     - nuget install xunit.runner.console -OutputDirectory src\Couchbase.Lite.TestCoverage\packages -Version 2.4.1
     - choco install dotnetcore --version=2.1.0
     
