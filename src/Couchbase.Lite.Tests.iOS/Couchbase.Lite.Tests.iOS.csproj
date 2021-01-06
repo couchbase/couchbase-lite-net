@@ -99,8 +99,6 @@
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <MtouchSdkVersion>
-    </MtouchSdkVersion>
     <MtouchLink>SdkOnly</MtouchLink>
     <MtouchDebug>False</MtouchDebug>
     <MtouchProfiling>False</MtouchProfiling>
@@ -128,8 +126,6 @@
     <BuildIpa>True</BuildIpa>
     <IpaPackageDir>$(OutputPath)</IpaPackageDir>
     <IpaIncludeArtwork>False</IpaIncludeArtwork>
-    <MtouchSdkVersion>
-    </MtouchSdkVersion>
     <MtouchLink>SdkOnly</MtouchLink>
     <MtouchDebug>False</MtouchDebug>
     <MtouchProfiling>False</MtouchProfiling>
@@ -188,6 +184,7 @@
       <Version>2.5.25</Version>
     </PackageReference>
 	<PackageReference Include="System.Collections.Immutable" Version="1.3.0" />
+    <PackageReference Include="SimpleInjector" Version="5.2.0" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Info.plist" />
