@@ -19,11 +19,11 @@
     <EmbeddedResource Remove="replacedb\**" />
     <None Remove="replacedb\**" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.5.0-b0020" />
+  <ItemGroup Label="Configuration Debug" Condition=" '$(Configuration)' == 'Debug' ">
+    <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="3.0.0-b0029" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
-    <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.5.0-b0020" />
+  <ItemGroup Label="Configuration Release" Condition=" '$(Configuration)' == 'Release' ">
+    <PackageReference Include="Couchbase.Lite.Enterprise" Version="3.0.0-b0029" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="5.9.0" />
@@ -51,4 +51,10 @@
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" />
   <Import Project="..\LiteCore\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems" Label="Shared" />
+    <Target Condition=" '$(Configuration)'=='Release' " Name="Configuration Release Selection:" AfterTargets="Build" >
+      <Message Text="Release" />
+    </Target>
+    <Target Condition=" '$(Configuration)'=='Debug' " Name="Configuration Debug Selection:" AfterTargets="Build" >
+      <Message Text="Debug" />
+    </Target>
 </Project>
