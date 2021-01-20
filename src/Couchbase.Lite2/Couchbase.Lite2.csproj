@@ -1,0 +1,77 @@
+<Project Sdk="MSBuild.Sdk.Extras/3.0.23">
+
+  <PropertyGroup>
+	  <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
+	  <TargetFramework>net5.0</TargetFramework>
+	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>Couchbase.Lite</AssemblyName>
+    <RootNamespace>Couchbase.Lite</RootNamespace>
+  </PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
+		<Optimize>True</Optimize>
+		<DocumentationFile>bin\Packaging\net5.0\Couchbase.Lite.xml</DocumentationFile>
+		<DefineConstants>TRACE;PACKAGING;LITECORE_PACKAGED</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<DefineConstants>TRACE;DEBUG;LITECORE_PACKAGED</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Coverage|AnyCPU'">
+		<DefineConstants>TRACE;DEBUG;LITECORE_PACKAGED;TEST_COVERAGE</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<DefineConstants>TRACE;RELEASE;LITECORE_PACKAGED</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Coverage|AnyCPU'">
+		<DefineConstants>TRACE;LITECORE_PACKAGED;TEST_COVERAGE</DefineConstants>
+		<EnableSourceLink>false</EnableSourceLink>
+	</PropertyGroup>
+
+	<PropertyGroup Condition=" $(TargetFramework.StartsWith('net5')) ">
+		<DefineConstants>$(DefineConstants);NEEDS_LITECORE_LOAD</DefineConstants>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Newtonsoft.Json" Version="11.0.1" />
+		<DotNetCliToolReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="dotnet-sourcelink" Version="2.1.2" />
+		<PackageReference Include="SimpleInjector" Version="5.2.0" />
+		<PackageReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="SourceLink.Create.GitHub" Version="2.7.5" PrivateAssets="all" />
+		<PackageReference Include="GitInfo" Version="2.0.20" PrivateAssets="all" />
+		<PackageReference Include="System.Collections.Immutable" Version="1.2.5.0" />
+		<DotNetCliToolReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="dotnet-sourcelink-git" Version="2.1.2" />
+	</ItemGroup>
+
+	<ItemGroup Condition=" $(TargetFramework.StartsWith('net5')) ">
+		<PackageReference Include="Microsoft.Win32.Registry" Version="4.5.0" />
+		<ProjectReference Include="..\..\src\Couchbase.Lite.Support.Net5\Couchbase.Lite.Support.Net5.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="Properties\DynamicAssemblyInfo.tt">
+			<Generator>TextTemplatingFileGenerator</Generator>
+			<LastGenOutput>DynamicAssemblyInfo.cs</LastGenOutput>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="Properties\DynamicAssemblyInfo.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
+	<Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" />
+	<Import Project="..\LiteCore\src\LiteCore.Shared\LiteCore.Shared.projitems" Label="Shared" />
+	<!-- HACK: Can't find the proper macro in .NET Standard so need to try to import both from all hardcoded paths -->
+	<Import Project="C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VisualStudio\v16.0\TextTemplating\Microsoft.TextTemplating.targets" Condition="Exists('C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VisualStudio\v16.0\TextTemplating\Microsoft.TextTemplating.targets')" />
+	<PropertyGroup>
+		<TextTransformPath Condition="Exists('C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\TextTransform.exe')">C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\TextTransform.exe</TextTransformPath>
+	</PropertyGroup>
+	<Target Condition=" '$(TextTransformPath)' != '' " Name="TransformTemplates">
+		<Exec Command="&quot;$(TextTransformPath)&quot; &quot;$(MSBuildThisFileDirectory)Properties\DynamicAssemblyInfo.tt&quot; -out &quot;$(MSBuildThisFileDirectory)Properties\DynamicAssemblyInfo.cs&quot;" />
+	</Target>
+</Project>
