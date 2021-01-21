@@ -15,7 +15,11 @@ namespace LiteCore.Interop
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>();
 
 #if NEEDS_LITECORE_LOAD
+        #if NETCOREAPP2_1
             NetDesktop.LoadLiteCore();
+        #elif NET5_0
+            Net5.LoadLiteCore();
+        #endif
 #endif
         }
 
