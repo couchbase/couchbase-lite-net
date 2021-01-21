@@ -44,34 +44,9 @@
 		<PackageReference Include="Microsoft.Win32.Registry" Version="4.5.0" />
 	    <ProjectReference Include="..\Couchbase.Lite.Support.Net5\Couchbase.Lite.Support.Net5.csproj" />
 	</ItemGroup>
-
-	<ItemGroup>
-		<None Update="Properties\DynamicAssemblyInfo.tt">
-			<Generator>TextTemplatingFileGenerator</Generator>
-			<LastGenOutput>DynamicAssemblyInfo.cs</LastGenOutput>
-		</None>
-	</ItemGroup>
-
 	<ItemGroup>
 		<Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
 	</ItemGroup>
-
-	<ItemGroup>
-		<Compile Update="Properties\DynamicAssemblyInfo.cs">
-			<DesignTime>True</DesignTime>
-			<AutoGen>True</AutoGen>
-			<DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
-		</Compile>
-	</ItemGroup>
-
 	<Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" />
 	<Import Project="..\LiteCore\src\LiteCore.Shared\LiteCore.Shared.projitems" Label="Shared" />
-	<!-- HACK: Can't find the proper macro in .NET Standard so need to try to import both from all hardcoded paths -->
-	<Import Project="C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VisualStudio\v16.0\TextTemplating\Microsoft.TextTemplating.targets" Condition="Exists('C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VisualStudio\v16.0\TextTemplating\Microsoft.TextTemplating.targets')" />
-	<PropertyGroup>
-		<TextTransformPath Condition="Exists('C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\TextTransform.exe')">C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\TextTransform.exe</TextTransformPath>
-	</PropertyGroup>
-	<Target Condition=" '$(TextTransformPath)' != '' " Name="TransformTemplates">
-		<Exec Command="&quot;$(TextTransformPath)&quot; &quot;$(MSBuildThisFileDirectory)Properties\DynamicAssemblyInfo.tt&quot; -out &quot;$(MSBuildThisFileDirectory)Properties\DynamicAssemblyInfo.cs&quot;" />
-	</Target>
 </Project>
