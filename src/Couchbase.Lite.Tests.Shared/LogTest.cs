@@ -54,7 +54,11 @@ namespace Test
 #if (NETCOREAPP2_1 || NET5_0) && !CBL_NO_VERSION_CHECK
         static LogTest()
         {
+            #if NETCOREAPP2_1
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
+            #elif NET5_0
+            Couchbase.Lite.Support.Net5.CheckVersion();
+            #endif
         }
 #endif
 

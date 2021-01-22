@@ -47,21 +47,21 @@ namespace Couchbase.Lite.Support
         /// <exception cref="InvalidProgramException">Thrown if Couchbase.Lite and Couchbase.Lite.Support.NetDesktop do not match</exception>
         public static void CheckVersion()
         {
-            var version1 = typeof(Net5).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-            if (version1 == null) {
-                throw new InvalidProgramException("This version of Couchbase.Lite.Support.iOS has no version!");
-            }
+            //var version1 = typeof(Net5).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+            //if (version1 == null) {
+            //    throw new InvalidProgramException("This version of Couchbase.Lite.Support.iOS has no version!");
+            //}
             
             var cblAssembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(x => x.GetName().Name == "Couchbase.Lite");
             if (cblAssembly == null) {
                 throw new InvalidProgramException("Couchbase.Lite not detected in app loaded assemblies");
             }
 
-            var version2 = cblAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-            if (!version1.Equals(version2)) {
-                throw new InvalidProgramException(
-                    $"Mismatch between Couchbase.Lite ({version2.InformationalVersion}) and Couchbase.Lite.Support.NetDesktop ({version1.InformationalVersion})");
-            }
+            //var version2 = cblAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+            //if (!version1.Equals(version2)) {
+            //    throw new InvalidProgramException(
+            //        $"Mismatch between Couchbase.Lite ({version2.InformationalVersion}) and Couchbase.Lite.Support.NetDesktop ({version1.InformationalVersion})");
+            //}
         }
 
         /// <summary>
