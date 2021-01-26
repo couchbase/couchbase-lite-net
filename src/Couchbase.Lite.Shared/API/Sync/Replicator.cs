@@ -58,6 +58,8 @@ namespace Couchbase.Lite.Sync
             C4ReplicatorMode.Disabled, C4ReplicatorMode.Disabled, C4ReplicatorMode.OneShot, C4ReplicatorMode.Continuous
         };
 
+        private TimeSpan _defaultHeartbeatInterval = TimeSpan.FromSeconds(300);
+
         #endregion
 
         #region Variables
