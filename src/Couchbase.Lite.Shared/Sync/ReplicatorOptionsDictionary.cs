@@ -63,7 +63,7 @@ namespace Couchbase.Lite.Sync
         private const string ProtocolsOptionKey = "WS-Protocols";
         private const string HeartbeatIntervalKey = "heartbeat"; //Interval in secs to send a keepalive ping
         
-        private TimeSpan _defaultHeartbeatInterval = TimeSpan.FromSeconds(300);
+        private TimeSpan _defaultHeartbeatInterval = TimeSpan.FromMinutes(5);
 
         private const string Tag = nameof(ReplicatorOptionsDictionary);
 
@@ -222,7 +222,7 @@ namespace Couchbase.Lite.Sync
         {
             get => TimeSpan.FromSeconds(this.GetCast<long>(HeartbeatIntervalKey));
             set { 
-                var sec = value.TotalSeconds;
+                var sec = value.Ticks/TimeSpan.TicksPerSecond;
                 if (sec > 0) {
                     this[HeartbeatIntervalKey] = sec;
                 } else { 
