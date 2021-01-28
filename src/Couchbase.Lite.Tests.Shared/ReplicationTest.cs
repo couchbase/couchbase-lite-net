@@ -287,6 +287,30 @@ namespace Test
 #endif
 
 #if COUCHBASE_ENTERPRISE
+
+        [Fact]
+        public void TestReplicatorHeartbeatGetSet()
+        {
+            var config = CreateConfig(true, false, false);
+            using (var repl = new Replicator(config))
+            {
+                repl.Config.Options.Heartbeat.Should().Be(TimeSpan.FromMinutes(5), "Because default Heartbeat Interval is 300 sec.");
+                repl.Config.Options.Heartbeat = TimeSpan.FromSeconds(30);
+                repl.Config.Options.Heartbeat.Should().Be(TimeSpan.FromSeconds(30));
+            }
+
+            config.Options.Heartbeat = TimeSpan.FromSeconds(60);
+            using (var repl = new Replicator(config))
+            {
+                repl.Config.Options.Heartbeat.Should().Be(TimeSpan.FromSeconds(60));
+                Action badAction = (() => repl.Config.Options.Heartbeat = TimeSpan.FromSeconds(0));
+                badAction.Should().Throw<ArgumentException>("Assigning Heartbeat to an invalid value (<= 0).");
+
+                badAction = (() => repl.Config.Options.Heartbeat = TimeSpan.FromMilliseconds(800));
+                badAction.Should().Throw<ArgumentException>("Assigning Heartbeat to an invalid value.");
+            }
+        }
+
         [Fact]
         public void TestReadOnlyConfiguration()
         {
