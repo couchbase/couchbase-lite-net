@@ -37,23 +37,34 @@ namespace Couchbase.Lite.Sync
     {
         #region Constants
 
-        private const string AuthOption = "auth";
+        // Replicator option dictionary keys:
         private const string ChannelsKey = "channels";
         private const string CheckpointIntervalKey = "checkpointInterval";
         private const string ClientCertKey = "clientCert";
         private const string ClientCertKeyKey = "clientCertKey";
-        private const string CookiesKey = "cookies";
         private const string DocIDsKey = "docIDs";
         private const string FilterKey = "filter";
         private const string FilterParamsKey = "filterParams";
-        private const string HeadersKey = "headers";
         private const string LevelKey = "progress";
+        private const string RemoteDBUniqueIDKey = "remoteDBUniqueID";
+        private const string ResetKey = "reset";
+
+        // HTTP options:
+        private const string HeadersKey = "headers";
+        private const string CookiesKey = "cookies";
+        private const string AuthOption = "auth";
+
+        // TLS options:
         private const string RootCertsKey = "rootCerts";
         private const string PinnedCertKey = "pinnedCert";
         private const string OnlySelfSignedServerCert = "onlySelfSignedServer";
+
+        // WebSocket options:
         private const string ProtocolsOptionKey = "WS-Protocols";
-        private const string RemoteDBUniqueIDKey = "remoteDBUniqueID";
-        private const string ResetKey = "reset";
+        private const string HeartbeatIntervalKey = "heartbeat"; //Interval in secs to send a keepalive ping
+        
+        private TimeSpan _defaultHeartbeatInterval = TimeSpan.FromMinutes(5);
+
         private const string Tag = nameof(ReplicatorOptionsDictionary);
 
         #endregion
@@ -164,12 +175,18 @@ namespace Couchbase.Lite.Sync
         [CanBeNull]
         public X509Certificate2 PinnedServerCertificate { get; set; }
 
+        /// <summary>
+        /// Level of opt in on progress of replication
+        /// </summary>
         public ReplicatorProgressLevel ProgressLevel
         {
             get => (ReplicatorProgressLevel)this.GetCast<int>(LevelKey);
             set => this[LevelKey] = (int)value;
         }
 
+        /// <summary>
+        /// Stable ID for remote db with unstable URL
+        /// </summary>
         [CanBeNull]
         public string RemoteDBUniqueID
         {
@@ -183,6 +200,9 @@ namespace Couchbase.Lite.Sync
             }
         }
 
+        /// <summary>
+        /// Checkpoint Reset
+        /// </summary>
         public bool Reset
         {
             get => this.GetCast<bool>(ResetKey);
@@ -191,6 +211,22 @@ namespace Couchbase.Lite.Sync
                     this[ResetKey] = true;
                 } else {
                     Remove(ResetKey);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the replicator heartbeat keep-alive interval.
+        /// </summary>
+        public TimeSpan Heartbeat
+        {
+            get => TimeSpan.FromSeconds(this.GetCast<long>(HeartbeatIntervalKey));
+            set { 
+                var sec = value.Ticks/TimeSpan.TicksPerSecond;
+                if (sec > 0) {
+                    this[HeartbeatIntervalKey] = sec;
+                } else { 
+                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
                 }
             }
         }
@@ -217,6 +253,7 @@ namespace Couchbase.Lite.Sync
         public ReplicatorOptionsDictionary()
         {
             Headers = new Dictionary<string, string>();
+            Heartbeat = _defaultHeartbeatInterval;
         }
 
         ~ReplicatorOptionsDictionary()
