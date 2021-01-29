@@ -226,6 +226,15 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
+        /// Gets or sets the replicator heartbeat keep-alive interval.
+        /// </summary>
+        public TimeSpan Heartbeat
+        {
+            get => Options.Heartbeat;
+            set => _freezer.PerformAction(() => Options.Heartbeat = value);
+        }
+
+        /// <summary>
         /// Gets the target to replicate with (either <see cref="Database"/>
         /// or <see cref="Uri"/>
         /// </summary>

@@ -215,10 +215,7 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        /// <summary>
-        /// Gets or sets the replicator heartbeat keep-alive interval.
-        /// </summary>
-        public TimeSpan Heartbeat
+        internal TimeSpan Heartbeat
         {
             get => TimeSpan.FromSeconds(this.GetCast<long>(HeartbeatIntervalKey));
             set { 
