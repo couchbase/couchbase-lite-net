@@ -303,10 +303,10 @@ namespace Test
                 repl.Config.Options.Heartbeat.Should().Be(TimeSpan.FromSeconds(60));
             }
 
-            Action badAction = (() => config.Options.Heartbeat = TimeSpan.FromSeconds(0));
+            Action badAction = (() => config.Heartbeat = TimeSpan.FromSeconds(0));
             badAction.Should().Throw<ArgumentException>("Assigning Heartbeat to an invalid value (<= 0).");
 
-            badAction = (() => config.Options.Heartbeat = TimeSpan.FromMilliseconds(800));
+            badAction = (() => config.Heartbeat = TimeSpan.FromMilliseconds(800));
             badAction.Should().Throw<ArgumentException>("Assigning Heartbeat to an invalid value.");
         }
 
