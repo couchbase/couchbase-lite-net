@@ -58,6 +58,11 @@ namespace Couchbase.Lite.Support
             location = newValue;
         }
 
+        public T GetValue<T>(ref T location)
+        {
+            return location;
+        }
+
         #endregion
     }
 }

@@ -48,6 +48,8 @@ namespace Couchbase.Lite.Sync
         private const string LevelKey = "progress";
         private const string RemoteDBUniqueIDKey = "remoteDBUniqueID";
         private const string ResetKey = "reset";
+        private const string MaxRetriesKey = "maxRetries";
+        private const string MaxRetryIntervalKey = "maxRetryInterval";
 
         // HTTP options:
         private const string HeadersKey = "headers";
@@ -64,6 +66,7 @@ namespace Couchbase.Lite.Sync
         private const string HeartbeatIntervalKey = "heartbeat"; //Interval in secs to send a keepalive ping
         
         private TimeSpan _defaultHeartbeatInterval = TimeSpan.FromMinutes(5);
+        private TimeSpan _defaultMaxRetryInterval = TimeSpan.FromMinutes(5);
 
         private const string Tag = nameof(ReplicatorOptionsDictionary);
 
@@ -228,6 +231,31 @@ namespace Couchbase.Lite.Sync
             }
         }
 
+        internal int MaxRetries
+        {
+            get => this.GetCast<int>(MaxRetriesKey);
+            set {
+                if (value >= 0) {
+                    this[MaxRetriesKey] = value;
+                } else {
+                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetries);
+                }
+            }
+        }
+
+        internal TimeSpan MaxRetryInterval
+        {
+            get => TimeSpan.FromSeconds(this.GetCast<long>(MaxRetryIntervalKey));
+            set {
+                var sec = value.Ticks / TimeSpan.TicksPerSecond;
+                if (sec > 0) {
+                    this[MaxRetryIntervalKey] = sec;
+                } else {
+                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetryInterval);
+                }
+            }
+        }
+
         #if COUCHBASE_ENTERPRISE
         internal bool AcceptOnlySelfSignedServerCertificate
         {
@@ -251,6 +279,7 @@ namespace Couchbase.Lite.Sync
         {
             Headers = new Dictionary<string, string>();
             Heartbeat = _defaultHeartbeatInterval;
+            MaxRetryInterval = _defaultMaxRetryInterval;
         }
 
         ~ReplicatorOptionsDictionary()

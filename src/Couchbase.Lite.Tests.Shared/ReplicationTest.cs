@@ -294,6 +294,7 @@ namespace Test
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config))
             {
+                repl.Config.Options.Heartbeat.Should().Be(TimeSpan.FromMinutes(5), "Because default Heartbeat Interval is 300 sec.");
                 repl.Config.Heartbeat.Should().Be(TimeSpan.FromMinutes(5), "Because default Heartbeat Interval is 300 sec.");
             }
 
@@ -309,6 +310,60 @@ namespace Test
             badAction = (() => config.Heartbeat = TimeSpan.FromMilliseconds(800));
             badAction.Should().Throw<ArgumentException>("Assigning Heartbeat to an invalid value.");
         }
+
+        [Fact]
+        public void TestReplicatorMaxRetryWaitTimeGetSet()
+        {
+            var config = CreateConfig(true, false, false);
+            using (var repl = new Replicator(config)) {
+                repl.Config.Options.MaxRetryInterval.Should().Be(TimeSpan.FromMinutes(5), "Because default Max Retry Interval is 300 sec.");
+                repl.Config.MaxRetryWaitTime.Should().Be(TimeSpan.FromMinutes(5), "Because default Max Retry Wait Time is 300 sec.");
+            }
+
+            config.MaxRetryWaitTime = TimeSpan.FromSeconds(60);
+            using (var repl = new Replicator(config)) {
+                repl.Config.Options.MaxRetryInterval.Should().Be(TimeSpan.FromSeconds(60));
+                repl.Config.MaxRetryWaitTime.Should().Be(TimeSpan.FromSeconds(60));
+            }
+
+            Action badAction = (() => config.MaxRetryWaitTime = TimeSpan.FromSeconds(0));
+            badAction.Should().Throw<ArgumentException>("Assigning Max Retry Wait Time to an invalid value (<= 0).");
+
+            badAction = (() => config.MaxRetryWaitTime = TimeSpan.FromMilliseconds(800));
+            badAction.Should().Throw<ArgumentException>("Assigning Max Retry Wait Time to an invalid value.");
+        }
+
+        [Fact]
+        public void TestReplicatorMaxRetriesGetSet()
+        {
+            var config = CreateConfig(true, false, false);
+            using (var repl = new Replicator(config)) {
+                repl.Config.MaxRetries.Should().Be(9, "Because default Max Retries is 9 times for a Single Shot Replicator.");
+                repl.Config.Continuous = true;
+                repl.Config.MaxRetries.Should().Be(9, "Because default Max Retries is 9 times for a Single Shot Replicator.");
+            }
+
+            config = CreateConfig(true, false, true);
+            using (var repl = new Replicator(config)) {
+                repl.Config.MaxRetries.Should().Be(Int32.MaxValue, "Because default Max Retries is Max int times for a Continuous Replicator.");
+            }
+
+            var retries = 5;
+            config = CreateConfig(true, false, false);
+            config.MaxRetries = retries;
+            using (var repl = new Replicator(config)) {
+                repl.Config.Options.MaxRetries.Should().Be(retries, $"Because {retries} is what custom setting value for Max Retries.");
+            }
+
+            Action badAction = (() => config.MaxRetries = -1);
+            badAction.Should().Throw<ArgumentException>("Assigning Max Retries to an invalid value (< 0).");
+        }
+
+        [Fact]
+        public void TestReplicatorMaxRetries() => ReplicatorMaxRetries(2);
+
+        [Fact]
+        public void TestReplicatorZeroMaxRetries() => ReplicatorMaxRetries(0);
 
         [Fact]
         public void TestReadOnlyConfiguration()
@@ -1788,6 +1843,41 @@ namespace Test
 
 
 #if COUCHBASE_ENTERPRISE
+        private void ReplicatorMaxRetries(int retries)
+        {
+            // If this IP address happens to exist, then change it.  It needs to be an address that does not
+            // exist on the LAN
+            var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
+            var config = new ReplicatorConfiguration(Db, targetEndpoint) {
+                Continuous = true,
+                MaxRetries = retries
+            };
+
+            var count = 0;
+            var repl = new Replicator(config);
+            var waitAssert = new WaitAssert();
+            var token = repl.AddChangeListener((sender, args) =>
+            {
+                waitAssert.RunConditionalAssert(() =>
+                {
+                    if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
+                        count++;
+                    }
+
+                    return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                });
+            });
+
+            repl.Start();
+
+            // Wait for the replicator to be stopped
+            waitAssert.WaitForResult(TimeSpan.FromSeconds(15));
+            repl.RemoveChangeListener(token);
+
+            count.Should().Be(retries);
+            repl.Dispose();
+        }
+
         private void ValidatePendingDocumentIds(PENDING_DOC_ID_SEL selection)
         {
             IImmutableSet<string> pendingDocIds;
