@@ -1871,7 +1871,7 @@ namespace Test
             repl.Start();
 
             // Wait for the replicator to be stopped
-            waitAssert.WaitForResult(TimeSpan.FromSeconds(15));
+            waitAssert.WaitForResult(TimeSpan.FromSeconds(60));
             repl.RemoveChangeListener(token);
 
             count.Should().Be(retries);
