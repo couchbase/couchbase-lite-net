@@ -339,8 +339,6 @@ namespace Test
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
                 repl.Config.MaxRetries.Should().Be(9, "Because default Max Retries is 9 times for a Single Shot Replicator.");
-                repl.Config.Continuous = true;
-                repl.Config.MaxRetries.Should().Be(9, "Because default Max Retries is 9 times for a Single Shot Replicator.");
             }
 
             config = CreateConfig(true, false, true);

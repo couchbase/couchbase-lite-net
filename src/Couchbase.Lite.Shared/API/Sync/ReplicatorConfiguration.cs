@@ -153,12 +153,8 @@ namespace Couchbase.Lite.Sync
         {
             get => _continuous;
             set {
-                try {
-                    _freezer.SetValue(ref _continuous, value);
-                    Options.MaxRetries = _continuous ? Int32.MaxValue : 9;
-                } catch {
-                    Options.MaxRetries = _freezer.GetValue(ref _continuous) ? Int32.MaxValue : 9;
-                }
+                _freezer.SetValue(ref _continuous, value);
+                Options.MaxRetries = _continuous ? Int32.MaxValue : 9;
             }
         }
 
