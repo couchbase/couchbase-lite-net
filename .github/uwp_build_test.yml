@@ -1,0 +1,78 @@
+# This continuous integration pipeline is triggered anytime a user pushes code to the repo.
+# This pipeline builds the UWP project, runs unit tests.
+name: CBL UWP PR Validation
+
+# Trigger on every master branch push and pull request
+on:
+  push:
+    branches:
+      - master
+      - 'release/*'
+  pull_request:
+    branches:
+      - '**'
+    
+jobs:
+
+  build:
+
+    strategy:
+      fail-fast: false
+      matrix:
+        targetplatform: [x86, x64]
+
+    runs-on: windows-latest
+    
+    env:
+      SigningCertificate: src\Couchbase.Lite.Tests.UWPCoverage\Couchbase.Lite.Tests.UWP_TemporaryKey.pfx
+      Solution_Path: src\Couchbase.Lite.TestCoverage\Couchbase.Lite.TestCoverage.sln
+      Test_Project_Path: src\Couchbase.Lite.Tests.UWPCoverage\Couchbase.Lite.Tests.UWPCoverage.csproj
+      Cbl_Project_Path: src\Couchbase.Lite.Enterprise\Couchbase.Lite.Enterprise.csproj
+      UwpSupport_Project_Directory: couchbase-lite-net\src\Couchbase.Lite.Support.NetDesktop\Couchbase.Lite.Support.NetDesktop.csproj
+      NetDesktopSupport_Project_Name: couchbase-lite-net\src\Couchbase.Lite.Support.NetDesktop\Couchbase.Lite.Support.NetDesktop.csproj
+
+    steps:
+    
+    #- name: Checkout
+    #- uses: actions/checkout@v2
+    #  with:
+    #    submodules: recursive
+        
+      
+    - uses: actions/checkout@v1
+    - name: Run PowerShell script
+      run: pwsh -command ".\$GITHUB_WORKSPACE\uwp_build_test.ps1"
+        
+#### BUILD
+
+    #- name: Fetch LiteCore
+    #- uses: actions/checkout@v2
+    #  run: |
+    #    cd couchbase-lite-net
+    #    pushd vendor/couchbase-lite-core
+    #    $sha=$(& 'C:\Program Files\Git\bin\git.exe' rev-parse HEAD)
+    #    popd
+    #    cd ..
+    #    $NEXUS_REPO='http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore/'
+    #    build/do_fetch_litecore.ps1 -DebugLib -Variants windows-win32,windows-win64,windows-arm -NexusRepo $NEXUS_REPO
+    #  shell: powershell
+        
+        
+    # Add  MsBuild to the PATH: https://github.com/microsoft/setup-msbuild
+    #- name: Setup MSBuild.exe
+    #  uses: microsoft/setup-msbuild@v1.0.1
+        
+    # Restore the solution to populate the obj folders
+    #- name: Restore Projects
+    #  run:  msbuild $env:Solution_Path /t:Restore /p:Configuration=$env:Configuration /p:RuntimeIdentifier=$env:RuntimeIdentifier
+    #  env:
+    #    Configuration: Debug
+    #    RuntimeIdentifier: win-${{ matrix.targetplatform }}
+        
+    # Tests
+    #- name: Execute Tests
+    #  run: msbuild $env:Test_Project_Path /p:Configuration=$env:Configuration /p:RuntimeIdentifier=$env:RuntimeIdentifier /t:Rebuild
+    #  env:
+    #    Configuration: Debug
+    #    RuntimeIdentifier: win-${{ matrix.targetplatform }}
+      
