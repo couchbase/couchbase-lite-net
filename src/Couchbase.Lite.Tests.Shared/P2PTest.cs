@@ -381,8 +381,10 @@ namespace Test
             var expectedCode = recoverable ? 0 : (int)CouchbaseLiteError.WebSocketUserPermanent;
 
             var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, location, recoverable);
+            config.MaxRetries = 1;
             RunReplication(config, expectedCode, expectedDomain);
             config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, location, recoverable);
+            config.MaxRetries = 1;
             RunReplication(config, expectedCode, expectedDomain, true);
         }
 
