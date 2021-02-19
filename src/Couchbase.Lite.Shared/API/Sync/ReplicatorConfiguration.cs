@@ -152,10 +152,7 @@ namespace Couchbase.Lite.Sync
         public bool Continuous
         {
             get => _continuous;
-            set {
-                _freezer.SetValue(ref _continuous, value);
-                Options.MaxRetries = _continuous ? Int32.MaxValue : 9;
-            }
+            set => _freezer.SetValue(ref _continuous, value);
         }
 
         /// <summary>
@@ -253,8 +250,14 @@ namespace Couchbase.Lite.Sync
         /// </exception>
         public int MaxRetries
         {
-            get => Options.MaxRetries;
-            set => _freezer.PerformAction(() => Options.MaxRetries = value);
+            get => Options.MaxRetries >= 0 ? Options.MaxRetries : _continuous ? Int32.MaxValue : 9;
+            set {
+                if (value >= 0) {
+                    _freezer.PerformAction(() => Options.MaxRetries = value);
+                } else {
+                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetries);
+                }
+            }
         }
 
         /// <summary>

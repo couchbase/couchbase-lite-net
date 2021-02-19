@@ -782,7 +782,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        [Fact] //This test is now flaky..
         public void TestStopContinuousReplicator()
         {
             var config = CreateConfig(true, false, true);

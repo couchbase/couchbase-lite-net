@@ -234,13 +234,7 @@ namespace Couchbase.Lite.Sync
         internal int MaxRetries
         {
             get => this.GetCast<int>(MaxRetriesKey);
-            set {
-                if (value >= 0) {
-                    this[MaxRetriesKey] = value;
-                } else {
-                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetries);
-                }
-            }
+            set => this[MaxRetriesKey] = (int) value;
         }
 
         internal TimeSpan MaxRetryInterval
@@ -280,6 +274,7 @@ namespace Couchbase.Lite.Sync
             Headers = new Dictionary<string, string>();
             Heartbeat = _defaultHeartbeatInterval;
             MaxRetryInterval = _defaultMaxRetryInterval;
+            MaxRetries = -1;
         }
 
         ~ReplicatorOptionsDictionary()
