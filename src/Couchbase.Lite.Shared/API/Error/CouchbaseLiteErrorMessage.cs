@@ -67,6 +67,8 @@ namespace Couchbase.Lite
         internal const string MissingCommonName = "The Common Name attribute is required";
         internal const string FailToRemoveKeyPair = "Couldn't remove a keypair with error: {0}";
         internal const string InvalidHeartbeatInterval = "Heartbeat Interval cannot be less or equal to 0 full seconds.";
+        internal const string InvalidMaxRetryInterval = "Max Retry Interval cannot be less or equal to 0 full seconds.";
+        internal const string InvalidMaxRetries = "Max Retries cannot be negative value.";
     }
 }
 

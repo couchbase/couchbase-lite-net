@@ -226,12 +226,50 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// Gets or sets the replicator heartbeat keep-alive interval.
+        /// Gets or sets the replicator heartbeat keep-alive interval. 
+        /// The default Heartbeat is <c>5</c> min.
         /// </summary>
+        /// <exception cref="ArgumentException"> 
+        /// Throw if set the Heartbeat to less or equal to 0 full seconds.
+        /// </exception>
         public TimeSpan Heartbeat
         {
             get => Options.Heartbeat;
             set => _freezer.PerformAction(() => Options.Heartbeat = value);
+        }
+
+        /// <summary>
+        /// Max number of retry attempts. The retry attempts will reset
+        /// after the replicator is connected to a remote peer. 
+        /// The default MaxRetries is <c>9</c> for a single shot replicator and 
+        /// <see cref="Int32.MaxValue" /> for a continuous replicator.
+        /// Set the MaxRetries to 0 will result in no retry attempt.
+        /// </summary>
+        /// <exception cref="ArgumentException">
+        /// Throw if set the MaxRetries to a negative value.
+        /// </exception>
+        public int MaxRetries
+        {
+            get => Options.MaxRetries >= 0 ? Options.MaxRetries : _continuous ? Int32.MaxValue : 9;
+            set {
+                if (value >= 0) {
+                    _freezer.PerformAction(() => Options.MaxRetries = value);
+                } else {
+                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetries);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Max delay between retries.
+        /// </summary>
+        /// <exception cref="ArgumentException"> 
+        /// Throw if set the MaxRetryWaitTime to less than 0 full seconds.
+        /// </exception>
+        public TimeSpan MaxRetryWaitTime
+        {
+            get => Options.MaxRetryInterval;
+            set => _freezer.PerformAction(() => Options.MaxRetryInterval = value);
         }
 
         /// <summary>
