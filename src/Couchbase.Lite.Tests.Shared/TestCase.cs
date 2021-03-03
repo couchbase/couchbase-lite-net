@@ -39,6 +39,8 @@ using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
 using System.Text;
+
+using Newtonsoft.Json.Linq;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -188,6 +190,73 @@ namespace Test
 
         internal static Blob ArrayTestBlob() => new Blob("text/plain", Encoding.UTF8.GetBytes("12345"));
 
+        /// <summary>
+        /// class contains CBL supports types:
+        /// byte, sbyte, short, ushort, int, uint, long, ulong, float, double, 
+        /// bool, string, DateTimeOffset, Blob, a one-dimensional array 
+        /// or a dictionary whose members are one of the preceding types.
+        /// </summary>
+        internal class DataInCBLDataType
+        {
+            public List<int> array { get; set; }
+            public Blob blob { get; set; }
+            public bool boolVal { get; set; }
+            public byte byteVal { get; set; }
+            public DateTimeOffset dateTimeOffset { get; set; }
+            public Dictionary<string, object> dictionary { get; set; }
+            public double doubleVal { get; set; }
+            public float floatVal { get; set; }
+            public int intVal { get; set; }
+            public long longVal { get; set; }
+            public object nullObj { get; set; }
+            public byte sbyteVal { get; set; }
+            public short shortVal { get; set; }
+            public string stringVal { get; set; }
+            public uint uintVal { get; set; }
+            public ulong ulongVal { get; set; }
+            public ushort ushortVal { get; set; }
+        }
+
+        internal void VerifyValuesInJson(Dictionary<string, object> dic1, DataInCBLDataType dic2)
+        {
+            foreach (var i in dic1) {
+                dic1[i.Key].Should().BeEquivalentTo(typeof(DataInCBLDataType).GetProperty(i.Key).GetValue(dic2));
+            }
+        }
+
+        /// <summary>
+        /// dictionary contains CBL supports types:
+        /// byte, sbyte, short, ushort, int, uint, long, ulong, float, double, 
+        /// bool, string, DateTimeOffset, Blob, a one-dimensional array 
+        /// or a dictionary whose members are one of the preceding types.
+        /// </summary>
+        protected Dictionary<string, object> PopulateDictData()
+        {
+            var dt = DateTimeOffset.UtcNow;
+
+            var KeyValueDictionary = new Dictionary<string, object>()
+            {
+                { "nullObj", null },
+                { "byteVal", (byte) 1 },
+                { "sbyteVal", (sbyte) 1 },
+                { "ushortVal", (ushort) 1 },
+                { "shortVal", (short) 1 },
+                { "intVal", 1 },
+                { "uintVal", 1U },
+                { "longVal", 1L },
+                { "ulongVal", 1UL },
+                { "boolVal", true },
+                { "stringVal", "Test" },
+                { "floatVal", 1.1f },
+                { "doubleVal", 1.1 },
+                { "dateTimeOffset", dt },
+                { "array", new[] { 1, 2, 3, } },
+                { "dictionary", new Dictionary<string, object> { ["foo"] = "bar" } },
+                { "blob", ArrayTestBlob() }
+            };
+
+            return KeyValueDictionary;
+        }
         private bool TestObjectEquality(object o1, object o2)
         {
             switch (o1) {

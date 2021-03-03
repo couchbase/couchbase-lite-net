@@ -23,6 +23,7 @@ using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
 
 using FluentAssertions;
+using Newtonsoft.Json;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -524,6 +525,73 @@ namespace Test
             var inmemorydict1 = new InMemoryDictionary(idic);
             inmemorydict1.Count.Should().Be(6);
             var inmemorydict = new InMemoryDictionary(dict2);
+        }
+
+        [Fact]
+        public void TestTypesInDictionaryToJSON()
+        {
+            var dic = PopulateDictData();
+            var md = new MutableDictionaryObject();
+            foreach (var item in dic) {
+                switch (item.Value) {
+                    case null:
+                        md.SetValue(item.Key, item.Value);
+                        break;
+                    case int i:
+                        md.SetInt(item.Key, i);
+                        break;
+                    case string str:
+                        md.SetString(item.Key, str);
+                        break;
+                    case long l:
+                        md.SetLong(item.Key, l);
+                        break;
+                    case bool bl:
+                        md.SetBoolean(item.Key, bl);
+                        break;
+                    case float f:
+                        md.SetFloat(item.Key, f);
+                        break;
+                    case double d:
+                        md.SetDouble(item.Key, d);
+                        break;
+                    case Blob blob:
+                        md.SetBlob(item.Key, blob);
+                        break;
+                    case DateTimeOffset dto:
+                        md.SetDate(item.Key, dto);
+                        break;
+                    case DictionaryObject cbldo:
+                        md.SetDictionary(item.Key, cbldo);
+                        break;
+                    case ArrayObject cblarr:
+                        md.SetArray(item.Key, cblarr);
+                        break;
+                    case IDictionary<string, object> dict:
+                    case int[] ao:
+                    case ulong ul:
+                    case byte b:
+                    case sbyte sb:
+                    case ushort us:
+                    case short s:
+                    case uint ui:
+                        md.SetValue(item.Key, item.Value);
+                        break;
+                }
+
+                using (var doc = new MutableDocument("doc1")) {
+                    doc.SetDictionary("dict", md);
+                    Db.Save(doc);
+                } 
+            }
+
+            using (var doc = Db.GetDocument("doc1")) {
+                var dict = doc.GetDictionary("dict");
+                var json = dict.ToJSON();
+                var jdic = JsonConvert.DeserializeObject<DataInCBLDataType>(json);
+
+                VerifyValuesInJson(dic, jdic);
+            }
         }
     }
 }

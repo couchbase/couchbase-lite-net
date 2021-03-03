@@ -28,7 +28,7 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
-
+using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
 
@@ -37,7 +37,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A class representing a document which cannot be altered
     /// </summary>
-    public unsafe class Document : IDictionaryObject, IDisposable
+    public unsafe class Document : IDictionaryObject, IJSON, IDisposable
     {
         #region Variables
 
@@ -396,6 +396,18 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => _dict?.GetEnumerator() ?? new InMemoryDictionary().GetEnumerator();
 
+        #endregion
+
+        #region IJSON
+
+        /// <inheritdoc />
+        public string ToJSON()
+        {
+            return LiteCoreBridge.Check(err =>
+            {
+                return Native.c4doc_bodyAsJSON(c4Doc.RawDoc, true, err);
+            });
+        }
         #endregion
     }
 }

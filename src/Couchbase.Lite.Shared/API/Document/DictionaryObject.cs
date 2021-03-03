@@ -79,7 +79,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A class representing a key-value collection that is read only
     /// </summary>
-    public class DictionaryObject : IDictionaryObject
+    public class DictionaryObject : IDictionaryObject, IJSON
     {
         #region Variables
 
@@ -277,6 +277,15 @@ namespace Couchbase.Lite
         public virtual IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
             return new Enumerator(_dict);
+        }
+
+        #endregion
+
+        #region IJSON
+
+        public string ToJSON()
+        {
+            return _dict.ToJSON();
         }
 
         #endregion
