@@ -171,6 +171,11 @@ namespace Couchbase.Lite.Internal.Serialization
             }
         }
 
+        internal string ToJSON()
+        {
+            return Native.FLValue_ToJSON((FLValue*) _dict);
+        }
+
         #endregion
 
         #region Private Methods

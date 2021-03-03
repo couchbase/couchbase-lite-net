@@ -27,7 +27,7 @@ using Couchbase.Lite;
 using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
-
+using Newtonsoft.Json;
 using Test.Util;
 #if !WINDOWS_UWP
 using Xunit;
@@ -2100,6 +2100,70 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestTypesInDocumentToJSON()
+        {
+            var dic = PopulateDictData();
+            using (var md = new MutableDocument("doc1")) {
+                foreach (var item in dic) {
+                    switch (item.Value) {
+                        case null:
+                            md.SetValue(item.Key, item.Value);
+                            break;
+                        case int i:
+                            md.SetInt(item.Key, i);
+                            break;
+                        case string str:
+                            md.SetString(item.Key, str);
+                            break;
+                        case long l:
+                            md.SetLong(item.Key, l);
+                            break;
+                        case bool bl:
+                            md.SetBoolean(item.Key, bl);
+                            break;
+                        case float f:
+                            md.SetFloat(item.Key, f);
+                            break;
+                        case double d:
+                            md.SetDouble(item.Key, d);
+                            break;
+                        case Blob blob:
+                            md.SetBlob(item.Key, blob);
+                            break;
+                        case DateTimeOffset dto:
+                            md.SetDate(item.Key, dto);
+                            break;
+                        case DictionaryObject cbldo:
+                            md.SetDictionary(item.Key, cbldo);
+                            break;
+                        case ArrayObject cblarr:
+                            md.SetArray(item.Key, cblarr);
+                            break;
+                        case IDictionary<string, object> dict:
+                        case int[] ao:
+                        case ulong ul:
+                        case byte b:
+                        case sbyte sb:
+                        case ushort us:
+                        case short s:
+                        case uint ui:
+                            md.SetValue(item.Key, item.Value);
+                            break;
+                    }
+                }
+
+                Db.Save(md);
+            }
+
+            using (var doc = Db.GetDocument("doc1")) {
+                var json = doc.ToJSON();
+                var jdic = JsonConvert.DeserializeObject<DataInCBLDataType>(json);
+
+                VerifyValuesInJson(dic, jdic);
+            }
+        }
+
         private void PopulateData(MutableDocument doc)
         {
             var date = DateTimeOffset.Now;
@@ -2122,10 +2186,7 @@ namespace Test
             array.AddString("650-123-0001");
             array.AddString("650-123-0002");
             doc.SetArray("array", array);
-
-            var content = Encoding.UTF8.GetBytes("12345");
-            var blob = new Blob("text/plain", content);
-            doc.SetBlob("blob", blob);
+            doc.SetBlob("blob", ArrayTestBlob());
         }
     }
 }
