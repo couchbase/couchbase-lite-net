@@ -47,14 +47,14 @@ namespace Test
 #endif
     public sealed class BlobTest : TestCase
     {
-#if !WINDOWS_UWP
+        #if !WINDOWS_UWP
 
         public BlobTest(ITestOutputHelper output) : base(output)
         {
 
         }
 
-#endif
+        #endif
 
         [Fact]
         public void TestGetContent()
@@ -62,7 +62,7 @@ namespace Test
             byte[] bytes = null;
             using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("attachment.png"))
             using (var sr = new BinaryReader(stream)) {
-                bytes = sr.ReadBytes((int) stream.Length);
+                bytes = sr.ReadBytes((int)stream.Length);
             }
 
             var blob = new Blob("image/png", bytes);
@@ -85,7 +85,7 @@ namespace Test
             byte[] bytes = null;
             using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("iTunesMusicLibrary.json"))
             using (var sr = new BinaryReader(stream)) {
-                bytes = sr.ReadBytes((int) stream.Length);
+                bytes = sr.ReadBytes((int)stream.Length);
             }
 
             var blob = new Blob("application/json", bytes);
@@ -107,7 +107,7 @@ namespace Test
             byte[] bytes = null;
             using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("iTunesMusicLibrary.json"))
             using (var sr = new BinaryReader(stream)) {
-                bytes = sr.ReadBytes((int) stream.Length);
+                bytes = sr.ReadBytes((int)stream.Length);
             }
 
             C4BlobKey key;
@@ -151,7 +151,7 @@ namespace Test
             byte[] bytes = null;
             using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("iTunesMusicLibrary.json"))
             using (var sr = new BinaryReader(stream)) {
-                bytes = sr.ReadBytes((int) stream.Length);
+                bytes = sr.ReadBytes((int)stream.Length);
             }
 
             C4BlobKey key;

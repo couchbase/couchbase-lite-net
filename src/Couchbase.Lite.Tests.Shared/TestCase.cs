@@ -38,6 +38,7 @@ using LiteCore.Interop;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
+using System.Text;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -184,6 +185,8 @@ namespace Test
                 }
             }
         }
+
+        internal static Blob ArrayTestBlob() => new Blob("text/plain", Encoding.UTF8.GetBytes("12345"));
 
         private bool TestObjectEquality(object o1, object o2)
         {
