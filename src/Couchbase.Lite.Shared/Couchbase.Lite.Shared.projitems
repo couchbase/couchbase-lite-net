@@ -108,6 +108,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Document\DataOps.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\DocContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\Fragment.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Document\IJSON.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\InMemoryDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\MRoot.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\FleeceMutableArray.cs" />

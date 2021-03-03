@@ -32,6 +32,7 @@ using Couchbase.Lite.Util;
 using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
+using Newtonsoft.Json;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -46,14 +47,14 @@ namespace Test
 #endif
     public sealed class BlobTest : TestCase
     {
-        #if !WINDOWS_UWP
+#if !WINDOWS_UWP
 
         public BlobTest(ITestOutputHelper output) : base(output)
         {
 
         }
 
-        #endif
+#endif
 
         [Fact]
         public void TestGetContent()
@@ -61,7 +62,7 @@ namespace Test
             byte[] bytes = null;
             using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("attachment.png"))
             using (var sr = new BinaryReader(stream)) {
-                bytes = sr.ReadBytes((int)stream.Length);
+                bytes = sr.ReadBytes((int) stream.Length);
             }
 
             var blob = new Blob("image/png", bytes);
@@ -84,7 +85,7 @@ namespace Test
             byte[] bytes = null;
             using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("iTunesMusicLibrary.json"))
             using (var sr = new BinaryReader(stream)) {
-                bytes = sr.ReadBytes((int)stream.Length);
+                bytes = sr.ReadBytes((int) stream.Length);
             }
 
             var blob = new Blob("application/json", bytes);
@@ -106,7 +107,7 @@ namespace Test
             byte[] bytes = null;
             using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("iTunesMusicLibrary.json"))
             using (var sr = new BinaryReader(stream)) {
-                bytes = sr.ReadBytes((int)stream.Length);
+                bytes = sr.ReadBytes((int) stream.Length);
             }
 
             C4BlobKey key;
@@ -150,7 +151,7 @@ namespace Test
             byte[] bytes = null;
             using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("iTunesMusicLibrary.json"))
             using (var sr = new BinaryReader(stream)) {
-                bytes = sr.ReadBytes((int)stream.Length);
+                bytes = sr.ReadBytes((int) stream.Length);
             }
 
             C4BlobKey key;
@@ -166,6 +167,81 @@ namespace Test
             using (var stream = new BlobReadStream(Db.BlobStore, key)) {
                 stream.Length.Should().Be(bytes.Length);
             }
+        }
+
+        [Fact]
+        public void TestBlobToJSON()
+        {
+            var blob = ArrayTestBlob();
+            Action badAction = (() => blob.ToJSON());
+            badAction.Should().Throw<InvalidDataException>(CouchbaseLiteErrorMessage.MissingDigestDueToBlobIsNotSavedToDB);
+
+            Db.SaveBlob(blob);
+
+            var json = blob.ToJSON();
+
+            var blobFromJStr = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+            blob.JSONEquals(blobFromJStr).Should().BeTrue();
+        }
+
+        [Fact]
+        public void TestGetBlobFromDB()
+        {
+            var blob = ArrayTestBlob();
+            Db.SaveBlob(blob);
+
+            var blobDict = new Dictionary<string, object>() {
+                { Blob.ContentTypeKey, blob.ContentType },
+                { Blob.DigestKey, blob.Digest},
+                { Blob.LengthKey, blob.Length},
+                { Constants.ObjectTypeProperty, "blob" }
+            };
+
+            var blobFromDict = Db.GetBlob(blobDict);
+            blob.Equals(blobFromDict).Should().BeTrue();
+
+            blobDict.Add(Constants.ObjectTypeProperty, "blob");
+            blobDict.Remove(Blob.DigestKey);
+            blobFromDict = Db.GetBlob(blobDict);
+            blobFromDict.Should().BeNull();
+        }
+
+        [Fact]
+        public void TestDocumentBlobToJSON()
+        {
+            var blob = ArrayTestBlob();
+            using (var md = new MutableDocument("doc1")) {
+                md.SetBlob("blob", blob);
+                Db.Save(md);
+            }
+
+            using(var d = Db.GetDocument("doc1")) {
+                var b = d.GetBlob("blob");
+                var json = b.ToJSON();
+                var blobFromJson = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+                blobFromJson.ContainsKey(Blob.ContentTypeKey).Should().BeTrue();
+                blobFromJson.ContainsKey(Blob.DigestKey).Should().BeTrue();
+                blobFromJson.ContainsKey(Blob.LengthKey).Should().BeTrue();
+                blobFromJson.ContainsKey(Constants.ObjectTypeProperty).Should().BeTrue();
+            }
+        }
+
+        [Fact]
+        public void TestGetBlobFromCompactDB()
+        {
+            var blob = ArrayTestBlob();
+            Db.SaveBlob(blob);
+            Db.Compact();
+
+            var blobDict = new Dictionary<string, object>() {
+                { Blob.ContentTypeKey, blob.ContentType },
+                { Blob.DigestKey, blob.Digest},
+                { Blob.LengthKey, blob.Length},
+                { Constants.ObjectTypeProperty, "blob" }
+            };
+
+            var blobFromDict = Db.GetBlob(blobDict);
+            blobFromDict.Should().BeNull();
         }
     }
 }

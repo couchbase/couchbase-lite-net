@@ -935,6 +935,68 @@ namespace Couchbase.Lite
             return saved;
         }
 
+        /// <summary>
+        /// Save a blob object directly into the database without associating it with any documents.
+        /// </summary>
+        /// <remarks>The blobs that are not associated with any documents will be removed from the database when compacting the database.</remarks>
+        /// <exception cref="CouchbaseLiteException">Thrown if an error occurs during the blob save operation.</exception>
+        /// <param name="blob">The blob object will be saved into Database.</param>
+        public void SaveBlob(Blob blob)
+        {
+            C4BlobKey key;
+            if (blob.Content != null) {
+                LiteCoreBridge.Check(err =>
+                {
+                    C4BlobKey tmpKey;
+                    var s = Native.c4blob_create(BlobStore, blob.Content, null, &tmpKey, err);
+                    key = tmpKey;
+                    return s;
+                });
+
+                blob.Digest = Native.c4blob_keyToString(key);
+            }
+        }
+
+        /// <summary>
+        /// Gets the <see cref="Blob"/> of a given blob dictionary.
+        /// </summary>
+        /// <param name="BlobDict"> JSON Dictionary represents in the <see cref="Blob"/> :
+        /// Key          | Value                  | Mandatory | Description
+        /// ---------------------------------------------------------------------------------------------------
+        /// @type        | constant string “blob” | Yes       | Indicate Blob data type.
+        /// content_type | String                 | No        | Content type ex. text/plain.
+        /// length       | Number                 | No        | Binary length of the Blob in bytes.
+        /// digest       | String                 | Yes       | The cryptographic digest of the Blob’s content.
+        /// </param>
+        /// <exception cref="ArgumentException">Throw if the given blob dictionary is not valid.</exception>
+        /// <returns>The contained value, or <c>null</c> if it's digest information doesn’t exist.</returns>
+        [CanBeNull]
+        public Blob GetBlob(Dictionary<string, object> BlobDict)
+        {
+            if (!BlobDict.ContainsKey(Blob.DigestKey) || BlobDict[Blob.DigestKey] == null)
+                return null;
+
+            if (!BlobDict.ContainsKey(Constants.ObjectTypeProperty) || (string) BlobDict[Constants.ObjectTypeProperty] != Constants.ObjectTypeBlob
+                || (BlobDict.ContainsKey(Blob.ContentTypeKey) && BlobDict[Blob.ContentTypeKey].GetType() != typeof(string))
+                || (BlobDict.ContainsKey(Blob.LengthKey) && BlobDict[Blob.LengthKey].GetType() != typeof(int))
+                || BlobDict[Blob.DigestKey].GetType() != typeof(string)) {
+                throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidJSONDictionaryForBlob);
+            }
+
+            C4BlobKey expectedKey = new C4BlobKey();
+            var keyFromStr = Native.c4blob_keyFromString((string)BlobDict[Blob.DigestKey], &expectedKey);
+            if (!keyFromStr) {
+                return null;
+            }
+
+            var size = Native.c4blob_getSize(BlobStore, expectedKey);
+            if (size == -1) {
+                return null;
+            }
+
+            return new Blob(this, BlobDict);
+        }
+
 #if CBL_LINQ
         public void Save(Couchbase.Lite.Linq.IDocumentModel model)
         {

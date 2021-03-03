@@ -22,7 +22,6 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
-
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
@@ -31,6 +30,7 @@ using JetBrains.Annotations;
 
 using LiteCore;
 using LiteCore.Interop;
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
@@ -38,13 +38,13 @@ namespace Couchbase.Lite
     /// <summary>
     /// A class representing an arbitrary piece of binary data
     /// </summary>
-    public sealed unsafe class Blob
+    public sealed unsafe class Blob : IJSON
     {
         #region Constants
 
-        private const string ContentTypeKey = "content_type";
-        private const string DigestKey = "digest";
-        private const string LengthKey = "length";
+        internal const string ContentTypeKey = "content_type";
+        internal const string DigestKey = "digest";
+        internal const string LengthKey = "length";
         private const string DataKey = "data";
 
         private const uint MaxCachedContentLength = 8 * 1024;
@@ -63,6 +63,9 @@ namespace Couchbase.Lite
         #endregion
 
         #region Properties
+
+        [JsonProperty("@type")]
+        public string Type => Constants.ObjectTypeBlob;
 
         /// <summary>
         /// Gets the contents of the blob as an in-memory array
@@ -149,17 +152,20 @@ namespace Couchbase.Lite
         /// Gets the content type of the blob
         /// </summary>
         [CanBeNull]
+        [JsonProperty("content_type")]
         public string ContentType { get; }
 
         /// <summary>
         /// Gets the digest of the blob, once it is saved
         /// </summary>
         [CanBeNull]
-        public string Digest { get; private set; }
+        [JsonProperty("digest")]
+        public string Digest { get; internal set; }
 
         /// <summary>
         /// Gets the length of the data that the blob contains
         /// </summary>
+        [JsonProperty("length")]
         public int Length { get; private set; }
 
         /// <summary>
@@ -180,6 +186,10 @@ namespace Couchbase.Lite
                     json[DigestKey] = Digest;
                 } else {
                     json[DataKey] = Content;
+                }
+
+                if(ContentType != null) {
+                    json[ContentTypeKey] = ContentType;
                 }
 
                 return json;
@@ -205,6 +215,10 @@ namespace Couchbase.Lite
         #endregion
 
         #region Constructors
+
+        private Blob()
+        {
+        }
 
         /// <summary>
         /// Creates a blob given a type and in memory content
@@ -290,6 +304,32 @@ namespace Couchbase.Lite
         internal void FLSlotSet(FLSlot* slot)
         {
             JsonRepresentation.FLSlotSet(slot);
+        }
+
+        internal bool JSONEquals(Dictionary<string, object> obj)
+        {
+            if ((obj.ContainsKey(DigestKey) & Digest.Equals(obj[DigestKey])) && 
+                (obj.ContainsKey(LengthKey) & Length == (Int64)obj[LengthKey]) && 
+                (obj.ContainsKey(ContentTypeKey) & ContentType.Equals(obj[ContentTypeKey])) &&
+                (obj.ContainsKey(Constants.ObjectTypeProperty) & Type.Equals(obj[Constants.ObjectTypeProperty]))) {
+                return true;
+            }
+
+            return false;
+        }
+
+        #endregion
+
+        #region IJSON
+
+        /// <inheritdoc />
+        public string ToJSON()
+        {
+            if(this.Digest == null) {
+                throw new InvalidDataException(CouchbaseLiteErrorMessage.MissingDigestDueToBlobIsNotSavedToDB);
+            }
+
+            return JsonConvert.SerializeObject(JsonRepresentation);
         }
 
         #endregion
