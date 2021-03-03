@@ -174,7 +174,7 @@ namespace Test
         {
             var blob = ArrayTestBlob();
             Action badAction = (() => blob.ToJSON());
-            badAction.Should().Throw<InvalidDataException>(CouchbaseLiteErrorMessage.MissingDigestDueToBlobIsNotSavedToDB);
+            badAction.Should().Throw<InvalidOperationException>(CouchbaseLiteErrorMessage.MissingDigestDueToBlobIsNotSavedToDB);
 
             Db.SaveBlob(blob);
 
@@ -200,6 +200,11 @@ namespace Test
             var blobFromDict = Db.GetBlob(blobDict);
             blob.Equals(blobFromDict).Should().BeTrue();
 
+            //At this point Constants.ObjectTypeProperty key value pair is removed from the blobDict
+            Action badAction = (() => Db.GetBlob(blobDict));
+            badAction.Should().Throw<ArgumentException>(CouchbaseLiteErrorMessage.InvalidJSONDictionaryForBlob);
+
+            //Add back Constants.ObjectTypeProperty key value pair
             blobDict.Add(Constants.ObjectTypeProperty, "blob");
             blobDict.Remove(Blob.DigestKey);
             blobFromDict = Db.GetBlob(blobDict);

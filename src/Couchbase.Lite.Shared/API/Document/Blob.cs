@@ -326,7 +326,7 @@ namespace Couchbase.Lite
         public string ToJSON()
         {
             if(this.Digest == null) {
-                throw new InvalidDataException(CouchbaseLiteErrorMessage.MissingDigestDueToBlobIsNotSavedToDB);
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.MissingDigestDueToBlobIsNotSavedToDB);
             }
 
             return JsonConvert.SerializeObject(JsonRepresentation);
