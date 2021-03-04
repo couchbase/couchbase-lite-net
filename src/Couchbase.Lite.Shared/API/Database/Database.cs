@@ -943,8 +943,8 @@ namespace Couchbase.Lite
         /// <param name="blob">The blob object will be saved into Database.</param>
         public void SaveBlob(Blob blob)
         {
-            C4BlobKey key;
             if (blob.Content != null) {
+                C4BlobKey key;
                 LiteCoreBridge.Check(err =>
                 {
                     C4BlobKey tmpKey;

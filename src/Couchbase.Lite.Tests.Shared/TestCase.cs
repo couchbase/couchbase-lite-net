@@ -221,6 +221,18 @@ namespace Test
         {
             foreach (var i in dic1) {
                 dic1[i.Key].Should().BeEquivalentTo(typeof(DataInCBLDataType).GetProperty(i.Key).GetValue(dic2));
+                if (typeof(DataInCBLDataType).Equals(typeof(Blob))){
+                    dic1[i.Key].GetType().Should().Be(typeof(Blob));
+                    var b1Json = ((Blob) dic1[i.Key]).ToJSON();
+                    var b2Json = dic2.blob.ToJSON();
+
+                    var b1JsonD = JsonConvert.DeserializeObject<Dictionary<string, object>>(b1Json);
+                    var b2JsonD = JsonConvert.DeserializeObject<Dictionary<string, object>>(b2Json);
+
+                    foreach (var kv in b1JsonD) {
+                        b2JsonD[kv.Key].Should().Equals(kv.Value);
+                    }
+                }
             }
         }
 
