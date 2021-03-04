@@ -33,6 +33,7 @@ using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -247,6 +248,35 @@ namespace Test
 
             var blobFromDict = Db.GetBlob(blobDict);
             blobFromDict.Should().BeNull();
+        }
+
+        [Fact]
+        public void TestDbBlobToJson()
+        {
+            var blob = ArrayTestBlob();
+            Db.SaveBlob(blob);
+
+            var bjson = blob.ToJSON();
+
+            JObject o = JObject.Parse(bjson);
+            var mdictFromJObj = DataOps.ToCouchbaseObject(o);
+
+            using (var cbDoc = new MutableDocument("doc1")) {
+                cbDoc.SetValue("dict", mdictFromJObj);
+                Db.Save(cbDoc);
+            }
+
+            var doc = Db.GetDocument("doc1").GetValue("dict");
+
+            doc.GetType().Should().Be(typeof(Blob));
+            var newJson = ((Blob) doc).ToJSON();
+
+            var bjsonD = JsonConvert.DeserializeObject<Dictionary<string, object>>(bjson);
+            var newJsonD = JsonConvert.DeserializeObject<Dictionary<string, object>>(newJson);
+
+            foreach (var kv in bjsonD) {
+                newJsonD[kv.Key].Should().Equals(kv.Value);
+            }
         }
     }
 }

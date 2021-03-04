@@ -2106,51 +2106,7 @@ namespace Test
             var dic = PopulateDictData();
             using (var md = new MutableDocument("doc1")) {
                 foreach (var item in dic) {
-                    switch (item.Value) {
-                        case null:
-                            md.SetValue(item.Key, item.Value);
-                            break;
-                        case int i:
-                            md.SetInt(item.Key, i);
-                            break;
-                        case string str:
-                            md.SetString(item.Key, str);
-                            break;
-                        case long l:
-                            md.SetLong(item.Key, l);
-                            break;
-                        case bool bl:
-                            md.SetBoolean(item.Key, bl);
-                            break;
-                        case float f:
-                            md.SetFloat(item.Key, f);
-                            break;
-                        case double d:
-                            md.SetDouble(item.Key, d);
-                            break;
-                        case Blob blob:
-                            md.SetBlob(item.Key, blob);
-                            break;
-                        case DateTimeOffset dto:
-                            md.SetDate(item.Key, dto);
-                            break;
-                        case DictionaryObject cbldo:
-                            md.SetDictionary(item.Key, cbldo);
-                            break;
-                        case ArrayObject cblarr:
-                            md.SetArray(item.Key, cblarr);
-                            break;
-                        case IDictionary<string, object> dict:
-                        case int[] ao:
-                        case ulong ul:
-                        case byte b:
-                        case sbyte sb:
-                        case ushort us:
-                        case short s:
-                        case uint ui:
-                            md.SetValue(item.Key, item.Value);
-                            break;
-                    }
+                    md.SetValue(item.Key, item.Value);
                 }
 
                 Db.Save(md);
