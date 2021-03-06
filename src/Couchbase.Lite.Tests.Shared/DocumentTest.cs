@@ -2120,6 +2120,32 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestMutableDocWithJsonString()
+        {
+            var dic = PopulateDictData();
+            var dicJson = JsonConvert.SerializeObject(dic);
+            using (var md = new MutableDocument("doc1", dicJson)) {
+                var mdJson = md.ToJSON();
+                var mdJsonDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(mdJson);
+                VerifyValuesInJson(dic, mdJsonDict);
+            }
+        }
+
+        [Fact]
+        public void TestCreateMutableDocWithInvaldStr()
+        {
+            // with random string 
+            Action badAction = (() => new MutableDocument("doc1", "random string"));
+            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+
+            //with array json string    
+            string[] arr = { "apple", "banana", "orange" };
+            var jarr = JsonConvert.SerializeObject(arr);
+            badAction = (() => new MutableDocument("doc1", jarr));
+            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+        }
+
         private void PopulateData(MutableDocument doc)
         {
             var date = DateTimeOffset.Now;

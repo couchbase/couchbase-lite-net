@@ -134,6 +134,7 @@ namespace Couchbase.Lite
         /// The caller is responsible for disposing the Stream when finished with it.
         /// </remarks>
         [CanBeNull]
+        [JsonIgnore]
         public Stream ContentStream
         {
             get {
@@ -278,6 +279,34 @@ namespace Couchbase.Lite
             if(Digest == null && _content == null) {
                 WriteLog.To.Database.W(Tag, "Blob read from database has neither digest nor data.");
             }
+        }
+
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Return whether the given dictionary represents Blob or not
+        /// </summary>
+        /// <param name="blobDict"> JSON Dictionary represents in the <see cref="Blob"/> :
+        /// Key          | Value                  | Mandatory | Description
+        /// ---------------------------------------------------------------------------------------------------
+        /// @type        | constant string “blob” | Yes       | Indicate Blob data type.
+        /// content_type | String                 | No        | Content type ex. text/plain.
+        /// length       | Number                 | No        | Binary length of the Blob in bytes.
+        /// digest       | String                 | Yes       | The cryptographic digest of the Blob’s content.
+        /// </param>
+        /// <returns>Return true if the given dictionary represents Blob, otherwise return false</returns>
+        public static bool IsBlob(Dictionary<string, object> blobDict)
+        {
+            if (!blobDict.ContainsKey(Constants.ObjectTypeProperty) || (string) blobDict[Constants.ObjectTypeProperty] != Constants.ObjectTypeBlob
+                || (blobDict.ContainsKey(Blob.ContentTypeKey) && blobDict[Blob.ContentTypeKey].GetType() != typeof(string))
+                || (blobDict.ContainsKey(Blob.LengthKey) && blobDict[Blob.LengthKey].GetType() != typeof(int))
+                || blobDict[Blob.DigestKey].GetType() != typeof(string)) {
+                return false;
+            }
+
+            return true;
         }
 
         #endregion

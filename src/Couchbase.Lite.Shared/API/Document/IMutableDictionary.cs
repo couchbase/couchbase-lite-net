@@ -175,6 +175,14 @@ namespace Couchbase.Lite
         [NotNull]
         IMutableDictionary SetDictionary([NotNull]string key, [CanBeNull]DictionaryObject value);
 
+        /// <summary>
+        /// Replaces the contents of this dictionary with the contents of the
+        /// given json string
+        /// </summary>
+        /// <param name="json">The json string to replace the current contents with</param>
+        /// <returns>Itself for further processing</returns>
+        IMutableDictionary SetJSON([NotNull]string json);
+
         #endregion
     }
 }

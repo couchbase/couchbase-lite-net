@@ -552,29 +552,28 @@ namespace Test
         }
 
         [Fact]
-        public void TestTypesInMutableDictionaryToJSON()
+        public void TestMutableDictWithJsonString()
         {
             var dic = PopulateDictData();
-            var md = new MutableDictionaryObject();
-            foreach (var item in dic) {
-                md.SetValue(item.Key, item.Value);
-            }
+            var dicJson = JsonConvert.SerializeObject(dic);
+            var md = new MutableDictionaryObject(dicJson);
+            var mdJson = md.ToJSON();
+            var mdJsonDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(mdJson);
+            VerifyValuesInJson(dic, mdJsonDict);
+        }
 
-            var d = md.ToDictionary();
-            var j = md.ToJSON();
+        [Fact]
+        public void TestCreateMutableDictWithInvaldStr()
+        {
+            // with random string 
+            Action badAction = (() => new MutableDictionaryObject("random string"));
+            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
 
-            using (var doc = new MutableDocument("doc1")) {
-                doc.SetDictionary("dict", md);
-                Db.Save(doc);
-            }
-
-            using (var doc = Db.GetDocument("doc1")) {
-                var dict = doc.GetDictionary("dict");
-                var json = dict.ToJSON();
-                var jdic = JsonConvert.DeserializeObject<DataInCBLDataType>(json);
-
-                VerifyValuesInJson(dic, jdic);
-            }
+            //with array json string    
+            string[] arr = { "apple", "banana", "orange" };
+            var jarr = JsonConvert.SerializeObject(arr);
+            badAction = (() => new MutableDictionaryObject(jarr));
+            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
         }
     }
 }

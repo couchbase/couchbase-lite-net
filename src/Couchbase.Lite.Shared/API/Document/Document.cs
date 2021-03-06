@@ -31,6 +31,7 @@ using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
@@ -403,6 +404,10 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public string ToJSON()
         {
+            if(IsMutable) {
+                return JsonConvert.SerializeObject(_dict);
+            } 
+
             return LiteCoreBridge.Check(err =>
             {
                 return Native.c4doc_bodyAsJSON(c4Doc.RawDoc, true, err);

@@ -110,6 +110,8 @@ namespace Couchbase.Lite.Internal.Doc
                     return null;
                 case DateTimeOffset dto:
                     return dto.ToString("o");
+                case DateTime dt: //json serialized datetimeoffset to date time so convert it dto
+                    return new DateTimeOffset(dt.ToUniversalTime());
                 case DictionaryObject rodic when !(rodic is MutableDictionaryObject):
                     return rodic.ToMutable();
                 case ArrayObject roarr when !(roarr is MutableArrayObject):
@@ -162,6 +164,24 @@ namespace Couchbase.Lite.Internal.Doc
                     return roDic.ToDictionary();
                 case IArray roarr:
                     return roarr.ToList();
+                default:
+                    return value;
+            }
+        }
+
+        internal static object ToJsonObject(object value)
+        {
+            switch (value) {
+                case null:
+                    return null;
+                case InMemoryDictionary inMem:
+                    return inMem.ToDictionary();
+                case IDictionaryObject roDic:
+                    return roDic.ToDictionary();
+                case IArray roarr:
+                    return roarr.ToList();
+                case Blob blob:
+                    return blob.JsonRepresentation;
                 default:
                     return value;
             }

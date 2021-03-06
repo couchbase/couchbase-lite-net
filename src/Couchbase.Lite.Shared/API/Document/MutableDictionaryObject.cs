@@ -23,6 +23,9 @@ using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 
 using JetBrains.Annotations;
+using LiteCore.Interop;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
 {
@@ -62,6 +65,18 @@ namespace Couchbase.Lite
         public MutableDictionaryObject(IDictionary<string, object> dict)
         {
             SetData(dict);
+        }
+
+        /// <summary>
+        /// Creates a dictionary given the initial set of keys and values
+        /// from an json dictionary string
+        /// </summary>
+        /// <param name="json">
+        /// The json dictionary string to copy the keys and values from 
+        /// </param>
+        public MutableDictionaryObject(string json)
+        {
+            SetJSON(json);
         }
 
         internal MutableDictionaryObject(MDict dict, bool isMutable)
@@ -217,6 +232,24 @@ namespace Couchbase.Lite
         {
             SetValueInternal(key, value);
             return this;
+        }
+
+        /// <inheritdoc />
+        public IMutableDictionary SetJSON([NotNull] string json)
+        {
+            JObject jobj = null;
+            try {
+                jobj = JObject.Parse(json);
+            } catch {
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
+            }
+
+            if (jobj.GetType() == typeof(JArray)) {
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
+            }
+
+            var blobDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+            return SetData(blobDict);
         }
 
         #endregion

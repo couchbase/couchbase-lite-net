@@ -236,6 +236,26 @@ namespace Test
             }
         }
 
+        internal void VerifyValuesInJson(Dictionary<string, object> dic1, Dictionary<string, object> dic2)
+        {
+            foreach (var i in dic1) {
+                if (typeof(DataInCBLDataType).Equals(typeof(Blob))) {
+                    dic1[i.Key].GetType().Should().Be(typeof(Blob));
+                    var b1Json = ((Blob) dic1[i.Key]).ToJSON();
+                    var b2Json = ((Blob) dic2[i.Key]).ToJSON();
+
+                    var b1JsonD = JsonConvert.DeserializeObject<Dictionary<string, object>>(b1Json);
+                    var b2JsonD = JsonConvert.DeserializeObject<Dictionary<string, object>>(b2Json);
+
+                    foreach (var kv in b1JsonD) {
+                        b2JsonD[kv.Key].Should().Equals(kv.Value);
+                    }
+                } else {
+                    TestObjectEquality(dic1[i.Key], dic2[i.Key]);
+                }
+            }
+        }
+
         /// <summary>
         /// dictionary contains CBL supports types:
         /// byte, sbyte, short, ushort, int, uint, long, ulong, float, double, 

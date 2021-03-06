@@ -285,7 +285,19 @@ namespace Couchbase.Lite
 
         public string ToJSON()
         {
-            return _dict.ToJSON();
+            if (_dict.IsMutable) {
+                var result = new Dictionary<string, object>(_dict.Count);
+                _threadSafety.DoLocked(() =>
+                {
+                    foreach (var item in _dict.AllItems()) {
+                        result[item.Key] = DataOps.ToJsonObject(item.Value?.AsObject(_dict));
+                    }
+                });
+
+                return JsonConvert.SerializeObject(result);
+            } else {
+                return _dict.ToJSON();
+            }
         }
 
         #endregion

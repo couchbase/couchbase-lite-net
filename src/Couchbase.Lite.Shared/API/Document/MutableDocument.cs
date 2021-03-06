@@ -31,6 +31,7 @@ using JetBrains.Annotations;
 
 using LiteCore;
 using LiteCore.Interop;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
 {
@@ -108,6 +109,19 @@ namespace Couchbase.Lite
             : this(id)
         {
             SetData(data);
+        }
+
+        /// <summary>
+        /// Creates a document with the given ID and json string
+        /// </summary>
+        /// <param name="id">The ID for the document</param>
+        /// <param name="json">
+        /// The json contains the properties for the document
+        /// </param>
+        public MutableDocument(string id, string json) 
+            : this(id)
+        {
+            SetJSON(json);
         }
 
         internal MutableDocument([NotNull]Database database, [NotNull]string id)
@@ -344,6 +358,24 @@ namespace Couchbase.Lite
         public IMutableDictionary SetDictionary(string key, DictionaryObject value)
         {
             Dict?.SetDictionary(key, value);
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IMutableDictionary SetJSON([NotNull] string json)
+        {
+            JObject jobj = null;
+            try {
+                jobj = JObject.Parse(json);
+            } catch {
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
+            }
+
+            if (jobj.GetType() == typeof(JArray)) {
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
+            }
+
+            Dict?.SetJSON(json);
             return this;
         }
 

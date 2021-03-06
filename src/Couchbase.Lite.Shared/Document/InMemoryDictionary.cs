@@ -27,6 +27,8 @@ using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 using LiteCore.Interop;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Internal.Doc
 {
@@ -306,6 +308,12 @@ namespace Couchbase.Lite.Internal.Doc
         {
             SetObject(key, value);
             return this;
+        }
+
+        public IMutableDictionary SetJSON([NotNull] string json)
+        {
+            var blobDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+            return SetData(blobDict);
         }
 
         #endregion

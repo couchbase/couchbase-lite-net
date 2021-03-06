@@ -960,7 +960,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the <see cref="Blob"/> of a given blob dictionary.
         /// </summary>
-        /// <param name="BlobDict"> JSON Dictionary represents in the <see cref="Blob"/> :
+        /// <param name="blobDict"> JSON Dictionary represents in the <see cref="Blob"/> :
         /// Key          | Value                  | Mandatory | Description
         /// ---------------------------------------------------------------------------------------------------
         /// @type        | constant string “blob” | Yes       | Indicate Blob data type.
@@ -971,20 +971,17 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentException">Throw if the given blob dictionary is not valid.</exception>
         /// <returns>The contained value, or <c>null</c> if it's digest information doesn’t exist.</returns>
         [CanBeNull]
-        public Blob GetBlob(Dictionary<string, object> BlobDict)
+        public Blob GetBlob(Dictionary<string, object> blobDict)
         {
-            if (!BlobDict.ContainsKey(Blob.DigestKey) || BlobDict[Blob.DigestKey] == null)
+            if (!blobDict.ContainsKey(Blob.DigestKey) || blobDict[Blob.DigestKey] == null)
                 return null;
 
-            if (!BlobDict.ContainsKey(Constants.ObjectTypeProperty) || (string) BlobDict[Constants.ObjectTypeProperty] != Constants.ObjectTypeBlob
-                || (BlobDict.ContainsKey(Blob.ContentTypeKey) && BlobDict[Blob.ContentTypeKey].GetType() != typeof(string))
-                || (BlobDict.ContainsKey(Blob.LengthKey) && BlobDict[Blob.LengthKey].GetType() != typeof(int))
-                || BlobDict[Blob.DigestKey].GetType() != typeof(string)) {
+            if (!Blob.IsBlob(blobDict)) {
                 throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidJSONDictionaryForBlob);
             }
 
             C4BlobKey expectedKey = new C4BlobKey();
-            var keyFromStr = Native.c4blob_keyFromString((string)BlobDict[Blob.DigestKey], &expectedKey);
+            var keyFromStr = Native.c4blob_keyFromString((string)blobDict[Blob.DigestKey], &expectedKey);
             if (!keyFromStr) {
                 return null;
             }
@@ -994,7 +991,7 @@ namespace Couchbase.Lite
                 return null;
             }
 
-            return new Blob(this, BlobDict);
+            return new Blob(this, blobDict);
         }
 
 #if CBL_LINQ
