@@ -172,18 +172,10 @@ namespace Couchbase.Lite.Internal.Doc
         internal static object ToJsonObject(object value)
         {
             switch (value) {
-                case null:
-                    return null;
-                case InMemoryDictionary inMem:
-                    return inMem.ToDictionary();
-                case IDictionaryObject roDic:
-                    return roDic.ToDictionary();
-                case IArray roarr:
-                    return roarr.ToList();
                 case Blob blob:
                     return blob.JsonRepresentation;
                 default:
-                    return value;
+                    return ToNetObject(value);
             }
         }
 
