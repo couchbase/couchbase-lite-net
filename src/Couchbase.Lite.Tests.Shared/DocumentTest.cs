@@ -2133,6 +2133,22 @@ namespace Test
         }
 
         [Fact]
+        public void TestMutableDocumentSetJsonWithInvalidParam()
+        {
+            using (var md = new MutableDocument("doc1")) {
+                // with random string 
+                Action badAction = (() => md.SetJSON("random string"));
+                badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+
+                //with array json string    
+                string[] arr = { "apple", "banana", "orange" };
+                var jarr = JsonConvert.SerializeObject(arr);
+                badAction = (() => md.SetJSON(jarr));
+                badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+            }
+        }
+
+        [Fact]
         public void TestCreateMutableDocWithInvaldStr()
         {
             // with random string 

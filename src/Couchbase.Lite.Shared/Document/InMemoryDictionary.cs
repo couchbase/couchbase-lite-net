@@ -312,7 +312,13 @@ namespace Couchbase.Lite.Internal.Doc
 
         public IMutableDictionary SetJSON([NotNull] string json)
         {
-            var blobDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+            Dictionary<string, object> blobDict = null;
+            try {
+                blobDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+            } catch {
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
+            }
+
             return SetData(blobDict);
         }
 
