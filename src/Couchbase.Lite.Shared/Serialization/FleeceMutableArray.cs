@@ -154,6 +154,15 @@ namespace Couchbase.Lite.Fleece
 
         #endregion
 
+        #region Internal Methods
+
+        internal string ToJSON()
+        {
+            return Native.FLValue_ToJSON((FLValue*) _flArr);
+        }
+
+        #endregion
+
         #region Private Methods
 
         private void PopulateArr()
@@ -225,6 +234,15 @@ namespace Couchbase.Lite.Fleece
 
             Resize((int)Native.FLArray_Count(_flArr));
             _releaseRequired = isMutable;
+        }
+
+        public override unsafe void FLSlotSet(FLSlot* slot)
+        {
+            if (_flArr == null) {
+                Native.FLSlot_SetNull(slot);
+            } else {
+                Native.FLSlot_SetValue(slot, (FLValue*) _flArr);
+            }
         }
 
         #endregion
@@ -343,15 +361,6 @@ namespace Couchbase.Lite.Fleece
         }
 
         #endregion
-
-        public override unsafe void FLSlotSet(FLSlot* slot)
-        {
-            if (_flArr == null) {
-                Native.FLSlot_SetNull(slot);
-            } else {
-                Native.FLSlot_SetValue(slot, (FLValue*)_flArr);
-            }
-        }
 
         #region IDisposable
 

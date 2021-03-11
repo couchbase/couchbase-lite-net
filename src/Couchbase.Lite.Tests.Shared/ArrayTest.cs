@@ -22,7 +22,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Couchbase.Lite;
+using Couchbase.Lite.Internal.Doc;
 using FluentAssertions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -1367,6 +1370,133 @@ namespace Test
             array.AddValue(new MutableDictionaryObject());
         }
 
+        [Fact]
+        public void TestTypesInArrayToJSON()
+        {
+            var array = PopulateArrayData();
+            var ma = new MutableArrayObject();
+            foreach (var item in array) {
+                ma.AddValue(item); // platform dictionary and list or array will be converted into Couchbase object in AddValue method
+            }
+
+            using (var doc = new MutableDocument("doc1")) {
+                doc.SetArray("array", ma);
+                Db.Save(doc);
+            }
+
+            using (var savedDoc = Db.GetDocument("doc1")) {
+                var savedArray = savedDoc.GetArray("array");
+                var json = savedArray.ToJSON();
+
+                var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.DateTimeOffset, TypeNameHandling = TypeNameHandling.All };
+                var jList = JsonConvert.DeserializeObject<List<object>>(json, settings);
+                var count = jList.Count;
+                jList.Count.Should().Be(17, "because 17 entries were added");
+                for (int i = 0; i < count; i++) {
+                    if (array[i] != null && array[i].GetType().Equals(typeof(Blob))) {
+                        var b1JsonD = ((JObject)jList[i]).ToObject<Dictionary<string, object>>();
+                        var b2JsonD = ((Blob) array[i]).JsonRepresentation;
+
+                        var blob = new Blob(Db, b1JsonD);
+                        blob.Should().BeEquivalentTo((Blob) array[i]);
+
+                        foreach (var kv in b1JsonD) {
+                            b2JsonD[kv.Key].Should().Equals(kv.Value);
+                        }
+                    } else {
+                        (DataOps.ToCouchbaseObject(jList[i])).Should().BeEquivalentTo((DataOps.ToCouchbaseObject(array[i])));
+                    }
+                }
+            }
+        }
+
+        [Fact]
+        public void TestMutableArrayWithJsonString()
+        {
+            var array = PopulateArrayData();
+            var arrayJson = JsonConvert.SerializeObject(array);
+            var ma = new MutableArrayObject(arrayJson);
+            var cnt = ma.Count();
+            for (int index=0; index < cnt; index++) {
+                switch (array[index]) {
+                    case null:
+                        ma.GetValue(index).Should().Be(array[index]);
+                        break;
+                    case DateTimeOffset dto:
+                        ma.GetDate(index).Should().Be(dto);
+                        break;
+                    case byte b:
+                    case ushort us:
+                    case uint ui:
+                    case ulong ul:
+                        Equals(Convert.ToUInt64(ma.GetValue(index)), Convert.ToUInt64(array[index])).Should().BeTrue();
+                        break;
+                    case sbyte sb:
+                    case short s:
+                    case int i:
+                    case long l:
+                        Equals(Convert.ToInt64(ma.GetValue(index)), Convert.ToInt64(array[index])).Should().BeTrue();
+                        break;
+                    case string str:
+                        ma.GetString(index).Should().Be(str);
+                        break;
+                    case bool bl:
+                        ma.GetBoolean(index).Should().Be(bl);
+                        break;
+                    case float f:
+                        ma.GetFloat(index).Should().Be(f);
+                        break;
+                    case double d:
+                        ma.GetDouble(index).Should().Be(d);
+                        break;
+                    case List<int> ao:
+                        ma.GetArray(index).Should().BeEquivalentTo(new MutableArrayObject(ao));
+                        ma.GetValue(index).Should().BeEquivalentTo(new MutableArrayObject(ao));
+                        break;
+                    case Dictionary<string, object> dict:
+                        ma.GetDictionary(index).Should().BeEquivalentTo(new MutableDictionaryObject(dict));
+                        ma.GetValue(index).Should().BeEquivalentTo(new MutableDictionaryObject(dict));
+                        break;
+                    case Blob blob:
+                        ma.GetBlob(index).Should().BeEquivalentTo(blob);
+                        ma.GetValue(index).Should().BeEquivalentTo(blob);
+                        break;
+                    default:
+                        throw new Exception("This should not happen because all test input values are CBL supported values.");
+                        break;
+                }
+            }
+        }
+
+        [Fact]
+        public void TestMutableArraySetJsonWithInvalidParam()
+        {
+            var ma = new MutableArrayObject();
+            // with random string 
+            Action badAction = (() => ma.SetJSON("random string"));
+            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+
+            //with dict json string    
+            var dict = new Dictionary<string, int> { { "apple", 5 }, { "banana", 2 }, { "orange", 10 } };
+            var jdict = JsonConvert.SerializeObject(dict);
+            badAction = (() => ma.SetJSON(jdict));
+            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+        }
+
+        [Fact]
+        public void TestCreateMutableArrayWithInvaldStr()
+        {
+            // with random string 
+            Action badAction = (() => new MutableArrayObject("random string"));
+            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+
+            //with dict json string    
+            var dict = new Dictionary<string, int> { { "apple", 5}, { "banana", 2 }, { "orange", 10 } };
+            var jdict = JsonConvert.SerializeObject(dict);
+            badAction = (() => new MutableArrayObject(jdict));
+            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+        }
+
         private IList<object> CreateArrayOfAllTypes()
         {
             var array = new List<object> {
@@ -1393,8 +1523,6 @@ namespace Test
 
             return array;
         }
-
-        private static Blob ArrayTestBlob() => new Blob("text/plain", Encoding.UTF8.GetBytes("12345"));
 
         private void PopulateData(IMutableArray array)
         {

@@ -19,10 +19,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using Couchbase.Lite.Internal.Serialization;
-
+using LiteCore;
 using LiteCore.Interop;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Internal.Doc
@@ -110,14 +110,22 @@ namespace Couchbase.Lite.Internal.Doc
                     return null;
                 case DateTimeOffset dto:
                     return dto.ToString("o");
-                case DateTime dt: //json serialized datetimeoffset to date time so convert it dto
-                    return new DateTimeOffset(dt.ToUniversalTime());
+                case DateTime dt:
+                    return ConvertToDate(dt);
                 case DictionaryObject rodic when !(rodic is MutableDictionaryObject):
                     return rodic.ToMutable();
                 case ArrayObject roarr when !(roarr is MutableArrayObject):
                     return roarr.ToMutable();
                 case JObject jobj:
-                    return ConvertDictionary(jobj.ToObject<IDictionary<string, object>>());
+                    var jobjDict = jobj.ToObject<IDictionary<string, object>>();
+                    if (jobjDict.ContainsKey(Constants.ObjectTypeProperty) && 
+                        jobjDict[Constants.ObjectTypeProperty].Equals(Constants.ObjectTypeBlob) &&
+                        jobjDict.ContainsKey("Content") && jobjDict["Content"] != null &&
+                        jobjDict.ContainsKey("Content") && jobjDict["Content"] != null) {
+                        return ConvertBlob(jobjDict);
+                    }
+
+                    return ConvertDictionary(jobjDict);
                 case JArray jarr:
                     return ConvertList(jarr.ToObject<IList>());
                 case JToken jToken:
@@ -169,16 +177,6 @@ namespace Couchbase.Lite.Internal.Doc
             }
         }
 
-        internal static object ToJsonObject(object value)
-        {
-            switch (value) {
-                case Blob blob:
-                    return blob.JsonRepresentation;
-                default:
-                    return ToNetObject(value);
-            }
-        }
-
         internal static unsafe bool ValueWouldChange(object newValue, MValue oldValue, MCollection container)
         {
             // As a simplification we assume that array and fict values are always different, to avoid
@@ -207,6 +205,11 @@ namespace Couchbase.Lite.Internal.Doc
             var subdocument = new MutableDictionaryObject();
             subdocument.SetData(dictionary);
             return subdocument;
+        }
+
+        private static Blob ConvertBlob(IDictionary<string, object> dictionary)
+        {
+            return new Blob((string) dictionary[Blob.ContentTypeKey], Convert.FromBase64String((string) dictionary["Content"]));
         }
 
         private static MutableArrayObject ConvertList(IList list)

@@ -31,6 +31,7 @@ using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
 {
@@ -297,7 +298,7 @@ namespace Couchbase.Lite
         /// digest       | String                 | Yes       | The cryptographic digest of the Blob’s content.
         /// </param>
         /// <returns>Return true if the given dictionary represents Blob, otherwise return false</returns>
-        public static bool IsBlob(Dictionary<string, object> blobDict)
+        public static bool IsBlob(IDictionary<string, object> blobDict)
         {
             if (!blobDict.ContainsKey(Constants.ObjectTypeProperty) || (string) blobDict[Constants.ObjectTypeProperty] != Constants.ObjectTypeBlob
                 || (blobDict.ContainsKey(Blob.ContentTypeKey) && blobDict[Blob.ContentTypeKey].GetType() != typeof(string))

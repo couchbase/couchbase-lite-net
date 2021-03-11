@@ -259,7 +259,7 @@ namespace Test
             var bjson = blob.ToJSON();
 
             JObject o = JObject.Parse(bjson);
-            var mdictFromJObj = DataOps.ToCouchbaseObject(o);
+            var mdictFromJObj = o.ToObject<Dictionary<string, object>>();
 
             using (var cbDoc = new MutableDocument("doc1")) {
                 cbDoc.SetValue("dict", mdictFromJObj);
@@ -276,6 +276,41 @@ namespace Test
 
             foreach (var kv in bjsonD) {
                 newJsonD[kv.Key].Should().Equals(kv.Value);
+            }
+        }
+
+        [Fact]
+        public void TestBlobJsonStringInLayersOfMutableDict()
+        {
+            var KeyValueDictionary = new Dictionary<string, object>()
+            {
+                { "blob", ArrayTestBlob() },
+                { "blobUnderDict", new Dictionary<string, object>() { { "nestedBlob" , new Blob("text/plain", Encoding.UTF8.GetBytes("abcde")) } } },
+                { "blobUnderArr", new List<object>() { { new Blob("text/plain", Encoding.UTF8.GetBytes("alpha")) }, { new Blob("text/plain", Encoding.UTF8.GetBytes("beta")) }, { new Blob("text/plain", Encoding.UTF8.GetBytes("omega")) } } }
+            };
+
+            var dicJson = JsonConvert.SerializeObject(KeyValueDictionary);
+            var md = new MutableDictionaryObject(dicJson);
+            using (var mdoc = new MutableDocument("doc1")) {
+                mdoc.SetDictionary("dict", md);
+                Db.Save(mdoc);
+            }
+
+            var dic = Db.GetDocument("doc1").GetDictionary("dict");
+
+            var blob1 = dic.GetBlob("blob");
+            blob1.Should().BeEquivalentTo(KeyValueDictionary["blob"]);
+
+            var blob2 = dic.GetDictionary("blobUnderDict").GetBlob("nestedBlob");
+            var d = (Dictionary<string, object>) KeyValueDictionary["blobUnderDict"];
+            blob2.Should().BeEquivalentTo(d["nestedBlob"]);
+
+            var blobs = dic.GetArray("blobUnderArr");
+            var cnt = blobs.Count;
+            var blobList = (List<object>)KeyValueDictionary["blobUnderArr"];
+            for(int i=0; i < cnt; i++) {
+                var b = blobs.GetBlob(i);
+                b.Should().BeEquivalentTo(blobList[i]);
             }
         }
     }

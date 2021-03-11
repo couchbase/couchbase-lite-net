@@ -24,7 +24,6 @@ using Couchbase.Lite.Internal.Serialization;
 
 using JetBrains.Annotations;
 using LiteCore.Interop;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
@@ -248,14 +247,14 @@ namespace Couchbase.Lite
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
             }
 
-            Dictionary<string, object> blobDict = null;
+            Dictionary<string, object> dict = null;
             try {
-                blobDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+                dict = jobj.ToObject<Dictionary<string, object>>();
             } catch {
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
             }
 
-            return SetData(blobDict);
+            return SetData(dict);
         }
 
         #endregion

@@ -43,7 +43,7 @@ namespace Couchbase.Lite
     {
         #region Constants
 
-        //private const string Tag = nameof(Document);
+        private const string Tag = nameof(MutableDocument);
 
         #if CBL_LINQ
         private Linq.IDocumentModel _model;
@@ -375,8 +375,7 @@ namespace Couchbase.Lite
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
             }
 
-            Dict?.SetJSON(json);
-            return this;
+            return Dict?.SetJSON(json);
         }
 
         #endregion

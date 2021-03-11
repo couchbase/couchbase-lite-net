@@ -24,6 +24,7 @@ using Couchbase.Lite.Internal.Doc;
 
 using FluentAssertions;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -533,8 +534,7 @@ namespace Test
             var dic = PopulateDictData();
             var md = new MutableDictionaryObject();
             foreach (var item in dic) {
-                md.SetValue(item.Key, item.Value);
-
+                md.SetValue(item.Key, item.Value); // platform dictionary and list or array will be converted into Couchbase object in SetValue method
             }
 
             using (var doc = new MutableDocument("doc1")) {
@@ -545,9 +545,24 @@ namespace Test
             using (var doc = Db.GetDocument("doc1")) {
                 var dict = doc.GetDictionary("dict");
                 var json = dict.ToJSON();
-                var jdic = JsonConvert.DeserializeObject<DataInCBLDataType>(json);
+                var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.DateTimeOffset, TypeNameHandling = TypeNameHandling.All };
+                var jdic = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, settings);
 
-                VerifyValuesInJson(dic, jdic);
+                foreach (var i in dic) {
+                    if (i.Key == "blob") {
+                        var b1JsonD = ((JObject) jdic[i.Key]).ToObject<Dictionary<string, object>>();
+                        var b2JsonD = ((Blob) dic[i.Key]).JsonRepresentation;
+
+                        var blob = new Blob(Db, b1JsonD);
+                        blob.Should().BeEquivalentTo((Blob) dic[i.Key]);
+
+                        foreach (var kv in b1JsonD) {
+                            b2JsonD[kv.Key].Should().Equals(kv.Value);
+                        }
+                    } else {
+                        (DataOps.ToCouchbaseObject(jdic[i.Key])).Should().BeEquivalentTo((DataOps.ToCouchbaseObject(dic[i.Key])));
+                    }
+                }
             }
         }
 
@@ -557,9 +572,55 @@ namespace Test
             var dic = PopulateDictData();
             var dicJson = JsonConvert.SerializeObject(dic);
             var md = new MutableDictionaryObject(dicJson);
-            var mdJson = md.ToJSON();
-            var mdJsonDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(mdJson);
-            VerifyValuesInJson(dic, mdJsonDict);
+            foreach (var kvPair in dic) {
+                switch (kvPair.Key) {
+                    case "nullObj":
+                        md.GetValue(kvPair.Key).Should().Be(kvPair.Value);
+                        break;
+                    case "byteVal":
+                    case "ushortVal":
+                    case "uintVal":
+                    case "ulongVal":
+                        Equals(Convert.ToUInt64(md.GetValue(kvPair.Key)), Convert.ToUInt64(kvPair.Value)).Should().BeTrue();
+                        break;
+                    case "sbyteVal":
+                    case "shortVal":
+                    case "intVal":
+                    case "longVal":
+                        Equals(Convert.ToInt64(md.GetValue(kvPair.Key)), Convert.ToInt64(kvPair.Value)).Should().BeTrue();
+                        break;
+                    case "boolVal":
+                        md.GetBoolean(kvPair.Key).Should().Be((bool)kvPair.Value);
+                        break;
+                    case "stringVal":
+                        md.GetString(kvPair.Key).Should().Be((string) kvPair.Value);
+                        break;
+                    case "floatVal":
+                        md.GetFloat(kvPair.Key).Should().Be((float) kvPair.Value);
+                        break;
+                    case "doubleVal":
+                        md.GetDouble(kvPair.Key).Should().Be((double) kvPair.Value);
+                        break;
+                    case "dateTimeOffset":
+                        md.GetDate(kvPair.Key).Should().Be((DateTimeOffset) kvPair.Value);
+                        break;
+                    case "array":
+                        md.GetArray(kvPair.Key).Should().BeEquivalentTo(new MutableArrayObject((List<int>) kvPair.Value));
+                        md.GetValue(kvPair.Key).Should().BeEquivalentTo(new MutableArrayObject((List<int>) kvPair.Value));
+                        break;
+                    case "dictionary":
+                        md.GetDictionary(kvPair.Key).Should().BeEquivalentTo(new MutableDictionaryObject((Dictionary<string, object>)kvPair.Value));
+                        md.GetValue(kvPair.Key).Should().BeEquivalentTo(new MutableDictionaryObject((Dictionary<string, object>)kvPair.Value));
+                        break;
+                    case "blob":
+                        md.GetBlob(kvPair.Key).Should().BeEquivalentTo(kvPair.Value);
+                        md.GetValue(kvPair.Key).Should().BeEquivalentTo((Blob) kvPair.Value);
+                        break;
+                    default:
+                        throw new Exception("This should not happen because all test input values are CBL supported values.");
+                        break;
+                }
+            }
         }
 
         [Fact]

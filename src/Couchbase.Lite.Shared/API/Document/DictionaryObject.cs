@@ -55,7 +55,7 @@ namespace Couchbase.Lite
             }
 
             while (reader.TokenType != JsonToken.EndObject && reader.Read()) {
-                var key = reader.Value as string;
+                var key = reader.Path as string;
                 if (key == null) {
                     throw new InvalidDataException(CouchbaseLiteErrorMessage.InvalidValueToBeDeserialized);
                 }
@@ -286,15 +286,7 @@ namespace Couchbase.Lite
         public string ToJSON()
         {
             if (_dict.IsMutable) {
-                var result = new Dictionary<string, object>(_dict.Count);
-                _threadSafety.DoLocked(() =>
-                {
-                    foreach (var item in _dict.AllItems()) {
-                        result[item.Key] = DataOps.ToJsonObject(item.Value?.AsObject(_dict));
-                    }
-                });
-
-                return JsonConvert.SerializeObject(result);
+                return JsonConvert.SerializeObject(ToDictionary());
             } else {
                 return _dict.ToJSON();
             }

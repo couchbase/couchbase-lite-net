@@ -41,6 +41,7 @@ using System.Security.Cryptography;
 using System.Text;
 
 using Newtonsoft.Json.Linq;
+using Couchbase.Lite.Internal.Doc;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -191,59 +192,6 @@ namespace Test
         internal static Blob ArrayTestBlob() => new Blob("text/plain", Encoding.UTF8.GetBytes("12345"));
 
         /// <summary>
-        /// class contains CBL supports types:
-        /// byte, sbyte, short, ushort, int, uint, long, ulong, float, double, 
-        /// bool, string, DateTimeOffset, Blob, a one-dimensional array 
-        /// or a dictionary whose members are one of the preceding types.
-        /// </summary>
-        internal class DataInCBLDataType
-        {
-            public List<int> array { get; set; }
-            public Blob blob { get; set; }
-            public bool boolVal { get; set; }
-            public byte byteVal { get; set; }
-            public DateTimeOffset dateTimeOffset { get; set; }
-            public Dictionary<string, object> dictionary { get; set; }
-            public double doubleVal { get; set; }
-            public float floatVal { get; set; }
-            public int intVal { get; set; }
-            public long longVal { get; set; }
-            public object nullObj { get; set; }
-            public byte sbyteVal { get; set; }
-            public short shortVal { get; set; }
-            public string stringVal { get; set; }
-            public uint uintVal { get; set; }
-            public ulong ulongVal { get; set; }
-            public ushort ushortVal { get; set; }
-        }
-
-        internal void VerifyValuesInJson(Dictionary<string, object> dic1, DataInCBLDataType dic2)
-        {
-            foreach (var i in dic1) {
-                dic1[i.Key].Should().BeEquivalentTo(typeof(DataInCBLDataType).GetProperty(i.Key).GetValue(dic2));
-                if (typeof(DataInCBLDataType).Equals(typeof(Blob))){
-                    dic1[i.Key].GetType().Should().Be(typeof(Blob));
-                    var b1Json = ((Blob) dic1[i.Key]).ToJSON();
-                    var b2Json = dic2.blob.ToJSON();
-
-                    var b1JsonD = JsonConvert.DeserializeObject<Dictionary<string, object>>(b1Json);
-                    var b2JsonD = JsonConvert.DeserializeObject<Dictionary<string, object>>(b2Json);
-
-                    foreach (var kv in b1JsonD) {
-                        b2JsonD[kv.Key].Should().Equals(kv.Value);
-                    }
-                }
-            }
-        }
-
-        internal void VerifyValuesInJson(Dictionary<string, object> dic1, Dictionary<string, object> dic2)
-        {
-            foreach (var i in dic1) {
-                TestObjectEquality(dic1[i.Key], dic2[i.Key]);
-            }
-        }
-
-        /// <summary>
         /// dictionary contains CBL supports types:
         /// byte, sbyte, short, ushort, int, uint, long, ulong, float, double, 
         /// bool, string, DateTimeOffset, Blob, a one-dimensional array 
@@ -252,6 +200,8 @@ namespace Test
         protected Dictionary<string, object> PopulateDictData()
         {
             var dt = DateTimeOffset.UtcNow;
+            var arr = new List<int> { 1, 2, 3 };
+            var dict = new Dictionary<string, object> { ["foo"] = "bar" };
 
             var KeyValueDictionary = new Dictionary<string, object>()
             {
@@ -269,33 +219,79 @@ namespace Test
                 { "floatVal", 1.1f },
                 { "doubleVal", 1.1 },
                 { "dateTimeOffset", dt },
-                { "array", new[] { 1, 2, 3, } },
-                { "dictionary", new Dictionary<string, object> { ["foo"] = "bar" } },
+                { "array",  arr},
+                { "dictionary", dict },
                 { "blob", ArrayTestBlob() }
             };
 
             return KeyValueDictionary;
         }
+
+        /// <summary>
+        /// list contains CBL supports types:
+        /// byte, sbyte, short, ushort, int, uint, long, ulong, float, double, 
+        /// bool, string, DateTimeOffset, Blob, a one-dimensional array 
+        /// or a dictionary whose members are one of the preceding types.
+        /// </summary>
+        internal List<object> PopulateArrayData()
+        {
+            var dt = DateTimeOffset.UtcNow;
+            var arr = new List<int> { 1, 2, 3 };
+            var dict = new Dictionary<string, object> { ["foo"] = "bar" };
+
+            var array = new List<object> {
+                null,
+                (byte) 1,
+                (sbyte) 1,
+                (ushort) 1,
+                (short) 1,
+                1,
+                1U,
+                1L,
+                1UL,
+                true,
+                "Test",
+                1.1f,
+                1.1,
+                dt,
+                dict,
+                arr,
+                ArrayTestBlob()
+            };
+
+            return array;
+        }
+
         private bool TestObjectEquality(object o1, object o2)
         {
             switch (o1) {
-                    case IEnumerable<KeyValuePair<string, object>> e:
-                        return TestObjectEquality(e, o2 as IEnumerable<KeyValuePair<string, object>>);
-                    case IEnumerable<object> e:
-                        return TestObjectEquality(e, o2 as IEnumerable<object>);
-                    case byte b:
-                    case ushort us:
-                    case uint ui:
-                    case ulong ul:
-                        try {
-                            return Equals(Convert.ToUInt64(o1), Convert.ToUInt64(o2));
-                        } catch (FormatException) {
+                case IEnumerable<KeyValuePair<string, object>> e:
+                    return TestObjectEquality(e, o2 as IEnumerable<KeyValuePair<string, object>>);
+                case int[] arr:
+                    var cnt = arr.Count();
+                    var en = o2 as IEnumerable<object>;
+                    for (int i = 0; i < cnt; i++) {
+                        if (!arr[i].Equals(en.ElementAt(i))) {
                             return false;
                         }
+                    }
+
+                    return true;
+                case IEnumerable<object> e:
+                    return TestObjectEquality(o1 as IEnumerable<object>, o2 as IEnumerable<object>);
+                case byte b:
+                case ushort us:
+                case uint ui:
+                case ulong ul:
+                    try {
+                        return Equals(Convert.ToUInt64(o1), Convert.ToUInt64(o2));
+                    } catch (FormatException) {
+                        return false;
+                    }
                 case sbyte sb:
-                    case short s:
-                    case int i:
-                    case long l:
+                case short s:
+                case int i:
+                case long l:
                     try {
                         return Equals(Convert.ToInt64(o1), Convert.ToInt64(o2));
                     } catch (FormatException) {
@@ -305,6 +301,12 @@ namespace Test
                 case double d:
                     try {
                         return Equals(Convert.ToDouble(o1), Convert.ToDouble(o2));
+                    } catch (FormatException) {
+                        return false;
+                    }
+                case DateTimeOffset dt:
+                    try {
+                        return Equals(DataOps.ToCouchbaseObject(o1), o2);
                     } catch (FormatException) {
                         return false;
                     }

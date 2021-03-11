@@ -21,10 +21,13 @@
 
 using System;
 using System.Collections;
-
+using System.Collections.Generic;
 using Couchbase.Lite.Fleece;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
+using JetBrains.Annotations;
+using LiteCore.Interop;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
 {
@@ -64,6 +67,16 @@ namespace Couchbase.Lite
             : this()
         {
             SetData(array);
+        }
+
+        /// <summary>
+        /// Creates an array with the given json string
+        /// </summary>
+        /// <param name="array">The data to populate the array with</param>
+        public MutableArrayObject(string json)
+            : this()
+        {
+            SetJSON(json);
         }
 
         internal MutableArrayObject(FleeceMutableArray array, bool isMutable)
@@ -369,6 +382,26 @@ namespace Couchbase.Lite
         {
             _threadSafety.DoLocked(() => SetValueInternal(index, value));
             return this;
+        }
+
+        /// <inheritdoc />
+        public IMutableArray SetJSON([NotNull] string json)
+        {
+            JArray jArray = null;
+            try {
+                jArray = JArray.Parse(json);
+            } catch {
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
+            }
+
+            List<object> list = null;
+            try {
+                list = jArray.ToObject<List<object>>();//JsonConvert.DeserializeObject<List<object>>(json);
+            } catch {
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
+            }
+
+            return SetData(list);
         }
 
         #endregion
