@@ -120,12 +120,13 @@ namespace Couchbase.Lite.Internal.Doc
                     var jobjDict = jobj.ToObject<IDictionary<string, object>>();
                     if (jobjDict.ContainsKey(Constants.ObjectTypeProperty) && 
                         jobjDict[Constants.ObjectTypeProperty].Equals(Constants.ObjectTypeBlob) &&
-                        jobjDict.ContainsKey("Content") && jobjDict["Content"] != null &&
+                        jobjDict.ContainsKey(Blob.ContentTypeKey) && jobjDict[Blob.ContentTypeKey] != null &&
                         jobjDict.ContainsKey("Content") && jobjDict["Content"] != null) {
-                        return ConvertBlob(jobjDict);
+                        return ConvertBlob(jobjDict); 
                     }
 
-                    return ConvertDictionary(jobjDict);
+                    //The dictionary may contain the json dict represents Blob. Developer should be able to retrieve Blob object using the Database.GetBlob(dict).
+                    return ConvertDictionary(jobjDict); 
                 case JArray jarr:
                     return ConvertList(jarr.ToObject<IList>());
                 case JToken jToken:
