@@ -578,10 +578,10 @@ namespace Test
                         md.GetString(kvPair.Key).Should().Be((string) kvPair.Value);
                         break;
                     case "floatVal":
-                        md.GetFloat(kvPair.Key).Should().Be((float) kvPair.Value);
+                        md.GetFloat(kvPair.Key).Should().BeApproximately((float)kvPair.Value, 0.0000000001f);
                         break;
                     case "doubleVal":
-                        md.GetDouble(kvPair.Key).Should().Be((double) kvPair.Value);
+                        md.GetDouble(kvPair.Key).Should().BeApproximately((double) kvPair.Value, 0.00001);
                         break;
                     case "dateTimeOffset":
                         md.GetDate(kvPair.Key).Should().Be((DateTimeOffset) kvPair.Value);
