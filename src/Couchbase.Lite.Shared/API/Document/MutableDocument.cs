@@ -28,10 +28,7 @@ using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
-
-using LiteCore;
 using LiteCore.Interop;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
 {
@@ -364,17 +361,6 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IMutableDictionary SetJSON([NotNull] string json)
         {
-            JObject jobj = null;
-            try {
-                jobj = JObject.Parse(json);
-            } catch {
-                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
-            }
-
-            if (jobj.GetType() == typeof(JArray)) {
-                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
-            }
-
             return Dict?.SetJSON(json);
         }
 

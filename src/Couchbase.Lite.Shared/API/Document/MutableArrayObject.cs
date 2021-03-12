@@ -28,7 +28,6 @@ using Couchbase.Lite.Internal.Serialization;
 using JetBrains.Annotations;
 using LiteCore.Interop;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
 {
@@ -388,13 +387,6 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IMutableArray SetJSON([NotNull] string json)
         {
-            JArray jArray = null;
-            try {
-                jArray = JArray.Parse(json);
-            } catch {
-                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
-            }
-
             List<object> list = null;
             try {
                 var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.DateTimeOffset, TypeNameHandling = TypeNameHandling.All };

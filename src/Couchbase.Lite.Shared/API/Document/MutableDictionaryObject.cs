@@ -25,7 +25,6 @@ using Couchbase.Lite.Internal.Serialization;
 using JetBrains.Annotations;
 using LiteCore.Interop;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
 {
@@ -237,17 +236,6 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IMutableDictionary SetJSON([NotNull] string json)
         {
-            JObject jobj = null;
-            try {
-                jobj = JObject.Parse(json);
-            } catch {
-                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
-            }
-
-            if (jobj.GetType() == typeof(JArray)) {
-                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
-            }
-
             Dictionary<string, object> dict = null;
             try {
                 var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.DateTimeOffset, TypeNameHandling = TypeNameHandling.All };
