@@ -29,7 +29,6 @@ using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Test.Util;
 #if !WINDOWS_UWP
 using Xunit;
@@ -2116,24 +2115,7 @@ namespace Test
 
             using (var doc = Db.GetDocument("doc1")) {
                 var json = doc.ToJSON();
-                var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.DateTimeOffset, TypeNameHandling = TypeNameHandling.All };
-                var jdic = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, settings);
-
-                foreach (var i in dic) {
-                    if (i.Key == "blob") {
-                        var b1JsonD = ((JObject) jdic[i.Key]).ToObject<Dictionary<string, object>>();
-                        var b2JsonD = ((Blob) dic[i.Key]).JsonRepresentation;
-
-                        var blob = new Blob(Db, b1JsonD);
-                        blob.Should().BeEquivalentTo((Blob) dic[i.Key]);
-
-                        foreach (var kv in b1JsonD) {
-                            b2JsonD[kv.Key].Should().Equals(kv.Value);
-                        }
-                    } else {
-                        (DataOps.ToCouchbaseObject(jdic[i.Key])).Should().BeEquivalentTo((DataOps.ToCouchbaseObject(dic[i.Key])));
-                    }
-                }
+                ValidateToJsonValues(json, dic);
             }
         }
 

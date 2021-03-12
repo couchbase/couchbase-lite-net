@@ -29,6 +29,7 @@ using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 
 using LiteCore.Interop;
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Query
 {
@@ -36,7 +37,7 @@ namespace Couchbase.Lite.Query
     /// A class representing information about a "row" in the result of an
     /// <see cref="IQuery"/>
     /// </summary>
-    public sealed unsafe class Result : IArray, IDictionaryObject
+    public sealed unsafe class Result : IArray, IDictionaryObject, IJSON
     {
         #region Constants
 
@@ -357,6 +358,16 @@ namespace Couchbase.Lite.Query
                     yield return GetValue(i);
                 }
             }
+        }
+
+        #endregion
+
+        #region IJSON
+
+        /// <inheritdoc />
+        public string ToJSON()
+        {
+            return JsonConvert.SerializeObject(ToDictionary());
         }
 
         #endregion

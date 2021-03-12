@@ -22,7 +22,6 @@ using System.Globalization;
 using Couchbase.Lite.Internal.Serialization;
 using LiteCore;
 using LiteCore.Interop;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Internal.Doc

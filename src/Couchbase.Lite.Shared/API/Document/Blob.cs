@@ -31,7 +31,6 @@ using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
 {
@@ -174,6 +173,7 @@ namespace Couchbase.Lite
         /// Gets the metadata of the blob instance
         /// </summary>
         [NotNull]
+        [JsonIgnore]
         public IReadOnlyDictionary<string, object> Properties => new ReadOnlyDictionary<string, object>(MutableProperties);
 
         [NotNull]
@@ -188,10 +188,6 @@ namespace Couchbase.Lite
                     json[DigestKey] = Digest;
                 } else {
                     json[DataKey] = Content;
-                }
-
-                if(ContentType != null) {
-                    json[ContentTypeKey] = ContentType;
                 }
 
                 return json;
@@ -302,7 +298,7 @@ namespace Couchbase.Lite
         {
             if (!blobDict.ContainsKey(Constants.ObjectTypeProperty) || (string) blobDict[Constants.ObjectTypeProperty] != Constants.ObjectTypeBlob
                 || (blobDict.ContainsKey(Blob.ContentTypeKey) && blobDict[Blob.ContentTypeKey].GetType() != typeof(string))
-                || (blobDict.ContainsKey(Blob.LengthKey) && blobDict[Blob.LengthKey].GetType() != typeof(int))
+                || (blobDict.ContainsKey(Blob.LengthKey) && Convert.ToInt64(blobDict[Blob.LengthKey]).GetType() != typeof(Int64))
                 || blobDict[Blob.DigestKey].GetType() != typeof(string)) {
                 return false;
             }

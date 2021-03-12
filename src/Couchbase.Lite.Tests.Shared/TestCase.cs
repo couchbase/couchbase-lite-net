@@ -189,6 +189,28 @@ namespace Test
             }
         }
 
+        internal void ValidateToJsonValues(string json, Dictionary<string, object> dic)
+        {
+            var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.DateTimeOffset, TypeNameHandling = TypeNameHandling.All };
+            var jdic = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, settings);
+
+            foreach (var i in dic) {
+                if (i.Key == "blob") {
+                    var b1JsonD = ((JObject) jdic[i.Key]).ToObject<IDictionary<string, object>>();
+                    var b2JsonD = ((Blob) dic[i.Key]).JsonRepresentation;
+
+                    foreach (var kv in b2JsonD) {
+                        b1JsonD[kv.Key].Should().Equals(kv.Value);
+                    }
+
+                    var blob = new Blob(Db, b1JsonD);
+                    blob.Should().BeEquivalentTo((Blob) dic[i.Key]);
+                } else {
+                    (DataOps.ToCouchbaseObject(jdic[i.Key])).Should().BeEquivalentTo((DataOps.ToCouchbaseObject(dic[i.Key])));
+                }
+            }
+        }
+
         internal static Blob ArrayTestBlob() => new Blob("text/plain", Encoding.UTF8.GetBytes("12345"));
 
         /// <summary>
