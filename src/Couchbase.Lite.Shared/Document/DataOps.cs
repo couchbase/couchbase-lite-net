@@ -109,8 +109,6 @@ namespace Couchbase.Lite.Internal.Doc
                     return null;
                 case DateTimeOffset dto:
                     return dto.ToString("o");
-                case DateTime dt:
-                    return ConvertToDate(dt);
                 case DictionaryObject rodic when !(rodic is MutableDictionaryObject):
                     return rodic.ToMutable();
                 case ArrayObject roarr when !(roarr is MutableArrayObject):

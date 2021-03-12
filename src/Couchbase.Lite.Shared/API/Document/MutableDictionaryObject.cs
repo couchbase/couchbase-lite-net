@@ -24,6 +24,7 @@ using Couchbase.Lite.Internal.Serialization;
 
 using JetBrains.Annotations;
 using LiteCore.Interop;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
@@ -249,7 +250,8 @@ namespace Couchbase.Lite
 
             Dictionary<string, object> dict = null;
             try {
-                dict = jobj.ToObject<Dictionary<string, object>>();
+                var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.DateTimeOffset, TypeNameHandling = TypeNameHandling.All };
+                dict = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, settings);
             } catch {
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
             }

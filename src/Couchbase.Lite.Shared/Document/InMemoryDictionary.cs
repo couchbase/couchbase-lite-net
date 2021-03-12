@@ -312,14 +312,15 @@ namespace Couchbase.Lite.Internal.Doc
 
         public IMutableDictionary SetJSON([NotNull] string json)
         {
-            Dictionary<string, object> blobDict = null;
+            Dictionary<string, object> dict = null;
             try {
-                blobDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+                var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.DateTimeOffset, TypeNameHandling = TypeNameHandling.All };
+                dict = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, settings);
             } catch {
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
             }
 
-            return SetData(blobDict);
+            return SetData(dict);
         }
 
         #endregion

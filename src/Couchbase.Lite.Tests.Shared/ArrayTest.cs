@@ -1387,7 +1387,6 @@ namespace Test
             using (var savedDoc = Db.GetDocument("doc1")) {
                 var savedArray = savedDoc.GetArray("array");
                 var json = savedArray.ToJSON();
-
                 var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.DateTimeOffset, TypeNameHandling = TypeNameHandling.All };
                 var jList = JsonConvert.DeserializeObject<List<object>>(json, settings);
                 var count = jList.Count;
@@ -1429,13 +1428,13 @@ namespace Test
                     case ushort us:
                     case uint ui:
                     case ulong ul:
-                        Equals(Convert.ToUInt64(ma.GetValue(index)), Convert.ToUInt64(array[index])).Should().BeTrue();
+                        Convert.ToUInt64(ma.GetValue(index)).Should().Be(Convert.ToUInt64(array[index]));
                         break;
                     case sbyte sb:
                     case short s:
                     case int i:
                     case long l:
-                        Equals(Convert.ToInt64(ma.GetValue(index)), Convert.ToInt64(array[index])).Should().BeTrue();
+                        Convert.ToInt64(ma.GetValue(index)).Should().Be(Convert.ToInt64(array[index]));
                         break;
                     case string str:
                         ma.GetString(index).Should().Be(str);

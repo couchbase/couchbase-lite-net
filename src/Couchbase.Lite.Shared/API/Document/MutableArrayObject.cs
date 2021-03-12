@@ -27,6 +27,7 @@ using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using JetBrains.Annotations;
 using LiteCore.Interop;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
@@ -396,7 +397,8 @@ namespace Couchbase.Lite
 
             List<object> list = null;
             try {
-                list = jArray.ToObject<List<object>>();//JsonConvert.DeserializeObject<List<object>>(json);
+                var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.DateTimeOffset, TypeNameHandling = TypeNameHandling.All };
+                list = JsonConvert.DeserializeObject<List<object>>(json, settings);
             } catch {
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
             }

@@ -563,13 +563,13 @@ namespace Test
                     case "ushortVal":
                     case "uintVal":
                     case "ulongVal":
-                        Equals(Convert.ToUInt64(md.GetValue(kvPair.Key)), Convert.ToUInt64(kvPair.Value)).Should().BeTrue();
+                        Convert.ToUInt64(md.GetValue(kvPair.Key)).Should().Be(Convert.ToUInt64(kvPair.Value));
                         break;
                     case "sbyteVal":
                     case "shortVal":
                     case "intVal":
                     case "longVal":
-                        Equals(Convert.ToInt64(md.GetValue(kvPair.Key)), Convert.ToInt64(kvPair.Value)).Should().BeTrue();
+                        Convert.ToInt64(md.GetValue(kvPair.Key)).Should().Be(Convert.ToInt64(kvPair.Value));
                         break;
                     case "boolVal":
                         md.GetBoolean(kvPair.Key).Should().Be((bool)kvPair.Value);
