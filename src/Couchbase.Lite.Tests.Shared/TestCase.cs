@@ -80,7 +80,7 @@ namespace Test
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
 
-#if NETCOREAPP2_1 && !CBL_NO_VERSION_CHECK
+#if NETCOREAPP3_1 && !CBL_NO_VERSION_CHECK
         static TestCase()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
