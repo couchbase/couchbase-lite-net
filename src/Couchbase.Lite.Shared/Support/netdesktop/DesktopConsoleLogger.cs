@@ -22,7 +22,7 @@
 
 // Windows 2012 doesn't define the more generic variants
 
-#if NETFRAMEWORK || NET461 || NETCOREAPP || NETCOREAPP2_1
+#if NETFRAMEWORK || NET461 || NETCOREAPP || NETCOREAPP3_1
 #define DEBUG
 using System;
 using System.Diagnostics;
