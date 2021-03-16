@@ -13,6 +13,8 @@ namespace Couchbase.Lite
         /// Converts this object to JSON format string.
         /// </summary>
         /// <returns>The contents of this object in JSON format string</returns>
+        /// <exception cref="NotSupportedException">Thrown if ToJSON is called from <see cref="MutableDocument"/>,  
+        /// <see cref="MutableDictionaryObject"/>, or <see cref="MutableArrayObject"/></exception>
         [NotNull]
         string ToJSON();
 

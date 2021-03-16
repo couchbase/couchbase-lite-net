@@ -2178,6 +2178,14 @@ namespace Test
         }
 
         [Fact]
+        public void TestMutableDocToJsonThrowExcwption()
+        {
+            var md = new MutableDocument();
+            Action badAction = (() => md.ToJSON());
+            badAction.Should().Throw<NotSupportedException>();
+        }
+
+        [Fact]
         public void TestMutableDocumentSetJsonWithInvalidParam()
         {
             using (var md = new MutableDocument("doc1")) {

@@ -387,15 +387,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IMutableArray SetJSON([NotNull] string json)
         {
-            List<object> list = null;
-            try {
-                var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.DateTimeOffset, TypeNameHandling = TypeNameHandling.All };
-                list = JsonConvert.DeserializeObject<List<object>>(json, settings);
-            } catch {
-                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
-            }
-
-            return SetData(list);
+            return SetData(DataOps.ParseTo<List<object>>(json));
         }
 
         #endregion

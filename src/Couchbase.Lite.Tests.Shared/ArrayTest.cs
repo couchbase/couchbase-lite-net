@@ -1483,6 +1483,14 @@ namespace Test
         }
 
         [Fact]
+        public void TestMutableArrayToJsonThrowExcwption()
+        {
+            var ma = new MutableArrayObject();
+            Action badAction = (() => ma.ToJSON());
+            badAction.Should().Throw<NotSupportedException>();
+        }
+
+        [Fact]
         public void TestCreateMutableArrayWithInvaldStr()
         {
             // with random string 

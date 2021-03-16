@@ -221,10 +221,11 @@ namespace Couchbase.Lite
 
         #region IJSON
 
+        /// <inheritdoc />
         public string ToJSON()
         {
             if (_array.IsMutable) {
-                return JsonConvert.SerializeObject(ToList());
+                throw new NotSupportedException();
             } else {
                 return _array.ToJSON();
             }

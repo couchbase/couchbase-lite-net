@@ -236,15 +236,7 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public IMutableDictionary SetJSON([NotNull] string json)
         {
-            Dictionary<string, object> dict = null;
-            try {
-                var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.DateTimeOffset, TypeNameHandling = TypeNameHandling.All };
-                dict = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, settings);
-            } catch {
-                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
-            }
-
-            return SetData(dict);
+            return SetData(DataOps.ParseTo<Dictionary<string, object>>(json));
         }
 
         #endregion

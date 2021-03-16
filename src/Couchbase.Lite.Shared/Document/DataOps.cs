@@ -22,6 +22,7 @@ using System.Globalization;
 using Couchbase.Lite.Internal.Serialization;
 using LiteCore;
 using LiteCore.Interop;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Internal.Doc
@@ -29,6 +30,23 @@ namespace Couchbase.Lite.Internal.Doc
     internal static class DataOps
     {
         #region Internal Methods
+
+        internal static T ParseTo<T>(string json)
+        {
+            T retVal;
+            try {
+                var settings = new JsonSerializerSettings {
+                    DateParseHandling = DateParseHandling.DateTimeOffset,
+                    FloatParseHandling = FloatParseHandling.Double,
+                    TypeNameHandling = TypeNameHandling.All
+                };
+                retVal = JsonConvert.DeserializeObject<T>(json, settings);
+            } catch {
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, CouchbaseLiteErrorMessage.InvalidJSON);
+            }
+
+            return retVal;
+        }
 
         internal static bool ConvertToBoolean(object value)
         {

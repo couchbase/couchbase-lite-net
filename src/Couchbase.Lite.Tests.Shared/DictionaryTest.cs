@@ -606,6 +606,14 @@ namespace Test
         }
 
         [Fact]
+        public void TestMutableDictToJsonThrowExcwption()
+        {
+            var md = new MutableDictionaryObject();
+            Action badAction = (() => md.ToJSON());
+            badAction.Should().Throw<NotSupportedException>();
+        }
+
+        [Fact]
         public void TestMutableDictSetJsonWithInvalidParam()
         {
             var md = new MutableDictionaryObject();

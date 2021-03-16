@@ -405,8 +405,8 @@ namespace Couchbase.Lite
         public string ToJSON()
         {
             if(IsMutable) {
-                return JsonConvert.SerializeObject(_dict);
-            } 
+                throw new NotSupportedException();
+            }
 
             return LiteCoreBridge.Check(err =>
             {

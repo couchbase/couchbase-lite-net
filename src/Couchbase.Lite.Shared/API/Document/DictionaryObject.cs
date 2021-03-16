@@ -283,10 +283,11 @@ namespace Couchbase.Lite
 
         #region IJSON
 
+        /// <inheritdoc />
         public string ToJSON()
         {
             if (_dict.IsMutable) {
-                return JsonConvert.SerializeObject(ToDictionary());
+                throw new NotSupportedException();
             } else {
                 return _dict.ToJSON();
             }
