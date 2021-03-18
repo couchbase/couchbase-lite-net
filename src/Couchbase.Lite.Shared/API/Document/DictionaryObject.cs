@@ -55,7 +55,7 @@ namespace Couchbase.Lite
             }
 
             while (reader.TokenType != JsonToken.EndObject && reader.Read()) {
-                var key = reader.Path as string;
+                var key = reader.Value as string;
                 if (key == null) {
                     throw new InvalidDataException(CouchbaseLiteErrorMessage.InvalidValueToBeDeserialized);
                 }
@@ -288,9 +288,9 @@ namespace Couchbase.Lite
         {
             if (_dict.IsMutable) {
                 throw new NotSupportedException();
-            } else {
-                return _dict.ToJSON();
             }
+
+            return _dict.ToJSON();
         }
 
         #endregion

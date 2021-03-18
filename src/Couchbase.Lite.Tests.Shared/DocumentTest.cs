@@ -2125,57 +2125,7 @@ namespace Test
             var dic = PopulateDictData();
             var dicJson = JsonConvert.SerializeObject(dic, jsonSerializerSettings);
             using (var md = new MutableDocument("doc1", dicJson)) {
-                foreach (var kvPair in dic) {
-                    switch (kvPair.Key) {
-                        case "nullObj":
-                            md.GetValue(kvPair.Key).Should().Be(kvPair.Value);
-                            break;
-                        case "byteVal":
-                        case "ushortVal":
-                        case "uintVal":
-                        case "ulongVal":
-                            Convert.ToUInt64(md.GetValue(kvPair.Key)).Should().Be(Convert.ToUInt64(kvPair.Value));
-                            break;
-                        case "sbyteVal":
-                        case "shortVal":
-                        case "intVal":
-                        case "longVal":
-                            Convert.ToInt64(md.GetValue(kvPair.Key)).Should().Be(Convert.ToInt64(kvPair.Value));
-                            break;
-                        case "boolVal":
-                            md.GetBoolean(kvPair.Key).Should().Be((bool) kvPair.Value);
-                            break;
-                        case "stringVal":
-                            md.GetString(kvPair.Key).Should().Be((string) kvPair.Value);
-                            break;
-                        case "floatVal":
-                            md.GetFloat(kvPair.Key).Should().BeApproximately((float) kvPair.Value, 0.0000000001f);
-                            break;
-                        case "doubleVal":
-                            md.GetDouble(kvPair.Key).Should().Be((double) kvPair.Value);
-                            break;
-                        case "dateTimeOffset":
-                            md.GetDate(kvPair.Key).Should().Be((DateTimeOffset) kvPair.Value);
-                            break;
-                        case "array":
-                            md.GetArray(kvPair.Key).Should().BeEquivalentTo(new MutableArrayObject((List<int>) kvPair.Value));
-                            md.GetValue(kvPair.Key).Should().BeEquivalentTo(new MutableArrayObject((List<int>) kvPair.Value));
-                            break;
-                        case "dictionary":
-                            md.GetDictionary(kvPair.Key).Should().BeEquivalentTo(new MutableDictionaryObject((Dictionary<string, object>) kvPair.Value));
-                            md.GetValue(kvPair.Key).Should().BeEquivalentTo(new MutableDictionaryObject((Dictionary<string, object>) kvPair.Value));
-                            break;
-                        case "blob":
-                            md.GetBlob(kvPair.Key).Should().BeNull("Because we are getting a dictionary represents Blob object back.");
-                            var di = ((MutableDictionaryObject) md.GetValue(kvPair.Key)).ToDictionary();
-                            Blob.IsBlob(di).Should().BeTrue();
-                            di.Should().BeEquivalentTo(((Blob) dic[kvPair.Key]).JsonRepresentation);
-                            break;
-                        default:
-                            throw new Exception("This should not happen because all test input values are CBL supported values.");
-                            break;
-                    }
-                }
+                ValidateValuesInMutableDictFromJson(dic, md);
             }
         }
 

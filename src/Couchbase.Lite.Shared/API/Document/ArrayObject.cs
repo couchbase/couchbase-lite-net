@@ -226,9 +226,9 @@ namespace Couchbase.Lite
         {
             if (_array.IsMutable) {
                 throw new NotSupportedException();
-            } else {
-                return _array.ToJSON();
             }
+
+            return _array.ToJSON();
         }
 
         #endregion

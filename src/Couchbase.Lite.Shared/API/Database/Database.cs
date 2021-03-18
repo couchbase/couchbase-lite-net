@@ -949,13 +949,9 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the <see cref="Blob"/> of a given blob dictionary.
         /// </summary>
-        /// <param name="blobDict"> JSON Dictionary represents in the <see cref="Blob"/> :
-        /// Key          | Value                  | Mandatory | Description
-        /// ---------------------------------------------------------------------------------------------------
-        /// @type        | constant string “blob” | Yes       | Indicate Blob data type.
-        /// content_type | String                 | No        | Content type ex. text/plain.
-        /// length       | Number                 | No        | Binary length of the Blob in bytes.
-        /// digest       | String                 | Yes       | The cryptographic digest of the Blob’s content.
+        /// <remarks>The blobs that are not associated with any documents are/will be removed from the database after compacting the database.</remarks>
+        /// <param name="blobDict"> 
+        /// JSON Dictionary represents in the <see cref="Blob"/> and the value will be validated in <see cref="Blob.IsBlob(IDictionary{string, object})"/>
         /// </param>
         /// <exception cref="ArgumentException">Throw if the given blob dictionary is not valid.</exception>
         /// <returns>The contained value, or <c>null</c> if it's digest information doesn’t exist.</returns>

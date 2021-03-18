@@ -313,7 +313,8 @@ namespace Couchbase.Lite
         /// <returns>Return true if the given dictionary represents Blob, otherwise return false</returns>
         public static bool IsBlob(IDictionary<string, object> blobDict)
         {
-            if (!blobDict.ContainsKey(Constants.ObjectTypeProperty) || (string) blobDict[Constants.ObjectTypeProperty] != Constants.ObjectTypeBlob
+            if (!blobDict.ContainsKey(Constants.ObjectTypeProperty) || blobDict[Constants.ObjectTypeProperty].GetType() != typeof(string) 
+                || (string) blobDict[Constants.ObjectTypeProperty] != Constants.ObjectTypeBlob
                 || (blobDict.ContainsKey(Blob.ContentTypeKey) && blobDict[Blob.ContentTypeKey].GetType() != typeof(string))
                 || (blobDict.ContainsKey(Blob.LengthKey) && Convert.ToInt64(blobDict[Blob.LengthKey]).GetType() != typeof(Int64))
                 || blobDict[Blob.DigestKey].GetType() != typeof(string)) {
@@ -334,15 +335,11 @@ namespace Couchbase.Lite
                 // This blob is attached to a document, so save the full metadata
                 var document = GCHandle.FromIntPtr((IntPtr) extra).Target as MutableDocument;
                 var database = document.Database;
-                if (Digest != null && _db == null) {
-                    _db = database;
-                } else {
-                    try {
-                        Install(database);
-                    } catch (Exception) {
-                        WriteLog.To.Database.W(Tag, "Error installing blob to database, throwing...");
-                        throw;
-                    }
+                try {
+                    Install(database);
+                } catch (Exception) {
+                    WriteLog.To.Database.W(Tag, "Error installing blob to database, throwing...");
+                    throw;
                 }
             }
 
@@ -370,7 +367,11 @@ namespace Couchbase.Lite
         {
             Debug.Assert(db != null);
 
-            if(_db != null) {
+            if (Digest != null && _db == null) {
+                _db = db;
+            }
+
+            if (_db != null) {
                 if(db != _db) {
                     throw new InvalidOperationException(CouchbaseLiteErrorMessage.BlobDifferentDatabase);
                 }
