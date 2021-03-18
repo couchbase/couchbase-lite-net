@@ -191,9 +191,7 @@ namespace Test
 
         internal void ValidateToJsonValues(string json, Dictionary<string, object> dic)
         {
-            var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.DateTimeOffset, TypeNameHandling = TypeNameHandling.All };
-            var jdic = JsonConvert.DeserializeObject<Dictionary<string, object>>(json, settings);
-
+            var jdic = DataOps.ParseTo<Dictionary<string, object>>(json);
             foreach (var i in dic) {
                 if (i.Key == "blob") {
                     var b1JsonD = ((JObject) jdic[i.Key]).ToObject<IDictionary<string, object>>();
@@ -211,6 +209,11 @@ namespace Test
             }
         }
 
+        internal JsonSerializerSettings jsonSerializerSettings = new JsonSerializerSettings {
+            DateParseHandling = DateParseHandling.DateTimeOffset,
+            FloatParseHandling = FloatParseHandling.Double
+        };
+
         internal static Blob ArrayTestBlob() => new Blob("text/plain", Encoding.UTF8.GetBytes("12345"));
 
         /// <summary>
@@ -224,6 +227,8 @@ namespace Test
             var dt = DateTimeOffset.UtcNow;
             var arr = new List<int> { 1, 2, 3 };
             var dict = new Dictionary<string, object> { ["foo"] = "bar" };
+            var blob = ArrayTestBlob();
+            Db.SaveBlob(blob);
 
             var KeyValueDictionary = new Dictionary<string, object>()
             {
@@ -238,12 +243,12 @@ namespace Test
                 { "ulongVal", 1UL },
                 { "boolVal", true },
                 { "stringVal", "Test" },
-                { "floatVal", 1.1f },
+                { "floatVal", 3.14159f },
                 { "doubleVal", 1.1 },
                 { "dateTimeOffset", dt },
                 { "array",  arr},
                 { "dictionary", dict },
-                { "blob", ArrayTestBlob() }
+                { "blob", blob }
             };
 
             return KeyValueDictionary;
@@ -260,6 +265,8 @@ namespace Test
             var dt = DateTimeOffset.UtcNow;
             var arr = new List<int> { 1, 2, 3 };
             var dict = new Dictionary<string, object> { ["foo"] = "bar" };
+            var blob = ArrayTestBlob();
+            Db.SaveBlob(blob);
 
             var array = new List<object> {
                 null,
@@ -273,12 +280,12 @@ namespace Test
                 1UL,
                 true,
                 "Test",
-                1.1f,
+                3.14159f,
                 1.1,
                 dt,
                 dict,
                 arr,
-                ArrayTestBlob()
+                blob
             };
 
             return array;

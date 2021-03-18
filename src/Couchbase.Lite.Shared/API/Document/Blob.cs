@@ -72,6 +72,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown if this blob has no associated data (unusual)</exception>
         [CanBeNull]
+        [JsonIgnore]
         public byte[] Content
         {
             get {
@@ -104,6 +105,9 @@ namespace Couchbase.Lite
                     }
 
                     return content;
+                } else if (IsBlob(MutableProperties)) { 
+                    WriteLog.To.Database.W(Tag, CouchbaseLiteErrorMessage.BlobDbNull);
+                    return null;
                 }
 
                 if(_initialContentStream == null) {
@@ -278,6 +282,19 @@ namespace Couchbase.Lite
             }
         }
 
+        internal Blob([NotNull]IDictionary<string, object> properties)
+        {
+            if (!Blob.IsBlob(properties)) {
+                throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidJSONDictionaryForBlob);
+            }
+
+            Length = properties.GetCast<int>(LengthKey);
+            Digest = properties.GetCast<string>(DigestKey);
+            _properties = new Dictionary<string, object>(CBDebug.MustNotBeNull(WriteLog.To.Database, Tag,
+                nameof(properties), properties));
+            ContentType = properties.GetCast<string>(ContentTypeKey);
+        }
+
         #endregion
 
         #region Public Methods
@@ -317,13 +334,18 @@ namespace Couchbase.Lite
                 // This blob is attached to a document, so save the full metadata
                 var document = GCHandle.FromIntPtr((IntPtr) extra).Target as MutableDocument;
                 var database = document.Database;
-                try {
-                    Install(database);
-                } catch (Exception) {
-                    WriteLog.To.Database.W(Tag, "Error installing blob to database, throwing...");
-                    throw;
+                if (Digest != null && _db == null) {
+                    _db = database;
+                } else {
+                    try {
+                        Install(database);
+                    } catch (Exception) {
+                        WriteLog.To.Database.W(Tag, "Error installing blob to database, throwing...");
+                        throw;
+                    }
                 }
             }
+
             JsonRepresentation.FLEncode(enc);
         }
 
@@ -344,43 +366,7 @@ namespace Couchbase.Lite
             return false;
         }
 
-        #endregion
-
-        #region IJSON
-
-        /// <inheritdoc />
-        public string ToJSON()
-        {
-            if(this.Digest == null) {
-                throw new InvalidOperationException(CouchbaseLiteErrorMessage.MissingDigestDueToBlobIsNotSavedToDB);
-            }
-
-            return JsonConvert.SerializeObject(JsonRepresentation);
-        }
-
-        #endregion
-
-        #region Private Methods
-
-        private void SetupProperties([NotNull] IDictionary<string, object> properties)
-        {
-            properties.Remove(Constants.ObjectTypeProperty);
-
-            Length = properties.GetCast<int>(LengthKey);
-            Digest = properties.GetCast<string>(DigestKey);
-        }
-
-        private bool GetBlobStore(C4BlobStore** outBlobStore, C4BlobKey* outKey)
-        {
-            try {
-                *outBlobStore = _db.BlobStore;
-                return Digest != null && Native.c4blob_keyFromString(Digest, outKey);
-            } catch(InvalidOperationException) {
-                return false;
-            }
-        }
-
-        private void Install([NotNull]Database db)
+        internal void Install([NotNull]Database db)
         {
             Debug.Assert(db != null);
 
@@ -422,6 +408,42 @@ namespace Couchbase.Lite
 
             Digest = Native.c4blob_keyToString(key);
             _db = db;
+        }
+
+        #endregion
+
+        #region IJSON
+
+        /// <inheritdoc />
+        public string ToJSON()
+        {
+            if(this.Digest == null) {
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.MissingDigestDueToBlobIsNotSavedToDB);
+            }
+
+            return JsonConvert.SerializeObject(JsonRepresentation);
+        }
+
+        #endregion
+ 
+        #region Private Methods
+
+        private void SetupProperties([NotNull] IDictionary<string, object> properties)
+        {
+            properties.Remove(Constants.ObjectTypeProperty);
+
+            Length = properties.GetCast<int>(LengthKey);
+            Digest = properties.GetCast<string>(DigestKey);
+        }
+
+        private bool GetBlobStore(C4BlobStore** outBlobStore, C4BlobKey* outKey)
+        {
+            try {
+                *outBlobStore = _db.BlobStore;
+                return Digest != null && Native.c4blob_keyFromString(Digest, outKey);
+            } catch(InvalidOperationException) {
+                return false;
+            }
         }
 
         #endregion

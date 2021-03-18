@@ -1387,8 +1387,7 @@ namespace Test
             using (var savedDoc = Db.GetDocument("doc1")) {
                 var savedArray = savedDoc.GetArray("array");
                 var json = savedArray.ToJSON();
-                var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.DateTimeOffset, TypeNameHandling = TypeNameHandling.All };
-                var jList = JsonConvert.DeserializeObject<List<object>>(json, settings);
+                var jList = DataOps.ParseTo<List<object>>(json);
                 var count = jList.Count;
                 jList.Count.Should().Be(17, "because 17 entries were added");
                 for (int i = 0; i < count; i++) {
@@ -1413,7 +1412,7 @@ namespace Test
         public void TestMutableArrayWithJsonString()
         {
             var array = PopulateArrayData();
-            var arrayJson = JsonConvert.SerializeObject(array);
+            var arrayJson = JsonConvert.SerializeObject(array, jsonSerializerSettings);
             var ma = new MutableArrayObject(arrayJson);
             var cnt = ma.Count();
             for (int index=0; index < cnt; index++) {
@@ -1457,8 +1456,10 @@ namespace Test
                         ma.GetValue(index).Should().BeEquivalentTo(new MutableDictionaryObject(dict));
                         break;
                     case Blob blob:
-                        ma.GetBlob(index).Should().BeEquivalentTo(blob);
-                        ma.GetValue(index).Should().BeEquivalentTo(blob);
+                        ma.GetBlob(index).Should().BeNull("Because we are getting a dictionary represents Blob object back.");
+                        var di = ((MutableDictionaryObject)ma.GetValue(index)).ToDictionary();
+                        Blob.IsBlob(di).Should().BeTrue();
+                        di.Should().BeEquivalentTo(((Blob)array[index]).JsonRepresentation);
                         break;
                     default:
                         throw new Exception("This should not happen because all test input values are CBL supported values.");

@@ -179,6 +179,9 @@ namespace Couchbase.Lite
         /// Replaces the contents of this dictionary with the contents of the
         /// given json string
         /// </summary>
+        /// <remarks>
+        /// json string must be constructed from <see cref="IJSON.ToJSON">ToJSON</see>
+        /// </remarks>
         /// <param name="json">The json string to replace the current contents with</param>
         /// <returns>Itself for further processing</returns>
         IMutableDictionary SetJSON([NotNull]string json);

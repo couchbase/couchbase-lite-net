@@ -44,7 +44,7 @@ namespace Test
 #endif
     public class DocumentTest : TestCase
     {
-        private const string Blob = "i'm blob";
+        private const string BlobStr = "i'm blob";
         private static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         private static long ConvertToTimestamp(DateTime value)
         {
@@ -1693,7 +1693,7 @@ namespace Test
         [Fact]
         public void TestToMutable()
         {
-            var content = Encoding.UTF8.GetBytes(Blob);
+            var content = Encoding.UTF8.GetBytes(BlobStr);
             var data = new Blob("text/plain", content);
             using (var mDoc1 = new MutableDocument("doc1")) {
                 mDoc1.SetBlob("data", data);
@@ -2123,7 +2123,7 @@ namespace Test
         public void TestMutableDocWithJsonString()
         {
             var dic = PopulateDictData();
-            var dicJson = JsonConvert.SerializeObject(dic);
+            var dicJson = JsonConvert.SerializeObject(dic, jsonSerializerSettings);
             using (var md = new MutableDocument("doc1", dicJson)) {
                 foreach (var kvPair in dic) {
                     switch (kvPair.Key) {
@@ -2166,8 +2166,10 @@ namespace Test
                             md.GetValue(kvPair.Key).Should().BeEquivalentTo(new MutableDictionaryObject((Dictionary<string, object>) kvPair.Value));
                             break;
                         case "blob":
-                            md.GetBlob(kvPair.Key).Should().BeEquivalentTo(kvPair.Value);
-                            md.GetValue(kvPair.Key).Should().BeEquivalentTo((Blob) kvPair.Value);
+                            md.GetBlob(kvPair.Key).Should().BeNull("Because we are getting a dictionary represents Blob object back.");
+                            var di = ((MutableDictionaryObject) md.GetValue(kvPair.Key)).ToDictionary();
+                            Blob.IsBlob(di).Should().BeTrue();
+                            di.Should().BeEquivalentTo(((Blob) dic[kvPair.Key]).JsonRepresentation);
                             break;
                         default:
                             throw new Exception("This should not happen because all test input values are CBL supported values.");

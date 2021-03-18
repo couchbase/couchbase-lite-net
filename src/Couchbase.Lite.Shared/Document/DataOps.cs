@@ -133,12 +133,6 @@ namespace Couchbase.Lite.Internal.Doc
                     return roarr.ToMutable();
                 case JObject jobj:
                     var jobjDict = jobj.ToObject<IDictionary<string, object>>();
-                    if (jobjDict.ContainsKey(Constants.ObjectTypeProperty) && 
-                        jobjDict[Constants.ObjectTypeProperty].Equals(Constants.ObjectTypeBlob) &&
-                        jobjDict.ContainsKey(Blob.ContentTypeKey) && jobjDict[Blob.ContentTypeKey] != null &&
-                        jobjDict.ContainsKey("Content") && jobjDict["Content"] != null) {
-                        return ConvertBlob(jobjDict); 
-                    }
 
                     //The dictionary may contain the json dict represents Blob. Developer should be able to retrieve Blob object using the Database.GetBlob(dict).
                     return ConvertDictionary(jobjDict); 
@@ -221,11 +215,6 @@ namespace Couchbase.Lite.Internal.Doc
             var subdocument = new MutableDictionaryObject();
             subdocument.SetData(dictionary);
             return subdocument;
-        }
-
-        private static Blob ConvertBlob(IDictionary<string, object> dictionary)
-        {
-            return new Blob((string) dictionary[Blob.ContentTypeKey], Convert.FromBase64String((string) dictionary["Content"]));
         }
 
         private static MutableArrayObject ConvertList(IList list)

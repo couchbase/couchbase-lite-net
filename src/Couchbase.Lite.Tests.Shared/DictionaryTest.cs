@@ -552,7 +552,7 @@ namespace Test
         public void TestMutableDictWithJsonString()
         {
             var dic = PopulateDictData();
-            var dicJson = JsonConvert.SerializeObject(dic);
+            var dicJson = JsonConvert.SerializeObject(dic, jsonSerializerSettings);
             var md = new MutableDictionaryObject(dicJson);
             foreach (var kvPair in dic) {
                 switch (kvPair.Key) {
@@ -595,8 +595,10 @@ namespace Test
                         md.GetValue(kvPair.Key).Should().BeEquivalentTo(new MutableDictionaryObject((Dictionary<string, object>)kvPair.Value));
                         break;
                     case "blob":
-                        md.GetBlob(kvPair.Key).Should().BeEquivalentTo(kvPair.Value);
-                        md.GetValue(kvPair.Key).Should().BeEquivalentTo((Blob) kvPair.Value);
+                        md.GetBlob(kvPair.Key).Should().BeNull("Because we are getting a dictionary represents Blob object back.");
+                        var di = ((MutableDictionaryObject) md.GetValue(kvPair.Key)).ToDictionary();
+                        Blob.IsBlob(di).Should().BeTrue();
+                        di.Should().BeEquivalentTo(((Blob) dic[kvPair.Key]).JsonRepresentation);
                         break;
                     default:
                         throw new Exception("This should not happen because all test input values are CBL supported values.");
