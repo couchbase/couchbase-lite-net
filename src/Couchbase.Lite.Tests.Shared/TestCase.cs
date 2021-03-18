@@ -204,7 +204,7 @@ namespace Test
                     var blob = new Blob(Db, b1JsonD);
                     blob.Should().BeEquivalentTo((Blob) dic[i.Key]);
                 } else if (i.Key == "floatVal") {
-                    ((float) jdic[i.Key]).Should().BeApproximately((float) dic[i.Key], 0.0000000001f);
+                    (DataOps.ConvertToFloat(jdic[i.Key])).Should().BeApproximately((float) dic[i.Key], 0.0000000001f);
                 } else {
                     (DataOps.ToCouchbaseObject(jdic[i.Key])).Should().BeEquivalentTo((DataOps.ToCouchbaseObject(dic[i.Key])));
                 }

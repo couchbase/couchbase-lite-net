@@ -1402,7 +1402,7 @@ namespace Test
                             b2JsonD[kv.Key].Should().Equals(kv.Value);
                         }
                     } else if (array[i] != null && array[i].GetType().Equals(typeof(float))) {
-                        ((float) jList[i]).Should().BeApproximately((float) array[i], 0.0000000001f);
+                        DataOps.ConvertToFloat(jList[i]).Should().BeApproximately((float) array[i], 0.0000000001f);
                     } else {
                         (DataOps.ToCouchbaseObject(jList[i])).Should().BeEquivalentTo((DataOps.ToCouchbaseObject(array[i])));
                     }
