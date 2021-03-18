@@ -37,7 +37,6 @@ namespace Couchbase.Lite.Internal.Doc
             try {
                 var settings = new JsonSerializerSettings {
                     DateParseHandling = DateParseHandling.DateTimeOffset,
-                    FloatParseHandling = FloatParseHandling.Double,
                     TypeNameHandling = TypeNameHandling.All
                 };
                 retVal = JsonConvert.DeserializeObject<T>(json, settings);

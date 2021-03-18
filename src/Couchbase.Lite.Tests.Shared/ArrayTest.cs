@@ -1392,7 +1392,7 @@ namespace Test
                 jList.Count.Should().Be(17, "because 17 entries were added");
                 for (int i = 0; i < count; i++) {
                     if (array[i] != null && array[i].GetType().Equals(typeof(Blob))) {
-                        var b1JsonD = ((JObject)jList[i]).ToObject<Dictionary<string, object>>();
+                        var b1JsonD = ((JObject) jList[i]).ToObject<Dictionary<string, object>>();
                         var b2JsonD = ((Blob) array[i]).JsonRepresentation;
 
                         var blob = new Blob(Db, b1JsonD);
@@ -1401,6 +1401,8 @@ namespace Test
                         foreach (var kv in b1JsonD) {
                             b2JsonD[kv.Key].Should().Equals(kv.Value);
                         }
+                    } else if (array[i] != null && array[i].GetType().Equals(typeof(float))) {
+                        ((float) jList[i]).Should().BeApproximately((float) array[i], 0.0000000001f);
                     } else {
                         (DataOps.ToCouchbaseObject(jList[i])).Should().BeEquivalentTo((DataOps.ToCouchbaseObject(array[i])));
                     }
@@ -1433,7 +1435,7 @@ namespace Test
                     case short s:
                     case int i:
                     case long l:
-                        Convert.ToInt64(ma.GetValue(index)).Should().Be(Convert.ToInt64(array[index]));
+                        Convert.ToInt64(ma.GetLong(index)).Should().Be(Convert.ToInt64(array[index]));
                         break;
                     case string str:
                         ma.GetString(index).Should().Be(str);
@@ -1442,7 +1444,7 @@ namespace Test
                         ma.GetBoolean(index).Should().Be(bl);
                         break;
                     case float f:
-                        ma.GetFloat(index).Should().Be(f);
+                        ma.GetFloat(index).Should().BeApproximately(f, 0.0000000001f);
                         break;
                     case double d:
                         ma.GetDouble(index).Should().Be(d);
