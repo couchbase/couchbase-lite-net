@@ -259,7 +259,7 @@ namespace Test
             var bjson = blob.ToJSON();
 
             JObject o = JObject.Parse(bjson);
-            var mdictFromJObj = DataOps.ToCouchbaseObject(o);
+            var mdictFromJObj = o.ToObject<Dictionary<string, object>>();
 
             using (var cbDoc = new MutableDocument("doc1")) {
                 cbDoc.SetValue("dict", mdictFromJObj);
@@ -276,6 +276,78 @@ namespace Test
 
             foreach (var kv in bjsonD) {
                 newJsonD[kv.Key].Should().Equals(kv.Value);
+            }
+        }
+
+        [Fact]
+        public void TestAccessContentFromBlobCreatedFromJson()
+        {
+            var blob = ArrayTestBlob();
+            Db.SaveBlob(blob);
+            var blobDict = 
+                new List<object> {
+                new Dictionary<string, object>() {
+                { Blob.ContentTypeKey, blob.ContentType },
+                { Blob.DigestKey, blob.Digest},
+                { Blob.LengthKey, blob.Length},
+                { Constants.ObjectTypeProperty, "blob" }
+            }};
+
+            var listContainsBlobJson = JsonConvert.SerializeObject(blobDict);
+            using(var md = new MutableDocument("doc1"))
+            using (var ma = new MutableArrayObject(listContainsBlobJson)) {
+                var blobInMa = (MutableDictionaryObject)ma.GetValue(0);
+                var blobInMD = new Blob(blobInMa.ToDictionary());
+                blobInMD.Content.Should().BeNull(CouchbaseLiteErrorMessage.BlobDbNull);
+            }
+        }
+
+        [Fact]
+        public void TestBlobJsonStringInLayersOfMutableDict()
+        {
+            var blob = ArrayTestBlob();
+            Db.SaveBlob(blob); 
+            var nestedBlob = new Blob("text/plain", Encoding.UTF8.GetBytes("abcde"));
+            Db.SaveBlob(nestedBlob);
+            var b1 = new Blob("text/plain", Encoding.UTF8.GetBytes("alpha"));
+            Db.SaveBlob(b1);
+            var b2 = new Blob("text/plain", Encoding.UTF8.GetBytes("beta"));
+            Db.SaveBlob(b2);
+            var b3 = new Blob("text/plain", Encoding.UTF8.GetBytes("omega"));
+            Db.SaveBlob(b3);
+
+            var KeyValueDictionary = new Dictionary<string, object>()
+            {
+                { "blob", blob },
+                { "blobUnderDict", new Dictionary<string, object>() { { "nestedBlob" , nestedBlob } } },
+                { "blobUnderArr", new List<object>() { b1, b2, b3 } }
+            };
+
+            var dicJson = JsonConvert.SerializeObject(KeyValueDictionary);
+            var md = new MutableDictionaryObject(dicJson);
+            using (var mdoc = new MutableDocument("doc1")) {
+                mdoc.SetDictionary("dict", md);
+                Db.Save(mdoc);
+            }
+
+            var dic = Db.GetDocument("doc1").GetDictionary("dict");
+
+            var blob1 = dic.GetBlob("blob");
+            blob1.Content.Should().NotBeNull();
+            blob1.Should().BeEquivalentTo(KeyValueDictionary["blob"]);
+
+            var blob2 = dic.GetDictionary("blobUnderDict").GetBlob("nestedBlob");
+            blob2.Content.Should().NotBeNull();
+            var d = (Dictionary<string, object>) KeyValueDictionary["blobUnderDict"];
+            blob2.Should().BeEquivalentTo(d["nestedBlob"]);
+
+            var blobs = dic.GetArray("blobUnderArr");
+            var cnt = blobs.Count;
+            var blobList = (List<object>)KeyValueDictionary["blobUnderArr"];
+            for(int i=0; i < cnt; i++) {
+                var b = blobs.GetBlob(i);
+                b.Content.Should().NotBeNull();
+                b.Should().BeEquivalentTo(blobList[i]);
             }
         }
     }

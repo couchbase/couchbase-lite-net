@@ -71,6 +71,8 @@ namespace Couchbase.Lite
         internal const string InvalidMaxRetries = "Max Retries cannot be negative value.";
         internal const string InvalidJSONDictionaryForBlob = "Invalid JSON Dictionary represents in the Blob.";
         internal const string MissingDigestDueToBlobIsNotSavedToDB = "Missing Digest Due To Blob Is Not Saved To Database yet.";
+        internal const string InvalidJSON = "Invalid JSON Value.";
+        internal const string BlobDbNull = "Cannot access content from the blob that contains only metadata and has no database associated with it. To access the content, save the document first.";
     }
 }
 

@@ -28,8 +28,6 @@ using Couchbase.Lite.Logging;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
-
-using LiteCore;
 using LiteCore.Interop;
 
 namespace Couchbase.Lite
@@ -42,7 +40,7 @@ namespace Couchbase.Lite
     {
         #region Constants
 
-        //private const string Tag = nameof(Document);
+        private const string Tag = nameof(MutableDocument);
 
         #if CBL_LINQ
         private Linq.IDocumentModel _model;
@@ -108,6 +106,19 @@ namespace Couchbase.Lite
             : this(id)
         {
             SetData(data);
+        }
+
+        /// <summary>
+        /// Creates a document with the given ID and json string
+        /// </summary>
+        /// <param name="id">The ID for the document</param>
+        /// <param name="json">
+        /// The json contains the properties for the document
+        /// </param>
+        public MutableDocument(string id, string json) 
+            : this(id)
+        {
+            SetJSON(json);
         }
 
         internal MutableDocument([NotNull]Database database, [NotNull]string id)
@@ -345,6 +356,12 @@ namespace Couchbase.Lite
         {
             Dict?.SetDictionary(key, value);
             return this;
+        }
+
+        /// <inheritdoc />
+        public IMutableDictionary SetJSON([NotNull] string json)
+        {
+            return Dict?.SetJSON(json);
         }
 
         #endregion

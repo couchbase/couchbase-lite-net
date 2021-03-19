@@ -24,9 +24,8 @@ using Couchbase.Lite.Fleece;
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Serialization;
 using Couchbase.Lite.Support;
-
+using LiteCore;
 using Newtonsoft.Json;
-
 using NotNull = JetBrains.Annotations.NotNullAttribute;
 
 namespace Couchbase.Lite
@@ -34,7 +33,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A class representing a readonly ordered collection of objects
     /// </summary>
-    public class ArrayObject : IArray, IDisposable
+    public class ArrayObject : IArray, IJSON, IDisposable
     {
         #region Variables
 
@@ -220,6 +219,20 @@ namespace Couchbase.Lite
 
         #endregion
 
+        #region IJSON
+
+        /// <inheritdoc />
+        public string ToJSON()
+        {
+            if (_array.IsMutable) {
+                throw new NotSupportedException();
+            }
+
+            return _array.ToJSON();
+        }
+
+        #endregion
+
         #region IDisposable
 
         public void Dispose()
@@ -250,7 +263,22 @@ namespace Couchbase.Lite
         {
             var arr = new MutableArrayObject();
             while (reader.Read()) {
-                arr.AddValue(serializer.Deserialize(reader));
+                if (reader.TokenType == JsonToken.EndObject) {
+                    var val = serializer.Deserialize(reader) as IDictionary<string, object>;
+                    if (val.ContainsKey(Constants.ObjectTypeProperty) &&
+                        val[Constants.ObjectTypeProperty].Equals(Constants.ObjectTypeBlob)) {
+                        var blob = serializer.Deserialize<Blob>(reader);
+                        arr.AddBlob(blob);
+                    } else {
+                        var dict = serializer.Deserialize<MutableDictionaryObject>(reader);
+                        arr.AddValue(dict);
+                    }
+                } else if (reader.TokenType == JsonToken.EndArray) {
+                    var array = serializer.Deserialize<MutableArrayObject>(reader);
+                    arr.AddValue(array);
+                } else {
+                    arr.AddValue(reader.Value);
+                }
             }
 
             return arr;

@@ -2469,6 +2469,44 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestQueryResultTypesInDictionaryToJSON()
+        {
+            var dic = PopulateDictData();
+            using (var doc = new MutableDocument("test_doc")) {
+                foreach (var item in dic) {
+                    doc.SetValue(item.Key, item.Value);
+                }
+
+                Db.Save(doc);
+            }
+
+            using (var q = QueryBuilder.Select(SelectResult.Property("nullObj"),
+                    SelectResult.Property("byteVal"),
+                    SelectResult.Property("sbyteVal"),
+                    SelectResult.Property("ushortVal"),
+                    SelectResult.Property("shortVal"),
+                    SelectResult.Property("intVal"),
+                    SelectResult.Property("uintVal"),
+                    SelectResult.Property("longVal"),
+                    SelectResult.Property("ulongVal"),
+                    SelectResult.Property("boolVal"),
+                    SelectResult.Property("stringVal"),
+                    SelectResult.Property("floatVal"),
+                    SelectResult.Property("doubleVal"),
+                    SelectResult.Property("dateTimeOffset"),
+                    SelectResult.Property("array"),
+                    SelectResult.Property("dictionary"),
+                    SelectResult.Property("blob"))
+                .From(DataSource.Database(Db))) {
+                VerifyQuery(q, (n, row) =>
+                {
+                    var json = row.ToJSON();
+                    ValidateToJsonValues(json, dic);
+                });
+            }
+        }
+
         private void CreateDateDocs()
         {
             using (var doc = new MutableDocument()) {

@@ -24,6 +24,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using Couchbase.Lite;
+using Couchbase.Lite.Internal.Doc;
 using FluentAssertions;
 using LiteCore;
 using LiteCore.Interop;
@@ -43,7 +44,7 @@ namespace Test
 #endif
     public class DocumentTest : TestCase
     {
-        private const string Blob = "i'm blob";
+        private const string BlobStr = "i'm blob";
         private static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         private static long ConvertToTimestamp(DateTime value)
         {
@@ -1692,7 +1693,7 @@ namespace Test
         [Fact]
         public void TestToMutable()
         {
-            var content = Encoding.UTF8.GetBytes(Blob);
+            var content = Encoding.UTF8.GetBytes(BlobStr);
             var data = new Blob("text/plain", content);
             using (var mDoc1 = new MutableDocument("doc1")) {
                 mDoc1.SetBlob("data", data);
@@ -2114,10 +2115,56 @@ namespace Test
 
             using (var doc = Db.GetDocument("doc1")) {
                 var json = doc.ToJSON();
-                var jdic = JsonConvert.DeserializeObject<DataInCBLDataType>(json);
-
-                VerifyValuesInJson(dic, jdic);
+                ValidateToJsonValues(json, dic);
             }
+        }
+
+        [Fact]
+        public void TestMutableDocWithJsonString()
+        {
+            var dic = PopulateDictData();
+            var dicJson = JsonConvert.SerializeObject(dic, jsonSerializerSettings);
+            using (var md = new MutableDocument("doc1", dicJson)) {
+                ValidateValuesInMutableDictFromJson(dic, md);
+            }
+        }
+
+        [Fact]
+        public void TestMutableDocToJsonThrowExcwption()
+        {
+            var md = new MutableDocument();
+            Action badAction = (() => md.ToJSON());
+            badAction.Should().Throw<NotSupportedException>();
+        }
+
+        [Fact]
+        public void TestMutableDocumentSetJsonWithInvalidParam()
+        {
+            using (var md = new MutableDocument("doc1")) {
+                // with random string 
+                Action badAction = (() => md.SetJSON("random string"));
+                badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+
+                //with array json string    
+                string[] arr = { "apple", "banana", "orange" };
+                var jarr = JsonConvert.SerializeObject(arr);
+                badAction = (() => md.SetJSON(jarr));
+                badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+            }
+        }
+
+        [Fact]
+        public void TestCreateMutableDocWithInvaldStr()
+        {
+            // with random string 
+            Action badAction = (() => new MutableDocument("doc1", "random string"));
+            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
+
+            //with array json string    
+            string[] arr = { "apple", "banana", "orange" };
+            var jarr = JsonConvert.SerializeObject(arr);
+            badAction = (() => new MutableDocument("doc1", jarr));
+            badAction.Should().Throw<CouchbaseLiteException>(CouchbaseLiteErrorMessage.InvalidJSON);
         }
 
         private void PopulateData(MutableDocument doc)

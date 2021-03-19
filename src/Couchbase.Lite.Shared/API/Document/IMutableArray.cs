@@ -361,7 +361,16 @@ namespace Couchbase.Lite
         [NotNull]
         IMutableArray SetDictionary(int index, DictionaryObject value);
 
-
+        /// <summary>
+        /// Replaces the contents of this collection with the contents of the 
+        /// given json string
+        /// </summary>
+        /// <remarks>
+        /// json string must be constructed from <see cref="IJSON.ToJSON">ToJSON</see>
+        /// </remarks>
+        /// <param name="json">The json string to replace the current contents with</param>
+        /// <returns>The array for further processing</returns>
+        IMutableArray SetJSON([NotNull]string json);
 
         #endregion
     }
