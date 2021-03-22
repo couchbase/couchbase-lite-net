@@ -47,7 +47,15 @@ namespace LiteCore.Interop
         Purged         = 0x80,
     }
 
-	internal unsafe struct C4Revision
+    internal enum C4DocContentLevel : byte
+    {
+        GetMetadata,
+        GetCurrentRev,
+        GetAll
+    }
+
+
+    internal unsafe struct C4Revision
     {
         public FLHeapSlice revID;
         public C4RevisionFlags flags;
