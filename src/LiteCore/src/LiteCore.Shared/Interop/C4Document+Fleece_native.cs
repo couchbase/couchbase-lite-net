@@ -1,7 +1,7 @@
 //
 // C4Document+Fleece_native.cs
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,6 +27,9 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLDict* c4doc_getProperties(C4Document* x);
+
         public static bool c4doc_isOldMetaProperty(string prop)
         {
             using(var prop_ = new C4String(prop)) {

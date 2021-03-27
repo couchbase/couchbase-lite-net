@@ -106,9 +106,9 @@ namespace Couchbase.Lite
         #region Constants
 
         private static readonly C4DatabaseConfig DBConfig = new C4DatabaseConfig {
-            flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact | C4DatabaseFlags.SharedKeys,
+            flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact,
             storageEngine = "SQLite",
-            versioning = C4DocumentVersioning.RevisionTrees
+            versioning = C4DocumentVersioning.TreeVersioning
         };
 
         private const string DBExtension = "cblite2";

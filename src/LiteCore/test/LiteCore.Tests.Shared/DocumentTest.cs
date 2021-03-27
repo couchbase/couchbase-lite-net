@@ -88,39 +88,39 @@ namespace LiteCore.Tests
                 ImportJSONLines("C/tests/data/names_100.json");
             });
         }
-        #endif
+#endif
 
-        [Fact]
-        public void TestPossibleAncestors()
-        {
-            RunTestVariants(() => {
-                if(!IsRevTrees()) {
-                    return;
-                }
+        //[Fact] c4doc_selectFirstPossibleAncestorOf is removed
+        //public void TestPossibleAncestors()
+        //{
+        //    RunTestVariants(() => {
+        //        if(!IsRevTrees()) {
+        //            return;
+        //        }
 
-                var docID = DocID.CreateString();
-                CreateRev(docID, RevID, FleeceBody);
-                CreateRev(docID, Rev2ID, FleeceBody);
-                CreateRev(docID, Rev3ID, FleeceBody);
+        //        var docID = DocID.CreateString();
+        //        CreateRev(docID, RevID, FleeceBody);
+        //        CreateRev(docID, Rev2ID, FleeceBody);
+        //        CreateRev(docID, Rev3ID, FleeceBody);
 
-                var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(Db, docID, true, err));
-                var newRevID = "3-f00f00";
-                LiteCoreBridge.Check(err => Native.c4doc_selectFirstPossibleAncestorOf(doc, newRevID));
-                doc->selectedRev.revID.Should().Be(Rev2ID, "because the 2nd generation is the first ancestor of the third");
-                LiteCoreBridge.Check(err => Native.c4doc_selectNextPossibleAncestorOf(doc, newRevID));
-                doc->selectedRev.revID.Should().Be(RevID, "because the first generation comes before the second");
-                Native.c4doc_selectNextPossibleAncestorOf(doc, newRevID).Should().BeFalse("because we are at the root");
+        //        var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(Db, docID, true, err));
+        //        var newRevID = "3-f00f00";
+        //        LiteCoreBridge.Check(err => Native.c4doc_selectFirstPossibleAncestorOf(doc, newRevID));
+        //        doc->selectedRev.revID.Should().Be(Rev2ID, "because the 2nd generation is the first ancestor of the third");
+        //        LiteCoreBridge.Check(err => Native.c4doc_selectNextPossibleAncestorOf(doc, newRevID));
+        //        doc->selectedRev.revID.Should().Be(RevID, "because the first generation comes before the second");
+        //        Native.c4doc_selectNextPossibleAncestorOf(doc, newRevID).Should().BeFalse("because we are at the root");
 
-                newRevID = "2-f00f00";
-                LiteCoreBridge.Check(err => Native.c4doc_selectFirstPossibleAncestorOf(doc, newRevID));
-                doc->selectedRev.revID.Should().Be(RevID, "because the first generation comes before the second");
-                Native.c4doc_selectNextPossibleAncestorOf(doc, newRevID).Should().BeFalse("because we are at the root");
+        //        newRevID = "2-f00f00";
+        //        LiteCoreBridge.Check(err => Native.c4doc_selectFirstPossibleAncestorOf(doc, newRevID));
+        //        doc->selectedRev.revID.Should().Be(RevID, "because the first generation comes before the second");
+        //        Native.c4doc_selectNextPossibleAncestorOf(doc, newRevID).Should().BeFalse("because we are at the root");
 
-                newRevID = "1-f00f00";
-                Native.c4doc_selectFirstPossibleAncestorOf(doc, newRevID).Should().BeFalse("because we are at the root");
-                Native.c4doc_release(doc);
-            });
-        }
+        //        newRevID = "1-f00f00";
+        //        Native.c4doc_selectFirstPossibleAncestorOf(doc, newRevID).Should().BeFalse("because we are at the root");
+        //        Native.c4doc_release(doc);
+        //    });
+        //}
 
         [Fact]
         public void TestCreateVersionedDoc()
@@ -161,7 +161,7 @@ namespace LiteCore.Tests
                     doc->revID.Equals(RevID).Should().BeTrue("because the doc should have the stored revID");
                     doc->selectedRev.revID.Equals(RevID).Should().BeTrue("because the doc should have the stored revID");
                     doc->selectedRev.flags.Should().Be(C4RevisionFlags.Leaf, "because this is a leaf revision");
-                    doc->selectedRev.body.Equals(FleeceBody).Should().BeTrue("because the body should be stored correctly");
+                    NativeRaw.c4doc_getRevisionBody(doc).Equals(FleeceBody).Should().BeTrue("because the body should be stored correctly");
                     Native.c4doc_release(doc);
                 } finally {
                     LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
@@ -174,7 +174,7 @@ namespace LiteCore.Tests
                 doc->revID.Equals(RevID).Should().BeTrue("because the doc should have the stored rev ID");
                 doc->selectedRev.revID.Equals(RevID).Should().BeTrue("because the doc should have the stored rev ID");
                 doc->selectedRev.sequence.Should().Be(1, "because it is the first stored document");
-                doc->selectedRev.body.Equals(FleeceBody).Should().BeTrue("because the doc should have the stored body");
+                NativeRaw.c4doc_getRevisionBody(doc).Equals(FleeceBody).Should().BeTrue("because the doc should have the stored body");
                 Native.c4doc_release(doc);
 
                 // Get the doc by its sequence
@@ -184,7 +184,7 @@ namespace LiteCore.Tests
                 doc->revID.Equals(RevID).Should().BeTrue("because the doc should have the stored rev ID");
                 doc->selectedRev.revID.Equals(RevID).Should().BeTrue("because the doc should have the stored rev ID");
                 doc->selectedRev.sequence.Should().Be(1, "because it is the first stored document");
-                doc->selectedRev.body.Equals(FleeceBody).Should().BeTrue("because the doc should have the stored body");
+                NativeRaw.c4doc_getRevisionBody(doc).Equals(FleeceBody).Should().BeTrue("because the doc should have the stored body");
                 Native.c4doc_release(doc);
             });
         }
@@ -207,14 +207,14 @@ namespace LiteCore.Tests
                 doc->revID.Should().Be(Rev2ID, "because the doc's rev ID should load correctly");
                 doc->selectedRev.revID.Should().Be(Rev2ID, "because the rev's rev ID should load correctly");
                 doc->selectedRev.sequence.Should().Be(2, "because it is the second revision");
-                doc->selectedRev.body.Should().Be(Body2, "because the body should load correctly");
+                NativeRaw.c4doc_getRevisionBody(doc).Should().Be(Body2, "because the body should load correctly");
 
-                if(Versioning == C4DocumentVersioning.RevisionTrees) {
+                if(Versioning == C4DocumentVersioning.TreeVersioning) {
                     // Select 1st revision:
                     LiteCoreBridge.Check(err => Native.c4doc_selectParentRevision(doc));
                     doc->selectedRev.revID.Should().Be(RevID, "because now the first revision is selected");
                     doc->selectedRev.sequence.Should().Be(1, "because now the first revision is selected");
-                    doc->selectedRev.body.Should().Be(FLSlice.Null, "because the body of the old revision should be gone");
+                    NativeRaw.c4doc_getRevisionBody(doc).Should().Be(FLSlice.Null, "because the body of the old revision should be gone");
                     Native.c4doc_hasRevisionBody(doc).Should().BeFalse("because the body of the old revision should be gone");
                     Native.c4doc_selectParentRevision(doc).Should().BeFalse("because a root revision has no parent");
                     Native.c4doc_release(doc);
@@ -227,7 +227,7 @@ namespace LiteCore.Tests
                     doc->selectedRev.revID.Should().Be(Rev2ID, "because the rev's rev ID should load correctly");
                     doc->selectedRev.sequence.Should().Be(2, "because it is the second revision");
                     doc->selectedRev.flags.Should().HaveFlag(C4RevisionFlags.KeepBody, "because the KeepBody flag was saved on the revision");
-                    doc->selectedRev.body.Should().Be(Body2, "because the body should load correctly");
+                    NativeRaw.c4doc_getRevisionBody(doc).Should().Be(Body2, "because the body should load correctly");
                     Native.c4doc_release(doc);
 
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
@@ -625,7 +625,7 @@ namespace LiteCore.Tests
                      LiteCoreBridge.Check(err => NativeRaw.c4doc_resolveConflict(doc, FLSlice.Constant("4-dddd"), FLSlice.Constant("3-aaaaaa"), (FLSlice)mergedBody, 0, err));
                      Native.c4doc_selectCurrentRevision(doc);
                      doc->selectedRev.revID.CreateString().Should().Be("5-79b2ecd897d65887a18c46cc39db6f0a3f7b38c4");
-                     doc->selectedRev.body.Equals(mergedBody).Should().BeTrue();
+                    NativeRaw.c4doc_getRevisionBody(doc).Equals(mergedBody).Should().BeTrue();
                      Native.c4doc_selectParentRevision(doc);
                      doc->selectedRev.revID.CreateString().Should().Be("4-dddd");
                 } finally {
@@ -638,7 +638,7 @@ namespace LiteCore.Tests
                      LiteCoreBridge.Check(err => NativeRaw.c4doc_resolveConflict(doc, FLSlice.Constant("3-aaaaaa"), FLSlice.Constant("4-dddd"), (FLSlice)mergedBody, 0, err));
                      Native.c4doc_selectCurrentRevision(doc);
                      doc->selectedRev.revID.CreateString().Should().Be("4-1fa2dbcb66b5e0456f6d6fc4a90918d42f3dd302");
-                     doc->selectedRev.body.Equals(mergedBody).Should().BeTrue();
+                     NativeRaw.c4doc_getRevisionBody(doc).Equals(mergedBody).Should().BeTrue();
                      Native.c4doc_selectParentRevision(doc);
                      doc->selectedRev.revID.CreateString().Should().Be("3-aaaaaa");
                  } finally {
