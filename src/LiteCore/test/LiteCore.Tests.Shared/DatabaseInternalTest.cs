@@ -64,6 +64,7 @@ namespace LiteCore.Tests
 
         private C4Document* PutDoc(C4Database* db, string docID, string revID, FLSlice body, C4RevisionFlags flags, C4Error* error = null)
         {
+            var str = body.CreateString();
             LiteCoreBridge.Check(err => Native.c4db_beginTransaction(db, err));
             var success = false;
             try {
