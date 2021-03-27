@@ -1,7 +1,7 @@
 //
 // C4Database_defs.cs
 //
-// Copyright (c) 2020 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,10 +36,12 @@ namespace LiteCore.Interop
         NonObservable  = 0x40,
     }
 
-    internal enum C4DocumentVersioning : uint
-    {
-        RevisionTrees,
-    }
+    //internal enum C4DocumentVersioning : uint
+    //{
+    //    TreeVersioning_v2,
+    //    TreeVersioning,
+    //    VectorVersioning
+    //}
 
     internal enum C4EncryptionAlgorithm : uint
     {
@@ -57,6 +59,8 @@ namespace LiteCore.Interop
         Compact,
         Reindex,
         IntegrityCheck,
+        QuickOptimize,
+        FullOptimize,
     }
 
 	internal unsafe partial struct C4EncryptionKey

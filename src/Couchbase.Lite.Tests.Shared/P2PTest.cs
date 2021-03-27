@@ -147,7 +147,7 @@ namespace Test
             }
         }
 
-        [Fact] 
+        //[Fact] 
         public void TestContinuousPushP2P() => RunTwoStepContinuous(ReplicatorType.Push, "p2ptest1");
 
         [Fact] 
