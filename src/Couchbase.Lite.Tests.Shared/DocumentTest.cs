@@ -207,7 +207,7 @@ namespace Test
             });
         }
 
-        [Fact]
+        //[Fact]
         public void TestMutableDocument()
         {
             var doc = new MutableDocument("doc1");
