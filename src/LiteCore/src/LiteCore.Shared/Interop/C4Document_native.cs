@@ -1,7 +1,7 @@
 //
 // C4Document_native.cs
 //
-// Copyright (c) 2020 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -60,6 +60,11 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_hasRevisionBody(C4Document* doc);
 
+        public static byte[] c4doc_getRevisionBody(C4Document* doc)
+        {
+            return NativeRaw.c4doc_getRevisionBody(doc).ToArrayFast();
+        }
+
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_selectParentRevision(C4Document* doc);
@@ -71,20 +76,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_selectNextLeafRevision(C4Document* doc, [MarshalAs(UnmanagedType.U1)]bool includeDeleted, [MarshalAs(UnmanagedType.U1)]bool withBody, C4Error* outError);
-
-        public static bool c4doc_selectFirstPossibleAncestorOf(C4Document* doc, string revID)
-        {
-            using(var revID_ = new C4String(revID)) {
-                return NativeRaw.c4doc_selectFirstPossibleAncestorOf(doc, revID_.AsFLSlice());
-            }
-        }
-
-        public static bool c4doc_selectNextPossibleAncestorOf(C4Document* doc, string revID)
-        {
-            using(var revID_ = new C4String(revID)) {
-                return NativeRaw.c4doc_selectNextPossibleAncestorOf(doc, revID_.AsFLSlice());
-            }
-        }
 
         public static bool c4doc_selectCommonAncestorRevision(C4Document* doc, string rev1ID, string rev2ID)
         {
@@ -178,12 +169,7 @@ namespace LiteCore.Interop
         public static extern bool c4doc_selectRevision(C4Document* doc, FLSlice revID, [MarshalAs(UnmanagedType.U1)]bool withBody, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_selectFirstPossibleAncestorOf(C4Document* doc, FLSlice revID);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_selectNextPossibleAncestorOf(C4Document* doc, FLSlice revID);
+        public static extern FLSlice c4doc_getRevisionBody(C4Document* doc);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

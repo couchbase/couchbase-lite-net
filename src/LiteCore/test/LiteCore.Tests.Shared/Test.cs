@@ -128,7 +128,7 @@ namespace LiteCore.Tests
 
         protected bool IsRevTrees()
         {
-            return Versioning == C4DocumentVersioning.RevisionTrees;
+            return Versioning == C4DocumentVersioning.TreeVersioning;
         }
 
         protected void DeleteAndRecreateDB()
@@ -163,7 +163,7 @@ namespace LiteCore.Tests
 
             DBConfig2 = new C4DatabaseConfig2() {
                 ParentDirectory = TestDir,
-                flags = C4DatabaseFlags.Create | C4DatabaseFlags.SharedKeys,
+                flags = C4DatabaseFlags.Create,
                 encryptionKey = encryptionKey
             };
 

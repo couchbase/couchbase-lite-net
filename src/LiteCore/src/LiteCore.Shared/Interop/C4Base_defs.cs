@@ -25,7 +25,7 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-    internal enum C4ErrorDomain : uint
+    internal enum C4ErrorDomain : byte
     {
         LiteCoreDomain = 1,
         POSIXDomain,

@@ -64,6 +64,7 @@ namespace LiteCore.Tests
 
         private C4Document* PutDoc(C4Database* db, string docID, string revID, FLSlice body, C4RevisionFlags flags, C4Error* error = null)
         {
+            var str = body.CreateString();
             LiteCoreBridge.Check(err => Native.c4db_beginTransaction(db, err));
             var success = false;
             try {
@@ -197,7 +198,7 @@ namespace LiteCore.Tests
         {
             doc->revID.CreateString().Should().Be(history[0]);
             doc->selectedRev.revID.CreateString().Should().Be(history[0]);
-            Native.FLSlice_Equal(doc->selectedRev.body, body).Should().BeTrue();
+            Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), body).Should().BeTrue();
 
             var revs = GetAllParentRevisions(doc);
             revs.Count.Should().Be(history.Length);
@@ -264,12 +265,12 @@ namespace LiteCore.Tests
                 doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(Db, docID, true, err));
                 doc->docID.CreateString().Should().Be(docID);
                 doc->selectedRev.revID.CreateString().Should().Be(revID1);
-                Native.FLSlice_Equal(doc->selectedRev.body, (FLSlice)body).Should().BeTrue();
+                Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLSlice)body).Should().BeTrue();
                 Native.c4doc_release(doc);
 
                 doc = PutDoc(docID, revID1, (FLSlice)updatedBody, C4RevisionFlags.KeepBody);
                 doc->docID.CreateString().Should().Be(docID);
-                Native.FLSlice_Equal(doc->selectedRev.body, (FLSlice)updatedBody).Should().BeTrue();
+                Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLSlice)updatedBody).Should().BeTrue();
                 var revID2 = doc->revID.CreateString();
                 revID2.Should().StartWith("2-", "because otherwise the generation is invalid");
                 Native.c4doc_release(doc);
@@ -314,7 +315,7 @@ namespace LiteCore.Tests
                 doc->revID.CreateString().Should().Be(revID3);
                 doc->flags.Should().Be(C4DocumentFlags.DocExists | C4DocumentFlags.DocDeleted);
                 doc->selectedRev.revID.CreateString().Should().Be(revID3);
-                doc->selectedRev.body.CreateString().Should().NotBeNull("because a valid revision should have a valid body");
+                NativeRaw.c4doc_getRevisionBody(doc).CreateString().Should().NotBeNull("because a valid revision should have a valid body");
                 doc->selectedRev.flags.Should().Be(C4RevisionFlags.Leaf | C4RevisionFlags.Deleted);
                 Native.c4doc_release(doc);
 
@@ -505,7 +506,7 @@ namespace LiteCore.Tests
                 LiteCoreBridge.Check(err => Native.c4doc_selectRevision(doc, revID2, true, err));
                 doc->flags.Should().Be(C4DocumentFlags.DocExists | C4DocumentFlags.DocDeleted);
                 doc->selectedRev.flags.Should().Be(C4RevisionFlags.Leaf | C4RevisionFlags.Deleted);
-                Native.FLSlice_Equal(doc->selectedRev.body, (FLSlice) body2).Should().BeTrue();
+                Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLSlice) body2).Should().BeTrue();
                 Native.c4doc_release(doc);
 
                 doc = PutDoc(docID, null, (FLSlice)body2);
@@ -533,19 +534,19 @@ namespace LiteCore.Tests
                 var doc = PutDoc("dock", null, (FLSlice)body);
                 var revID1 = doc->revID.CreateString();
                 revID1.Should().StartWith("1-", "because otherwise the generation is incorrect");
-                Native.FLSlice_Equal(doc->selectedRev.body, (FLSlice) body).Should().BeTrue();
+                Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLSlice) body).Should().BeTrue();
                 Native.c4doc_release(doc);
 
                 doc = PutDoc("dock", revID1, FLSlice.Null, C4RevisionFlags.Deleted);
                 var revID2 = doc->revID.CreateString();
                 revID2.Should().StartWith("2-", "because otherwise the generation is incorrect");
                 doc->selectedRev.flags.Should().Be(C4RevisionFlags.Leaf | C4RevisionFlags.Deleted);
-                doc->selectedRev.body.CreateString().Should().NotBeNull("because a valid revision should not have a null body");
+                NativeRaw.c4doc_getRevisionBody(doc).CreateString().Should().NotBeNull("because a valid revision should not have a null body");
                 Native.c4doc_release(doc);
 
                 doc = PutDoc("dock", revID2, (FLSlice)body);
                 doc->revID.CreateString().Should().StartWith("3-", "because otherwise the generation is incorrect");
-                Native.FLSlice_Equal(doc->selectedRev.body, (FLSlice) body).Should().BeTrue();
+                Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLSlice) body).Should().BeTrue();
                 Native.c4doc_release(doc);
                 Native.FLSliceResult_Release(body);
             });
@@ -601,7 +602,7 @@ namespace LiteCore.Tests
                 doc = GetDoc(docID);
                 LiteCoreBridge.Check(err => Native.c4doc_selectRevision(doc, "2-2222", false, err));
                 doc->selectedRev.flags.Should().NotHaveFlag(C4RevisionFlags.KeepBody);
-                doc->selectedRev.body.CreateString().Should().BeNull();
+                NativeRaw.c4doc_getRevisionBody(doc).CreateString().Should().BeNull();
                 Native.c4doc_release(doc);
 
                 doc = GetDoc(otherDocID);
