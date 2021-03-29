@@ -238,7 +238,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                if(!IsRevTrees()) {
+                if (!IsRevTrees()) {
                     return;
                 }
 
@@ -421,9 +421,9 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                if(!IsRevTrees()) {
-                    return;
-                }
+                //if(!IsRevTrees()) {
+                //    return;
+                //}
 
                 var doc = PutDoc(null, null, FLSlice.Constant("{}"));
                 var docID = doc->docID.CreateString();
@@ -455,9 +455,9 @@ namespace LiteCore.Tests
             // prevent false conflicts when two peers make the same change to the same parent revision.
             RunTestVariants(() =>
             {
-                if(!IsRevTrees()) {
-                    return;
-                }
+                //if(!IsRevTrees()) {
+                //    return;
+                //}
 
                 var body = JSON2Fleece("{'property':'value'}");
                 var doc = PutDoc("doc", null, (FLSlice)body);
@@ -486,9 +486,9 @@ namespace LiteCore.Tests
             // and that the saved deleted revision will preserve any extra properties
             RunTestVariants(() =>
             {
-                if(!IsRevTrees()) {
-                    return;
-                }
+                //if(!IsRevTrees()) {
+                //    return;
+                //}
 
                 var body1 = JSON2Fleece("{'property':'newvalue'}");
                 var doc = PutDoc(null, null, (FLSlice)body1);
@@ -526,9 +526,9 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                if(!IsRevTrees()) {
-                    return;
-                }
+                //if(!IsRevTrees()) {
+                //    return;
+                //}
 
                 var body = JSON2Fleece("{'property':'value'}");
                 var doc = PutDoc("dock", null, (FLSlice)body);
@@ -557,7 +557,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                if(!IsRevTrees()) {
+                if (!IsRevTrees()) {
                     return;
                 }
 

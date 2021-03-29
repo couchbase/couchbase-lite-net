@@ -360,7 +360,7 @@ namespace LiteCore.Tests
             });
         }
 
-        //[Fact]
+        [Fact]
         public void TestErrorMessages()
         {
             var msg = Native.c4error_getMessage(new C4Error(C4ErrorDomain.LiteCoreDomain, 0));
@@ -371,7 +371,7 @@ namespace LiteCore.Tests
             AssertMessage(C4ErrorDomain.POSIXDomain, PosixBase.GetCode(nameof(PosixBase.ENOENT)), "No such file or directory");
             AssertMessage(C4ErrorDomain.LiteCoreDomain, (int)C4ErrorCode.TransactionNotClosed, "transaction not closed");
             AssertMessage(C4ErrorDomain.SQLiteDomain, -1234, "unknown error (-1234)");
-            AssertMessage((C4ErrorDomain)66, -1234, "unknown error domain");
+            AssertMessage((C4ErrorDomain)Byte.MaxValue, -1234, "invalid C4Error (unknown domain)");
         }
 
         [Fact]
