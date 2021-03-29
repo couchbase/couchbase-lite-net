@@ -98,7 +98,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestCreateWithEmptyDBNames()
         {
             CouchbaseLiteException e = null; ;
