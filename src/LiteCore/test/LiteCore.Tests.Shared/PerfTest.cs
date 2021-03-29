@@ -62,8 +62,8 @@ namespace LiteCore.Tests
                 int readNo = 0;
                 for( ; readNo < 100000; ++readNo) {
                     var docID = rng.Next(1, (int)numDocs + 1).ToString("D7");
-                    var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(Db, docID,
-                        true, err));
+                    var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, docID,
+                        true, C4DocContentLevel.DocGetCurrentRev, err));
                     doc->selectedRev.body.size.Should().BeGreaterThan(10);
                     Native.c4doc_release(doc);
                 }
@@ -211,6 +211,6 @@ namespace LiteCore.Tests
             Native.FLEncoder_WriteValue(enc, value);
             return true;
         }
-         #endif
-    } 
+#endif
+    }
 }

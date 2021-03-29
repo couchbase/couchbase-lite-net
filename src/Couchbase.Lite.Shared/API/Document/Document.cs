@@ -157,12 +157,18 @@ namespace Couchbase.Lite
         }
 
         internal Document([CanBeNull]Database database, [NotNull]string id)
+            : this(database, id, C4DocContentLevel.DocGetCurrentRev)
+        {
+            
+        }
+
+        internal Document([CanBeNull]Database database, [NotNull]string id, C4DocContentLevel contentLevel)
             : this(database, id, default(C4DocumentWrapper))
         {
             database.ThreadSafety.DoLocked(() =>
             {
-                var doc = (C4Document*)NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
-                    err => Native.c4doc_get(database.c4db, id, true, err));
+                var doc = (C4Document*) NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
+                    err => Native.c4db_getDoc(database.c4db, id, true, contentLevel, err));
 
                 c4Doc = new C4DocumentWrapper(doc);
             });

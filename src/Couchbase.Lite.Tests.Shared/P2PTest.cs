@@ -399,7 +399,9 @@ namespace Test
                 var config = new ReplicatorConfiguration(Db1,
                     new MessageEndpoint(uid, server, ProtocolType.ByteStream, new MockConnectionFactory(null))) {
                     ReplicatorType = type,
-                    Continuous = true
+                    Continuous = true,
+                    MaxRetries = 2,
+                    MaxRetryWaitTime = TimeSpan.FromMinutes(10)
                 };
 
                 using (var replicator = new Replicator(config)) {
