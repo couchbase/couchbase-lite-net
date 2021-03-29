@@ -189,7 +189,7 @@ namespace LiteCore.Tests
 
         private C4Document* GetDoc(C4Database* db, string docID)
         {
-            var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(db, docID, true, err));
+            var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4db_getDoc(db, docID, true, C4DocContentLevel.DocGetCurrentRev, err));
             doc->docID.CreateString().Should().Be(docID);
             return doc;
         }
@@ -248,7 +248,7 @@ namespace LiteCore.Tests
                 // TODO: Observer
 
                 C4Error error;
-                var doc = Native.c4doc_get(Db, "nonexistent", true, &error);
+                var doc = Native.c4db_getDoc(Db, "nonexistent", true, C4DocContentLevel.DocGetCurrentRev, &error);
                 ((IntPtr)doc).Should().Be(IntPtr.Zero, "because it does not exist");
                 error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
                 error.code.Should().Be((int)C4ErrorCode.NotFound);
@@ -262,7 +262,7 @@ namespace LiteCore.Tests
                 revID1.Should().StartWith("1-", "because otherwise the generation is invalid");
                 Native.c4doc_release(doc);
 
-                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(Db, docID, true, err));
+                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, docID, true, C4DocContentLevel.DocGetCurrentRev, err));
                 doc->docID.CreateString().Should().Be(docID);
                 doc->selectedRev.revID.CreateString().Should().Be(revID1);
                 Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLSlice)body).Should().BeTrue();
@@ -310,7 +310,7 @@ namespace LiteCore.Tests
                 revID3.Should().StartWith("3-", "because otherwise the generation is invalid");
                 Native.c4doc_release(doc);
 
-                doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(Db, docID, true, err));
+                doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, docID, true, C4DocContentLevel.DocGetCurrentRev, err));
                 doc->docID.CreateString().Should().Be(docID);
                 doc->revID.CreateString().Should().Be(revID3);
                 doc->flags.Should().Be(C4DocumentFlags.DocExists | C4DocumentFlags.DocDeleted);
@@ -355,7 +355,7 @@ namespace LiteCore.Tests
                 seq.Should().Be(4UL, "because deleted documents were included");
                 Native.c4enum_free(e);
 
-                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(Db, docID, true, err));
+                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, docID, true, C4DocContentLevel.DocGetCurrentRev, err));
                 var latest = 3;
                 do {
                     switch (latest) {
@@ -378,20 +378,20 @@ namespace LiteCore.Tests
                 latest.Should().Be(0, "because otherwise the history is not valid");
                 Native.c4doc_release(doc);
 
-                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(Db, docID, true, err));
+                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, docID, true, C4DocContentLevel.DocGetCurrentRev, err));
                 LiteCoreBridge.Check(err => Native.c4doc_selectRevision(doc, revID2, true, err));
                 doc->selectedRev.revID.CreateString().Should().Be(revID2);
                 Native.c4doc_release(doc);
 
                 LiteCoreBridge.Check(err => Native.c4db_compact(Db, err));
-                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(Db, docID, true, err));
+                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, docID, true, C4DocContentLevel.DocGetCurrentRev, err));
                 LiteCoreBridge.Check(err => Native.c4doc_selectRevision(doc, revID2, true, err));
                 doc->selectedRev.revID.CreateString().Should().Be(revID2);
                 // doc->selectedRev.body.CreateString().Should().BeNull("because the database was compacted");
                 Native.c4doc_release(doc);
 
                 // Check history again after compaction
-                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(Db, docID, true, err));
+                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, docID, true, C4DocContentLevel.DocGetCurrentRev, err));
                 latest = 3;
                 do {
                     switch (latest) {
@@ -502,7 +502,7 @@ namespace LiteCore.Tests
                 var revID2 = doc->revID.CreateString();
                 Native.c4doc_release(doc);
 
-                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(Db, docID, true, err));
+                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, docID, true, C4DocContentLevel.DocGetCurrentRev, err));
                 LiteCoreBridge.Check(err => Native.c4doc_selectRevision(doc, revID2, true, err));
                 doc->flags.Should().Be(C4DocumentFlags.DocExists | C4DocumentFlags.DocDeleted);
                 doc->selectedRev.flags.Should().Be(C4RevisionFlags.Leaf | C4RevisionFlags.Deleted);
@@ -515,7 +515,7 @@ namespace LiteCore.Tests
                 Native.c4doc_release(doc);
                 Native.FLSliceResult_Release(body2);
 
-                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4doc_get(Db, docID, true, err));
+                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, docID, true, C4DocContentLevel.DocGetCurrentRev, err));
                 doc->revID.CreateString().Should().Be(revID3);
                 Native.c4doc_release(doc);
             });

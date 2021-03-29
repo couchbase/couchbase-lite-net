@@ -166,7 +166,7 @@ namespace LiteCore.Tests
                 // Delete doc "0000015":
                 LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
                 try {
-                    var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(Db, "0000015", true, err));
+                    var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, "0000015", true, C4DocContentLevel.DocGetCurrentRev, err));
                     var rq = new C4DocPutRequest {
                         docID = FLSlice.Constant("0000015"),
                         history = (FLSlice *)&doc->revID,
