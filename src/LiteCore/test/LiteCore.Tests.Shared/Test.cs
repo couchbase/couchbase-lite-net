@@ -168,7 +168,7 @@ namespace LiteCore.Tests
 
             DBConfig2 = new C4DatabaseConfig2() {
                 ParentDirectory = TestDir,
-                flags = C4DatabaseFlags.Create,
+                flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact,
                 encryptionKey = encryptionKey
             };
 
