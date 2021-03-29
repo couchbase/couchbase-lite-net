@@ -105,10 +105,8 @@ namespace Couchbase.Lite
     {
         #region Constants
 
-        private static readonly C4DatabaseConfig DBConfig = new C4DatabaseConfig {
+        private static readonly C4DatabaseConfig2 DBConfig = new C4DatabaseConfig2 {
             flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact,
-            storageEngine = "SQLite",
-            versioning = C4DocumentVersioning.TreeVersioning
         };
 
         private const string DBExtension = "cblite2";
@@ -385,6 +383,7 @@ namespace Couchbase.Lite
             LiteCoreBridge.Check(err =>
             {
                 var nativeConfig = DBConfig;
+                nativeConfig.ParentDirectory = config?.Directory;
 
                 #if COUCHBASE_ENTERPRISE
                 if (config?.EncryptionKey != null) {
@@ -397,7 +396,7 @@ namespace Couchbase.Lite
                 }
                 #endif
 
-                return Native.c4db_copy(path, destPath, &nativeConfig, err);
+                return Native.c4db_copyNamed(path, name /*destPath*/, &nativeConfig, err);
             });
 
         }
@@ -1303,6 +1302,7 @@ namespace Couchbase.Lite
 
             var path = DatabasePath(Name, Config.Directory);
             var config = DBConfig;
+            config.ParentDirectory = Config.Directory;
 
             var encrypted = "";
 
@@ -1319,14 +1319,14 @@ namespace Couchbase.Lite
             }
             #endif
 
-            WriteLog.To.Database.I(Tag, $"Opening {encrypted}database at {path}");
+            WriteLog.To.Database.I(Tag, $"Opening {encrypted} database at {path}");
             var localConfig1 = config;
             ThreadSafety.DoLocked(() =>
             {
                 _c4db = (C4Database*) LiteCoreBridge.Check(err =>
                 {
                     var localConfig2 = localConfig1;
-                    return Native.c4db_open(path, &localConfig2, err);
+                    return Native.c4db_openNamed(Name /*path*/, &localConfig2, err);
                 });
             });
 

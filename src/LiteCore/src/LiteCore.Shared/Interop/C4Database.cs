@@ -76,38 +76,38 @@ namespace LiteCore.Interop
         }*/
     }
 
-    [ExcludeFromCodeCoverage]
-    internal unsafe partial struct C4DatabaseConfig : IDisposable
-    {
-        public static C4DatabaseConfig Clone(C4DatabaseConfig *source)
-        {
-            var retVal = new C4DatabaseConfig {
-                flags = source->flags,
-                versioning = source->versioning,
-                encryptionKey = source->encryptionKey,
-                storageEngine = source->storageEngine
-            };
+    //[ExcludeFromCodeCoverage]
+    //internal unsafe partial struct C4DatabaseConfig : IDisposable
+    //{
+    //    public static C4DatabaseConfig Clone(C4DatabaseConfig *source)
+    //    {
+    //        var retVal = new C4DatabaseConfig {
+    //            flags = source->flags,
+    //            versioning = source->versioning,
+    //            encryptionKey = source->encryptionKey,
+    //            storageEngine = source->storageEngine
+    //        };
 
-            return retVal;
-        }
+    //        return retVal;
+    //    }
 
-        public static C4DatabaseConfig Get(C4DatabaseConfig *source)
-        {
-            var retVal = new C4DatabaseConfig {
-                flags = source->flags,
-                versioning = source->versioning,
-                encryptionKey = source->encryptionKey,
-                _storageEngine = source->_storageEngine // Note: raw copy!
-            };
+    //    public static C4DatabaseConfig Get(C4DatabaseConfig *source)
+    //    {
+    //        var retVal = new C4DatabaseConfig {
+    //            flags = source->flags,
+    //            versioning = source->versioning,
+    //            encryptionKey = source->encryptionKey,
+    //            _storageEngine = source->_storageEngine // Note: raw copy!
+    //        };
 
-            return retVal;
-        }
+    //        return retVal;
+    //    }
 
-        public void Dispose()
-        {
-            storageEngine = null;
-        }
-    }
+    //    public void Dispose()
+    //    {
+    //        storageEngine = null;
+    //    }
+    //}
 
     [ExcludeFromCodeCoverage]
     internal unsafe partial struct C4DatabaseConfig2 : IDisposable
