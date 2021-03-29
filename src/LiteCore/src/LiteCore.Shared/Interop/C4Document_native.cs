@@ -27,10 +27,17 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        public static C4Document* c4doc_get(C4Database* database, string docID, bool mustExist, C4Error* outError)
+        //public static C4Document* c4doc_get(C4Database* database, string docID, bool mustExist, C4Error* outError)
+        //{
+        //    using(var docID_ = new C4String(docID)) {
+        //        return NativeRaw.c4doc_get(database, docID_.AsFLSlice(), mustExist, outError);
+        //    }
+        //}
+
+        public static C4Document* c4db_getDoc(C4Database* database, string docID, bool mustExist, C4DocContentLevel content, C4Error* outError)
         {
-            using(var docID_ = new C4String(docID)) {
-                return NativeRaw.c4doc_get(database, docID_.AsFLSlice(), mustExist, outError);
+            using (var docID_ = new C4String(docID)) {
+                return NativeRaw.c4db_getDoc(database, docID_.AsFLSlice(), mustExist, content, outError);
             }
         }
 
@@ -161,8 +168,11 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class NativeRaw
     {
+        //[DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern C4Document* c4doc_get(C4Database* database, FLSlice docID, [MarshalAs(UnmanagedType.U1)]bool mustExist, C4Error* outError);
+
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Document* c4doc_get(C4Database* database, FLSlice docID, [MarshalAs(UnmanagedType.U1)]bool mustExist, C4Error* outError);
+        public static extern C4Document* c4db_getDoc(C4Database* database, FLSlice docID, [MarshalAs(UnmanagedType.U1)]bool mustExist, C4DocContentLevel content, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

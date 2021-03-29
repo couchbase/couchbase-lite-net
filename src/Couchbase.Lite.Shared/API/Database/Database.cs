@@ -828,7 +828,7 @@ namespace Couchbase.Lite
         /// doesn't exist</exception>
         public DateTimeOffset? GetDocumentExpiration(string docId)
         {
-            if (LiteCoreBridge.Check(err => Native.c4doc_get(_c4db, docId, true, err)) == null) {
+            if (LiteCoreBridge.Check(err => Native.c4db_getDoc(_c4db, docId, true, C4DocContentLevel.DocGetCurrentRev, err)) == null) {
                 throw new CouchbaseLiteException(C4ErrorCode.NotFound);
             }
 
@@ -1104,7 +1104,7 @@ namespace Couchbase.Lite
                             throw new CouchbaseLiteException(C4ErrorCode.NotFound);
                         }
 
-                        remoteDoc = new Document(this, docID);
+                        remoteDoc = new Document(this, docID, C4DocContentLevel.DocGetAll);
                         if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
                             WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', the conflict may have been previously resolved...",
                                 new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
@@ -1414,7 +1414,7 @@ namespace Couchbase.Lite
                         }
 
                         C4Error err;
-                        curDoc = Native.c4doc_get(_c4db, document.Id, true, &err);
+                        curDoc = Native.c4db_getDoc(_c4db, document.Id, true, C4DocContentLevel.DocGetCurrentRev, &err);
 
                         // If deletion and the current doc has already been deleted
                         // or doesn't exist:
@@ -1536,25 +1536,24 @@ namespace Couchbase.Lite
             var winningRevID = remoteDoc.RevisionID;
             var losingRevID = localDoc.RevisionID;
 
+            // mergedBody:
             FLSliceResult mergedBody = (FLSliceResult) FLSlice.Null;
-            C4RevisionFlags mergedFlags = 0;
             if (resolvedDoc != null)
-                mergedFlags = resolvedDoc.c4Doc != null ? resolvedDoc.c4Doc.RawDoc->selectedRev.flags : 0;
             if (!ReferenceEquals(resolvedDoc, remoteDoc)) {
-                var isDeleted = true;
                 if (resolvedDoc != null) {
                     // Unless the remote revision is being used as-is, we need a new revision:
                     mergedBody = resolvedDoc.Encode();
                     if (mergedBody.Equals((FLSliceResult) FLSlice.Null))
                         throw new RuntimeException(CouchbaseLiteErrorMessage.ResolvedDocContainsNull);
-                    isDeleted = resolvedDoc.IsDeleted;
                 } else {
                     mergedBody = EmptyFLSliceResult();
                 }
-
-                if (isDeleted)
-                    mergedFlags |= C4RevisionFlags.Deleted;
             }
+
+            // mergedFlags:
+            C4RevisionFlags mergedFlags = resolvedDoc.c4Doc != null ? resolvedDoc.c4Doc.RawDoc->selectedRev.flags : 0;
+            if (resolvedDoc == null || resolvedDoc.IsDeleted)
+                mergedFlags |= C4RevisionFlags.Deleted;
 
             // Tell LiteCore to do the resolution:
             C4Document* rawDoc = localDoc.c4Doc != null ? localDoc.c4Doc.RawDoc : null;

@@ -169,7 +169,7 @@ namespace LiteCore.Tests
 
             DBConfig2 = new C4DatabaseConfig2() {
                 ParentDirectory = TestDir,
-                flags = C4DatabaseFlags.Create,
+                flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact,
                 encryptionKey = encryptionKey
             };
 
@@ -197,8 +197,8 @@ namespace LiteCore.Tests
         {
             LiteCoreBridge.Check(err => Native.c4db_beginTransaction(db, err));
             try {
-                var curDoc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(db, docID, 
-                    false, err));
+                var curDoc = (C4Document *)LiteCoreBridge.Check(err => Native.c4db_getDoc(db, docID, 
+                    false, C4DocContentLevel.DocGetCurrentRev, err));
                 var history = new[] { revID, curDoc->revID };
                 fixed(FLSlice* h = history) {
                     var rq = new C4DocPutRequest {
