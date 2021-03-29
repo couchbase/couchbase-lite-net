@@ -360,7 +360,7 @@ namespace LiteCore.Tests
             });
         }
 
-        //[Fact]
+        [Fact]
         public void TestErrorMessages()
         {
             var msg = Native.c4error_getMessage(new C4Error(C4ErrorDomain.LiteCoreDomain, 0));
