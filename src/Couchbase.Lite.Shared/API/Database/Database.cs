@@ -401,7 +401,7 @@ namespace Couchbase.Lite
                 }
                 #endif
 
-                return Native.c4db_copyNamed(path, name /*destPath*/, &nativeConfig, err);
+                return Native.c4db_copyNamed(path, name, &nativeConfig, err);
             });
 
         }
@@ -1331,7 +1331,7 @@ namespace Couchbase.Lite
                 _c4db = (C4Database*) LiteCoreBridge.Check(err =>
                 {
                     var localConfig2 = localConfig1;
-                    return Native.c4db_openNamed(Name /*path*/, &localConfig2, err);
+                    return Native.c4db_openNamed(Name, &localConfig2, err);
                 });
             });
 
