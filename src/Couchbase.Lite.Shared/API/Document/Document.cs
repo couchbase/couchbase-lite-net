@@ -80,12 +80,12 @@ namespace Couchbase.Lite
                     Data = null;
 
                     if (newVal?.HasValue == true) {
-                        //var body = newVal.RawDoc->selectedRev.body;
+                        //var body = NativeRaw.c4doc_getRevisionBody(newVal.RawDoc);//newVal.RawDoc->selectedRev.body;
                         //if (body.size > 0) {
                         //    Data = Native.FLValue_AsDict(
                         //        NativeRaw.FLValue_FromData(body, FLTrust.Trusted));
                         //}
-                        Data = Native.c4doc_getProperties(newVal.RawDoc);
+                        Data = newVal.Body;
                     }
 
                     UpdateDictionary();

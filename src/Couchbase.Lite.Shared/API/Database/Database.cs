@@ -316,6 +316,11 @@ namespace Couchbase.Lite
         public Database([@NotNull]string name, [@CanBeNull]DatabaseConfiguration configuration = null)
         {
             Name = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
+            if(name == "") {
+                var err = new C4Error(C4ErrorDomain.LiteCoreDomain, (int) CouchbaseLiteError.WrongFormat);
+                throw new CouchbaseLiteException(err);
+            }
+
             Config = configuration?.Freeze() ?? new DatabaseConfiguration(true);
             Run.Once(nameof(CheckFileLogger), CheckFileLogger);
             Open();

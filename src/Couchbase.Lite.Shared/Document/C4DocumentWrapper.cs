@@ -42,6 +42,8 @@ namespace Couchbase.Lite.Internal.Doc
 
         public bool HasValue => RawDoc != null;
 
+        public FLDict* Body => Native.c4doc_getProperties(RawDoc);
+
         #endregion
 
         #region Constructors
