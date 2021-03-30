@@ -27,7 +27,7 @@ namespace LiteCore.Interop
 {
     internal enum C4ErrorDomain : byte
     {
-        LiteCoreDomain = 1,
+        LiteCoreDomain = 0x01,
         POSIXDomain,
         SQLiteDomain,
         FleeceDomain,

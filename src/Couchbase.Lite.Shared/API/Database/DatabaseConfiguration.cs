@@ -61,20 +61,6 @@ namespace Couchbase.Lite
             set => _freezer.SetValue(ref _directory, CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value));
         }
 
-        /// <summary>
-        /// Experiment API. Enable version vector.
-        /// </summary>
-        /// <remarks>
-        /// If the enableVersionVector is set to true, the database will use version vector instead of
-        /// using revision tree.When enabling version vector on an existing database, the database
-        /// will be upgraded to use the revision tree while the database is opened.
-        /// NOTE:
-        /// 1. The database that uses version vector cannot be downgraded back to use revision tree.
-        /// 2. The current version of Sync Gateway doesn't support version vector so the syncronization
-        /// with Sync Gateway will not be working.
-        /// </remarks>
-        internal bool EnableVersionVector => false;
-
         #if COUCHBASE_ENTERPRISE
         /// <summary>
         /// Gets or sets the encryption key to use on the database
