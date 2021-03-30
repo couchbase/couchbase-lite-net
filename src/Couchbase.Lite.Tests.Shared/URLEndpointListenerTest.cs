@@ -789,7 +789,7 @@ namespace Test
             ValidateMultipleReplicationsTo(ReplicatorType.PushAndPull);
         }
 
-        [Fact] //Mac OS 1-6-21
+        //[Fact] //Mac OS 1-6-21
         public void TestMultipleReplicatorsOnReadOnlyListener()
         {
             var config = CreateListenerConfig();
@@ -927,8 +927,6 @@ namespace Test
 
             var target = new DatabaseEndpoint(Db);
             var config1 = CreateConfig(target, ReplicatorType.PushAndPull, true, sourceDb: OtherDb);
-            config1.MaxRetries = 2;
-            config1.MaxRetryWaitTime = TimeSpan.FromMinutes(10);
             var repl1 = new Replicator(config1);
 
             Database.Delete("urlepTestDb", Directory);
@@ -939,8 +937,6 @@ namespace Test
 
             var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
                 serverCert: _listener.TlsIdentity.Certs[0], sourceDb: urlepTestDb);
-            config2.MaxRetries = 2;
-            config2.MaxRetryWaitTime = TimeSpan.FromMinutes(10);
             var repl2 = new Replicator(config2);
 
             EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
@@ -1013,8 +1009,6 @@ namespace Test
             var serverCert = _listener.TlsIdentity.Certs[0];
             var config1 = CreateConfig(target, replicatorType, true, 
                 serverCert: serverCert, sourceDb: Db);
-            config1.MaxRetries = 2;
-            config1.MaxRetryWaitTime = TimeSpan.FromMinutes(10);
             var repl1 = new Replicator(config1);
 
             Database.Delete("urlepTestDb", Directory);
@@ -1025,8 +1019,6 @@ namespace Test
 
             var config2 = CreateConfig(target, replicatorType, true,
                 serverCert: serverCert, sourceDb: urlepTestDb);
-            config2.MaxRetries = 2;
-            config2.MaxRetryWaitTime = TimeSpan.FromMinutes(10);
             var repl2 = new Replicator(config2);
 
             var wait1 = new ManualResetEventSlim();
