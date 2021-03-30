@@ -71,17 +71,17 @@ namespace LiteCore.Tests
 
         internal FLSlice DocID => FLSlice.Constant("mydoc");
 
-        internal FLSlice RevID => //IsRevTrees() ? 
-            FLSlice.Constant("1-abcd");
-        //: FLSlice.Constant("1@*");
+        internal FLSlice RevID => IsRevTrees() ? 
+            FLSlice.Constant("1-abcd")
+        : FLSlice.Constant("1@*");
 
-        internal FLSlice Rev2ID => //IsRevTrees() ? 
-            FLSlice.Constant("2-c001d00d");
-        //: FLSlice.Constant("2@*");
+        internal FLSlice Rev2ID => IsRevTrees() ? 
+            FLSlice.Constant("2-c001d00d")
+        : FLSlice.Constant("2@*");
 
-        internal FLSlice Rev3ID => //IsRevTrees() ? 
-            FLSlice.Constant("3-deadbeef");
-            //: FLSlice.Constant("3@*");
+        internal FLSlice Rev3ID => IsRevTrees() ? 
+            FLSlice.Constant("3-deadbeef")
+            : FLSlice.Constant("3@*");
 
         static Test()
         {
@@ -134,7 +134,7 @@ namespace LiteCore.Tests
 
         protected bool IsRevTrees()
         {
-            return Versioning == C4DocumentVersioning.TreeVersioning;
+            return (Native.c4db_getConfig2(Db)->flags & C4DatabaseFlags.VersionVectors) == 0;
         }
 
         protected void DeleteAndRecreateDB()

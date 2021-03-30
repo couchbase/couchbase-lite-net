@@ -207,7 +207,7 @@ namespace Test
             });
         }
 
-        //[Fact]
+        [Fact]
         public void TestMutableDocument()
         {
             var doc = new MutableDocument("doc1");
@@ -226,16 +226,17 @@ namespace Test
                 d.ToDictionary().Should().BeEmpty("because this document has no properties");
             });
 
-            doc = new MutableDocument(Db, "doc1");
-            var gene = doc.Generation;
-            var encode1 = doc.Encode();
-            Type mutableDocumentType = typeof(MutableDocument);
-            var prop = mutableDocumentType.GetProperty("Changed", BindingFlags.NonPublic | BindingFlags.Instance);
-            var isChanged = prop;
-            var doc1 = new Document(doc);
-            var encode = doc1.Encode();
-            var gen = doc1.Generation;
-            var isSelecteConflicRev = doc1.SelectConflictingRevision();
+            using (var doc1 = new MutableDocument(Db, "doc1")) {
+                Db.Save(doc1);
+                var gene = doc1.Generation;
+                var encode1 = doc1.Encode();
+                Type mutableDocumentType = typeof(MutableDocument);
+                var prop = mutableDocumentType.GetProperty("Changed", BindingFlags.NonPublic | BindingFlags.Instance);
+                var isChanged = prop;
+                var encode = doc1.Encode();
+                var gen = doc1.Generation;
+                var isSelecteConflicRev = doc1.SelectConflictingRevision();
+            }
         }
 
         [Fact]
