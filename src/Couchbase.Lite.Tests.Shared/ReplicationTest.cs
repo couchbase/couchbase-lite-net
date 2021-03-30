@@ -1236,7 +1236,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestConflictResolverNullDoc()
         {
             bool conflictResolved = false;
@@ -1385,7 +1385,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestNonBlockingDatabaseOperationConflictResolver()
         {
             int resolveCnt = 0;
