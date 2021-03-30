@@ -80,11 +80,6 @@ namespace Couchbase.Lite
                     Data = null;
 
                     if (newVal?.HasValue == true) {
-                        //var body = NativeRaw.c4doc_getRevisionBody(newVal.RawDoc);//newVal.RawDoc->selectedRev.body;
-                        //if (body.size > 0) {
-                        //    Data = Native.FLValue_AsDict(
-                        //        NativeRaw.FLValue_FromData(body, FLTrust.Trusted));
-                        //}
                         Data = newVal.Body;
                     }
 
@@ -233,8 +228,8 @@ namespace Couchbase.Lite
         internal virtual FLSliceResult Encode()
         {
             _disposalWatchdog.CheckDisposed();
-            if (c4Doc?.HasValue == true && Native.c4doc_hasRevisionBody(c4Doc.RawDoc)) {
-                return Native.FLSlice_Copy(NativeRaw.c4doc_getRevisionBody(c4Doc.RawDoc));//c4Doc.RawDoc->selectedRev.body);
+            if (c4Doc?.HasValue == true) {
+                return Native.FLSlice_Copy(NativeRaw.c4doc_getRevisionBody(c4Doc.RawDoc));
             }
 
             return (FLSliceResult) FLSlice.Null;

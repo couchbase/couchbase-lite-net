@@ -62,25 +62,6 @@ namespace LiteCore.Interop
         public fixed byte bytes[32];
     }
 
-	//internal unsafe partial struct C4DatabaseConfig
- //   {
- //       public C4DatabaseFlags flags;
- //       private IntPtr _storageEngine;
- //       public C4DocumentVersioning versioning;
- //       public C4EncryptionKey encryptionKey;
-
- //       public string storageEngine
- //       {
- //           get {
- //               return Marshal.PtrToStringAnsi(_storageEngine);
- //           }
- //           set {
- //               var old = Interlocked.Exchange(ref _storageEngine, Marshal.StringToHGlobalAnsi(value));
- //               Marshal.FreeHGlobal(old);
- //           }
- //       }
- //   }
-
 	internal unsafe partial struct C4DatabaseConfig2
     {
         public FLSlice parentDirectory;
