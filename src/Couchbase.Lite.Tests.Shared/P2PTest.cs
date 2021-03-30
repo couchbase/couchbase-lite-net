@@ -397,9 +397,7 @@ namespace Test
                 var config = new ReplicatorConfiguration(Db1,
                     new MessageEndpoint(uid, server, ProtocolType.ByteStream, new MockConnectionFactory(null))) {
                     ReplicatorType = type,
-                    Continuous = true,
-                    MaxRetries = 2,
-                    MaxRetryWaitTime = TimeSpan.FromMinutes(10)
+                    Continuous = true
                 };
 
                 using (var replicator = new Replicator(config)) {
@@ -447,6 +445,9 @@ namespace Test
                     using (var mdoc = savedDoc.ToMutable()) {
                         mdoc.SetInt("version", 2);
                         secondSource.Save(mdoc);
+
+                        var fd = firstSource.GetDocument("livesindb");
+                        var v = fd.GetInt("version");
                     }
 
                     count = 0;
@@ -454,7 +455,7 @@ namespace Test
                            replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
                         Thread.Sleep(1000);
                         count++;
-                        count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
+                        count.Should().BeLessThan(1000, "because otherwise the replicator did not advance");
                     }
 
                     using (var savedDoc = secondTarget.GetDocument("livesindb")) {
