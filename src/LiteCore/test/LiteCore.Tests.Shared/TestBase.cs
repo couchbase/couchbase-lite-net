@@ -32,13 +32,6 @@ using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
 
 namespace LiteCore.Tests
 {
-    internal enum C4DocumentVersioning : uint
-    {
-        TreeVersioning_v2,
-        TreeVersioning,
-        VectorVersioning
-    }
-
 #if WINDOWS_UWP
     [TestClass]
 #endif

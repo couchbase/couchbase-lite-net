@@ -368,9 +368,8 @@ namespace LiteCore.Tests
                     });
 
                     doc->docID.Equals(DocID).Should().BeTrue("because the doc should have the correct doc ID");
-                    var expectedRevID = IsRevTrees() ? 
-                    FLSlice.Constant("1-042ca1d3a1d16fd5ab2f87efc7ebbf50b7498032")
-                    : FLSlice.Constant("1@*");
+                    var expectedRevID = IsRevTrees() ? FLSlice.Constant("1-042ca1d3a1d16fd5ab2f87efc7ebbf50b7498032") :
+                        FLSlice.Constant("1@*");
                     doc->revID.Equals(expectedRevID).Should().BeTrue("because the doc should have the correct rev ID");
                     doc->flags.Should().Be(C4DocumentFlags.DocExists, "because the document exists");
                     doc->selectedRev.revID.Equals(expectedRevID).Should().BeTrue("because the selected rev should have the correct rev ID");
@@ -407,9 +406,7 @@ namespace LiteCore.Tests
                     rq.body = (FLSlice)body;
                     rq.existingRevision = true;
                     rq.remoteDBID = 1;
-                    var conflictRevID = IsRevTrees() ? 
-                    FLSlice.Constant("2-deadbeef")
-                    : FLSlice.Constant("1@binky");
+                    var conflictRevID = IsRevTrees() ? FLSlice.Constant("2-deadbeef") : FLSlice.Constant("1@binky");
                     tmp = new[] { conflictRevID, expectedRevID };
                     rq.historyCount = 2;
                     rq.allowConflict = true;
