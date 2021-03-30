@@ -70,17 +70,11 @@ namespace LiteCore.Tests
 
         internal FLSlice DocID => FLSlice.Constant("mydoc");
 
-        internal FLSlice RevID => IsRevTrees() ? 
-            FLSlice.Constant("1-abcd")
-        : FLSlice.Constant("1@*");
+        internal FLSlice RevID => IsRevTrees() ? FLSlice.Constant("1-abcd") : FLSlice.Constant("1@*");
 
-        internal FLSlice Rev2ID => IsRevTrees() ? 
-            FLSlice.Constant("2-c001d00d")
-        : FLSlice.Constant("2@*");
+        internal FLSlice Rev2ID => IsRevTrees() ? FLSlice.Constant("2-c001d00d") : FLSlice.Constant("2@*");
 
-        internal FLSlice Rev3ID => IsRevTrees() ? 
-            FLSlice.Constant("3-deadbeef")
-            : FLSlice.Constant("3@*");
+        internal FLSlice Rev3ID => IsRevTrees() ? FLSlice.Constant("3-deadbeef") : FLSlice.Constant("3@*");
 
         static Test()
         {
@@ -168,7 +162,7 @@ namespace LiteCore.Tests
 
             DBConfig2 = new C4DatabaseConfig2() {
                 ParentDirectory = TestDir,
-                flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact,
+                flags = C4DatabaseFlags.Create,
                 encryptionKey = encryptionKey
             };
 
