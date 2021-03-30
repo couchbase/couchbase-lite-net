@@ -66,7 +66,6 @@ namespace LiteCore.Tests
 
         internal C4Database* Db { get; private set; }
         internal C4DatabaseConfig2 DBConfig2 { get; set; }
-        internal C4DocumentVersioning Versioning { get; private set; }
         protected string Storage { get; private set; }
 
         internal FLSlice DocID => FLSlice.Constant("mydoc");
