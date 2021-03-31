@@ -233,12 +233,12 @@ namespace LiteCore.Interop
 
         public string ToString(IFormatProvider provider)
         {
-            throw new NotImplementedException();
+            return _value.ToString(provider);
         }
 
         public string ToString(string format, IFormatProvider formatProvider)
         {
-            throw new NotImplementedException();
+            return _value.ToString(format, formatProvider);
         }
 
         public object ToType(Type conversionType, IFormatProvider provider)
