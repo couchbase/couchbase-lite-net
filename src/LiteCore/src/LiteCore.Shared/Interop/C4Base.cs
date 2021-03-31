@@ -54,22 +54,22 @@ namespace LiteCore.Interop
     {
         #region Constructors
 
-        public C4Error(C4ErrorDomain domain, int code)
+        public C4Error(C4ErrorDomain domain, Int24 code)
         {
-            this.code = new Int24(code);
+            this.code = code;
             this.domain = domain;
             internal_info = 0;
         }
 
-        public C4Error(C4ErrorCode code) : this(C4ErrorDomain.LiteCoreDomain, (int) code)
+        public C4Error(C4ErrorCode code) : this(C4ErrorDomain.LiteCoreDomain, (Int24) code)
         {
         }
 
-        public C4Error(FLError code) : this(C4ErrorDomain.FleeceDomain, (int) code)
+        public C4Error(FLError code) : this(C4ErrorDomain.FleeceDomain, (Int24) code)
         {
         }
 
-        public C4Error(C4NetworkErrorCode code) : this(C4ErrorDomain.NetworkDomain, (int) code)
+        public C4Error(C4NetworkErrorCode code) : this(C4ErrorDomain.NetworkDomain, (Int24) code)
         {
         }
 
@@ -98,35 +98,31 @@ namespace LiteCore.Interop
 
     }
 
+    [StructLayout(LayoutKind.Explicit)]
     internal struct Int24 : IComparable, IFormattable, IConvertible, IComparable<Int24>, IComparable<Int32>, IEquatable<Int24>, IEquatable<Int32>
     {
         #region Constants
 
-        private const int MaxValue32 = 8388607;
-        private const int MinValue32 = -8388608;
-        private const int BitMask = -16777216;
+        private const int MaxValue32 = 8388607; // need to change to true 24 bit max int
+        private const int MinValue32 = -8388608; // need to change to true 24 bit min int
 
         #endregion
 
         #region Variables
 
-        private readonly int _value; // 4-byte integer
+        [FieldOffset(0)] private int _value; // 3-byte integer
+        [FieldOffset(0)] private byte _byte1;
+        [FieldOffset(1)] private byte _byte2;
+        [FieldOffset(2)] private byte _byte3;
 
         #endregion
 
         #region Constructors
 
-        public Int24(Int24 value)
-        {
-            _value = ApplyBitMask((int) value);
-        }
-
         public Int24(int value)
         {
-            if (value > (MaxValue32 + 1) || value < MinValue32)
-                throw new OverflowException($"Value of {value} is out of 24-bit signed integer range.");
-
-            _value = ApplyBitMask(value);
+            _byte1 = _byte2 = _byte3 = 0;
+            _value = value;
         }
 
         #endregion
@@ -148,13 +144,13 @@ namespace LiteCore.Interop
             throw new NotImplementedException();
         }
 
-        //public override bool Equals(object obj)
-        //{
-        //    if (obj is int || obj is Int24)
-        //        return Equals(new Int24(obj));
+        public override bool Equals(object obj)
+        {
+            if (obj is int || obj is Int24)
+                return Equals((int)obj);
 
-        //    return false;
-        //}
+            return false;
+        }
 
         public bool Equals(Int24 obj)
         {
@@ -364,18 +360,46 @@ namespace LiteCore.Interop
 
         #region Private Methods
 
-        private static int ApplyBitMask(int value)
+        private void ToBytes(Int24 value)
         {
-            // Check bit 23, the sign bit in a signed 24-bit integer
-            if ((value & 0x00800000) > 0) {
-                // If the sign-bit is set, this number will be negative - set all high-byte bits (keeps 32-bit number in 24-bit range)
-                value |= BitMask;
+            int valueInt = value;
+            if (BitConverter.IsLittleEndian) {
+                _byte1 = (byte) valueInt;
+                _byte2 = (byte) (valueInt >> 8);
+                _byte3 = (byte) (valueInt >> 16);
             } else {
-                // If the sign-bit is not set, this number will be positive - clear all high-byte bits (keeps 32-bit number in 24-bit range)
-                value &= ~BitMask;
+                _byte1 = (byte) (valueInt >> 16);
+                _byte2 = (byte) (valueInt >> 8);
+                _byte3 = (byte) (valueInt);
             }
+        }
 
-            return value;
+        public void ToInt24(byte[] value, int startIndex)
+        {
+            var length = 3;
+            if ((object) value == null || startIndex < 0 || length < 0 || startIndex + length > value.Length)
+                RaiseValidationError(value, startIndex, length);
+
+            if (BitConverter.IsLittleEndian) {
+                _value = value[0] + value[1] * 256 + value[2] * 65536;
+            } else {
+                _value = value[0] * 65536 + value[1] * 256 + value[2];
+            }
+        }
+
+        private static void RaiseValidationError<T>(T[] array, int startIndex, int length)
+        {
+            if ((object) array == null)
+                throw new ArgumentNullException(nameof(array));
+
+            if (startIndex < 0)
+                throw new ArgumentOutOfRangeException(nameof(startIndex), "cannot be negative");
+
+            if (length < 0)
+                throw new ArgumentOutOfRangeException(nameof(length), "cannot be negative");
+
+            if (startIndex + length > array.Length)
+                throw new ArgumentOutOfRangeException(nameof(length), $"startIndex of {startIndex} and length of {length} will exceed array size of {array.Length}");
         }
 
         #endregion

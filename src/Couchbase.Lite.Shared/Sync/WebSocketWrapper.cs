@@ -178,7 +178,7 @@ namespace Couchbase.Lite.Sync
                     }
 
                     WriteLog.To.Sync.I(Tag, "Closing socket normally due to request from LiteCore");
-                    Native.c4socket_closed(_socket, new C4Error(0, 0));
+                    Native.c4socket_closed(_socket, new C4Error(0, (Int24) 0));
                     _closed = true;
                 });
             });
