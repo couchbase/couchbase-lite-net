@@ -56,7 +56,7 @@ namespace LiteCore.Interop
 
         public C4Error(C4ErrorDomain domain, int code)
         {
-            this.code = code;
+            this.code = (Int24)code;
             this.domain = domain;
             internal_info = 0;
         }
@@ -92,6 +92,249 @@ namespace LiteCore.Interop
                 .Add(code)
                 .Add(domain)
                 .GetHashCode();
+        }
+
+        #endregion
+
+    }
+
+    [Serializable]
+    internal struct Int24 : IConvertible, IComparable<Int24>, IComparable<Int32>, IEquatable<Int24>, IEquatable<Int32>
+    {
+        #region Constants
+
+        private const int MaxValue32 = 8388607;
+        private const int MinValue32 = -8388608;
+        private const int BitMask = -16777216;
+
+        #endregion
+
+        #region Variables
+
+        private readonly int _value; // 4-byte integer
+
+        #endregion
+
+        #region Constructors
+
+        public Int24(int value)
+        {
+            if (value > (MaxValue32 + 1) || value < MinValue32)
+                throw new OverflowException($"Value of {value} is out of 24-bit signed integer range.");
+
+            _value = ApplyBitMask(value);
+        }
+
+        #endregion
+
+        #region Public Methods
+
+        public int CompareTo(Int24 value)
+        {
+            return CompareTo((int) value);
+        }
+
+        public int CompareTo(int value)
+        {
+            return (_value < value ? -1 : (_value > value ? 1 : 0));
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is int || obj is Int24)
+                return Equals((int) obj);
+
+            return false;
+        }
+
+        public bool Equals(Int24 obj)
+        {
+            return Equals((int) obj);
+        }
+
+        public bool Equals(int obj)
+        {
+            return (_value == obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return _value;
+        }
+        
+        #endregion
+
+        #region IConvertible
+
+        int IConvertible.ToInt32(IFormatProvider provider)
+        {
+            return _value;
+        }
+
+        public TypeCode GetTypeCode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool ToBoolean(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public byte ToByte(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public char ToChar(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public DateTime ToDateTime(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public decimal ToDecimal(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public double ToDouble(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public short ToInt16(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long ToInt64(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public sbyte ToSByte(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public float ToSingle(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string ToString(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public object ToType(Type conversionType, IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public ushort ToUInt16(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public uint ToUInt32(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public ulong ToUInt64(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
+        #region Comparison Operators
+
+        public static bool operator ==(Int24 value1, Int24 value2)
+        {
+            return value1.Equals(value2);
+        }
+
+        public static bool operator ==(Int24 value1, int value2)
+        {
+            return ((int) value1).Equals(value2);
+        }
+
+        public static bool operator !=(Int24 value1, Int24 value2)
+        {
+            return !value1.Equals(value2);
+        }
+
+        public static bool operator !=(Int24 value1, int value2)
+        {
+            return !((int) value1).Equals(value2);
+        }
+
+        public static bool operator <(Int24 value1, int value2)
+        {
+            return (value1.CompareTo(value2) < 0);
+        }
+
+        public static bool operator >(Int24 value1, int value2)
+        {
+            return (value1.CompareTo(value2) > 0);
+        }
+
+        #endregion
+
+        #region Explicit Narrowing Conversions
+
+        public static explicit operator Int24(Enum value)
+        {
+            return new Int24(Convert.ToInt32(value));
+        }
+
+        public static explicit operator Int24(int value)
+        {
+            return new Int24(value);
+        }
+
+        public static explicit operator C4ErrorCode(Int24 v)
+        {
+            return (C4ErrorCode) ((int)v);
+        }
+
+        #endregion
+
+        #region Implicit Widening Conversions
+
+        public static implicit operator Int24(C4ErrorCode value)
+        {
+            var v = (int) value;
+            return new Int24((int) value);
+        }
+
+        public static implicit operator int(Int24 value)
+        {
+            return ((IConvertible) value).ToInt32(null);
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private static int ApplyBitMask(int value)
+        {
+            // Check bit 23, the sign bit in a signed 24-bit integer
+            if ((value & 0x00800000) > 0) {
+                // If the sign-bit is set, this number will be negative - set all high-byte bits (keeps 32-bit number in 24-bit range)
+                value |= BitMask;
+            } else {
+                // If the sign-bit is not set, this number will be positive - clear all high-byte bits (keeps 32-bit number in 24-bit range)
+                value &= ~BitMask;
+            }
+
+            return value;
         }
 
         #endregion

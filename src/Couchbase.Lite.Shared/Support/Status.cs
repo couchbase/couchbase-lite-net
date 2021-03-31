@@ -60,46 +60,46 @@ namespace Couchbase.Lite
                     case TlsCertificateException tlse:
                         message = tlse.Message;
                         c4err.domain = C4ErrorDomain.NetworkDomain;
-                        c4err.code = (int)tlse.Code;
+                        c4err.code = (Int24)tlse.Code;
                         break;
                     case SocketException se:
                         switch (se.SocketErrorCode) {
                             case SocketError.HostNotFound:
                                 message = se.Message;
                                 c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.UnknownHost;
+                                c4err.code = (Int24) C4NetworkErrorCode.UnknownHost;
                                 break;
                             case SocketError.HostUnreachable:
                                 message = se.Message;
                                 c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.DNSFailure;
+                                c4err.code = (Int24) C4NetworkErrorCode.DNSFailure;
                                 break;
                             case SocketError.TimedOut:
                                 message = se.Message;
                                 c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.Timeout;
+                                c4err.code = (Int24) C4NetworkErrorCode.Timeout;
                                 break;
                             case SocketError.ConnectionAborted:
                             case SocketError.ConnectionReset:
                             case SocketError.Shutdown:
                                 message = se.Message;
                                 c4err.domain = C4ErrorDomain.POSIXDomain;
-                                c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNRESET));
+                                c4err.code = (Int24) PosixBase.GetCode(nameof(PosixWindows.ECONNRESET));
                                 break;
                             case SocketError.NetworkUnreachable:
                                 message = se.Message;
                                 c4err.domain = C4ErrorDomain.POSIXDomain;
-                                c4err.code = PosixBase.GetCode(nameof(PosixWindows.ENETRESET));
+                                c4err.code = (Int24)PosixBase.GetCode(nameof(PosixWindows.ENETRESET));
                                 break;
                             case SocketError.ConnectionRefused:
                                 message = se.Message;
                                 c4err.domain = C4ErrorDomain.POSIXDomain;
-                                c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNREFUSED));
+                                c4err.code = (Int24) PosixBase.GetCode(nameof(PosixWindows.ECONNREFUSED));
                                 break;
                             case SocketError.NetworkDown:
                                 message = se.Message;
                                 c4err.domain = C4ErrorDomain.POSIXDomain;
-                                c4err.code = PosixBase.GetCode(nameof(PosixWindows.ENETDOWN));
+                                c4err.code = (Int24) PosixBase.GetCode(nameof(PosixWindows.ENETDOWN));
                                 break;
                         }
 
@@ -108,7 +108,7 @@ namespace Couchbase.Lite
                         if (ie.Message == "The handshake failed due to an unexpected packet format.") {
                             message = ie.Message;
                             c4err.domain = C4ErrorDomain.NetworkDomain;
-                            c4err.code = (int) C4NetworkErrorCode.TLSHandshakeFailed;
+                            c4err.code = (Int24) C4NetworkErrorCode.TLSHandshakeFailed;
                         }
                     #if __IOS__
                         if (ie.Message == "Connection closed.") {

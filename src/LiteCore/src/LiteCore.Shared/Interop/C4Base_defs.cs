@@ -177,8 +177,8 @@ namespace LiteCore.Interop
 	internal unsafe partial struct C4Error
     {
         public C4ErrorDomain domain;
-        public int code;
-        public int internal_info;
+        public Int24 code;
+        public UInt32 internal_info;
     }
 
 	internal unsafe struct C4LogDomain

@@ -118,7 +118,7 @@ namespace LiteCore.Tests
             ((IntPtr)doc).Should().Be(IntPtr.Zero, "because the put operation was expected to fail");
             WriteLine($"Error: {Native.c4error_getMessage(error)}");
             error.domain.Should().Be(expected.domain);
-            error.code.Should().Be(expected.code);
+            ((C4ErrorCode)error.code).Should().Be((C4ErrorCode)expected.code);
         }
 
         private void ForceInsert(string docID, string[] history, FLSlice body, C4RevisionFlags flags = 0)
@@ -250,7 +250,7 @@ namespace LiteCore.Tests
                 var doc = Native.c4db_getDoc(Db, "nonexistent", true, C4DocContentLevel.DocGetAll, &error);
                 ((IntPtr)doc).Should().Be(IntPtr.Zero, "because it does not exist");
                 error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
-                error.code.Should().Be((int)C4ErrorCode.NotFound);
+                ((C4ErrorCode)error.code).Should().Be(C4ErrorCode.NotFound);
 
                 // KeepBody => Revision's body should not be discarded when non-leaf
                 doc = PutDoc(null, null, (FLSlice)body, C4RevisionFlags.KeepBody);
