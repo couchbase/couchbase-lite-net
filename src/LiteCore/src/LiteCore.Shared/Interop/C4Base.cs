@@ -321,6 +321,24 @@ namespace LiteCore.Interop
 
         #endregion
 
+        #region Arithmetic Operators
+        public static Int24 operator +(Int24 value1, Int24 value2)
+        {
+            return (Int24) ((int) value1 + (int) value2);
+        }
+
+        public static int operator +(int value1, Int24 value2)
+        {
+            return (value1 + (int) value2);
+        }
+
+        public static int operator +(Int24 value1, int value2)
+        {
+            return ((int) value1 + value2);
+        }
+
+        #endregion
+
         #region Private Methods
 
         private static int ApplyBitMask(int value)
