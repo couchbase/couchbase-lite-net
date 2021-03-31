@@ -56,7 +56,7 @@ namespace LiteCore.Interop
 
         public C4Error(C4ErrorDomain domain, int code)
         {
-            this.code = (Int24)code;
+            this.code = new Int24(code);
             this.domain = domain;
             internal_info = 0;
         }
@@ -116,6 +116,11 @@ namespace LiteCore.Interop
 
         #region Constructors
 
+        public Int24(Int24 value)
+        {
+            _value = ApplyBitMask((int) value);
+        }
+
         public Int24(int value)
         {
             if (value > (MaxValue32 + 1) || value < MinValue32)
@@ -143,13 +148,13 @@ namespace LiteCore.Interop
             throw new NotImplementedException();
         }
 
-        public override bool Equals(object obj)
-        {
-            if (obj is int || obj is Int24)
-                return Equals((int) obj);
+        //public override bool Equals(object obj)
+        //{
+        //    if (obj is int || obj is Int24)
+        //        return Equals(new Int24(obj));
 
-            return false;
-        }
+        //    return false;
+        //}
 
         public bool Equals(Int24 obj)
         {
@@ -282,6 +287,16 @@ namespace LiteCore.Interop
         public static bool operator !=(Int24 value1, int value2)
         {
             return !((int) value1).Equals(value2);
+        }
+
+        public static bool operator ==(int value1, Int24 value2)
+        {
+            return value1.Equals((int) value2);
+        }
+
+        public static bool operator !=(int value1, Int24 value2)
+        {
+            return !value1.Equals((int) value2);
         }
 
         public static bool operator <(Int24 value1, int value2)

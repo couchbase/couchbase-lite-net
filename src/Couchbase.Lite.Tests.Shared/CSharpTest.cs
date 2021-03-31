@@ -283,9 +283,9 @@ Transfer-Encoding: chunked";
         {
             var intVal = 4002;
             var newIntVal = (Int24) intVal;
-            ((Int24) newIntVal).Should().Be(newIntVal);
-            (newIntVal).Should().Be((int)newIntVal);
-            ((C4ErrorCode)newIntVal).Should().Be((C4ErrorCode) newIntVal);
+            ((Int24) intVal).Should().Be(newIntVal);
+            (intVal).Should().Be((int)newIntVal);
+            ((C4ErrorCode) intVal).Should().Be((C4ErrorCode) newIntVal);
         }
 
         [Fact]
