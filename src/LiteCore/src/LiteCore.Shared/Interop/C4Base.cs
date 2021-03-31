@@ -98,19 +98,20 @@ namespace LiteCore.Interop
 
     }
 
+    [Serializable]
     [StructLayout(LayoutKind.Explicit)]
     internal struct Int24 : IComparable, IFormattable, IConvertible, IComparable<Int24>, IComparable<Int32>, IEquatable<Int24>, IEquatable<Int32>
     {
         #region Constants
 
-        private const int MaxValue32 = 8388607; // need to change to true 24 bit max int
-        private const int MinValue32 = -8388608; // need to change to true 24 bit min int
+        private const int MaxValue32 = 8388607;
+        private const int MinValue32 = -8388608;
 
         #endregion
 
         #region Variables
 
-        [FieldOffset(0)] private int _value; // 3-byte integer
+        //[FieldOffset(0)] private int _value; // 3-byte integer
         [FieldOffset(0)] private byte _byte1;
         [FieldOffset(1)] private byte _byte2;
         [FieldOffset(2)] private byte _byte3;
@@ -121,8 +122,11 @@ namespace LiteCore.Interop
 
         public Int24(int value)
         {
-            _byte1 = _byte2 = _byte3 = 0;
-            _value = value;
+            var ba = BitConverter.GetBytes(value);
+
+            _byte1 = ba[0];
+            _byte2 = ba[1];
+            _byte3 = ba[2];
         }
 
         #endregion
@@ -136,7 +140,8 @@ namespace LiteCore.Interop
 
         public int CompareTo(int value)
         {
-            return (_value < value ? -1 : (_value > value ? 1 : 0));
+            var v = GetInt24();
+            return (v < value ? -1 : (v > value ? 1 : 0));
         }
 
         public int CompareTo(object obj)
@@ -146,25 +151,31 @@ namespace LiteCore.Interop
 
         public override bool Equals(object obj)
         {
-            if (obj is int || obj is Int24)
-                return Equals((int)obj);
+            if (obj is int) {
+                return Equals((int) obj);
+            } else if(obj is Int24) {
+                return Equals((Int24)obj);
+            }
 
             return false;
         }
 
         public bool Equals(Int24 obj)
         {
-            return Equals((int) obj);
+            return _byte1 == obj._byte1 &&
+                _byte2 == obj._byte2 &&
+                _byte3 == obj._byte3;
         }
 
         public bool Equals(int obj)
         {
-            return (_value == obj);
+            var v = GetInt24();
+            return (v == obj);
         }
 
         public override int GetHashCode()
         {
-            return _value;
+            return GetInt24();
         }
         
         #endregion
@@ -173,7 +184,7 @@ namespace LiteCore.Interop
 
         int IConvertible.ToInt32(IFormatProvider provider)
         {
-            return _value;
+            return GetInt24();
         }
 
         public TypeCode GetTypeCode()
@@ -233,12 +244,12 @@ namespace LiteCore.Interop
 
         public string ToString(IFormatProvider provider)
         {
-            return _value.ToString(provider);
+            return GetInt24().ToString(provider);
         }
 
         public string ToString(string format, IFormatProvider formatProvider)
         {
-            return _value.ToString(format, formatProvider);
+            return GetInt24().ToString(format, formatProvider);
         }
 
         public object ToType(Type conversionType, IFormatProvider provider)
@@ -374,18 +385,27 @@ namespace LiteCore.Interop
             }
         }
 
-        public void ToInt24(byte[] value, int startIndex)
+        int GetInt24()
         {
-            var length = 3;
-            if ((object) value == null || startIndex < 0 || length < 0 || startIndex + length > value.Length)
-                RaiseValidationError(value, startIndex, length);
-
             if (BitConverter.IsLittleEndian) {
-                _value = value[0] + value[1] * 256 + value[2] * 65536;
+                return _byte1 + _byte2 * 256 + _byte3 * 65536;
             } else {
-                _value = value[0] * 65536 + value[1] * 256 + value[2];
+                return _byte1 * 65536 + _byte2 * 256 + _byte3;
             }
         }
+
+        //public void ToInt24(byte[] value, int startIndex)
+        //{
+        //    var length = 3;
+        //    if ((object) value == null || startIndex < 0 || length < 0 || startIndex + length > value.Length)
+        //        RaiseValidationError(value, startIndex, length);
+
+        //    if (BitConverter.IsLittleEndian) {
+        //        _value = value[0] + value[1] * 256 + value[2] * 65536;
+        //    } else {
+        //        _value = value[0] * 65536 + value[1] * 256 + value[2];
+        //    }
+        //}
 
         private static void RaiseValidationError<T>(T[] array, int startIndex, int length)
         {
