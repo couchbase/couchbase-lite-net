@@ -279,6 +279,16 @@ Transfer-Encoding: chunked";
         }
 
         [Fact]
+        public void Int24Int32ConversionTest()
+        {
+            var intVal = 4002;
+            var newIntVal = (Int24) intVal;
+            ((Int24) newIntVal).Should().Be(newIntVal);
+            (newIntVal).Should().Be((int)newIntVal);
+            ((C4ErrorCode)newIntVal).Should().Be((C4ErrorCode) newIntVal);
+        }
+
+        [Fact]
         public void TestAppenNullToHttpMessageParser()
         {
             var httpResponse =

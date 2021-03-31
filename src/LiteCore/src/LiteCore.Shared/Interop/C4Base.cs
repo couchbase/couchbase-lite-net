@@ -99,7 +99,7 @@ namespace LiteCore.Interop
     }
 
     [Serializable]
-    internal struct Int24 : IConvertible, IComparable<Int24>, IComparable<Int32>, IEquatable<Int24>, IEquatable<Int32>
+    internal struct Int24 : IComparable, IFormattable, IConvertible, IComparable<Int24>, IComparable<Int32>, IEquatable<Int24>, IEquatable<Int32>
     {
         #region Constants
 
@@ -139,6 +139,11 @@ namespace LiteCore.Interop
             return (_value < value ? -1 : (_value > value ? 1 : 0));
         }
 
+        public int CompareTo(object obj)
+        {
+            throw new NotImplementedException();
+        }
+
         public override bool Equals(object obj)
         {
             if (obj is int || obj is Int24)
@@ -173,7 +178,7 @@ namespace LiteCore.Interop
 
         public TypeCode GetTypeCode()
         {
-            throw new NotImplementedException();
+            return TypeCode.Int32;
         }
 
         public bool ToBoolean(IFormatProvider provider)
@@ -227,6 +232,11 @@ namespace LiteCore.Interop
         }
 
         public string ToString(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string ToString(string format, IFormatProvider formatProvider)
         {
             throw new NotImplementedException();
         }
@@ -310,7 +320,6 @@ namespace LiteCore.Interop
 
         public static implicit operator Int24(C4ErrorCode value)
         {
-            var v = (int) value;
             return new Int24((int) value);
         }
 

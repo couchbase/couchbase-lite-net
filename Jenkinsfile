@@ -119,11 +119,11 @@ pipeline {
                                 '''
                             }
                         }
-                        stage(".NET Core Mac") {
+                        /*stage(".NET Core Mac") {
                             steps {
                                 sh 'jenkins/run_unix_tests.sh'
                             }
-                        }
+                        }*/
 						stage("Xamarin iOS") {
                             steps {
                                 sh 'jenkins/run_ios_tests.sh'
