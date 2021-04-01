@@ -98,6 +98,7 @@ namespace LiteCore.Interop
 
     }
 
+    [ExcludeFromCodeCoverage]
     [Serializable]
     [StructLayout(LayoutKind.Explicit)]
     internal struct Int24 : IComparable, IFormattable, IConvertible, IComparable<Int24>, IComparable<Int32>, IEquatable<Int24>, IEquatable<Int32>
@@ -122,11 +123,17 @@ namespace LiteCore.Interop
 
         public Int24(int value)
         {
-            var ba = BitConverter.GetBytes(value);
+            var ba = BitConverter.GetBytes(value); // 4-byte integer
 
-            _byte1 = ba[0];
-            _byte2 = ba[1];
-            _byte3 = ba[2];
+            if (BitConverter.IsLittleEndian) {
+                _byte1 = ba[0];
+                _byte2 = ba[1];
+                _byte3 = ba[2];
+            } else {
+                _byte1 = ba[3];
+                _byte2 = ba[2];
+                _byte3 = ba[1];
+            }
         }
 
         #endregion
@@ -407,20 +414,20 @@ namespace LiteCore.Interop
         //    }
         //}
 
-        private static void RaiseValidationError<T>(T[] array, int startIndex, int length)
-        {
-            if ((object) array == null)
-                throw new ArgumentNullException(nameof(array));
+        //private static void RaiseValidationError<T>(T[] array, int startIndex, int length)
+        //{
+        //    if ((object) array == null)
+        //        throw new ArgumentNullException(nameof(array));
 
-            if (startIndex < 0)
-                throw new ArgumentOutOfRangeException(nameof(startIndex), "cannot be negative");
+        //    if (startIndex < 0)
+        //        throw new ArgumentOutOfRangeException(nameof(startIndex), "cannot be negative");
 
-            if (length < 0)
-                throw new ArgumentOutOfRangeException(nameof(length), "cannot be negative");
+        //    if (length < 0)
+        //        throw new ArgumentOutOfRangeException(nameof(length), "cannot be negative");
 
-            if (startIndex + length > array.Length)
-                throw new ArgumentOutOfRangeException(nameof(length), $"startIndex of {startIndex} and length of {length} will exceed array size of {array.Length}");
-        }
+        //    if (startIndex + length > array.Length)
+        //        throw new ArgumentOutOfRangeException(nameof(length), $"startIndex of {startIndex} and length of {length} will exceed array size of {array.Length}");
+        //}
 
         #endregion
     }
