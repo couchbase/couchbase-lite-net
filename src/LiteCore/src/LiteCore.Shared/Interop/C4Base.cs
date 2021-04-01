@@ -114,8 +114,8 @@ namespace LiteCore.Interop
 
         //[FieldOffset(0)] private int _value; // 3-byte integer
         [FieldOffset(0)] private byte _byte1;
-        [FieldOffset(1)] private byte _byte2;
-        [FieldOffset(2)] private byte _byte3;
+        [FieldOffset(8)] private byte _byte2;
+        [FieldOffset(16)] private byte _byte3;
 
         #endregion
 
@@ -123,16 +123,16 @@ namespace LiteCore.Interop
 
         public Int24(int value)
         {
-            var ba = BitConverter.GetBytes(value); // 4-byte integer
+            var ba = BitConverter.GetBytes(value & 0xFFFFFF); // 4-byte integer
 
             if (BitConverter.IsLittleEndian) {
                 _byte1 = ba[0];
                 _byte2 = ba[1];
                 _byte3 = ba[2];
             } else {
-                _byte1 = ba[3];
-                _byte2 = ba[2];
-                _byte3 = ba[1];
+                _byte1 = ba[2];
+                _byte2 = ba[1];
+                _byte3 = ba[0];
             }
         }
 
