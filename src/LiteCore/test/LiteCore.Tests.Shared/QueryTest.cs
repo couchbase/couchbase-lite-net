@@ -198,7 +198,7 @@ namespace LiteCore.Tests
             {
                 LiteCoreBridge.Check(err => Native.c4db_createIndex(Db, "byStreet", "[[\".contact.address.street\"]]",
                     C4IndexType.FullTextIndex, null, err));
-                Compile(Json5("['MATCH', 'byStreet', 'Hwy']"));
+                Compile(Json5("['MATCH()', 'byStreet', 'Hwy']"));
 
                 var expected = new[]
                 {
@@ -225,7 +225,7 @@ namespace LiteCore.Tests
             {
                 LiteCoreBridge.Check(err => Native.c4db_createIndex(Db, "byAddress", "[[\".contact.address.street\"],[\".contact.address.city\"],[\".contact.address.state\"]]", 
                     C4IndexType.FullTextIndex, null, err));
-                Compile(Json5("['MATCH', 'byAddress', 'Santa']"));
+                Compile(Json5("['MATCH()', 'byAddress', 'Santa']"));
                 var expected = new[]
                 {
                     new C4FullTextMatch(15, 1, 0, 0, 5),
@@ -241,7 +241,7 @@ namespace LiteCore.Tests
                     }
                 }
 
-                Compile(Json5("['MATCH', 'byAddress', 'contact.address.street:Santa']"));
+                Compile(Json5("['MATCH()', 'byAddress', 'contact.address.street:Santa']"));
                 expected = new[]
                 {
                     new C4FullTextMatch(44, 0, 0, 3, 5),
@@ -255,7 +255,7 @@ namespace LiteCore.Tests
                     }
                 }
 
-                Compile(Json5("['MATCH', 'byAddress', 'contact.address.street:Santa Saint']"));
+                Compile(Json5("['MATCH()', 'byAddress', 'contact.address.street:Santa Saint']"));
                 expected = new[]
                 {
                     new C4FullTextMatch(68, 0, 0, 3, 5),
@@ -269,7 +269,7 @@ namespace LiteCore.Tests
                     }
                 }
 
-                Compile(Json5("['MATCH', 'byAddress', 'contact.address.street:Santa OR Saint']"));
+                Compile(Json5("['MATCH()', 'byAddress', 'contact.address.street:Santa OR Saint']"));
                 expected = new[]
                 {
                     new C4FullTextMatch(20, 1, 1, 0, 5),
@@ -297,7 +297,7 @@ namespace LiteCore.Tests
                     C4IndexType.FullTextIndex, null, err));
                 LiteCoreBridge.Check(err => Native.c4db_createIndex(Db, "byCity", "[[\".contact.address.city\"]]",
                     C4IndexType.FullTextIndex, null, err));
-                Compile(Json5("['AND', ['MATCH', 'byStreet', 'Hwy'],['MATCH', 'byCity', 'Santa']]"));
+                Compile(Json5("['AND', ['MATCH()', 'byStreet', 'Hwy'],['MATCH()', 'byCity', 'Santa']]"));
                 var results = RunFTS();
                 results.Count.Should().Be(1);
                 results[0].Should().Equal(new C4FullTextMatch(15, 0, 0, 11, 3));
@@ -314,7 +314,7 @@ namespace LiteCore.Tests
                 LiteCoreBridge.Check(err => Native.c4db_createIndex(Db, "byCity", "[[\".contact.address.city\"]]",
                     C4IndexType.FullTextIndex, null, err));
                 Compile(Json5(
-                    "['AND', ['AND', ['=', ['.gender'], 'male'],['MATCH', 'byCity', 'Santa']],['=',['.name.first'], 'Cleveland']]"));
+                    "['AND', ['AND', ['=', ['.gender'], 'male'],['MATCH()', 'byCity', 'Santa']],['=',['.name.first'], 'Cleveland']]"));
                 Run().Should().Equal("0000015");
                 var results = RunFTS();
                 results.Count.Should().Be(1);
@@ -332,7 +332,7 @@ namespace LiteCore.Tests
                     C4IndexType.FullTextIndex, null, err));
                 C4Error error;
                 _query = Native.c4query_new(Db,
-                    Json5("['AND', ['MATCH', 'byStreet', 'Hwy'], ['MATCH', 'byStreet', 'Blvd']]"), &error);
+                    Json5("['AND', ['MATCH()', 'byStreet', 'Hwy'], ['MATCH()', 'byStreet', 'Blvd']]"), &error);
                 ((long) _query).Should().Be(0, "because this type of query is not allowed");
                 error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
                 error.code.Should().Be((int) C4ErrorCode.InvalidQuery);
@@ -351,7 +351,7 @@ namespace LiteCore.Tests
                     C4IndexType.FullTextIndex, null, err));
                 C4Error error;
                 _query = Native.c4query_new(Db,
-                    Json5("['OR', ['MATCH', 'byStreet', 'Hwy'],['=', ['.', 'contact', 'address', 'state'], 'CA']]"), &error);
+                    Json5("['OR', ['MATCH()', 'byStreet', 'Hwy'],['=', ['.', 'contact', 'address', 'state'], 'CA']]"), &error);
                 ((long) _query).Should().Be(0, "because this type of query is not allowed");
                 error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
                 error.code.Should().Be((int) C4ErrorCode.InvalidQuery);
