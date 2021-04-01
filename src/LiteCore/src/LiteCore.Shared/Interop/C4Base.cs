@@ -130,9 +130,9 @@ namespace LiteCore.Interop
                 _byte2 = ba[1];
                 _byte3 = ba[2];
             } else {
-                _byte1 = ba[3];
-                _byte2 = ba[2];
-                _byte3 = ba[1];
+                _byte1 = ba[2];
+                _byte2 = ba[1];
+                _byte3 = ba[0];
             }
         }
 
