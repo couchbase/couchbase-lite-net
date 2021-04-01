@@ -317,7 +317,7 @@ namespace Couchbase.Lite
         {
             Name = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
             if(name == "") {
-                var err = new C4Error(C4ErrorDomain.LiteCoreDomain, (int) CouchbaseLiteError.WrongFormat);
+                var err = new C4Error(C4ErrorDomain.LiteCoreDomain, (Int24) CouchbaseLiteError.WrongFormat);
                 throw new CouchbaseLiteException(err);
             }
 

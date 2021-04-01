@@ -96,7 +96,7 @@ namespace LiteCore.Interop
         /// <param name="domain">The domain of the error to allow.</param>
         public NativeHandler AllowError(int code, C4ErrorDomain domain)
         {
-            return AllowError(new C4Error(domain, code));
+            return AllowError(new C4Error(domain, (Int24) code));
         }
 
         /// <summary>

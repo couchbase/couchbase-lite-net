@@ -54,22 +54,22 @@ namespace LiteCore.Interop
     {
         #region Constructors
 
-        public C4Error(C4ErrorDomain domain, int code)
+        public C4Error(C4ErrorDomain domain, Int24 code)
         {
-            this.code = new Int24(code);
+            this.code = code;
             this.domain = domain;
             internal_info = 0;
         }
 
-        public C4Error(C4ErrorCode code) : this(C4ErrorDomain.LiteCoreDomain, (int) code)
+        public C4Error(C4ErrorCode code) : this(C4ErrorDomain.LiteCoreDomain, (Int24) code)
         {
         }
 
-        public C4Error(FLError code) : this(C4ErrorDomain.FleeceDomain, (int) code)
+        public C4Error(FLError code) : this(C4ErrorDomain.FleeceDomain, (Int24) code)
         {
         }
 
-        public C4Error(C4NetworkErrorCode code) : this(C4ErrorDomain.NetworkDomain, (int) code)
+        public C4Error(C4NetworkErrorCode code) : this(C4ErrorDomain.NetworkDomain, (Int24) code)
         {
         }
 
@@ -148,20 +148,20 @@ namespace LiteCore.Interop
             throw new NotImplementedException();
         }
 
-        //public override bool Equals(object obj)
-        //{
-        //    if (obj is int || obj is Int24)
-        //        return Equals(new Int24(obj));
-
-        //    return false;
-        //}
-
-        public bool Equals(Int24 obj)
+        public override bool Equals(object obj)
         {
-            return Equals((int) obj);
+            if (obj is int || obj is Int24)
+                return Equals((Int24)obj);
+
+            return false;
         }
 
         public bool Equals(int obj)
+        {
+            return Equals((Int24) obj);
+        }
+
+        public bool Equals(Int24 obj)
         {
             return (_value == obj);
         }

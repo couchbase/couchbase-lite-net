@@ -45,7 +45,7 @@ namespace Couchbase.Lite
 
         public static unsafe void ConvertNetworkError(Exception e, C4Error* outError)
         {
-            var c4err = new C4Error(C4ErrorDomain.LiteCoreDomain, (int)C4ErrorCode.UnexpectedError);
+            var c4err = new C4Error(C4ErrorDomain.LiteCoreDomain, (Int24) C4ErrorCode.UnexpectedError);
             var message = default(string);
             foreach (var inner in FlattenedExceptions(e)) {
                 if (c4err.code != (int)C4ErrorCode.UnexpectedError || c4err.domain != C4ErrorDomain.LiteCoreDomain) {

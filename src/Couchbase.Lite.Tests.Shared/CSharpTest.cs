@@ -281,10 +281,10 @@ Transfer-Encoding: chunked";
         [Fact]
         public void Int24Int32ConversionTest()
         {
-            var intVal = 4002;
+            var intVal = (int)4002;
             var newIntVal = (Int24) intVal;
             ((Int24) intVal).Should().Be(newIntVal);
-            (intVal).Should().Be((int)newIntVal);
+            intVal.Should().Be((int)newIntVal);
             ((C4ErrorCode) intVal).Should().Be((C4ErrorCode) newIntVal);
         }
 
@@ -505,9 +505,9 @@ Transfer-Encoding: chunked";
                 new C4Error(C4NetworkErrorCode.UnknownHost),
                 new C4Error(C4NetworkErrorCode.DNSFailure),
                 new C4Error(C4NetworkErrorCode.Timeout),
-                new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.GetCode(nameof(PosixWindows.ECONNRESET))),
-                new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.GetCode(nameof(PosixWindows.ECONNREFUSED))),
-                new C4Error(C4ErrorDomain.LiteCoreDomain, (int)C4ErrorCode.UnexpectedError) 
+                new C4Error(C4ErrorDomain.POSIXDomain, (Int24)PosixBase.GetCode(nameof(PosixWindows.ECONNRESET))),
+                new C4Error(C4ErrorDomain.POSIXDomain, (Int24)PosixBase.GetCode(nameof(PosixWindows.ECONNREFUSED))),
+                new C4Error(C4ErrorDomain.LiteCoreDomain, (Int24)C4ErrorCode.UnexpectedError) 
             };
 
             foreach (var pair in exceptions.Zip(errors, (a, b) => new { a, b })) {
@@ -575,13 +575,13 @@ Transfer-Encoding: chunked";
             foreach (var err in new[]
                 { "ENETRESET", "ECONNABORTED", "ECONNRESET", "ETIMEDOUT", "ECONNREFUSED" }) {
                 var code = PosixBase.GetCode(err);
-                Native.c4error_mayBeTransient(new C4Error(C4ErrorDomain.POSIXDomain, code)).Should().BeTrue($"because {err} should be transient");
+                Native.c4error_mayBeTransient(new C4Error(C4ErrorDomain.POSIXDomain, (Int24) code)).Should().BeTrue($"because {err} should be transient");
             }
 
             foreach (var err in new[]
                 { "ENETDOWN", "ENETUNREACH", "ENOTCONN", "ETIMEDOUT", "EHOSTUNREACH", "EADDRNOTAVAIL" }) {
                 var code = PosixBase.GetCode(err);
-                Native.c4error_mayBeNetworkDependent(new C4Error(C4ErrorDomain.POSIXDomain, code)).Should().BeTrue($"because {err} should be network dependent");
+                Native.c4error_mayBeNetworkDependent(new C4Error(C4ErrorDomain.POSIXDomain, (Int24) code)).Should().BeTrue($"because {err} should be network dependent");
             }
         }
 
@@ -619,7 +619,7 @@ Transfer-Encoding: chunked";
             fleeceException = new CouchbaseFleeceException(FLError.JSONError, "json error");
 
             var sqliteException =
-                CouchbaseException.Create(new C4Error(C4ErrorDomain.SQLiteDomain, (int) SQLiteStatus.Misuse)) as CouchbaseSQLiteException;
+                CouchbaseException.Create(new C4Error(C4ErrorDomain.SQLiteDomain, (Int24) SQLiteStatus.Misuse)) as CouchbaseSQLiteException;
             sqliteException.Should().NotBeNull();
             sqliteException.BaseError.Should().Be(SQLiteStatus.Misuse);
             sqliteException.Error.Should().Be((int) SQLiteStatus.Misuse);
@@ -627,13 +627,13 @@ Transfer-Encoding: chunked";
             sqliteException = new CouchbaseSQLiteException(999991);
             sqliteException = new CouchbaseSQLiteException(999991, "new sql lite exception");
 
-            var webSocketException = CouchbaseException.Create(new C4Error(C4ErrorDomain.WebSocketDomain, 1003)) as CouchbaseWebsocketException;
+            var webSocketException = CouchbaseException.Create(new C4Error(C4ErrorDomain.WebSocketDomain, (Int24) 1003)) as CouchbaseWebsocketException;
             webSocketException.Error.Should().Be(CouchbaseLiteError.WebSocketDataError);
             webSocketException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
             webSocketException = new CouchbaseWebsocketException(10404);
             webSocketException = new CouchbaseWebsocketException(10404, "HTTP Not Found");
 
-            var posixException = CouchbaseException.Create(new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.EACCES)) as CouchbasePosixException;
+            var posixException = CouchbaseException.Create(new C4Error(C4ErrorDomain.POSIXDomain, (Int24) PosixBase.EACCES)) as CouchbasePosixException;
             posixException.Error.Should().Be(PosixBase.EACCES);
             posixException.Domain.Should().Be(CouchbaseLiteErrorType.POSIX);
             posixException = new CouchbasePosixException(999992);

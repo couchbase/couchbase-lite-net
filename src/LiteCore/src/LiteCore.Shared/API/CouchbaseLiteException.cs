@@ -650,12 +650,12 @@ namespace Couchbase.Lite
 
         }
 
-        internal CouchbaseSQLiteException(int errCode) : base(new C4Error(C4ErrorDomain.SQLiteDomain, errCode))
+        internal CouchbaseSQLiteException(int errCode) : base(new C4Error(C4ErrorDomain.SQLiteDomain, (Int24) errCode))
         {
 
         }
 
-        internal CouchbaseSQLiteException(int errCode, string message) : base(new C4Error(C4ErrorDomain.SQLiteDomain, errCode), message)
+        internal CouchbaseSQLiteException(int errCode, string message) : base(new C4Error(C4ErrorDomain.SQLiteDomain, (Int24) errCode), message)
         {
 
         }
@@ -685,12 +685,12 @@ namespace Couchbase.Lite
 
         }
 
-        internal CouchbaseWebsocketException(int errCode) : base(new C4Error(C4ErrorDomain.WebSocketDomain, errCode))
+        internal CouchbaseWebsocketException(int errCode) : base(new C4Error(C4ErrorDomain.WebSocketDomain, (Int24) errCode))
         {
 
         }
 
-        internal CouchbaseWebsocketException(int errCode, string message) : base(new C4Error(C4ErrorDomain.WebSocketDomain, errCode), message)
+        internal CouchbaseWebsocketException(int errCode, string message) : base(new C4Error(C4ErrorDomain.WebSocketDomain, (Int24) errCode), message)
         {
 
         }
@@ -715,7 +715,7 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal CouchbaseNetworkException(HttpStatusCode httpCode) : base(new C4Error(C4ErrorDomain.WebSocketDomain, (int)httpCode))
+        internal CouchbaseNetworkException(HttpStatusCode httpCode) : base(new C4Error(C4ErrorDomain.WebSocketDomain, (Int24) httpCode))
         {
 
         }
@@ -753,12 +753,12 @@ namespace Couchbase.Lite
 
         }
 
-        internal CouchbasePosixException(int errCode) : base(new C4Error(C4ErrorDomain.POSIXDomain, errCode))
+        internal CouchbasePosixException(int errCode) : base(new C4Error(C4ErrorDomain.POSIXDomain, (Int24) errCode))
         {
 
         }
 
-        internal CouchbasePosixException(int errCode, string message) : base(new C4Error(C4ErrorDomain.POSIXDomain, errCode), message)
+        internal CouchbasePosixException(int errCode, string message) : base(new C4Error(C4ErrorDomain.POSIXDomain, (Int24) errCode), message)
         {
 
         }
