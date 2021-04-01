@@ -121,18 +121,37 @@ namespace LiteCore.Interop
 
         #region Constructors
 
+        public Int24(Int24 value)
+        {
+            _byte1 = _byte2 = _byte3 = 0;
+            ValidateInt24(value);
+
+            int valueInt = value;
+            if (BitConverter.IsLittleEndian) {
+                _byte1 = (byte) valueInt;
+                _byte2 = (byte) (valueInt >> 8);
+                _byte3 = (byte) (valueInt >> 16);
+            } else {
+                _byte1 = (byte) (valueInt >> 16);
+                _byte2 = (byte) (valueInt >> 8);
+                _byte3 = (byte) (valueInt);
+            }
+        }
+
         public Int24(int value)
         {
-            var ba = BitConverter.GetBytes(value & 0xFFFFFF); // 4-byte integer
+            _byte1 = _byte2 = _byte3 = 0;
+            ValidateInt24((Int24)value);
 
+            var ba = BitConverter.GetBytes(value); // 4-byte integer
             if (BitConverter.IsLittleEndian) {
                 _byte1 = ba[0];
                 _byte2 = ba[1];
                 _byte3 = ba[2];
             } else {
-                _byte1 = ba[2];
-                _byte2 = ba[1];
-                _byte3 = ba[0];
+                _byte1 = ba[3];
+                _byte2 = ba[2];
+                _byte3 = ba[1];
             }
         }
 
@@ -290,7 +309,7 @@ namespace LiteCore.Interop
 
         public static bool operator ==(Int24 value1, int value2)
         {
-            return ((int) value1).Equals(value2);
+            return ((int)value1).Equals(value2);
         }
 
         public static bool operator !=(Int24 value1, Int24 value2)
@@ -378,21 +397,7 @@ namespace LiteCore.Interop
 
         #region Private Methods
 
-        private void ToBytes(Int24 value)
-        {
-            int valueInt = value;
-            if (BitConverter.IsLittleEndian) {
-                _byte1 = (byte) valueInt;
-                _byte2 = (byte) (valueInt >> 8);
-                _byte3 = (byte) (valueInt >> 16);
-            } else {
-                _byte1 = (byte) (valueInt >> 16);
-                _byte2 = (byte) (valueInt >> 8);
-                _byte3 = (byte) (valueInt);
-            }
-        }
-
-        int GetInt24()
+        private int GetInt24()
         {
             if (BitConverter.IsLittleEndian) {
                 return _byte1 + _byte2 * 256 + _byte3 * 65536;
@@ -401,33 +406,13 @@ namespace LiteCore.Interop
             }
         }
 
-        //public void ToInt24(byte[] value, int startIndex)
-        //{
-        //    var length = 3;
-        //    if ((object) value == null || startIndex < 0 || length < 0 || startIndex + length > value.Length)
-        //        RaiseValidationError(value, startIndex, length);
+        private bool ValidateInt24(Int24 val)
+        {
+            if (val > MaxValue32 || val < MinValue32)
+                return false;
 
-        //    if (BitConverter.IsLittleEndian) {
-        //        _value = value[0] + value[1] * 256 + value[2] * 65536;
-        //    } else {
-        //        _value = value[0] * 65536 + value[1] * 256 + value[2];
-        //    }
-        //}
-
-        //private static void RaiseValidationError<T>(T[] array, int startIndex, int length)
-        //{
-        //    if ((object) array == null)
-        //        throw new ArgumentNullException(nameof(array));
-
-        //    if (startIndex < 0)
-        //        throw new ArgumentOutOfRangeException(nameof(startIndex), "cannot be negative");
-
-        //    if (length < 0)
-        //        throw new ArgumentOutOfRangeException(nameof(length), "cannot be negative");
-
-        //    if (startIndex + length > array.Length)
-        //        throw new ArgumentOutOfRangeException(nameof(length), $"startIndex of {startIndex} and length of {length} will exceed array size of {array.Length}");
-        //}
+            else return true;
+        }
 
         #endregion
     }

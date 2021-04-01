@@ -281,7 +281,7 @@ Transfer-Encoding: chunked";
         [Fact]
         public void Int24Int32ConversionTest()
         {
-            var intVal = 4002;
+            var intVal = 14002 & 0xFFFFFF;// 14002;
             var newIntVal = new Int24(intVal);
             newIntVal.Should().Be((Int24) intVal);
             intVal.Should().Be((int)newIntVal);
