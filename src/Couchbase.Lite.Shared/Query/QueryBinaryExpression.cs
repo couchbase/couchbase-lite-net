@@ -110,7 +110,7 @@ namespace Couchbase.Lite.Internal.Query
                     obj.Add("LIKE");
                     break;
                 case BinaryOpType.Matches:
-                    obj.Add("MATCH");
+                    obj.Add("MATCH()");
                     break;
                 case BinaryOpType.Modulus:
                     obj.Add("%");

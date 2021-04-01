@@ -40,7 +40,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The generated query expression</returns>
         [NotNull]
         public static IFullTextExpression Index(string name) =>
-            new QueryCompoundExpression("MATCH", Expression.String(name), Expression.String(String.Empty));
+            new QueryCompoundExpression("MATCH()", Expression.String(name), Expression.String(String.Empty));
 
         #endregion
     }
