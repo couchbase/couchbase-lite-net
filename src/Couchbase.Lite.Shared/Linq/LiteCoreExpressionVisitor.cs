@@ -174,7 +174,7 @@ namespace Couchbase.Lite.Internal.Linq
 
         private void HandleIsMatch(MethodCallExpression expression)
         {
-            _currentExpression = new List<object> { "MATCH" };
+            _currentExpression = new List<object> { "MATCH()" };
             
             Visit(expression.Arguments[0]);
             Visit(expression.Arguments[1]);
