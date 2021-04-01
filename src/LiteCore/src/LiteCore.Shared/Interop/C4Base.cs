@@ -123,9 +123,6 @@ namespace LiteCore.Interop
 
         public Int24(Int24 value)
         {
-            _byte1 = _byte2 = _byte3 = 0;
-            ValidateInt24(value);
-
             int valueInt = value;
             if (BitConverter.IsLittleEndian) {
                 _byte1 = (byte) valueInt;
@@ -140,9 +137,6 @@ namespace LiteCore.Interop
 
         public Int24(int value)
         {
-            _byte1 = _byte2 = _byte3 = 0;
-            ValidateInt24((Int24)value);
-
             var ba = BitConverter.GetBytes(value); // 4-byte integer
             if (BitConverter.IsLittleEndian) {
                 _byte1 = ba[0];
@@ -411,7 +405,7 @@ namespace LiteCore.Interop
             if (val > MaxValue32 || val < MinValue32)
                 return false;
 
-            else return true;
+            return true;
         }
 
         #endregion
