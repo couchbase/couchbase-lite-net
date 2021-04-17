@@ -1195,12 +1195,14 @@ namespace Test
             var config1 = builder1;
             config1.Directory.Should().NotBeNullOrEmpty("because the directory should have a default value");
 
-            #if COUCHBASE_ENTERPRISE
+#if COUCHBASE_ENTERPRISE
             config1.EncryptionKey.Should().BeNull("because it was not set");
-            #endif
-            
-            var builder2 = new DatabaseConfiguration();
-            builder2.Directory = "/tmp/mydb";
+#endif
+
+            var builder2 = new DatabaseConfiguration()
+            {
+                Directory = "/tmp/mydb"
+            };
 
             #if COUCHBASE_ENTERPRISE
             var key = new EncryptionKey("key");
