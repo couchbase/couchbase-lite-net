@@ -40,7 +40,7 @@ namespace Couchbase.Lite
 
         [NotNull] private readonly Freezer _freezer = new Freezer();
 
-        [NotNull] private string _directory =
+        [NotNull] private readonly string _directory =
             Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
 
         #if COUCHBASE_ENTERPRISE
@@ -58,10 +58,12 @@ namespace Couchbase.Lite
         public string Directory
         {
             get => _directory;
-            set => _freezer.SetValue(ref _directory, CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value));
+            init => _directory = string.IsNullOrWhiteSpace(value)
+                ? CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value)
+                : value;
         }
 
-        #if COUCHBASE_ENTERPRISE
+#if COUCHBASE_ENTERPRISE
         /// <summary>
         /// Gets or sets the encryption key to use on the database
         /// </summary>
@@ -111,4 +113,9 @@ namespace Couchbase.Lite
 
         #endregion
     }
+}
+
+namespace System.Runtime.CompilerServices
+{
+    internal static class IsExternalInit { }
 }
