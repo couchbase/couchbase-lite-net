@@ -178,7 +178,7 @@ namespace Couchbase.Lite
         /// </summary>
         [NotNull]
         [JsonIgnore]
-        public IReadOnlyDictionary<string, object> Properties => new ReadOnlyDictionary<string, object>(MutableProperties);
+        public IReadOnlyDictionary<string, object> Properties => new ReadOnlyDictionary<string, object>(PropertiesInDict);
 
         [NotNull]
         internal IReadOnlyDictionary<string, object> JsonRepresentation
@@ -206,7 +206,16 @@ namespace Couchbase.Lite
                     return _properties;
                 }
 
-                return new NonNullDictionary<string, object> {
+                return PropertiesInDict;
+            }
+        }
+
+        private IDictionary<string, object> PropertiesInDict
+        {
+            get
+            {
+                return new NonNullDictionary<string, object>
+                {
                     [DigestKey] = Digest,
                     [LengthKey] = Length > 0 ? (object)Length : null,
                     [ContentTypeKey] = ContentType
