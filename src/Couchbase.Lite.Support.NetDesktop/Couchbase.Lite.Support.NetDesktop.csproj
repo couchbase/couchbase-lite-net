@@ -5,8 +5,8 @@
   </PropertyGroup>
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;PackagingDebug</Configurations>
-    <TargetFramework Condition=" '$(OS)' != 'Windows_NT' ">netcoreapp2.1</TargetFramework>
-    <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">net461;netcoreapp2.1</TargetFrameworks>
+    <TargetFramework Condition=" '$(OS)' != 'Windows_NT' ">netcoreapp3.1</TargetFramework>
+    <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT' ">net461;netcoreapp3.1</TargetFrameworks>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
@@ -20,7 +20,7 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
-    <DocumentationFile>bin\Packaging\netcoreapp2.1\Couchbase.Lite.Support.NetDesktop.xml</DocumentationFile>
+    <DocumentationFile>bin\Packaging\netcoreapp3.1\Couchbase.Lite.Support.NetDesktop.xml</DocumentationFile>
     <DebugType>portable</DebugType>
     <DebugSymbols>True</DebugSymbols>
   </PropertyGroup>
