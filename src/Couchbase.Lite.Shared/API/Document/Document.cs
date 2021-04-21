@@ -151,13 +151,7 @@ namespace Couchbase.Lite
             _disposalWatchdog = new DisposalWatchdog(GetType().Name);
         }
 
-        internal Document([CanBeNull]Database database, [NotNull]string id)
-            : this(database, id, C4DocContentLevel.DocGetCurrentRev)
-        {
-            
-        }
-
-        internal Document([CanBeNull]Database database, [NotNull]string id, C4DocContentLevel contentLevel)
+        internal Document([CanBeNull]Database database, [NotNull]string id, C4DocContentLevel contentLevel = C4DocContentLevel.DocGetCurrentRev)
             : this(database, id, default(C4DocumentWrapper))
         {
             database.ThreadSafety.DoLocked(() =>
