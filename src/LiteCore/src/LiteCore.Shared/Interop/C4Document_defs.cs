@@ -1,7 +1,7 @@
 //
 // C4Document_defs.cs
 //
-// Copyright (c) 2020 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47,12 +47,19 @@ namespace LiteCore.Interop
         Purged         = 0x80,
     }
 
-	internal unsafe struct C4Revision
+    internal enum C4DocContentLevel : byte
+    {
+        DocGetMetadata,
+        DocGetCurrentRev,
+        DocGetAll,
+    }
+
+
+    internal unsafe struct C4Revision
     {
         public FLHeapSlice revID;
         public C4RevisionFlags flags;
         public ulong sequence;
-        public FLSlice body;
     }
 
 	internal unsafe struct C4Document

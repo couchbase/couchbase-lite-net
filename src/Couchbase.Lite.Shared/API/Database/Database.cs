@@ -105,10 +105,8 @@ namespace Couchbase.Lite
     {
         #region Constants
 
-        private static readonly C4DatabaseConfig DBConfig = new C4DatabaseConfig {
-            flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact | C4DatabaseFlags.SharedKeys,
-            storageEngine = "SQLite",
-            versioning = C4DocumentVersioning.RevisionTrees
+        private static readonly C4DatabaseConfig2 DBConfig = new C4DatabaseConfig2 {
+            flags = C4DatabaseFlags.Create | C4DatabaseFlags.AutoCompact,
         };
 
         private const string DBExtension = "cblite2";
@@ -318,6 +316,11 @@ namespace Couchbase.Lite
         public Database([@NotNull]string name, [@CanBeNull]DatabaseConfiguration configuration = null)
         {
             Name = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
+            if(name == "") {
+                var err = new C4Error(C4ErrorDomain.LiteCoreDomain, (int) CouchbaseLiteError.WrongFormat);
+                throw new CouchbaseLiteException(err);
+            }
+
             Config = configuration?.Freeze() ?? new DatabaseConfiguration(true);
             Run.Once(nameof(CheckFileLogger), CheckFileLogger);
             Open();
@@ -385,6 +388,7 @@ namespace Couchbase.Lite
             LiteCoreBridge.Check(err =>
             {
                 var nativeConfig = DBConfig;
+                nativeConfig.ParentDirectory = config?.Directory;
 
                 #if COUCHBASE_ENTERPRISE
                 if (config?.EncryptionKey != null) {
@@ -397,7 +401,7 @@ namespace Couchbase.Lite
                 }
                 #endif
 
-                return Native.c4db_copy(path, destPath, &nativeConfig, err);
+                return Native.c4db_copyNamed(path, name, &nativeConfig, err);
             });
 
         }
@@ -829,7 +833,7 @@ namespace Couchbase.Lite
         /// doesn't exist</exception>
         public DateTimeOffset? GetDocumentExpiration(string docId)
         {
-            if (LiteCoreBridge.Check(err => Native.c4doc_get(_c4db, docId, true, err)) == null) {
+            if (LiteCoreBridge.Check(err => Native.c4db_getDoc(_c4db, docId, true, C4DocContentLevel.DocGetCurrentRev, err)) == null) {
                 throw new CouchbaseLiteException(C4ErrorCode.NotFound);
             }
 
@@ -1105,7 +1109,7 @@ namespace Couchbase.Lite
                             throw new CouchbaseLiteException(C4ErrorCode.NotFound);
                         }
 
-                        remoteDoc = new Document(this, docID);
+                        remoteDoc = new Document(this, docID, C4DocContentLevel.DocGetAll);
                         if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
                             WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', the conflict may have been previously resolved...",
                                 new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
@@ -1303,6 +1307,7 @@ namespace Couchbase.Lite
 
             var path = DatabasePath(Name, Config.Directory);
             var config = DBConfig;
+            config.ParentDirectory = Config.Directory;
 
             var encrypted = "";
 
@@ -1319,14 +1324,14 @@ namespace Couchbase.Lite
             }
             #endif
 
-            WriteLog.To.Database.I(Tag, $"Opening {encrypted}database at {path}");
+            WriteLog.To.Database.I(Tag, $"Opening {encrypted} database at {path}");
             var localConfig1 = config;
             ThreadSafety.DoLocked(() =>
             {
                 _c4db = (C4Database*) LiteCoreBridge.Check(err =>
                 {
                     var localConfig2 = localConfig1;
-                    return Native.c4db_open(path, &localConfig2, err);
+                    return Native.c4db_openNamed(Name, &localConfig2, err);
                 });
             });
 
@@ -1414,7 +1419,7 @@ namespace Couchbase.Lite
                         }
 
                         C4Error err;
-                        curDoc = Native.c4doc_get(_c4db, document.Id, true, &err);
+                        curDoc = Native.c4db_getDoc(_c4db, document.Id, true, C4DocContentLevel.DocGetCurrentRev, &err);
 
                         // If deletion and the current doc has already been deleted
                         // or doesn't exist:
@@ -1536,25 +1541,24 @@ namespace Couchbase.Lite
             var winningRevID = remoteDoc.RevisionID;
             var losingRevID = localDoc.RevisionID;
 
+            // mergedBody:
             FLSliceResult mergedBody = (FLSliceResult) FLSlice.Null;
-            C4RevisionFlags mergedFlags = 0;
             if (resolvedDoc != null)
-                mergedFlags = resolvedDoc.c4Doc != null ? resolvedDoc.c4Doc.RawDoc->selectedRev.flags : 0;
             if (!ReferenceEquals(resolvedDoc, remoteDoc)) {
-                var isDeleted = true;
                 if (resolvedDoc != null) {
                     // Unless the remote revision is being used as-is, we need a new revision:
                     mergedBody = resolvedDoc.Encode();
                     if (mergedBody.Equals((FLSliceResult) FLSlice.Null))
                         throw new RuntimeException(CouchbaseLiteErrorMessage.ResolvedDocContainsNull);
-                    isDeleted = resolvedDoc.IsDeleted;
                 } else {
                     mergedBody = EmptyFLSliceResult();
                 }
-
-                if (isDeleted)
-                    mergedFlags |= C4RevisionFlags.Deleted;
             }
+
+            // mergedFlags:
+            C4RevisionFlags mergedFlags = resolvedDoc.c4Doc != null ? resolvedDoc.c4Doc.RawDoc->selectedRev.flags : 0;
+            if (resolvedDoc == null || resolvedDoc.IsDeleted)
+                mergedFlags |= C4RevisionFlags.Deleted;
 
             // Tell LiteCore to do the resolution:
             C4Document* rawDoc = localDoc.c4Doc != null ? localDoc.c4Doc.RawDoc : null;

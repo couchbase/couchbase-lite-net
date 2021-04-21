@@ -147,7 +147,7 @@ namespace Test
             }
         }
 
-        [Fact] 
+        //[Fact] 
         public void TestContinuousPushP2P() => RunTwoStepContinuous(ReplicatorType.Push, "p2ptest1");
 
         [Fact] 
@@ -364,7 +364,9 @@ namespace Test
             var config = new ReplicatorConfiguration(Db,
                 new MessageEndpoint("p2ptest1", server, protocolType, new MockConnectionFactory(errorLocation))) {
                 ReplicatorType = ReplicatorType.Push,
-                Continuous = false
+                Continuous = false,
+                MaxRetries = 2,
+                MaxRetryWaitTime = TimeSpan.FromMinutes(10)
             };
             
             return config;
@@ -381,12 +383,8 @@ namespace Test
             var expectedCode = recoverable ? 0 : (int)CouchbaseLiteError.WebSocketUserPermanent;
 
             var config = CreateFailureP2PConfiguration(ProtocolType.ByteStream, location, recoverable);
-            config.MaxRetries = 2;
-            config.MaxRetryWaitTime = TimeSpan.FromMinutes(10);
             RunReplication(config, expectedCode, expectedDomain);
             config = CreateFailureP2PConfiguration(ProtocolType.MessageStream, location, recoverable);
-            config.MaxRetries = 2;
-            config.MaxRetryWaitTime = TimeSpan.FromMinutes(10);
             RunReplication(config, expectedCode, expectedDomain, true);
         }
 

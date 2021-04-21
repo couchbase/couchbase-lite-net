@@ -27,25 +27,10 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        public static C4Database* c4db_open(string path, C4DatabaseConfig* config, C4Error* outError)
-        {
-            using(var path_ = new C4String(path)) {
-                return NativeRaw.c4db_open(path_.AsFLSlice(), config, outError);
-            }
-        }
-
         public static C4Database* c4db_openNamed(string name, C4DatabaseConfig2* config, C4Error* outError)
         {
             using(var name_ = new C4String(name)) {
                 return NativeRaw.c4db_openNamed(name_.AsFLSlice(), config, outError);
-            }
-        }
-
-        public static bool c4db_copy(string sourcePath, string destinationPath, C4DatabaseConfig* config, C4Error* error)
-        {
-            using(var sourcePath_ = new C4String(sourcePath))
-            using(var destinationPath_ = new C4String(destinationPath)) {
-                return NativeRaw.c4db_copy(sourcePath_.AsFLSlice(), destinationPath_.AsFLSlice(), config, error);
             }
         }
 
@@ -94,9 +79,6 @@ namespace LiteCore.Interop
                 return ((FLSlice)retVal).CreateString();
             }
         }
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4DatabaseConfig* c4db_getConfig(C4Database* db);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4DatabaseConfig2* c4db_getConfig2(C4Database* database);
@@ -173,14 +155,7 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Database* c4db_open(FLSlice path, C4DatabaseConfig* config, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Database* c4db_openNamed(FLSlice name, C4DatabaseConfig2* config, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_copy(FLSlice sourcePath, FLSlice destinationPath, C4DatabaseConfig* config, C4Error* error);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

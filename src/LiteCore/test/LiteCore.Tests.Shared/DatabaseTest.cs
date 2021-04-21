@@ -87,9 +87,9 @@ namespace LiteCore.Tests
                     doc->revID.Equals(RevID).Should().BeTrue("because the doc should have the current revID");
                     doc->selectedRev.revID.Equals(RevID).Should().BeTrue("because the selected rev should have the correct rev ID");
                     doc->selectedRev.sequence.Should().Be((ulong)i, "because the sequences should come in order");
-                    doc->selectedRev.body.Equals(FLSlice.Null).Should().BeTrue("because the body is not loaded yet");
+                    Native.c4doc_hasRevisionBody(doc).Should().BeFalse("because the body is not loaded yet");
                     LiteCoreBridge.Check(err => Native.c4doc_loadRevisionBody(doc, err));
-                    doc->selectedRev.body.Equals(FleeceBody).Should().BeTrue("because the loaded body should be correct");
+                    NativeRaw.c4doc_getRevisionBody(doc).Equals(FleeceBody).Should().BeTrue("because the loaded body should be correct");
 
                     C4DocumentInfo info;
                     Native.c4enum_getDocumentInfo(e, &info).Should().BeTrue("because otherwise the doc info load failed");
@@ -371,7 +371,7 @@ namespace LiteCore.Tests
             AssertMessage(C4ErrorDomain.POSIXDomain, PosixBase.GetCode(nameof(PosixBase.ENOENT)), "No such file or directory");
             AssertMessage(C4ErrorDomain.LiteCoreDomain, (int)C4ErrorCode.TransactionNotClosed, "transaction not closed");
             AssertMessage(C4ErrorDomain.SQLiteDomain, -1234, "unknown error (-1234)");
-            AssertMessage((C4ErrorDomain)666, -1234, "unknown error domain");
+            AssertMessage((C4ErrorDomain)Byte.MaxValue, -1234, "invalid C4Error (unknown domain)");
         }
 
         [Fact]

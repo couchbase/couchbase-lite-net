@@ -80,11 +80,7 @@ namespace Couchbase.Lite
                     Data = null;
 
                     if (newVal?.HasValue == true) {
-                        var body = newVal.RawDoc->selectedRev.body;
-                        if (body.size > 0) {
-                            Data = Native.FLValue_AsDict(
-                                NativeRaw.FLValue_FromData(body, FLTrust.Trusted));
-                        }
+                        Data = newVal.Body;
                     }
 
                     UpdateDictionary();
@@ -155,13 +151,13 @@ namespace Couchbase.Lite
             _disposalWatchdog = new DisposalWatchdog(GetType().Name);
         }
 
-        internal Document([CanBeNull]Database database, [NotNull]string id)
+        internal Document([CanBeNull]Database database, [NotNull]string id, C4DocContentLevel contentLevel = C4DocContentLevel.DocGetCurrentRev)
             : this(database, id, default(C4DocumentWrapper))
         {
             database.ThreadSafety.DoLocked(() =>
             {
-                var doc = (C4Document*)NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
-                    err => Native.c4doc_get(database.c4db, id, true, err));
+                var doc = (C4Document*) NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
+                    err => Native.c4db_getDoc(database.c4db, id, true, contentLevel, err));
 
                 c4Doc = new C4DocumentWrapper(doc);
             });
@@ -227,7 +223,7 @@ namespace Couchbase.Lite
         {
             _disposalWatchdog.CheckDisposed();
             if (c4Doc?.HasValue == true) {
-                return Native.FLSlice_Copy(c4Doc.RawDoc->selectedRev.body);
+                return Native.FLSlice_Copy(NativeRaw.c4doc_getRevisionBody(c4Doc.RawDoc));
             }
 
             return (FLSliceResult) FLSlice.Null;

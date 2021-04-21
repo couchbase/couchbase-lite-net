@@ -66,7 +66,6 @@ namespace LiteCore.Tests
 
         internal C4Database* Db { get; private set; }
         internal C4DatabaseConfig2 DBConfig2 { get; set; }
-        internal C4DocumentVersioning Versioning { get; private set; }
         protected string Storage { get; private set; }
 
         internal FLSlice DocID => FLSlice.Constant("mydoc");
@@ -128,7 +127,7 @@ namespace LiteCore.Tests
 
         protected bool IsRevTrees()
         {
-            return Versioning == C4DocumentVersioning.RevisionTrees;
+            return (Native.c4db_getConfig2(Db)->flags & C4DatabaseFlags.VersionVectors) == 0;
         }
 
         protected void DeleteAndRecreateDB()
@@ -163,7 +162,7 @@ namespace LiteCore.Tests
 
             DBConfig2 = new C4DatabaseConfig2() {
                 ParentDirectory = TestDir,
-                flags = C4DatabaseFlags.Create | C4DatabaseFlags.SharedKeys,
+                flags = C4DatabaseFlags.Create,
                 encryptionKey = encryptionKey
             };
 
@@ -191,8 +190,8 @@ namespace LiteCore.Tests
         {
             LiteCoreBridge.Check(err => Native.c4db_beginTransaction(db, err));
             try {
-                var curDoc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_get(db, docID, 
-                    false, err));
+                var curDoc = (C4Document *)LiteCoreBridge.Check(err => Native.c4db_getDoc(db, docID, 
+                    false, C4DocContentLevel.DocGetCurrentRev, err));
                 var history = new[] { revID, curDoc->revID };
                 fixed(FLSlice* h = history) {
                     var rq = new C4DocPutRequest {

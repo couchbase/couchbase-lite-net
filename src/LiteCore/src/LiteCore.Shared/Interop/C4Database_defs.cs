@@ -1,7 +1,7 @@
 //
 // C4Database_defs.cs
 //
-// Copyright (c) 2020 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,17 +28,12 @@ namespace LiteCore.Interop
     [Flags]
     internal enum C4DatabaseFlags : uint
     {
-        Create        = 1,
-        ReadOnly      = 2,
-        AutoCompact   = 4,
-        SharedKeys    = 0x10,
-        NoUpgrade     = 0x20,
-        NonObservable = 0x40,
-    }
-
-    internal enum C4DocumentVersioning : uint
-    {
-        RevisionTrees,
+        Create         = 0x01,
+        ReadOnly       = 0x02,
+        AutoCompact    = 0x04,
+        VersionVectors = 0x08,
+        NoUpgrade      = 0x20,
+        NonObservable  = 0x40,
     }
 
     internal enum C4EncryptionAlgorithm : uint
@@ -57,31 +52,14 @@ namespace LiteCore.Interop
         Compact,
         Reindex,
         IntegrityCheck,
+        QuickOptimize,
+        FullOptimize,
     }
 
 	internal unsafe partial struct C4EncryptionKey
     {
         public C4EncryptionAlgorithm algorithm;
         public fixed byte bytes[32];
-    }
-
-	internal unsafe partial struct C4DatabaseConfig
-    {
-        public C4DatabaseFlags flags;
-        private IntPtr _storageEngine;
-        public C4DocumentVersioning versioning;
-        public C4EncryptionKey encryptionKey;
-
-        public string storageEngine
-        {
-            get {
-                return Marshal.PtrToStringAnsi(_storageEngine);
-            }
-            set {
-                var old = Interlocked.Exchange(ref _storageEngine, Marshal.StringToHGlobalAnsi(value));
-                Marshal.FreeHGlobal(old);
-            }
-        }
     }
 
 	internal unsafe partial struct C4DatabaseConfig2
