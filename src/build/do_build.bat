@@ -5,7 +5,7 @@ pushd %~dp0..\Couchbase.Lite
 echo.
 echo *** TRANSFORMING TEMPLATES ***
 echo.
-"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" Couchbase.Lite.csproj /t:Transform /p:TransformFile="Properties\DynamicAssemblyInfo.tt"
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" Couchbase.Lite.csproj /t:Transform /p:TransformFile="Properties\DynamicAssemblyInfo.tt"
 
 echo.
 echo *** RESTORING PACKAGES ***
@@ -22,19 +22,19 @@ cd ..\Couchbase.Lite.Support.UWP
 echo.
 echo *** UWP ***
 echo.
-"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" /t:Restore
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" /t:Restore
 
 echo.
 echo *** IOS ***
 echo.
 cd ..\Couchbase.Lite.Support.Apple\iOS
-"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" /t:Restore
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" /t:Restore
 
 echo.
 echo *** ANDROID ***
 echo.
 cd ..\..\Couchbase.Lite.Support.Android
-"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" /t:Restore
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" /t:Restore
 
 echo.
 echo *** COPYING NATIVE RESOURCES ***
@@ -47,6 +47,6 @@ echo *** BUILDING ***
 echo.
 
 cd ..
-"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe" Couchbase.Lite.sln /p:Configuration=Packaging /p:SourceLinkCreate=true
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" Couchbase.Lite.sln /p:Configuration=Packaging /p:SourceLinkCreate=true
 
 popd
