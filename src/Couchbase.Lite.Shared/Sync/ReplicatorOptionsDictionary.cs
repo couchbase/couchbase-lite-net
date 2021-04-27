@@ -65,8 +65,11 @@ namespace Couchbase.Lite.Sync
         private const string ProtocolsOptionKey = "WS-Protocols";
         private const string HeartbeatIntervalKey = "heartbeat"; //Interval in secs to send a keepalive ping
         
-        private TimeSpan _defaultHeartbeatInterval = TimeSpan.FromMinutes(5);
-        private TimeSpan _defaultMaxRetryInterval = TimeSpan.FromMinutes(5);
+        private static TimeSpan _defaultHeartbeatInterval = TimeSpan.FromMinutes(5);
+        private static TimeSpan _defaultMaxRetryInterval = TimeSpan.FromMinutes(5);
+
+        internal static int MaxRetriesContinuous = Int32.MaxValue;
+        internal static int MaxRetriesOneShot = 9;
 
         private const string Tag = nameof(ReplicatorOptionsDictionary);
 

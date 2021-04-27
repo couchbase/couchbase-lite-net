@@ -130,7 +130,7 @@ namespace Couchbase.Lite.Sync
         public Authenticator Authenticator
         {
             get => _authenticator;
-            set => _freezer.SetValue(ref _authenticator, value);
+            init => _authenticator = value;
         }
 
         /// <summary>
@@ -142,7 +142,7 @@ namespace Couchbase.Lite.Sync
         public IList<string> Channels
         {
             get => Options.Channels;
-            set => _freezer.PerformAction(() => Options.Channels = value);
+            init => Options.Channels = value;
         }
 
         /// <summary>
@@ -152,14 +152,14 @@ namespace Couchbase.Lite.Sync
         public bool Continuous
         {
             get => _continuous;
-            set => _freezer.SetValue(ref _continuous, value);
+            init => _continuous = value;
         }
 
         /// <summary>
         /// Gets the local database participating in the replication. 
         /// </summary>
         [NotNull]
-        public Database Database { get; }
+        public Database Database { get; init; }
 
         /// <summary>
         /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
@@ -169,7 +169,7 @@ namespace Couchbase.Lite.Sync
         public IList<string> DocumentIDs
         {
             get => Options.DocIDs;
-            set => _freezer.PerformAction(() =>  Options.DocIDs = value);
+            init => Options.DocIDs = value;
         }
 
         /// <summary>
@@ -179,7 +179,7 @@ namespace Couchbase.Lite.Sync
         public IDictionary<string, string> Headers
         {
             get => Options.Headers;
-            set => _freezer.PerformAction(() => Options.Headers = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(Headers), value));
+            init => Options.Headers = value;
         }
 
         /// <summary>
@@ -190,7 +190,7 @@ namespace Couchbase.Lite.Sync
         public X509Certificate2 PinnedServerCertificate
         {
             get => Options.PinnedServerCertificate;
-            set => _freezer.PerformAction(() => Options.PinnedServerCertificate = value);
+            init => Options.PinnedServerCertificate = value;
         }
 
         /// <summary>
@@ -201,7 +201,7 @@ namespace Couchbase.Lite.Sync
         public Func<Document, DocumentFlags, bool> PullFilter
         {
             get => _pullValidator;
-            set => _freezer.PerformAction(() => _pullValidator = value);
+            init => _pullValidator = value;
         }
 
         /// <summary>
@@ -212,7 +212,7 @@ namespace Couchbase.Lite.Sync
         public Func<Document, DocumentFlags, bool> PushFilter
         {
             get => _pushFilter;
-            set => _freezer.PerformAction(() => _pushFilter = value);
+            init => _pushFilter = value;
         }
 
         /// <summary>
@@ -222,7 +222,7 @@ namespace Couchbase.Lite.Sync
         public ReplicatorType ReplicatorType
         {
             get => _replicatorType;
-            set => _freezer.SetValue(ref _replicatorType, value);
+            init => _replicatorType = value;
         }
 
         /// <summary>
@@ -235,7 +235,7 @@ namespace Couchbase.Lite.Sync
         public TimeSpan Heartbeat
         {
             get => Options.Heartbeat;
-            set => _freezer.PerformAction(() => Options.Heartbeat = value);
+            init => Options.Heartbeat = value;
         }
 
         /// <summary>
@@ -250,14 +250,9 @@ namespace Couchbase.Lite.Sync
         /// </exception>
         public int MaxRetries
         {
-            get => Options.MaxRetries >= 0 ? Options.MaxRetries : _continuous ? Int32.MaxValue : 9;
-            set {
-                if (value >= 0) {
-                    _freezer.PerformAction(() => Options.MaxRetries = value);
-                } else {
-                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetries);
-                }
-            }
+            get => Options.MaxRetries >= 0 ? Options.MaxRetries : _continuous ? 
+                ReplicatorOptionsDictionary.MaxRetriesContinuous : ReplicatorOptionsDictionary.MaxRetriesOneShot;
+            init => Options.MaxRetries = value >= 0 ? value : throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetries);
         }
 
         /// <summary>
@@ -269,7 +264,7 @@ namespace Couchbase.Lite.Sync
         public TimeSpan MaxRetryWaitTime
         {
             get => Options.MaxRetryInterval;
-            set => _freezer.PerformAction(() => Options.MaxRetryInterval = value);
+            init => Options.MaxRetryInterval = value;
         }
 
         /// <summary>
@@ -277,7 +272,7 @@ namespace Couchbase.Lite.Sync
         /// or <see cref="Uri"/>
         /// </summary>
         [NotNull]
-        public IEndpoint Target { get; }
+        public IEndpoint Target { get; init; }
 
         /// <summary>
         /// The implemented custom conflict resolver object can be registered to the replicator 
@@ -288,7 +283,7 @@ namespace Couchbase.Lite.Sync
         public IConflictResolver ConflictResolver
         {
             get => _resolver;
-            set => _freezer.PerformAction(() => _resolver = value);
+            init => _resolver = value;
         }
 
         internal TimeSpan CheckpointInterval
@@ -344,32 +339,6 @@ namespace Couchbase.Lite.Sync
 
             var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
             castTarget.Visit(this);
-        }
-
-        #endregion
-
-        #region Internal Methods
-
-        [NotNull]
-        internal ReplicatorConfiguration Freeze()
-        {
-            var retVal = new ReplicatorConfiguration(Database, Target)
-            {
-                Authenticator = Authenticator,
-                #if COUCHBASE_ENTERPRISE
-                AcceptOnlySelfSignedServerCertificate = AcceptOnlySelfSignedServerCertificate,
-                #endif
-                Continuous = Continuous,
-                PushFilter = PushFilter,
-                PullFilter = PullFilter,
-                ReplicatorType = ReplicatorType,
-                ProgressLevel = ProgressLevel,
-                ConflictResolver = ConflictResolver,
-                Options = Options
-            };
-
-            retVal._freezer.Freeze("Cannot modify a ReplicatorConfiguration that is in use");
-            return retVal;
         }
 
         #endregion
