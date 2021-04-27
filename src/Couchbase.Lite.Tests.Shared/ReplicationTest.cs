@@ -113,20 +113,22 @@ namespace Test
         protected ReplicatorConfiguration CreateConfig(IEndpoint target, ReplicatorType type, bool continuous,
             Authenticator authenticator = null, X509Certificate2 serverCert = null, Database sourceDb = null)
         {
+            X509Certificate2 pinnedServerCertificate = null;
+            if ((target as URLEndpoint)?.Url?.Scheme == "wss") {
+                if (serverCert != null) {
+                    pinnedServerCertificate = serverCert;
+                } else if (!DisableDefaultServerCertPinning) {
+                    pinnedServerCertificate = DefaultServerCert;
+                }
+            }
+
             var c = new ReplicatorConfiguration(sourceDb ?? Db, target)
             {
                 ReplicatorType = type,
                 Continuous = continuous,
-                Authenticator = authenticator
+                Authenticator = authenticator,
+                PinnedServerCertificate = pinnedServerCertificate
             };
-
-            if ((target as URLEndpoint)?.Url?.Scheme == "wss") {
-                if (serverCert != null) {
-                    c.PinnedServerCertificate = serverCert;
-                } else if (!DisableDefaultServerCertPinning) {
-                    c.PinnedServerCertificate = DefaultServerCert;
-                }
-            }
 
             if (continuous) {
                 c.CheckpointInterval = TimeSpan.FromSeconds(1);
@@ -140,8 +142,33 @@ namespace Test
             bool acceptOnlySelfSignedServerCertificate, Authenticator authenticator = null,
             X509Certificate2 serverCert = null)
         {
-            var c = CreateConfig(target, type, continuous, authenticator, serverCert);
-            c.AcceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate;
+            X509Certificate2 pinnedServerCertificate = null;
+            if ((target as URLEndpoint)?.Url?.Scheme == "wss")
+            {
+                if (serverCert != null)
+                {
+                    pinnedServerCertificate = serverCert;
+                }
+                else if (!DisableDefaultServerCertPinning)
+                {
+                    pinnedServerCertificate = DefaultServerCert;
+                }
+            }
+
+            var c = new ReplicatorConfiguration(Db, target)
+            {
+                ReplicatorType = type,
+                Continuous = continuous,
+                Authenticator = authenticator,
+                PinnedServerCertificate = pinnedServerCertificate,
+                AcceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate
+            };
+
+            if (continuous)
+            {
+                c.CheckpointInterval = TimeSpan.FromSeconds(1);
+            }
+
             return c;
         }
         #endif
@@ -298,16 +325,16 @@ namespace Test
                 repl.Config.Heartbeat.Should().Be(TimeSpan.FromMinutes(5), "Because default Heartbeat Interval is 300 sec.");
             }
 
-            config.Heartbeat = TimeSpan.FromSeconds(60);
+            config = CreateConfig(true, false, false, null, null, null, null, null, null, null, -1, 300000, heartbeatInterval:60000);
             using (var repl = new Replicator(config))
             {
                 repl.Config.Options.Heartbeat.Should().Be(TimeSpan.FromSeconds(60));
             }
 
-            Action badAction = (() => config.Heartbeat = TimeSpan.FromSeconds(0));
+            Action badAction = (() => config = CreateConfig(true, false, false, null, null, null, null, null, null, null, -1, 300000, heartbeatInterval: 0));
             badAction.Should().Throw<ArgumentException>("Assigning Heartbeat to an invalid value (<= 0).");
 
-            badAction = (() => config.Heartbeat = TimeSpan.FromMilliseconds(800));
+            badAction = (() => config = CreateConfig(push:true, pull:false, continuous:false, null, null, null, null, null, null, null,maxRetries: -1, maxRetryInterval: 300000, heartbeatInterval: 800));
             badAction.Should().Throw<ArgumentException>("Assigning Heartbeat to an invalid value.");
         }
 
@@ -320,16 +347,16 @@ namespace Test
                 repl.Config.MaxRetryWaitTime.Should().Be(TimeSpan.FromMinutes(5), "Because default Max Retry Wait Time is 300 sec.");
             }
 
-            config.MaxRetryWaitTime = TimeSpan.FromSeconds(60);
+            config = CreateConfig(true, false, false, null,null,null,null,null,null,null,-1,maxRetryInterval:60000);
             using (var repl = new Replicator(config)) {
                 repl.Config.Options.MaxRetryInterval.Should().Be(TimeSpan.FromSeconds(60));
                 repl.Config.MaxRetryWaitTime.Should().Be(TimeSpan.FromSeconds(60));
             }
 
-            Action badAction = (() => config.MaxRetryWaitTime = TimeSpan.FromSeconds(0));
+            Action badAction = (() => config = CreateConfig(true, false, false, null, null, null, null, null, null, null, -1, maxRetryInterval: 0));
             badAction.Should().Throw<ArgumentException>("Assigning Max Retry Wait Time to an invalid value (<= 0).");
 
-            badAction = (() => config.MaxRetryWaitTime = TimeSpan.FromMilliseconds(800));
+            badAction = (() => config = CreateConfig(true, false, false, null, null, null, null, null, null, null, -1, maxRetryInterval: 800));
             badAction.Should().Throw<ArgumentException>("Assigning Max Retry Wait Time to an invalid value.");
         }
 
@@ -347,13 +374,12 @@ namespace Test
             }
 
             var retries = 5;
-            config = CreateConfig(true, false, false);
-            config.MaxRetries = retries;
+            config = CreateConfig(true, false, false, null, null, null, null, null, null, null, maxRetries: retries);
             using (var repl = new Replicator(config)) {
                 repl.Config.Options.MaxRetries.Should().Be(retries, $"Because {retries} is what custom setting value for Max Retries.");
             }
 
-            Action badAction = (() => config.MaxRetries = -1);
+            Action badAction = (() => config = CreateConfig(true, false, false, null, null, null, null, null, null, null, maxRetries: -1000));
             badAction.Should().Throw<ArgumentException>("Assigning Max Retries to an invalid value (< 0).");
         }
 
@@ -369,8 +395,8 @@ namespace Test
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
                 config = repl.Config;
-                config.Invoking(c => c.ReplicatorType = ReplicatorType.PushAndPull)
-                    .Should().Throw<InvalidOperationException>("because the configuration from a replicator should be read only");
+                /*config.Invoking(c => c.ReplicatorType = ReplicatorType.PushAndPull)
+                    .Should().Throw<InvalidOperationException>("because the configuration from a replicator should be read only");*/
             }
         }
 
@@ -390,10 +416,7 @@ namespace Test
         [Fact]
         public void TestPushPullKeepsFilter()
         {
-            var config = CreateConfig(true, true, false);
-            config.PullFilter = _replicator__filterCallback;
-            config.PushFilter = _replicator__filterCallback;
-
+            var config = CreateConfig(true, true, false, null, null, pushFilter: _replicator__filterCallback, pullFilter: _replicator__filterCallback);
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "donotpass");
                 Db.Save(doc1);
@@ -423,8 +446,7 @@ namespace Test
                 Db.Save(doc2);
             }
 
-            var config = CreateConfig(true, false, false);
-            config.PushFilter = _replicator__filterCallback;
+            var config = CreateConfig(true, false, false, null, null, pushFilter:_replicator__filterCallback);
             RunReplication(config, 0, 0);
             _isFilteredCallback.Should().BeTrue();
             OtherDb.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
@@ -455,36 +477,41 @@ namespace Test
                 OtherDb.Save(doc2);
             }
 
-            var config = CreateConfig(true, true, false);
             var exceptions = new List<Exception>();
-            config.PullFilter = (doc, isPush) => {
-                try {
+            var config = CreateConfig(true, true, false, null, null, pushFilter: (doc, isPush) => {
+                try
+                {
                     doc.GetInt("Two").Should().Be(2);
                     doc.RevisionID.Should().NotBeNull();
                     Action act = () => doc.ToMutable();
                     act.Should().Throw<InvalidOperationException>()
                       .WithMessage(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
-                } catch (Exception e) {
+                }
+                catch (Exception e)
+                {
                     exceptions.Add(e);
                 }
 
                 return true;
-            };
+            });
 
-            config.PushFilter = (doc, isPush) => {
-                try {
+            config = CreateConfig(true, true, false, null, null, pushFilter: (doc, isPush) => {
+                try
+                {
                     doc.GetInt("One").Should().Be(1);
                     doc.RevisionID.Should().NotBeNull();
                     Action act = () => doc.ToMutable();
                     act.Should().Throw<InvalidOperationException>()
                       .WithMessage(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
 
-                } catch (Exception e) {
+                }
+                catch (Exception e)
+                {
                     exceptions.Add(e);
                 }
 
                 return true;
-            };
+            });
 
             RunReplication(config, 0, 0);
             exceptions.Count.Should().Be(0);
@@ -508,34 +535,40 @@ namespace Test
                 OtherDb.Save(doc2);
             }
 
-            var config = CreateConfig(true, true, false);
             var exceptions = new List<Exception>();
-            config.PullFilter = (doc, isPush) => {
-                try {
+            var config = CreateConfig(true, true, false, null, null, null, pullFilter: (doc, isPush) => {
+                try
+                {
                     var nestedBlob = doc.GetArray("outer_arr")?.GetBlob(0);
                     nestedBlob.Should().NotBeNull("because the actual blob object should be intact");
                     var gotContent = nestedBlob.Content;
                     gotContent.Should().BeNull("because the blob is not yet available");
                     doc.RevisionID.Should().NotBeNull();
-                } catch (Exception e) {
+                }
+                catch (Exception e)
+                {
                     exceptions.Add(e);
                 }
 
                 return true;
-            };
+            });
 
-            config.PushFilter = (doc, isPush) => {
-                try {
+            config = CreateConfig(true, true, false, null, null, pushFilter: (doc, isPush) =>
+            {
+                try
+                {
                     var gotContent = doc.GetDictionary("outer_dict")?.GetBlob("inner_blob")?.Content;
                     gotContent.Should().NotBeNull("because the nested blob should be intact in the push");
                     gotContent.Should().ContainInOrder(content1, "because the nested blob should be intact in the push");
                     doc.RevisionID.Should().NotBeNull();
-                } catch (Exception e) {
+                }
+                catch (Exception e)
+                {
                     exceptions.Add(e);
                 }
 
                 return true;
-            };
+            });
             RunReplication(config, 0, 0);
             exceptions.Should().BeEmpty("because there should be no errors");
         }
@@ -598,8 +631,7 @@ namespace Test
                 OtherDb.Save(doc2);
             }
 
-            var config = CreateConfig(false, true, false);
-            config.PullFilter = _replicator__filterCallback;
+            var config = CreateConfig(false, true, false, null, null, null, pullFilter:_replicator__filterCallback);
             RunReplication(config, 0, 0);
             _isFilteredCallback.Should().BeTrue();
             Db.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
@@ -619,8 +651,7 @@ namespace Test
                 OtherDb.Save(doc2);
             }
 
-            var config = CreateConfig(false, true, false);
-            config.PullFilter = _replicator__filterCallback;
+            var config = CreateConfig(false, true, false, null, null, null, pullFilter:_replicator__filterCallback);
             RunReplication(config, 0, 0);
             _isFilteredCallback.Should().BeTrue();
             Db.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
@@ -652,8 +683,7 @@ namespace Test
                 OtherDb.Save(doc2);
             }
 
-            var config = CreateConfig(false, true, false);
-            config.PullFilter = _replicator__filterCallback;
+            var config = CreateConfig(false, true, false, null, null, null, pullFilter:_replicator__filterCallback);
             RunReplication(config, 0, 0);
             _isFilteredCallback.Should().BeTrue();
             Db.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
@@ -754,8 +784,7 @@ namespace Test
             doc4.SetString("pattern", "striped");
             OtherDb.Save(doc4);
 
-            var config = CreateConfig(true, true, false);
-            config.DocumentIDs = new[] { "doc1", "doc3" };
+            var config = CreateConfig(true, true, false,null,null,null,null, docIds:new[] { "doc1", "doc3" });
             RunReplication(config, 0, 0);
             Db.Count.Should().Be(3, "because only one document should have been pulled");
             Db.GetDocument("doc3").Should().NotBeNull();
@@ -1000,8 +1029,7 @@ namespace Test
                 Db.Save(doc2);
             }
 
-            var config = CreateConfig(true, false, false);
-            config.DocumentIDs = new[] { "doc1" };
+            var config = CreateConfig(true, false, false, null, null, null,null,docIds: new[] { "doc1" });
             RunReplication(config, 0, 0);
 
             OtherDb.Count.Should().Be(1UL);
@@ -1121,16 +1149,14 @@ namespace Test
             Db.Count.Should().Be(1);
 
             OtherDb.Delete(OtherDb.GetDocument("doc1"));
-
-            var config = CreateConfig(false, true, false);
-            config.ConflictResolver = new TestConflictResolver((conflict) => {
+            var conflictResolver = new TestConflictResolver((conflict) => {
                 using (var doc1 = Db.GetDocument("doc1")) {
                     Db.Delete(doc1);
                 }
                 resolveCnt++;
                 return conflict.LocalDocument;
             });
-
+            var config = CreateConfig(false, true, false, null, conflictResolver);
             RunReplication(config, 0, 0);
             resolveCnt.Should().Be(1);
             Db.Count.Should().Be(0);
@@ -1139,19 +1165,16 @@ namespace Test
         [Fact]
         public void TestConflictResolverPropertyInReplicationConfig()
         {
-            var config = CreateConfig(false, true, false);
-
-            config.ConflictResolver = new TestConflictResolver((conflict) => {
+            var conflictResolver = new TestConflictResolver((conflict) => {
                 return conflict.RemoteDocument;
             });
-
+            var config = CreateConfig(false, true, false, null,conflictResolver);
             config.ConflictResolver.GetType().Should().Be(typeof(TestConflictResolver));
+            //using (var replicator = new Replicator(config)) {
 
-            using (var replicator = new Replicator(config)) {
-
-                Action badAction = (() => replicator.Config.ConflictResolver = new FakeConflictResolver());
-                badAction.Should().Throw<InvalidOperationException>("Attempt to modify a frozen object is prohibited.");
-            }
+            //    Action badAction = (() => replicator.Config.ConflictResolver = new FakeConflictResolver());
+            //    badAction.Should().Throw<InvalidOperationException>("Attempt to modify a frozen object is prohibited.");
+            //}
         }
 
         [Fact]
@@ -1176,8 +1199,7 @@ namespace Test
                 OtherDb.Save(doc1);
             }
 
-            var config = CreateConfig(true, true, false);
-            config.ConflictResolver = new TestConflictResolver((conflict) => {
+            var conflictResolver = new TestConflictResolver((conflict) => {
                 var localDoc = conflict.LocalDocument;
                 var remoteDoc = conflict.RemoteDocument;
 
@@ -1198,6 +1220,7 @@ namespace Test
                 doc1.SetData(updateDocDict);
                 return doc1;
             });
+            var config = CreateConfig(true, true, false, null, conflictResolver);
 
             RunReplication(config, 0, 0);
 
@@ -1242,12 +1265,11 @@ namespace Test
             bool conflictResolved = false;
             CreateReplicationConflict("doc1");
 
-            var config = CreateConfig(false, true, false);
-
-            config.ConflictResolver = new TestConflictResolver((conflict) => {
+            var conflictResolver = new TestConflictResolver((conflict) => {
                 conflictResolved = true;
                 return null;
             });
+            var config = CreateConfig(false, true, false, null, conflictResolver);
 
             RunReplication(config, 0, 0, onReplicatorReady: r =>
             {
@@ -1285,12 +1307,12 @@ namespace Test
                 OtherDb.Save(doc1);
             }
 
-            var config = CreateConfig(false, true, false);
-            config.ConflictResolver = new TestConflictResolver((conflict) => {
+            var conflictResolver = new TestConflictResolver((conflict) => {
                 localDoc = conflict.LocalDocument;
                 remoteDoc = conflict.RemoteDocument;
                 return null;
             });
+            var config = CreateConfig(false, true, false, null, conflictResolver);
 
             RunReplication(config, 0, 0);
 
@@ -1324,12 +1346,12 @@ namespace Test
 
             OtherDb.Delete(OtherDb.GetDocument("doc1"));
 
-            var config = CreateConfig(false, true, false);
-            config.ConflictResolver = new TestConflictResolver((conflict) => {
+            var conflictResolver = new TestConflictResolver((conflict) => {
                 localDoc = conflict.LocalDocument;
                 remoteDoc = conflict.RemoteDocument;
                 return null;
             });
+            var config = CreateConfig(false, true, false, null, conflictResolver);
 
             RunReplication(config, 0, 0);
             remoteDoc.Should().BeNull();
@@ -1342,12 +1364,12 @@ namespace Test
         {
             CreateReplicationConflict("doc1");
 
-            var config = CreateConfig(false, true, false);
-            config.ConflictResolver = new TestConflictResolver((conflict) => {
+            var conflictResolver = new TestConflictResolver((conflict) => {
                 var doc = new MutableDocument("wrong_id");
                 doc.SetString("wrong_id_key", "wrong_id_value");
                 return doc;
             });
+            var config = CreateConfig(false, true, false, null, conflictResolver);
 
             RunReplication(config, 0, 0);
 
@@ -1362,9 +1384,7 @@ namespace Test
             int resolveCnt = 0;
             CreateReplicationConflict("doc1");
 
-            var config = CreateConfig(false, true, false);
-
-            config.ConflictResolver = new TestConflictResolver((conflict) => {
+            var conflictResolver = new TestConflictResolver((conflict) => {
                 if (resolveCnt == 0) {
                     using (var d = Db.GetDocument("doc1"))
                     using (var doc = d.ToMutable()) {
@@ -1376,6 +1396,7 @@ namespace Test
                 resolveCnt++;
                 return conflict.LocalDocument;
             });
+            var config = CreateConfig(false, true, false, null, conflictResolver);
 
             RunReplication(config, 0, 0);
 
@@ -1390,8 +1411,7 @@ namespace Test
         {
             int resolveCnt = 0;
             CreateReplicationConflict("doc1");
-            var config = CreateConfig(false, true, false);
-            config.ConflictResolver = new TestConflictResolver((conflict) => {
+            var conflictResolver = new TestConflictResolver((conflict) => {
                 if (resolveCnt == 0) {
                     using (var d = Db.GetDocument("doc1"))
                     using (var doc = d.ToMutable()) {
@@ -1406,7 +1426,7 @@ namespace Test
                 resolveCnt++;
                 return null;
             });
-
+            var config = CreateConfig(false, true, false, null, conflictResolver);
             RunReplication(config, 0, 0);
 
             // This will be 0 if the test resolver threw an exception
@@ -1422,11 +1442,11 @@ namespace Test
         {
             CreateReplicationConflict("doc1");
             CreateReplicationConflict("doc2");
-            var config = CreateConfig(false, true, false);
+            
             ManualResetEvent manualResetEvent = new ManualResetEvent(false);
             Queue<string> q = new Queue<string>();
             var wa = new WaitAssert();
-            config.ConflictResolver = new TestConflictResolver((conflict) => {
+            var conflictResolver = new TestConflictResolver((conflict) => {
                 var cnt = 0;
                 lock (q) {
                     q.Enqueue(conflict.LocalDocument.Id);
@@ -1446,7 +1466,7 @@ namespace Test
 
                 return conflict.RemoteDocument;
             });
-
+            var config = CreateConfig(false, true, false, null, conflictResolver);
             RunReplication(config, 0, 0);
 
             wa.WaitForResult(TimeSpan.FromMilliseconds(5000));
@@ -1468,22 +1488,22 @@ namespace Test
             var secondReplicatorFinish = new ManualResetEventSlim();
             int resolveCnt = 0;
 
-            var config = CreateConfig(false, true, false);
-            config.ConflictResolver = new TestConflictResolver((conflict) => {
+            var conflictResolver = new TestConflictResolver((conflict) => {
                 firstReplicatorStart.Set();
                 secondReplicatorFinish.Wait();
                 Thread.Sleep(500);
                 resolveCnt++;
                 return conflict.LocalDocument;
             });
+            var config = CreateConfig(false, true, false, null, conflictResolver);
             Replicator replicator = new Replicator(config);
 
-            var config1 = CreateConfig(false, true, false);
-            config1.ConflictResolver = new TestConflictResolver((conflict) => {
+            conflictResolver = new TestConflictResolver((conflict) => {
                 resolveCnt++;
                 Task.Delay(500).ContinueWith(t => secondReplicatorFinish.Set()); // Set after return
                 return conflict.RemoteDocument;
             });
+            var config1 = CreateConfig(false, true, false, null, conflictResolver);
             Replicator replicator1 = new Replicator(config1);
 
             _waitAssert = new WaitAssert();
@@ -1541,16 +1561,14 @@ namespace Test
             int resolveCnt = 0;
             CreateReplicationConflict("doc1");
 
-            var config = CreateConfig(false, true, false);
-
-            config.ConflictResolver = new TestConflictResolver((conflict) => {
+            var conflictResolver = new TestConflictResolver((conflict) => {
                 if (resolveCnt == 0) {
                     Db.Purge(conflict.DocumentID);
                 }
                 resolveCnt++;
                 return conflict.RemoteDocument;
             });
-
+            var config = CreateConfig(false, true, false, null, conflictResolver);
             RunReplication(config, 0, 0, onReplicatorReady: r =>
             {
                 r.AddDocumentReplicationListener((sender, args) =>
@@ -1599,16 +1617,14 @@ namespace Test
             //return new doc with a blob object
             CreateReplicationConflict("doc1");
 
-            var config = CreateConfig(false, true, false);
-
-            config.ConflictResolver = new TestConflictResolver((conflict) => {
+            var conflictResolver = new TestConflictResolver((conflict) => {
                 var evilByteArray = new byte[] { 6, 6, 6 };
 
                 var doc = new MutableDocument();
                 doc.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
                 return doc;
             });
-
+            var config = CreateConfig(false, true, false, null, conflictResolver);
             RunReplication(config, 0, 0);
 
             using (var doc = Db.GetDocument("doc1")) {
@@ -1637,9 +1653,8 @@ namespace Test
             //force conflicts and check flags
             CreateReplicationConflict("doc1", true);
 
-            var config = CreateConfig(false, true, false);
             C4DocumentFlags flags = (C4DocumentFlags)0;
-            config.ConflictResolver = new TestConflictResolver((conflict) => {
+            var conflictResolver = new TestConflictResolver((conflict) => {
                 unsafe {
                     flags = conflict.LocalDocument.c4Doc.RawDoc->flags;
                     flags.HasFlag(C4DocumentFlags.DocConflicted).Should().BeTrue();
@@ -1647,7 +1662,7 @@ namespace Test
                     return conflict.LocalDocument;
                 }
             });
-
+            var config = CreateConfig(false, true, false, null, conflictResolver);
             RunReplication(config, 0, 0);
 
             using (var doc = Db.GetDocument("doc1")) {
@@ -1880,7 +1895,7 @@ namespace Test
         {
             IImmutableSet<string> pendingDocIds;
             var idsSet = LoadDocs();
-            var config = CreateConfig(true, false, false);
+            Func<Document, DocumentFlags, bool> pushFilter = null;
             var DocIdForTest = "doc-001";
             if (selection == PENDING_DOC_ID_SEL.UPDATE) {
                 using (var d = Db.GetDocument(DocIdForTest))
@@ -1898,7 +1913,7 @@ namespace Test
                     idsSet.Remove(DocIdForTest);
                 }
             } else if (selection == PENDING_DOC_ID_SEL.FILTER) {
-                config.PushFilter = (doc, isPush) =>
+                pushFilter = (doc, isPush) =>
                 {
                     if (doc.Id.Equals(DocIdForTest))
                         return true;
@@ -1906,6 +1921,7 @@ namespace Test
                 };
             }
 
+            var config = CreateConfig(true, false, false, null, null, pushFilter:pushFilter);
             using (var replicator = new Replicator(config)) {
                 var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
@@ -1951,7 +1967,7 @@ namespace Test
             bool docIdIsPending;
             var DocIdForTest = "doc-001";
             var idsSet = LoadDocs();
-            var config = CreateConfig(true, false, false);
+            Func<Document, DocumentFlags, bool> pushFilter = null;
             if (selection == PENDING_DOC_ID_SEL.UPDATE) {
                 using (var d = Db.GetDocument(DocIdForTest))
                 using (var md = d.ToMutable()) {
@@ -1967,7 +1983,7 @@ namespace Test
                     Db.Purge(d);
                 }
             } else if (selection == PENDING_DOC_ID_SEL.FILTER) {
-                config.PushFilter = (doc, isPush) =>
+                pushFilter = (doc, isPush) =>
                 {
                     if (doc.Id.Equals(DocIdForTest))
                         return true;
@@ -1975,6 +1991,7 @@ namespace Test
                 };
             }
 
+            var config = CreateConfig(true, false, false, null, null, pushFilter: pushFilter);
             using (var replicator = new Replicator(config)) {
                 var wa = new WaitAssert();
                 var token = replicator.AddChangeListener((sender, args) =>
@@ -2142,10 +2159,7 @@ namespace Test
         private void TestConflictResolverExceptionThrown(TestConflictResolver resolver, bool continueWithWorkingResolver = false, bool withBlob = false)
         {
             CreateReplicationConflict("doc1");
-
-            var config = CreateConfig(true, true, false);
-            config.ConflictResolver = resolver;
-
+            var config = CreateConfig(true, true, false, null, resolver);
             using (var repl = new Replicator(config)) {
                 var wa = new WaitAssert();
                 var token = repl.AddDocumentReplicationListener((sender, args) => {
@@ -2184,11 +2198,12 @@ namespace Test
                 if (!continueWithWorkingResolver)
                     return;
 
-                config.ConflictResolver = new TestConflictResolver((conflict) => {
+                var conflictResolver = new TestConflictResolver((conflict) => {
                     var doc = new MutableDocument("doc1");
                     doc.SetString("name", "Human");
                     return doc;
                 });
+                config = CreateConfig(true, true, false, null, conflictResolver);
                 RunReplication(config, 0, 0);
             }
         }
@@ -2197,14 +2212,13 @@ namespace Test
         {
             CreateReplicationConflict("doc1");
 
-            var config = CreateConfig(false, true, false);
-
-            config.ConflictResolver = new TestConflictResolver((conflict) => {
+            var conflictResolver = new TestConflictResolver((conflict) => {
                 if (returnRemoteDoc) {
                     return conflict.RemoteDocument;
                 } else
                     return conflict.LocalDocument;
             });
+            var config = CreateConfig(false, true, false, null, conflictResolver);
 
             RunReplication(config, 0, 0);
 
@@ -2287,8 +2301,7 @@ namespace Test
                 Db.Save(doc2);
             }
 
-            var config = CreateConfig(true, false, continuous);
-            config.PushFilter = _replicator__filterCallback;
+            var config = CreateConfig(true, false, continuous, null, null, pushFilter:_replicator__filterCallback);
             RunReplication(config, 0, 0);
             _isFilteredCallback.Should().BeTrue();
             OtherDb.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
@@ -2302,10 +2315,46 @@ namespace Test
             return CreateConfig(push, pull, continuous, target);
         }
 
-        private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous, Database target)
+        private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous, Database target, IConflictResolver resolver=null, 
+            Func<Document, DocumentFlags, bool> pushFilter = null, Func<Document, DocumentFlags, bool> pullFilter= null, 
+            IList<string> docIds = null, Authenticator auth = null, X509Certificate2 pinnedServerCert =  null,
+            int maxRetries = -1, double maxRetryInterval = 300000, double heartbeatInterval = 300000)
         {
-            var retVal = new ReplicatorConfiguration(Db, new DatabaseEndpoint(target));
-            return ModifyConfig(retVal, push, pull, continuous);
+            var targetDb = target ?? OtherDb;
+            TimeSpan maxRetryTimeSpan = TimeSpan.FromMilliseconds(maxRetryInterval);
+            TimeSpan heartbestTimeSpan = TimeSpan.FromMilliseconds(heartbeatInterval);
+            var type = (ReplicatorType)0;
+            if (push)
+            {
+                type |= ReplicatorType.Push;
+            }
+
+            if (pull)
+            {
+                type |= ReplicatorType.Pull;
+            }
+
+            if(maxRetries == -1)
+            {
+                maxRetries = continuous ? ReplicatorOptionsDictionary.MaxRetriesContinuous : ReplicatorOptionsDictionary.MaxRetriesOneShot;
+            }
+
+            var retVal = new ReplicatorConfiguration(Db, new DatabaseEndpoint(targetDb))
+            { 
+                ReplicatorType = type,
+                Continuous = continuous,
+                ConflictResolver = resolver,
+                PushFilter = pushFilter,
+                PullFilter = pullFilter,
+                DocumentIDs = docIds,
+                Authenticator = auth,
+                PinnedServerCertificate = pinnedServerCert,
+                MaxRetries = maxRetries,
+                MaxRetryWaitTime = maxRetryTimeSpan,
+                Heartbeat = heartbestTimeSpan
+            };
+            
+            return retVal;
         }
 #endif
 
@@ -2318,22 +2367,6 @@ namespace Test
             document.RevisionID.Should().NotBeNull();
             var name = document.GetString("name");
             return name == "pass";
-        }
-
-        private ReplicatorConfiguration ModifyConfig(ReplicatorConfiguration config, bool push, bool pull, bool continuous)
-        {
-            var type = (ReplicatorType)0;
-            if (push) {
-                type |= ReplicatorType.Push;
-            }
-
-            if (pull) {
-                type |= ReplicatorType.Pull;
-            }
-
-            config.ReplicatorType = type;
-            config.Continuous = continuous;
-            return config;
         }
 
         private void DocumentEndedUpdate(object sender, DocumentReplicationEventArgs args)

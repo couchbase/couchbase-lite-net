@@ -282,11 +282,17 @@ namespace Test
             }
 
             // Replicator - Wrong Credentials
-            config.Authenticator = new BasicAuthenticator("daniel", wrongPwSecureString);
+            config = new ReplicatorConfiguration(Db, targetEndpoint)
+            {
+                Authenticator = new BasicAuthenticator("daniel", wrongPwSecureString)
+            };
             RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
 
             // Replicator - Success
-            config.Authenticator = new BasicAuthenticator("daniel", pwSecureString);
+            config = new ReplicatorConfiguration(Db, targetEndpoint)
+            {
+                Authenticator = new BasicAuthenticator("daniel", pwSecureString)
+            };
             RunReplication(config, 0, 0);
 
             _listener.Stop();
@@ -598,8 +604,7 @@ namespace Test
         [Fact]
         public void TestEmptyNetworkInterface()
         {
-            var config = CreateListenerConfig(false);
-            config.NetworkInterface = "0.0.0.0";
+            var config = CreateListenerConfig(tls:false, networkInterface: "0.0.0.0");
             _listener = Listen(config, 0, 0);
             _listener.Stop();
         }
@@ -607,24 +612,22 @@ namespace Test
         [Fact]
         public void TestUnavailableNetworkInterface()
         {
-            var config = CreateListenerConfig(false);
-            config.NetworkInterface = "1.1.1.256";
+            var config = CreateListenerConfig(tls: false, networkInterface: "1.1.1.256");
             Listen(config, (int) CouchbaseLiteError.UnknownHost, CouchbaseLiteErrorType.CouchbaseLite);
 
-            config.NetworkInterface = "blah";
+            config = CreateListenerConfig(tls: false, networkInterface: "blah");
             Listen(config, (int) CouchbaseLiteError.UnknownHost, CouchbaseLiteErrorType.CouchbaseLite);
         }
 
         //[Fact] //CouchbaseLiteException (POSIXDomain / 101): The requested address is not valid in its context.
         public void TestNetworkInterfaceName()
         {
-            var config = CreateListenerConfig(false);
             foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
                 if (ni.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 
                     || ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet) {
                     foreach (UnicastIPAddressInformation ip in ni.GetIPProperties().UnicastAddresses) {
                         if (ip.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork) {
-                            config.NetworkInterface = ip.Address.ToString();
+                            var config = CreateListenerConfig(tls:false, networkInterface:ip.Address.ToString());
                             _listener = Listen(config, 0, 0);
                             _listener.Stop();
                         }
@@ -792,8 +795,7 @@ namespace Test
         //[Fact] //Mac OS 1-6-21
         public void TestMultipleReplicatorsOnReadOnlyListener()
         {
-            var config = CreateListenerConfig();
-            config.ReadOnly = true;
+            var config = CreateListenerConfig(readOnly: true);
             _listener = Listen(config);
 
             // save a doc on listener DB
@@ -1157,20 +1159,18 @@ namespace Test
         }
 
         private URLEndpointListenerConfiguration CreateListenerConfig(bool tls = true, bool useDynamicPort = true,
-            IListenerAuthenticator auth = null, TLSIdentity id = null)
+            IListenerAuthenticator auth = null, TLSIdentity id = null, bool readOnly = false, string networkInterface = null)
         {
             _listener?.Stop();
 
-            var config = new URLEndpointListenerConfiguration(OtherDb);
-            if (useDynamicPort) {
-                config.Port = 0;
-            } else {
-                config.Port = tls ? WssPort : WsPort;
-            }
-
-            config.DisableTLS = !tls;
-            config.Authenticator = auth;
-            config.TlsIdentity = id;
+            var config = new URLEndpointListenerConfiguration(OtherDb)
+            {
+                Port = useDynamicPort ? (ushort)0 : tls ? WssPort : WsPort,
+                DisableTLS = !tls,
+                Authenticator = auth,
+                TlsIdentity = id,
+                ReadOnly = readOnly
+            };
 
             return config;
         }
@@ -1179,16 +1179,12 @@ namespace Test
         {
             _listener?.Stop();
 
-            var config = new URLEndpointListenerConfiguration(OtherDb);
-            //In order to get the test to pass on Linux, Port needs to be 0.
-            if (useDynamicPort) {
-                config.Port = 0;
-            } else {
-                config.Port = tls ? WssPort : WsPort;
-            }
-
-            config.DisableTLS = !tls;
-            config.Authenticator = auth;
+            var config = new URLEndpointListenerConfiguration(OtherDb)
+            {
+                Port = useDynamicPort ? (ushort)0 : tls ? WssPort : WsPort,//In order to get the test to pass on Linux, Port needs to be 0.
+                DisableTLS = !tls,
+                Authenticator = auth
+            };
 
             return Listen(config);
         }
@@ -1229,9 +1225,11 @@ namespace Test
 
         private URLEndpointListener CreateNewListener()
         {
-            var config = new URLEndpointListenerConfiguration(OtherDb);
-            config.Port = 0;
-            config.DisableTLS = false;
+            var config = new URLEndpointListenerConfiguration(OtherDb)
+            {
+                Port = 0,
+                DisableTLS = false
+            };
 
             var listener = new URLEndpointListener(config);
             listener.Start();
