@@ -749,7 +749,8 @@ namespace Test
 
             var config = new URLEndpointListenerConfiguration(OtherDb)
             {
-                ReadOnly = true
+                ReadOnly = true,
+                DisableTLS = true
             };
 
             Listen(config);
@@ -1225,12 +1226,7 @@ namespace Test
 
         private URLEndpointListener CreateNewListener()
         {
-            var config = new URLEndpointListenerConfiguration(OtherDb)
-            {
-                Port = 0,
-                DisableTLS = false
-            };
-
+            var config = new URLEndpointListenerConfiguration(OtherDb);
             var listener = new URLEndpointListener(config);
             listener.Start();
             return _listener;
