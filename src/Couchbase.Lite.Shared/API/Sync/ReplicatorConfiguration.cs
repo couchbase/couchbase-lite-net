@@ -109,15 +109,11 @@ namespace Couchbase.Lite.Sync
         #region Variables
 
         [NotNull]private readonly Freezer _freezer = new Freezer();
-        private Authenticator _authenticator;
         private bool _continuous;
-        private Func<Document, DocumentFlags, bool> _pushFilter;
-        private Func<Document, DocumentFlags, bool> _pullValidator;
         private Database _otherDb;
         private Uri _remoteUrl;
         private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
         private C4SocketFactory _socketFactory;
-        private IConflictResolver _resolver;
 
 #endregion
 
@@ -127,11 +123,7 @@ namespace Couchbase.Lite.Sync
         /// Gets or sets the class which will authenticate the replication
         /// </summary>
         [CanBeNull]
-        public Authenticator Authenticator
-        {
-            get => _authenticator;
-            init => _authenticator = value;
-        }
+        public Authenticator Authenticator { get; init; }
 
         /// <summary>
         /// A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
@@ -175,7 +167,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Extra HTTP headers to send in all requests to the remote target
         /// </summary>
-        [NotNull]
+        [CanBeNull]
         public IDictionary<string, string> Headers
         {
             get => Options.Headers;
@@ -198,22 +190,16 @@ namespace Couchbase.Lite.Sync
         /// Document pull will be allowed if output is true, othewise, Document pull 
         /// will not be allowed
         /// </summary>
-        public Func<Document, DocumentFlags, bool> PullFilter
-        {
-            get => _pullValidator;
-            init => _pullValidator = value;
-        }
+        [CanBeNull]
+        public Func<Document, DocumentFlags, bool> PullFilter { get; init; }
 
         /// <summary>
         /// Func delegate that takes Document input parameter and bool output parameter
         /// Document push will be allowed if output is true, othewise, Document push 
         /// will not be allowed
         /// </summary>
-        public Func<Document, DocumentFlags, bool> PushFilter
-        {
-            get => _pushFilter;
-            init => _pushFilter = value;
-        }
+        [CanBeNull]
+        public Func<Document, DocumentFlags, bool> PushFilter { get; init; }
 
         /// <summary>
         /// A value indicating the direction of the replication.  The default is
@@ -280,11 +266,7 @@ namespace Couchbase.Lite.Sync
         /// When the value is null, the default conflict resolution will be applied.
         /// </summary>
         [CanBeNull]
-        public IConflictResolver ConflictResolver
-        {
-            get => _resolver;
-            init => _resolver = value;
-        }
+        public IConflictResolver ConflictResolver { get; init; }
 
         internal TimeSpan CheckpointInterval
         {
