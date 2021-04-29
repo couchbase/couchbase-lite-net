@@ -300,6 +300,7 @@ namespace Couchbase.Lite
 
         static Database()
         {
+            Native.c4log_enableFatalExceptionBacktrace();
         }
 
         /// <summary>

@@ -119,7 +119,7 @@ namespace Couchbase.Lite.Sync
         private C4SocketFactory _socketFactory;
         private IConflictResolver _resolver;
 
-#endregion
+        #endregion
 
         #region Properties
 

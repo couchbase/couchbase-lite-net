@@ -1,7 +1,7 @@
 //
 // C4Base_native.cs
 //
-// Copyright (c) 2020 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -127,6 +127,9 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4log_setLevel(C4LogDomain* c4Domain, C4LogLevel level);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4log_enableFatalExceptionBacktrace();
 
         public static void c4slog(C4LogDomain* domain, C4LogLevel level, string msg)
         {
