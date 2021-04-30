@@ -109,10 +109,8 @@ namespace Couchbase.Lite.Sync
         #region Variables
 
         [NotNull]private readonly Freezer _freezer = new Freezer();
-        private bool _continuous;
         private Database _otherDb;
         private Uri _remoteUrl;
-        private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
         private C4SocketFactory _socketFactory;
 
 #endregion
@@ -141,17 +139,13 @@ namespace Couchbase.Lite.Sync
         /// Gets or sets whether or not the <see cref="Replicator"/> should stay
         /// active indefinitely.  The default is <c>false</c>
         /// </summary>
-        public bool Continuous
-        {
-            get => _continuous;
-            init => _continuous = value;
-        }
+        public bool Continuous { get; init; }
 
         /// <summary>
         /// Gets the local database participating in the replication. 
         /// </summary>
         [NotNull]
-        public Database Database { get; init; }
+        public Database Database { get; }
 
         /// <summary>
         /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
@@ -205,11 +199,7 @@ namespace Couchbase.Lite.Sync
         /// A value indicating the direction of the replication.  The default is
         /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
         /// </summary>
-        public ReplicatorType ReplicatorType
-        {
-            get => _replicatorType;
-            init => _replicatorType = value;
-        }
+        public ReplicatorType ReplicatorType { get; init; } = ReplicatorType.PushAndPull;
 
         /// <summary>
         /// Gets or sets the replicator heartbeat keep-alive interval. 
@@ -236,7 +226,7 @@ namespace Couchbase.Lite.Sync
         /// </exception>
         public int MaxRetries
         {
-            get => Options.MaxRetries >= 0 ? Options.MaxRetries : _continuous ? 
+            get => Options.MaxRetries >= 0 ? Options.MaxRetries : Continuous ? 
                 ReplicatorOptionsDictionary.MaxRetriesContinuous : ReplicatorOptionsDictionary.MaxRetriesOneShot;
             init => Options.MaxRetries = value >= 0 ? value : throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetries);
         }
@@ -258,7 +248,7 @@ namespace Couchbase.Lite.Sync
         /// or <see cref="Uri"/>
         /// </summary>
         [NotNull]
-        public IEndpoint Target { get; init; }
+        public IEndpoint Target { get; }
 
         /// <summary>
         /// The implemented custom conflict resolver object can be registered to the replicator 

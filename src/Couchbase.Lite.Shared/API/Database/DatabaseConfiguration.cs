@@ -52,9 +52,7 @@ namespace Couchbase.Lite
         public string Directory
         {
             get => _directory;
-            init => _directory = string.IsNullOrWhiteSpace(value)
-                ? CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value)
-                : value;
+            init => _directory = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value);
         }
 
         /// <summary>
