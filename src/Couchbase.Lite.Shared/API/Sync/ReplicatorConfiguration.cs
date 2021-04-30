@@ -112,6 +112,7 @@ namespace Couchbase.Lite.Sync
         private Database _otherDb;
         private Uri _remoteUrl;
         private C4SocketFactory _socketFactory;
+        private bool _continuous;
 
         #endregion
 
@@ -139,7 +140,16 @@ namespace Couchbase.Lite.Sync
         /// Gets or sets whether or not the <see cref="Replicator"/> should stay
         /// active indefinitely.  The default is <c>false</c>
         /// </summary>
-        public bool Continuous { get; init; }
+        public bool Continuous 
+        { 
+            get => _continuous; 
+            init
+            {
+                _continuous = value;
+                MaxRetries = Options.MaxRetries >= 0 ? Options.MaxRetries : _continuous ?
+                    ReplicatorOptionsDictionary.MaxRetriesContinuous : ReplicatorOptionsDictionary.MaxRetriesOneShot;
+            }
+        }
 
         /// <summary>
         /// Gets the local database participating in the replication. 
@@ -226,7 +236,7 @@ namespace Couchbase.Lite.Sync
         /// </exception>
         public int MaxRetries
         {
-            get => Options.MaxRetries >= 0 ? Options.MaxRetries : Continuous ? 
+            get => Options.MaxRetries >= 0 ? Options.MaxRetries : _continuous ? 
                 ReplicatorOptionsDictionary.MaxRetriesContinuous : ReplicatorOptionsDictionary.MaxRetriesOneShot;
             init => Options.MaxRetries = value >= 0 ? value : throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetries);
         }
