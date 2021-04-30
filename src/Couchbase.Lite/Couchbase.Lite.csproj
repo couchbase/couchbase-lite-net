@@ -18,6 +18,7 @@
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
     <DebugType Condition= " !$(TargetFramework.StartsWith('uap')) ">portable</DebugType>
     <DebugSymbols>True</DebugSymbols>
+	<LangVersion>9.0</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
     <Optimize>True</Optimize>

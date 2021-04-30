@@ -326,9 +326,9 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-#endregion
+        #endregion
 
-#region Private Methods
+        #region Private Methods
 
         private void Dispose(bool finalizing)
         {
@@ -341,9 +341,9 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-#endregion
+        #endregion
 
-#region Overrides
+        #region Overrides
 
         internal override void BuildInternal()
         {
@@ -386,9 +386,9 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-#endregion
+        #endregion
 
-#region IDisposable
+        #region IDisposable
 
         public void Dispose()
         {
@@ -396,6 +396,6 @@ namespace Couchbase.Lite.Sync
             GC.SuppressFinalize(this);
         }
 
-#endregion
+        #endregion
     }
 }
