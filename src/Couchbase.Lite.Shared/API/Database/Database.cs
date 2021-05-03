@@ -143,7 +143,6 @@ namespace Couchbase.Lite
         private IJsonSerializer _jsonSerializer;
 #endif
 
-        private Timer _expirePurgeTimer;
         private C4DatabaseObserver* _obs;
         private GCHandle _obsContext;
         private C4Database* _c4db;
@@ -818,7 +817,6 @@ namespace Couchbase.Lite
                     succeed = Native.c4doc_setExpiration(_c4db, docId, millisSinceEpoch, err);
                 }
 
-                SchedulePurgeExpired(TimeSpan.Zero);
                 return succeed;
             });
             return succeed;
@@ -1166,27 +1164,6 @@ namespace Couchbase.Lite
             }
         }
 
-        internal void SchedulePurgeExpired(TimeSpan delay)
-        {
-            var nextExpiration = Native.c4db_nextDocExpiration(_c4db);
-            if (nextExpiration > 0) {
-                var delta = DateTimeOffset.FromUnixTimeMilliseconds((long) nextExpiration) - DateTimeOffset.UtcNow;
-                var expirationTimeSpan = delta > delay ? delta : delay;
-                if (expirationTimeSpan.TotalMilliseconds >= UInt32.MaxValue) {
-                    _expirePurgeTimer?.Change(TimeSpan.FromMilliseconds(UInt32.MaxValue - 1), TimeSpan.FromMilliseconds(-1));
-                    WriteLog.To.Database.I(Tag, "{0:F3} seconds is too far in the future to schedule a document expiration," +
-                                           " will run again at the maximum value of {0:F3} seconds", expirationTimeSpan.TotalSeconds, (UInt32.MaxValue - 1) / 1000);
-                } else if (expirationTimeSpan.TotalMilliseconds <= Double.Epsilon) {
-                    _expirePurgeTimer?.Change(Timeout.Infinite, Timeout.Infinite);
-                    PurgeExpired(null);
-                } else {
-                    _expirePurgeTimer?.Change(expirationTimeSpan, TimeSpan.FromMilliseconds(-1));
-                    WriteLog.To.Database.I(Tag, "Scheduling next doc expiration in {0:F3} seconds", expirationTimeSpan.TotalSeconds);
-                }
-            } else {
-                WriteLog.To.Database.I(Tag, "No pending doc expirations");
-            }
-        }
 
         internal void CheckOpenLocked()
         {
@@ -1337,7 +1314,7 @@ namespace Couchbase.Lite
                 });
             });
 
-            _expirePurgeTimer = new Timer(PurgeExpired, null, HousekeepingDelayAfterOpen, TimeSpan.FromMilliseconds(-1));
+            Native.c4db_startHousekeeping(_c4db);
         }
 
         private void PostDatabaseChanged()
@@ -1600,20 +1577,7 @@ namespace Couchbase.Lite
             return body;
         }
 
-        private void StopExpirePurgeTimer()
-        {
-            var timer = Interlocked.Exchange(ref _expirePurgeTimer, null);
-            if (timer == null) {
-                return;
-            }
 
-            var mre = new ManualResetEvent(false); // Slim variant does not work                
-            timer.Change(Timeout.Infinite, Timeout.Infinite);
-            timer.Dispose(mre);
-            if (!mre.WaitOne(TimeSpan.FromSeconds(5))) {
-                WriteLog.To.Database.W(Tag, "Unable to stop purge timer!");
-            }
-        }
 
 
 
@@ -1668,32 +1632,6 @@ namespace Couchbase.Lite
             _unsavedDocuments.Clear();
         }
 
-        private void PurgeExpired(object state)
-        {
-            // Don't throw exceptions here because they can bring down
-            // the whole process since they are on a timer thread
-            var cnt = 0L;
-            var open = true;
-            ThreadSafety.DoLocked(() =>
-            {
-                open = _c4db != null;
-                if (!open) {
-                    return;
-                }
-
-                C4Error err;
-                cnt = Native.c4db_purgeExpiredDocs(_c4db, &err);
-                if (err.code != 0) {
-                    WriteLog.To.Database.W(Tag, "Error received while purging docs: {0}/{1}", err.domain, err.code);
-                } else {
-                    WriteLog.To.Database.I(Tag, "{0} purged {1} expired documents", this, cnt);
-                }
-            });
-
-            if (open) {
-                SchedulePurgeExpired(TimeSpan.FromSeconds(1));
-            }
-        }
 
         private void CheckOpenAndNotClosing()
         {
@@ -1735,7 +1673,6 @@ namespace Couchbase.Lite
             // Do this here because otherwise if a purge job runs there will
             // be a deadlock while the purge job waits for the lock that is held
             // by the disposal which is waiting for timer callbacks to finish
-            StopExpirePurgeTimer();
             var isClosed = ThreadSafety.DoLocked(() =>
             {
                 if (IsClosed) {

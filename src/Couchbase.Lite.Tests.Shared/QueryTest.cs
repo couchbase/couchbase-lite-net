@@ -262,6 +262,7 @@ namespace Test
             }
             
             Db.SetDocumentExpiration(docId, DateTimeOffset.Now);
+            Thread.Sleep(5);
 
             using (var doc2 = new MutableDocument("doc2")) {
                 doc2.SetString("expire_me", "never");

@@ -156,7 +156,6 @@ namespace LiteCore.Tests
                 Native.c4doc_setExpiration(Db, docID, 0, &err).Should().BeTrue();
                 Native.c4doc_getExpiration(Db, docID, null).Should().Be(0);
                 Native.c4db_nextDocExpiration(Db).Should().Be(0);
-                Native.c4db_purgeExpiredDocs(Db, &err).Should().Be(0);
             });
         }
 
@@ -381,7 +380,6 @@ namespace LiteCore.Tests
             {
                 C4Error err;
                 Native.c4db_nextDocExpiration(Db).Should().Be(0L);
-                Native.c4db_purgeExpiredDocs(Db, &err).Should().Be(0L);
 
                 var docID = "expire_me";
                 CreateRev(docID, RevID, FleeceBody);
@@ -424,13 +422,8 @@ namespace LiteCore.Tests
                 Thread.Sleep(TimeSpan.FromSeconds(2));
                 Native.c4_now().Should().BeGreaterOrEqualTo(expire);
 
-                WriteLine("--- Purge expired docs");
-                Native.c4db_purgeExpiredDocs(Db, &err).Should().Be(2, "because there are two expired documents");
 
-                Native.c4db_nextDocExpiration(Db).Should().Be(expire + 100_000);
 
-                WriteLine("--- Purge expired docs (again)");
-                Native.c4db_purgeExpiredDocs(Db, &err).Should().Be(0, "because there are no expired documents");
             });
         }
 

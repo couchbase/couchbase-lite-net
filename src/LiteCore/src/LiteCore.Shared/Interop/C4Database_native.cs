@@ -1,7 +1,7 @@
 //
 // C4Database_native.cs
 //
-// Copyright (c) 2020 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -93,7 +93,8 @@ namespace LiteCore.Interop
         public static extern long c4db_nextDocExpiration(C4Database* database);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern long c4db_purgeExpiredDocs(C4Database* db, C4Error* outError);
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4db_startHousekeeping(C4Database* db);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint c4db_getMaxRevTreeDepth(C4Database* database);
