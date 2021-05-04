@@ -1060,12 +1060,13 @@ namespace Couchbase.Lite
                     addr.port = (ushort) uri.Port;
                     addr.path = path.AsFLSlice();
 
-                    cookies = (string) LiteCoreBridge.Check(err =>
-                    {
-                        return Native.c4db_getCookies(_c4db, addr, err);
-                    });
+                    C4Error err = new C4Error();
+                    cookies = Native.c4db_getCookies(_c4db, addr, &err);
+                    if (err.code > 0) {
+                        WriteLog.To.Sync.W(Tag, $"{err.domain}/{err.code} Failed getting Cookie from address {addr}.");
+                    }
 
-                    if (String.IsNullOrEmpty(cookies)) {
+                    if (String.IsNullOrEmpty(cookies) || err.code > 0) {
                         WriteLog.To.Sync.V(Tag, "There is no saved HTTP cookies.");
                     }
                 }
@@ -1084,10 +1085,11 @@ namespace Couchbase.Lite
                 } else {
                     var cookieStr = cookie.ToCBLCookieString();
                     var pathStr = String.Concat(uri.Segments.Take(uri.Segments.Length - 1));
-                    cookieSaved = (bool) LiteCoreBridge.Check(err =>
-                    {
-                        return Native.c4db_setCookie(_c4db, cookieStr, uri.Host, pathStr, err);
-                    });
+                    C4Error err = new C4Error();
+                    cookieSaved = Native.c4db_setCookie(_c4db, cookieStr, uri.Host, pathStr, &err);
+                    if(err.code > 0) {
+                        WriteLog.To.Sync.W(Tag, $"{err.domain}/{err.code} Failed saving Cookie {cookieStr}.");
+                    }
                 }
             });
 

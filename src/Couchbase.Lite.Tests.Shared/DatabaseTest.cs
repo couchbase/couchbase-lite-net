@@ -1442,8 +1442,9 @@ namespace Test
             Db.GetCookies(uri).Should().Be("id=a3fWa");
             uri = new Uri("http://www.example.com/");
             cookieStr = "id=a3fWa; Domain=.example.com; Secure; HttpOnly";
-            Action badAction = (() => Db.SaveCookie(cookieStr, uri));
-            badAction.Should().Throw<CouchbaseLiteException>(); //CouchbaseLiteException (LiteCoreDomain / 9): Invalid cookie.
+            //No longer throw exception. Will log warning messages.
+            //Action badAction = (() => Db.SaveCookie(cookieStr, uri));
+            //badAction.Should().Throw<CouchbaseLiteException>(); //CouchbaseLiteException (LiteCoreDomain / 9): Invalid cookie.
             cookieStr = "id=a3fWa; Domain=www.example.com; Secure; HttpOnly";
             Db.SaveCookie(cookieStr, uri);
             Db.GetCookies(uri).Should().Be("id=a3fWa; id=a3fWa");
