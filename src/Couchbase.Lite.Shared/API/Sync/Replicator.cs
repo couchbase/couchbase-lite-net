@@ -70,6 +70,7 @@ namespace Couchbase.Lite.Sync
         [NotNull]private readonly Event<ReplicatorStatusChangedEventArgs> _statusChanged =
             new Event<ReplicatorStatusChangedEventArgs>();
 
+        private int _documentEndedUpdateEventsCount;
         private string _desc;
         private bool _disposed;
 
@@ -195,9 +196,9 @@ namespace Couchbase.Lite.Sync
             [NotNull]EventHandler<DocumentReplicationEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
-            Config.Options.ProgressLevel = ReplicatorProgressLevel.PerDocument;
             var cbHandler = new CouchbaseEventHandler<DocumentReplicationEventArgs>(handler, scheduler);
             _documentEndedUpdate.Add(cbHandler);
+            _documentEndedUpdateEventsCount++;
             return new ListenerToken(cbHandler, "repl");
         }
 
@@ -211,7 +212,11 @@ namespace Couchbase.Lite.Sync
         {
             _statusChanged.Remove(token);
             if (_documentEndedUpdate.Remove(token) == 0) {
-                Config.Options.ProgressLevel = ReplicatorProgressLevel.Overall;
+                _documentEndedUpdateEventsCount--;
+                C4Error err = new C4Error();
+                if(!Native.c4repl_setProgressLevel(_repl, C4ReplicatorProgressLevel.Overall, &err) || err.code > 0) {
+                    WriteLog.To.Sync.W(Tag, "Failed set progress level to Overall", err);
+                }
             }
         }
 
@@ -615,6 +620,7 @@ namespace Couchbase.Lite.Sync
                         $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
                 }
             }
+
             _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(replications, pushing));
         }
 
@@ -729,6 +735,14 @@ namespace Couchbase.Lite.Sync
                 else
             #endif
                     _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
+
+                if (_documentEndedUpdateEventsCount > 0) {
+                    C4Error err = new C4Error();
+                    if (!Native.c4repl_setProgressLevel(_repl, C4ReplicatorProgressLevel.PerDocument, &err) || err.code > 0) {
+                        WriteLog.To.Sync.W(Tag, "Failed set progress level to PerDocument", err);
+                    }
+                }
+
                 err = localErr;
             });
 

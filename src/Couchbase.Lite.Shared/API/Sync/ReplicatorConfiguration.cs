@@ -74,28 +74,6 @@ namespace Couchbase.Lite.Sync
     }
 
     /// <summary>
-    /// An enum representing level of opt in on progress of replication
-    /// </summary>
-    [Flags]
-    internal enum ReplicatorProgressLevel : int
-    {
-        /// <summary>
-        /// No additional replication progress callback
-        /// </summary>
-        Overall,
-
-        /// <summary>
-        /// Every document replication ended callback
-        /// </summary>
-        PerDocument, // >=1
-
-        /// <summary>
-        /// Every blob replication progress callback
-        /// </summary>
-        PerAttachment // >=2
-    }
-
-    /// <summary>
     /// A class representing configuration options for a <see cref="Replicator"/>
     /// </summary>
     public sealed partial class ReplicatorConfiguration
@@ -284,11 +262,6 @@ namespace Couchbase.Lite.Sync
             set => _freezer.SetValue(ref _otherDb, value);
         }
 
-        internal ReplicatorProgressLevel ProgressLevel
-        {
-            get => Options.ProgressLevel;
-            set => _freezer.PerformAction(() => Options.ProgressLevel = value);
-        }
 
         [CanBeNull]
         internal Uri RemoteUrl
