@@ -181,14 +181,6 @@ namespace Couchbase.Lite.Sync
         [CanBeNull]
         public X509Certificate2 PinnedServerCertificate { get; set; }
 
-        /// <summary>
-        /// Level of opt in on progress of replication
-        /// </summary>
-        public ReplicatorProgressLevel ProgressLevel
-        {
-            get => (ReplicatorProgressLevel)this.GetCast<int>(LevelKey);
-            set => this[LevelKey] = (int)value;
-        }
 
         /// <summary>
         /// Stable ID for remote db with unstable URL

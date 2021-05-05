@@ -44,6 +44,27 @@ namespace LiteCore.Interop
         Stopping,   //Stopping or going offline
     }
 
+    /// <summary>
+    /// An enum representing level of opt in on progress of replication
+    /// </summary>
+    internal enum C4ReplicatorProgressLevel : int
+    {
+        /// <summary>
+        /// No additional replication progress callback
+        /// </summary>
+        Overall,
+
+        /// <summary>
+        /// Every document replication ended callback
+        /// </summary>
+        PerDocument, // >=1
+
+        /// <summary>
+        /// Every blob replication progress callback
+        /// </summary>
+        PerAttachment // >=2
+    }
+
     [Flags]
     internal enum C4ReplicatorStatusFlags : int
     {
