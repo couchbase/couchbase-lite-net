@@ -1016,7 +1016,7 @@ namespace Couchbase.Lite
                         WriteLog.To.Sync.W(Tag, $"{err.domain}/{err.code} Failed getting Cookie from address {addr}.");
                     }
 
-                    if (String.IsNullOrEmpty(cookies) || err.code > 0) {
+                    if (String.IsNullOrEmpty(cookies) && err.code == 0) {
                         WriteLog.To.Sync.V(Tag, "There is no saved HTTP cookies.");
                     }
                 }
