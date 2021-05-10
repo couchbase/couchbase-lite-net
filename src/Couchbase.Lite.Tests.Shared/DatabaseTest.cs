@@ -1055,8 +1055,8 @@ namespace Test
             var atts = attsDir.EnumerateFiles();
             atts.Should().HaveCount(20, "because there should be one blob per document");
 
-            Db.Compact();
-            
+            Db.PerformMaintenance(MaintenanceType.Compact);
+
             foreach (var doc in docs) {
                 var savedDoc = Db.GetDocument(doc.Id);
                 Db.Delete(savedDoc);
@@ -1064,7 +1064,7 @@ namespace Test
             }
 
             Db.Count.Should().Be(0, "because all documents were deleted");
-            Db.Compact();
+            Db.PerformMaintenance(MaintenanceType.Compact);
 
             atts = attsDir.EnumerateFiles();
             atts.Should().BeEmpty("because the blobs should be collected by the compaction");

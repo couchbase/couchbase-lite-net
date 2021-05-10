@@ -125,8 +125,8 @@ namespace Test
                     seekrit.Save(doc);
                     doc.SetInt("answer", 84);
 
-                    seekrit.Compact();
-                    
+                    seekrit.PerformMaintenance(MaintenanceType.Compact);
+
                     doc.SetInt("answer", 85);
                     seekrit.Save(doc);
                 }

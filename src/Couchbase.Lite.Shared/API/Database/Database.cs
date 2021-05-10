@@ -440,20 +440,6 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// [DEPRECATED] Sets the log level for the given domains(s)
-        /// </summary>
-        /// <param name="domains">The log domain(s)</param>
-        /// <param name="level">The log level</param>
-        [Obsolete("Currently SetLogLevel will only affect the console logger and not the file logger. Domains will be used as an on/off switch of sorts, and you can no longer set level per domain.")]
-        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-        public static void SetLogLevel(LogDomain domains, LogLevel level)
-        {
-            Log.Console.Level = level;
-            Log.Console.Domains = domains;
-            WriteLog.To.Database.W(Tag, "Currently SetLogLevel will only affect the console logger and not the file logger. Domains will be used as an on/off switch of sorts, and you can no longer set level per domain.");
-        }
-
-        /// <summary>
         /// Adds a change listener for the changes that occur in this database.  Signatures
         /// are the same as += style event handlers, but the callbacks will be called using the
         /// specified <see cref="TaskScheduler"/>.  If the scheduler is null, the default task
