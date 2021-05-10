@@ -197,6 +197,10 @@ namespace Couchbase.Lite.Sync
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
             var cbHandler = new CouchbaseEventHandler<DocumentReplicationEventArgs>(handler, scheduler);
+            if (_repl!= null && _documentEndedUpdateEventsCount <= 0) {
+                SetProgressLevel(C4ReplicatorProgressLevel.PerDocument);
+            }
+            
             _documentEndedUpdate.Add(cbHandler);
             _documentEndedUpdateEventsCount++;
             return new ListenerToken(cbHandler, "repl");
@@ -213,10 +217,7 @@ namespace Couchbase.Lite.Sync
             _statusChanged.Remove(token);
             if (_documentEndedUpdate.Remove(token) == 0) {
                 _documentEndedUpdateEventsCount--;
-                C4Error err = new C4Error();
-                if(!Native.c4repl_setProgressLevel(_repl, C4ReplicatorProgressLevel.Overall, &err) || err.code > 0) {
-                    WriteLog.To.Sync.W(Tag, "Failed set progress level to Overall", err);
-                }
+                SetProgressLevel(C4ReplicatorProgressLevel.Overall);
             }
         }
 
@@ -754,10 +755,7 @@ namespace Couchbase.Lite.Sync
                     _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
 
                 if (_documentEndedUpdateEventsCount > 0) {
-                    C4Error err = new C4Error();
-                    if (!Native.c4repl_setProgressLevel(_repl, C4ReplicatorProgressLevel.PerDocument, &err) || err.code > 0) {
-                        WriteLog.To.Sync.W(Tag, "Failed set progress level to PerDocument", err);
-                    }
+                    SetProgressLevel(C4ReplicatorProgressLevel.PerDocument);
                 }
 
                 err = localErr;
@@ -768,6 +766,14 @@ namespace Couchbase.Lite.Sync
             host.Dispose();
 
             return err;
+        }
+
+        private void SetProgressLevel(C4ReplicatorProgressLevel progressLevel)
+        {
+            C4Error err = new C4Error();
+            if (!Native.c4repl_setProgressLevel(_repl, progressLevel, &err) || err.code > 0) {
+                WriteLog.To.Sync.W(Tag, $"Failed set progress level to {progressLevel}", err);
+            }
         }
 
         private void StartReachabilityObserver()
