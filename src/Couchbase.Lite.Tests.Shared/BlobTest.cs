@@ -237,7 +237,7 @@ namespace Test
         {
             var blob = ArrayTestBlob();
             Db.SaveBlob(blob);
-            Db.Compact();
+            Db.PerformMaintenance(MaintenanceType.Compact);
 
             var blobDict = new Dictionary<string, object>() {
                 { Blob.ContentTypeKey, blob.ContentType },
