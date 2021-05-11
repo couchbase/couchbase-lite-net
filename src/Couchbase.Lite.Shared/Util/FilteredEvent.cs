@@ -163,6 +163,8 @@ namespace Couchbase.Lite.Util
 
         #endregion
 
+        internal int Counter => _events.Count;
+
         #region Public Methods
 
         public int Add(CouchbaseEventHandler<TEventType> handler)

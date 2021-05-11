@@ -70,7 +70,6 @@ namespace Couchbase.Lite.Sync
         [NotNull]private readonly Event<ReplicatorStatusChangedEventArgs> _statusChanged =
             new Event<ReplicatorStatusChangedEventArgs>();
 
-        private int _documentEndedUpdateEventsCount;
         private string _desc;
         private bool _disposed;
 
@@ -197,12 +196,11 @@ namespace Couchbase.Lite.Sync
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
             var cbHandler = new CouchbaseEventHandler<DocumentReplicationEventArgs>(handler, scheduler);
-            if (_repl!= null && _documentEndedUpdateEventsCount <= 0) {
+            if (_repl!= null && _documentEndedUpdate.Counter <= 0) {
                 SetProgressLevel(C4ReplicatorProgressLevel.PerDocument);
             }
             
             _documentEndedUpdate.Add(cbHandler);
-            _documentEndedUpdateEventsCount++;
             return new ListenerToken(cbHandler, "repl");
         }
 
@@ -216,7 +214,6 @@ namespace Couchbase.Lite.Sync
         {
             _statusChanged.Remove(token);
             if (_documentEndedUpdate.Remove(token) == 0) {
-                _documentEndedUpdateEventsCount--;
                 SetProgressLevel(C4ReplicatorProgressLevel.Overall);
             }
         }
@@ -737,7 +734,7 @@ namespace Couchbase.Lite.Sync
             #endif
                     _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
 
-                if (_documentEndedUpdateEventsCount > 0) {
+                if (_documentEndedUpdate.Counter > 0) {
                     SetProgressLevel(C4ReplicatorProgressLevel.PerDocument);
                 }
 
