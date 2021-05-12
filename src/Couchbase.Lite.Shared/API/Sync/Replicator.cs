@@ -196,7 +196,7 @@ namespace Couchbase.Lite.Sync
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
             var cbHandler = new CouchbaseEventHandler<DocumentReplicationEventArgs>(handler, scheduler);
-            if (_repl!= null && _documentEndedUpdate.Counter <= 0) {
+            if (_repl!= null) {
                 SetProgressLevel(C4ReplicatorProgressLevel.PerDocument);
             }
             
