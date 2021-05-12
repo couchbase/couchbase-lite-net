@@ -33,6 +33,18 @@ namespace Couchbase.Lite
             Domains = domains;
         }
 
+        protected BaseLogger([NotNull] LogLevel level, [NotNull] params object[] domains)
+        {
+            Level = level;
+            foreach(var d in domains) {
+                if(d is LogDomain) {
+                    
+                }
+            }
+
+            //Not sure this method is needed since we already have the one above...
+        }
+
         protected BaseLogger([NotNull] LogLevel level)
         {
             Level = level;
