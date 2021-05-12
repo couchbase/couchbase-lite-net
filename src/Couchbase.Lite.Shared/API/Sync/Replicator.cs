@@ -196,11 +196,10 @@ namespace Couchbase.Lite.Sync
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
             var cbHandler = new CouchbaseEventHandler<DocumentReplicationEventArgs>(handler, scheduler);
-            if (_repl!= null) {
+            if (_documentEndedUpdate.Add(cbHandler) == 0) {
                 SetProgressLevel(C4ReplicatorProgressLevel.PerDocument);
             }
             
-            _documentEndedUpdate.Add(cbHandler);
             return new ListenerToken(cbHandler, "repl");
         }
 
@@ -750,6 +749,11 @@ namespace Couchbase.Lite.Sync
 
         private void SetProgressLevel(C4ReplicatorProgressLevel progressLevel)
         {
+            if (_repl == null) {
+                WriteLog.To.Sync.V(Tag, $"Progress level {progressLevel} is not yet set because C4Replicator is not created.");
+                return;
+            }
+
             C4Error err = new C4Error();
             if (!Native.c4repl_setProgressLevel(_repl, progressLevel, &err) || err.code > 0) {
                 WriteLog.To.Sync.W(Tag, $"Failed set progress level to {progressLevel}", err);
