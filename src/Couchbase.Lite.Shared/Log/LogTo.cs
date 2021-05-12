@@ -163,20 +163,20 @@ namespace Couchbase.Lite.Internal.Logging
 
         private void SendToLoggers(LogLevel level, [NotNull]string msg)
 		{
-            Database.Log.Console.Log(level, Domain, msg);
+            Logger.Loggers.Console.Log(level, Domain, msg);
 		    var fileSucceeded = false;
 		    try {
-		        Database.Log.File.Log(level, Domain, msg);
+		        Logger.Loggers.File.Log(level, Domain, msg);
 		        fileSucceeded = true;
-		        Database.Log.Custom?.Log(level, Domain, msg);
+		        Logger.Loggers.Custom?.Log(level, Domain, msg);
 		    } catch (Exception e) {
 		        var logType = fileSucceeded
-		            ? Database.Log.Custom?.GetType().Name
+		            ? Logger.Loggers.Custom?.GetType().Name
 		            : "log file";
 		        var errMsg = FormatMessage("FILELOG", $"Error writing to {logType}", e);
-                Database.Log.Console.Log(LogLevel.Error, LogDomain.None, errMsg);
+                Logger.Loggers.Console.Log(LogLevel.Error, LogDomain.None, errMsg);
 		        if (!fileSucceeded) {
-		            Database.Log.Custom?.Log(LogLevel.Error, LogDomain.None, errMsg);
+		            Logger.Loggers.Custom?.Log(LogLevel.Error, LogDomain.None, errMsg);
 		        }
 		    }
 		}

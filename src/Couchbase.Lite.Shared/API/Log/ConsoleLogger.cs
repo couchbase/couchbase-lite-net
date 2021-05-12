@@ -15,6 +15,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Couchbase.Lite.Logging
 {
     /// <summary>
@@ -23,21 +25,32 @@ namespace Couchbase.Lite.Logging
     /// UWP uses the visual studio debug output pane, iOS uses NSLog
     /// and Android uses logcat.
     /// </summary>
-    public interface IConsoleLogger : ILogger
+    public abstract class ConsoleLogger : BaseLogger
     {
-        #region Properties
+        //#region Properties
 
-        /// <summary>
-        /// Gets or sets the domains that this logger will output
-        /// </summary>
-        LogDomain Domains { get; set; }
+        ///// <summary>
+        ///// Gets or sets the domains that this logger will output
+        ///// </summary>
+        //new LogDomain Domains { get; set; }
 
-        /// <summary>
-        /// Overrides the <see cref="ILogger"/> Level property
-        /// with a public setter.
-        /// </summary>
-        new LogLevel Level { get; set; }
+        ///// <summary>
+        ///// Overrides the <see cref="ILogger"/> Level property
+        ///// with a public setter.
+        ///// </summary>
+        //new LogLevel Level { get; set; }
 
-        #endregion
+        //#endregion
+
+        protected ConsoleLogger([NotNull] LogLevel level, [NotNull] LogDomain domains) : base(level, domains)
+        {
+
+        }
+
+        protected ConsoleLogger([NotNull] LogLevel level) : base(level)
+        {
+
+        }
+
     }
 }

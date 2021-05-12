@@ -26,6 +26,7 @@
 #define DEBUG
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 using Couchbase.Lite.DI;
@@ -34,7 +35,7 @@ using Couchbase.Lite.Logging;
 namespace Couchbase.Lite.Support
 {
     [CouchbaseDependency]
-    internal sealed class DesktopConsoleLogger : IConsoleLogger
+    internal sealed class DesktopConsoleLogger : ConsoleLogger
     {
         #region Properties
 
@@ -43,6 +44,16 @@ namespace Couchbase.Lite.Support
         public LogLevel Level { get; set; } = LogLevel.Warning;
 
         #endregion
+
+        protected DesktopConsoleLogger([NotNull] LogLevel level, [NotNull] LogDomain domains) : base(level, domains)
+        {
+
+        }
+
+        protected DesktopConsoleLogger([NotNull] LogLevel level) : base(level)
+        {
+
+        }
 
         #region Private Methods
 
@@ -59,15 +70,21 @@ namespace Couchbase.Lite.Support
 
         public void Log(LogLevel level, LogDomain domain, string message)
         {
-            if (level < Level || !Domains.HasFlag(domain)) {
-                return;
-            }
+            //if (level < Level || !Domains.HasFlag(domain)) {
+            //    return;
+            //}
+            base.Log(level, domain, message);
 
             var finalStr = MakeMessage(message, level, domain);
             Console.WriteLine(finalStr);
             if (Debugger.IsAttached) {
                 Debug.WriteLine(finalStr);
             }
+        }
+
+        public override void WriteLog(LogLevel level, LogDomain domain, string message)
+        {
+            throw new NotImplementedException();
         }
 
         #endregion

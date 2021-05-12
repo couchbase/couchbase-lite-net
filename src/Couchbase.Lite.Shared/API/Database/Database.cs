@@ -175,12 +175,12 @@ namespace Couchbase.Lite
         [@NotNull]
         public DocumentFragment this[string id] => new DocumentFragment(GetDocument(id));
 
-        /// <summary>
-        /// Gets the object that stores the available logging methods
-        /// for Couchbase Lite
-        /// </summary>
-        [@NotNull]
-        public static Log Log { get; } = new Log();
+        ///// <summary>
+        ///// Gets the object that stores the available logging methods
+        ///// for Couchbase Lite
+        ///// </summary>
+        //[@NotNull]
+        //public static Log Log { get; } = new Log();
 
         /// <summary>
         /// Gets the database's name
@@ -330,8 +330,8 @@ namespace Couchbase.Lite
 
         private void CheckFileLogger()
         {
-            if (Log.File.Config == null) {
-                WriteLog.To.Database.W("Logging", "Database.Log.File.Config is null, meaning file logging is disabled.  Log files required for product support are not being generated.");
+            if (Logger.Loggers.File.Config == null) {
+                WriteLog.To.Database.W("Logging", "Logger.Log.File.Config is null, meaning file logging is disabled.  Log files required for product support are not being generated.");
             }
         }
 
@@ -440,19 +440,19 @@ namespace Couchbase.Lite
             return Directory.Exists(DatabasePath(name, directory));
         }
 
-        /// <summary>
-        /// [DEPRECATED] Sets the log level for the given domains(s)
-        /// </summary>
-        /// <param name="domains">The log domain(s)</param>
-        /// <param name="level">The log level</param>
-        [Obsolete("Currently SetLogLevel will only affect the console logger and not the file logger. Domains will be used as an on/off switch of sorts, and you can no longer set level per domain.")]
-        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-        public static void SetLogLevel(LogDomain domains, LogLevel level)
-        {
-            Log.Console.Level = level;
-            Log.Console.Domains = domains;
-            WriteLog.To.Database.W(Tag, "Currently SetLogLevel will only affect the console logger and not the file logger. Domains will be used as an on/off switch of sorts, and you can no longer set level per domain.");
-        }
+        ///// <summary>
+        ///// [DEPRECATED] Sets the log level for the given domains(s)
+        ///// </summary>
+        ///// <param name="domains">The log domain(s)</param>
+        ///// <param name="level">The log level</param>
+        //[Obsolete("Currently SetLogLevel will only affect the console logger and not the file logger. Domains will be used as an on/off switch of sorts, and you can no longer set level per domain.")]
+        //[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        //public static void SetLogLevel(LogDomain domains, LogLevel level)
+        //{
+        //    Log.Console.Level = level;
+        //    Log.Console.Domains = domains;
+        //    WriteLog.To.Database.W(Tag, "Currently SetLogLevel will only affect the console logger and not the file logger. Domains will be used as an on/off switch of sorts, and you can no longer set level per domain.");
+        //}
 
         /// <summary>
         /// Adds a change listener for the changes that occur in this database.  Signatures

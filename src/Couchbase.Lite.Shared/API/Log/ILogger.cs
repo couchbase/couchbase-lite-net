@@ -15,6 +15,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
+using System.Threading.Tasks;
+
 namespace Couchbase.Lite.Logging
 {
     /// <summary>
@@ -31,6 +33,11 @@ namespace Couchbase.Lite.Logging
         /// </summary>
         LogLevel Level { get; }
 
+        /// <summary>
+        /// Gets or sets the domains that this logger will output
+        /// </summary>
+        LogDomain Domains { get; }
+
         #endregion
 
         #region Public Methods
@@ -42,6 +49,38 @@ namespace Couchbase.Lite.Logging
         /// <param name="domain">The domain of the message being logged</param>
         /// <param name="message">The content of the message being logged</param>
         void Log(LogLevel level, LogDomain domain, string message);
+
+        #endregion
+    }
+
+    public interface ILogger<T>
+    {
+        #region Properties
+
+        /// <summary>
+        /// Gets the level that the logger is currently
+        /// logging
+        /// </summary>
+        LogLevel Level { get; }
+
+        /// <summary>
+        /// Gets or sets the domains that this logger will output
+        /// </summary>
+        LogDomain Domains { get; }
+
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Performs the actual logging to the log storage
+        /// </summary>
+        /// <param name="level">The level of the message being logged</param>
+        /// <param name="domain">The domain of the message being logged</param>
+        /// <param name="message">The content of the message being logged</param>
+        Task<T> LogAsync(LogLevel level, LogDomain domain, string message);
+
+        Task<T> WriteLogAsync(LogLevel level, LogDomain domain, string message);
 
         #endregion
     }

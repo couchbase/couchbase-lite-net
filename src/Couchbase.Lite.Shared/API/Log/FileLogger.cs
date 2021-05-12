@@ -31,6 +31,7 @@ using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+using WriteLogClass = Couchbase.Lite.Internal.Logging.WriteLog;
 
 namespace Couchbase.Lite.Logging
 {
@@ -161,7 +162,7 @@ namespace Couchbase.Lite.Logging
     /// A class that controls the file logging facility of
     /// Couchbase Lite
     /// </summary>
-    public sealed class FileLogger : ILogger
+    public sealed class FileLogger : BaseLogger
     {
         #region Variables
 
@@ -184,7 +185,7 @@ namespace Couchbase.Lite.Logging
             get => _config;
             set {
                 if (value == null) {
-                    WriteLog.To.Database.W("Logging", "Database.Log.File.Config is now null, meaning file logging is disabled.  Log files required for product support are not being generated.");
+                    WriteLogClass.To.Database.W("Logging", "Logger.Log.File.Config is now null, meaning file logging is disabled.  Log files required for product support are not being generated.");
                 }
 
                 _config = value?.Freeze();
@@ -216,7 +217,19 @@ namespace Couchbase.Lite.Logging
         /// <summary>
         /// Default Constructor
         /// </summary>
-        public FileLogger()
+        //public FileLogger()
+        //{
+        //    SetupDomainObjects();
+        //    Native.c4log_setBinaryFileLevel(C4LogLevel.None);
+        //}
+
+        protected FileLogger([NotNull] LogLevel level, [NotNull] LogDomain domains) : base(level, domains)
+        {
+            SetupDomainObjects();
+            Native.c4log_setBinaryFileLevel(C4LogLevel.None);
+        }
+
+        protected FileLogger([NotNull] LogLevel level) : base(level)
         {
             SetupDomainObjects();
             Native.c4log_setBinaryFileLevel(C4LogLevel.None);
@@ -245,10 +258,10 @@ namespace Couchbase.Lite.Logging
                     C4LogLevel.Debug);
             }
 
-            foreach (var domain in new[] { 
-                WriteLog.LogDomainBLIP, 
-                WriteLog.LogDomainSyncBusy, 
-                WriteLog.LogDomainWebSocket
+            foreach (var domain in new[] {
+                WriteLogClass.LogDomainBLIP,
+                WriteLogClass.LogDomainSyncBusy,
+                WriteLogClass.LogDomainWebSocket
             }) {
                 Native.c4log_setLevel(domain, C4LogLevel.Debug);
             }
@@ -287,6 +300,11 @@ namespace Couchbase.Lite.Logging
             }
 
             Native.c4slog((C4LogDomain*)_domainObjects[domain], (C4LogLevel)level, message);
+        }
+
+        public override void WriteLog(LogLevel level, LogDomain domain, string message)
+        {
+            throw new NotImplementedException();
         }
 
         #endregion

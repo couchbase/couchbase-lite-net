@@ -25,7 +25,7 @@ namespace Couchbase.Lite.Logging
     /// <summary>
     /// The class that stores the three available logging facilities in Couchbase Lite
     /// </summary>
-    public sealed class Log
+    public sealed class Loggers
     {
         #region Properties
 
@@ -33,7 +33,7 @@ namespace Couchbase.Lite.Logging
         /// Gets the logging facility that logs to a debugging console
         /// </summary>
         [NotNull]
-        public IConsoleLogger Console { get; } = Service.GetRequiredInstance<IConsoleLogger>();
+        public ConsoleLogger Console { get; } = Service.GetRequiredInstance<ConsoleLogger>();
 
         /// <summary>
         /// Gets or sets the user defined logging facility
@@ -44,7 +44,7 @@ namespace Couchbase.Lite.Logging
         /// Gets the logging facility that logs to files on the disk
         /// </summary>
         [NotNull]
-        public FileLogger File { get; } = new FileLogger();
+        public FileLogger File { get; } = Service.GetRequiredInstance<FileLogger>();
 
         #endregion
     }

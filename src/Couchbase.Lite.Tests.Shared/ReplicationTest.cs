@@ -91,7 +91,7 @@ namespace Test
             _timeout = TimeSpan.FromSeconds(15);
 
             //uncomment the code below when you need to see more detail log
-            //Database.Log.Console.Level = LogLevel.Debug;
+            //Logger.Log.Console.Level = LogLevel.Debug;
         }
 
         protected void OpenOtherDb()

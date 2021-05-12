@@ -50,7 +50,7 @@ namespace Test
             get => _output;
             set {
                 _output = value;
-                Database.Log.Custom = new MSTestLogger(value) { Level = LogLevel.Info };
+                Logger.Log.Custom = new MSTestLogger(value) { Level = LogLevel.Info };
             }
         }
 #endif
@@ -71,7 +71,7 @@ namespace Test
         protected PerfTest(ITestOutputHelper output)
         {
             _output = output;
-            Database.Log.Custom = new XunitLogger(output) { Level = LogLevel.Info };
+            Logger.Loggers.Custom = new XunitLogger(output) { Level = LogLevel.Info };
         }
 #endif
 
@@ -112,19 +112,19 @@ namespace Test
 
         protected virtual void SetUp()
         {
-            Database.Log.Console.Level = LogLevel.None;
-            Database.Log.File.Level = LogLevel.None;
+            Logger.Loggers.Console.Level = LogLevel.None;
+            Logger.Loggers.File.Level = LogLevel.None;
         }
 
         protected abstract void Test();
 
         protected virtual void TearDown()
         {
-            Database.Log.Console.Level = LogLevel.Warning;
-            Database.Log.File.Level = LogLevel.Info;
+            Logger.Loggers.Console.Level = LogLevel.Warning;
+            Logger.Loggers.File.Level = LogLevel.Info;
             Db?.Dispose();
             Db = null;
-            Database.Log.Custom = null;
+            Logger.Loggers.Custom = null;
         }
 
         protected void Run()

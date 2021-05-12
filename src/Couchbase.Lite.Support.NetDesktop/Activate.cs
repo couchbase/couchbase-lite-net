@@ -76,11 +76,11 @@ namespace Couchbase.Lite.Support
         /// <summary>
         /// <para>[DEPRECATED] Turns on text based logging for debugging purposes.  The logs will be written 
         /// to the directory specified in <paramref name="directoryPath"/>.  It is equivalent to setting
-        /// a configuration with <c>UsePlaintext</c> set to <c>true</c> on <c>Database.Log.File.Config</c></para>
+        /// a configuration with <c>UsePlaintext</c> set to <c>true</c> on <c>Logger.Log.File.Config</c></para>
         ///
         /// <para>This will override binary
-        /// logging.  It is not recommended to use this method anymore, but to use <c>Database.Log.Console</c>
-        /// to get information to the console, or <c>Database.Log.Custom</c> to set up custom logging logic
+        /// logging.  It is not recommended to use this method anymore, but to use <c>Logger.Log.Console</c>
+        /// to get information to the console, or <c>Logger.Log.Custom</c> to set up custom logging logic
         /// </para>
         /// </summary>
         /// <param name="directoryPath">The directory to write logs to</param>
@@ -112,7 +112,7 @@ namespace Couchbase.Lite.Support
         /// the default directory does not have write permission.
         /// </summary>
         /// <param name="directoryPath">The path to write binary logs to</param>
-        [Obsolete("This has been superseded by Database.Log.File.Directory.")]
+        [Obsolete("This has been superseded by Logger.Log.File.Directory.")]
         public static void SetBinaryLogDirectory(string directoryPath)
         {
             var dbType = Type.GetType("Couchbase.Lite.Database, Couchbase.Lite");

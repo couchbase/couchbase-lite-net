@@ -61,7 +61,7 @@ namespace Test
 #if !WINDOWS_UWP
         public LogTest(ITestOutputHelper output)
         {
-            Database.Log.Custom = new XunitLogger(output) { Level = LogLevel.Info };
+            Logger.Loggers.Custom = new XunitLogger(output) { Level = LogLevel.Info };
         }
 #endif
 
@@ -72,7 +72,7 @@ namespace Test
             get => _testContext;
             set {
                 _testContext = value;
-                Database.Log.Custom = new MSTestLogger(_testContext) { Level = LogLevel.Info };
+                Logger.Log.Custom = new MSTestLogger(_testContext) { Level = LogLevel.Info };
             }
         }
 #endif
@@ -96,14 +96,14 @@ namespace Test
         public void TestPlaintext()
         {
             var logDirectory = EmptyDirectory(Path.Combine(Path.GetTempPath(), "TestPlaintext"));
-            var config = new LogFileConfiguration(logDirectory, Database.Log.File.Config)
+            var config = new LogFileConfiguration(logDirectory, Logger.Loggers.File.Config)
             {
                 UsePlaintext = true
             };
 
             TestWithConfiguration(LogLevel.Info, config, () =>
             {
-                Database.Log.File.Config = new LogFileConfiguration(logDirectory, Database.Log.File.Config)
+                Logger.Loggers.File.Config = new LogFileConfiguration(logDirectory, Logger.Loggers.File.Config)
                 {
                     UsePlaintext = true
                 };
@@ -137,7 +137,7 @@ namespace Test
                     WriteLog.To.Database.D("TEST", $"MESSAGE {i}");
                 }
                 
-                var totalCount = (Database.Log.File.Config.MaxRotateCount + 1) * 5;
+                var totalCount = (Logger.Loggers.File.Config.MaxRotateCount + 1) * 5;
 #if !DEBUG
                 totalCount -= 1; // Non-debug builds won't log debug files
 #endif
@@ -253,14 +253,14 @@ namespace Test
         public void TestConsoleLoggingLevels()
         {
             WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
-            Database.Log.Console.Level = LogLevel.None;
+            Logger.Loggers.Console.Level = LogLevel.None;
             var stringWriter = new StringWriter();
             Console.SetOut(stringWriter);
             WriteLog.To.Database.E("TEST", "TEST ERROR");
             stringWriter.Flush();
             stringWriter.ToString().Should().BeEmpty("because logging is disabled");
 
-            Database.Log.Console.Level = LogLevel.Verbose;
+            Logger.Loggers.Console.Level = LogLevel.Verbose;
             stringWriter = new StringWriter();
             Console.SetOut(stringWriter);
             WriteLog.To.Database.V("TEST", "TEST VERBOSE");
@@ -274,7 +274,7 @@ namespace Test
             var currentCount = 1;
             foreach (var level in new[] { LogLevel.Error, LogLevel.Warning, 
                 LogLevel.Info}) {
-                Database.Log.Console.Level = level;
+                Logger.Loggers.Console.Level = level;
                 stringWriter = new StringWriter();
                 Console.SetOut(stringWriter);
                 WriteLog.To.Database.V("TEST", "TEST VERBOSE");
@@ -288,46 +288,46 @@ namespace Test
             }
 
             Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
-            Database.Log.Console.Level = LogLevel.Warning;
+            Logger.Loggers.Console.Level = LogLevel.Warning;
         }
 
-        [Fact]
-        void TestSetLogLevel()
-        {
-            WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
-            Database.SetLogLevel(LogDomain.All, LogLevel.None);
-            var stringWriter = new StringWriter();
-            Console.SetOut(stringWriter);
-            WriteLog.To.Database.E("TEST", "TEST ERROR");
-            stringWriter.Flush();
-            stringWriter.ToString().Should().BeEmpty("because logging is disabled");
+        //[Fact]
+        //void TestSetLogLevel()
+        //{
+        //    WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
+        //    Database.SetLogLevel(LogDomain.All, LogLevel.None);
+        //    var stringWriter = new StringWriter();
+        //    Console.SetOut(stringWriter);
+        //    WriteLog.To.Database.E("TEST", "TEST ERROR");
+        //    stringWriter.Flush();
+        //    stringWriter.ToString().Should().BeEmpty("because logging is disabled");
 
-            var currentCount = 1;
-            foreach (var level in new[] { LogLevel.Error, LogLevel.Warning,
-                LogLevel.Info, LogLevel.Verbose}) {
-                Database.SetLogLevel(LogDomain.All, level);
-                stringWriter = new StringWriter();
-                Console.SetOut(stringWriter);
-                WriteLog.To.Database.V("TEST", "TEST VERBOSE");
-                WriteLog.To.Database.I("TEST", "TEST INFO");
-                WriteLog.To.Database.W("TEST", "TEST WARNING");
-                WriteLog.To.Database.E("TEST", "TEST ERROR");
-                stringWriter.Flush();
-                stringWriter.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Should()
-                    .HaveCount(currentCount, "because {0} levels should be logged for {1}", currentCount, level);
-                currentCount++;
-            }
+        //    var currentCount = 1;
+        //    foreach (var level in new[] { LogLevel.Error, LogLevel.Warning,
+        //        LogLevel.Info, LogLevel.Verbose}) {
+        //        Database.SetLogLevel(LogDomain.All, level);
+        //        stringWriter = new StringWriter();
+        //        Console.SetOut(stringWriter);
+        //        WriteLog.To.Database.V("TEST", "TEST VERBOSE");
+        //        WriteLog.To.Database.I("TEST", "TEST INFO");
+        //        WriteLog.To.Database.W("TEST", "TEST WARNING");
+        //        WriteLog.To.Database.E("TEST", "TEST ERROR");
+        //        stringWriter.Flush();
+        //        stringWriter.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).Should()
+        //            .HaveCount(currentCount, "because {0} levels should be logged for {1}", currentCount, level);
+        //        currentCount++;
+        //    }
 
-            Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
-            Database.SetLogLevel(LogDomain.All, LogLevel.Warning);
-        }
+        //    Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
+        //    Database.SetLogLevel(LogDomain.All, LogLevel.Warning);
+        //}
 
         [Fact]
         public void TestConsoleLoggingDomains()
         {
             WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
-            Database.Log.Console.Domains = LogDomain.None;
-            Database.Log.Console.Level = LogLevel.Info;
+            Logger.Loggers.Console.Domains = LogDomain.None;
+            Logger.Loggers.Console.Level = LogLevel.Info;
             var stringWriter = new StringWriter();
             Console.SetOut(stringWriter);
             foreach (var domain in WriteLog.To.All) {
@@ -337,7 +337,7 @@ namespace Test
             stringWriter.Flush();
             stringWriter.ToString().Should().BeEmpty("because all domains are disabled");
             foreach (var domain in WriteLog.To.All) {
-                Database.Log.Console.Domains = domain.Domain;
+                Logger.Loggers.Console.Domains = domain.Domain;
                 stringWriter = new StringWriter();
                 Console.SetOut(stringWriter);
                 foreach (var d in WriteLog.To.All) {
@@ -349,14 +349,14 @@ namespace Test
             }
 
             Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
-            Database.Log.Console.Domains = LogDomain.All;
-            Database.Log.Console.Level = LogLevel.Warning;
+            Logger.Loggers.Console.Domains = LogDomain.All;
+            Logger.Loggers.Console.Level = LogLevel.Warning;
         }
 
         [Fact]
         public void TestFileLogDisabledWarning()
         {
-            Database.Log.File.Config.Should().BeNull();
+            Logger.Loggers.File.Config.Should().BeNull();
             
             // There is a helper method in debug builds that can clear the "run once"
             // logic.  Otherwise there has to be a guarantee that this method will run
@@ -375,8 +375,8 @@ namespace Test
             using (var sw = new StringWriter()) {
                 Console.SetOut(sw);
                 var fakePath = Path.Combine(Service.GetInstance<IDefaultDirectoryResolver>().DefaultDirectory(), "foo");
-                Database.Log.File.Config = new LogFileConfiguration(fakePath);
-                Database.Log.File.Config = null;
+                Logger.Loggers.File.Config = new LogFileConfiguration(fakePath);
+                Logger.Loggers.File.Config = null;
                 sw.ToString().Contains("file logging is disabled").Should().BeTrue();
             }
 
@@ -399,7 +399,7 @@ namespace Test
         {
             var customLogger = new LogTestLogger();
             WriteLog.To.Database.I("IGNORE", "IGNORE"); // Skip initial message
-            Database.Log.Custom = customLogger;
+            Logger.Loggers.Custom = customLogger;
             customLogger.Level = LogLevel.None;
             WriteLog.To.Database.E("TEST", "TEST ERROR");
             customLogger.Lines.Should().BeEmpty("because logging level is set to None");
@@ -444,7 +444,7 @@ namespace Test
             {
                 foreach (var level in new[]
                     { LogLevel.None, LogLevel.Error, LogLevel.Warning, LogLevel.Info, LogLevel.Verbose }) {
-                    Database.Log.File.Level = level;
+                    Logger.Loggers.File.Level = level;
                     WriteLog.To.Database.V("TEST", "TEST VERBOSE");
                     WriteLog.To.Database.I("TEST", "TEST INFO");
                     WriteLog.To.Database.W("TEST", "TEST WARNING");
@@ -473,8 +473,8 @@ namespace Test
         public void TestNonAscii()
         {
             var customLogger = new LogTestLogger { Level = LogLevel.Verbose };
-            Database.Log.Custom = customLogger;
-            Database.Log.Console.Level = LogLevel.Verbose;
+            Logger.Loggers.Custom = customLogger;
+            Logger.Loggers.Console.Level = LogLevel.Verbose;
             try {
                 var hebrew = "מזג האוויר נחמד היום"; // The weather is nice today.
                 Database.Delete("test_non_ascii", null);
@@ -492,21 +492,21 @@ namespace Test
                     customLogger.Lines.Any(x => x.Contains(expectedHebrew)).Should().BeTrue();
                 }
             } finally {
-                Database.Log.Custom = null;
-                Database.Log.Console.Level = LogLevel.Warning;
+                Logger.Loggers.Custom = null;
+                Logger.Loggers.Console.Level = LogLevel.Warning;
             }
         }
 
         private void TestWithConfiguration(LogLevel level, LogFileConfiguration config, [NotNull]Action a)
         {
-            var old = Database.Log.File.Config;
-            Database.Log.File.Config = config;
-            Database.Log.File.Level = level;
+            var old = Logger.Loggers.File.Config;
+            Logger.Loggers.File.Config = config;
+            Logger.Loggers.File.Level = level;
             try {
                 a();
             } finally {
-                Database.Log.File.Level = LogLevel.Info;
-                Database.Log.File.Config = old;
+                Logger.Loggers.File.Level = LogLevel.Info;
+                Logger.Loggers.File.Config = old;
             }
         }
 

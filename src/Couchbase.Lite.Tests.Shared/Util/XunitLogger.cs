@@ -36,6 +36,8 @@ namespace Test.Util
 
         public LogLevel Level { get; set; } = LogLevel.Warning;
 
+        public LogDomain Domains => throw new NotImplementedException();
+
         #endregion
 
         #region Constructors

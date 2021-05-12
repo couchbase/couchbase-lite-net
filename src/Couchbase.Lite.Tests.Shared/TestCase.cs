@@ -71,7 +71,7 @@ namespace Test
             get => _testContext;
             set {
                 _testContext = value;
-                Database.Log.Custom = new MSTestLogger(_testContext) { Level = LogLevel.Info };
+                Logger.Log.Custom = new MSTestLogger(_testContext) { Level = LogLevel.Info };
             }
         }
 #endif
@@ -93,7 +93,7 @@ namespace Test
 #if !WINDOWS_UWP
         public TestCase(ITestOutputHelper output)
         {
-            Database.Log.Custom = new XunitLogger(output) { Level = LogLevel.Info };
+            Logger.Loggers.Custom = new XunitLogger(output) { Level = LogLevel.Info };
             _output = output;
 #else
         public TestCase()
@@ -443,7 +443,7 @@ namespace Test
             Db?.Dispose();
             var name = Db?.Name;
             Db = null;
-            Database.Log.Custom = null;
+            Logger.Loggers.Custom = null;
             Exception ex = null;
 
             var success = Try.Condition(() =>

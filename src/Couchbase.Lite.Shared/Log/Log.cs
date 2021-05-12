@@ -64,11 +64,12 @@ namespace Couchbase.Lite.Internal.Logging
         internal static LogTo To
         {
             get {
-                if (!_Initialized.Set(true)) {
-                    var oldLevel = Database.Log.Console.Level;
-                    Database.Log.Console.Level = LogLevel.Info;
-                    _To.Database.I("Startup", HTTPLogic.UserAgent);
-                    Database.Log.Console.Level = oldLevel;
+                if (!_Initialized.Set(true))
+                {//TODO: Need to find way to log this initial log
+                    //var oldLevel = Logger.Loggers.Console.Level;
+                    //Logger.Loggers.Console.Level = LogLevel.Info;
+                    //_To.Database.I("Startup", HTTPLogic.UserAgent);
+                    //Logger.Loggers.Console.Level = oldLevel;
                 }
 
                 // Not the best place to do this, but otherwise we have to require the developer
@@ -94,8 +95,8 @@ namespace Couchbase.Lite.Internal.Logging
 
         internal static void RecalculateLevel()
         {
-            var effectiveLevel = (LogLevel)Math.Min((int) Database.Log.Console.Level,
-                (int?) Database.Log.Custom?.Level ?? (int) LogLevel.Error);
+            var effectiveLevel = (LogLevel)Math.Min((int) Logger.Loggers.Console.Level,
+                (int?) Logger.Loggers.Custom?.Level ?? (int) LogLevel.Error);
             if (effectiveLevel == _CurrentLevel) {
                 return;
             }
@@ -129,8 +130,8 @@ namespace Couchbase.Lite.Internal.Logging
             var domainName = Native.c4log_getDomainName(domain);
             var logDomain = To.DomainForString(domainName);
             var actualMessage = message.ToUTF8String();
-            Database.Log.Console.Log((LogLevel)level, logDomain, actualMessage);
-            Database.Log.Custom?.Log((LogLevel)level, logDomain, actualMessage);
+            Logger.Loggers.Console.Log((LogLevel)level, logDomain, actualMessage);
+            Logger.Loggers.Custom?.Log((LogLevel)level, logDomain, actualMessage);
         }
 
         #endregion

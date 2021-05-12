@@ -42,9 +42,11 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Error\CouchbaseLiteErrorMessage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Error\CouchbaseLiteErrorMessageNetOnly.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\ConsoleLogger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Log\CustomLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\FileLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\ILogger.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)API\Log\Log.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Log\Loggers.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Log\Logger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ArrayExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ArrayFunction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Collation.cs" />
