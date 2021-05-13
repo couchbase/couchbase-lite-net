@@ -59,10 +59,7 @@ namespace Test
             var dir = Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
             Database.Delete("db", dir);
 
-            var options = new DatabaseConfiguration
-            {
-                Directory = dir
-            };
+            var options = new DatabaseConfiguration(directory: dir);
 
             try {
                 var db = new Database("db", options);
@@ -118,8 +115,7 @@ namespace Test
             Database.Delete("db", dir);
             Database.Exists("db", dir).Should().BeFalse("because it was just deleted");
 
-            var options = new DatabaseConfiguration
-                { Directory = dir };
+            var options = new DatabaseConfiguration(directory: dir);
             using (var db = new Database("db", options)) {
                 Path.GetDirectoryName(db.Path).Should().EndWith(".cblite2", "because that is the current CBL extension");
                 db.Path.Should().Contain(dir, "because the directory should be present in the custom path");
@@ -926,10 +922,7 @@ namespace Test
         public void TestDeleteByStaticMethod()
         {
             var dir = Directory;
-            var options = new DatabaseConfiguration
-            {
-                Directory = dir
-            };
+            var options = new DatabaseConfiguration(directory: dir);
             string path = null;
             using (var db = new Database("db", options)) {
                 path = db.Path;
@@ -943,10 +936,7 @@ namespace Test
         public void TestDeleteOpeningDBByStaticMethod()
         {
             var dir = Directory;
-            var options = new DatabaseConfiguration
-            {
-                Directory = dir
-            };
+            var options = new DatabaseConfiguration(directory: dir);
             using (var db = new Database("db", options)) {
                 CouchbaseLiteException e = null;
                 try {
@@ -996,10 +986,7 @@ namespace Test
             Database.Delete("db", dir);
             Database.Exists("db", dir).Should().BeFalse("because this database has not been created");
 
-            var options = new DatabaseConfiguration
-            {
-                Directory = dir
-            };
+            var options = new DatabaseConfiguration(directory: dir);
             string path = null;
             using (var db = new Database("db", options)) {
                 path = db.Path;
@@ -1197,13 +1184,12 @@ namespace Test
             var key = new EncryptionKey("key");
 #endif
 
-            var builder2 = new DatabaseConfiguration()
-            {
-                Directory = "/tmp/mydb",
+            var builder2 = new DatabaseConfiguration(
+                directory: "/tmp/mydb"
 #if COUCHBASE_ENTERPRISE
-                EncryptionKey = key
+                , encryptionKey: key
 #endif
-            };
+            );
 
             var config2 = builder2;
             config2.Directory.Should().Be("/tmp/mydb", "because that is what was set");

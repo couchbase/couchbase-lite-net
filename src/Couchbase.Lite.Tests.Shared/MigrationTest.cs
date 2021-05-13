@@ -51,7 +51,7 @@ namespace Test
                 za.ExtractToDirectory(Directory);
             }
 
-            var config = new DatabaseConfiguration{ Directory = Directory };
+            var config = new DatabaseConfiguration(directory: Directory);
             using(var db = new Database("android-sqlite", config)) {
                 db.Count.Should().Be(2);
                 for (int i = 1; i < 2; i++) {
@@ -80,7 +80,7 @@ namespace Test
                 za.ExtractToDirectory(Directory);
             }
 
-            var config = new DatabaseConfiguration { Directory = Directory };
+            var config = new DatabaseConfiguration(directory: Directory);
             using (var db = new Database("android-sqlite", config)) {
                 db.Count.Should().Be(2);
                 for (int i = 1; i < 2; i++) {
@@ -101,7 +101,7 @@ namespace Test
                 za.ExtractToDirectory(Directory);
             }
 
-            var config = new DatabaseConfiguration { Directory = Directory };
+            var config = new DatabaseConfiguration(directory: Directory);
             using (var db = new Database("android-sqlite", config)) {
                 db.Count.Should().Be(2);
                 for (int i = 1; i < 2; i++) {

@@ -165,10 +165,7 @@ namespace Test
         {
             Database.Delete("master3", Directory);
 
-            var config = new DatabaseConfiguration {
-                Directory = Directory
-            };
-
+            var config = new DatabaseConfiguration(directory: Directory);
             using (var db1 = new Database("master3", config)) {
                 db1.ChangeEncryptionKey(new EncryptionKey("password")); // setting encryption key on the database file, the database file didn't exist yet in this case
                 using (MutableDocument saveDoc = db1.GetDocument("my-doc")?.ToMutable() ?? new MutableDocument("my-doc")) {
@@ -272,11 +269,10 @@ namespace Test
 
         private Database OpenSeekrit(string password)
         {
-            var config = new DatabaseConfiguration
-            {
-                EncryptionKey = password != null ? new EncryptionKey(password) : null,
-                Directory = Directory
-            };
+            var config = new DatabaseConfiguration(
+                encryptionKey: password != null ? new EncryptionKey(password) : null,
+                directory: Directory
+            );
 
             return new Database("seekrit", config);
         }

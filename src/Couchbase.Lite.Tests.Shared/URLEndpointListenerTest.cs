@@ -282,17 +282,15 @@ namespace Test
             }
 
             // Replicator - Wrong Credentials
-            config = new ReplicatorConfiguration(Db, targetEndpoint)
-            {
-                Authenticator = new BasicAuthenticator("daniel", wrongPwSecureString)
-            };
+            config = new ReplicatorConfiguration(Db, targetEndpoint,
+                authenticator: new BasicAuthenticator("daniel", wrongPwSecureString)
+            );
             RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
 
             // Replicator - Success
-            config = new ReplicatorConfiguration(Db, targetEndpoint)
-            {
-                Authenticator = new BasicAuthenticator("daniel", pwSecureString)
-            };
+            config = new ReplicatorConfiguration(Db, targetEndpoint,
+                authenticator: new BasicAuthenticator("daniel", pwSecureString)
+            );
             RunReplication(config, 0, 0);
 
             _listener.Stop();
@@ -747,11 +745,10 @@ namespace Test
                 Db.Save(doc1);
             }
 
-            var config = new URLEndpointListenerConfiguration(OtherDb)
-            {
-                ReadOnly = true,
-                DisableTLS = true
-            };
+            var config = new URLEndpointListenerConfiguration(OtherDb,
+                readOnly: true,
+                disableTLS: true
+            );
 
             Listen(config);
             RunReplication(_listener.LocalEndpoint(), ReplicatorType.PushAndPull,
@@ -1164,14 +1161,13 @@ namespace Test
         {
             _listener?.Stop();
 
-            var config = new URLEndpointListenerConfiguration(OtherDb)
-            {
-                Port = useDynamicPort ? (ushort)0 : tls ? WssPort : WsPort,
-                DisableTLS = !tls,
-                Authenticator = auth,
-                TlsIdentity = id,
-                ReadOnly = readOnly
-            };
+            var config = new URLEndpointListenerConfiguration(OtherDb,
+                port: useDynamicPort ? (ushort)0 : tls ? WssPort : WsPort,
+                disableTLS: !tls,
+                authenticator: auth,
+                tlsIdentity: id,
+                readOnly: readOnly
+            );
 
             return config;
         }
@@ -1180,12 +1176,11 @@ namespace Test
         {
             _listener?.Stop();
 
-            var config = new URLEndpointListenerConfiguration(OtherDb)
-            {
-                Port = useDynamicPort ? (ushort)0 : tls ? WssPort : WsPort,//In order to get the test to pass on Linux, Port needs to be 0.
-                DisableTLS = !tls,
-                Authenticator = auth
-            };
+            var config = new URLEndpointListenerConfiguration(OtherDb,
+                port: useDynamicPort ? (ushort)0 : tls ? WssPort : WsPort,//In order to get the test to pass on Linux, Port needs to be 0.
+                disableTLS: !tls,
+                authenticator: auth
+            );
 
             return Listen(config);
         }

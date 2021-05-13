@@ -122,17 +122,12 @@ namespace Test
                 }
             }
 
-            var c = new ReplicatorConfiguration(sourceDb ?? Db, target)
-            {
-                ReplicatorType = type,
-                Continuous = continuous,
-                Authenticator = authenticator,
-                PinnedServerCertificate = pinnedServerCertificate
-            };
+            var c = new ReplicatorConfiguration(database: sourceDb ?? Db, target: target, replicatorType: type,
+                continuous: continuous, authenticator: authenticator, pinnedServerCertificate: pinnedServerCertificate);
 
-            if (continuous) {
-                c.CheckpointInterval = TimeSpan.FromSeconds(1);
-            }
+            //if (continuous) {
+            //    c.CheckpointInterval = TimeSpan.FromSeconds(1);
+            //}
 
             return c;
         }
@@ -155,19 +150,17 @@ namespace Test
                 }
             }
 
-            var c = new ReplicatorConfiguration(Db, target)
-            {
-                ReplicatorType = type,
-                Continuous = continuous,
-                Authenticator = authenticator,
-                PinnedServerCertificate = pinnedServerCertificate,
-                AcceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate
-            };
+            var c = new ReplicatorConfiguration(database: Db, target: target, 
+                replicatorType: type,
+                continuous: continuous,
+                authenticator: authenticator,
+                pinnedServerCertificate: pinnedServerCertificate,
+                acceptOnlySelfSignedServerCertificate: acceptOnlySelfSignedServerCertificate
+            );
 
-            if (continuous)
-            {
-                c.CheckpointInterval = TimeSpan.FromSeconds(1);
-            }
+            //if (continuous) {
+            //    c.CheckpointInterval = TimeSpan.FromSeconds(1);
+            //}
 
             return c;
         }
@@ -298,7 +291,7 @@ namespace Test
             // If this IP address happens to exist, then change it.  It needs to be an address that does not
             // exist on the LAN
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
-            var config = new ReplicatorConfiguration(Db, targetEndpoint);
+            var config = new ReplicatorConfiguration(Db, targetEndpoint, maxAttempts:1);
             using (var repl = new Replicator(config)) {
                 repl.Start();
                 var count = 0;
@@ -321,14 +314,14 @@ namespace Test
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config))
             {
-                repl.Config.Options.Heartbeat.Should().Be(TimeSpan.FromMinutes(5), "Because default Heartbeat Interval is 300 sec.");
+                repl.Config.Options.Heartbeat.Should().Be((long)TimeSpan.FromMinutes(5).TotalSeconds, "Because default Heartbeat Interval is 300 sec.");
                 repl.Config.Heartbeat.Should().Be(TimeSpan.FromMinutes(5), "Because default Heartbeat Interval is 300 sec.");
             }
 
             config = CreateConfig(push:true, pull:false, continuous:false, target:null, heartbeatInterval:60000);
             using (var repl = new Replicator(config))
             {
-                repl.Config.Options.Heartbeat.Should().Be(TimeSpan.FromSeconds(60));
+                repl.Config.Options.Heartbeat.Should().Be((long)TimeSpan.FromSeconds(60).TotalSeconds);
             }
 
             Action badAction = (() => config = CreateConfig(push: true, pull: false, continuous: false, target: null, heartbeatInterval: 0));
@@ -343,14 +336,14 @@ namespace Test
         {
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
-                repl.Config.Options.MaxRetryInterval.Should().Be(TimeSpan.FromMinutes(5), "Because default Max Retry Interval is 300 sec.");
-                repl.Config.MaxRetryWaitTime.Should().Be(TimeSpan.FromMinutes(5), "Because default Max Retry Wait Time is 300 sec.");
+                repl.Config.Options.MaxRetryInterval.Should().Be((long)TimeSpan.FromMinutes(5).TotalSeconds, "Because default Max Retry Interval is 300 sec.");
+                repl.Config.MaxAttemptWaitTime.Should().Be(TimeSpan.FromMinutes(5), "Because default Max Retry Wait Time is 300 sec.");
             }
 
             config = CreateConfig(push:true, pull:false, continuous:false, target:null,maxRetryInterval:60000);
             using (var repl = new Replicator(config)) {
-                repl.Config.Options.MaxRetryInterval.Should().Be(TimeSpan.FromSeconds(60));
-                repl.Config.MaxRetryWaitTime.Should().Be(TimeSpan.FromSeconds(60));
+                repl.Config.Options.MaxRetryInterval.Should().Be((long)TimeSpan.FromSeconds(60).TotalSeconds);
+                repl.Config.MaxAttemptWaitTime.Should().Be(TimeSpan.FromSeconds(60));
             }
 
             Action badAction = (() => config = CreateConfig(push: true, pull: false, continuous: false, target: null, maxRetryInterval: 0));
@@ -365,18 +358,18 @@ namespace Test
         {
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxRetries.Should().Be(9, "Because default Max Retries is 9 times for a Single Shot Replicator.");
+                repl.Config.MaxAttempts.Should().Be(9, "Because default Max Retries is 9 times for a Single Shot Replicator.");
             }
 
             config = CreateConfig(true, false, true);
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxRetries.Should().Be(Int32.MaxValue, "Because default Max Retries is Max int times for a Continuous Replicator.");
+                repl.Config.MaxAttempts.Should().Be(Int32.MaxValue, "Because default Max Retries is Max int times for a Continuous Replicator.");
             }
 
             var retries = 5;
             config = CreateConfig(push: true, pull: false, continuous: false, target: null, maxRetries: retries);
             using (var repl = new Replicator(config)) {
-                repl.Config.Options.MaxRetries.Should().Be(retries, $"Because {retries} is what custom setting value for Max Retries.");
+                repl.Config.Options.MaxAttempts.Should().Be(retries, $"Because {retries} is what custom setting value for Max Retries.");
             }
 
             Action badAction = (() => config = CreateConfig(push: true, pull: false, continuous: false, target: null, maxRetries: -1000));
@@ -384,7 +377,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestReplicatorMaxRetries() => ReplicatorMaxRetries(2);
+        public void TestReplicatorMaxRetries() => ReplicatorMaxRetries(3);
 
         [Fact]
         public void TestReplicatorZeroMaxRetries() => ReplicatorMaxRetries(0);
@@ -610,7 +603,7 @@ namespace Test
             }
 
             var config = CreateConfig(true, false, true);
-            config.CheckpointInterval = TimeSpan.FromSeconds(1);
+            //config.CheckpointInterval = TimeSpan.FromSeconds(1);
             RunReplication(config, 0, 0);
 
             OtherDb.Count.Should().Be(2UL);
@@ -748,7 +741,7 @@ namespace Test
             }
 
             var config = CreateConfig(false, true, true);
-            config.CheckpointInterval = TimeSpan.FromSeconds(1);
+            //config.CheckpointInterval = TimeSpan.FromSeconds(1);
             RunReplication(config, 0, 0);
 
             Db.Count.Should().Be(2, "because the replicator should have pulled doc2 from the other DB");
@@ -1861,10 +1854,11 @@ namespace Test
             // If this IP address happens to exist, then change it.  It needs to be an address that does not
             // exist on the LAN
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
-            var config = new ReplicatorConfiguration(Db, targetEndpoint) {
-                Continuous = true,
-                MaxRetries = retries
-            };
+            var config = new ReplicatorConfiguration(Db, targetEndpoint,
+                continuous: false,
+                maxAttempts: retries,
+                maxAttemptsWaitTime: TimeSpan.FromSeconds(1)
+            );
 
             var count = 0;
             var repl = new Replicator(config);
@@ -1887,7 +1881,7 @@ namespace Test
             waitAssert.WaitForResult(TimeSpan.FromSeconds(60));
             repl.RemoveChangeListener(token);
 
-            count.Should().Be(retries);
+            count.Should().Be(retries == 0 ? 9 : retries);
             repl.Dispose();
         }
 
@@ -2318,7 +2312,7 @@ namespace Test
         private ReplicatorConfiguration CreateConfig(bool push, bool pull, bool continuous, Database target, IConflictResolver resolver=null, 
             Func<Document, DocumentFlags, bool> pushFilter = null, Func<Document, DocumentFlags, bool> pullFilter= null, 
             IList<string> docIds = null, Authenticator auth = null, X509Certificate2 pinnedServerCert =  null,
-            int maxRetries = -1, double maxRetryInterval = 300000, double heartbeatInterval = 300000)
+            int maxRetries = 0, double maxRetryInterval = 300000, double heartbeatInterval = 300000)
         {
             var targetDb = target ?? OtherDb;
             TimeSpan maxRetryTimeSpan = TimeSpan.FromMilliseconds(maxRetryInterval);
@@ -2334,25 +2328,24 @@ namespace Test
                 type |= ReplicatorType.Pull;
             }
 
-            if(maxRetries == -1)
+            if(maxRetries == 0)
             {
-                maxRetries = continuous ? ReplicatorOptionsDictionary.MaxRetriesContinuous : ReplicatorOptionsDictionary.MaxRetriesOneShot;
+                maxRetries = continuous ? ReplicatorConfiguration.MaxRetriesContinuous : ReplicatorConfiguration.MaxRetriesOneShot;
             }
 
-            var retVal = new ReplicatorConfiguration(Db, new DatabaseEndpoint(targetDb))
-            { 
-                ReplicatorType = type,
-                Continuous = continuous,
-                ConflictResolver = resolver,
-                PushFilter = pushFilter,
-                PullFilter = pullFilter,
-                DocumentIDs = docIds,
-                Authenticator = auth,
-                PinnedServerCertificate = pinnedServerCert,
-                MaxRetries = maxRetries,
-                MaxRetryWaitTime = maxRetryTimeSpan,
-                Heartbeat = heartbestTimeSpan
-            };
+            var retVal = new ReplicatorConfiguration(database: Db, target: new DatabaseEndpoint(targetDb),
+                replicatorType: type,
+                continuous: continuous,
+                conflictResolver: resolver,
+                pushFilter: pushFilter,
+                pullFilter: pullFilter,
+                documentIDs: docIds,
+                authenticator: auth,
+                pinnedServerCertificate: pinnedServerCert,
+                maxAttempts: maxRetries,
+                maxAttemptsWaitTime: maxRetryTimeSpan,
+                heartbeat: heartbestTimeSpan
+            );
             
             return retVal;
         }

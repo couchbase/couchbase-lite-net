@@ -30,6 +30,8 @@ namespace Couchbase.Lite.Sync
 
     internal interface IEndpointInternal : IEndpoint
     {
-        void Visit([NotNull]ReplicatorConfiguration config);
+        //void Visit([NotNull]ReplicatorConfiguration config);
+
+        void Visit(ref ReplicatorConfiguration config);
     }
 }

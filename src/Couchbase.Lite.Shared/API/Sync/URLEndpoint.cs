@@ -81,7 +81,12 @@ namespace Couchbase.Lite.Sync
 
         #region IEndpointInternal
 
-        void IEndpointInternal.Visit(ReplicatorConfiguration config)
+        //void IEndpointInternal.Visit(ReplicatorConfiguration config)
+        //{
+        //    config.RemoteUrl = Url;
+        //}
+
+        public void Visit(ref ReplicatorConfiguration config)
         {
             config.RemoteUrl = Url;
         }

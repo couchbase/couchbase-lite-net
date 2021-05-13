@@ -313,7 +313,7 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="CouchbaseLiteError.CantOpenFile"/> if the
         /// directory indicated in <paramref name="configuration"/> could not be created</exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition was returned by LiteCore</exception>
-        public Database([@NotNull]string name, [@CanBeNull]DatabaseConfiguration configuration = null)
+        public Database([@NotNull]string name, [@CanBeNull]DatabaseConfiguration? configuration = null)
         {
             Name = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
             if(name == "") {
@@ -380,7 +380,7 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="path"/> or <paramref name="name"/>
         /// are <c>null</c></exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        public static void Copy([@NotNull]string path, [@NotNull]string name, [@CanBeNull]DatabaseConfiguration config)
+        public static void Copy([@NotNull]string path, [@NotNull]string name, [@CanBeNull]DatabaseConfiguration? config)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(path), path);
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
@@ -393,7 +393,7 @@ namespace Couchbase.Lite
 
                 #if COUCHBASE_ENTERPRISE
                 if (config?.EncryptionKey != null) {
-                    var key = config.EncryptionKey;
+                    var key = config?.EncryptionKey;
                     var i = 0;
                     nativeConfig.encryptionKey.algorithm = C4EncryptionAlgorithm.AES256;
                     foreach (var b in key.KeyData) {

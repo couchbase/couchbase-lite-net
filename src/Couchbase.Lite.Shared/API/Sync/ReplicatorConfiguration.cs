@@ -76,17 +76,22 @@ namespace Couchbase.Lite.Sync
     /// <summary>
     /// A class representing configuration options for a <see cref="Replicator"/>
     /// </summary>
-    public sealed partial class ReplicatorConfiguration
+    public struct ReplicatorConfiguration
     {
         #region Constants
 
         private const string Tag = nameof(ReplicatorConfiguration);
 
+        internal const long DefaultHeartbeatInterval = 300;
+        internal const long DefaultMaxRetryInterval = 300;
+        internal const int MaxRetriesContinuous = int.MaxValue;
+        internal const int MaxRetriesOneShot = 9;
+
         #endregion
 
         #region Variables
 
-        [NotNull]private readonly Freezer _freezer = new Freezer();
+        private readonly Freezer _freezer;
         private Database _otherDb;
         private Uri _remoteUrl;
         private C4SocketFactory _socketFactory;
@@ -97,139 +102,10 @@ namespace Couchbase.Lite.Sync
         #region Properties
 
         /// <summary>
-        /// Gets or sets the class which will authenticate the replication
-        /// </summary>
-        [CanBeNull]
-        public Authenticator Authenticator { get; init; }
-
-        /// <summary>
-        /// A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
-        /// The default value is null, meaning that all accessible channels will be pulled.
-        /// Note: channels that are not accessible to the user will be ignored by Sync Gateway.
-        /// </summary>
-        [CanBeNull]
-        public IList<string> Channels
-        {
-            get => Options.Channels;
-            init => Options.Channels = value;
-        }
-
-        /// <summary>
-        /// Gets or sets whether or not the <see cref="Replicator"/> should stay
-        /// active indefinitely.  The default is <c>false</c>
-        /// </summary>
-        public bool Continuous 
-        { 
-            get => _continuous; 
-            init
-            {
-                _continuous = value;
-                MaxRetries = Options.MaxRetries >= 0 ? Options.MaxRetries : _continuous ?
-                    ReplicatorOptionsDictionary.MaxRetriesContinuous : ReplicatorOptionsDictionary.MaxRetriesOneShot;
-            }
-        }
-
-        /// <summary>
         /// Gets the local database participating in the replication. 
         /// </summary>
         [NotNull]
         public Database Database { get; }
-
-        /// <summary>
-        /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
-        /// and/or pulled
-        /// </summary>
-        [CanBeNull]
-        public IList<string> DocumentIDs
-        {
-            get => Options.DocIDs;
-            init => Options.DocIDs = value;
-        }
-
-        /// <summary>
-        /// Extra HTTP headers to send in all requests to the remote target
-        /// </summary>
-        [CanBeNull]
-        public IDictionary<string, string> Headers
-        {
-            get => Options.Headers;
-            init => Options.Headers = value;
-        }
-
-        /// <summary>
-        /// Gets or sets a certificate to trust.  All other certificates received
-        /// by a <see cref="Replicator"/> with this configuration will be rejected.
-        /// </summary>
-        [CanBeNull]
-        public X509Certificate2 PinnedServerCertificate
-        {
-            get => Options.PinnedServerCertificate;
-            init => Options.PinnedServerCertificate = value;
-        }
-
-        /// <summary>
-        /// Func delegate that takes Document input parameter and bool output parameter
-        /// Document pull will be allowed if output is true, othewise, Document pull 
-        /// will not be allowed
-        /// </summary>
-        [CanBeNull]
-        public Func<Document, DocumentFlags, bool> PullFilter { get; init; }
-
-        /// <summary>
-        /// Func delegate that takes Document input parameter and bool output parameter
-        /// Document push will be allowed if output is true, othewise, Document push 
-        /// will not be allowed
-        /// </summary>
-        [CanBeNull]
-        public Func<Document, DocumentFlags, bool> PushFilter { get; init; }
-
-        /// <summary>
-        /// A value indicating the direction of the replication.  The default is
-        /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
-        /// </summary>
-        public ReplicatorType ReplicatorType { get; init; } = ReplicatorType.PushAndPull;
-
-        /// <summary>
-        /// Gets or sets the replicator heartbeat keep-alive interval. 
-        /// The default Heartbeat is <c>5</c> min.
-        /// </summary>
-        /// <exception cref="ArgumentException"> 
-        /// Throw if set the Heartbeat to less or equal to 0 full seconds.
-        /// </exception>
-        public TimeSpan Heartbeat
-        {
-            get => Options.Heartbeat;
-            init => Options.Heartbeat = value;
-        }
-
-        /// <summary>
-        /// Max number of retry attempts. The retry attempts will reset
-        /// after the replicator is connected to a remote peer. 
-        /// The default MaxRetries is <c>9</c> for a single shot replicator and 
-        /// <see cref="Int32.MaxValue" /> for a continuous replicator.
-        /// Set the MaxRetries to 0 will result in no retry attempt.
-        /// </summary>
-        /// <exception cref="ArgumentException">
-        /// Throw if set the MaxRetries to a negative value.
-        /// </exception>
-        public int MaxRetries
-        {
-            get => Options.MaxRetries >= 0 ? Options.MaxRetries : _continuous ? 
-                ReplicatorOptionsDictionary.MaxRetriesContinuous : ReplicatorOptionsDictionary.MaxRetriesOneShot;
-            init => Options.MaxRetries = value >= 0 ? value : throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetries);
-        }
-
-        /// <summary>
-        /// Max delay between retries.
-        /// </summary>
-        /// <exception cref="ArgumentException"> 
-        /// Throw if set the MaxRetryWaitTime to less than 0 full seconds.
-        /// </exception>
-        public TimeSpan MaxRetryWaitTime
-        {
-            get => Options.MaxRetryInterval;
-            init => Options.MaxRetryInterval = value;
-        }
 
         /// <summary>
         /// Gets the target to replicate with (either <see cref="Database"/>
@@ -239,21 +115,125 @@ namespace Couchbase.Lite.Sync
         public IEndpoint Target { get; }
 
         /// <summary>
+        /// Gets the class which will authenticate the replication
+        /// </summary>
+        [CanBeNull]
+        public Authenticator Authenticator { get; }
+
+        /// <summary>
+        /// Gets or sets whether or not the <see cref="Replicator"/> should stay
+        /// active indefinitely.  The default is <c>false</c>
+        /// </summary>
+        public bool Continuous { get; }
+
+        /// <summary>
+        /// Func delegate that takes Document input parameter and bool output parameter
+        /// Document pull will be allowed if output is true, othewise, Document pull 
+        /// will not be allowed
+        /// </summary>
+        [CanBeNull]
+        public Func<Document, DocumentFlags, bool> PullFilter { get; }
+
+        /// <summary>
+        /// Func delegate that takes Document input parameter and bool output parameter
+        /// Document push will be allowed if output is true, othewise, Document push 
+        /// will not be allowed
+        /// </summary>
+        [CanBeNull]
+        public Func<Document, DocumentFlags, bool> PushFilter { get; }
+
+        /// <summary>
+        /// A value indicating the direction of the replication.  The default is
+        /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
+        /// </summary>
+        public ReplicatorType ReplicatorType { get; }
+
+        /// <summary>
         /// The implemented custom conflict resolver object can be registered to the replicator 
         /// at ConflictResolver property. The default value of the conflictResolver is null. 
         /// When the value is null, the default conflict resolution will be applied.
         /// </summary>
         [CanBeNull]
-        public IConflictResolver ConflictResolver { get; init; }
+        public IConflictResolver ConflictResolver { get; }
 
-        internal TimeSpan CheckpointInterval
-        {
-            get => Options.CheckpointInterval;
-            set => _freezer.PerformAction(() => Options.CheckpointInterval = value);
-        }
+        /// <summary>
+        /// A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
+        /// The default value is null, meaning that all accessible channels will be pulled.
+        /// Note: channels that are not accessible to the user will be ignored by Sync Gateway.
+        /// </summary>
+        [CanBeNull]
+        public IList<string> Channels { get => Options.Channels; }
+
+        /// <summary>
+        /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
+        /// and/or pulled
+        /// </summary>
+        [CanBeNull]
+        public IList<string> DocumentIDs { get => Options.DocIDs; }
+
+        /// <summary>
+        /// Extra HTTP headers to send in all requests to the remote target
+        /// </summary>
+        [CanBeNull]
+        public IDictionary<string, string> Headers { get => Options.Headers; }
+
+        /// <summary>
+        /// Gets a certificate to trust.  All other certificates received
+        /// by a <see cref="Replicator"/> with this configuration will be rejected.
+        /// </summary>
+        [CanBeNull]
+        public X509Certificate2 PinnedServerCertificate { get => Options.PinnedServerCertificate; }
+
+        /// <summary>
+        /// Gets the replicator heartbeat keep-alive interval. 
+        /// The default is null (5 min interval is applied).
+        /// </summary>
+        /// <exception cref="ArgumentException"> 
+        /// Throw if set the Heartbeat to less or equal to 0 full seconds.
+        /// </exception>
+        [CanBeNull]
+        public TimeSpan? Heartbeat { get => TimeSpan.FromSeconds(Options.Heartbeat); }
+
+        /// <summary>
+        /// Max number of retry attempts. The retry attempts will reset
+        /// after the replicator is connected to a remote peer. 
+        /// The default is <c>0</c> (<c>10</c> for a single shot replicator or 
+        /// <see cref="int.MaxValue" /> for a continuous replicator is applied.)
+        /// Setting the value to 1 means that the replicator will perform an initial request 
+        /// and if there is a transient error occurs, the replicator will stop without retrying.
+        /// </summary>
+        /// <exception cref="ArgumentException">
+        /// Throw if set the MaxRetries to a negative value.
+        /// </exception>
+        public int MaxAttempts { get => Options.MaxAttempts; }
+
+        /// <summary>
+        /// Max delay between retries.
+        /// The default is null (5 min interval is applied).
+        /// </summary>
+        /// <exception cref="ArgumentException"> 
+        /// Throw if set the MaxRetryWaitTime to less than 0 full seconds.
+        /// </exception>
+        [CanBeNull]
+        public TimeSpan? MaxAttemptWaitTime { get => TimeSpan.FromSeconds(Options.MaxRetryInterval); }
+
+#if COUCHBASE_ENTERPRISE
+        /// <summary>
+        /// Get the way that the replicator will validate TLS certificates.  This
+        /// property will be overriden if the <see cref="PinnedServerCertificate"/> property
+        /// is set.
+        /// </summary>
+        public bool AcceptOnlySelfSignedServerCertificate { get => Options.AcceptOnlySelfSignedServerCertificate; }
+#endif
+
+        //internal TimeSpan CheckpointInterval
+        //{
+        //    get => Options.CheckpointInterval;
+        //    set => Options.CheckpointInterval = value;
+        //}
 
         [NotNull]
-        internal ReplicatorOptionsDictionary Options { get; set; } = new ReplicatorOptionsDictionary();
+        internal ReplicatorOptionsDictionary Options { get; set; }
 
         [CanBeNull]
         internal Database OtherDB
@@ -261,7 +241,6 @@ namespace Couchbase.Lite.Sync
             get => _otherDb;
             set => _freezer.SetValue(ref _otherDb, value);
         }
-
 
         [CanBeNull]
         internal Uri RemoteUrl
@@ -287,13 +266,46 @@ namespace Couchbase.Lite.Sync
         /// <param name="target">The endpoint to replicate to, either local or remote</param>
         /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
         /// is provided as <paramref name="target"/></exception>
-        public ReplicatorConfiguration([NotNull] Database database, [NotNull] IEndpoint target)
+        public ReplicatorConfiguration([NotNull] Database database, [NotNull] IEndpoint target, Authenticator authenticator = null, 
+            bool continuous = false, ReplicatorType replicatorType = ReplicatorType.PushAndPull, IConflictResolver conflictResolver = null,
+            Func<Document, DocumentFlags, bool> pullFilter = null, Func<Document, DocumentFlags, bool> pushFilter = null,
+            IList<string> channels = null, IList<string> documentIDs = null, IDictionary<string, string> headers = null,
+            X509Certificate2 pinnedServerCertificate = null, TimeSpan? heartbeat = null, int maxAttempts = 0, TimeSpan? maxAttemptsWaitTime = null
+#if COUCHBASE_ENTERPRISE
+            , bool acceptOnlySelfSignedServerCertificate = false
+#endif
+            ) : this()
         {
             Database = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(database), database);
             Target = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(target), target);
 
+            _freezer = new Freezer();
+            Options = new ReplicatorOptionsDictionary();
+
+            Authenticator = authenticator;
+            Continuous = continuous;
+            PullFilter = pullFilter;
+            PushFilter = pushFilter;
+            ReplicatorType = replicatorType;
+            ConflictResolver = conflictResolver;
+
+            // Replicator Options
+            Options.Channels = channels;
+            Options.DocIDs = documentIDs;
+            Options.Headers = headers;
+            Options.PinnedServerCertificate = pinnedServerCertificate;
+            long sec = heartbeat == null ? DefaultHeartbeatInterval : heartbeat.Value.Ticks / TimeSpan.TicksPerSecond;
+            Options.Heartbeat = sec > 0 ? sec : throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
+            Options.MaxAttempts = maxAttempts < 0 ? throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetries)
+                : maxAttempts == 0 ? continuous ? MaxRetriesContinuous : MaxRetriesOneShot : maxAttempts;
+            sec = maxAttemptsWaitTime == null ? DefaultMaxRetryInterval : maxAttemptsWaitTime.Value.Ticks / TimeSpan.TicksPerSecond;
+            Options.MaxRetryInterval = sec > 0 ? sec : throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetryInterval);
+#if COUCHBASE_ENTERPRISE
+            Options.AcceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate;
+#endif
+
             var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
-            castTarget.Visit(this);
+            castTarget.Visit(ref this);
         }
 
         #endregion

@@ -1,7 +1,7 @@
 ﻿// 
 //  DatabaseConfiguration.cs
 //
-//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
+//  Copyright (c) 2021 Couchbase, Inc All rights reserved.
 // 
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,9 +17,6 @@
 // 
 
 using Couchbase.Lite.DI;
-using Couchbase.Lite.Internal.Logging;
-using Couchbase.Lite.Support;
-using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
 
@@ -28,7 +25,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A struct containing configuration for creating or opening database data
     /// </summary>
-    public sealed class DatabaseConfiguration
+    public readonly struct DatabaseConfiguration
     {
         #region Constants
 
@@ -38,22 +35,25 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        [NotNull] private string _directory =
-            Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
+        private readonly string _directory;
       
         #endregion
 
         #region Properties
 
         /// <summary>
-        /// Gets or sets the directory to use when creating or opening the data
+        /// Gets the directory to use when creating or opening the data. 
         /// </summary>
-        [NotNull]
-        public string Directory
-        {
-            get => _directory;
-            init => _directory = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value);
-        }
+        [CanBeNull]
+        public readonly string Directory { get { return _directory ?? Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory(); } }
+
+#if COUCHBASE_ENTERPRISE
+        /// <summary>
+        /// Gets the encryption key to use on the database
+        /// </summary>
+        [CanBeNull]
+        public readonly EncryptionKey EncryptionKey { get; }
+#endif
 
         /// <summary>
         /// Experiment API. Enable version vector.
@@ -69,29 +69,30 @@ namespace Couchbase.Lite
         /// </remarks>
         internal bool EnableVersionVector => false;
 
-        #if COUCHBASE_ENTERPRISE
-        /// <summary>
-        /// Gets or sets the encryption key to use on the database
-        /// </summary>
-        [CanBeNull]
-        public EncryptionKey EncryptionKey { get; init; }
-        #endif
-
         #endregion
+
+        #region Constructors
 
         /// <summary>
         /// Default constructor
         /// </summary>
-        public DatabaseConfiguration()
+        /// <param name="directory">
+        /// Default directory is <see cref="Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory()" /> if directory set to null.
+        /// </param>
+        public DatabaseConfiguration(
+#if COUCHBASE_ENTERPRISE
+            EncryptionKey encryptionKey = null,
+#endif
+            string directory = null)
         {
-
+            _directory = directory ?? Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
+#if COUCHBASE_ENTERPRISE
+            EncryptionKey = encryptionKey;
+#endif
         }
+
+        #endregion
     }
 }
 
-namespace System.Runtime.CompilerServices
-{
-    // This is a hack to get C# 9 to work with none .Net 5+
-    // Should be able to remove once the projec is updated to .Net 5+
-    internal static class IsExternalInit { }
-}
+

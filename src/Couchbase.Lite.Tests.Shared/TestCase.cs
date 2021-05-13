@@ -163,10 +163,7 @@ namespace Test
 
         protected Database OpenDB(string name)
         {
-            var builder = new DatabaseConfiguration
-            {
-                Directory = Directory
-            };
+            var builder = new DatabaseConfiguration(directory: Directory);
 
             return new Database(name, builder);
         }

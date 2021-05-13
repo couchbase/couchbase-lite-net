@@ -92,19 +92,16 @@ namespace Test
                 var uid = messageendpoint.Uid;
 
                 // PUSH
-                var config = new ReplicatorConfiguration(Db, messageendpoint) {
-                    ReplicatorType = ReplicatorType.Push,
-                    Continuous = false
-                };
+                var config = new ReplicatorConfiguration(database: Db, target: messageendpoint, replicatorType: ReplicatorType.Push, continuous: false);
                 RunReplication(config, 0, 0);
                 OtherDb.Count.Should().Be(2UL, "because it contains the original and new");
                 Db.Count.Should().Be(1UL, "because there is no pull, so the first db should only have the original");
 
                 // PULL
-                config = new ReplicatorConfiguration(Db, messageendpoint) {
-                    ReplicatorType = ReplicatorType.Pull,
-                    Continuous = false
-                };
+                config = new ReplicatorConfiguration(Db, messageendpoint,
+                    replicatorType: ReplicatorType.Pull,
+                    continuous: false
+                );
 
                 RunReplication(config, 0, 0);
                 Db.Count.Should().Be(2UL, "because the pull should add the document from otherDB");
@@ -124,7 +121,7 @@ namespace Test
                 // PUSH & PULL
                 config = new ReplicatorConfiguration(Db,
                         new MessageEndpoint($"p2ptest1", server, protocolType,
-                            new MockConnectionFactory(null))) { Continuous = false };
+                            new MockConnectionFactory(null)), continuous: false);
 
                 RunReplication(config, 0, 0);
                 Db.Count.Should().Be(2UL, "because no new documents were added");
@@ -199,9 +196,9 @@ namespace Test
             var errorLogic = new ReconnectErrorLogic();
             var config = new ReplicatorConfiguration(Db,
                 new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.MessageStream,
-                    new MockConnectionFactory(errorLogic))) {
-                Continuous = true
-            };
+                    new MockConnectionFactory(errorLogic)),
+                continuous: true
+            );
 
             using (var replicator = new Replicator(config)) {
                 replicator.Start();
@@ -246,15 +243,15 @@ namespace Test
             var errorLogic = new ReconnectErrorLogic();
             var config = new ReplicatorConfiguration(Db,
                 new MessageEndpoint("p2ptest1", serverConnection1, ProtocolType.MessageStream,
-                    new MockConnectionFactory(errorLogic))) {
-                Continuous = true
-            };
+                    new MockConnectionFactory(errorLogic)),
+                continuous: true
+            );
 
             var config2 = new ReplicatorConfiguration(Db,
                 new MessageEndpoint("p2ptest2", serverConnection2, ProtocolType.MessageStream,
-                    new MockConnectionFactory(errorLogic))) {
-                Continuous = true
-            };
+                    new MockConnectionFactory(errorLogic)),
+                continuous: true
+            );
 
             using (var replicator = new Replicator(config))
             using (var replicator2 = new Replicator(config2)) {
@@ -308,9 +305,9 @@ namespace Test
             var serverConnection = new MockServerConnection(listener, ProtocolType.ByteStream);
             var config = new ReplicatorConfiguration(Db,
                 new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.ByteStream,
-                    new MockConnectionFactory(null))) {
-                Continuous = true
-            };
+                    new MockConnectionFactory(null)),
+                continuous: true
+            );
             listener.AddChangeListener((sender, args) => {
                 statuses.Add(args.Status.Activity);
             });
@@ -331,9 +328,9 @@ namespace Test
             var serverConnection = new MockServerConnection(listener, ProtocolType.ByteStream);
             var config = new ReplicatorConfiguration(Db,
                 new MessageEndpoint("p2ptest1", serverConnection, ProtocolType.ByteStream,
-                    new MockConnectionFactory(null))) {
-                Continuous = true
-            };
+                    new MockConnectionFactory(null)),
+                continuous: true
+            );
             var token = listener.AddChangeListener((sender, args) => {
                 statuses.Add(args.Status.Activity);
             });
@@ -362,12 +359,12 @@ namespace Test
             };
 
             var config = new ReplicatorConfiguration(Db,
-                new MessageEndpoint("p2ptest1", server, protocolType, new MockConnectionFactory(errorLocation))) {
-                ReplicatorType = ReplicatorType.Push,
-                Continuous = false,
-                MaxRetries = 2,
-                MaxRetryWaitTime = TimeSpan.FromMinutes(10)
-            };
+                new MessageEndpoint("p2ptest1", server, protocolType, new MockConnectionFactory(errorLocation)),
+                replicatorType: ReplicatorType.Push,
+                continuous: false,
+                maxAttempts: 2,
+                maxAttemptsWaitTime: TimeSpan.FromMinutes(10)
+            );
             
             return config;
         }
@@ -395,10 +392,10 @@ namespace Test
                 var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(OtherDb1, ProtocolType.ByteStream));
                 var server = new MockServerConnection(listener, ProtocolType.ByteStream);
                 var config = new ReplicatorConfiguration(Db1,
-                    new MessageEndpoint(uid, server, ProtocolType.ByteStream, new MockConnectionFactory(null))) {
-                    ReplicatorType = type,
-                    Continuous = true
-                };
+                    new MessageEndpoint(uid, server, ProtocolType.ByteStream, new MockConnectionFactory(null)),
+                    replicatorType: type,
+                    continuous: true
+                );
 
                 using (var replicator = new Replicator(config)) {
                     replicator.Start();
