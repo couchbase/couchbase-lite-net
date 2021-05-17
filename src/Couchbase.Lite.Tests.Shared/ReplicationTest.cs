@@ -379,7 +379,7 @@ namespace Test
         [Fact]
         public void TestReplicatorMaxRetries() => ReplicatorMaxRetries(3);
 
-        [Fact]
+        //[Fact] Temp disable
         public void TestReplicatorZeroMaxRetries() => ReplicatorMaxRetries(0);
 
         [Fact]
