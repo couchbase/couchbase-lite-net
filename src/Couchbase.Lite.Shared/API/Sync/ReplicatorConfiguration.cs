@@ -95,7 +95,6 @@ namespace Couchbase.Lite.Sync
         private Database _otherDb;
         private Uri _remoteUrl;
         private C4SocketFactory _socketFactory;
-        private bool _continuous;
 
         #endregion
 
@@ -226,14 +225,15 @@ namespace Couchbase.Lite.Sync
         public bool AcceptOnlySelfSignedServerCertificate { get => Options.AcceptOnlySelfSignedServerCertificate; }
 #endif
 
-        //internal TimeSpan CheckpointInterval
-        //{
-        //    get => Options.CheckpointInterval;
-        //    set => Options.CheckpointInterval = value;
-        //}
+        // Sets the interval between auto checkpoint saves
+        internal TimeSpan CheckpointInterval
+        {
+            get => Options.CheckpointInterval;
+            set => Options.CheckpointInterval = value;
+        }
 
         [NotNull]
-        internal ReplicatorOptionsDictionary Options { get; set; }
+        internal ReplicatorOptionsDictionary Options { get; }
 
         [CanBeNull]
         internal Database OtherDB

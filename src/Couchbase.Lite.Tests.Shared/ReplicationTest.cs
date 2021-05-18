@@ -125,9 +125,9 @@ namespace Test
             var c = new ReplicatorConfiguration(database: sourceDb ?? Db, target: target, replicatorType: type,
                 continuous: continuous, authenticator: authenticator, pinnedServerCertificate: pinnedServerCertificate);
 
-            //if (continuous) {
-            //    c.CheckpointInterval = TimeSpan.FromSeconds(1);
-            //}
+            if (continuous) {
+                c.CheckpointInterval = TimeSpan.FromSeconds(1);
+            }
 
             return c;
         }
@@ -158,9 +158,9 @@ namespace Test
                 acceptOnlySelfSignedServerCertificate: acceptOnlySelfSignedServerCertificate
             );
 
-            //if (continuous) {
-            //    c.CheckpointInterval = TimeSpan.FromSeconds(1);
-            //}
+            if (continuous) {
+                c.CheckpointInterval = TimeSpan.FromSeconds(1);
+            }
 
             return c;
         }
@@ -603,7 +603,7 @@ namespace Test
             }
 
             var config = CreateConfig(true, false, true);
-            //config.CheckpointInterval = TimeSpan.FromSeconds(1);
+            config.CheckpointInterval = TimeSpan.FromSeconds(1);
             RunReplication(config, 0, 0);
 
             OtherDb.Count.Should().Be(2UL);
@@ -741,7 +741,7 @@ namespace Test
             }
 
             var config = CreateConfig(false, true, true);
-            //config.CheckpointInterval = TimeSpan.FromSeconds(1);
+            config.CheckpointInterval = TimeSpan.FromSeconds(1);
             RunReplication(config, 0, 0);
 
             Db.Count.Should().Be(2, "because the replicator should have pulled doc2 from the other DB");
