@@ -116,7 +116,7 @@ namespace Couchbase.Lite.Sync
         public Authenticator Authenticator { get; }
 
         /// <summary>
-        /// Gets or sets whether or not the <see cref="Replicator"/> should stay
+        /// Gets whether or not the <see cref="Replicator"/> should stay
         /// active indefinitely.  The default is <c>false</c>
         /// </summary>
         public bool Continuous { get; }
