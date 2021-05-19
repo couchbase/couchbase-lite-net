@@ -393,7 +393,6 @@ namespace Test
             var config = CreateConfig(true, true, false);
             config.PullFilter = _replicator__filterCallback;
             config.PushFilter = _replicator__filterCallback;
-
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "donotpass");
                 Db.Save(doc1);

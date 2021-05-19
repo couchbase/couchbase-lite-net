@@ -93,6 +93,7 @@ namespace Couchbase.Lite.Sync
         private Func<Document, DocumentFlags, bool> _pullValidator;
         private Database _otherDb;
         private Uri _remoteUrl;
+        private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
         private C4SocketFactory _socketFactory;
         private IConflictResolver _resolver;
 
@@ -136,7 +137,7 @@ namespace Couchbase.Lite.Sync
         /// Gets the local database participating in the replication. 
         /// </summary>
         [NotNull]
-        public Database Database { get; }
+        public Database Database { get; init; }
 
         /// <summary>
         /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
@@ -256,7 +257,7 @@ namespace Couchbase.Lite.Sync
         /// or <see cref="Uri"/>
         /// </summary>
         [NotNull]
-        public IEndpoint Target { get; }
+        public IEndpoint Target { get; init; }
 
         /// <summary>
         /// The implemented custom conflict resolver object can be registered to the replicator 
@@ -337,7 +338,6 @@ namespace Couchbase.Lite.Sync
                 PushFilter = PushFilter,
                 PullFilter = PullFilter,
                 ReplicatorType = ReplicatorType,
-                ProgressLevel = ProgressLevel,
                 ConflictResolver = ConflictResolver,
                 Options = Options
             };
