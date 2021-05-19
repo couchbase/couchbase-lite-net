@@ -100,7 +100,11 @@ namespace Couchbase.Lite.Sync
         /// Gets or sets the class which will authenticate the replication
         /// </summary>
         [CanBeNull]
-        public Authenticator Authenticator { get; init; }
+        public Authenticator Authenticator
+        {
+            get => _authenticator;
+            set => _freezer.SetValue(ref _authenticator, value);
+        }
 
         /// <summary>
         /// A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
@@ -111,22 +115,17 @@ namespace Couchbase.Lite.Sync
         public IList<string> Channels
         {
             get => Options.Channels;
-            init => Options.Channels = value;
+            set => _freezer.PerformAction(() => Options.Channels = value);
         }
 
         /// <summary>
         /// Gets or sets whether or not the <see cref="Replicator"/> should stay
         /// active indefinitely.  The default is <c>false</c>
         /// </summary>
-        public bool Continuous 
-        { 
-            get => _continuous; 
-            init
-            {
-                _continuous = value;
-                MaxRetries = Options.MaxRetries >= 0 ? Options.MaxRetries : _continuous ?
-                    ReplicatorOptionsDictionary.MaxRetriesContinuous : ReplicatorOptionsDictionary.MaxRetriesOneShot;
-            }
+        public bool Continuous
+        {
+            get => _continuous;
+            set => _freezer.SetValue(ref _continuous, value);
         }
 
         /// <summary>
@@ -143,7 +142,7 @@ namespace Couchbase.Lite.Sync
         public IList<string> DocumentIDs
         {
             get => Options.DocIDs;
-            init => Options.DocIDs = value;
+            set => _freezer.PerformAction(() =>  Options.DocIDs = value);
         }
 
         /// <summary>
@@ -153,7 +152,7 @@ namespace Couchbase.Lite.Sync
         public IDictionary<string, string> Headers
         {
             get => Options.Headers;
-            init => Options.Headers = value;
+            set => _freezer.PerformAction(() => Options.Headers = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(Headers), value));
         }
 
         /// <summary>
@@ -164,7 +163,7 @@ namespace Couchbase.Lite.Sync
         public X509Certificate2 PinnedServerCertificate
         {
             get => Options.PinnedServerCertificate;
-            init => Options.PinnedServerCertificate = value;
+            set => _freezer.PerformAction(() => Options.PinnedServerCertificate = value);
         }
 
         /// <summary>
@@ -173,7 +172,12 @@ namespace Couchbase.Lite.Sync
         /// will not be allowed
         /// </summary>
         [CanBeNull]
-        public Func<Document, DocumentFlags, bool> PullFilter { get; init; }
+        public Func<Document, DocumentFlags, bool> PullFilter
+        {
+            get => _pullValidator;
+            set => _freezer.PerformAction(() => _pullValidator = value);
+        }
+
 
         /// <summary>
         /// Func delegate that takes Document input parameter and bool output parameter
@@ -181,13 +185,21 @@ namespace Couchbase.Lite.Sync
         /// will not be allowed
         /// </summary>
         [CanBeNull]
-        public Func<Document, DocumentFlags, bool> PushFilter { get; init; }
+        public Func<Document, DocumentFlags, bool> PushFilter
+        {
+            get => _pushFilter;
+            set => _freezer.PerformAction(() => _pushFilter = value);
+        }
 
         /// <summary>
         /// A value indicating the direction of the replication.  The default is
         /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
         /// </summary>
-        public ReplicatorType ReplicatorType { get; init; } = ReplicatorType.PushAndPull;
+        public ReplicatorType ReplicatorType
+        {
+            get => _replicatorType;
+            set => _freezer.SetValue(ref _replicatorType, value);
+        }
 
         /// <summary>
         /// Gets or sets the replicator heartbeat keep-alive interval. 
@@ -199,7 +211,7 @@ namespace Couchbase.Lite.Sync
         public TimeSpan Heartbeat
         {
             get => Options.Heartbeat;
-            init => Options.Heartbeat = value;
+            set => _freezer.PerformAction(() => Options.Heartbeat = value);
         }
 
         /// <summary>
@@ -214,9 +226,14 @@ namespace Couchbase.Lite.Sync
         /// </exception>
         public int MaxRetries
         {
-            get => Options.MaxRetries >= 0 ? Options.MaxRetries : _continuous ? 
-                ReplicatorOptionsDictionary.MaxRetriesContinuous : ReplicatorOptionsDictionary.MaxRetriesOneShot;
-            init => Options.MaxRetries = value >= 0 ? value : throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetries);
+            get => Options.MaxRetries >= 0 ? Options.MaxRetries : _continuous ? Int32.MaxValue : 9;
+            set {
+                if (value >= 0) {
+                    _freezer.PerformAction(() => Options.MaxRetries = value);
+                } else {
+                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetries);
+                }
+            }
         }
 
         /// <summary>
@@ -228,7 +245,7 @@ namespace Couchbase.Lite.Sync
         public TimeSpan MaxRetryWaitTime
         {
             get => Options.MaxRetryInterval;
-            init => Options.MaxRetryInterval = value;
+            set => _freezer.PerformAction(() => Options.MaxRetryInterval = value);
         }
 
         /// <summary>
@@ -244,7 +261,11 @@ namespace Couchbase.Lite.Sync
         /// When the value is null, the default conflict resolution will be applied.
         /// </summary>
         [CanBeNull]
-        public IConflictResolver ConflictResolver { get; init; }
+        public IConflictResolver ConflictResolver
+        {
+            get => _resolver;
+            set => _freezer.PerformAction(() => _resolver = value);
+        }
 
         internal TimeSpan CheckpointInterval
         {
@@ -294,6 +315,32 @@ namespace Couchbase.Lite.Sync
 
             var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
             castTarget.Visit(this);
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        [NotNull]
+        internal ReplicatorConfiguration Freeze()
+        {
+            var retVal = new ReplicatorConfiguration(Database, Target)
+            {
+                Authenticator = Authenticator,
+                #if COUCHBASE_ENTERPRISE
+                AcceptOnlySelfSignedServerCertificate = AcceptOnlySelfSignedServerCertificate,
+                #endif
+                Continuous = Continuous,
+                PushFilter = PushFilter,
+                PullFilter = PullFilter,
+                ReplicatorType = ReplicatorType,
+                ProgressLevel = ProgressLevel,
+                ConflictResolver = ConflictResolver,
+                Options = Options
+            };
+
+            retVal._freezer.Freeze("Cannot modify a ReplicatorConfiguration that is in use");
+            return retVal;
         }
 
         #endregion

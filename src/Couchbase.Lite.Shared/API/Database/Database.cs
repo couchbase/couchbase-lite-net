@@ -321,8 +321,7 @@ namespace Couchbase.Lite
                 throw new CouchbaseLiteException(err);
             }
 
-            Config = configuration ?? new DatabaseConfiguration();
-
+            Config = configuration?.Freeze() ?? new DatabaseConfiguration(true);
             Run.Once(nameof(CheckFileLogger), CheckFileLogger);
             Open();
         }
@@ -347,7 +346,7 @@ namespace Couchbase.Lite
         internal Database(C4Database* c4db)
         {
             Name = "tmp";
-            Config = new DatabaseConfiguration();
+            Config = new DatabaseConfiguration(true);
             _c4db = (C4Database*) Native.c4db_retain(c4db);
             IsShell = true;
         }

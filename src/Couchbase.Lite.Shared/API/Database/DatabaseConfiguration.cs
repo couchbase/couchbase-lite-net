@@ -38,6 +38,8 @@ namespace Couchbase.Lite
 
         #region Variables
 
+        [NotNull] private readonly Freezer _freezer = new Freezer();
+
         [NotNull] private string _directory =
             Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
       
@@ -52,7 +54,7 @@ namespace Couchbase.Lite
         public string Directory
         {
             get => _directory;
-            init => _directory = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value);
+            set => _freezer.SetValue(ref _directory, CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, "Directory", value));
         }
 
         /// <summary>
@@ -74,7 +76,11 @@ namespace Couchbase.Lite
         /// Gets or sets the encryption key to use on the database
         /// </summary>
         [CanBeNull]
-        public EncryptionKey EncryptionKey { get; init; }
+        public EncryptionKey EncryptionKey
+        {
+            get => _encryptionKey;
+            set => _freezer.SetValue(ref _encryptionKey, value);
+        }
         #endif
 
         #endregion
@@ -86,6 +92,34 @@ namespace Couchbase.Lite
         {
 
         }
+
+
+        internal DatabaseConfiguration(bool frozen)
+        {
+            if (frozen) {
+                _freezer.Freeze("Cannot modify a DatabaseConfiguration that is currently in use");
+            }
+        }
+
+        #region Internal Methods
+
+        [NotNull]
+        internal DatabaseConfiguration Freeze()
+        {
+            var retVal = new DatabaseConfiguration
+            {
+                Directory = Directory,
+            };
+
+            #if COUCHBASE_ENTERPRISE
+            retVal.EncryptionKey = EncryptionKey;
+            #endif
+
+            retVal._freezer.Freeze("Cannot modify a DatabaseConfiguration that is currently in use");
+            return retVal;
+        }
+
+        #endregion
     }
 }
 
