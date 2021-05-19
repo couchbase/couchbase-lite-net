@@ -21,7 +21,6 @@ using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 
 using Couchbase.Lite.Internal.Logging;
-using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
@@ -91,9 +90,6 @@ namespace Couchbase.Lite.Sync
 
         #region Variables
 
-        private readonly Freezer _freezer;
-        private Database _otherDb;
-        private Uri _remoteUrl;
         private C4SocketFactory _socketFactory;
 
         #endregion
@@ -236,23 +232,15 @@ namespace Couchbase.Lite.Sync
         internal ReplicatorOptionsDictionary Options { get; }
 
         [CanBeNull]
-        internal Database OtherDB
-        {
-            get => _otherDb;
-            set => _freezer.SetValue(ref _otherDb, value);
-        }
+        internal Database OtherDB { get; set; }
 
         [CanBeNull]
-        internal Uri RemoteUrl
-        {
-            get => _remoteUrl;
-            set => _freezer.SetValue(ref _remoteUrl, value);
-        }
+        internal Uri RemoteUrl { get; set; }
 
         internal C4SocketFactory SocketFactory
         {
             get => _socketFactory.open != IntPtr.Zero ? _socketFactory : LiteCore.Interop.SocketFactory.InternalFactory;
-            set => _freezer.SetValue(ref _socketFactory, value);
+            set => _socketFactory = value;
         }
 
         #endregion
@@ -279,7 +267,6 @@ namespace Couchbase.Lite.Sync
             Database = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(database), database);
             Target = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(target), target);
 
-            _freezer = new Freezer();
             Options = new ReplicatorOptionsDictionary();
 
             Authenticator = authenticator;

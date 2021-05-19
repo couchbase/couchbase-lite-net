@@ -80,10 +80,11 @@ namespace Couchbase.Lite
         /// Default directory is <see cref="Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory()" /> if directory set to null.
         /// </param>
         public DatabaseConfiguration(
+            string directory = null
 #if COUCHBASE_ENTERPRISE
-            EncryptionKey encryptionKey = null,
+            , EncryptionKey encryptionKey = null
 #endif
-            string directory = null)
+            )
         {
             _directory = directory ?? Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
 #if COUCHBASE_ENTERPRISE
