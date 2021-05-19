@@ -87,10 +87,14 @@ namespace Couchbase.Lite.Sync
         #region Variables
 
         [NotNull]private readonly Freezer _freezer = new Freezer();
+        private Authenticator _authenticator;
+        private bool _continuous;
+        private Func<Document, DocumentFlags, bool> _pushFilter;
+        private Func<Document, DocumentFlags, bool> _pullValidator;
         private Database _otherDb;
         private Uri _remoteUrl;
         private C4SocketFactory _socketFactory;
-        private bool _continuous;
+        private IConflictResolver _resolver;
 
         #endregion
 
@@ -148,7 +152,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Extra HTTP headers to send in all requests to the remote target
         /// </summary>
-        [CanBeNull]
+        [NotNull]
         public IDictionary<string, string> Headers
         {
             get => Options.Headers;
@@ -177,7 +181,6 @@ namespace Couchbase.Lite.Sync
             get => _pullValidator;
             set => _freezer.PerformAction(() => _pullValidator = value);
         }
-
 
         /// <summary>
         /// Func delegate that takes Document input parameter and bool output parameter

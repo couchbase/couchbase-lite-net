@@ -42,7 +42,11 @@ namespace Couchbase.Lite
 
         [NotNull] private string _directory =
             Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory();
-      
+
+        #if COUCHBASE_ENTERPRISE
+        private EncryptionKey _encryptionKey;
+        #endif
+
         #endregion
 
         #region Properties
@@ -125,7 +129,5 @@ namespace Couchbase.Lite
 
 namespace System.Runtime.CompilerServices
 {
-    // This is a hack to get C# 9 to work with none .Net 5+
-    // Should be able to remove once the projec is updated to .Net 5+
     internal static class IsExternalInit { }
 }
