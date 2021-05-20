@@ -141,7 +141,7 @@ namespace Couchbase.Lite.Sync
         /// Gets the local database participating in the replication. 
         /// </summary>
         [NotNull]
-        public Database Database { get; init; }
+        public Database Database { get; }
 
         /// <summary>
         /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
@@ -261,7 +261,7 @@ namespace Couchbase.Lite.Sync
         /// or <see cref="Uri"/>
         /// </summary>
         [NotNull]
-        public IEndpoint Target { get; init; }
+        public IEndpoint Target { get; }
 
         /// <summary>
         /// The implemented custom conflict resolver object can be registered to the replicator 
