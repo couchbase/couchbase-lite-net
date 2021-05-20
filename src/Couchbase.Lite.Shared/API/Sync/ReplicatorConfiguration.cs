@@ -82,6 +82,11 @@ namespace Couchbase.Lite.Sync
 
         private const string Tag = nameof(ReplicatorConfiguration);
 
+        internal const long DefaultHeartbeatInterval = 300;
+        internal const long DefaultMaxRetryInterval = 300;
+        internal const int MaxAttemptsContinuous = int.MaxValue;
+        internal const int MaxAttemptsOneShot = 9;
+
         #endregion
 
         #region Variables
@@ -133,7 +138,8 @@ namespace Couchbase.Lite.Sync
             set
             {
                 _freezer.SetValue(ref _continuous, value);
-                MaxRetries = Options.MaxRetries >= 0 ? Options.MaxRetries : _continuous ? int.MaxValue : 9;
+                MaxAttempts = Options.MaxAttempts > 0 ? Options.MaxAttempts 
+                    : _continuous ? MaxAttemptsContinuous : MaxAttemptsOneShot;
             }
         }
 
@@ -211,49 +217,68 @@ namespace Couchbase.Lite.Sync
 
         /// <summary>
         /// Gets or sets the replicator heartbeat keep-alive interval. 
-        /// The default Heartbeat is <c>5</c> min.
+        /// The default is null (5 min interval is applied).
         /// </summary>
         /// <exception cref="ArgumentException"> 
         /// Throw if set the Heartbeat to less or equal to 0 full seconds.
         /// </exception>
-        public TimeSpan Heartbeat
+        public TimeSpan? Heartbeat
         {
-            get => Options.Heartbeat;
-            set => _freezer.PerformAction(() => Options.Heartbeat = value);
+            get => TimeSpan.FromSeconds(Options.Heartbeat);
+            set
+            {
+                long sec = value == null ? DefaultHeartbeatInterval : value.Value.Ticks / TimeSpan.TicksPerSecond;
+                if (sec > 0) {
+                    _freezer.PerformAction(() => Options.Heartbeat = sec);
+                } else {
+                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
+                }
+            }
         }
 
         /// <summary>
         /// Max number of retry attempts. The retry attempts will reset
         /// after the replicator is connected to a remote peer. 
-        /// The default MaxRetries is <c>9</c> for a single shot replicator and 
-        /// <see cref="Int32.MaxValue" /> for a continuous replicator.
-        /// Set the MaxRetries to 0 will result in no retry attempt.
+        /// The default is <c>0</c> (<c>10</c> for a single shot replicator or 
+        /// <see cref="int.MaxValue" /> for a continuous replicator is applied.)
+        /// Setting the value to 1 means that the replicator will perform an initial request 
+        /// and if there is a transient error occurs, the replicator will stop without retrying.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// Throw if set the MaxRetries to a negative value.
+        /// Throw if set the MaxAttempts to a negative value.
         /// </exception>
-        public int MaxRetries
+        public int MaxAttempts
         {
-            get => Options.MaxRetries >= 0 ? Options.MaxRetries : _continuous ? int.MaxValue : 9;
+            get => Options.MaxAttempts >= 0 ? Options.MaxAttempts : _continuous ? int.MaxValue : 9;
             set {
-                if (value >= 0) {
-                    _freezer.PerformAction(() => Options.MaxRetries = value);
+                if (value < 0) {
+                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttempts);
                 } else {
-                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetries);
+                    var maxAttempts = value == 0 ? _continuous ? MaxAttemptsContinuous : MaxAttemptsOneShot : value;
+                    _freezer.PerformAction(() => Options.MaxAttempts = maxAttempts);
                 }
             }
         }
 
         /// <summary>
         /// Max delay between retries.
+        /// The default is null (5 min interval is applied).
         /// </summary>
         /// <exception cref="ArgumentException"> 
         /// Throw if set the MaxRetryWaitTime to less than 0 full seconds.
         /// </exception>
-        public TimeSpan MaxRetryWaitTime
+        public TimeSpan? MaxAttemptsWaitTime
         {
-            get => Options.MaxRetryInterval;
-            set => _freezer.PerformAction(() => Options.MaxRetryInterval = value);
+            get => TimeSpan.FromSeconds(Options.maxAttemptWaitTime);
+            set
+            {
+                long sec = value == null ? DefaultMaxRetryInterval : value.Value.Ticks / TimeSpan.TicksPerSecond;
+                if (sec > 0) {
+                    _freezer.PerformAction(() => Options.maxAttemptWaitTime = sec);
+                } else {
+                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
+                }
+            }
         }
 
         /// <summary>

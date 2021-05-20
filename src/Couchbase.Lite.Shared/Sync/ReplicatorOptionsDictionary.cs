@@ -48,8 +48,8 @@ namespace Couchbase.Lite.Sync
         private const string LevelKey = "progress";
         private const string RemoteDBUniqueIDKey = "remoteDBUniqueID";
         private const string ResetKey = "reset";
-        private const string MaxRetriesKey = "maxRetries";
-        private const string MaxRetryIntervalKey = "maxRetryInterval";
+        private const string MaxAttemptsKey = "maxRetries";//"maxAttempts";
+        private const string maxAttemptWaitTimeKey = "maxRetryInterval";//"maxAttemptWaitTime";
 
         // HTTP options:
         private const string HeadersKey = "headers";
@@ -65,9 +65,6 @@ namespace Couchbase.Lite.Sync
         private const string ProtocolsOptionKey = "WS-Protocols";
         private const string HeartbeatIntervalKey = "heartbeat"; //Interval in secs to send a keepalive ping
         
-        private TimeSpan _defaultHeartbeatInterval = TimeSpan.FromMinutes(5);
-        private TimeSpan _defaultMaxRetryInterval = TimeSpan.FromMinutes(5);
-
         private const string Tag = nameof(ReplicatorOptionsDictionary);
 
         #endregion
@@ -210,36 +207,22 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        internal TimeSpan Heartbeat
+        internal long Heartbeat
         {
-            get => TimeSpan.FromSeconds(this.GetCast<long>(HeartbeatIntervalKey));
-            set { 
-                var sec = value.Ticks/TimeSpan.TicksPerSecond;
-                if (sec > 0) {
-                    this[HeartbeatIntervalKey] = sec;
-                } else { 
-                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
-                }
-            }
+            get => this.GetCast<long>(HeartbeatIntervalKey);
+            set => this[HeartbeatIntervalKey] = value;
         }
 
-        internal int MaxRetries
+        internal int MaxAttempts
         {
-            get => this.GetCast<int>(MaxRetriesKey);
-            set => this[MaxRetriesKey] = (int) value;
+            get => this.GetCast<int>(MaxAttemptsKey);
+            set => this[MaxAttemptsKey] = value;
         }
 
-        internal TimeSpan MaxRetryInterval
+        internal long maxAttemptWaitTime
         {
-            get => TimeSpan.FromSeconds(this.GetCast<long>(MaxRetryIntervalKey));
-            set {
-                var sec = value.Ticks / TimeSpan.TicksPerSecond;
-                if (sec > 0) {
-                    this[MaxRetryIntervalKey] = sec;
-                } else {
-                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetryInterval);
-                }
-            }
+            get => this.GetCast<long>(maxAttemptWaitTimeKey);
+            set => this[maxAttemptWaitTimeKey] = value;
         }
 
         #if COUCHBASE_ENTERPRISE
@@ -264,9 +247,6 @@ namespace Couchbase.Lite.Sync
         public ReplicatorOptionsDictionary()
         {
             Headers = new Dictionary<string, string>();
-            Heartbeat = _defaultHeartbeatInterval;
-            MaxRetryInterval = _defaultMaxRetryInterval;
-            MaxRetries = -1;
         }
 
         ~ReplicatorOptionsDictionary()

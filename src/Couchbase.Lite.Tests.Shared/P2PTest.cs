@@ -365,8 +365,8 @@ namespace Test
                 new MessageEndpoint("p2ptest1", server, protocolType, new MockConnectionFactory(errorLocation))) {
                 ReplicatorType = ReplicatorType.Push,
                 Continuous = false,
-                MaxRetries = 2,
-                MaxRetryWaitTime = TimeSpan.FromMinutes(10)
+                MaxAttempts = 2,
+                MaxAttemptsWaitTime = TimeSpan.FromMinutes(10)
             };
             
             return config;
