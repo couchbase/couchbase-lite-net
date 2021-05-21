@@ -137,7 +137,7 @@ namespace Couchbase.Lite.Sync
             set 
             {
                 _freezer.SetValue(ref _continuous, value);
-                MaxAttempts = Options.MaxRetries == 0 ? _continuous ? MaxAttemptsContinuous : MaxAttemptsOneShot : Options.MaxRetries + 1;
+                MaxAttempts = Options.MaxRetries < 0 ? _continuous ? MaxAttemptsContinuous : MaxAttemptsOneShot : Options.MaxRetries + 1;
             }
         }
 

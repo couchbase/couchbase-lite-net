@@ -167,7 +167,7 @@ namespace Couchbase.Lite.Sync
         [NotNull]
         public IDictionary<string, string> Headers
         {
-            get => this.GetCast<IDictionary<string, string>>(HeadersKey) ?? new Dictionary<string, string>();
+            get => this.GetCast<IDictionary<string, string>>(HeadersKey, new Dictionary<string, string>());
             set => this[HeadersKey] = value;
         }
 
@@ -218,7 +218,7 @@ namespace Couchbase.Lite.Sync
 
         internal int MaxRetries
         {
-            get => this.GetCast<int>(MaxRetriesKey);
+            get => this.GetCast<int>(MaxRetriesKey, -1);
             set => this[MaxRetriesKey] = value;
         }
 
