@@ -264,31 +264,9 @@ namespace Test
         }
 #endif
 
-#if !WINDOWS_UWP
-        //[Fact]
-        public async Task TestReplicatorStopsWhenEndpointInvalid()
-        {
-            // If this IP address happens to exist, then change it.  It needs to be an address that does not
-            // exist on the LAN
-            var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
-            var config = new ReplicatorConfiguration(Db, targetEndpoint);
-            using (var repl = new Replicator(config)) {
-                repl.Start();
-                var count = 0;
-                Thread.Sleep(TimeSpan.FromSeconds(51)); // The combined amount of time this should take to stop
-                while (count++ <= 10 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
-                    WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
-                    await Task.Delay(500);
-                }
-
-                count.Should().BeLessThan(10, "because otherwise the replicator never stopped");
-            }
-        }
-#endif
-
 #if COUCHBASE_ENTERPRISE
 
-        //[Fact]
+        [Fact]
         public void TestReplicatorHeartbeatGetSet()
         {
             var config = CreateConfig(true, false, false);
@@ -311,18 +289,18 @@ namespace Test
             badAction.Should().Throw<ArgumentException>("Assigning Heartbeat to an invalid value.");
         }
 
-        //[Fact]
+        [Fact]
         public void TestReplicatorMaxRetryWaitTimeGetSet()
         {
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
-                repl.Config.Options.maxAttemptWaitTime.Should().Be((long)TimeSpan.FromMinutes(5).TotalSeconds, "Because default Max Retry Interval is 300 sec.");
+                repl.Config.Options.MaxRetryInterval.Should().Be((long)TimeSpan.FromMinutes(5).TotalSeconds, "Because default Max Retry Interval is 300 sec.");
                 repl.Config.MaxAttemptsWaitTime.Should().Be(TimeSpan.FromMinutes(5), "Because default Max Retry Wait Time is 300 sec.");
             }
 
             config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(60);
             using (var repl = new Replicator(config)) {
-                repl.Config.Options.maxAttemptWaitTime.Should().Be((long)TimeSpan.FromSeconds(60).TotalSeconds);
+                repl.Config.Options.MaxRetryInterval.Should().Be((long)TimeSpan.FromSeconds(60).TotalSeconds);
                 repl.Config.MaxAttemptsWaitTime.Should().Be(TimeSpan.FromSeconds(60));
             }
 
@@ -338,30 +316,33 @@ namespace Test
         {
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.Should().Be(9, "Because default Max Retries is 9 times for a Single Shot Replicator.");
+                repl.Config.MaxAttempts.Should().Be(10, "Because default Max Attempts is 9 times for a Single Shot Replicator.");
+                repl.Config.Options.MaxRetries.Should().Be(9, $"Because 9 is what custom setting value for Max Retries.");
             }
 
             config = CreateConfig(true, false, true);
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.Should().Be(Int32.MaxValue, "Because default Max Retries is Max int times for a Continuous Replicator.");
+                repl.Config.MaxAttempts.Should().Be(int.MaxValue, "Because default Max Attempts is Max int times for a Continuous Replicator.");
+                repl.Config.Options.MaxRetries.Should().Be(int.MaxValue - 1, $"Because int.MaxValue is what custom setting value for Max Retries.");
             }
 
-            var retries = 5;
+            var attempts = 5;
             config = CreateConfig(true, false, false);
-            config.MaxAttempts = retries;
+            config.MaxAttempts = attempts;
             using (var repl = new Replicator(config)) {
-                repl.Config.Options.MaxAttempts.Should().Be(retries, $"Because {retries} is what custom setting value for Max Retries.");
+                repl.Config.MaxAttempts.Should().Be(attempts, $"Because {attempts} is Max int times for a Continuous Replicator.");
+                repl.Config.Options.MaxRetries.Should().Be(attempts - 1, $"Because {attempts - 1} is what custom setting value for Max Retries.");
             }
 
             Action badAction = (() => config.MaxAttempts = -1);
             badAction.Should().Throw<ArgumentException>("Assigning Max Retries to an invalid value (< 0).");
         }
 
-        //[Fact]
-        public void TestReplicatorMaxAttempts() => ReplicatorMaxAttempts(2);
+        [Fact]
+        public void TestReplicatorMaxAttempts() => ReplicatorMaxAttempts(3);
 
-        //[Fact]
-        public void TestReplicatorZeroMaxAttempts() => ReplicatorMaxAttempts(0);
+        [Fact]
+        public void TestReplicatorZeroMaxAttempts() => ReplicatorMaxAttempts(1);
 
         [Fact]
         public void TestReadOnlyConfiguration()
@@ -1355,7 +1336,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestConflictResolverCalledTwice()
         {
             int resolveCnt = 0;
@@ -1852,14 +1833,14 @@ namespace Test
 
 
 #if COUCHBASE_ENTERPRISE
-        private void ReplicatorMaxAttempts(int retries)
+        private void ReplicatorMaxAttempts(int attempts)
         {
             // If this IP address happens to exist, then change it.  It needs to be an address that does not
             // exist on the LAN
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
             var config = new ReplicatorConfiguration(Db, targetEndpoint) {
                 Continuous = true,
-                MaxAttempts = retries
+                MaxAttempts = attempts
             };
 
             var count = 0;
@@ -1883,7 +1864,7 @@ namespace Test
             waitAssert.WaitForResult(TimeSpan.FromSeconds(60));
             repl.RemoveChangeListener(token);
 
-            count.Should().Be(retries);
+            count.Should().Be(attempts - 1);
             repl.Dispose();
         }
 

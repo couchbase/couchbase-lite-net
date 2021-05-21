@@ -48,8 +48,8 @@ namespace Couchbase.Lite.Sync
         private const string LevelKey = "progress";
         private const string RemoteDBUniqueIDKey = "remoteDBUniqueID";
         private const string ResetKey = "reset";
-        private const string MaxAttemptsKey = "maxRetries";//"maxAttempts";
-        private const string maxAttemptWaitTimeKey = "maxRetryInterval";//"maxAttemptWaitTime";
+        private const string MaxRetriesKey = "maxRetries";
+        private const string MaxRetryIntervalKey = "maxRetryInterval";
 
         // HTTP options:
         private const string HeadersKey = "headers";
@@ -209,20 +209,20 @@ namespace Couchbase.Lite.Sync
 
         internal long Heartbeat
         {
-            get => this.GetCast<long>(HeartbeatIntervalKey);
+            get => this.GetCast<long>(HeartbeatIntervalKey, ReplicatorConfiguration.DefaultHeartbeatInterval);
             set => this[HeartbeatIntervalKey] = value;
         }
 
-        internal int MaxAttempts
+        internal int MaxRetries
         {
-            get => this.GetCast<int>(MaxAttemptsKey);
-            set => this[MaxAttemptsKey] = value;
+            get => this.GetCast<int>(MaxRetriesKey);
+            set => this[MaxRetriesKey] = value;
         }
 
-        internal long maxAttemptWaitTime
+        internal long MaxRetryInterval
         {
-            get => this.GetCast<long>(maxAttemptWaitTimeKey);
-            set => this[maxAttemptWaitTimeKey] = value;
+            get => this.GetCast<long>(MaxRetryIntervalKey, ReplicatorConfiguration.DefaultMaxRetryInterval);
+            set => this[MaxRetryIntervalKey] = value;
         }
 
         #if COUCHBASE_ENTERPRISE

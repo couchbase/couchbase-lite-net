@@ -84,14 +84,15 @@ namespace Couchbase.Lite.Sync
 
         internal const long DefaultHeartbeatInterval = 300;
         internal const long DefaultMaxRetryInterval = 300;
-        internal const int MaxAttemptsContinuous = int.MaxValue;
-        internal const int MaxAttemptsOneShot = 9;
+        internal const int MaxRetriesContinuous = int.MaxValue;
+        internal const int MaxRetriesOneShot = 9;
 
         #endregion
 
         #region Variables
 
         [NotNull]private readonly Freezer _freezer = new Freezer();
+        private int _maxAttempts = -1;
         private Authenticator _authenticator;
         private bool _continuous;
         private Func<Document, DocumentFlags, bool> _pushFilter;
@@ -135,11 +136,10 @@ namespace Couchbase.Lite.Sync
         public bool Continuous
         {
             get => _continuous;
-            set
+            set 
             {
                 _freezer.SetValue(ref _continuous, value);
-                MaxAttempts = Options.MaxAttempts > 0 ? Options.MaxAttempts 
-                    : _continuous ? MaxAttemptsContinuous : MaxAttemptsOneShot;
+                MaxAttempts = _maxAttempts < 0 ? _continuous ? MaxRetriesContinuous : MaxRetriesOneShot + 1 : _maxAttempts;
             }
         }
 
@@ -249,13 +249,14 @@ namespace Couchbase.Lite.Sync
         /// </exception>
         public int MaxAttempts
         {
-            get => Options.MaxAttempts >= 0 ? Options.MaxAttempts : _continuous ? int.MaxValue : 9;
+            get => Options.MaxRetries + 1;
             set {
                 if (value < 0) {
                     throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttempts);
                 } else {
-                    var maxAttempts = value == 0 ? _continuous ? MaxAttemptsContinuous : MaxAttemptsOneShot : value;
-                    _freezer.PerformAction(() => Options.MaxAttempts = maxAttempts);
+                    _maxAttempts = value;
+                    var maxRetries = _maxAttempts == 0 ? _continuous ? MaxRetriesContinuous : MaxRetriesOneShot : value - 1;
+                    _freezer.PerformAction(() => Options.MaxRetries = maxRetries);
                 }
             }
         }
@@ -269,12 +270,12 @@ namespace Couchbase.Lite.Sync
         /// </exception>
         public TimeSpan? MaxAttemptsWaitTime
         {
-            get => TimeSpan.FromSeconds(Options.maxAttemptWaitTime);
+            get => TimeSpan.FromSeconds(Options.MaxRetryInterval);
             set
             {
                 long sec = value == null ? DefaultMaxRetryInterval : value.Value.Ticks / TimeSpan.TicksPerSecond;
                 if (sec > 0) {
-                    _freezer.PerformAction(() => Options.maxAttemptWaitTime = sec);
+                    _freezer.PerformAction(() => Options.MaxRetryInterval = sec);
                 } else {
                     throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
                 }
