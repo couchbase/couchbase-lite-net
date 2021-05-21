@@ -272,8 +272,14 @@ namespace Test
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config))
             {
-                repl.Config.Options.Heartbeat.Should().Be((long)TimeSpan.FromMinutes(5).TotalSeconds, "Because default Heartbeat Interval is 300 sec.");
-                repl.Config.Heartbeat.Should().Be(TimeSpan.FromMinutes(5), "Because default Heartbeat Interval is 300 sec.");
+                repl.Config.Options.Heartbeat.Should().Be(-1, "Because default Heartbeat Interval is 300 sec is applied, and no value returns from Core..");
+                repl.Config.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
+            }
+
+            config.Heartbeat = TimeSpan.FromSeconds(60);
+            using (var repl = new Replicator(config))
+            {
+                repl.Config.Options.Heartbeat.Should().Be((long)TimeSpan.FromSeconds(60).TotalSeconds);
             }
 
             config.Heartbeat = TimeSpan.FromSeconds(60);
@@ -294,8 +300,8 @@ namespace Test
         {
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
-                repl.Config.Options.MaxRetryInterval.Should().Be((long)TimeSpan.FromMinutes(5).TotalSeconds, "Because default Max Retry Interval is 300 sec.");
-                repl.Config.MaxAttemptsWaitTime.Should().Be(TimeSpan.FromMinutes(5), "Because default Max Retry Wait Time is 300 sec.");
+                repl.Config.Options.MaxRetryInterval.Should().Be(-1, "Because default Max Retry Interval is 300 sec is applied, and no value returns from Core..");
+                repl.Config.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
             }
 
             config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(60);
@@ -316,14 +322,14 @@ namespace Test
         {
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.Should().Be(10, "Because default Max Attempts is 10 times for a Single Shot Replicator.");
-                repl.Config.Options.MaxRetries.Should().Be(9, $"Because 9 is what custom setting value for Max Retries.");
+                repl.Config.MaxAttempts.Should().Be(0, "Because default Max Attempts is 10 times for a Single Shot Replicator and 0 is returned.");
+                repl.Config.Options.MaxRetries.Should().Be( -1 , $"Because default value 9 is for Max Retries for a Single Shot Replicator is applied, and no value returns from Core..");
             }
 
             config = CreateConfig(true, false, true);
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.Should().Be(int.MaxValue, "Because default Max Attempts is Max int times for a Continuous Replicator.");
-                repl.Config.Options.MaxRetries.Should().Be(int.MaxValue - 1, $"Because int.MaxValue is what custom setting value for Max Retries.");
+                repl.Config.MaxAttempts.Should().Be(0, "Because default Max Attempts is Max int times for a Continuous Replicator and 0 is returned.");
+                repl.Config.Options.MaxRetries.Should().Be(- 1, $"Because default value int.MaxValue is for Max Retries for a Continuous Replicator is applied, and no value returns from Core..");
             }
 
             var attempts = 5;

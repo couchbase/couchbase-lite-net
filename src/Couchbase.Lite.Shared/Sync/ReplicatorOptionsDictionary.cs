@@ -67,9 +67,6 @@ namespace Couchbase.Lite.Sync
         private const string ProtocolsOptionKey = "WS-Protocols";
         private const string HeartbeatIntervalKey = "heartbeat"; //Interval in secs to send a keepalive ping
 
-        internal const long DefaultHeartbeatInterval = 300;
-        internal const long DefaultMaxRetryInterval = 300;
-
         #endregion
 
         #region Variables
@@ -212,19 +209,19 @@ namespace Couchbase.Lite.Sync
 
         internal long Heartbeat
         {
-            get => this.GetCast<long>(HeartbeatIntervalKey, DefaultHeartbeatInterval);
+            get => this.GetCast<long>(HeartbeatIntervalKey, -1);
             set => this[HeartbeatIntervalKey] = value;
         }
 
         internal int MaxRetries
         {
-            get => this.GetCast<int>(MaxRetriesKey, -1);
+            get => this.GetCast(MaxRetriesKey, -1);
             set => this[MaxRetriesKey] = value;
         }
 
         internal long MaxRetryInterval
         {
-            get => this.GetCast<long>(MaxRetryIntervalKey, DefaultMaxRetryInterval);
+            get => this.GetCast<long>(MaxRetryIntervalKey, -1);
             set => this[MaxRetryIntervalKey] = value;
         }
 

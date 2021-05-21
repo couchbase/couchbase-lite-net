@@ -82,10 +82,6 @@ namespace Couchbase.Lite.Sync
 
         private const string Tag = nameof(ReplicatorConfiguration);
 
-        
-        internal const int MaxAttemptsContinuous = int.MaxValue;
-        internal const int MaxAttemptsOneShot = 10;
-
         #endregion
 
         #region Variables
@@ -134,11 +130,7 @@ namespace Couchbase.Lite.Sync
         public bool Continuous
         {
             get => _continuous;
-            set 
-            {
-                _freezer.SetValue(ref _continuous, value);
-                MaxAttempts = Options.MaxRetries < 0 ? _continuous ? MaxAttemptsContinuous : MaxAttemptsOneShot : Options.MaxRetries + 1;
-            }
+            set =>_freezer.SetValue(ref _continuous, value);
         }
 
         /// <summary>
@@ -215,32 +207,47 @@ namespace Couchbase.Lite.Sync
 
         /// <summary>
         /// Gets or sets the replicator heartbeat keep-alive interval. 
-        /// The default is null (5 min interval is applied).
+        /// The default is null (5 min interval is applied). 
+        /// * <c>5</c> min interval is applied when Heartbeat is set to null.
+        /// * null will be returned when default <c>5</c> min interval is applied.
         /// </summary>
         /// <exception cref="ArgumentException"> 
         /// Throw if set the Heartbeat to less or equal to 0 full seconds.
         /// </exception>
         public TimeSpan? Heartbeat
         {
-            get => TimeSpan.FromSeconds(Options.Heartbeat);
+            get 
+            {
+                if (Options.Heartbeat < 0)
+                    return null;
+                else
+                    return TimeSpan.FromSeconds(Options.Heartbeat); 
+            }
+
             set
             {
-                long sec = value == null ? ReplicatorOptionsDictionary.DefaultHeartbeatInterval : value.Value.Ticks / TimeSpan.TicksPerSecond;
-                if (sec > 0) {
-                    _freezer.PerformAction(() => Options.Heartbeat = sec);
-                } else {
-                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
+                if (value != null) {
+                    long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
+                    if (sec > 0) {
+                        _freezer.PerformAction(() => Options.Heartbeat = sec);
+                    } else {
+                        throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
+                    }
                 }
             }
         }
 
         /// <summary>
-        /// Max number of retry attempts. The retry attempts will reset
+        /// Gets or sets the Max number of retry attempts. The retry attempts will reset
         /// after the replicator is connected to a remote peer. 
         /// The default is <c>0</c> (<c>10</c> for a single shot replicator or 
         /// <see cref="int.MaxValue" /> for a continuous replicator is applied.)
-        /// Setting the value to 1 means that the replicator will perform an initial request 
-        /// and if there is a transient error occurs, the replicator will stop without retrying.
+        /// * <c>10</c> for a single shot replicator or <see cref="int.MaxValue" /> for a 
+        /// continuous replicator is applied when user set MaxAttempts to 0.
+        /// * 0 will be returned when default <c>10</c> for a single shot replicator or 
+        /// <see cref="int.MaxValue" /> for a continuous replicator is applied.
+        /// * Setting the value to 1 means that the replicator will try connect once and 
+        /// the replicator will stop if there is a transient error.
         /// </summary>
         /// <exception cref="ArgumentException">
         /// Throw if set the MaxAttempts to a negative value.
@@ -251,30 +258,41 @@ namespace Couchbase.Lite.Sync
             set {
                 if (value < 0) {
                     throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttempts);
-                } else {
-                    var maxAttempts = value == 0 ? _continuous ? MaxAttemptsContinuous : MaxAttemptsOneShot : value;
-                    _freezer.PerformAction(() => Options.MaxRetries = maxAttempts - 1);
+                } else if(value > 0){
+                    _freezer.PerformAction(() => Options.MaxRetries = value - 1);
                 }
             }
         }
 
         /// <summary>
-        /// Max delay between retries.
+        /// Gets or sets the Max delay between retries.
         /// The default is null (5 min interval is applied).
+        /// * <c>5</c> min interval is applied when MaxAttemptsWaitTime is set to null.
+        /// * null will be returned when default <c>5</c> min interval is applied.
         /// </summary>
         /// <exception cref="ArgumentException"> 
         /// Throw if set the MaxRetryWaitTime to less than 0 full seconds.
         /// </exception>
         public TimeSpan? MaxAttemptsWaitTime
         {
-            get => TimeSpan.FromSeconds(Options.MaxRetryInterval);
+            get
+            {
+                if (Options.MaxRetryInterval < 0)
+                    return null;
+                else
+                    return TimeSpan.FromSeconds(Options.MaxRetryInterval);
+            }
+
             set
             {
-                long sec = value == null ? ReplicatorOptionsDictionary.DefaultMaxRetryInterval : value.Value.Ticks / TimeSpan.TicksPerSecond;
-                if (sec > 0) {
-                    _freezer.PerformAction(() => Options.MaxRetryInterval = sec);
-                } else {
-                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
+                if (value != null)
+                {
+                    long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
+                    if (sec > 0) {
+                        _freezer.PerformAction(() => Options.MaxRetryInterval = sec);
+                    } else {
+                        throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
+                    }
                 }
             }
         }
