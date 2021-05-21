@@ -82,17 +82,15 @@ namespace Couchbase.Lite.Sync
 
         private const string Tag = nameof(ReplicatorConfiguration);
 
-        internal const long DefaultHeartbeatInterval = 300;
-        internal const long DefaultMaxRetryInterval = 300;
-        internal const int MaxRetriesContinuous = int.MaxValue;
-        internal const int MaxRetriesOneShot = 9;
+        
+        internal const int MaxAttemptsContinuous = int.MaxValue;
+        internal const int MaxAttemptsOneShot = 10;
 
         #endregion
 
         #region Variables
 
         [NotNull]private readonly Freezer _freezer = new Freezer();
-        private int _maxAttempts = -1;
         private Authenticator _authenticator;
         private bool _continuous;
         private Func<Document, DocumentFlags, bool> _pushFilter;
@@ -139,7 +137,7 @@ namespace Couchbase.Lite.Sync
             set 
             {
                 _freezer.SetValue(ref _continuous, value);
-                MaxAttempts = _maxAttempts < 0 ? _continuous ? MaxRetriesContinuous : MaxRetriesOneShot + 1 : _maxAttempts;
+                MaxAttempts = Options.MaxRetries == 0 ? _continuous ? MaxAttemptsContinuous : MaxAttemptsOneShot : Options.MaxRetries + 1;
             }
         }
 
@@ -227,7 +225,7 @@ namespace Couchbase.Lite.Sync
             get => TimeSpan.FromSeconds(Options.Heartbeat);
             set
             {
-                long sec = value == null ? DefaultHeartbeatInterval : value.Value.Ticks / TimeSpan.TicksPerSecond;
+                long sec = value == null ? ReplicatorOptionsDictionary.DefaultHeartbeatInterval : value.Value.Ticks / TimeSpan.TicksPerSecond;
                 if (sec > 0) {
                     _freezer.PerformAction(() => Options.Heartbeat = sec);
                 } else {
@@ -254,9 +252,8 @@ namespace Couchbase.Lite.Sync
                 if (value < 0) {
                     throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttempts);
                 } else {
-                    _maxAttempts = value;
-                    var maxRetries = _maxAttempts == 0 ? _continuous ? MaxRetriesContinuous : MaxRetriesOneShot : value - 1;
-                    _freezer.PerformAction(() => Options.MaxRetries = maxRetries);
+                    var maxAttempts = value == 0 ? _continuous ? MaxAttemptsContinuous : MaxAttemptsOneShot : value;
+                    _freezer.PerformAction(() => Options.MaxRetries = maxAttempts - 1);
                 }
             }
         }
@@ -273,7 +270,7 @@ namespace Couchbase.Lite.Sync
             get => TimeSpan.FromSeconds(Options.MaxRetryInterval);
             set
             {
-                long sec = value == null ? DefaultMaxRetryInterval : value.Value.Ticks / TimeSpan.TicksPerSecond;
+                long sec = value == null ? ReplicatorOptionsDictionary.DefaultMaxRetryInterval : value.Value.Ticks / TimeSpan.TicksPerSecond;
                 if (sec > 0) {
                     _freezer.PerformAction(() => Options.MaxRetryInterval = sec);
                 } else {

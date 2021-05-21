@@ -37,6 +37,8 @@ namespace Couchbase.Lite.Sync
     {
         #region Constants
 
+        private const string Tag = nameof(ReplicatorOptionsDictionary);
+
         // Replicator option dictionary keys:
         private const string ChannelsKey = "channels";
         private const string CheckpointIntervalKey = "checkpointInterval";
@@ -64,8 +66,9 @@ namespace Couchbase.Lite.Sync
         // WebSocket options:
         private const string ProtocolsOptionKey = "WS-Protocols";
         private const string HeartbeatIntervalKey = "heartbeat"; //Interval in secs to send a keepalive ping
-        
-        private const string Tag = nameof(ReplicatorOptionsDictionary);
+
+        internal const long DefaultHeartbeatInterval = 300;
+        internal const long DefaultMaxRetryInterval = 300;
 
         #endregion
 
@@ -209,7 +212,7 @@ namespace Couchbase.Lite.Sync
 
         internal long Heartbeat
         {
-            get => this.GetCast<long>(HeartbeatIntervalKey, ReplicatorConfiguration.DefaultHeartbeatInterval);
+            get => this.GetCast<long>(HeartbeatIntervalKey, DefaultHeartbeatInterval);
             set => this[HeartbeatIntervalKey] = value;
         }
 
@@ -221,7 +224,7 @@ namespace Couchbase.Lite.Sync
 
         internal long MaxRetryInterval
         {
-            get => this.GetCast<long>(MaxRetryIntervalKey, ReplicatorConfiguration.DefaultMaxRetryInterval);
+            get => this.GetCast<long>(MaxRetryIntervalKey, DefaultMaxRetryInterval);
             set => this[MaxRetryIntervalKey] = value;
         }
 

@@ -316,7 +316,7 @@ namespace Test
         {
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.Should().Be(10, "Because default Max Attempts is 9 times for a Single Shot Replicator.");
+                repl.Config.MaxAttempts.Should().Be(10, "Because default Max Attempts is 10 times for a Single Shot Replicator.");
                 repl.Config.Options.MaxRetries.Should().Be(9, $"Because 9 is what custom setting value for Max Retries.");
             }
 
