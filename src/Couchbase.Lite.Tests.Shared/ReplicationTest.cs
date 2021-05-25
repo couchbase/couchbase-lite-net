@@ -1392,15 +1392,18 @@ namespace Test
             var config = CreateConfig(false, true, false);
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 if (resolveCnt == 0) {
-                    using (var d = Db.GetDocument("doc1"))
-                    using (var doc = d.ToMutable()) {
-                        d.GetString("name").Should().Be("Cat");
-                        doc.SetString("name", "Cougar");
-                        Db.Save(doc);
-                        using (var docCheck = Db.GetDocument("doc1")) {
-                            docCheck.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
+                    Task.Run(() =>
+                    {
+                        using (var d = Db.GetDocument("doc1"))
+                        using (var doc = d.ToMutable()) {
+                            d.GetString("name").Should().Be("Cat");
+                            doc.SetString("name", "Cougar");
+                            Db.Save(doc);
+                            using (var docCheck = Db.GetDocument("doc1")) {
+                                docCheck.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
+                            }
                         }
-                    }
+                    });
                 }
 
                 resolveCnt++;
