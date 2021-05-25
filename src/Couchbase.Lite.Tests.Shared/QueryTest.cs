@@ -1773,14 +1773,14 @@ namespace Test
                 var exprType = Expression.Property("type");
                 var exprComplete = Expression.Property("complete");
                 var srCount = SelectResult.Expression(Function.Count(Expression.All()));
-
+                var datasource = DataSource.Database(Db).As("source");
                 using (var q = QueryBuilder.Select(SelectResult.All())
-                    .From(DataSource.Database(Db))
+                    .From(datasource)
                     .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(true))))) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
-                        var dict = row.GetDictionary(Db.Name);
+                        var dict = row.GetDictionary("source");
                         dict.GetBoolean("complete").Should().BeTrue();
                         dict.GetString("type").Should().Be("task");
                         dict.GetString("title").Should().StartWith("Task ");
@@ -1790,12 +1790,12 @@ namespace Test
                 }
 
                 using (var q = QueryBuilder.Select(SelectResult.All())
-                    .From(DataSource.Database(Db))
+                    .From(datasource)
                     .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(false))))) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
-                        var dict = row.GetDictionary(Db.Name);
+                        var dict = row.GetDictionary("source");
                         dict.GetBoolean("complete").Should().BeFalse();
                         dict.GetString("type").Should().Be("task");
                         dict.GetString("title").Should().StartWith("Task ");
@@ -1805,7 +1805,7 @@ namespace Test
                 }
 
                 using (var q = QueryBuilder.Select(srCount)
-                    .From(DataSource.Database(Db))
+                    .From(datasource)
                     .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(true))))) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
@@ -1817,7 +1817,7 @@ namespace Test
                 }
 
                 using (var q = QueryBuilder.Select(srCount)
-                    .From(DataSource.Database(Db))
+                    .From(datasource)
                     .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(false))))) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
