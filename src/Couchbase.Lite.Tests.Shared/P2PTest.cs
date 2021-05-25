@@ -147,7 +147,7 @@ namespace Test
             }
         }
 
-        //[Fact] 
+        [Fact] 
         public void TestContinuousPushP2P() => RunTwoStepContinuous(ReplicatorType.Push, "p2ptest1");
 
         [Fact] 
@@ -401,8 +401,6 @@ namespace Test
                 };
 
                 using (var replicator = new Replicator(config)) {
-                    replicator.Start();
-
                     Database firstSource = null;
                     Database secondSource = null;
                     Database firstTarget = null;
@@ -424,6 +422,8 @@ namespace Test
                         secondTarget = Db1;
                     }
 
+                    replicator.Start();
+
                     using (var mdoc = new MutableDocument("livesindb")) {
                         mdoc.SetString("name", "db");
                         mdoc.SetInt("version", 1);
@@ -431,11 +431,18 @@ namespace Test
                     }
 
                     var count = 0;
-                    while (replicator.Status.Progress.Completed == 0 ||
-                           replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
-                        Thread.Sleep(1000);
-                        count++;
+                    if (type != ReplicatorType.Push) {
+                        while (true) {
+                            count++;
+                            Thread.Sleep(1000);
+                            if (replicator.Status.Progress.Completed > 0 &&
+                               replicator.Status.Activity == ReplicatorActivityLevel.Idle)
+                                break;
+                        }
+                        
                         count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
+                    } else { //when both doc updates happens on local side with push only, replicator.Status.Progress value wipe out too fast, so skip while loop
+                        Thread.Sleep(1000);
                     }
 
                     var previousCompleted = replicator.Status.Progress.Completed;
@@ -448,20 +455,29 @@ namespace Test
                     }
 
                     count = 0;
-                    while (replicator.Status.Progress.Completed == previousCompleted ||
-                           replicator.Status.Activity != ReplicatorActivityLevel.Idle) {
-                        Thread.Sleep(1000);
-                        count++;
+                    if (type != ReplicatorType.Push) {
+                        while (true) {
+                            count++;
+                            Thread.Sleep(1000);
+                            if (replicator.Status.Progress.Completed > previousCompleted &&
+                               replicator.Status.Activity == ReplicatorActivityLevel.Idle)
+                                break;
+                        }
+                        
                         count.Should().BeLessThan(10, "because otherwise the replicator did not advance");
+                    } else { //when both doc updates happens on local side with push only, replicator.Status.Progress value wipe out too fast, so skip while loop
+                        Thread.Sleep(1000);
                     }
-
+                    
                     using (var savedDoc = secondTarget.GetDocument("livesindb")) {
                         savedDoc.GetInt("version").Should().Be(2);
                     }
 
                     replicator.Stop();
-                    while (replicator.Status.Activity != ReplicatorActivityLevel.Stopped) {
-                        Thread.Sleep(100);
+                    Thread.Sleep(100);
+                    while (true) {
+                        if (replicator.Status.Activity == ReplicatorActivityLevel.Stopped)
+                            break;
                     }
                 }
             }
