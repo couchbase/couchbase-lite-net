@@ -1762,7 +1762,7 @@ namespace Test
         }
 
         [ForIssue("couchbase-lite-android/1389")]
-        //[Fact]
+        [Fact]
         public void TestQueryWhereBooleanExpression()
         {
             using (var task1 = CreateTaskDocument("Task 1", false))

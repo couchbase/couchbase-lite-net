@@ -272,20 +272,15 @@ namespace Test
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config))
             {
-                repl.Config.Options.Heartbeat.Should().Be(-1, "Because default Heartbeat Interval is 300 sec is applied, and no value returns from Core..");
+                repl.Config.Options.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec is applied, and no value returns from Core..");
                 repl.Config.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
             }
 
             config.Heartbeat = TimeSpan.FromSeconds(60);
             using (var repl = new Replicator(config))
             {
-                repl.Config.Options.Heartbeat.Should().Be((long)TimeSpan.FromSeconds(60).TotalSeconds);
-            }
-
-            config.Heartbeat = TimeSpan.FromSeconds(60);
-            using (var repl = new Replicator(config))
-            {
-                repl.Config.Options.Heartbeat.Should().Be((long)TimeSpan.FromSeconds(60).TotalSeconds);
+                repl.Config.Options.Heartbeat.Should().Be(TimeSpan.FromSeconds(60));
+                repl.Config.Heartbeat.Should().Be(TimeSpan.FromSeconds(60));
             }
 
             Action badAction = (() => config.Heartbeat = TimeSpan.FromSeconds(0));
@@ -300,13 +295,13 @@ namespace Test
         {
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
-                repl.Config.Options.MaxRetryInterval.Should().Be(-1, "Because default Max Retry Interval is 300 sec is applied, and no value returns from Core..");
+                repl.Config.Options.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Interval is 300 sec is applied, and no value returns from Core..");
                 repl.Config.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
             }
 
             config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(60);
             using (var repl = new Replicator(config)) {
-                repl.Config.Options.MaxRetryInterval.Should().Be((long)TimeSpan.FromSeconds(60).TotalSeconds);
+                repl.Config.Options.MaxAttemptsWaitTime.Should().Be(TimeSpan.FromSeconds(60));
                 repl.Config.MaxAttemptsWaitTime.Should().Be(TimeSpan.FromSeconds(60));
             }
 
@@ -1342,7 +1337,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestConflictResolverCalledTwice()
         {
             int resolveCnt = 0;

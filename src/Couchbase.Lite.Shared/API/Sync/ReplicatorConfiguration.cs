@@ -216,25 +216,8 @@ namespace Couchbase.Lite.Sync
         /// </exception>
         public TimeSpan? Heartbeat
         {
-            get 
-            {
-                if (Options.Heartbeat < 0)
-                    return null;
-                else
-                    return TimeSpan.FromSeconds(Options.Heartbeat); 
-            }
-
-            set
-            {
-                if (value != null) {
-                    long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
-                    if (sec > 0) {
-                        _freezer.PerformAction(() => Options.Heartbeat = sec);
-                    } else {
-                        throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
-                    }
-                }
-            }
+            get => Options.Heartbeat;
+            set => _freezer.PerformAction(() => Options.Heartbeat = value);
         }
 
         /// <summary>
@@ -275,26 +258,8 @@ namespace Couchbase.Lite.Sync
         /// </exception>
         public TimeSpan? MaxAttemptsWaitTime
         {
-            get
-            {
-                if (Options.MaxRetryInterval < 0)
-                    return null;
-                else
-                    return TimeSpan.FromSeconds(Options.MaxRetryInterval);
-            }
-
-            set
-            {
-                if (value != null)
-                {
-                    long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
-                    if (sec > 0) {
-                        _freezer.PerformAction(() => Options.MaxRetryInterval = sec);
-                    } else {
-                        throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
-                    }
-                }
-            }
+            get => Options.MaxAttemptsWaitTime;
+            set => _freezer.PerformAction(() => Options.MaxAttemptsWaitTime = value);
         }
 
         /// <summary>

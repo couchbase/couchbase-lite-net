@@ -207,10 +207,29 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        internal long Heartbeat
+        internal TimeSpan? Heartbeat
         {
-            get => this.GetCast<long>(HeartbeatIntervalKey, -1);
-            set => this[HeartbeatIntervalKey] = value;
+            get 
+            {
+                // If no such key found in the dictionary, -1 returns.
+                var sec = this.GetCast<long>(HeartbeatIntervalKey, -1);
+                if (sec < 0)
+                    return null;  // LiteCore is using the default value when null is returned.
+                else
+                    return TimeSpan.FromSeconds(sec);
+            }
+
+            set 
+            { 
+                if (value != null) {
+                    long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
+                    if (sec > 0) {
+                        this[HeartbeatIntervalKey] = sec;
+                    } else {
+                        throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
+                    }
+                }
+            }
         }
 
         internal int MaxRetries
@@ -219,10 +238,29 @@ namespace Couchbase.Lite.Sync
             set => this[MaxRetriesKey] = value;
         }
 
-        internal long MaxRetryInterval
+        internal TimeSpan? MaxAttemptsWaitTime
         {
-            get => this.GetCast<long>(MaxRetryIntervalKey, -1);
-            set => this[MaxRetryIntervalKey] = value;
+            get
+            {
+                // If no such key found in the dictionary, -1 returns.
+                var sec = this.GetCast<long>(MaxRetryIntervalKey, -1);
+                if (sec < 0)
+                    return null; // LiteCore is using the default value when null is returned.
+                else
+                    return TimeSpan.FromSeconds(sec);
+            }
+
+            set
+            {
+                if (value != null) {
+                    long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
+                    if (sec > 0) {
+                        this[MaxRetryIntervalKey] = sec;
+                    } else {
+                        throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
+                    }
+                }
+            }
         }
 
         #if COUCHBASE_ENTERPRISE
@@ -279,6 +317,18 @@ namespace Couchbase.Lite.Sync
 
             if (ContainsKey(ClientCertKey)) {
                 ClientCert = GCHandle.FromIntPtr((IntPtr)this.GetCast<long>(ClientCertKey)).Target as X509Certificate2;
+            }
+
+            if (ContainsKey(HeartbeatIntervalKey)) {
+                var heartbeat = (long)GCHandle.FromIntPtr((IntPtr)this.GetCast<long>(HeartbeatIntervalKey)).Target;
+                if(heartbeat > 0)
+                    Heartbeat = TimeSpan.FromSeconds(heartbeat);
+            }
+
+            if (ContainsKey(MaxRetryIntervalKey)) {
+                var maxRetryInterval = (long)GCHandle.FromIntPtr((IntPtr)this.GetCast<long>(MaxRetryIntervalKey)).Target;
+                if (maxRetryInterval > 0)
+                    MaxAttemptsWaitTime = TimeSpan.FromSeconds(maxRetryInterval);
             }
 
             if (ContainsKey(CookiesKey)) {
