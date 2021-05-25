@@ -1376,7 +1376,15 @@ namespace Test
                 return conflict.LocalDocument;
             });
 
-            RunReplication(config, 0, 0);
+            using(var repl = new Replicator(config)){
+                repl.Start();
+
+                while (resolveCnt < 2){
+                    Thread.Sleep(500); //wait for 2 conflict resolving action to complete
+                }
+
+                repl.Stop();
+            }
 
             resolveCnt.Should().Be(2);
             using (var doc = Db.GetDocument("doc1")) {
