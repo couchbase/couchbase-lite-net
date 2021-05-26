@@ -1509,7 +1509,6 @@ namespace Couchbase.Lite
 
             // mergedBody:
             FLSliceResult mergedBody = (FLSliceResult) FLSlice.Null;
-            if (resolvedDoc != null)
             if (!ReferenceEquals(resolvedDoc, remoteDoc)) {
                 if (resolvedDoc != null) {
                     // Unless the remote revision is being used as-is, we need a new revision:
@@ -1522,7 +1521,7 @@ namespace Couchbase.Lite
             }
 
             // mergedFlags:
-            C4RevisionFlags mergedFlags = resolvedDoc.c4Doc != null ? resolvedDoc.c4Doc.RawDoc->selectedRev.flags : 0;
+            C4RevisionFlags mergedFlags = resolvedDoc?.c4Doc != null ? resolvedDoc.c4Doc.RawDoc->selectedRev.flags : 0;
             if (resolvedDoc == null || resolvedDoc.IsDeleted)
                 mergedFlags |= C4RevisionFlags.Deleted;
 
