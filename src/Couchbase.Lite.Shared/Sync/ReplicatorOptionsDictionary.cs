@@ -73,6 +73,8 @@ namespace Couchbase.Lite.Sync
 
         private GCHandle _pinnedCertHandle;
         private GCHandle _clientCertHandle;
+        private TimeSpan? _heartbeat = null;
+        private TimeSpan? _maxAttemptsWaitTime = null;
 
         #endregion
 
@@ -209,24 +211,19 @@ namespace Couchbase.Lite.Sync
 
         internal TimeSpan? Heartbeat
         {
-            get 
-            {
-                // If no such key found in the dictionary, -1 returns.
-                var sec = this.GetCast<long>(HeartbeatIntervalKey, -1);
-                if (sec < 0)
-                    return null;  // LiteCore is using the default value when null is returned.
-                else
-                    return TimeSpan.FromSeconds(sec);
-            }
+            get => _heartbeat;
 
             set 
             { 
-                if (value != null) {
-                    long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
-                    if (sec > 0) {
-                        this[HeartbeatIntervalKey] = sec;
-                    } else {
-                        throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
+                if(_heartbeat != value) {
+                    _heartbeat = value;
+                    if (value != null) {
+                        long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
+                        if (sec > 0) {
+                            this[HeartbeatIntervalKey] = sec;
+                        } else {
+                            throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
+                        }
                     }
                 }
             }
@@ -240,24 +237,20 @@ namespace Couchbase.Lite.Sync
 
         internal TimeSpan? MaxAttemptsWaitTime
         {
-            get
-            {
-                // If no such key found in the dictionary, -1 returns.
-                var sec = this.GetCast<long>(MaxRetryIntervalKey, -1);
-                if (sec < 0)
-                    return null; // LiteCore is using the default value when null is returned.
-                else
-                    return TimeSpan.FromSeconds(sec);
-            }
+            get => _maxAttemptsWaitTime;
 
             set
             {
-                if (value != null) {
-                    long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
-                    if (sec > 0) {
-                        this[MaxRetryIntervalKey] = sec;
-                    } else {
-                        throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
+                if (_maxAttemptsWaitTime != value)
+                {
+                    _maxAttemptsWaitTime = value;
+                    if (value != null) {
+                        long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
+                        if (sec > 0) {
+                            this[MaxRetryIntervalKey] = sec;
+                        } else {
+                            throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
+                        }
                     }
                 }
             }
@@ -322,13 +315,13 @@ namespace Couchbase.Lite.Sync
             if (ContainsKey(HeartbeatIntervalKey)) {
                 var heartbeat = (long)GCHandle.FromIntPtr((IntPtr)this.GetCast<long>(HeartbeatIntervalKey)).Target;
                 if(heartbeat > 0)
-                    Heartbeat = TimeSpan.FromSeconds(heartbeat);
+                    _heartbeat = TimeSpan.FromSeconds(heartbeat);
             }
 
             if (ContainsKey(MaxRetryIntervalKey)) {
                 var maxRetryInterval = (long)GCHandle.FromIntPtr((IntPtr)this.GetCast<long>(MaxRetryIntervalKey)).Target;
                 if (maxRetryInterval > 0)
-                    MaxAttemptsWaitTime = TimeSpan.FromSeconds(maxRetryInterval);
+                    _maxAttemptsWaitTime = TimeSpan.FromSeconds(maxRetryInterval);
             }
 
             if (ContainsKey(CookiesKey)) {
