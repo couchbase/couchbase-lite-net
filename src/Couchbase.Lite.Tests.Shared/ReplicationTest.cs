@@ -1239,7 +1239,7 @@ namespace Test
         public void TestConflictResolverNullDoc()
         {
             bool conflictResolved = false;
-            CreateReplicationConflict("doc1", deleteRemoteDoc: true);
+            CreateReplicationConflict("doc1");
 
             var config = CreateConfig(false, true, false);
 
@@ -1396,7 +1396,7 @@ namespace Test
         public void TestNonBlockingDatabaseOperationConflictResolver()
         {
             int resolveCnt = 0;
-            CreateReplicationConflict("doc1", deleteRemoteDoc:true);
+            CreateReplicationConflict("doc1");
             var config = CreateConfig(false, true, false);
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 if (resolveCnt == 0) {
@@ -2231,7 +2231,7 @@ namespace Test
         }
 #endif
 
-        private void CreateReplicationConflict(string id, bool checkFlags = false, bool deleteRemoteDoc = false)
+        private void CreateReplicationConflict(string id, bool checkFlags = false)
         {
             unsafe {
                 var oddByteArray = new byte[] { 1, 3, 5 };
@@ -2276,18 +2276,10 @@ namespace Test
 
                     doc1aMutable.SetString("name", "Lion");
                     doc1aMutable.SetBlob("blob", new Blob("text/plaintext", luckyByteArray));
-                    if (deleteRemoteDoc) {
-                        OtherDb.Delete(doc1aMutable);
-                        if (checkFlags) {
-                            flags = doc1aMutable.c4Doc.RawDoc->flags;
-                            flags.HasFlag(C4DocumentFlags.DocExists).Should().BeFalse();
-                        }
-                    } else {
-                        OtherDb.Save(doc1aMutable);
-                        if (checkFlags) {
-                            flags = doc1aMutable.c4Doc.RawDoc->flags;
-                            flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
-                        }
+                    OtherDb.Save(doc1aMutable);
+                    if (checkFlags) {
+                        flags = doc1aMutable.c4Doc.RawDoc->flags;
+                        flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
                     }
                 }
             }
