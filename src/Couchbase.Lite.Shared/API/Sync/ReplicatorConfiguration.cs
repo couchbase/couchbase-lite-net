@@ -237,14 +237,8 @@ namespace Couchbase.Lite.Sync
         /// </exception>
         public int MaxAttempts
         {
-            get => Options.MaxRetries + 1;
-            set {
-                if (value < 0) {
-                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttempts);
-                } else if(value > 0){
-                    _freezer.PerformAction(() => Options.MaxRetries = value - 1);
-                }
-            }
+            get => Options.MaxAttempts;
+            set => _freezer.PerformAction(() => Options.MaxAttempts = value);
         }
 
         /// <summary>

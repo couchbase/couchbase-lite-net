@@ -74,6 +74,7 @@ namespace Couchbase.Lite.Sync
         private GCHandle _pinnedCertHandle;
         private GCHandle _clientCertHandle;
         private TimeSpan? _heartbeat = null;
+        private int _maxAttempts = 0;
         private TimeSpan? _maxAttemptsWaitTime = null;
 
         #endregion
@@ -212,14 +213,13 @@ namespace Couchbase.Lite.Sync
         internal TimeSpan? Heartbeat
         {
             get => _heartbeat;
-
             set 
             { 
                 if(_heartbeat != value) {
-                    _heartbeat = value;
                     if (value != null) {
                         long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
                         if (sec > 0) {
+                            _heartbeat = value;
                             this[HeartbeatIntervalKey] = sec;
                         } else {
                             throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
@@ -229,24 +229,34 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        internal int MaxRetries
+        internal int MaxAttempts
         {
-            get => this.GetCast(MaxRetriesKey, -1);
-            set => this[MaxRetriesKey] = value;
+            get => _maxAttempts;
+            set
+            {
+                if (_maxAttempts != value) {
+                    if (value < 0) {
+                        throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttempts);
+                    } else if (value > 0) {
+                        this[MaxRetriesKey] = value - 1;
+                    }
+                    
+                    _maxAttempts = value;
+                }
+            }
         }
 
         internal TimeSpan? MaxAttemptsWaitTime
         {
             get => _maxAttemptsWaitTime;
-
             set
             {
                 if (_maxAttemptsWaitTime != value)
                 {
-                    _maxAttemptsWaitTime = value;
                     if (value != null) {
                         long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
                         if (sec > 0) {
+                            _maxAttemptsWaitTime = value;
                             this[MaxRetryIntervalKey] = sec;
                         } else {
                             throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
@@ -310,18 +320,6 @@ namespace Couchbase.Lite.Sync
 
             if (ContainsKey(ClientCertKey)) {
                 ClientCert = GCHandle.FromIntPtr((IntPtr)this.GetCast<long>(ClientCertKey)).Target as X509Certificate2;
-            }
-
-            if (ContainsKey(HeartbeatIntervalKey)) {
-                var heartbeat = (long)GCHandle.FromIntPtr((IntPtr)this.GetCast<long>(HeartbeatIntervalKey)).Target;
-                if(heartbeat > 0)
-                    _heartbeat = TimeSpan.FromSeconds(heartbeat);
-            }
-
-            if (ContainsKey(MaxRetryIntervalKey)) {
-                var maxRetryInterval = (long)GCHandle.FromIntPtr((IntPtr)this.GetCast<long>(MaxRetryIntervalKey)).Target;
-                if (maxRetryInterval > 0)
-                    _maxAttemptsWaitTime = TimeSpan.FromSeconds(maxRetryInterval);
             }
 
             if (ContainsKey(CookiesKey)) {

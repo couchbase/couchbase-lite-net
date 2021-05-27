@@ -315,24 +315,30 @@ namespace Test
         [Fact]
         public void TestReplicatorMaxAttemptsGetSet()
         {
-            var config = CreateConfig(true, false, false);
+            var config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb));
             using (var repl = new Replicator(config)) {
                 repl.Config.MaxAttempts.Should().Be(0, "Because default Max Attempts is 10 times for a Single Shot Replicator and 0 is returned.");
-                repl.Config.Options.MaxRetries.Should().Be( -1 , $"Because default value 9 is for Max Retries for a Single Shot Replicator is applied, and no value returns from Core..");
+                repl.Config.Options.MaxAttempts.Should().Be( 0 , $"Because default value 9 is for Max Retries for a Single Shot Replicator is applied, and no value returns from Core..");
             }
 
-            config = CreateConfig(true, false, true);
+            config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb)) { Continuous = true };
             using (var repl = new Replicator(config)) {
                 repl.Config.MaxAttempts.Should().Be(0, "Because default Max Attempts is Max int times for a Continuous Replicator and 0 is returned.");
-                repl.Config.Options.MaxRetries.Should().Be(- 1, $"Because default value int.MaxValue is for Max Retries for a Continuous Replicator is applied, and no value returns from Core..");
+                repl.Config.Options.MaxAttempts.Should().Be(0, $"Because default value int.MaxValue is for Max Retries for a Continuous Replicator is applied, and no value returns from Core..");
             }
 
             var attempts = 5;
-            config = CreateConfig(true, false, false);
-            config.MaxAttempts = attempts;
+            config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb)) { MaxAttempts = attempts };
             using (var repl = new Replicator(config)) {
                 repl.Config.MaxAttempts.Should().Be(attempts, $"Because {attempts} is Max int times for a Continuous Replicator.");
-                repl.Config.Options.MaxRetries.Should().Be(attempts - 1, $"Because {attempts - 1} is what custom setting value for Max Retries.");
+                repl.Config.Options.MaxAttempts.Should().Be(attempts, $"Because {attempts - 1} is what custom setting value for Max Retries.");
+            }
+
+            config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb)) { MaxAttempts = attempts, Continuous = true };
+            using (var repl = new Replicator(config))
+            {
+                repl.Config.MaxAttempts.Should().Be(attempts, $"Because {attempts} is Max int times for a Continuous Replicator.");
+                repl.Config.Options.MaxAttempts.Should().Be(attempts, $"Because {attempts - 1} is what custom setting value for Max Retries.");
             }
 
             Action badAction = (() => config.MaxAttempts = -1);
@@ -343,7 +349,7 @@ namespace Test
         public void TestReplicatorMaxAttempts() => ReplicatorMaxAttempts(3);
 
         [Fact]
-        public void TestReplicatorZeroMaxAttempts() => ReplicatorMaxAttempts(1);
+        public void TestReplicatorOneMaxAttempts() => ReplicatorMaxAttempts(1);
 
         [Fact]
         public void TestReadOnlyConfiguration()
@@ -1840,8 +1846,8 @@ namespace Test
             // exist on the LAN
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
             var config = new ReplicatorConfiguration(Db, targetEndpoint) {
+                MaxAttempts = attempts, 
                 Continuous = true,
-                MaxAttempts = attempts
             };
 
             var count = 0;
