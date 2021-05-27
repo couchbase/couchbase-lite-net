@@ -214,17 +214,20 @@ namespace Couchbase.Lite.Sync
         {
             get => _heartbeat;
             set 
-            { 
-                if(_heartbeat != value) {
+            {
+                if (_heartbeat != value) {
                     if (value != null) {
                         long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
                         if (sec > 0) {
-                            _heartbeat = value;
                             this[HeartbeatIntervalKey] = sec;
                         } else {
                             throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
                         }
+                    } else {
+                        this[HeartbeatIntervalKey] = 0;
                     }
+                    
+                    _heartbeat = value;
                 }
             }
         }
@@ -237,10 +240,9 @@ namespace Couchbase.Lite.Sync
                 if (_maxAttempts != value) {
                     if (value < 0) {
                         throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttempts);
-                    } else if (value > 0) {
-                        this[MaxRetriesKey] = value - 1;
-                    }
+                    } 
                     
+                    this[MaxRetriesKey] = value - 1;
                     _maxAttempts = value;
                 }
             }
@@ -251,17 +253,19 @@ namespace Couchbase.Lite.Sync
             get => _maxAttemptsWaitTime;
             set
             {
-                if (_maxAttemptsWaitTime != value)
-                {
+                if (_maxAttemptsWaitTime != value) {
                     if (value != null) {
                         long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
                         if (sec > 0) {
-                            _maxAttemptsWaitTime = value;
                             this[MaxRetryIntervalKey] = sec;
                         } else {
                             throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
                         }
+                    } else {
+                        this[HeartbeatIntervalKey] = 0;
                     }
+
+                    _maxAttemptsWaitTime = value;
                 }
             }
         }
