@@ -130,11 +130,7 @@ namespace Couchbase.Lite.Sync
         public bool Continuous
         {
             get => _continuous;
-            set
-            {
-                _freezer.SetValue(ref _continuous, value);
-                MaxRetries = Options.MaxRetries >= 0 ? Options.MaxRetries : _continuous ? int.MaxValue : 9;
-            }
+            set =>_freezer.SetValue(ref _continuous, value);
         }
 
         /// <summary>
@@ -211,49 +207,53 @@ namespace Couchbase.Lite.Sync
 
         /// <summary>
         /// Gets or sets the replicator heartbeat keep-alive interval. 
-        /// The default Heartbeat is <c>5</c> min.
+        /// The default is null (5 min interval is applied). 
+        /// * <c>5</c> min interval is applied when Heartbeat is set to null.
+        /// * null will be returned when default <c>5</c> min interval is applied.
         /// </summary>
         /// <exception cref="ArgumentException"> 
         /// Throw if set the Heartbeat to less or equal to 0 full seconds.
         /// </exception>
-        public TimeSpan Heartbeat
+        public TimeSpan? Heartbeat
         {
             get => Options.Heartbeat;
             set => _freezer.PerformAction(() => Options.Heartbeat = value);
         }
 
         /// <summary>
-        /// Max number of retry attempts. The retry attempts will reset
+        /// Gets or sets the Max number of retry attempts. The retry attempts will reset
         /// after the replicator is connected to a remote peer. 
-        /// The default MaxRetries is <c>9</c> for a single shot replicator and 
-        /// <see cref="Int32.MaxValue" /> for a continuous replicator.
-        /// Set the MaxRetries to 0 will result in no retry attempt.
+        /// The default is <c>0</c> (<c>10</c> for a single shot replicator or 
+        /// <see cref="int.MaxValue" /> for a continuous replicator is applied.)
+        /// * <c>10</c> for a single shot replicator or <see cref="int.MaxValue" /> for a 
+        /// continuous replicator is applied when user set MaxAttempts to 0.
+        /// * 0 will be returned when default <c>10</c> for a single shot replicator or 
+        /// <see cref="int.MaxValue" /> for a continuous replicator is applied.
+        /// * Setting the value to 1 means that the replicator will try connect once and 
+        /// the replicator will stop if there is a transient error.
         /// </summary>
         /// <exception cref="ArgumentException">
-        /// Throw if set the MaxRetries to a negative value.
+        /// Throw if set the MaxAttempts to a negative value.
         /// </exception>
-        public int MaxRetries
+        public int MaxAttempts
         {
-            get => Options.MaxRetries >= 0 ? Options.MaxRetries : _continuous ? int.MaxValue : 9;
-            set {
-                if (value >= 0) {
-                    _freezer.PerformAction(() => Options.MaxRetries = value);
-                } else {
-                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetries);
-                }
-            }
+            get => Options.MaxAttempts;
+            set => _freezer.PerformAction(() => Options.MaxAttempts = value);
         }
 
         /// <summary>
-        /// Max delay between retries.
+        /// Gets or sets the Max delay between retries.
+        /// The default is null (5 min interval is applied).
+        /// * <c>5</c> min interval is applied when MaxAttemptsWaitTime is set to null.
+        /// * null will be returned when default <c>5</c> min interval is applied.
         /// </summary>
         /// <exception cref="ArgumentException"> 
         /// Throw if set the MaxRetryWaitTime to less than 0 full seconds.
         /// </exception>
-        public TimeSpan MaxRetryWaitTime
+        public TimeSpan? MaxAttemptsWaitTime
         {
-            get => Options.MaxRetryInterval;
-            set => _freezer.PerformAction(() => Options.MaxRetryInterval = value);
+            get => Options.MaxAttemptsWaitTime;
+            set => _freezer.PerformAction(() => Options.MaxAttemptsWaitTime = value);
         }
 
         /// <summary>

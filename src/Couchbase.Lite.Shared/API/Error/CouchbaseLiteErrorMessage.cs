@@ -67,8 +67,8 @@ namespace Couchbase.Lite
         internal const string MissingCommonName = "The Common Name attribute is required";
         internal const string FailToRemoveKeyPair = "Couldn't remove a keypair with error: {0}";
         internal const string InvalidHeartbeatInterval = "Heartbeat Interval cannot be less or equal to 0 full seconds.";
-        internal const string InvalidMaxRetryInterval = "Max Retry Interval cannot be less or equal to 0 full seconds.";
-        internal const string InvalidMaxRetries = "Max Retries cannot be negative value.";
+        internal const string InvalidMaxAttemptsInterval = "Max Attempts Interval cannot be less or equal to 0 full seconds.";
+        internal const string InvalidMaxAttempts = "Max Attempts cannot be negative value.";
         internal const string InvalidJSONDictionaryForBlob = "Invalid JSON Dictionary represents in the Blob.";
         internal const string MissingDigestDueToBlobIsNotSavedToDB = "Missing Digest Due To Blob Is Not Saved To Database yet.";
         internal const string InvalidJSON = "Invalid JSON Value.";

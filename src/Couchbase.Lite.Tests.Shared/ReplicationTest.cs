@@ -264,28 +264,6 @@ namespace Test
         }
 #endif
 
-#if !WINDOWS_UWP
-        [Fact]
-        public async Task TestReplicatorStopsWhenEndpointInvalid()
-        {
-            // If this IP address happens to exist, then change it.  It needs to be an address that does not
-            // exist on the LAN
-            var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
-            var config = new ReplicatorConfiguration(Db, targetEndpoint);
-            using (var repl = new Replicator(config)) {
-                repl.Start();
-                var count = 0;
-                Thread.Sleep(TimeSpan.FromSeconds(51)); // The combined amount of time this should take to stop
-                while (count++ <= 10 && repl.Status.Activity != ReplicatorActivityLevel.Stopped) {
-                    WriteLine($"Replication status still {repl.Status.Activity}, waiting for stopped...");
-                    await Task.Delay(500);
-                }
-
-                count.Should().BeLessThan(10, "because otherwise the replicator never stopped");
-            }
-        }
-#endif
-
 #if COUCHBASE_ENTERPRISE
 
         [Fact]
@@ -294,14 +272,15 @@ namespace Test
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config))
             {
-                repl.Config.Options.Heartbeat.Should().Be(TimeSpan.FromMinutes(5), "Because default Heartbeat Interval is 300 sec.");
-                repl.Config.Heartbeat.Should().Be(TimeSpan.FromMinutes(5), "Because default Heartbeat Interval is 300 sec.");
+                repl.Config.Options.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec is applied, and no value returns from Core..");
+                repl.Config.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
             }
 
             config.Heartbeat = TimeSpan.FromSeconds(60);
             using (var repl = new Replicator(config))
             {
                 repl.Config.Options.Heartbeat.Should().Be(TimeSpan.FromSeconds(60));
+                repl.Config.Heartbeat.Should().Be(TimeSpan.FromSeconds(60));
             }
 
             Action badAction = (() => config.Heartbeat = TimeSpan.FromSeconds(0));
@@ -316,52 +295,61 @@ namespace Test
         {
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
-                repl.Config.Options.MaxRetryInterval.Should().Be(TimeSpan.FromMinutes(5), "Because default Max Retry Interval is 300 sec.");
-                repl.Config.MaxRetryWaitTime.Should().Be(TimeSpan.FromMinutes(5), "Because default Max Retry Wait Time is 300 sec.");
+                repl.Config.Options.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Interval is 300 sec is applied, and no value returns from Core..");
+                repl.Config.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
             }
 
-            config.MaxRetryWaitTime = TimeSpan.FromSeconds(60);
+            config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(60);
             using (var repl = new Replicator(config)) {
-                repl.Config.Options.MaxRetryInterval.Should().Be(TimeSpan.FromSeconds(60));
-                repl.Config.MaxRetryWaitTime.Should().Be(TimeSpan.FromSeconds(60));
+                repl.Config.Options.MaxAttemptsWaitTime.Should().Be(TimeSpan.FromSeconds(60));
+                repl.Config.MaxAttemptsWaitTime.Should().Be(TimeSpan.FromSeconds(60));
             }
 
-            Action badAction = (() => config.MaxRetryWaitTime = TimeSpan.FromSeconds(0));
+            Action badAction = (() => config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(0));
             badAction.Should().Throw<ArgumentException>("Assigning Max Retry Wait Time to an invalid value (<= 0).");
 
-            badAction = (() => config.MaxRetryWaitTime = TimeSpan.FromMilliseconds(800));
+            badAction = (() => config.MaxAttemptsWaitTime = TimeSpan.FromMilliseconds(800));
             badAction.Should().Throw<ArgumentException>("Assigning Max Retry Wait Time to an invalid value.");
         }
 
         [Fact]
-        public void TestReplicatorMaxRetriesGetSet()
+        public void TestReplicatorMaxAttemptsGetSet()
         {
-            var config = CreateConfig(true, false, false);
+            var config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb));
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxRetries.Should().Be(9, "Because default Max Retries is 9 times for a Single Shot Replicator.");
+                repl.Config.MaxAttempts.Should().Be(0, "Because default Max Attempts is 10 times for a Single Shot Replicator and 0 is returned.");
+                repl.Config.Options.MaxAttempts.Should().Be( 0 , $"Because default value 9 is for Max Retries for a Single Shot Replicator is applied, and no value returns from Core..");
             }
 
-            config = CreateConfig(true, false, true);
+            config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb)) { Continuous = true };
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxRetries.Should().Be(Int32.MaxValue, "Because default Max Retries is Max int times for a Continuous Replicator.");
+                repl.Config.MaxAttempts.Should().Be(0, "Because default Max Attempts is Max int times for a Continuous Replicator and 0 is returned.");
+                repl.Config.Options.MaxAttempts.Should().Be(0, $"Because default value int.MaxValue is for Max Retries for a Continuous Replicator is applied, and no value returns from Core..");
             }
 
-            var retries = 5;
-            config = CreateConfig(true, false, false);
-            config.MaxRetries = retries;
+            var attempts = 5;
+            config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb)) { MaxAttempts = attempts };
             using (var repl = new Replicator(config)) {
-                repl.Config.Options.MaxRetries.Should().Be(retries, $"Because {retries} is what custom setting value for Max Retries.");
+                repl.Config.MaxAttempts.Should().Be(attempts, $"Because {attempts} is Max int times for a Continuous Replicator.");
+                repl.Config.Options.MaxAttempts.Should().Be(attempts, $"Because {attempts - 1} is what custom setting value for Max Retries.");
             }
 
-            Action badAction = (() => config.MaxRetries = -1);
+            config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb)) { MaxAttempts = attempts, Continuous = true };
+            using (var repl = new Replicator(config))
+            {
+                repl.Config.MaxAttempts.Should().Be(attempts, $"Because {attempts} is Max int times for a Continuous Replicator.");
+                repl.Config.Options.MaxAttempts.Should().Be(attempts, $"Because {attempts - 1} is what custom setting value for Max Retries.");
+            }
+
+            Action badAction = (() => config.MaxAttempts = -1);
             badAction.Should().Throw<ArgumentException>("Assigning Max Retries to an invalid value (< 0).");
         }
 
         [Fact]
-        public void TestReplicatorMaxRetries() => ReplicatorMaxRetries(2);
+        public void TestReplicatorMaxAttempts() => ReplicatorMaxAttempts(3);
 
         [Fact]
-        public void TestReplicatorZeroMaxRetries() => ReplicatorMaxRetries(0);
+        public void TestReplicatorOneMaxAttempts() => ReplicatorMaxAttempts(1);
 
         [Fact]
         public void TestReadOnlyConfiguration()
@@ -1852,14 +1840,14 @@ namespace Test
 
 
 #if COUCHBASE_ENTERPRISE
-        private void ReplicatorMaxRetries(int retries)
+        private void ReplicatorMaxAttempts(int attempts)
         {
             // If this IP address happens to exist, then change it.  It needs to be an address that does not
             // exist on the LAN
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
             var config = new ReplicatorConfiguration(Db, targetEndpoint) {
+                MaxAttempts = attempts, 
                 Continuous = true,
-                MaxRetries = retries
             };
 
             var count = 0;
@@ -1883,7 +1871,7 @@ namespace Test
             waitAssert.WaitForResult(TimeSpan.FromSeconds(60));
             repl.RemoveChangeListener(token);
 
-            count.Should().Be(retries);
+            count.Should().Be(attempts - 1);
             repl.Dispose();
         }
 

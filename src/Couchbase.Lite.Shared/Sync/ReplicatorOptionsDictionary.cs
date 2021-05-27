@@ -37,6 +37,8 @@ namespace Couchbase.Lite.Sync
     {
         #region Constants
 
+        private const string Tag = nameof(ReplicatorOptionsDictionary);
+
         // Replicator option dictionary keys:
         private const string ChannelsKey = "channels";
         private const string CheckpointIntervalKey = "checkpointInterval";
@@ -64,11 +66,6 @@ namespace Couchbase.Lite.Sync
         // WebSocket options:
         private const string ProtocolsOptionKey = "WS-Protocols";
         private const string HeartbeatIntervalKey = "heartbeat"; //Interval in secs to send a keepalive ping
-        
-        private TimeSpan _defaultHeartbeatInterval = TimeSpan.FromMinutes(5);
-        private TimeSpan _defaultMaxRetryInterval = TimeSpan.FromMinutes(5);
-
-        private const string Tag = nameof(ReplicatorOptionsDictionary);
 
         #endregion
 
@@ -76,6 +73,9 @@ namespace Couchbase.Lite.Sync
 
         private GCHandle _pinnedCertHandle;
         private GCHandle _clientCertHandle;
+        private TimeSpan? _heartbeat = null;
+        private int _maxAttempts = 0;
+        private TimeSpan? _maxAttemptsWaitTime = null;
 
         #endregion
 
@@ -167,7 +167,7 @@ namespace Couchbase.Lite.Sync
         [NotNull]
         public IDictionary<string, string> Headers
         {
-            get => this.GetCast<IDictionary<string, string>>(HeadersKey) ?? new Dictionary<string, string>();
+            get => this.GetCast<IDictionary<string, string>>(HeadersKey, new Dictionary<string, string>());
             set => this[HeadersKey] = value;
         }
 
@@ -210,34 +210,58 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        internal TimeSpan Heartbeat
+        internal TimeSpan? Heartbeat
         {
-            get => TimeSpan.FromSeconds(this.GetCast<long>(HeartbeatIntervalKey));
-            set { 
-                var sec = value.Ticks/TimeSpan.TicksPerSecond;
-                if (sec > 0) {
-                    this[HeartbeatIntervalKey] = sec;
-                } else { 
-                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
+            get => _heartbeat;
+            set 
+            { 
+                if(_heartbeat != value) {
+                    if (value != null) {
+                        long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
+                        if (sec > 0) {
+                            _heartbeat = value;
+                            this[HeartbeatIntervalKey] = sec;
+                        } else {
+                            throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
+                        }
+                    }
                 }
             }
         }
 
-        internal int MaxRetries
+        internal int MaxAttempts
         {
-            get => this.GetCast<int>(MaxRetriesKey);
-            set => this[MaxRetriesKey] = (int) value;
+            get => _maxAttempts;
+            set
+            {
+                if (_maxAttempts != value) {
+                    if (value < 0) {
+                        throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttempts);
+                    } else if (value > 0) {
+                        this[MaxRetriesKey] = value - 1;
+                    }
+                    
+                    _maxAttempts = value;
+                }
+            }
         }
 
-        internal TimeSpan MaxRetryInterval
+        internal TimeSpan? MaxAttemptsWaitTime
         {
-            get => TimeSpan.FromSeconds(this.GetCast<long>(MaxRetryIntervalKey));
-            set {
-                var sec = value.Ticks / TimeSpan.TicksPerSecond;
-                if (sec > 0) {
-                    this[MaxRetryIntervalKey] = sec;
-                } else {
-                    throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxRetryInterval);
+            get => _maxAttemptsWaitTime;
+            set
+            {
+                if (_maxAttemptsWaitTime != value)
+                {
+                    if (value != null) {
+                        long sec = value.Value.Ticks / TimeSpan.TicksPerSecond;
+                        if (sec > 0) {
+                            _maxAttemptsWaitTime = value;
+                            this[MaxRetryIntervalKey] = sec;
+                        } else {
+                            throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
+                        }
+                    }
                 }
             }
         }
@@ -264,9 +288,6 @@ namespace Couchbase.Lite.Sync
         public ReplicatorOptionsDictionary()
         {
             Headers = new Dictionary<string, string>();
-            Heartbeat = _defaultHeartbeatInterval;
-            MaxRetryInterval = _defaultMaxRetryInterval;
-            MaxRetries = -1;
         }
 
         ~ReplicatorOptionsDictionary()
