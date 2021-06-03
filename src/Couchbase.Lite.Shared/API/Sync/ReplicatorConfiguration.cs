@@ -206,6 +206,23 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
+        /// Gets or sets the value to enable/disable the auto-purge feature. 
+        /// The default value is true which means that the document will be automatically purged 
+        /// by the pull replicator when the user loses access to the document from both removed 
+        /// and revoked scenarios. When the value is set to false, the document will not be 
+        /// purged when the user loses access to the document.
+        /// Note: Changing the value of the replicator will only affect the future change; 
+        /// For example, changing from false to true will not purge the documents to which the 
+        /// user’s access has been previously revoked even if the replicator is restarted with 
+        /// reset checkpoint equals to true. 
+        /// </summary>
+        public bool EnableAutoPurge
+        {
+            get => Options.EnableAutoPurge;
+            set => _freezer.PerformAction(() => Options.EnableAutoPurge = value);
+        }
+
+        /// <summary>
         /// Gets or sets the replicator heartbeat keep-alive interval. 
         /// The default is null (5 min interval is applied). 
         /// * <c>5</c> min interval is applied when Heartbeat is set to null.

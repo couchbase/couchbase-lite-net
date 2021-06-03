@@ -52,6 +52,7 @@ namespace Couchbase.Lite.Sync
         private const string ResetKey = "reset";
         private const string MaxRetriesKey = "maxRetries";
         private const string MaxRetryIntervalKey = "maxRetryInterval";
+        private const string EnableAutoPurgeKey = "enableAutoPurge";
 
         // HTTP options:
         private const string HeadersKey = "headers";
@@ -76,6 +77,7 @@ namespace Couchbase.Lite.Sync
         private TimeSpan? _heartbeat = null;
         private int _maxAttempts = 0;
         private TimeSpan? _maxAttemptsWaitTime = null;
+        private bool _enableAutoPurge;
 
         #endregion
 
@@ -210,6 +212,18 @@ namespace Couchbase.Lite.Sync
             }
         }
 
+        internal bool EnableAutoPurge
+        {
+            get => _enableAutoPurge;
+            set
+            {
+                if (_enableAutoPurge != value) {
+                    _enableAutoPurge = value;
+                    this[EnableAutoPurgeKey] = value;
+                }
+            }
+        }
+
         internal TimeSpan? Heartbeat
         {
             get => _heartbeat;
@@ -292,6 +306,7 @@ namespace Couchbase.Lite.Sync
         public ReplicatorOptionsDictionary()
         {
             Headers = new Dictionary<string, string>();
+            EnableAutoPurge = true;
         }
 
         ~ReplicatorOptionsDictionary()
