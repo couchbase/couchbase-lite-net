@@ -217,7 +217,8 @@ namespace Test
 
                 using (var q = QueryBuilder.Select(SelectResult.Property("seq"))
                     .From(DataSource.Database(seekrit))
-                    .Where(Expression.Property("seq").NotNullOrMissing())
+                    //.Where(Expression.Property("seq").NotNullOrMissing()) //deprecated
+                    .Where(Expression.Property("seq").IsValued())
                     .OrderBy(Ordering.Property("seq"))) {
                     var rs = q.Execute();
                     var i = 0;

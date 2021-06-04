@@ -502,7 +502,8 @@ namespace Test
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction),
                     SelectResult.Expression(prediction.Property("sum")))
                 .From(DataSource.Database(Db))
-                .Where(prediction.NotNullOrMissing())) {
+                //.Where(prediction.NotNullOrMissing())) { //deprecated
+                .Where(prediction.IsValued())) {
                 var explain = q.Explain();
                 var rows = VerifyQuery(q, (n, result) =>
                 {

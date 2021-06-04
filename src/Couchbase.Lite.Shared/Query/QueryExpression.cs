@@ -207,10 +207,11 @@ namespace Couchbase.Lite.Internal.Query
 
         public IExpression IsNot([NotNull]IExpression expression) => 
             GetOperator(BinaryOpType.IsNot, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
-
+        [Obsolete("This query expression deprecated, please use IsNotValued().")]
         public IExpression IsNullOrMissing() => new QueryUnaryExpression(this, UnaryOpType.Null)
             .Or(new QueryUnaryExpression(this, UnaryOpType.Missing));
-
+        public IExpression IsNotValued() => Expression.Not(IsValued());
+        public IExpression IsValued() => new QueryUnaryExpression(this, UnaryOpType.Valued);
         public IExpression LessThan([NotNull]IExpression expression) => 
             GetOperator(BinaryOpType.LessThan, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
 
@@ -224,6 +225,7 @@ namespace Couchbase.Lite.Internal.Query
             GetOperator(BinaryOpType.Multiply, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
         public IExpression NotEqualTo([NotNull]IExpression expression) => 
             GetOperator(BinaryOpType.NotEqualTo, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+        [Obsolete("This query expression deprecated, please use IsValued().")]
         public IExpression NotNullOrMissing() => Expression.Not(IsNullOrMissing());
         public IExpression Or([NotNull]IExpression expression) => 
             new QueryCompoundExpression("OR", this, CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
