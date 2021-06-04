@@ -405,42 +405,6 @@ namespace Test
         [Fact]
         public void TestReplicatorOneMaxAttempts() => ReplicatorMaxAttempts(1);
 
-        //[Fact]
-        public void TestReplicatorMaxAttemptsNoneContinuous()
-        {
-            // If this IP address happens to exist, then change it.  It needs to be an address that does not
-            // exist on the LAN
-            var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.11:4984/app"));
-            var config = new ReplicatorConfiguration(Db, targetEndpoint)
-            {
-                MaxAttemptsWaitTime = TimeSpan.FromSeconds(1)
-            };
-
-            var count = 0;
-            var repl = new Replicator(config);
-            var waitAssert = new WaitAssert();
-            var token = repl.AddChangeListener((sender, args) =>
-            {
-                waitAssert.RunConditionalAssert(() =>
-                {
-                    if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
-                        count++;
-                    }
-
-                    return args.Status.Activity == ReplicatorActivityLevel.Stopped;
-                });
-            });
-
-            repl.Start();
-
-            // Wait for the replicator to be stopped
-            waitAssert.WaitForResult(TimeSpan.FromSeconds(60));
-            repl.RemoveChangeListener(token);
-
-            count.Should().Be(10 - 1);
-            repl.Dispose();
-        }
-
         [Fact]
         public void TestReadOnlyConfiguration()
         {
