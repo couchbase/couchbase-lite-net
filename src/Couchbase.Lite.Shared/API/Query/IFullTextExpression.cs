@@ -21,13 +21,13 @@ using JetBrains.Annotations;
 namespace Couchbase.Lite.Query
 {
     /// <summary>
-    /// An interface that represents an expression that is eligible to receive
+    /// [DEPRECATED] An interface that represents an expression that is eligible to receive
     /// full-text related query clauses
     /// </summary>
     public interface IFullTextExpression
     {
         /// <summary>
-        /// Returns an expression that will evaluate whether or not the given
+        /// [DEPRECATED] Returns an expression that will evaluate whether or not the given
         /// expression full text matches the current one
         /// </summary>
         /// <param name="query">The text to use for the match operation</param>

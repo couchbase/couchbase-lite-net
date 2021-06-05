@@ -328,7 +328,7 @@ namespace Test
         }
         #endif
 
-        [Fact]
+        [Fact] //[Deprecated]
         public void TestWhereNullOrMissing()
         {
             MutableDocument doc1 = null, doc2 = null;
@@ -366,6 +366,60 @@ namespace Test
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         if (n <= expectedDocs.Length) {
+                            var doc = expectedDocs[n - 1];
+                            row.GetString("id").Should()
+                                .Be(doc.Id, $"because otherwise the row results were different than expected ({testNum})");
+                        }
+                    });
+
+                    numRows.Should().Be(expectedDocs.Length, "because otherwise too many rows were returned");
+                }
+
+                testNum++;
+            }
+        }
+
+        [Fact]
+        public void TestWhereValued()
+        {
+            MutableDocument doc1 = null, doc2 = null;
+            doc1 = new MutableDocument("doc1");
+            doc1.SetString("name", "Scott");
+            Db.Save(doc1);
+
+            doc2 = new MutableDocument("doc2");
+            doc2.SetString("name", "Tiger");
+            doc2.SetString("address", "123 1st ave.");
+            doc2.SetInt("age", 20);
+            Db.Save(doc2);
+
+            var name = Expression.Property("name");
+            var address = Expression.Property("address");
+            var age = Expression.Property("age");
+            var work = Expression.Property("work");
+
+            var tests = new[] {
+                Tuple.Create(name.IsValued(), new[] { doc1, doc2 }),
+                Tuple.Create(name.IsNotValued(), new MutableDocument[0]),
+                Tuple.Create(address.IsValued(), new[] { doc2 }),
+                Tuple.Create(address.IsNotValued(), new[] { doc1 }),
+                Tuple.Create(age.IsValued(), new[] { doc2 }),
+                Tuple.Create(age.IsNotValued(), new[] { doc1 }),
+                Tuple.Create(work.IsValued(), new MutableDocument[0]),
+                Tuple.Create(work.IsNotValued(), new[] { doc1, doc2 })
+            };
+
+            int testNum = 1;
+            foreach (var test in tests)
+            {
+                var exp = test.Item1;
+                var expectedDocs = test.Item2;
+                using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(Db)).Where(exp))
+                {
+                    var numRows = VerifyQuery(q, (n, row) =>
+                    {
+                        if (n <= expectedDocs.Length)
+                        {
                             var doc = expectedDocs[n - 1];
                             row.GetString("id").Should()
                                 .Be(doc.Id, $"because otherwise the row results were different than expected ({testNum})");
@@ -601,7 +655,8 @@ namespace Test
             var sentence = Expression.Property("sentence");
             var s_sentence = SelectResult.Expression(sentence);
 
-            var w = FullTextExpression.Index("sentence").Match("'Dummie woman'");
+            //var w = FullTextExpression.Index("sentence").Match("'Dummie woman'"); //deprecated
+            var w = FullTextFunction.Match("sentence", "'Dummie woman'");
             var o = Ordering.Expression(FullTextFunction.Rank("sentence")).Descending();
 
             var index = IndexBuilder.FullTextIndex(FullTextIndexItem.Property("sentence"));
@@ -2047,7 +2102,8 @@ namespace Test
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
                 .From(DataSource.Database(Db))
-                .Where(FullTextExpression.Index("passageIndex").Match("cat"))) {
+                //.Where(FullTextExpression.Index("passageIndex").Match("cat"))) { //deprecated
+                .Where(FullTextFunction.Match("passageIndex", "cat"))) {
                 var count = VerifyQuery(q, (n, row) =>
                 {
                     row.GetString(0).Should().Be($"doc{n}");
@@ -2057,7 +2113,8 @@ namespace Test
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
                 .From(DataSource.Database(Db))
-                .Where(FullTextExpression.Index("passageIndexStemless").Match("cat"))) {
+                //.Where(FullTextExpression.Index("passageIndexStemless").Match("cat"))) { //deprecated
+                .Where(FullTextFunction.Match("passageIndexStemless", "cat"))) {
                 var count = VerifyQuery(q, (n, row) =>
                 {
                     row.GetString(0).Should().Be($"doc{n}");

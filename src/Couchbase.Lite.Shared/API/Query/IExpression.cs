@@ -18,6 +18,7 @@
 
 
 using JetBrains.Annotations;
+using System;
 
 namespace Couchbase.Lite.Query
 {
@@ -129,12 +130,27 @@ namespace Couchbase.Lite.Query
         IExpression IsNot([NotNull]IExpression expression);
 
         /// <summary>
-        /// Gets an expression representing if the current expression is null
+        /// [DEPRECATED] Gets an expression representing if the current expression is null
         /// or missing (i.e. does not have a value)
         /// </summary>
         /// <returns>The expression representing the new operation</returns>
+        [Obsolete("This query expression deprecated, please use IsNotValued().")]
         [NotNull]
         IExpression IsNullOrMissing();
+
+        /// <summary>
+        /// Gets an expression representing if the current expression has a value
+        /// </summary>
+        /// <returns>The expression representing the new operation</returns>
+        [NotNull]
+        IExpression IsValued();
+
+        /// <summary>
+        /// Gets an expression representing if the current expression does not have a value
+        /// </summary>
+        /// <returns>The expression representing the new operation</returns>
+        [NotNull]
+        IExpression IsNotValued();
 
         /// <summary>
         /// Returns an expression that will evaluate whether or not the given
@@ -191,10 +207,11 @@ namespace Couchbase.Lite.Query
         IExpression NotEqualTo([NotNull]IExpression expression);
 
         /// <summary>
-        /// Gets an expression representing if the current expression is neither null
+        /// [DEPRECATED] Gets an expression representing if the current expression is neither null
         /// nor missing (i.e. has a value)
         /// </summary>
         /// <returns>The expression representing the new operation</returns>
+        [Obsolete("This query expression deprecated, please use IsValued().")]
         [NotNull]
         IExpression NotNullOrMissing();
 

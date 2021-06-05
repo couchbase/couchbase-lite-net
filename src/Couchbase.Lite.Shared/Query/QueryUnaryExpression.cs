@@ -28,7 +28,9 @@ namespace Couchbase.Lite.Internal.Query
         Missing,
         NotMissing,
         NotNull,
-        Null
+        Null,
+        Valued,
+        NotValued
     }
 
     internal sealed class QueryUnaryExpression : QueryExpression
@@ -66,6 +68,12 @@ namespace Couchbase.Lite.Internal.Query
                 case UnaryOpType.NotNull:
                     obj.Add("IS NOT");
                     obj.Add(_type == UnaryOpType.NotNull ? null : MissingValue );
+                    break;
+                case UnaryOpType.Valued:
+                    obj.Add("IS VALUED");
+                    break;
+                case UnaryOpType.NotValued:
+                    obj.Add("IS NOT VALUED");
                     break;
             }
 

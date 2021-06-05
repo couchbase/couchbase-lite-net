@@ -25,19 +25,21 @@ using JetBrains.Annotations;
 namespace Couchbase.Lite.Query
 {
     /// <summary>
-    /// A class that generates expressions that operate on the results of full-text searching
+    /// [DEPRECATED] A class that generates expressions that operate on the results of full-text searching
     /// </summary>
+    [Obsolete("This class deprecated, please use FullTextFunction.")]
     public static class FullTextExpression
     {
         #region Public Methods
 
         /// <summary>
-        /// Generates a query expression that will check for matches against a
+        /// [DEPRECATED] Generates a query expression that will check for matches against a
         /// given full text index name
         /// </summary>
         /// <param name="name">The name of the full-text index to perform the
         /// check against</param>
         /// <returns>The generated query expression</returns>
+        [Obsolete("This class deprecated, please use Match(string indexName, string query) in FullTextFunction class.")]
         [NotNull]
         public static IFullTextExpression Index(string name) =>
             new QueryCompoundExpression("MATCH()", Expression.String(name), Expression.String(String.Empty));
