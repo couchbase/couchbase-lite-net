@@ -56,7 +56,7 @@ namespace LiteCore.Tests
             RunTestVariants(() =>
             {
                 C4Error err;
-                _query = Native.c4query_new(Db, "[\"=\"]", &err);
+                _query = Native.c4query_new2(Db, C4QueryLanguage.JSONQuery, "[\"=\"]", null, &err);
                 ((long) _query).Should().Be(0, "because the query string was invalid");
                 err.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
                 err.code.Should().Be((int) C4ErrorCode.InvalidQuery);

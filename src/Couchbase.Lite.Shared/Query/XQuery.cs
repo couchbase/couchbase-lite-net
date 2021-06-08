@@ -48,13 +48,13 @@ namespace Couchbase.Lite.Internal.Query
         #region Variables
 
         [NotNull]private readonly Event<QueryChangedEventArgs> _changed = new Event<QueryChangedEventArgs>();
-        [NotNull] private readonly DisposalWatchdog _disposalWatchdog = new DisposalWatchdog(nameof(IQuery));
+        [NotNull] internal readonly DisposalWatchdog _disposalWatchdog = new DisposalWatchdog(nameof(IQuery));
         private readonly TimeSpan _updateInterval;
 
-        private unsafe C4Query* _c4Query;
-        private Dictionary<string, int> _columnNames;
+        internal unsafe C4Query* _c4Query;
+        internal Dictionary<string, int> _columnNames;
         private ListenerToken _databaseChangedToken;
-        [NotNull]private List<QueryResultSet> _history = new List<QueryResultSet>();
+        [NotNull]internal List<QueryResultSet> _history = new List<QueryResultSet>();
         private DateTime _lastUpdatedAt;
         private int _observingCount = 0;
         [NotNull]private Parameters _queryParameters = new Parameters();
@@ -189,7 +189,7 @@ namespace Couchbase.Lite.Internal.Query
                     return true;
                 }
 
-                var query = Native.c4query_new(Database.c4db, jsonData, err);
+                var query = Native.c4query_new2(Database.c4db, C4QueryLanguage.JSONQuery, jsonData, null, err);
                 if(query == null) {
                     return false;
                 }
@@ -419,7 +419,7 @@ namespace Couchbase.Lite.Internal.Query
             return AddChangeListener(null, handler);
         }
 
-        public unsafe IResultSet Execute()
+        public virtual unsafe IResultSet Execute()
         {
             if (Database == null) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.InvalidQueryDBNull);

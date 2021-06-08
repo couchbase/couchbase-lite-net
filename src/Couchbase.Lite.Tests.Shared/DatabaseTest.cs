@@ -54,6 +54,32 @@ namespace Test
 #endif
 
         [Fact]
+        public void TestSimpleN1QLQuery()
+        {
+            using (var d = new MutableDocument())
+            using (var d2 = new MutableDocument())
+            {
+                d.SetString("firstName", "Jerry");
+                d.SetString("lastName", "Ice Cream");
+                Db.Save(d);
+
+                d2.SetString("firstName", "Ben");
+                d2.SetString("lastName", "Ice Cream");
+                Db.Save(d2);
+            }
+
+            using (var q = Db.CreateQuery($"SELECT firstName, lastName FROM {Db.Name}"))
+            {
+                var res = q.Execute().AllResults();
+                res.Count.Should().Be(2);
+                res[0].GetString(0).Should().Be("Jerry");
+                res[0].GetString(1).Should().Be("Ice Cream");
+                res[1].GetString(0).Should().Be("Ben");
+                res[1].GetString(1).Should().Be("Ice Cream");
+            }
+        }
+
+        [Fact]
         public void TestCreate()
         {
             var dir = Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");

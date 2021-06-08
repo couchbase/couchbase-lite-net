@@ -331,8 +331,8 @@ namespace LiteCore.Tests
                 LiteCoreBridge.Check(err => Native.c4db_createIndex2(Db, "byStreet", "[[\".contact.address.street\"]]", C4QueryLanguage.JSONQuery,
                     C4IndexType.FullTextIndex, null, err));
                 C4Error error;
-                _query = Native.c4query_new(Db,
-                    Json5("['AND', ['MATCH()', 'byStreet', 'Hwy'], ['MATCH()', 'byStreet', 'Blvd']]"), &error);
+                _query = Native.c4query_new2(Db, C4QueryLanguage.JSONQuery,
+                    Json5("['AND', ['MATCH()', 'byStreet', 'Hwy'], ['MATCH()', 'byStreet', 'Blvd']]"), null, &error);
                 ((long) _query).Should().Be(0, "because this type of query is not allowed");
                 error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
                 error.code.Should().Be((int) C4ErrorCode.InvalidQuery);
@@ -350,8 +350,8 @@ namespace LiteCore.Tests
                 LiteCoreBridge.Check(err => Native.c4db_createIndex2(Db, "byStreet", "[[\".contact.address.street\"]]", C4QueryLanguage.JSONQuery,
                     C4IndexType.FullTextIndex, null, err));
                 C4Error error;
-                _query = Native.c4query_new(Db,
-                    Json5("['OR', ['MATCH()', 'byStreet', 'Hwy'],['=', ['.', 'contact', 'address', 'state'], 'CA']]"), &error);
+                _query = Native.c4query_new2(Db, C4QueryLanguage.JSONQuery,
+                    Json5("['OR', ['MATCH()', 'byStreet', 'Hwy'],['=', ['.', 'contact', 'address', 'state'], 'CA']]"), null, &error);
                 ((long) _query).Should().Be(0, "because this type of query is not allowed");
                 error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
                 error.code.Should().Be((int) C4ErrorCode.InvalidQuery);
@@ -569,7 +569,7 @@ namespace LiteCore.Tests
             RunTestVariants(() =>
             {
                 C4Error error;
-                _query = Native.c4query_new(Db, "[\"=\"]", &error);
+                _query = Native.c4query_new2(Db, C4QueryLanguage.JSONQuery, "[\"=\"]", null, &error);
                 ((long) _query).Should().Be(0L);
                 error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
                 error.code.Should().Be((int) C4ErrorCode.InvalidQuery);

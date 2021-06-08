@@ -121,7 +121,7 @@ namespace LiteCore.Tests
         {
             WriteLine($"Query = {queryString}");
             Native.c4query_release(_query);
-            _query = (C4Query*)LiteCoreBridge.Check(err => Native.c4query_new(Db, queryString, err));
+            _query = (C4Query*)LiteCoreBridge.Check(err => Native.c4query_new2(Db, C4QueryLanguage.JSONQuery, queryString, null, err));
             return _query;
         }
 
