@@ -626,20 +626,29 @@ namespace Couchbase.Lite
                 LiteCoreBridge.Check(err =>
                 {
                     var internalOpts = indexConfig.Options;
-
                     // For some reason a "using" statement here causes a compiler error
-                    try
-                    {
+                    try {
                         return Native.c4db_createIndex2(c4db, name, indexConfig.ToN1QL(), indexConfig.QueryLanguage, indexConfig.IndexType, &internalOpts, err);
-                    }
-                    finally
-                    {
+                    } finally  {
                         internalOpts.Dispose();
                     }
                 });
             });
         }
         
+        /// Creates a Query object from the given N1QL query string.
+        /// </summary>
+        /// <param name="queryExpression">N1QL Query Expression</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="queryExpression"/>
+        /// is <c>null</c></exception>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        public IQuery CreateQuery([@NotNull]string queryExpression)
+        {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(queryExpression), queryExpression);
+            var query = new N1QLQuery(queryExpression, this);
+            return query;
+        }
+
         /// <summary>
         /// Close and delete the database synchronously. Before closing the database, the active replicators, listeners and live queries will be stopped.
         /// </summary>

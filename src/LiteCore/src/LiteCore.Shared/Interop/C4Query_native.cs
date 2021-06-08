@@ -34,13 +34,6 @@ namespace LiteCore.Interop
             }
         }
 
-        public static C4Query* c4query_new(C4Database* db, string str, C4Error* outError)
-        {
-            using(var str_ = new C4String(str)) {
-                return NativeRaw.c4query_new(db, str_.AsFLSlice(), outError);
-            }
-        }
-
         public static string c4query_explain(C4Query* query)
         {
             using(var retVal = NativeRaw.c4query_explain(query)) {
@@ -89,9 +82,6 @@ namespace LiteCore.Interop
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Query* c4query_new2(C4Database* database, C4QueryLanguage language, FLSlice expression, int* outErrorPos, C4Error* error);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Query* c4query_new(C4Database* db, FLSlice str, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult c4query_explain(C4Query* query);
