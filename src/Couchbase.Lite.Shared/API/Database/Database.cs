@@ -120,8 +120,6 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        private static readonly TimeSpan HousekeepingDelayAfterOpen = TimeSpan.FromSeconds(3);
-
         [@NotNull]
         private readonly Dictionary<string, Tuple<IntPtr, GCHandle>> _docObs = new Dictionary<string, Tuple<IntPtr, GCHandle>>();
 
@@ -543,22 +541,6 @@ namespace Couchbase.Lite
             {
                 CheckOpen();
                 return Native.c4db_maintenance(_c4db, (C4MaintenanceType) type, err);
-            });
-        }
-
-        /// <summary>
-        /// [DEPRECATED] Compacts the database file by deleting unused attachment files and vacuuming
-        /// the SQLite database
-        /// </summary>
-        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        [Obsolete("This method deprecated, please use PerformMaintenance(MaintenanceType type) to compact the database file.")]
-        public void Compact()
-        {
-            ThreadSafety.DoLockedBridge(err =>
-            {
-                CheckOpen();
-                return Native.c4db_compact(_c4db, err);
             });
         }
 
@@ -1348,8 +1330,6 @@ namespace Couchbase.Lite
                     return Native.c4db_openNamed(Name, &localConfig2, err);
                 });
             });
-
-            Native.c4db_startHousekeeping(_c4db);
         }
 
         private void PostDatabaseChanged()

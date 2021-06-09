@@ -93,10 +93,6 @@ namespace LiteCore.Interop
         public static extern long c4db_nextDocExpiration(C4Database* database);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_startHousekeeping(C4Database* db);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint c4db_getMaxRevTreeDepth(C4Database* database);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
@@ -115,10 +111,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_maintenance(C4Database* database, C4MaintenanceType type, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_compact(C4Database* database, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
