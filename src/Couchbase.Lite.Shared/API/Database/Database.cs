@@ -645,7 +645,7 @@ namespace Couchbase.Lite
         public IQuery CreateQuery([@NotNull]string queryExpression)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(queryExpression), queryExpression);
-            var query = new N1QLQuery(queryExpression, this);
+            var query = new NQuery(queryExpression, this);
             return query;
         }
 

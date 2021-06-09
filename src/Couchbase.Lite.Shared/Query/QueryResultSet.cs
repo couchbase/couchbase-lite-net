@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Internal.Query
 
         private readonly C4QueryEnumerator* _c4Enum;
         [NotNull]private readonly QueryResultContext _context;
-        private readonly XQuery _query;
+        private readonly QueryBase _query;
         [NotNull]private readonly ThreadSafety _threadSafety;
         private bool _disposed;
         private bool _enumeratorGenerated;
@@ -76,7 +76,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        internal QueryResultSet(XQuery query, [NotNull]ThreadSafety threadSafety, C4QueryEnumerator* e,
+        internal QueryResultSet(QueryBase query, [NotNull]ThreadSafety threadSafety, C4QueryEnumerator* e,
             IDictionary<string, int> columnNames)
         {
             _query = query;
