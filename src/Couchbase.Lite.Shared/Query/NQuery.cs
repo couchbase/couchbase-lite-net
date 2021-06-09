@@ -1,4 +1,22 @@
-﻿using Couchbase.Lite.Query;
+﻿// 
+//  NQuery.cs
+// 
+//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
+// 
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+// 
+//  http://www.apache.org/licenses/LICENSE-2.0
+// 
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+// 
+
+using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 using JetBrains.Annotations;
 using LiteCore.Interop;
@@ -7,20 +25,27 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal class N1QLQuery : XQuery
+    internal sealed class NQuery : QueryBase
     {
-        private const string Tag = nameof(N1QLQuery);
+        #region Variables
+        private const string Tag = nameof(NQuery);
         private string _n1qlQueryExpression = "";
+        #endregion
 
+        #region Properties
         [NotNull]
         internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
+        #endregion
 
-        public N1QLQuery(string n1qlQueryExpression, Database database) : base()
+        #region Constructors
+        public NQuery(string n1qlQueryExpression, Database database) : base()
         {
             Database = database;
             _n1qlQueryExpression = n1qlQueryExpression;
         }
+        #endregion
 
+        #region Override Methods
         public override unsafe IResultSet Execute()
         {
             if (Database == null) {
@@ -55,6 +80,11 @@ namespace Couchbase.Lite.Internal.Query
             return retVal;
         }
 
+        public override string Explain()
+        {
+            return _n1qlQueryExpression;
+        }
+
         protected override unsafe void Dispose(bool finalizing)
         {
             if (!finalizing) {
@@ -77,7 +107,9 @@ namespace Couchbase.Lite.Internal.Query
                 _c4Query = null;
             }
         }
+        #endregion
 
+        #region Private Methods
         private unsafe void Check()
         {
             ThreadSafety.DoLockedBridge(err =>
@@ -117,5 +149,7 @@ namespace Couchbase.Lite.Internal.Query
 
             return map;
         }
+
+        #endregion
     }
 }
