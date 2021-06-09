@@ -1284,6 +1284,25 @@ namespace Test
         }
 
         [Fact]
+        public void TestCreateN1QLQueryIndex()
+        {
+            Db.GetIndexes().Should().BeEmpty();
+
+            var index1 = IndexConfiguration.ValueIndex("firstName", "lastName");
+            Db.CreateIndex("index1", index1);
+
+            var index2 = IndexConfiguration.FullTextIndex("detail");
+            Db.CreateIndex("index2", index2);
+
+            // '-' in "es-detail" caused Couchbase.Lite.CouchbaseLiteException : CouchbaseLiteException (LiteCoreDomain / 23): Invalid N1QL in index expression.
+            //var index3 = IndexConfiguration.FullTextIndex("es-detail").IgnoreAccents(true).SetLanguage("es");
+            var index3 = IndexConfiguration.FullTextIndex("es_detail").IgnoreAccents(true).SetLanguage("es");
+            Db.CreateIndex("index3", index3);
+
+            Db.GetIndexes().Should().BeEquivalentTo(new[] { "index1", "index2", "index3" });
+        }
+
+        [Fact]
         public void TestCreateIndex()
         {
             Db.GetIndexes().Should().BeEmpty();

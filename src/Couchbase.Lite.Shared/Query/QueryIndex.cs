@@ -26,38 +26,16 @@ using LiteCore.Interop;
 
 namespace Couchbase.Lite.Internal.Query
 {
-    internal abstract class QueryIndexBase : IValueIndex, IFullTextIndex
+    internal abstract class QueryIndexBase : IndexDescriptor, IFullTextIndex, IValueIndex
     {
         #region Variables
 
         private readonly IFullTextIndexItem[] _ftsItems;
-        private bool _ignoreAccents;
-        private string _locale = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
         private readonly IValueIndexItem[] _valueItems;
 
-        #if COUCHBASE_ENTERPRISE
+#if COUCHBASE_ENTERPRISE
         private readonly string[] _predictiveItems;
-        #endif
-
-        #endregion
-
-        #region Properties
-
-        internal C4IndexType IndexType { get; }
-
-        internal C4IndexOptions Options
-        {
-            get {
-                if (_ftsItems != null) {
-                    return new C4IndexOptions {
-                        ignoreDiacritics = _ignoreAccents,
-                        language = _locale
-                    };
-                }
-
-                return new C4IndexOptions();
-            }
-        }
+#endif
 
         #endregion
 
@@ -66,11 +44,13 @@ namespace Couchbase.Lite.Internal.Query
         internal virtual object ToJSON()
         {
             object jsonObj = null;
-            if (_ftsItems != null) {
+            if (_ftsItems != null)
+            {
                 jsonObj = QueryExpression.EncodeToJSON(_ftsItems.OfType<QueryIndexItem>().Select(x => x.Expression)
                     .ToList());
-            } 
-            else if(_valueItems != null) {
+            }
+            else if (_valueItems != null)
+            {
                 jsonObj = QueryExpression.EncodeToJSON(_valueItems.OfType<QueryIndexItem>().Select(x => x.Expression)
                     .ToList());
             }
@@ -95,34 +75,35 @@ namespace Couchbase.Lite.Internal.Query
         }
 
         protected QueryIndexBase(C4IndexType indexType)
+            : base(indexType, C4QueryLanguage.N1QLQuery)
         {
-            IndexType = indexType;
+
         }
 
         #endregion
 
         #region IFullTextIndex
 
-        public IFullTextIndex IgnoreAccents(bool ignoreAccents)
+        public new IFullTextIndex IgnoreAccents(bool ignoreAccents)
         {
-            _ignoreAccents = ignoreAccents;
+            base.IgnoreAccents(ignoreAccents);
             return this;
         }
 
-        public IFullTextIndex SetLanguage(string language)
+        public new IFullTextIndex SetLanguage(string language)
         {
-            _locale = language;
+            base.SetLanguage(language);
             return this;
         }
 
         #endregion
     }
 
-    #if !COUCHBASE_ENTERPRISE
+#if !COUCHBASE_ENTERPRISE
 
     internal sealed class QueryIndex : QueryIndexBase
     {
-        #region Constructors
+    #region Constructors
 
         internal QueryIndex([ItemNotNull]params IFullTextIndexItem[] items)
             : base(items)
@@ -136,8 +117,8 @@ namespace Couchbase.Lite.Internal.Query
             Debug.Assert(items.All(x => x != null));
         }
 
-        #endregion
+    #endregion
     }
 
-    #endif
+#endif
 }

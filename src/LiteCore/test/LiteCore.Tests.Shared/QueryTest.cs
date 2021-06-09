@@ -149,7 +149,7 @@ namespace LiteCore.Tests
         public void TestDBQueryExpressionIndex()
         {
             RunTestVariants(() => {
-                LiteCoreBridge.Check(err => Native.c4db_createIndex(Db, "test", Json5("[['length()', ['.name.first']]]"), 
+                LiteCoreBridge.Check(err => Native.c4db_createIndex2(Db, "test", Json5("[['length()', ['.name.first']]]"), C4QueryLanguage.JSONQuery,
                     C4IndexType.ValueIndex, null, err));
                 Compile(Json5("['=', ['length()', ['.name.first']], 9]"));
                 Run().Should().Equal(new[] { "0000015", "0000099" }, "because otherwise the query returned incorrect results");
@@ -160,7 +160,7 @@ namespace LiteCore.Tests
         public void TestDeleteIndexedDoc()
         {
             RunTestVariants(() => {
-                LiteCoreBridge.Check(err => Native.c4db_createIndex(Db, "test", Json5("[['length()', ['.name.first']]]"), 
+                LiteCoreBridge.Check(err => Native.c4db_createIndex2(Db, "test", Json5("[['length()', ['.name.first']]]"), C4QueryLanguage.JSONQuery, 
                     C4IndexType.ValueIndex, null, err));
                 
                 // Delete doc "0000015":
@@ -196,7 +196,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                LiteCoreBridge.Check(err => Native.c4db_createIndex(Db, "byStreet", "[[\".contact.address.street\"]]",
+                LiteCoreBridge.Check(err => Native.c4db_createIndex2(Db, "byStreet", "[[\".contact.address.street\"]]", C4QueryLanguage.JSONQuery,
                     C4IndexType.FullTextIndex, null, err));
                 Compile(Json5("['MATCH()', 'byStreet', 'Hwy']"));
 
@@ -223,7 +223,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                LiteCoreBridge.Check(err => Native.c4db_createIndex(Db, "byAddress", "[[\".contact.address.street\"],[\".contact.address.city\"],[\".contact.address.state\"]]", 
+                LiteCoreBridge.Check(err => Native.c4db_createIndex2(Db, "byAddress", "[[\".contact.address.street\"],[\".contact.address.city\"],[\".contact.address.state\"]]", C4QueryLanguage.JSONQuery, 
                     C4IndexType.FullTextIndex, null, err));
                 Compile(Json5("['MATCH()', 'byAddress', 'Santa']"));
                 var expected = new[]
@@ -293,9 +293,9 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                LiteCoreBridge.Check(err => Native.c4db_createIndex(Db, "byStreet", "[[\".contact.address.street\"]]",
+                LiteCoreBridge.Check(err => Native.c4db_createIndex2(Db, "byStreet", "[[\".contact.address.street\"]]", C4QueryLanguage.JSONQuery,
                     C4IndexType.FullTextIndex, null, err));
-                LiteCoreBridge.Check(err => Native.c4db_createIndex(Db, "byCity", "[[\".contact.address.city\"]]",
+                LiteCoreBridge.Check(err => Native.c4db_createIndex2(Db, "byCity", "[[\".contact.address.city\"]]", C4QueryLanguage.JSONQuery,
                     C4IndexType.FullTextIndex, null, err));
                 Compile(Json5("['AND', ['MATCH()', 'byStreet', 'Hwy'],['MATCH()', 'byCity', 'Santa']]"));
                 var results = RunFTS();
@@ -309,9 +309,9 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                LiteCoreBridge.Check(err => Native.c4db_createIndex(Db, "byStreet", "[[\".contact.address.street\"]]",
+                LiteCoreBridge.Check(err => Native.c4db_createIndex2(Db, "byStreet", "[[\".contact.address.street\"]]", C4QueryLanguage.JSONQuery,
                     C4IndexType.FullTextIndex, null, err));
-                LiteCoreBridge.Check(err => Native.c4db_createIndex(Db, "byCity", "[[\".contact.address.city\"]]",
+                LiteCoreBridge.Check(err => Native.c4db_createIndex2(Db, "byCity", "[[\".contact.address.city\"]]", C4QueryLanguage.JSONQuery,
                     C4IndexType.FullTextIndex, null, err));
                 Compile(Json5(
                     "['AND', ['AND', ['=', ['.gender'], 'male'],['MATCH()', 'byCity', 'Santa']],['=',['.name.first'], 'Cleveland']]"));
@@ -328,7 +328,7 @@ namespace LiteCore.Tests
             // You can't query the same FTS index multiple times in a query (says SQLite)
             RunTestVariants(() =>
             {
-                LiteCoreBridge.Check(err => Native.c4db_createIndex(Db, "byStreet", "[[\".contact.address.street\"]]",
+                LiteCoreBridge.Check(err => Native.c4db_createIndex2(Db, "byStreet", "[[\".contact.address.street\"]]", C4QueryLanguage.JSONQuery,
                     C4IndexType.FullTextIndex, null, err));
                 C4Error error;
                 _query = Native.c4query_new(Db,
@@ -347,7 +347,7 @@ namespace LiteCore.Tests
             // You can't put an FTS match inside an expression other than a top-level AND (says SQLite)
             RunTestVariants(() =>
             {
-                LiteCoreBridge.Check(err => Native.c4db_createIndex(Db, "byStreet", "[[\".contact.address.street\"]]",
+                LiteCoreBridge.Check(err => Native.c4db_createIndex2(Db, "byStreet", "[[\".contact.address.street\"]]", C4QueryLanguage.JSONQuery,
                     C4IndexType.FullTextIndex, null, err));
                 C4Error error;
                 _query = Native.c4query_new(Db,

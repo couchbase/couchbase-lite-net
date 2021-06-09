@@ -65,6 +65,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IHaving.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IHavingRouter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IIndex.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Query\IIndexConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IIndexItem.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IJoin.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IJoinRouter.cs" />
@@ -72,6 +73,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ILimitRouter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IMetaExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IndexBuilder.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Query\IndexConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IndexItem.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IOrderBy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IOrderByRouter.cs" />
@@ -111,6 +113,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\IJSON.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\InMemoryDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\MRoot.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Query\IndexConfiguration.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Query\IndexDescriptor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\FleeceMutableArray.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\IDocumentModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\ISelectResultContainer.cs" />
