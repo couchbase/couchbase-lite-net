@@ -25,7 +25,10 @@ namespace Couchbase.Lite.Internal.Query
     {
         #region Properties
 
-        protected string[] Expression { get; }
+        /// <summary>
+        /// Gets the expressions to use to create the index
+        /// </summary>
+        public string[] Expression { get; }
 
         internal C4QueryLanguage QueryLanguage { get; }
 
