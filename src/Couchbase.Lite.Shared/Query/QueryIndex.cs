@@ -33,9 +33,9 @@ namespace Couchbase.Lite.Internal.Query
         private readonly IFullTextIndexItem[] _ftsItems;
         private readonly IValueIndexItem[] _valueItems;
 
-#if COUCHBASE_ENTERPRISE
+        #if COUCHBASE_ENTERPRISE
         private readonly string[] _predictiveItems;
-#endif
+        #endif
 
         #endregion
 
@@ -44,13 +44,10 @@ namespace Couchbase.Lite.Internal.Query
         internal virtual object ToJSON()
         {
             object jsonObj = null;
-            if (_ftsItems != null)
-            {
+            if (_ftsItems != null) {
                 jsonObj = QueryExpression.EncodeToJSON(_ftsItems.OfType<QueryIndexItem>().Select(x => x.Expression)
                     .ToList());
-            }
-            else if (_valueItems != null)
-            {
+            } else if (_valueItems != null) {
                 jsonObj = QueryExpression.EncodeToJSON(_valueItems.OfType<QueryIndexItem>().Select(x => x.Expression)
                     .ToList());
             }
@@ -99,11 +96,11 @@ namespace Couchbase.Lite.Internal.Query
         #endregion
     }
 
-#if !COUCHBASE_ENTERPRISE
+    #if !COUCHBASE_ENTERPRISE
 
     internal sealed class QueryIndex : QueryIndexBase
     {
-    #region Constructors
+        #region Constructors
 
         internal QueryIndex([ItemNotNull]params IFullTextIndexItem[] items)
             : base(items)
@@ -117,8 +114,8 @@ namespace Couchbase.Lite.Internal.Query
             Debug.Assert(items.All(x => x != null));
         }
 
-    #endregion
+        #endregion
     }
 
-#endif
+    #endif
 }
