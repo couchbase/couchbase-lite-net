@@ -593,7 +593,7 @@ namespace Couchbase.Lite
 
                     // For some reason a "using" statement here causes a compiler error
                     try {
-                        return Native.c4db_createIndex(c4db, name, json, concreteIndex.IndexType, &internalOpts, err);
+                        return Native.c4db_createIndex2(c4db, name, json, C4QueryLanguage.JSONQuery, concreteIndex.IndexType, &internalOpts, err);
                     } finally {
                         internalOpts.Dispose();
                     }
@@ -601,6 +601,45 @@ namespace Couchbase.Lite
             });
         }
 
+        /// <summary>
+        /// Creates a N1QL query index which could be a value index from <see cref="ValueIndexConfiguration"/> or a full-text search index
+        /// from <see cref="FullTextIndexConfiguration"/> with the given name.
+        /// The name can be used for deleting the index. Creating a new different index with an existing
+        /// index name will replace the old index; creating the same index with the same name will be no-ops.
+        /// </summary>
+        /// <param name="name">The index name</param>
+        /// <param name="indexConfig">The index</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> or <paramref name="indexConfig"/>
+        /// is <c>null</c></exception>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
+        /// provided ones is used</exception>
+        public void CreateIndex([@NotNull] string name, [@NotNull] IndexConfiguration indexConfig)
+        {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(indexConfig), indexConfig);
+
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                LiteCoreBridge.Check(err =>
+                {
+                    var internalOpts = indexConfig.Options;
+
+                    // For some reason a "using" statement here causes a compiler error
+                    try
+                    {
+                        return Native.c4db_createIndex2(c4db, name, indexConfig.ToN1QL(), C4QueryLanguage.N1QLQuery, indexConfig.IndexType, &internalOpts, err);
+                    }
+                    finally
+                    {
+                        internalOpts.Dispose();
+                    }
+                });
+            });
+        }
+        
         /// <summary>
         /// Close and delete the database synchronously. Before closing the database, the active replicators, listeners and live queries will be stopped.
         /// </summary>

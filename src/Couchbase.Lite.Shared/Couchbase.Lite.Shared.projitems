@@ -52,6 +52,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Expression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\FullTextExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\FullTextFunction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Query\FullTextIndexConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Function.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IArrayExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\ICollation.cs" />
@@ -90,6 +91,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\QueryBuilder.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\Result.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\SelectResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Query\ValueIndexConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\RuntimeException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\Authenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Sync\BasicAuthenticator.cs" />
@@ -111,6 +113,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\IJSON.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\InMemoryDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\MRoot.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Query\IndexConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\FleeceMutableArray.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\IDocumentModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Linq\ISelectResultContainer.cs" />

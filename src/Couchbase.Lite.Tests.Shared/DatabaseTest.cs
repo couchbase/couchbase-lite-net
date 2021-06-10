@@ -1284,6 +1284,27 @@ namespace Test
         }
 
         [Fact]
+        public void TestCreateN1QLQueryIndex()
+        {
+            Db.GetIndexes().Should().BeEmpty();
+
+            var index1 = new ValueIndexConfiguration(new string[] { "firstName", "lastName" });
+            Db.CreateIndex("index1", index1);
+
+            var index2 = new FullTextIndexConfiguration("detail");
+            Db.CreateIndex("index2", index2);
+
+            // '-' in "es-detail" caused Couchbase.Lite.CouchbaseLiteException : CouchbaseLiteException (LiteCoreDomain / 23): Invalid N1QL in index expression.
+            // Basically '-' is the minus sign in N1QL expression. So needs to escape the expression string.
+            // But I just couldn't get it to work...
+            // var index3 = new FullTextIndexConfiguration(new string[]{ "es"+@"\-"+"detail" }, true, "es");
+            var index3 = new FullTextIndexConfiguration(new string[] { "es_detail" }, true, "es");
+            Db.CreateIndex("index3", index3);
+
+            Db.GetIndexes().Should().BeEquivalentTo(new[] { "index1", "index2", "index3" });
+        }
+
+        [Fact]
         public void TestCreateIndex()
         {
             Db.GetIndexes().Should().BeEmpty();
