@@ -27,29 +27,22 @@ namespace Couchbase.Lite.Query
     /// </summary>
     public sealed class FullTextIndexConfiguration : IndexConfiguration
     {
-        #region Variables
-
-        private bool _ignoreAccents;
-        private string _locale = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
-
-        #endregion
-
         #region Properties
 
         /// <summary>
         /// Gets whether or not to ignore accents when performing 
         /// the full text search
         /// </summary>
-        public bool IgnoreAccents => _ignoreAccents;
+        public bool IgnoreAccents { get; }
 
         /// <summary>
         /// Gets the locale to use when performing full text searching
         /// </summary>
-        public string Language => _locale;
+        public string Language { get; } = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
 
         internal override C4IndexOptions Options => new C4IndexOptions {
-            ignoreDiacritics = _ignoreAccents,
-            language = _locale
+            ignoreDiacritics = IgnoreAccents,
+            language = Language
         };
         #endregion
 
@@ -66,9 +59,9 @@ namespace Couchbase.Lite.Query
             string locale = null)
             : base(C4IndexType.FullTextIndex, expressions)
         {
-            _ignoreAccents = ignoreAccents;
+            IgnoreAccents = ignoreAccents;
             if (!string.IsNullOrEmpty(locale)) {
-                _locale = locale;
+                Language = locale;
             }
         }
 

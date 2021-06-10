@@ -630,7 +630,7 @@ namespace Couchbase.Lite
                     // For some reason a "using" statement here causes a compiler error
                     try
                     {
-                        return Native.c4db_createIndex2(c4db, name, indexConfig.ToN1QL(), C4QueryLanguage.N1QLQuery, indexConfig.IndexType, &internalOpts, err);
+                        return Native.c4db_createIndex2(c4db, name, indexConfig.ToN1QL(), indexConfig.QueryLanguage, indexConfig.IndexType, &internalOpts, err);
                     }
                     finally
                     {
