@@ -27,11 +27,11 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        public static bool c4db_createIndex(C4Database* database, string name, string indexSpecJSON, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError)
+        public static bool c4db_createIndex2(C4Database* database, string name, string indexSpec, C4QueryLanguage queryLanguage, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError)
         {
             using(var name_ = new C4String(name))
-            using(var indexSpecJSON_ = new C4String(indexSpecJSON)) {
-                return NativeRaw.c4db_createIndex(database, name_.AsFLSlice(), indexSpecJSON_.AsFLSlice(), indexType, indexOptions, outError);
+            using(var indexSpec_ = new C4String(indexSpec)) {
+                return NativeRaw.c4db_createIndex2(database, name_.AsFLSlice(), indexSpec_.AsFLSlice(), queryLanguage, indexType, indexOptions, outError);
             }
         }
 
@@ -56,7 +56,7 @@ namespace LiteCore.Interop
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_createIndex(C4Database* database, FLSlice name, FLSlice indexSpecJSON, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError);
+        public static extern bool c4db_createIndex2(C4Database* database, FLSlice name, FLSlice indexSpec, C4QueryLanguage queryLanguage, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
