@@ -1,7 +1,7 @@
 ﻿// 
 //  NQuery.cs
 // 
-//  Copyright (c) 2017 Couchbase, Inc All rights reserved.
+//  Copyright (c) 2021 Couchbase, Inc All rights reserved.
 // 
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Properties
         [NotNull]
-        internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
+        ThreadSafety ThreadSafety { get; } = new ThreadSafety();
         #endregion
 
         #region Constructors
@@ -53,8 +53,6 @@ namespace Couchbase.Lite.Internal.Query
             }
 
             var options = C4QueryOptions.Default;
-            var paramN1ql = _n1qlQueryExpression.FLEncode();
-
             var e = (C4QueryEnumerator*)ThreadSafety.DoLockedBridge(err =>
             {
                 if (_disposalWatchdog.IsDisposed) {
@@ -69,8 +67,6 @@ namespace Couchbase.Lite.Internal.Query
                 return NativeRaw.c4query_run(_c4Query, &localOpts, FLSlice.Null, err);
             });
 
-            paramN1ql.Dispose();
-
             if (e == null) {
                 return new NullResultSet();
             }
@@ -80,9 +76,16 @@ namespace Couchbase.Lite.Internal.Query
             return retVal;
         }
 
-        public override string Explain()
+        public override unsafe string Explain()
         {
-            return _n1qlQueryExpression;
+            _disposalWatchdog.CheckDisposed();
+
+            // Used for debugging
+            if (_c4Query == null) {
+                Check();
+            }
+
+            return ThreadSafety?.DoLocked(() => Native.c4query_explain(_c4Query)) ?? "(Unable to explain)";
         }
 
         protected override unsafe void Dispose(bool finalizing)
