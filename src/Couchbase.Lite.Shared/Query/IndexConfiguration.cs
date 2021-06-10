@@ -28,7 +28,7 @@ namespace Couchbase.Lite.Internal.Query
         /// <summary>
         /// Gets the expressions to use to create the index
         /// </summary>
-        public string[] Expression { get; }
+        public string[] Expressions { get; }
 
         internal C4QueryLanguage QueryLanguage { get; }
 
@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Internal.Query
         internal IndexConfiguration(C4IndexType indexType, params string[] items)
             : this(indexType, C4QueryLanguage.N1QLQuery)
         {
-            Expression = items;
+            Expressions = items;
         }
 
         internal IndexConfiguration(C4IndexType indexType, C4QueryLanguage queryLanguage)
@@ -58,10 +58,10 @@ namespace Couchbase.Lite.Internal.Query
 
         internal string ToN1QL()
         {
-            if (Expression.Length == 1)
-                return Expression[0];
+            if (Expressions.Length == 1)
+                return Expressions[0];
 
-            return String.Join(",", Expression);
+            return String.Join(",", Expressions);
         }
 
         #endregion
