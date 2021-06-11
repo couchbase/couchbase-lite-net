@@ -1,7 +1,7 @@
 //
-// C4Certificate_defs.cs
+// C4CertificateTypes_defs.cs
 //
-// Copyright (c) 2020 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -54,22 +54,22 @@ namespace LiteCore.Interop
         SignatureDigestRIPEMD160,
     }
 
-	internal unsafe struct C4CertNameInfo
+    internal unsafe struct C4CertNameInfo
     {
-        public FLSliceResult id;
-        public FLSliceResult value;
+        public FLStringResult id;
+        public FLStringResult value;
     }
 
-	internal unsafe struct C4CertNameComponent
+    internal unsafe struct C4CertNameComponent
     {
-        public FLSlice attributeID;
-        public FLSlice value;
+        public FLString attributeID;
+        public FLString value;
     }
 
-	internal unsafe struct C4CertIssuerParameters
+    internal unsafe struct C4CertIssuerParameters
     {
         public uint validityInSeconds;
-        public FLSlice serialNumber;
+        public FLString serialNumber;
         public int maxPathLen;
         private byte _isCA;
         private byte _addAuthorityIdentifier;

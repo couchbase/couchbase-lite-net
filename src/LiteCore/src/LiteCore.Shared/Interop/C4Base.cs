@@ -46,7 +46,7 @@ namespace LiteCore.Interop
 
         public static void* c4keypair_retain(C4KeyPair* keyPair) => c4base_retain(keyPair);
 
-        public static void FLSliceResult_Release(FLSliceResult flSliceResult) => _FLBuf_Release(flSliceResult.buf);
+        public static void FLStringResult_Release(FLStringResult FLStringResult) => _FLBuf_Release(FLStringResult.buf);
     }
 
     [ExcludeFromCodeCoverage]

@@ -1,7 +1,7 @@
 //
 // C4Base_defs.cs
 //
-// Copyright (c) 2020 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,84 +25,7 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-    internal enum C4ErrorDomain : byte
-    {
-        LiteCoreDomain = 1,
-        POSIXDomain,
-        SQLiteDomain,
-        FleeceDomain,
-        NetworkDomain,
-        WebSocketDomain,
-        MbedTLSDomain,
-        MaxErrorDomainPlus1
-    }
 
-    internal enum C4ErrorCode : int
-    {
-        AssertionFailed = 1,
-        Unimplemented,
-        UnsupportedEncryption,
-        BadRevisionID,
-        CorruptRevisionData,
-        NotOpen,
-        NotFound,
-        Conflict,
-        InvalidParameter,
-        UnexpectedError,
-        CantOpenFile,
-        IOError,
-        MemoryError,
-        NotWriteable,
-        CorruptData,
-        Busy,
-        NotInTransaction,
-        TransactionNotClosed,
-        Unsupported,
-        NotADatabaseFile,
-        WrongFormat,
-        Crypto,
-        InvalidQuery,
-        MissingIndex,
-        InvalidQueryParam,
-        RemoteError,
-        DatabaseTooOld,
-        DatabaseTooNew,
-        BadDocID,
-        CantUpgradeDatabase,
-        DeltaBaseUnknown,
-        CorruptDelta,
-        NumErrorCodesPlus1
-    }
-
-    internal enum C4NetworkErrorCode : int
-    {
-        DNSFailure = 1,
-        UnknownHost,
-        Timeout,
-        InvalidURL,
-        TooManyRedirects,
-        TLSHandshakeFailed,
-        TLSCertExpired,
-        TLSCertUntrusted,
-        TLSCertRequiredByPeer,
-        TLSCertRejectedByPeer,
-        TLSCertUnknownRoot,
-        InvalidRedirect,
-        Unknown,
-        TLSCertRevoked,
-        TLSCertNameMismatch,
-        NumNetErrorCodesPlus1
-    }
-
-    internal enum C4LogLevel : sbyte
-    {
-        Debug,
-        Verbose,
-        Info,
-        Warning,
-        Error,
-        None
-    }
 
     internal unsafe struct C4ExtraInfo
     {
@@ -119,7 +42,6 @@ namespace LiteCore.Interop
 
 	internal unsafe partial struct C4BlobKey
     {
-        public fixed byte bytes[20];
     }
 
 	internal unsafe struct C4BlobStore
@@ -130,11 +52,15 @@ namespace LiteCore.Interop
     {
     }
 
+	internal unsafe struct C4Collection
+    {
+    }
+
 	internal unsafe struct C4Database
     {
     }
 
-	internal unsafe struct C4DatabaseObserver
+	internal unsafe struct C4CollectionObserver
     {
     }
 
@@ -172,36 +98,5 @@ namespace LiteCore.Interop
 
 	internal unsafe struct C4WriteStream
     {
-    }
-
-	internal unsafe partial struct C4Error
-    {
-        public C4ErrorDomain domain;
-        public int code;
-        public int internal_info;
-    }
-
-	internal unsafe struct C4LogDomain
-    {
-    }
-
-	internal unsafe struct C4LogFileOptions
-    {
-        public C4LogLevel log_level;
-        public FLSlice base_path;
-        public long max_size_bytes;
-        public int max_rotate_count;
-        private byte _use_plaintext;
-        public FLSlice header;
-
-        public bool use_plaintext
-        {
-            get {
-                return Convert.ToBoolean(_use_plaintext);
-            }
-            set {
-                _use_plaintext = Convert.ToByte(value);
-            }
-        }
     }
 }

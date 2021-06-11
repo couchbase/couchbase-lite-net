@@ -104,7 +104,7 @@ namespace Test
             var nestedDict = new Dictionary<string, object> {["foo"] = "bar"};
             var masterData = new object[] {1, "str", nestedArray, now, nestedDict};
 
-            var flData = new FLSliceResult();
+            var flData = new FLStringResult();
             Db.InBatch(() =>
             {
                 flData = masterData.FLEncode();
@@ -116,7 +116,7 @@ namespace Test
                     mRoot.Context.Should().BeSameAs(context);
                     FLDoc* fleeceDoc = Native.FLDoc_FromResultData(flData,
                         FLTrust.Trusted,
-                        Native.c4db_getFLSharedKeys(Db.c4db), FLSlice.Null);
+                        Native.c4db_getFLSharedKeys(Db.c4db), FLString.Null);
                     var flValue = Native.FLDoc_GetRoot(fleeceDoc);
                     var mArr = new FleeceMutableArray(new MValue(flValue), mRoot);
                     var deserializedArray = new ArrayObject(mArr, false);
@@ -139,7 +139,7 @@ namespace Test
                     Native.FLDoc_Release(fleeceDoc);
                 }
             } finally {
-                Native.FLSliceResult_Release(flData);
+                Native.FLStringResult_Release(flData);
             }
 
             var mroot = new MRoot();
@@ -198,7 +198,7 @@ namespace Test
                 ["dict"] = nestedDict
             };
 
-            var flData = new FLSliceResult();
+            var flData = new FLStringResult();
             Db.InBatch(() =>
             {
                 flData = masterData.FLEncode();
@@ -210,7 +210,7 @@ namespace Test
                     mRoot.Context.Should().BeSameAs(context);
                     FLDoc* fleeceDoc = Native.FLDoc_FromResultData(flData,
                         FLTrust.Trusted,
-                        Native.c4db_getFLSharedKeys(Db.c4db), FLSlice.Null);
+                        Native.c4db_getFLSharedKeys(Db.c4db), FLString.Null);
                     var flValue = Native.FLDoc_GetRoot(fleeceDoc);
                     var mDict = new MDict(new MValue(flValue), mRoot);
                     var deserializedDict = new DictionaryObject(mDict, false);
@@ -231,7 +231,7 @@ namespace Test
                     Native.FLDoc_Release(fleeceDoc);
                 }
             } finally {
-                Native.FLSliceResult_Release(flData);
+                Native.FLStringResult_Release(flData);
             }
         }
 
@@ -329,7 +329,7 @@ Transfer-Encoding: chunked";
             {
                 using (var flData = masterList.FLEncode()) {
                     retrieved =
-                        FLValueConverter.ToCouchbaseObject(NativeRaw.FLValue_FromData((FLSlice) flData, FLTrust.Trusted), Db,
+                        FLValueConverter.ToCouchbaseObject(NativeRaw.FLValue_FromData((FLString) flData, FLTrust.Trusted), Db,
                                 true, typeof(Dictionary<,>).MakeGenericType(typeof(string), typeof(object))) as
                             List<Dictionary<string, object>>;
                 }
@@ -704,12 +704,12 @@ Transfer-Encoding: chunked";
         private unsafe void TestRoundTrip<T>(T item)
         {
             using (var encoded = item.FLEncode()) {
-                var flValue = NativeRaw.FLValue_FromData((FLSlice) encoded, FLTrust.Trusted);
+                var flValue = NativeRaw.FLValue_FromData((FLString) encoded, FLTrust.Trusted);
                 ((IntPtr) flValue).Should().NotBe(IntPtr.Zero);
                 if (item is IEnumerable enumerable && !(item is string)) {
-                    ((IEnumerable) FLSliceExtensions.ToObject(flValue)).Should().BeEquivalentTo(enumerable);
+                    ((IEnumerable) FLStringExtensions.ToObject(flValue)).Should().BeEquivalentTo(enumerable);
                 } else {
-                    Extensions.CastOrDefault<T>(FLSliceExtensions.ToObject(flValue)).Should().Be(item);
+                    Extensions.CastOrDefault<T>(FLStringExtensions.ToObject(flValue)).Should().Be(item);
                 }
             }
         }

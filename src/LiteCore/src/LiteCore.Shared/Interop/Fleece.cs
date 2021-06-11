@@ -43,35 +43,35 @@ namespace LiteCore.Interop
     }
 
     [ExcludeFromCodeCoverage]
-    internal unsafe partial struct FLSlice
+    internal unsafe partial struct FLString
     {
-        public static readonly FLSlice Null = new FLSlice(null, 0);
+        public static readonly FLString Null = new FLString(null, 0);
 
-        private static readonly ConcurrentDictionary<string, FLSlice> _Constants =
-            new ConcurrentDictionary<string, FLSlice>();
+        private static readonly ConcurrentDictionary<string, FLString> _Constants =
+            new ConcurrentDictionary<string, FLString>();
 
-        public FLSlice(void* buf, ulong size)
+        public FLString(void* buf, ulong size)
         {
             this.buf = buf;
             _size = (UIntPtr)size;
         }
 
-        public static FLSlice Constant(string input)
+        public static FLString Constant(string input)
         {
             // Warning: This creates unmanaged memory that is intended never to be freed
             // You should only use it with constant strings
             return _Constants.GetOrAdd(input, Allocate);
         }
 
-        public static FLSlice Allocate(string input)
+        public static FLString Allocate(string input)
         {
             var bytes = Encoding.UTF8.GetBytes(input);
             var intPtr = Marshal.AllocHGlobal(bytes.Length);
             Marshal.Copy(bytes, 0, intPtr, bytes.Length);
-            return new FLSlice(intPtr.ToPointer(), (ulong)bytes.Length);
+            return new FLString(intPtr.ToPointer(), (ulong)bytes.Length);
         }
 
-        public static void Free(FLSlice slice)
+        public static void Free(FLString slice)
         {
             Marshal.FreeHGlobal(new IntPtr(slice.buf));
             slice.buf = null;
@@ -119,11 +119,11 @@ namespace LiteCore.Interop
         {
             var other = Null;
             switch (obj) {
-                case FLSlice slice:
+                case FLString slice:
                     other = slice;
                     break;
-                case FLSliceResult sliceResult:
-                    other = (FLSlice) sliceResult;
+                case FLStringResult sliceResult:
+                    other = (FLString) sliceResult;
                     break;
                 case FLHeapSlice heapSlice:
                     other = heapSlice;
@@ -132,14 +132,14 @@ namespace LiteCore.Interop
                     return false;
             }
 
-            return Native.FLSlice_Compare(this, other) == 0;
+            return Native.FLString_Compare(this, other) == 0;
         }
 
-        public override string ToString() => $"FLSlice[{CreateString()}]";
+        public override string ToString() => $"FLString[{CreateString()}]";
 
-        public static explicit operator FLSliceResult(FLSlice input)
+        public static explicit operator FLStringResult(FLString input)
         {
-            return new FLSliceResult(input.buf, input.size);
+            return new FLStringResult(input.buf, input.size);
         }
     }
 
@@ -154,14 +154,14 @@ namespace LiteCore.Interop
             set => _size = (UIntPtr) value;
         }
 
-        public static implicit operator FLSlice(FLHeapSlice input)
+        public static implicit operator FLString(FLHeapSlice input)
         {
-            return new FLSlice(input.buf, input.size);
+            return new FLString(input.buf, input.size);
         }
 
         public string CreateString()
         {
-            return ((FLSlice) this).CreateString();
+            return ((FLString) this).CreateString();
         }
 
         public override int GetHashCode()
@@ -177,13 +177,13 @@ namespace LiteCore.Interop
 
         public override bool Equals(object obj)
         {
-            var other = FLSlice.Null;
+            var other = FLString.Null;
             switch (obj) {
-                case FLSlice slice:
+                case FLString slice:
                     other = slice;
                     break;
-                case FLSliceResult sliceResult:
-                    other = (FLSlice) sliceResult;
+                case FLStringResult sliceResult:
+                    other = (FLString) sliceResult;
                     break;
                 case FLHeapSlice heapSlice:
                     other = heapSlice;
@@ -192,28 +192,28 @@ namespace LiteCore.Interop
                     return false;
             }
 
-            return Native.FLSlice_Compare(this, other) == 0;
+            return Native.FLString_Compare(this, other) == 0;
         }
 
         public override string ToString() => $"FLHeapSlice[{CreateString()}]";
     }
 
-    internal unsafe partial struct FLSliceResult : IDisposable
+    internal unsafe partial struct FLStringResult : IDisposable
     {
-        public FLSliceResult(void* buf, ulong size)
+        public FLStringResult(void* buf, ulong size)
         {
             this.buf = buf;
             _size = (UIntPtr)size;
         }
 
-        public static explicit operator FLSlice(FLSliceResult input)
+        public static explicit operator FLString(FLStringResult input)
         {
-            return new FLSlice(input.buf, input.size);
+            return new FLString(input.buf, input.size);
         }
 
         public void Dispose()
         {
-            Native.FLSliceResult_Release(this);
+            Native.FLStringResult_Release(this);
         }
     }
 
@@ -335,7 +335,7 @@ namespace LiteCore.Interop
 
     }
 
-    internal static unsafe class FLSliceExtensions
+    internal static unsafe class FLStringExtensions
     {
         public static object ToObject(FLValue* value)
         {
@@ -409,7 +409,7 @@ namespace LiteCore.Interop
             }
         }
 
-        public static FLSliceResult FLEncode(this object obj)
+        public static FLStringResult FLEncode(this object obj)
         {
             var enc = Native.FLEncoder_New();
             try {

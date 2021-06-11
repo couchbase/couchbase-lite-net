@@ -29,7 +29,5 @@ namespace LiteCore.Interop
         public static extern C4LogDomain* c4log_getDomain(byte* name,
             [MarshalAs(UnmanagedType.U1)] bool create);
 
-        [DllImport(Constants.DllName, CallingConvention=CallingConvention.Cdecl)]
-        public static extern void c4log_warnOnErrors(bool warn);
     }
 }

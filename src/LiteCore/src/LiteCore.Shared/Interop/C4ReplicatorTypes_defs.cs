@@ -1,7 +1,7 @@
 //
-// C4Replicator_defs.cs
+// C4ReplicatorTypes_defs.cs
 //
-// Copyright (c) 2020 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,34 +35,14 @@ namespace LiteCore.Interop
 
     internal enum C4ReplicatorActivityLevel : int
     {
-        Stopped,    //Finished, or got a fatal error.
-        Offline,    //Connection failed, but waiting to retry.
-        Connecting, //Connection is in progress.
-        Idle,       //Continuous replicator has caught up and is waiting for changes.
-        Busy,       //Connected and actively working.
-        /* INTERNAL STATES */
-        Stopping,   //Stopping or going offline
-    }
-
-    /// <summary>
-    /// An enum representing level of opt in on progress of replication
-    /// </summary>
-    internal enum C4ReplicatorProgressLevel : int
-    {
-        /// <summary>
-        /// No additional replication progress callback
-        /// </summary>
-        Overall,
-
-        /// <summary>
-        /// Every document replication ended callback
-        /// </summary>
-        PerDocument, // >=1
-
-        /// <summary>
-        /// Every blob replication progress callback
-        /// </summary>
-        PerAttachment // >=2
+        
+        Stopped,
+        Offline,
+        Connecting,
+        Idle,
+        Busy,
+        
+        Stopping,
     }
 
     [Flags]
@@ -73,22 +53,29 @@ namespace LiteCore.Interop
         Suspended     = 0x4
     }
 
-	internal unsafe struct C4Address
+    internal enum C4ReplicatorProgressLevel : int
     {
-        public FLSlice scheme;
-        public FLSlice hostname;
-        public ushort port;
-        public FLSlice path;
+        ReplProgressOverall,
+        ReplProgressPerDocument,
+        ReplProgressPerAttachment,
     }
 
-	internal unsafe struct C4Progress
+    internal unsafe struct C4Address
+    {
+        public FLString scheme;
+        public FLString hostname;
+        public ushort port;
+        public FLString path;
+    }
+
+    internal unsafe struct C4Progress
     {
         public ulong unitsCompleted;
         public ulong unitsTotal;
         public ulong documentCount;
     }
 
-	internal unsafe struct C4ReplicatorStatus
+    internal unsafe struct C4ReplicatorStatus
     {
         public C4ReplicatorActivityLevel level;
         public C4Progress progress;
@@ -96,8 +83,9 @@ namespace LiteCore.Interop
         public C4ReplicatorStatusFlags flags;
     }
 
-	internal unsafe struct C4DocumentEnded
+    internal unsafe struct C4DocumentEnded
     {
+        public FLHeapSlice collectionName;
         public FLHeapSlice docID;
         public FLHeapSlice revID;
         public C4RevisionFlags flags;
@@ -120,7 +108,7 @@ namespace LiteCore.Interop
     {
         public C4ReplicatorMode push;
         public C4ReplicatorMode pull;
-        public FLSlice optionsDictFleece;
+        public FLString optionsDictFleece;
         public IntPtr pushFilter;
         public IntPtr validationFunc;
         public IntPtr onStatusChanged;

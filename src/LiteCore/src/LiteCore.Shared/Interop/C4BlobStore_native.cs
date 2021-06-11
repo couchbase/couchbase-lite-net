@@ -30,14 +30,14 @@ namespace LiteCore.Interop
         public static bool c4blob_keyFromString(string str, C4BlobKey* x)
         {
             using(var str_ = new C4String(str)) {
-                return NativeRaw.c4blob_keyFromString(str_.AsFLSlice(), x);
+                return NativeRaw.c4blob_keyFromString(str_.AsFLString(), x);
             }
         }
 
         public static string c4blob_keyToString(C4BlobKey key)
         {
             using(var retVal = NativeRaw.c4blob_keyToString(key)) {
-                return ((FLSlice)retVal).CreateString();
+                return ((FLString)retVal).CreateString();
             }
         }
 
@@ -47,7 +47,7 @@ namespace LiteCore.Interop
         public static C4BlobStore* c4blob_openStore(string dirPath, C4DatabaseFlags flags, C4EncryptionKey* encryptionKey, C4Error* outError)
         {
             using(var dirPath_ = new C4String(dirPath)) {
-                return NativeRaw.c4blob_openStore(dirPath_.AsFLSlice(), flags, encryptionKey, outError);
+                return NativeRaw.c4blob_openStore(dirPath_.AsFLString(), flags, encryptionKey, outError);
             }
         }
 
@@ -61,21 +61,21 @@ namespace LiteCore.Interop
         public static byte[] c4blob_getContents(C4BlobStore* store, C4BlobKey key, C4Error* outError)
         {
             using(var retVal = NativeRaw.c4blob_getContents(store, key, outError)) {
-                return ((FLSlice)retVal).ToArrayFast();
+                return ((FLString)retVal).ToArrayFast();
             }
         }
 
         public static string c4blob_getFilePath(C4BlobStore* store, C4BlobKey key, C4Error* outError)
         {
             using(var retVal = NativeRaw.c4blob_getFilePath(store, key, outError)) {
-                return ((FLSlice)retVal).CreateString();
+                return ((FLString)retVal).CreateString();
             }
         }
 
         public static bool c4blob_create(C4BlobStore* store, byte[] contents, C4BlobKey* expectedKey, C4BlobKey* outKey, C4Error* error)
         {
             fixed(byte *contents_ = contents) {
-                return NativeRaw.c4blob_create(store, new FLSlice(contents_, contents == null ? 0 : (ulong)contents.Length), expectedKey, outKey, error);
+                return NativeRaw.c4blob_create(store, new FLString(contents_, contents == null ? 0 : (ulong)contents.Length), expectedKey, outKey, error);
             }
         }
 
@@ -122,23 +122,23 @@ namespace LiteCore.Interop
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4blob_keyFromString(FLSlice str, C4BlobKey* x);
+        public static extern bool c4blob_keyFromString(FLString str, C4BlobKey* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4blob_keyToString(C4BlobKey key);
+        public static extern FLStringResult c4blob_keyToString(C4BlobKey key);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4BlobStore* c4blob_openStore(FLSlice dirPath, C4DatabaseFlags flags, C4EncryptionKey* encryptionKey, C4Error* outError);
+        public static extern C4BlobStore* c4blob_openStore(FLString dirPath, C4DatabaseFlags flags, C4EncryptionKey* encryptionKey, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4blob_getContents(C4BlobStore* store, C4BlobKey key, C4Error* outError);
+        public static extern FLStringResult c4blob_getContents(C4BlobStore* store, C4BlobKey key, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4blob_getFilePath(C4BlobStore* store, C4BlobKey key, C4Error* outError);
+        public static extern FLStringResult c4blob_getFilePath(C4BlobStore* store, C4BlobKey key, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4blob_create(C4BlobStore* store, FLSlice contents, C4BlobKey* expectedKey, C4BlobKey* outKey, C4Error* error);
+        public static extern bool c4blob_create(C4BlobStore* store, FLString contents, C4BlobKey* expectedKey, C4BlobKey* outKey, C4Error* error);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern UIntPtr c4stream_read(C4ReadStream* stream, [Out]byte[] buffer, UIntPtr maxBytesToRead, C4Error* outError);

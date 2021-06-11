@@ -32,7 +32,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Properties
 
-        public FLSlice Data { get; }
+        public FLString Data { get; }
 
 #if DEBUG
         internal bool Disposed { get; private set; }
@@ -48,7 +48,7 @@ namespace Couchbase.Lite.Internal.Serialization
         {
         }
 
-        public MContext(FLSlice data)
+        public MContext(FLString data)
         {
             Data = data;
         }

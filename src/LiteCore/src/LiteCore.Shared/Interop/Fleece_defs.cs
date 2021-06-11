@@ -1,7 +1,7 @@
 //
 // Fleece_defs.cs
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -100,6 +100,10 @@ namespace LiteCore.Interop
     {
     }
 
+	internal unsafe struct FLEncoder
+    {
+    }
+
 	internal unsafe struct FLDoc
     {
     }
@@ -142,7 +146,7 @@ namespace LiteCore.Interop
     {
         #pragma warning disable CS0169
 
-        private FLSlice _private1;
+        private FLString _private1;
         private void* _private2;
         private uint _private3;
         private uint _private4;
@@ -157,7 +161,7 @@ namespace LiteCore.Interop
 
 	internal unsafe struct FLPathComponent
     {
-        public FLSlice key;
+        public FLString key;
         public uint index;
     }
 
@@ -165,7 +169,7 @@ namespace LiteCore.Interop
     {
     }
 
-	internal unsafe struct FLEncoder
+	internal unsafe struct FLSharedKeyScope
     {
     }
 }

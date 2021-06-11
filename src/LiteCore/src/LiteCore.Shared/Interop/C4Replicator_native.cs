@@ -28,7 +28,7 @@ namespace LiteCore.Interop
     internal unsafe static partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Replicator* c4repl_new(C4Database* db, C4Address remoteAddress, FLSlice remoteDatabaseName, C4ReplicatorParameters @params, C4Error* outError);
+        public static extern C4Replicator* c4repl_new(C4Database* db, C4Address remoteAddress, FLString remoteDatabaseName, C4ReplicatorParameters @params, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Replicator* c4repl_newLocal(C4Database* db, C4Database* otherLocalDB, C4ReplicatorParameters @params, C4Error* outError);
@@ -52,7 +52,7 @@ namespace LiteCore.Interop
         public static void c4repl_setOptions(C4Replicator* repl, byte[] optionsDictFleece)
         {
             fixed(byte *optionsDictFleece_ = optionsDictFleece) {
-                NativeRaw.c4repl_setOptions(repl, new FLSlice(optionsDictFleece_, optionsDictFleece == null ? 0 : (ulong)optionsDictFleece.Length));
+                NativeRaw.c4repl_setOptions(repl, new FLString(optionsDictFleece_, optionsDictFleece == null ? 0 : (ulong)optionsDictFleece.Length));
             }
         }
 
@@ -62,14 +62,14 @@ namespace LiteCore.Interop
         public static byte[] c4repl_getPendingDocIDs(C4Replicator* repl, C4Error* outErr)
         {
             using(var retVal = NativeRaw.c4repl_getPendingDocIDs(repl, outErr)) {
-                return ((FLSlice)retVal).ToArrayFast();
+                return ((FLString)retVal).ToArrayFast();
             }
         }
 
         public static bool c4repl_isDocumentPending(C4Replicator* repl, string docID, C4Error* outErr)
         {
             using(var docID_ = new C4String(docID)) {
-                return NativeRaw.c4repl_isDocumentPending(repl, docID_.AsFLSlice(), outErr);
+                return NativeRaw.c4repl_isDocumentPending(repl, docID_.AsFLString(), outErr);
             }
         }
 
@@ -80,14 +80,14 @@ namespace LiteCore.Interop
             using(var setCookieHeader_ = new C4String(setCookieHeader))
             using(var fromHost_ = new C4String(fromHost))
             using(var fromPath_ = new C4String(fromPath)) {
-                return NativeRaw.c4db_setCookie(db, setCookieHeader_.AsFLSlice(), fromHost_.AsFLSlice(), fromPath_.AsFLSlice(), outError);
+                return NativeRaw.c4db_setCookie(db, setCookieHeader_.AsFLString(), fromHost_.AsFLString(), fromPath_.AsFLString(), outError);
             }
         }
 
         public static string c4db_getCookies(C4Database* db, C4Address request, C4Error* error)
         {
             using(var retVal = NativeRaw.c4db_getCookies(db, request, error)) {
-                return ((FLSlice)retVal).CreateString();
+                return ((FLString)retVal).CreateString();
             }
         }
 
@@ -100,21 +100,21 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4repl_setOptions(C4Replicator* repl, FLSlice optionsDictFleece);
+        public static extern void c4repl_setOptions(C4Replicator* repl, FLString optionsDictFleece);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4repl_getPendingDocIDs(C4Replicator* repl, C4Error* outErr);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4repl_isDocumentPending(C4Replicator* repl, FLSlice docID, C4Error* outErr);
+        public static extern FLStringResult c4repl_getPendingDocIDs(C4Replicator* repl, C4Error* outErr);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_setCookie(C4Database* db, FLSlice setCookieHeader, FLSlice fromHost, FLSlice fromPath, C4Error* outError);
+        public static extern bool c4repl_isDocumentPending(C4Replicator* repl, FLString docID, C4Error* outErr);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4db_getCookies(C4Database* db, C4Address request, C4Error* error);
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4db_setCookie(C4Database* db, FLString setCookieHeader, FLString fromHost, FLString fromPath, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLStringResult c4db_getCookies(C4Database* db, C4Address request, C4Error* error);
 
 
     }

@@ -36,7 +36,7 @@ namespace LiteCore.Interop
         public static bool c4listener_shareDB(C4Listener* listener, string name, C4Database* db, C4Error* outError)
         {
             using(var name_ = new C4String(name)) {
-                return NativeRaw.c4listener_shareDB(listener, name_.AsFLSlice(), db, outError);
+                return NativeRaw.c4listener_shareDB(listener, name_.AsFLString(), db, outError);
             }
         }
 
@@ -60,7 +60,7 @@ namespace LiteCore.Interop
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4listener_shareDB(C4Listener* listener, FLSlice name, C4Database* db, C4Error* outError);
+        public static extern bool c4listener_shareDB(C4Listener* listener, FLString name, C4Database* db, C4Error* outError);
 
 
     }

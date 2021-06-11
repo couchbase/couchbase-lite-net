@@ -18,6 +18,6 @@
 
 namespace LiteCore.Interop
 {
-    internal unsafe delegate FLSliceResult C4DocDeltaApplier(void* context, C4Revision* baseRevision,
-        FLSlice delta, C4Error* outError);
+    internal unsafe delegate FLStringResult C4DocDeltaApplier(void* context, C4Revision* baseRevision,
+        FLString delta, C4Error* outError);
 }

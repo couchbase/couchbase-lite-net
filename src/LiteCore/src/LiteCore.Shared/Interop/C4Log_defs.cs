@@ -1,7 +1,7 @@
 //
-// C4Query_defs.cs
+// C4Log_defs.cs
 //
-// Copyright (c) 2020 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,41 +25,37 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-    internal enum C4QueryLanguage : uint
+    internal enum C4LogLevel : sbyte
     {
-        JSONQuery,
-        N1QLQuery,
+        Debug,
+        Verbose,
+        Info,
+        Warning,
+        Error,
+        None
     }
 
-	internal unsafe partial struct C4QueryOptions
+	internal unsafe struct C4LogDomain
     {
-        private byte _rankFullText;
+    }
 
-        public bool rankFullText
+	internal unsafe struct C4LogFileOptions
+    {
+        public C4LogLevel log_level;
+        public FLString base_path;
+        public long max_size_bytes;
+        public int max_rotate_count;
+        private byte _use_plaintext;
+        public FLString header;
+
+        public bool use_plaintext
         {
             get {
-                return Convert.ToBoolean(_rankFullText);
+                return Convert.ToBoolean(_use_plaintext);
             }
             set {
-                _rankFullText = Convert.ToByte(value);
+                _use_plaintext = Convert.ToByte(value);
             }
         }
-    }
-
-	internal unsafe partial struct C4FullTextMatch
-    {
-        public ulong dataSource;
-        public uint property;
-        public uint term;
-        public uint start;
-        public uint length;
-    }
-
-	internal unsafe struct C4QueryEnumerator
-    {
-        public FLArrayIterator columns;
-        public ulong missingColumns;
-        public uint fullTextMatchCount;
-        public C4FullTextMatch* fullTextMatches;
     }
 }

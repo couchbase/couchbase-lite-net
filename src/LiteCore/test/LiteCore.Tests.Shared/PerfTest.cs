@@ -134,16 +134,16 @@ namespace LiteCore.Tests
 
         private uint InsertDocs(FLArray* docs)
         {
-            var typeKey   = NativeRaw.FLDictKey_Init(FLSlice.Constant("Track Type"), true);
-            var idKey     = NativeRaw.FLDictKey_Init(FLSlice.Constant("Persistent ID"), true);
-            var nameKey   = NativeRaw.FLDictKey_Init(FLSlice.Constant("Name"), true);
-            var albumKey  = NativeRaw.FLDictKey_Init(FLSlice.Constant("Album"), true);
-            var artistKey = NativeRaw.FLDictKey_Init(FLSlice.Constant("Artist"), true);
-            var timeKey   = NativeRaw.FLDictKey_Init(FLSlice.Constant("Total Time"), true);
-            var genreKey  = NativeRaw.FLDictKey_Init(FLSlice.Constant("Genre"), true);
-            var yearKey   = NativeRaw.FLDictKey_Init(FLSlice.Constant("Year"), true);
-            var trackNoKey= NativeRaw.FLDictKey_Init(FLSlice.Constant("Track Number"), true);
-            var compKey   = NativeRaw.FLDictKey_Init(FLSlice.Constant("Compilation"), true);
+            var typeKey   = NativeRaw.FLDictKey_Init(FLString.Constant("Track Type"), true);
+            var idKey     = NativeRaw.FLDictKey_Init(FLString.Constant("Persistent ID"), true);
+            var nameKey   = NativeRaw.FLDictKey_Init(FLString.Constant("Name"), true);
+            var albumKey  = NativeRaw.FLDictKey_Init(FLString.Constant("Album"), true);
+            var artistKey = NativeRaw.FLDictKey_Init(FLString.Constant("Artist"), true);
+            var timeKey   = NativeRaw.FLDictKey_Init(FLString.Constant("Total Time"), true);
+            var genreKey  = NativeRaw.FLDictKey_Init(FLString.Constant("Genre"), true);
+            var yearKey   = NativeRaw.FLDictKey_Init(FLString.Constant("Year"), true);
+            var trackNoKey= NativeRaw.FLDictKey_Init(FLString.Constant("Track Number"), true);
+            var compKey   = NativeRaw.FLDictKey_Init(FLString.Constant("Compilation"), true);
 
             LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
             try {
@@ -155,7 +155,7 @@ namespace LiteCore.Tests
                     // Check that track is correct type:
                     var track = Native.FLValue_AsDict(Native.FLArrayIterator_GetValue(&iter));
                     var trackType = NativeRaw.FLValue_AsString(Native.FLDict_GetWithKey(track, &typeKey));
-                    if(!trackType.Equals(FLSlice.Constant("File")) && !trackType.Equals(FLSlice.Constant("Remote"))) {
+                    if(!trackType.Equals(FLString.Constant("File")) && !trackType.Equals(FLString.Constant("Remote"))) {
                         continue;
                     }
 

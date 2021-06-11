@@ -168,8 +168,8 @@ namespace LiteCore.Tests
                 try {
                     var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, "0000015", true, C4DocContentLevel.DocGetCurrentRev, err));
                     var rq = new C4DocPutRequest {
-                        docID = FLSlice.Constant("0000015"),
-                        history = (FLSlice *)&doc->revID,
+                        docID = FLString.Constant("0000015"),
+                        history = (FLString *)&doc->revID,
                         historyCount = 1,
                         revFlags = C4RevisionFlags.Deleted,
                         save = true

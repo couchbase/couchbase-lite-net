@@ -36,10 +36,10 @@ namespace LiteCore.Tests
 #endif
     public unsafe class ObserverTest : Test
     {
-        private static readonly C4DatabaseObserverCallback DatabaseCallback = DBObserverCallback;
+        private static readonly C4CollectionObserverCallback DatabaseCallback = DBObserverCallback;
         private static readonly C4DocumentObserverCallback DocumentCallback = DocObserverCallback;
 
-        private C4DatabaseObserver* _dbObserver;
+        private C4CollectionObserver* _dbObserver;
         private C4DocumentObserver* _docObserver;
 
         private int _dbCallbackCalls;
@@ -64,23 +64,23 @@ namespace LiteCore.Tests
                 try
                 {
                     _dbObserver = Native.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
-                    CreateRev("A", FLSlice.Constant("1-aa"), FleeceBody);
+                    CreateRev("A", FLString.Constant("1-aa"), FleeceBody);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
-                    CreateRev("B", FLSlice.Constant("1-bb"), FleeceBody);
+                    CreateRev("B", FLString.Constant("1-bb"), FleeceBody);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
 
                     CheckChanges(new[] { "A", "B" }, new[] { "1-aa", "1-bb" });
 
-                    CreateRev("B", FLSlice.Constant("2-bbbb"), FleeceBody);
+                    CreateRev("B", FLString.Constant("2-bbbb"), FleeceBody);
                     _dbCallbackCalls.Should().Be(2, "because we should have received a callback");
-                    CreateRev("C", FLSlice.Constant("1-cc"), FleeceBody);
+                    CreateRev("C", FLString.Constant("1-cc"), FleeceBody);
                     _dbCallbackCalls.Should().Be(2, "because we should have received a callback");
 
                     CheckChanges(new[] { "B", "C" }, new[] { "2-bbbb", "1-cc" });
                     Native.c4dbobs_free(_dbObserver);
                     _dbObserver = null;
 
-                    CreateRev("A", FLSlice.Constant("2-aaaa"), FleeceBody);
+                    CreateRev("A", FLString.Constant("2-aaaa"), FleeceBody);
                     _dbCallbackCalls.Should().Be(2, "because the observer was disposed");
                 }
                 finally
@@ -97,12 +97,12 @@ namespace LiteCore.Tests
             {
                 var handle = GCHandle.Alloc(this);
                 try {
-                    CreateRev("A", FLSlice.Constant("1-aa"), FleeceBody);
+                    CreateRev("A", FLString.Constant("1-aa"), FleeceBody);
                     _docObserver = Native.c4docobs_create(Db, "A", DocumentCallback,
                         GCHandle.ToIntPtr(handle).ToPointer());
 
-                    CreateRev("A", FLSlice.Constant("2-bb"), FleeceBody);
-                    CreateRev("B", FLSlice.Constant("1-bb"), FleeceBody);
+                    CreateRev("A", FLString.Constant("2-bb"), FleeceBody);
+                    CreateRev("B", FLString.Constant("1-bb"), FleeceBody);
                     _docCallbackCalls.Should().Be(1, "because there was only one update to the doc in question");
                 }
                 finally
@@ -121,9 +121,9 @@ namespace LiteCore.Tests
                 try
                 {
                     _dbObserver = Native.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
-                    CreateRev("A", FLSlice.Constant("1-aa"), FleeceBody);
+                    CreateRev("A", FLString.Constant("1-aa"), FleeceBody);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
-                    CreateRev("B", FLSlice.Constant("1-bb"), FleeceBody);
+                    CreateRev("B", FLString.Constant("1-bb"), FleeceBody);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
 
                     CheckChanges(new[] { "A", "B" }, new[] { "1-aa", "1-bb" });
@@ -133,9 +133,9 @@ namespace LiteCore.Tests
                        Native.c4db_openNamed(DBName, Native.c4db_getConfig2(Db), err));
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(otherdb, err));
                     try {
-                        CreateRev(otherdb, "C", FLSlice.Constant("1-cc"), FleeceBody);
-                        CreateRev(otherdb, "D", FLSlice.Constant("1-dd"), FleeceBody);
-                        CreateRev(otherdb, "E", FLSlice.Constant("1-ee"), FleeceBody);
+                        CreateRev(otherdb, "C", FLString.Constant("1-cc"), FleeceBody);
+                        CreateRev(otherdb, "D", FLString.Constant("1-dd"), FleeceBody);
+                        CreateRev(otherdb, "E", FLString.Constant("1-ee"), FleeceBody);
                     } finally {
                         LiteCoreBridge.Check(err => Native.c4db_endTransaction(otherdb, true, err));
                     }
@@ -146,7 +146,7 @@ namespace LiteCore.Tests
                     Native.c4dbobs_free(_dbObserver);
                     _dbObserver = null;
 
-                    CreateRev("A", FLSlice.Constant("2-aaaa"), FleeceBody);
+                    CreateRev("A", FLString.Constant("2-aaaa"), FleeceBody);
                     _dbCallbackCalls.Should().Be(2, "because the observer was disposed");
 
                     LiteCoreBridge.Check(err => Native.c4db_close(otherdb, err));
@@ -177,9 +177,9 @@ namespace LiteCore.Tests
 
 
 #if __IOS__
-        [ObjCRuntime.MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4CollectionObserverCallback))]
 #endif
-        private static void DBObserverCallback(C4DatabaseObserver* obs, void* context)
+        private static void DBObserverCallback(C4CollectionObserver* obs, void* context)
         {
             var obj = GCHandle.FromIntPtr((IntPtr) context).Target as ObserverTest;
             obj.DbObserverCalled(obs);
@@ -188,13 +188,13 @@ namespace LiteCore.Tests
 #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
 #endif
-        private static void DocObserverCallback(C4DocumentObserver* obs, FLSlice docId, ulong sequence, void* context)
+        private static void DocObserverCallback(C4DocumentObserver* obs, FLString docId, ulong sequence, void* context)
         {
             var obj = GCHandle.FromIntPtr((IntPtr) context).Target as ObserverTest;
             obj.DocObserverCalled(obs, docId.CreateString(), sequence);
         }
 
-        private void DbObserverCalled(C4DatabaseObserver *obs)
+        private void DbObserverCalled(C4CollectionObserver *obs)
         {
             ((long)obs).Should().Be((long)_dbObserver, "because the callback should be for the proper DB");
             _dbCallbackCalls++;

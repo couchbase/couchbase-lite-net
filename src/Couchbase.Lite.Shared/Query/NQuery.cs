@@ -64,7 +64,7 @@ namespace Couchbase.Lite.Internal.Query
                 }
 
                 var localOpts = options;
-                return NativeRaw.c4query_run(_c4Query, &localOpts, FLSlice.Null, err);
+                return NativeRaw.c4query_run(_c4Query, &localOpts, FLString.Null, err);
             });
 
             if (e == null) {

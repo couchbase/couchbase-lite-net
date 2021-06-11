@@ -195,9 +195,9 @@ namespace Couchbase.Lite.Internal.Serialization
             }
         }
 
-        private static FLSlice TypeForDict(FLDict* dict)
+        private static FLString TypeForDict(FLDict* dict)
         {
-            var typeKey = FLSlice.Constant(Constants.ObjectTypeProperty);
+            var typeKey = FLString.Constant(Constants.ObjectTypeProperty);
             var type = NativeRaw.FLDict_Get(dict, typeKey);
 
             return NativeRaw.FLValue_AsString(type);

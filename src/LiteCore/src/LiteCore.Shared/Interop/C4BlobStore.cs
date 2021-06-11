@@ -20,49 +20,6 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace LiteCore.Interop
 {
-    [ExcludeFromCodeCoverage]
-    internal unsafe partial struct C4BlobKey
-    {
-        public static readonly int Size = _Size;
-        // ReSharper disable InconsistentNaming
-        private const int _Size = 20;
-        // ReSharper restore InconsistentNaming
-        
-        // NOTE: The below produces IL that is not understandable by Mono
-        /*public override int GetHashCode()
-        {
-            var hasher = Hasher.Start;
-            fixed (byte* b = bytes) {
-                for (int i = 0; i < _Size; i++) {
-                    hasher.Add(b[i]);
-                }
-            }
-
-            return hasher.GetHashCode();
-        }
-
-        public override bool Equals(object obj)
-        {
-            if(!(obj is C4BlobKey)) {
-                return false;
-            }
-
-            var other = (C4BlobKey)obj;
-            fixed(byte* b = bytes) {
-                for(int i = 0; i < _Size; i++) {
-                    if(b[i] != other.bytes[i]) {
-                        return false;
-                    }
-                }
-            }
-
-            return true;
-        }*/
-    }
-}
-
-namespace LiteCore.Interop
-{
     internal static unsafe partial class Native
     {
         public static ulong c4stream_read(C4ReadStream *stream, byte[] buffer, C4Error *outError)

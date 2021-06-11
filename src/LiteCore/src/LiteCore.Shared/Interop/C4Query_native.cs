@@ -30,14 +30,14 @@ namespace LiteCore.Interop
         public static C4Query* c4query_new2(C4Database* database, C4QueryLanguage language, string expression, int* outErrorPos, C4Error* error)
         {
             using(var expression_ = new C4String(expression)) {
-                return NativeRaw.c4query_new2(database, language, expression_.AsFLSlice(), outErrorPos, error);
+                return NativeRaw.c4query_new2(database, language, expression_.AsFLString(), outErrorPos, error);
             }
         }
 
         public static string c4query_explain(C4Query* query)
         {
             using(var retVal = NativeRaw.c4query_explain(query)) {
-                return ((FLSlice)retVal).CreateString();
+                return ((FLString)retVal).CreateString();
             }
         }
 
@@ -45,19 +45,19 @@ namespace LiteCore.Interop
         public static extern uint c4query_columnCount(C4Query* query);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSlice c4query_columnTitle(C4Query* query, uint column);
+        public static extern FLString c4query_columnTitle(C4Query* query, uint column);
 
         public static void c4query_setParameters(C4Query* query, string encodedParameters)
         {
             using(var encodedParameters_ = new C4String(encodedParameters)) {
-                NativeRaw.c4query_setParameters(query, encodedParameters_.AsFLSlice());
+                NativeRaw.c4query_setParameters(query, encodedParameters_.AsFLString());
             }
         }
 
         public static C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, string encodedParameters, C4Error* outError)
         {
             using(var encodedParameters_ = new C4String(encodedParameters)) {
-                return NativeRaw.c4query_run(query, options, encodedParameters_.AsFLSlice(), outError);
+                return NativeRaw.c4query_run(query, options, encodedParameters_.AsFLString(), outError);
             }
         }
 
@@ -81,16 +81,16 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Query* c4query_new2(C4Database* database, C4QueryLanguage language, FLSlice expression, int* outErrorPos, C4Error* error);
+        public static extern C4Query* c4query_new2(C4Database* database, C4QueryLanguage language, FLString expression, int* outErrorPos, C4Error* error);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4query_explain(C4Query* query);
+        public static extern FLStringResult c4query_explain(C4Query* query);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4query_setParameters(C4Query* query, FLSlice encodedParameters);
+        public static extern void c4query_setParameters(C4Query* query, FLString encodedParameters);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, FLSlice encodedParameters, C4Error* outError);
+        public static extern C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, FLString encodedParameters, C4Error* outError);
 
 
     }

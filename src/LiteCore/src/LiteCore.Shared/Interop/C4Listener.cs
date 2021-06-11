@@ -16,7 +16,7 @@ namespace LiteCore.Interop
     /// <returns>True to allow the connection, false to refuse it.</returns>
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate bool C4ListenerHTTPAuthCallback(C4Listener* c4Listener,
-                                               FLSlice authHeader,
+                                               FLString authHeader,
                                                void* context);
 
     /// <summary>
@@ -28,7 +28,7 @@ namespace LiteCore.Interop
     /// <returns>True to allow the connection, false to refuse it.</returns>
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate bool C4ListenerCertAuthCallback(C4Listener* c4Listener,
-                                               FLSlice clientCertData,
+                                               FLString clientCertData,
                                                void* context);
 
 
@@ -219,7 +219,7 @@ namespace LiteCore.Interop
             set {
                 _networkInterface.Dispose();
                 _networkInterface = new C4String(value);
-                _c4ListenerConfig.networkInterface = _networkInterface.AsFLSlice();
+                _c4ListenerConfig.networkInterface = _networkInterface.AsFLString();
             }
         }
 
@@ -242,7 +242,7 @@ namespace LiteCore.Interop
         /// <summary>
         /// Directory where newly-PUT databases will be created
         /// </summary>
-        public FLSlice Directory
+        public FLString Directory
         {
             get => _c4ListenerConfig.directory;
             set => _c4ListenerConfig.directory = value;

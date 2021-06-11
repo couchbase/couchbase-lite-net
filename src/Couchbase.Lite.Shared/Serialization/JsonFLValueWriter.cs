@@ -34,7 +34,7 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Properties
 
-        public FLSliceResult Result { get; private set; }
+        public FLStringResult Result { get; private set; }
 
         #endregion
 

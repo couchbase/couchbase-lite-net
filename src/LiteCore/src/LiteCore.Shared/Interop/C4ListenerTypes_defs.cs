@@ -1,7 +1,7 @@
 //
-// C4Listener_defs.cs
+// C4ListenerTypes_defs.cs
 //
-// Copyright (c) 2020 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -58,17 +58,16 @@ namespace LiteCore.Interop
             }
         }
     }
-
-
+   
     internal unsafe struct C4ListenerConfig
     {
         public ushort port;
-        public FLSlice networkInterface;
+        public FLString networkInterface;
         public C4ListenerAPIs apis;
         public C4TLSConfig* tlsConfig;
         public IntPtr httpAuthCallback;
         public void* callbackContext;
-        public FLSlice directory;
+        public FLString directory;
         private byte _allowCreateDBs;
         private byte _allowDeleteDBs;
         private byte _allowPush;

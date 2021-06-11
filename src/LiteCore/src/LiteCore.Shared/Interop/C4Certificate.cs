@@ -53,7 +53,7 @@ namespace LiteCore.Interop
     /// <param name="outputLen">Store the length of the output here before returning.</param>
     /// <returns>True on success, false on failure.</returns>
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate bool ExternalKeyDecryptCallback(void* externalKey, FLSlice input, void* output, UIntPtr outputMaxLen, UIntPtr* outputLen);
+    internal unsafe delegate bool ExternalKeyDecryptCallback(void* externalKey, FLString input, void* output, UIntPtr outputMaxLen, UIntPtr* outputLen);
 
     /// <summary>
     /// Uses the private key to generate a signature of input data.
@@ -64,7 +64,7 @@ namespace LiteCore.Interop
     /// <param name="outSignature">Write the signature here; length must be equal to the key size.</param>
     /// <returns>True on success, false on failure.</returns>
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate bool ExternalKeySignCallback(void* externalKey, C4SignatureDigestAlgorithm digestAlgorithm, FLSlice inputData, void* outSignature);
+    internal unsafe delegate bool ExternalKeySignCallback(void* externalKey, C4SignatureDigestAlgorithm digestAlgorithm, FLString inputData, void* outSignature);
 
     /// <summary>
     /// Called when the C4KeyPair is released and the externalKey is no longer needed, so that
@@ -165,7 +165,7 @@ namespace LiteCore.Interop
             set {
                 _serialNumber.Dispose();
                 _serialNumber = new C4String(value);
-                _c4CertIssuerParams.serialNumber = _serialNumber.AsFLSlice();
+                _c4CertIssuerParams.serialNumber = _serialNumber.AsFLString();
             }
         }
 
@@ -223,7 +223,7 @@ namespace LiteCore.Interop
             // Default Cert Issuer Parameters
             _c4CertIssuerParams.validityInSeconds = OneYearInSec;
             using (var serialNumber_ = new C4String("1")) {
-                _c4CertIssuerParams.serialNumber = serialNumber_.AsFLSlice();
+                _c4CertIssuerParams.serialNumber = serialNumber_.AsFLString();
             }
 
             _c4CertIssuerParams.maxPathLen = -1;

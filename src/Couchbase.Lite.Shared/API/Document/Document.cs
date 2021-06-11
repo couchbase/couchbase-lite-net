@@ -206,7 +206,7 @@ namespace Couchbase.Lite
         public T ToModel<T>() where T : class, Linq.IDocumentModel, new()
         {
             var serializer = Newtonsoft.Json.JsonSerializer.CreateDefault();
-            var flValue = NativeRaw.FLValue_FromTrustedData((FLSlice) c4Doc.RawDoc->selectedRev.body);
+            var flValue = NativeRaw.FLValue_FromTrustedData((FLString) c4Doc.RawDoc->selectedRev.body);
             using (var reader = new Internal.Serialization.JsonFLValueReader(flValue, Database.SharedStrings)) {
                 var retVal = serializer.Deserialize<T>(reader);
                 retVal.Document = this;
@@ -219,14 +219,14 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        internal virtual FLSliceResult Encode()
+        internal virtual FLStringResult Encode()
         {
             _disposalWatchdog.CheckDisposed();
             if (c4Doc?.HasValue == true) {
-                return Native.FLSlice_Copy(NativeRaw.c4doc_getRevisionBody(c4Doc.RawDoc));
+                return Native.FLString_Copy(NativeRaw.c4doc_getRevisionBody(c4Doc.RawDoc));
             }
 
-            return (FLSliceResult) FLSlice.Null;
+            return (FLStringResult) FLString.Null;
         }
 
         internal void ReplaceC4Doc(C4DocumentWrapper newDoc)

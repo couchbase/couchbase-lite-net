@@ -33,7 +33,7 @@ namespace LiteCore.Interop
         public static bool c4doc_isOldMetaProperty(string prop)
         {
             using(var prop_ = new C4String(prop)) {
-                return NativeRaw.c4doc_isOldMetaProperty(prop_.AsFLSlice());
+                return NativeRaw.c4doc_isOldMetaProperty(prop_.AsFLString());
             }
         }
 
@@ -44,7 +44,7 @@ namespace LiteCore.Interop
         public static string c4doc_bodyAsJSON(C4Document* doc, bool canonical, C4Error* outError)
         {
             using(var retVal = NativeRaw.c4doc_bodyAsJSON(doc, canonical, outError)) {
-                return ((FLSlice)retVal).CreateString();
+                return ((FLString)retVal).CreateString();
             }
         }
 
@@ -54,8 +54,8 @@ namespace LiteCore.Interop
         public static byte[] c4db_encodeJSON(C4Database* db, string jsonData, C4Error* outError)
         {
             using(var jsonData_ = new C4String(jsonData)) {
-                using(var retVal = NativeRaw.c4db_encodeJSON(db, jsonData_.AsFLSlice(), outError)) {
-                    return ((FLSlice)retVal).ToArrayFast();
+                using(var retVal = NativeRaw.c4db_encodeJSON(db, jsonData_.AsFLString(), outError)) {
+                    return ((FLString)retVal).ToArrayFast();
                 }
             }
         }
@@ -70,13 +70,13 @@ namespace LiteCore.Interop
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_isOldMetaProperty(FLSlice prop);
+        public static extern bool c4doc_isOldMetaProperty(FLString prop);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4doc_bodyAsJSON(C4Document* doc, [MarshalAs(UnmanagedType.U1)]bool canonical, C4Error* outError);
+        public static extern FLStringResult c4doc_bodyAsJSON(C4Document* doc, [MarshalAs(UnmanagedType.U1)]bool canonical, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4db_encodeJSON(C4Database* db, FLSlice jsonData, C4Error* outError);
+        public static extern FLStringResult c4db_encodeJSON(C4Database* db, FLString jsonData, C4Error* outError);
 
 
     }

@@ -1,5 +1,5 @@
 //
-// C4DocEnumerator_defs.cs
+// C4DocEnumeratorTypes_defs.cs
 //
 // Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
@@ -36,12 +36,12 @@ namespace LiteCore.Interop
         IncludeRevHistory    = 0x40
     }
 
-	internal unsafe partial struct C4EnumeratorOptions
+    internal unsafe partial struct C4EnumeratorOptions
     {
         public C4EnumeratorFlags flags;
     }
 
-	internal unsafe struct C4DocumentInfo
+    internal unsafe struct C4DocumentInfo
     {
         public C4DocumentFlags flags;
         public FLHeapSlice docID;

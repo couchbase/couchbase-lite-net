@@ -21,8 +21,8 @@ using System.Runtime.InteropServices;
 namespace LiteCore.Interop
 {
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate void C4DatabaseObserverCallback(C4DatabaseObserver* observer, void* context);
+    internal unsafe delegate void C4CollectionObserverCallback(C4CollectionObserver* observer, void* context);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate void C4DocumentObserverCallback(C4DocumentObserver* observer, FLSlice docID, ulong sequence, void* context);
+    internal unsafe delegate void C4DocumentObserverCallback(C4DocumentObserver* observer, FLString docID, ulong sequence, void* context);
 }

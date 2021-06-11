@@ -1,5 +1,5 @@
 //
-// C4Document_defs.cs
+// C4DocumentTypes_defs.cs
 //
 // Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
@@ -54,15 +54,14 @@ namespace LiteCore.Interop
         DocGetAll,
     }
 
-
-    internal unsafe struct C4Revision
+	internal unsafe struct C4Revision
     {
         public FLHeapSlice revID;
         public C4RevisionFlags flags;
         public ulong sequence;
     }
 
-	internal unsafe struct C4Document
+    internal unsafe struct C4Document
     {
         public C4DocumentFlags flags;
         public FLHeapSlice docID;
@@ -72,22 +71,22 @@ namespace LiteCore.Interop
         public C4ExtraInfo extraInfo;
     }
 
-	internal unsafe partial struct C4DocPutRequest
+    internal unsafe partial struct C4DocPutRequest
     {
-        public FLSlice body;
-        public FLSlice docID;
+        public FLString body;
+        public FLString docID;
         public C4RevisionFlags revFlags;
         private byte _existingRevision;
         private byte _allowConflict;
-        public FLSlice* history;
+        public FLString* history;
         private UIntPtr _historyCount;
         private byte _save;
         public uint maxRevTreeDepth;
         public uint remoteDBID;
-        public FLSliceResult allocedBody;
-        private IntPtr _deltaCB;
+        public FLStringResult allocedBody;
+        public IntPtr deltaCB;
         public void* deltaCBContext;
-        public FLSlice deltaSourceRevID;
+        public FLString deltaSourceRevID;
 
         public bool existingRevision
         {
@@ -128,15 +127,13 @@ namespace LiteCore.Interop
                 _save = Convert.ToByte(value);
             }
         }
+    }
 
-        public C4DocDeltaApplier deltaCB
-        {
-            get {
-                return  Marshal.GetDelegateForFunctionPointer<C4DocDeltaApplier>(_deltaCB);
-            }
-            set {
-                _deltaCB = Marshal.GetFunctionPointerForDelegate(value);
-            }
-        }
+	internal unsafe struct C4CollectionChange
+    {
+        public FLHeapSlice docID;
+        public FLHeapSlice revID;
+        public ulong sequence;
+        public C4RevisionFlags flags;
     }
 }

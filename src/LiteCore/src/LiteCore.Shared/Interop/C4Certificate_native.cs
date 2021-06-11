@@ -30,36 +30,36 @@ namespace LiteCore.Interop
         public static C4Cert* c4cert_fromData(byte[] certData, C4Error* outError)
         {
             fixed(byte *certData_ = certData) {
-                return NativeRaw.c4cert_fromData(new FLSlice(certData_, certData == null ? 0 : (ulong)certData.Length), outError);
+                return NativeRaw.c4cert_fromData(new FLString(certData_, certData == null ? 0 : (ulong)certData.Length), outError);
             }
         }
 
         public static byte[] c4cert_copyData(C4Cert* x, bool pemEncoded)
         {
             using(var retVal = NativeRaw.c4cert_copyData(x, pemEncoded)) {
-                return ((FLSlice)retVal).ToArrayFast();
+                return ((FLString)retVal).ToArrayFast();
             }
         }
 
         public static string c4cert_summary(C4Cert* x)
         {
             using(var retVal = NativeRaw.c4cert_summary(x)) {
-                return ((FLSlice)retVal).CreateString();
+                return ((FLString)retVal).CreateString();
             }
         }
 
         public static string c4cert_subjectName(C4Cert* x)
         {
             using(var retVal = NativeRaw.c4cert_subjectName(x)) {
-                return ((FLSlice)retVal).CreateString();
+                return ((FLString)retVal).CreateString();
             }
         }
 
         public static string c4cert_subjectNameComponent(C4Cert* x, byte[] y)
         {
             fixed(byte *y_ = y) {
-                using(var retVal = NativeRaw.c4cert_subjectNameComponent(x, new FLSlice(y_, (ulong)y.Length))) {
-                    return ((FLSlice)retVal).CreateString();
+                using(var retVal = NativeRaw.c4cert_subjectNameComponent(x, new FLString(y_, (ulong)y.Length))) {
+                    return ((FLString)retVal).CreateString();
                 }
             }
         }
@@ -92,7 +92,7 @@ namespace LiteCore.Interop
         public static C4Cert* c4cert_requestFromData(byte[] certRequestData, C4Error* outError)
         {
             fixed(byte *certRequestData_ = certRequestData) {
-                return NativeRaw.c4cert_requestFromData(new FLSlice(certRequestData_, certRequestData == null ? 0 : (ulong)certRequestData.Length), outError);
+                return NativeRaw.c4cert_requestFromData(new FLString(certRequestData_, certRequestData == null ? 0 : (ulong)certRequestData.Length), outError);
             }
         }
 
@@ -103,7 +103,7 @@ namespace LiteCore.Interop
         public static bool c4cert_sendSigningRequest(C4Cert* certRequest, C4Address address, byte[] optionsDictFleece, C4CertSigningCallback callback, void* context, C4Error* outError)
         {
             fixed(byte *optionsDictFleece_ = optionsDictFleece) {
-                return NativeRaw.c4cert_sendSigningRequest(certRequest, address, new FLSlice(optionsDictFleece_, optionsDictFleece == null ? 0 : (ulong)optionsDictFleece.Length), callback, context, outError);
+                return NativeRaw.c4cert_sendSigningRequest(certRequest, address, new FLString(optionsDictFleece_, optionsDictFleece == null ? 0 : (ulong)optionsDictFleece.Length), callback, context, outError);
             }
         }
 
@@ -116,21 +116,21 @@ namespace LiteCore.Interop
         public static byte[] c4cert_copyChainData(C4Cert* x)
         {
             using(var retVal = NativeRaw.c4cert_copyChainData(x)) {
-                return ((FLSlice)retVal).ToArrayFast();
+                return ((FLString)retVal).ToArrayFast();
             }
         }
 
         public static bool c4cert_save(C4Cert* cert, bool entireChain, string name, C4Error* outError)
         {
             using(var name_ = new C4String(name)) {
-                return NativeRaw.c4cert_save(cert, entireChain, name_.AsFLSlice(), outError);
+                return NativeRaw.c4cert_save(cert, entireChain, name_.AsFLString(), outError);
             }
         }
 
         public static C4Cert* c4cert_load(string name, C4Error* outError)
         {
             using(var name_ = new C4String(name)) {
-                return NativeRaw.c4cert_load(name_.AsFLSlice(), outError);
+                return NativeRaw.c4cert_load(name_.AsFLString(), outError);
             }
         }
 
@@ -140,7 +140,7 @@ namespace LiteCore.Interop
         public static C4KeyPair* c4keypair_fromPublicKeyData(byte[] publicKeyData, C4Error* outError)
         {
             fixed(byte *publicKeyData_ = publicKeyData) {
-                return NativeRaw.c4keypair_fromPublicKeyData(new FLSlice(publicKeyData_, publicKeyData == null ? 0 : (ulong)publicKeyData.Length), outError);
+                return NativeRaw.c4keypair_fromPublicKeyData(new FLString(publicKeyData_, publicKeyData == null ? 0 : (ulong)publicKeyData.Length), outError);
             }
         }
 
@@ -148,7 +148,7 @@ namespace LiteCore.Interop
         {
             fixed(byte *privateKeyData_ = privateKeyData)
             fixed(byte *passwordOrNull_ = passwordOrNull) {
-                return NativeRaw.c4keypair_fromPrivateKeyData(new FLSlice(privateKeyData_, privateKeyData == null ? 0 : (ulong)privateKeyData.Length), new FLSlice(passwordOrNull_, passwordOrNull == null ? 0 : (ulong)passwordOrNull.Length), outError);
+                return NativeRaw.c4keypair_fromPrivateKeyData(new FLString(privateKeyData_, privateKeyData == null ? 0 : (ulong)privateKeyData.Length), new FLString(passwordOrNull_, passwordOrNull == null ? 0 : (ulong)passwordOrNull.Length), outError);
             }
         }
 
@@ -159,21 +159,21 @@ namespace LiteCore.Interop
         public static byte[] c4keypair_publicKeyDigest(C4KeyPair* x)
         {
             using(var retVal = NativeRaw.c4keypair_publicKeyDigest(x)) {
-                return ((FLSlice)retVal).ToArrayFast();
+                return ((FLString)retVal).ToArrayFast();
             }
         }
 
         public static byte[] c4keypair_publicKeyData(C4KeyPair* x)
         {
             using(var retVal = NativeRaw.c4keypair_publicKeyData(x)) {
-                return ((FLSlice)retVal).ToArrayFast();
+                return ((FLString)retVal).ToArrayFast();
             }
         }
 
         public static byte[] c4keypair_privateKeyData(C4KeyPair* x)
         {
             using(var retVal = NativeRaw.c4keypair_privateKeyData(x)) {
-                return ((FLSlice)retVal).ToArrayFast();
+                return ((FLString)retVal).ToArrayFast();
             }
         }
 
@@ -199,54 +199,54 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Cert* c4cert_fromData(FLSlice certData, C4Error* outError);
+        public static extern C4Cert* c4cert_fromData(FLString certData, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4cert_copyData(C4Cert* x, [MarshalAs(UnmanagedType.U1)]bool pemEncoded);
+        public static extern FLStringResult c4cert_copyData(C4Cert* x, [MarshalAs(UnmanagedType.U1)]bool pemEncoded);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4cert_summary(C4Cert* x);
+        public static extern FLStringResult c4cert_summary(C4Cert* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4cert_subjectName(C4Cert* x);
+        public static extern FLStringResult c4cert_subjectName(C4Cert* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4cert_subjectNameComponent(C4Cert* x, FLSlice y);
+        public static extern FLStringResult c4cert_subjectNameComponent(C4Cert* x, FLString y);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Cert* c4cert_createRequest(C4CertNameComponent* nameComponents, UIntPtr nameCount, C4CertUsage certUsages, C4KeyPair* subjectKey, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Cert* c4cert_requestFromData(FLSlice certRequestData, C4Error* outError);
+        public static extern C4Cert* c4cert_requestFromData(FLString certRequestData, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4cert_sendSigningRequest(C4Cert* certRequest, C4Address address, FLSlice optionsDictFleece, C4CertSigningCallback callback, void* context, C4Error* outError);
+        public static extern bool c4cert_sendSigningRequest(C4Cert* certRequest, C4Address address, FLString optionsDictFleece, C4CertSigningCallback callback, void* context, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4cert_copyChainData(C4Cert* x);
+        public static extern FLStringResult c4cert_copyChainData(C4Cert* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4cert_save(C4Cert* cert, [MarshalAs(UnmanagedType.U1)]bool entireChain, FLSlice name, C4Error* outError);
+        public static extern bool c4cert_save(C4Cert* cert, [MarshalAs(UnmanagedType.U1)]bool entireChain, FLString name, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Cert* c4cert_load(FLSlice name, C4Error* outError);
+        public static extern C4Cert* c4cert_load(FLString name, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4KeyPair* c4keypair_fromPublicKeyData(FLSlice publicKeyData, C4Error* outError);
+        public static extern C4KeyPair* c4keypair_fromPublicKeyData(FLString publicKeyData, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4KeyPair* c4keypair_fromPrivateKeyData(FLSlice privateKeyData, FLSlice passwordOrNull, C4Error* outError);
+        public static extern C4KeyPair* c4keypair_fromPrivateKeyData(FLString privateKeyData, FLString passwordOrNull, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4keypair_publicKeyDigest(C4KeyPair* x);
+        public static extern FLStringResult c4keypair_publicKeyDigest(C4KeyPair* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4keypair_publicKeyData(C4KeyPair* x);
+        public static extern FLStringResult c4keypair_publicKeyData(C4KeyPair* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4keypair_privateKeyData(C4KeyPair* x);
+        public static extern FLStringResult c4keypair_privateKeyData(C4KeyPair* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4KeyPair* c4keypair_fromExternal(C4KeyPairAlgorithm algorithm, UIntPtr keySizeInBits, void* externalKey, C4ExternalKeyCallbacks callbacks, C4Error* outError);
