@@ -114,7 +114,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Document\InMemoryDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Document\MRoot.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\IndexConfiguration.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Query\N1QLQuery.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\NQuery.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\QueryBase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Serialization\FleeceMutableArray.cs" />
