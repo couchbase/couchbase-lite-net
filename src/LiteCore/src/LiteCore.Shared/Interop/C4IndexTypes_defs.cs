@@ -42,12 +42,9 @@ namespace LiteCore.Interop
 
         public string language
         {
-            get
-            {
+            get {
                 return Marshal.PtrToStringAnsi(_language);
-            }
-            set
-            {
+            } set {
                 var old = Interlocked.Exchange(ref _language, Marshal.StringToHGlobalAnsi(value));
                 Marshal.FreeHGlobal(old);
             }
@@ -55,36 +52,27 @@ namespace LiteCore.Interop
 
         public bool ignoreDiacritics
         {
-            get
-            {
+            get {
                 return Convert.ToBoolean(_ignoreDiacritics);
-            }
-            set
-            {
+            } set {
                 _ignoreDiacritics = Convert.ToByte(value);
             }
         }
 
         public bool disableStemming
         {
-            get
-            {
+            get {
                 return Convert.ToBoolean(_disableStemming);
-            }
-            set
-            {
+            } set {
                 _disableStemming = Convert.ToByte(value);
             }
         }
 
         public string stopWords
         {
-            get
-            {
+            get {
                 return Marshal.PtrToStringAnsi(_stopWords);
-            }
-            set
-            {
+            } set {
                 var old = Interlocked.Exchange(ref _stopWords, Marshal.StringToHGlobalAnsi(value));
                 Marshal.FreeHGlobal(old);
             }

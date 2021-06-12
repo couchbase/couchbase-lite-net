@@ -53,10 +53,6 @@ namespace LiteCore.Interop
     {
     }
 
-    internal unsafe struct C4Socket
-    {
-    }
-
 	internal unsafe struct C4Collection
     {
     }
@@ -98,6 +94,10 @@ namespace LiteCore.Interop
     }
 
 	internal unsafe struct C4Replicator
+    {
+    }
+
+	internal unsafe struct C4Socket
     {
     }
 

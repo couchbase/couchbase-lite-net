@@ -101,7 +101,7 @@ namespace LiteCore.Tests
                         _changesToObserve = false;
                     }
 
-                    var changes = new C4DatabaseChange[10];
+                    var changes = new C4CollectionChange[10];
                     uint nDocs;
                     bool external;
                     while (0 < (nDocs = Native.c4dbobs_getChanges(observer, changes, 10U, &external)))
