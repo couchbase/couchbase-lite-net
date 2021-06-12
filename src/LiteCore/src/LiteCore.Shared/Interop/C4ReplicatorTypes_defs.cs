@@ -60,22 +60,22 @@ namespace LiteCore.Interop
         ReplProgressPerAttachment,
     }
 
-    internal unsafe struct C4Address
+	internal unsafe struct C4Address
     {
-        public FLString scheme;
-        public FLString hostname;
+        public FLSlice scheme;
+        public FLSlice hostname;
         public ushort port;
-        public FLString path;
+        public FLSlice path;
     }
 
-    internal unsafe struct C4Progress
+	internal unsafe struct C4Progress
     {
         public ulong unitsCompleted;
         public ulong unitsTotal;
         public ulong documentCount;
     }
 
-    internal unsafe struct C4ReplicatorStatus
+	internal unsafe struct C4ReplicatorStatus
     {
         public C4ReplicatorActivityLevel level;
         public C4Progress progress;
@@ -83,7 +83,7 @@ namespace LiteCore.Interop
         public C4ReplicatorStatusFlags flags;
     }
 
-    internal unsafe struct C4DocumentEnded
+	internal unsafe struct C4DocumentEnded
     {
         public FLHeapSlice collectionName;
         public FLHeapSlice docID;
@@ -108,7 +108,7 @@ namespace LiteCore.Interop
     {
         public C4ReplicatorMode push;
         public C4ReplicatorMode pull;
-        public FLString optionsDictFleece;
+        public FLSlice optionsDictFleece;
         public IntPtr pushFilter;
         public IntPtr validationFunc;
         public IntPtr onStatusChanged;

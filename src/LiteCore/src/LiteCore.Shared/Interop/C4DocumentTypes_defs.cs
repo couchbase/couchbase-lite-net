@@ -73,20 +73,20 @@ namespace LiteCore.Interop
 
     internal unsafe partial struct C4DocPutRequest
     {
-        public FLString body;
-        public FLString docID;
+        public FLSlice body;
+        public FLSlice docID;
         public C4RevisionFlags revFlags;
         private byte _existingRevision;
         private byte _allowConflict;
-        public FLString* history;
+        public FLSlice* history;
         private UIntPtr _historyCount;
         private byte _save;
         public uint maxRevTreeDepth;
         public uint remoteDBID;
-        public FLStringResult allocedBody;
+        public FLSliceResult allocedBody;
         public IntPtr deltaCB;
         public void* deltaCBContext;
-        public FLString deltaSourceRevID;
+        public FLSlice deltaSourceRevID;
 
         public bool existingRevision
         {

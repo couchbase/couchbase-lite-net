@@ -226,7 +226,7 @@ namespace Couchbase.Lite.Query
             return retVal;
         }
 
-        internal FLStringResult FLEncode()
+        internal FLSliceResult FLEncode()
         {
             return _params.FLEncode();
         }

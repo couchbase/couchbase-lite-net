@@ -200,10 +200,10 @@ namespace Couchbase.Lite
         internal ConcurrentDictionary<IStoppable, int> ActiveStoppables { get; } = new ConcurrentDictionary<IStoppable, int>();
 
 
-        internal FLStringResult PublicUUID
+        internal FLSliceResult PublicUUID
         {
             get {
-                var retVal = new FLStringResult(null, 0UL);
+                var retVal = new FLSliceResult(null, 0UL);
                 ThreadSafety.DoLocked(() =>
                 {
                     CheckOpen();
@@ -214,7 +214,7 @@ namespace Couchbase.Lite
                         throw CouchbaseException.Create(err);
                     }
                     
-                    retVal = Native.FLString_Copy(new FLString(publicUUID.bytes, (ulong) C4UUID.Size));
+                    retVal = Native.FLSlice_Copy(new FLSlice(publicUUID.bytes, (ulong) C4UUID.Size));
                 });
 
                 return retVal;
@@ -721,21 +721,21 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                var result = new FLStringResult();
+                var result = new FLSliceResult();
                 LiteCoreBridge.Check(err =>
                 {
                     result = NativeRaw.c4db_getIndexes(c4db, err);
                     return result.buf != null;
                 });
 
-                var val = NativeRaw.FLValue_FromData(new FLString(result.buf, result.size), FLTrust.Trusted);
+                var val = NativeRaw.FLValue_FromData(new FLSlice(result.buf, result.size), FLTrust.Trusted);
                 if (val == null) {
-                    Native.FLStringResult_Release(result);
+                    Native.FLSliceResult_Release(result);
                     throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError);
                 }
 
                 retVal = FLValueConverter.ToCouchbaseObject(val, this, true, typeof(string));
-                Native.FLStringResult_Release(result);
+                Native.FLSliceResult_Release(result);
             });
 
             return retVal as IList<string> ?? new List<string>();
@@ -1068,10 +1068,10 @@ namespace Couchbase.Lite
                     scheme = new C4String(uri.Scheme);
                     host = new C4String(uri.Host);
                     path = new C4String(pathStr);
-                    addr.scheme = scheme.AsFLString();
-                    addr.hostname = host.AsFLString();
+                    addr.scheme = scheme.AsFLSlice();
+                    addr.hostname = host.AsFLSlice();
                     addr.port = (ushort) uri.Port;
-                    addr.path = path.AsFLString();
+                    addr.path = path.AsFLSlice();
 
                     C4Error err = new C4Error();
                     cookies = Native.c4db_getCookies(_c4db, addr, &err);
@@ -1229,7 +1229,7 @@ namespace Couchbase.Lite
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
         #endif
-        private static void DocObserverCallback(C4DocumentObserver* obs, FLString docId, ulong sequence, void* context)
+        private static void DocObserverCallback(C4DocumentObserver* obs, FLSlice docId, ulong sequence, void* context)
         {
             if (docId.buf == null) {
                 return;
@@ -1343,7 +1343,7 @@ namespace Couchbase.Lite
                 const uint maxChanges = 100u;
                 var external = false;
                 uint nChanges;
-                var changes = new C4DatabaseChange[maxChanges];
+                var changes = new C4CollectionChange[maxChanges];
                 var docIDs = new List<string>();
                 do {
                     // Read changes in batches of MaxChanges:
@@ -1466,7 +1466,7 @@ namespace Couchbase.Lite
                 revFlags = C4RevisionFlags.Deleted;
             }
 
-            var body = (FLStringResult) FLString.Null;
+            var body = (FLSliceResult) FLSlice.Null;
             if (!deletion && !doc.IsEmpty) {
                 try {
                     body = doc.Encode();
@@ -1477,7 +1477,7 @@ namespace Couchbase.Lite
 
                 FLDoc* fleeceDoc = Native.FLDoc_FromResultData(body,
                     FLTrust.Trusted,
-                    Native.c4db_getFLSharedKeys(_c4db), FLString.Null);
+                    Native.c4db_getFLSharedKeys(_c4db), FLSlice.Null);
                 ThreadSafety.DoLocked(() =>
                 {
                     if (Native.c4doc_dictContainsBlobs((FLDict*) Native.FLDoc_GetRoot(fleeceDoc))) {
@@ -1487,7 +1487,7 @@ namespace Couchbase.Lite
                     Native.FLDoc_Release(fleeceDoc);
                 });
             } else if (doc.IsEmpty) {
-                body = EmptyFLStringResult();
+                body = EmptyFLSliceResult();
             }
 
             var rawDoc = baseDoc != null ? baseDoc :
@@ -1499,7 +1499,7 @@ namespace Couchbase.Lite
                     {
                         *outDoc = (C4Document*) NativeHandler.Create()
                             .AllowError((int) C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                err => NativeRaw.c4doc_update(rawDoc, (FLString) body, revFlags, err));
+                                err => NativeRaw.c4doc_update(rawDoc, (FLSlice) body, revFlags, err));
                     });
                 });
             } else {
@@ -1508,12 +1508,12 @@ namespace Couchbase.Lite
                     using (var docID_ = new C4String(doc.Id)) {
                         *outDoc = (C4Document*) NativeHandler.Create()
                             .AllowError((int) C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                err => NativeRaw.c4doc_create(_c4db, docID_.AsFLString(), (FLString) body, revFlags, err));
+                                err => NativeRaw.c4doc_create(_c4db, docID_.AsFLSlice(), (FLSlice) body, revFlags, err));
                     }
                 });
             }
 
-            Native.FLStringResult_Release(body);
+            Native.FLSliceResult_Release(body);
         }
 
         // Must be called in transaction
@@ -1536,15 +1536,15 @@ namespace Couchbase.Lite
             var losingRevID = localDoc.RevisionID;
 
             // mergedBody:
-            FLStringResult mergedBody = (FLStringResult) FLString.Null;
+            FLSliceResult mergedBody = (FLSliceResult) FLSlice.Null;
             if (!ReferenceEquals(resolvedDoc, remoteDoc)) {
                 if (resolvedDoc != null) {
                     // Unless the remote revision is being used as-is, we need a new revision:
                     mergedBody = resolvedDoc.Encode();
-                    if (mergedBody.Equals((FLStringResult) FLString.Null))
+                    if (mergedBody.Equals((FLSliceResult) FLSlice.Null))
                         throw new RuntimeException(CouchbaseLiteErrorMessage.ResolvedDocContainsNull);
                 } else {
-                    mergedBody = EmptyFLStringResult();
+                    mergedBody = EmptyFLSliceResult();
                 }
             }
 
@@ -1558,10 +1558,10 @@ namespace Couchbase.Lite
             using (var winningRevID_ = new C4String(winningRevID))
             using (var losingRevID_ = new C4String(losingRevID)) {
                 C4Error err;
-                var retVal = NativeRaw.c4doc_resolveConflict(rawDoc, winningRevID_.AsFLString(),
-                    losingRevID_.AsFLString(), (FLString) mergedBody, mergedFlags, &err)
+                var retVal = NativeRaw.c4doc_resolveConflict(rawDoc, winningRevID_.AsFLSlice(),
+                    losingRevID_.AsFLSlice(), (FLSlice) mergedBody, mergedFlags, &err)
                     && Native.c4doc_save(rawDoc, 0, &err);
-                Native.FLStringResult_Release(mergedBody);
+                Native.FLSliceResult_Release(mergedBody);
 
                 if (!retVal) {
                     if (err.code == (int) C4ErrorCode.Conflict) {
@@ -1580,7 +1580,7 @@ namespace Couchbase.Lite
             return true;
         }
 
-        private FLStringResult EmptyFLStringResult()
+        private FLSliceResult EmptyFLSliceResult()
         {
             FLEncoder* encoder = SharedEncoder;
             Native.FLEncoder_BeginDict(encoder, 0);

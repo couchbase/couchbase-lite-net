@@ -27,16 +27,15 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-
-    }
-
-    internal unsafe static partial class NativeRaw
-    {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLStringResult c4error_getMessage(C4Error error);
+        public static extern FLSliceResult c4error_getMessage(C4Error error);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Error c4error_make(C4ErrorDomain domain, int code, FLString message);
+        public static C4Error c4error_make(C4ErrorDomain domain, int code, string message)
+        {
+            using (var message_ = new C4String(message)) {
+                return NativeRaw.c4error_make(domain, code, message_.AsFLSlice());
+            }
+        }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -45,5 +44,13 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4error_mayBeNetworkDependent(C4Error err);
+
+
+    }
+
+    internal unsafe static partial class NativeRaw
+    {
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4Error c4error_make(C4ErrorDomain domain, int code, FLSlice message);
     }
 }

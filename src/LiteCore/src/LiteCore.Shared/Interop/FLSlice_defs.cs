@@ -1,7 +1,7 @@
 //
-// FLString_defs.cs
+// FLSlice_defs.cs
 //
-// Copyright (c) 2019 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ namespace LiteCore.Interop
 {
 
 
-	internal unsafe partial struct FLString
+	internal unsafe partial struct FLSlice
     {
         public void* buf;
         private UIntPtr _size;
@@ -43,7 +43,7 @@ namespace LiteCore.Interop
         }
     }
 
-	internal unsafe partial struct FLStringResult
+	internal unsafe partial struct FLSliceResult
     {
         public void* buf;
         private UIntPtr _size;

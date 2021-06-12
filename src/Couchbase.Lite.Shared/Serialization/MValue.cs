@@ -145,7 +145,7 @@ namespace Couchbase.Lite.Internal.Serialization
                         ? new MutableDictionaryObject(mv, parent)
                         : new DictionaryObject(mv, parent);
                 default:
-                    return FLStringExtensions.ToObject(mv.Value);
+                    return FLSliceExtensions.ToObject(mv.Value);
             }
         }
 

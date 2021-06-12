@@ -86,7 +86,7 @@ namespace Couchbase.Lite.Internal.Query
                 }
 
                 var localOpts = options;
-                return NativeRaw.c4query_run(_c4Query, &localOpts, (FLString)paramJson, err);
+                return NativeRaw.c4query_run(_c4Query, &localOpts, (FLSlice)paramJson, err);
             });
 
             paramJson.Dispose();

@@ -31,13 +31,13 @@ namespace LiteCore.Interop
         public static extern void c4socket_registerFactory(C4SocketFactory factory);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4Socket_setNativeHandle(C4Socket* x, void* C4NULLABLE);
+        public static extern void c4Socket_setNativeHandle(C4Socket* x, void* y);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void* c4Socket_getNativeHandle(C4Socket* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4socket_gotHTTPResponse(C4Socket* socket, int httpStatus, FLString responseHeadersFleece);
+        public static extern void c4socket_gotHTTPResponse(C4Socket* socket, int httpStatus, FLSlice responseHeadersFleece);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4socket_opened(C4Socket* socket);
@@ -48,7 +48,7 @@ namespace LiteCore.Interop
         public static void c4socket_closeRequested(C4Socket* socket, int status, string message)
         {
             using(var message_ = new C4String(message)) {
-                NativeRaw.c4socket_closeRequested(socket, status, message_.AsFLString());
+                NativeRaw.c4socket_closeRequested(socket, status, message_.AsFLSlice());
             }
         }
 
@@ -60,7 +60,7 @@ namespace LiteCore.Interop
         public static void c4socket_received(C4Socket* socket, byte[] data)
         {
             fixed(byte *data_ = data) {
-                NativeRaw.c4socket_received(socket, new FLString(data_, data == null ? 0 : (ulong)data.Length));
+                NativeRaw.c4socket_received(socket, new FLSlice(data_, data == null ? 0 : (ulong)data.Length));
             }
         }
 
@@ -73,13 +73,13 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4socket_closeRequested(C4Socket* socket, int status, FLString message);
+        public static extern void c4socket_closeRequested(C4Socket* socket, int status, FLSlice message);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4socket_completedWrite(C4Socket* socket, UIntPtr byteCount);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4socket_received(C4Socket* socket, FLString data);
+        public static extern void c4socket_received(C4Socket* socket, FLSlice data);
 
 
     }

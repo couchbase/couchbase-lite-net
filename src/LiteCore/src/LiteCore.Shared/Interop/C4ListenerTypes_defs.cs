@@ -58,16 +58,17 @@ namespace LiteCore.Interop
             }
         }
     }
-   
+
+
     internal unsafe struct C4ListenerConfig
     {
         public ushort port;
-        public FLString networkInterface;
+        public FLSlice networkInterface;
         public C4ListenerAPIs apis;
         public C4TLSConfig* tlsConfig;
         public IntPtr httpAuthCallback;
         public void* callbackContext;
-        public FLString directory;
+        public FLSlice directory;
         private byte _allowCreateDBs;
         private byte _allowDeleteDBs;
         private byte _allowPush;

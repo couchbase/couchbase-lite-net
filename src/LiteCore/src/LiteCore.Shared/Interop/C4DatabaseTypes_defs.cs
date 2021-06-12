@@ -69,23 +69,22 @@ namespace LiteCore.Interop
         public fixed byte bytes[32];
     }
 
-    internal unsafe partial struct C4DatabaseConfig2
+	internal unsafe partial struct C4DatabaseConfig2
     {
-        public FLString parentDirectory;
+        public FLSlice parentDirectory;
         public C4DatabaseFlags flags;
         public C4EncryptionKey encryptionKey;
     }
 
-    internal unsafe partial struct C4UUID
+	internal unsafe partial struct C4UUID
     {
         public fixed byte bytes[16];
     }
 
-    internal unsafe struct C4RawDocument
+	internal unsafe struct C4RawDocument
     {
-        public FLString key;
-        public FLString meta;
-        public FLString body;
+        public FLSlice key;
+        public FLSlice meta;
+        public FLSlice body;
     }
-    
 }

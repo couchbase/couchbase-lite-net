@@ -54,13 +54,13 @@ namespace LiteCore.Util
         }
 
         /// <summary>
-        /// Returns this object as a FLString.  This object will only be valid
+        /// Returns this object as a FLSlice.  This object will only be valid
         /// while the original C4String object is valid.
         /// </summary>
-        /// <returns>Ths C4String instance as a FLString</returns>
-        public FLString AsFLString()
+        /// <returns>Ths C4String instance as a FLSlice</returns>
+        public FLSlice AsFLSlice()
         {
-            return new FLString(_bytes, (ulong)_byteCount);
+            return new FLSlice(_bytes, (ulong)_byteCount);
         }
 
 #pragma warning disable 1591

@@ -146,7 +146,7 @@ namespace LiteCore.Interop
     {
         #pragma warning disable CS0169
 
-        private FLString _private1;
+        private FLSlice _private1;
         private void* _private2;
         private uint _private3;
         private uint _private4;
@@ -161,7 +161,7 @@ namespace LiteCore.Interop
 
 	internal unsafe struct FLPathComponent
     {
-        public FLString key;
+        public FLSlice key;
         public uint index;
     }
 

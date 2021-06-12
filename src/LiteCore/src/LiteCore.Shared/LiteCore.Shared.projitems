@@ -40,7 +40,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Log_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Log_native.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Observer_native.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4PredictiveQuery_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4PredictiveQuery_native.cs" />

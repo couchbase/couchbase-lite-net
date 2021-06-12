@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Internal.Doc
         #region Constructors
 
         public DocContext(Database db, C4DocumentWrapper doc)
-            : base(new FLString())
+            : base(new FLSlice())
         {
             Db = db;
             Doc = doc?.Retain<C4DocumentWrapper>();

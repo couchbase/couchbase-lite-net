@@ -28,28 +28,25 @@ namespace LiteCore.Interop
     internal unsafe static partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern long c4_now();
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void* c4base_retain(void* obj);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4base_release(void* obj);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Document* c4doc_retain(C4Document* r);
+        public static extern C4Document* c4doc_retain(C4Document* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4doc_release(C4Document* r);
+        public static extern C4QueryEnumerator* c4queryenum_retain(C4QueryEnumerator* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4QueryEnumerator* c4queryenum_retain(C4QueryEnumerator* r);
+        public static extern void c4doc_release(C4Document* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4queryenum_release(C4QueryEnumerator* r);
+        public static extern void c4queryenum_release(C4QueryEnumerator* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4dbobs_free(C4CollectionObserver* observer);
+        public static extern void c4dbobs_free(C4CollectionObserver* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4docobs_free(C4DocumentObserver* observer);
@@ -75,49 +72,24 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern int c4_getObjectCount();
 
-        public static string c4error_getMessage(C4Error error)
-        {
-            using(var retVal = NativeRaw.c4error_getMessage(error)) {
-                return ((FLString)retVal).CreateString();
-            }
-        }
-
-        public static C4Error c4error_make(C4ErrorDomain domain, int code, string message)
-        {
-            using(var message_ = new C4String(message)) {
-                return NativeRaw.c4error_make(domain, code, message_.AsFLString());
-            }
-        }
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4error_mayBeTransient(C4Error err);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4error_mayBeNetworkDependent(C4Error err);
-
-        public static void c4slog(C4LogDomain* domain, C4LogLevel level, string msg)
-        {
-            using(var msg_ = new C4String(msg)) {
-                NativeRaw.c4slog(domain, level, msg_.AsFLString());
-            }
-        }
-
         public static string c4_getVersion()
         {
             using(var retVal = NativeRaw.c4_getVersion()) {
-                return ((FLString)retVal).CreateString();
+                return ((FLSlice)retVal).CreateString();
             }
         }
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern long c4_now();
+
+
     }
 
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4slog(C4LogDomain* domain, C4LogLevel level, FLString msg);
+        public static extern FLSliceResult c4_getVersion();
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLStringResult c4_getVersion();
+
     }
 }

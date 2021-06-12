@@ -168,7 +168,7 @@ namespace Couchbase.Lite
         #region Private Methods
 
         #if CBL_LINQ
-        private FLStringResult EncodeModel(FLEncoder* encoder)
+        private FLSliceResult EncodeModel(FLEncoder* encoder)
         {
             var serializer = JsonSerializer.CreateDefault();
             using (var writer = new Internal.Serialization.JsonFLValueWriter(c4Db)) {
@@ -202,23 +202,23 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override MutableDocument ToMutable() => new MutableDocument(this); // MutableDocument constructor is different, so this override is needed
 
-        internal override FLStringResult Encode()
+        internal override FLSliceResult Encode()
         {
             Debug.Assert(Database != null);
 
-            var body = new FLStringResult();
+            var body = new FLSliceResult();
             Database.ThreadSafety.DoLocked(() =>
             {
                 FLEncoder* encoder = null;
                 try {
                     encoder = Database.SharedEncoder;
                 } catch (Exception) {
-                    body = new FLStringResult(null, 0UL);
+                    body = new FLSliceResult(null, 0UL);
                 }
 
                 #if CBL_LINQ
                 if (_model != null) {
-                    return (FLString)EncodeModel(encoder);
+                    return (FLSlice)EncodeModel(encoder);
                 }
                 #endif
 

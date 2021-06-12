@@ -38,14 +38,14 @@ namespace LiteCore.Interop
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate void C4ReplicatorBlobProgressCallback(C4Replicator* replicator,
-        [MarshalAs(UnmanagedType.U1)]bool pushing, FLString docID, FLString docProperty, 
+        [MarshalAs(UnmanagedType.U1)]bool pushing, FLSlice docID, FLSlice docProperty, 
         C4BlobKey blobKey, ulong bytesComplete, ulong bytesTotal, C4Error error, 
         void* context);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     [return: MarshalAs(UnmanagedType.U1)]
-    internal unsafe delegate bool C4ReplicatorValidationFunction(FLString collectionName, FLString docID,
-        FLString revID, C4RevisionFlags revisionFlags, FLDict* body, void* context);
+    internal unsafe delegate bool C4ReplicatorValidationFunction(FLSlice collectionName, FLSlice docID,
+        FLSlice revID, C4RevisionFlags revisionFlags, FLDict* body, void* context);
 }
 
 namespace LiteCore.Interop
@@ -159,7 +159,7 @@ namespace LiteCore.Interop
         public ReplicatorParameters(IDictionary<string, object> options)
         {
             if (options != null) {
-                _c4Params.optionsDictFleece = (FLString) options.FLEncode();
+                _c4Params.optionsDictFleece = (FLSlice) options.FLEncode();
             }
         }
 
@@ -174,7 +174,7 @@ namespace LiteCore.Interop
 
         private unsafe void Dispose(bool finalizing)
         {
-            Native.FLStringResult_Release((FLStringResult)_c4Params.optionsDictFleece);
+            Native.FLSliceResult_Release((FLSliceResult)_c4Params.optionsDictFleece);
             Context = null;
             if (_hasFactory) {
                 GCHandle.FromIntPtr((IntPtr)_factoryKeepAlive.context).Free();
@@ -201,7 +201,7 @@ namespace LiteCore.Interop
         public static C4Replicator* c4repl_new(C4Database* db, C4Address remoteAddress, string remoteDatabaseName, C4ReplicatorParameters @params, C4Error* err)
         {
             using (var remoteDatabaseName_ = new C4String(remoteDatabaseName)) {
-                return c4repl_new(db, remoteAddress, remoteDatabaseName_.AsFLString(), @params, err);
+                return c4repl_new(db, remoteAddress, remoteDatabaseName_.AsFLSlice(), @params, err);
             }
         }
 

@@ -42,11 +42,11 @@ namespace LiteCore.Interop
 	internal unsafe struct C4LogFileOptions
     {
         public C4LogLevel log_level;
-        public FLString base_path;
+        public FLSlice base_path;
         public long max_size_bytes;
         public int max_rotate_count;
         private byte _use_plaintext;
-        public FLString header;
+        public FLSlice header;
 
         public bool use_plaintext
         {

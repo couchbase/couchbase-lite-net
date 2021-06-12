@@ -41,7 +41,7 @@ namespace LiteCore.Interop
     {
         public static readonly C4QueryOptions Default = new C4QueryOptions
         {
-            rankFullText = true
+            rankFullText_DEPRECATED = true
         };
     }
 

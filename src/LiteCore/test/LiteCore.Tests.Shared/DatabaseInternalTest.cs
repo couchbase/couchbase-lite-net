@@ -47,22 +47,22 @@ namespace LiteCore.Tests
         }
 #endif
 
-        private FLStringResult EncodeBodyIfJSON(FLString body)
+        private FLSliceResult EncodeBodyIfJSON(FLSlice body)
         {
             var contents = (byte*) body.buf;
             if (contents != null && contents[0] == '{' && contents[(int)body.size - 1] == '}') {
                 return JSON2Fleece(body);
             }
 
-            return (FLStringResult) FLString.Null;
+            return (FLSliceResult) FLSlice.Null;
         }
 
-        private C4Document* PutDoc(string docID, string revID, FLString body, C4RevisionFlags flags = 0)
+        private C4Document* PutDoc(string docID, string revID, FLSlice body, C4RevisionFlags flags = 0)
         {
             return PutDoc(Db, docID, revID, body, flags);
         }
 
-        private C4Document* PutDoc(C4Database* db, string docID, string revID, FLString body, C4RevisionFlags flags, C4Error* error = null)
+        private C4Document* PutDoc(C4Database* db, string docID, string revID, FLSlice body, C4RevisionFlags flags, C4Error* error = null)
         {
             LiteCoreBridge.Check(err => Native.c4db_beginTransaction(db, err));
             var success = false;
@@ -70,15 +70,15 @@ namespace LiteCore.Tests
                 var encoded = EncodeBodyIfJSON(body);
                 using (var docID_ = new C4String(docID))
                 using (var revID_ = new C4String(revID)) {
-                    var history = new FLString[] { revID_.AsFLString() };
-                    fixed (FLString* history_ = history) {
+                    var history = new FLSlice[] { revID_.AsFLSlice() };
+                    fixed (FLSlice* history_ = history) {
                         var rq = new C4DocPutRequest
                         {
                             allowConflict = false,
-                            docID = docID_.AsFLString(),
+                            docID = docID_.AsFLSlice(),
                             history = revID == null ? null : history_,
                             historyCount = revID == null ? 0UL : 1UL,
-                            body = encoded.buf == null ? body : (FLString)encoded,
+                            body = encoded.buf == null ? body : (FLSlice)encoded,
                             revFlags = flags,
                             remoteDBID = _remoteDocID,
                             save = true
@@ -96,7 +96,7 @@ namespace LiteCore.Tests
                            });
                         }
                         
-                        Native.FLStringResult_Release(encoded);
+                        Native.FLSliceResult_Release(encoded);
                         success = true;
                         return doc;
                     }
@@ -106,12 +106,12 @@ namespace LiteCore.Tests
             }
         }
 
-        private void PutDocMustFail(string docID, string revID, FLString body, C4RevisionFlags flags, C4Error expected)
+        private void PutDocMustFail(string docID, string revID, FLSlice body, C4RevisionFlags flags, C4Error expected)
         {
             PutDocMustFail(Db, docID, revID, body, flags, expected);
         }
 
-        private void PutDocMustFail(C4Database* db, string docID, string revID, FLString body, C4RevisionFlags flags, C4Error expected)
+        private void PutDocMustFail(C4Database* db, string docID, string revID, FLSlice body, C4RevisionFlags flags, C4Error expected)
         {
             C4Error error;
             var doc = PutDoc(db, docID, revID, body, flags, &error);
@@ -121,31 +121,31 @@ namespace LiteCore.Tests
             error.code.Should().Be(expected.code);
         }
 
-        private void ForceInsert(string docID, string[] history, FLString body, C4RevisionFlags flags = 0)
+        private void ForceInsert(string docID, string[] history, FLSlice body, C4RevisionFlags flags = 0)
         {
             var doc = ForceInsert(Db, docID, history, body, flags);
             Native.c4doc_release(doc);
         }
 
-        private C4Document* ForceInsert(C4Database* db, string docID, string[] history, FLString body, C4RevisionFlags flags, C4Error* error = null)
+        private C4Document* ForceInsert(C4Database* db, string docID, string[] history, FLSlice body, C4RevisionFlags flags, C4Error* error = null)
         {
             LiteCoreBridge.Check(err => Native.c4db_beginTransaction(db, err));
             var c4History = new C4String[history.Length];
             var success = false;
             try {
                 var i = 0;
-                var sliceHistory = new FLString[history.Length];
+                var sliceHistory = new FLSlice[history.Length];
                 foreach(var entry in history) {
                     var c4Str = new C4String(entry);
                     c4History[i] = c4Str;
-                    sliceHistory[i++] = c4Str.AsFLString();
+                    sliceHistory[i++] = c4Str.AsFLSlice();
                 }
 
                 using (var docID_ = new C4String(docID)) {
-                    fixed (FLString* sliceHistory_ = sliceHistory) {
+                    fixed (FLSlice* sliceHistory_ = sliceHistory) {
                         var rq = new C4DocPutRequest
                         {
-                            docID = docID_.AsFLString(),
+                            docID = docID_.AsFLSlice(),
                             existingRevision = true,
                             allowConflict = true,
                             history = sliceHistory_,
@@ -193,11 +193,11 @@ namespace LiteCore.Tests
             return doc;
         }
 
-        private void VerifyRev(C4Document* doc, string[] history, FLString body)
+        private void VerifyRev(C4Document* doc, string[] history, FLSlice body)
         {
             doc->revID.CreateString().Should().Be(history[0]);
             doc->selectedRev.revID.CreateString().Should().Be(history[0]);
-            Native.FLString_Equal(NativeRaw.c4doc_getRevisionBody(doc), body).Should().BeTrue();
+            Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), body).Should().BeTrue();
 
             var revs = GetAllParentRevisions(doc);
             revs.Count.Should().Be(history.Length);
@@ -253,7 +253,7 @@ namespace LiteCore.Tests
                 error.code.Should().Be((int)C4ErrorCode.NotFound);
 
                 // KeepBody => Revision's body should not be discarded when non-leaf
-                doc = PutDoc(null, null, (FLString)body, C4RevisionFlags.KeepBody);
+                doc = PutDoc(null, null, (FLSlice)body, C4RevisionFlags.KeepBody);
                 doc->docID.size.Should().BeGreaterOrEqualTo(10, "because otherwise no docID was created");
 
                 var docID = doc->docID.CreateString();
@@ -264,19 +264,19 @@ namespace LiteCore.Tests
                 doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, docID, true, C4DocContentLevel.DocGetAll, err));
                 doc->docID.CreateString().Should().Be(docID);
                 doc->selectedRev.revID.CreateString().Should().Be(revID1);
-                Native.FLString_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLString)body).Should().BeTrue();
+                Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLSlice)body).Should().BeTrue();
                 Native.c4doc_release(doc);
 
-                doc = PutDoc(docID, revID1, (FLString)updatedBody, C4RevisionFlags.KeepBody);
+                doc = PutDoc(docID, revID1, (FLSlice)updatedBody, C4RevisionFlags.KeepBody);
                 doc->docID.CreateString().Should().Be(docID);
-                Native.FLString_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLString)updatedBody).Should().BeTrue();
+                Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLSlice)updatedBody).Should().BeTrue();
                 var revID2 = doc->revID.CreateString();
                 revID2.Should().StartWith("2-", "because otherwise the generation is invalid");
                 Native.c4doc_release(doc);
-                Native.FLStringResult_Release(body);
+                Native.FLSliceResult_Release(body);
 
                 error = new C4Error(C4ErrorCode.Conflict);
-                PutDocMustFail(docID, revID1, (FLString)updatedBody, C4RevisionFlags.KeepBody, error);
+                PutDocMustFail(docID, revID1, (FLSlice)updatedBody, C4RevisionFlags.KeepBody, error);
 
                 var e = (C4DocEnumerator *)LiteCoreBridge.Check(err =>
                 {
@@ -295,14 +295,14 @@ namespace LiteCore.Tests
 
                 seq.Should().Be(3UL);
                 Native.c4enum_free(e);
-                Native.FLStringResult_Release(updatedBody);
+                Native.FLSliceResult_Release(updatedBody);
 
                 // NOTE: Filter is out of LiteCore scope
 
                 error = new C4Error(C4ErrorCode.InvalidParameter);
-                PutDocMustFail(docID, null, FLString.Null, C4RevisionFlags.Deleted, error);
+                PutDocMustFail(docID, null, FLSlice.Null, C4RevisionFlags.Deleted, error);
 
-                doc = PutDoc(docID, revID2, FLString.Null, C4RevisionFlags.Deleted);
+                doc = PutDoc(docID, revID2, FLSlice.Null, C4RevisionFlags.Deleted);
                 doc->flags.Should().Be(C4DocumentFlags.DocExists | C4DocumentFlags.DocDeleted);
                 doc->docID.CreateString().Should().Be(docID);
                 var revID3 = doc->revID.CreateString();
@@ -318,7 +318,7 @@ namespace LiteCore.Tests
                 doc->selectedRev.flags.Should().Be(C4RevisionFlags.Leaf | C4RevisionFlags.Deleted);
                 Native.c4doc_release(doc);
 
-                PutDocMustFail("fake", null, FLString.Null, C4RevisionFlags.Deleted, error);
+                PutDocMustFail("fake", null, FLSlice.Null, C4RevisionFlags.Deleted, error);
 
                 e = (C4DocEnumerator*)LiteCoreBridge.Check(err =>
                {
@@ -424,7 +424,7 @@ namespace LiteCore.Tests
                     return;
                 }
 
-                var doc = PutDoc(null, null, FLString.Constant("{}"));
+                var doc = PutDoc(null, null, FLSlice.Constant("{}"));
                 var docID = doc->docID.CreateString();
                 Native.c4doc_release(doc);
                 var e = (C4DocEnumerator*)LiteCoreBridge.Check(err =>
@@ -459,20 +459,20 @@ namespace LiteCore.Tests
                 }
 
                 var body = JSON2Fleece("{'property':'value'}");
-                var doc = PutDoc("doc", null, (FLString)body);
-                Native.FLStringResult_Release(body);
+                var doc = PutDoc("doc", null, (FLSlice)body);
+                Native.FLSliceResult_Release(body);
                 var docID = doc->docID.CreateString();
                 var revID1 = doc->revID.CreateString();
                 revID1.Should().Be("1-d65a07abdb5c012a1bd37e11eef1d0aca3fa2a90");
                 Native.c4doc_release(doc);
 
                 body = JSON2Fleece("{'property':'newvalue'}");
-                doc = PutDoc("doc", revID1, (FLString)body);
+                doc = PutDoc("doc", revID1, (FLSlice)body);
                 var revID2 = doc->revID.CreateString();
                 revID2.Should().Be("2-eaaa643f551df08eb0c60f87f3f011ac4355f834");
                 Native.c4doc_release(doc);
 
-                doc = PutDoc("doc", revID2, FLString.Null, C4RevisionFlags.Deleted);
+                doc = PutDoc("doc", revID2, FLSlice.Null, C4RevisionFlags.Deleted);
                 doc->revID.CreateString().Should().Be("3-3ae8fab29af3a5bfbfa5a4c5fd91c58214cb0c5a");
                 Native.c4doc_release(doc);
             });
@@ -490,14 +490,14 @@ namespace LiteCore.Tests
                 }
 
                 var body1 = JSON2Fleece("{'property':'newvalue'}");
-                var doc = PutDoc(null, null, (FLString)body1);
-                Native.FLStringResult_Release(body1);
+                var doc = PutDoc(null, null, (FLSlice)body1);
+                Native.FLSliceResult_Release(body1);
                 var docID = doc->docID.CreateString();
                 var revID1 = doc->revID.CreateString();
                 Native.c4doc_release(doc);
 
                 var body2 = JSON2Fleece("{'property':'newvalue'}");
-                doc = PutDoc(docID, revID1, (FLString)body2, C4RevisionFlags.Deleted);
+                doc = PutDoc(docID, revID1, (FLSlice)body2, C4RevisionFlags.Deleted);
                 var revID2 = doc->revID.CreateString();
                 Native.c4doc_release(doc);
 
@@ -505,14 +505,14 @@ namespace LiteCore.Tests
                 LiteCoreBridge.Check(err => Native.c4doc_selectRevision(doc, revID2, true, err));
                 doc->flags.Should().Be(C4DocumentFlags.DocExists | C4DocumentFlags.DocDeleted);
                 doc->selectedRev.flags.Should().Be(C4RevisionFlags.Leaf | C4RevisionFlags.Deleted);
-                Native.FLString_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLString) body2).Should().BeTrue();
+                Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLSlice) body2).Should().BeTrue();
                 Native.c4doc_release(doc);
 
-                doc = PutDoc(docID, null, (FLString)body2);
+                doc = PutDoc(docID, null, (FLSlice)body2);
                 var revID3 = doc->revID.CreateString();
                 revID3.Should().StartWith("3-", "because even though it was created as 'new', it is actually on top of a previous delete and its generation should reflect that");
                 Native.c4doc_release(doc);
-                Native.FLStringResult_Release(body2);
+                Native.FLSliceResult_Release(body2);
 
                 doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, docID, true, C4DocContentLevel.DocGetCurrentRev, err));
                 doc->revID.CreateString().Should().Be(revID3);
@@ -530,24 +530,24 @@ namespace LiteCore.Tests
                 }
 
                 var body = JSON2Fleece("{'property':'value'}");
-                var doc = PutDoc("dock", null, (FLString)body);
+                var doc = PutDoc("dock", null, (FLSlice)body);
                 var revID1 = doc->revID.CreateString();
                 revID1.Should().StartWith("1-", "because otherwise the generation is incorrect");
-                Native.FLString_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLString) body).Should().BeTrue();
+                Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLSlice) body).Should().BeTrue();
                 Native.c4doc_release(doc);
 
-                doc = PutDoc("dock", revID1, FLString.Null, C4RevisionFlags.Deleted);
+                doc = PutDoc("dock", revID1, FLSlice.Null, C4RevisionFlags.Deleted);
                 var revID2 = doc->revID.CreateString();
                 revID2.Should().StartWith("2-", "because otherwise the generation is incorrect");
                 doc->selectedRev.flags.Should().Be(C4RevisionFlags.Leaf | C4RevisionFlags.Deleted);
                 NativeRaw.c4doc_getRevisionBody(doc).CreateString().Should().NotBeNull("because a valid revision should not have a null body");
                 Native.c4doc_release(doc);
 
-                doc = PutDoc("dock", revID2, (FLString)body);
+                doc = PutDoc("dock", revID2, (FLSlice)body);
                 doc->revID.CreateString().Should().StartWith("3-", "because otherwise the generation is incorrect");
-                Native.FLString_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLString) body).Should().BeTrue();
+                Native.FLSlice_Equal(NativeRaw.c4doc_getRevisionBody(doc), (FLSlice) body).Should().BeTrue();
                 Native.c4doc_release(doc);
-                Native.FLStringResult_Release(body);
+                Native.FLSliceResult_Release(body);
             });
         }
 
@@ -565,22 +565,22 @@ namespace LiteCore.Tests
                 var docID = "MyDocID";
                 var body = JSON2Fleece("{'message':'hi'}");
                 var history = new[] { "4-4444", "3-3333", "2-2222", "1-1111" };
-                ForceInsert(docID, history, (FLString)body);
+                ForceInsert(docID, history, (FLSlice)body);
 
                 Native.c4db_getDocumentCount(Db).Should().Be(1UL);
 
                 var doc = GetDoc(docID, C4DocContentLevel.DocGetAll);
-                VerifyRev(doc, history, (FLString)body);
+                VerifyRev(doc, history, (FLSlice)body);
                 Native.c4doc_release(doc);
 
                 var lastSeq = Native.c4db_getLastSequence(Db);
-                ForceInsert(docID, history, (FLString)body);
+                ForceInsert(docID, history, (FLSlice)body);
                 Native.c4db_getLastSequence(Db).Should().Be(lastSeq, "because the last operation should have been a no-op");
 
                 _remoteDocID = 1;
                 var conflictHistory = new[] { "5-5555", "4-4545", "3-3030", "2-2222", "1-1111" };
                 var conflictBody = JSON2Fleece("{'message':'yo'}");
-                ForceInsert(docID, conflictHistory, (FLString)conflictBody);
+                ForceInsert(docID, conflictHistory, (FLSlice)conflictBody);
                 _remoteDocID = 0;
 
                 // Conflicts are a bit different than CBL 1.x here.  A conflicted revision is marked with the Conflict flag,
@@ -588,7 +588,7 @@ namespace LiteCore.Tests
                 // it has nothing to do with revIDs
                 Native.c4db_getDocumentCount(Db).Should().Be(1UL);
                 doc = GetDoc(docID, C4DocContentLevel.DocGetAll);
-                VerifyRev(doc, history, (FLString)body);
+                VerifyRev(doc, history, (FLSlice)body);
                 Native.c4doc_release(doc);
 
                 // TODO: Conflict check
@@ -596,7 +596,7 @@ namespace LiteCore.Tests
                 var otherDocID = "AnotherDocID";
                 var otherBody = JSON2Fleece("{'language':'jp'}");
                 var otherHistory = new[] { "1-1010" };
-                ForceInsert(otherDocID, otherHistory, (FLString)otherBody);
+                ForceInsert(otherDocID, otherHistory, (FLSlice)otherBody);
 
                 doc = GetDoc(docID, C4DocContentLevel.DocGetAll);
                 LiteCoreBridge.Check(err => Native.c4doc_selectRevision(doc, "2-2222", false, err));
@@ -683,20 +683,20 @@ namespace LiteCore.Tests
                 Native.c4enum_free(e);
                 counter.Should().Be(3, "because only two documents are present, but one has two conflicting revisions");
 
-                doc = PutDoc(docID, conflictHistory[0], FLString.Null, C4RevisionFlags.Deleted);
+                doc = PutDoc(docID, conflictHistory[0], FLSlice.Null, C4RevisionFlags.Deleted);
                 Native.c4doc_release(doc);
                 doc = GetDoc(docID);
                 //TODO: Uncomment once https://github.com/couchbase/couchbase-lite-core/issues/57 is fixed
                 //doc->revID.CreateString().Should().Be(history[0]);
                 //doc->selectedRev.revID.CreateString().Should().Be(history[0]);
-                //VerifyRev(doc, history, (FLString)body);
+                //VerifyRev(doc, history, (FLSlice)body);
                 Native.c4doc_release(doc);
 
-                doc = PutDoc(docID, history[0], FLString.Null, C4RevisionFlags.Deleted);
+                doc = PutDoc(docID, history[0], FLSlice.Null, C4RevisionFlags.Deleted);
                 Native.c4doc_release(doc);
-                Native.FLStringResult_Release(body);
-                Native.FLStringResult_Release(otherBody);
-                Native.FLStringResult_Release(conflictBody);
+                Native.FLSliceResult_Release(body);
+                Native.FLSliceResult_Release(otherBody);
+                Native.FLSliceResult_Release(conflictBody);
 
                 // TODO: Need to implement following tests
             });
@@ -713,17 +713,17 @@ namespace LiteCore.Tests
 
                 var docID = "mydoc";
                 var body = JSON2Fleece("{'key':'value'}");
-                var doc = PutDoc(docID, null, (FLString)body);
+                var doc = PutDoc(docID, null, (FLSlice)body);
                 var revID = doc->revID.CreateString();
                 Native.c4doc_release(doc);
 
                 DeleteAndRecreateDB();
 
-                doc = PutDoc(docID, null, (FLString)body);
+                doc = PutDoc(docID, null, (FLSlice)body);
                 doc->revID.CreateString().Should().Be(revID);
                 doc->selectedRev.revID.CreateString().Should().Be(revID);
                 Native.c4doc_release(doc);
-                Native.FLStringResult_Release(body);
+                Native.FLSliceResult_Release(body);
             });
         }
 
@@ -734,13 +734,13 @@ namespace LiteCore.Tests
             {
                 var docID = "mydoc";
                 var body = JSON2Fleece("{'key':'value'}");
-                var doc = PutDoc(docID, null, (FLString)body);
+                var doc = PutDoc(docID, null, (FLSlice)body);
                 var revID = doc->revID.CreateString();
                 Native.c4doc_release(doc);
 
-                Native.FLStringResult_Release(body);
+                Native.FLSliceResult_Release(body);
                 body = JSON2Fleece("{'key':'newvalue'}");
-                doc = PutDoc(docID, revID, (FLString)body);
+                doc = PutDoc(docID, revID, (FLSlice)body);
                 var revID2a = doc->revID.CreateString();
                 Native.c4doc_release(doc);
 
@@ -749,15 +749,15 @@ namespace LiteCore.Tests
                 try {
                     using (var docID_ = new C4String(docID))
                     using (var revID_ = new C4String(revID)) {
-                        var history = new FLString[] { revID_.AsFLString() };
-                        fixed (FLString* history_ = history) {
+                        var history = new FLSlice[] { revID_.AsFLSlice() };
+                        fixed (FLSlice* history_ = history) {
                             var rq = new C4DocPutRequest
                             {
                                 allowConflict = true,
-                                docID = docID_.AsFLString(),
+                                docID = docID_.AsFLSlice(),
                                 history = history_,
                                 historyCount = 1,
-                                body = (FLString)body,
+                                body = (FLSlice)body,
                                 revFlags = 0,
                                 save = true
                             };
@@ -769,7 +769,7 @@ namespace LiteCore.Tests
                             });
 
                             doc->docID.CreateString().Should().Be(docID);
-                            Native.FLStringResult_Release(body);
+                            Native.FLSliceResult_Release(body);
                         }
                     }
                 } finally {

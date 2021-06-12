@@ -42,6 +42,7 @@ namespace LiteCore.Interop
 
 	internal unsafe partial struct C4BlobKey
     {
+        public fixed byte bytes[20];
     }
 
 	internal unsafe struct C4BlobStore
@@ -49,6 +50,10 @@ namespace LiteCore.Interop
     }
 
 	internal unsafe struct C4Cert
+    {
+    }
+
+    internal unsafe struct C4Socket
     {
     }
 

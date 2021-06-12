@@ -460,7 +460,7 @@ namespace Couchbase.Lite.Sync
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
         #endif
-        private static bool PullValidateCallback(FLString collectionName, FLString docID, FLString revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
+        private static bool PullValidateCallback(FLSlice collectionName, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
             if (replicator == null) {
@@ -482,7 +482,7 @@ namespace Couchbase.Lite.Sync
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
         #endif
-        private static bool PushFilterCallback(FLString collectionName, FLString docID, FLString revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
+        private static bool PushFilterCallback(FLSlice collectionName, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
             if (replicator == null) {
@@ -648,7 +648,7 @@ namespace Couchbase.Lite.Sync
             Config.Database.CheckOpenLocked();
             C4Error err = new C4Error();
             if (_repl != null) {
-                Native.c4repl_setOptions(_repl, ((FLString) Config.Options.FLEncode()).ToArrayFast());
+                Native.c4repl_setOptions(_repl, ((FLSlice) Config.Options.FLEncode()).ToArrayFast());
                 return err;
             }
 
@@ -668,10 +668,10 @@ namespace Couchbase.Lite.Sync
                 scheme = new C4String(remoteUrl.Scheme);
                 host = new C4String(remoteUrl.Host);
                 path = new C4String(pathStr);
-                addr.scheme = scheme.AsFLString();
-                addr.hostname = host.AsFLString();
+                addr.scheme = scheme.AsFLSlice();
+                addr.hostname = host.AsFLSlice();
                 addr.port = (ushort) remoteUrl.Port;
-                addr.path = path.AsFLString();
+                addr.path = path.AsFLSlice();
 
                 //get cookies from url and add to replicator options
                 var cookiestring = Config.Database.GetCookies(remoteUrl);

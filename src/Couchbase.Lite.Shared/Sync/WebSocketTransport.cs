@@ -61,7 +61,7 @@ namespace Couchbase.Lite.Sync
 
         private static void DoClose(C4Socket* socket)
         {
-            var id = (int) socket->nativeHandle;
+            var id = (int) Native.c4Socket_getNativeHandle(socket);
             if (Sockets.TryGetValue(id, out var socketWrapper)) {
                 socketWrapper.CloseSocket();
             } else {
@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Sync
 
         private static void DoCompleteReceive(C4Socket* socket, ulong bytecount)
         {
-            var id = (int)socket->nativeHandle;
+            var id = (int)Native.c4Socket_getNativeHandle(socket);
 
             if (Sockets.TryGetValue(id, out var socketWrapper)) {
                 socketWrapper.CompletedReceive(bytecount);
@@ -82,7 +82,7 @@ namespace Couchbase.Lite.Sync
 
         private static void DoDispose(C4Socket* socket)
         {
-            var id = (int) socket->nativeHandle;
+            var id = (int)Native.c4Socket_getNativeHandle(socket);
             Sockets.TryRemove(id, out var tmp);
         }
 
@@ -91,7 +91,7 @@ namespace Couchbase.Lite.Sync
             WriteLog.To.Sync.E(Tag, "Websocket Error", e);
         }
 
-        private static void DoOpen(C4Socket* socket, C4Address* address, FLString options, void* context)
+        private static void DoOpen(C4Socket* socket, C4Address* address, FLSlice options, void* context)
         {
             var builder = new UriBuilder {
                 Host = address->hostname.CreateString(),
@@ -114,12 +114,12 @@ namespace Couchbase.Lite.Sync
             }
 
             var opts =
-                FLStringExtensions.ToObject(NativeRaw.FLValue_FromData((FLString) options, FLTrust.Trusted)) as
+                FLSliceExtensions.ToObject(NativeRaw.FLValue_FromData((FLSlice) options, FLTrust.Trusted)) as
                     Dictionary<string, object>;
             var replicationOptions = new ReplicatorOptionsDictionary(opts);
             
             var id = Interlocked.Increment(ref _NextID);
-            socket->nativeHandle = (void*)id;
+            Native.c4Socket_setNativeHandle(socket, (void*)id);
             var socketWrapper = new WebSocketWrapper(uri, socket, replicationOptions);
             var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
             replicator?.WatchForCertificate(socketWrapper);
@@ -130,7 +130,7 @@ namespace Couchbase.Lite.Sync
 
         private static void DoWrite(C4Socket* socket, byte[] data)
         {
-            var id = (int)socket->nativeHandle;
+            var id = (int)Native.c4Socket_getNativeHandle(socket);
             if (Sockets.TryGetValue(id, out var socketWrapper)) {
                 socketWrapper.Write(data);
             } else {

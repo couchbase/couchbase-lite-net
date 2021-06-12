@@ -96,7 +96,7 @@ namespace LiteCore.Interop
             set {
                 _parentDirectory.Dispose();
                 _parentDirectory = new C4String(value);
-                this.parentDirectory = _parentDirectory.AsFLString();
+                this.parentDirectory = _parentDirectory.AsFLSlice();
             }
         }
 

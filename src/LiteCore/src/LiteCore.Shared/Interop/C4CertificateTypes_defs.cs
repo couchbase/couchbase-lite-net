@@ -54,22 +54,22 @@ namespace LiteCore.Interop
         SignatureDigestRIPEMD160,
     }
 
-    internal unsafe struct C4CertNameInfo
+	internal unsafe struct C4CertNameInfo
     {
-        public FLStringResult id;
-        public FLStringResult value;
+        public FLSliceResult id;
+        public FLSliceResult value;
     }
 
-    internal unsafe struct C4CertNameComponent
+	internal unsafe struct C4CertNameComponent
     {
-        public FLString attributeID;
-        public FLString value;
+        public FLSlice attributeID;
+        public FLSlice value;
     }
 
-    internal unsafe struct C4CertIssuerParameters
+	internal unsafe struct C4CertIssuerParameters
     {
         public uint validityInSeconds;
-        public FLString serialNumber;
+        public FLSlice serialNumber;
         public int maxPathLen;
         private byte _isCA;
         private byte _addAuthorityIdentifier;

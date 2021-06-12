@@ -1,7 +1,7 @@
 //
-// FLString_native.cs
+// FLSlice_native.cs
 //
-// Copyright (c) 2020 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,13 +29,13 @@ namespace LiteCore.Interop
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool FLString_Equal(FLString a, FLString b);
+        public static extern bool FLSlice_Equal(FLSlice a, FLSlice b);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int FLString_Compare(FLString left, FLString right);
+        public static extern int FLSlice_Compare(FLSlice left, FLSlice right);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLStringResult FLString_Copy(FLString slice);
+        public static extern FLSliceResult FLSlice_Copy(FLSlice slice);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void _FLBuf_Retain(void* x);

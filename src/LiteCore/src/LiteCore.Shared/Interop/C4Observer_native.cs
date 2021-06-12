@@ -1,7 +1,7 @@
 //
 // C4Observer_native.cs
 //
-// Copyright (c) 2020 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,15 +31,15 @@ namespace LiteCore.Interop
         public static extern C4CollectionObserver* c4dbobs_create(C4Database* database, C4CollectionObserverCallback callback, void* context);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint c4dbobs_getChanges(C4CollectionObserver* observer, [Out]C4DatabaseChange[] outChanges, uint maxChanges, bool* outExternal);
+        public static extern uint c4dbobs_getChanges(C4CollectionObserver* observer, [Out]C4CollectionChange[] outChanges, uint maxChanges, bool* outExternal);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4dbobs_releaseChanges(C4DatabaseChange[] changes, uint numChanges);
+        public static extern void c4dbobs_releaseChanges(C4CollectionChange[] changes, uint numChanges);
 
         public static C4DocumentObserver* c4docobs_create(C4Database* database, string docID, C4DocumentObserverCallback callback, void* context)
         {
             using(var docID_ = new C4String(docID)) {
-                return NativeRaw.c4docobs_create(database, docID_.AsFLString(), callback, context);
+                return NativeRaw.c4docobs_create(database, docID_.AsFLSlice(), callback, context);
             }
         }
 
@@ -49,7 +49,7 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4DocumentObserver* c4docobs_create(C4Database* database, FLString docID, C4DocumentObserverCallback callback, void* context);
+        public static extern C4DocumentObserver* c4docobs_create(C4Database* database, FLSlice docID, C4DocumentObserverCallback callback, void* context);
 
 
     }

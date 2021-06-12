@@ -56,20 +56,20 @@ namespace Couchbase.Lite.Internal.Doc
             
         }
 
-        public MRoot(FLString fleeceData, FLValue* value, bool isMutable = true)
+        public MRoot(FLSlice fleeceData, FLValue* value, bool isMutable = true)
             : this(new MContext(fleeceData), isMutable)
         {
             
         }
 
-        public MRoot(FLString fleeceData, bool isMutable = true)
+        public MRoot(FLSlice fleeceData, bool isMutable = true)
             : this(fleeceData, NativeRaw.FLValue_FromData(fleeceData, FLTrust.Untrusted), isMutable)
         {
             
         }
 
         public MRoot(MRoot other)
-            : this(other?.Context?.Data ?? FLString.Null,
+            : this(other?.Context?.Data ?? FLSlice.Null,
                 other?.IsMutable == true)
         {
 
@@ -79,7 +79,7 @@ namespace Couchbase.Lite.Internal.Doc
 
         #region Public Methods
 
-        public static object AsObject(FLString fleeceData, bool mutableContainers = true)
+        public static object AsObject(FLSlice fleeceData, bool mutableContainers = true)
         {
             using (var root = new MRoot(fleeceData, mutableContainers)) {
                 return root.AsObject();
@@ -96,7 +96,7 @@ namespace Couchbase.Lite.Internal.Doc
             return _slot.AsObject(this);
         }
 
-        public FLStringResult Encode()
+        public FLSliceResult Encode()
         {
             var enc = Native.FLEncoder_New();
             FLEncode(enc);

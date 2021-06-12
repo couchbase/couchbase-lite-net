@@ -264,12 +264,12 @@ namespace Couchbase.Lite.Logging
             using (var header = new C4String(HTTPLogic.UserAgent)) {
                 var options = new C4LogFileOptions
                 {
-                    base_path = dir.AsFLString(),
+                    base_path = dir.AsFLSlice(),
                     log_level = (C4LogLevel) Level,
                     max_rotate_count = _config?.MaxRotateCount ?? 1,
                     max_size_bytes = _config?.MaxSize ?? 1024 * 500L,
                     use_plaintext = _config?.UsePlaintext ?? false,
-                    header = header.AsFLString()
+                    header = header.AsFLSlice()
                 };
                 LiteCoreBridge.Check(err => Native.c4log_writeToBinaryFile(options, err));
             }

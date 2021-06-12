@@ -64,8 +64,12 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4log_enableFatalExceptionBacktrace();
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4slog(C4LogDomain* domain, C4LogLevel level, FLString msg);
+        public static void c4slog(C4LogDomain* domain, C4LogLevel level, string msg)
+        {
+            using (var msg_ = new C4String(msg)) {
+                NativeRaw.c4slog(domain, level, msg_.AsFLSlice());
+            }
+        }
 
 
     }
@@ -74,5 +78,8 @@ namespace LiteCore.Interop
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern byte* c4log_getDomainName(C4LogDomain* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4slog(C4LogDomain* domain, C4LogLevel level, FLSlice msg);
     }
 }
