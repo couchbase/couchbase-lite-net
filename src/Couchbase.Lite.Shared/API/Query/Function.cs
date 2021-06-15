@@ -87,7 +87,7 @@ namespace Couchbase.Lite.Query
         /// <param name="expressionY">An expression or literal to evaluate to get the Y coordinate to use</param>
         /// <returns>A function that will get the arctangent of the point in question</returns>
         [NotNull]
-        public static IExpression Atan2([NotNull]IExpression expressionY, [NotNull]IExpression expressionX) => 
+        public static IExpression Atan2([NotNull]IExpression expressionX, [NotNull]IExpression expressionY) => 
             new QueryCompoundExpression("ATAN2()", 
                 CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expressionX), expressionX), 
                 CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expressionY), expressionY));
