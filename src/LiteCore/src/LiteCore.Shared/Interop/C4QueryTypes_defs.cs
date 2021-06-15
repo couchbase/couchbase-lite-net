@@ -46,23 +46,6 @@ namespace LiteCore.Interop
         }
     }
 
-    //internal unsafe partial struct C4QueryOptions
-    //{
-    //    private byte _rankFullText;
-
-    //    public bool rankFullText
-    //    {
-    //        get
-    //        {
-    //            return Convert.ToBoolean(_rankFullText);
-    //        }
-    //        set
-    //        {
-    //            _rankFullText = Convert.ToByte(value);
-    //        }
-    //    }
-    //}
-
     internal unsafe partial struct C4FullTextMatch
     {
         public ulong dataSource;

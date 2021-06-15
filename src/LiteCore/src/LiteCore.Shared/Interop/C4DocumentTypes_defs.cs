@@ -141,7 +141,7 @@ namespace LiteCore.Interop
         }
     }
 
-	internal unsafe struct C4CollectionChange
+	internal unsafe struct C4DatabaseChange
     {
         public FLHeapSlice docID;
         public FLHeapSlice revID;

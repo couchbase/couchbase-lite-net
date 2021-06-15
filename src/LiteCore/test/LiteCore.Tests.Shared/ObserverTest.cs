@@ -36,10 +36,10 @@ namespace LiteCore.Tests
 #endif
     public unsafe class ObserverTest : Test
     {
-        private static readonly C4CollectionObserverCallback DatabaseCallback = DBObserverCallback;
+        private static readonly C4DatabaseObserverCallback DatabaseCallback = DBObserverCallback;
         private static readonly C4DocumentObserverCallback DocumentCallback = DocObserverCallback;
 
-        private C4CollectionObserver* _dbObserver;
+        private C4DatabaseObserver* _dbObserver;
         private C4DocumentObserver* _docObserver;
 
         private int _dbCallbackCalls;
@@ -161,7 +161,7 @@ namespace LiteCore.Tests
 
         private void CheckChanges(IList<string> expectedDocIDs, IList<string> expectedRevIDs, bool expectedExternal = false)
         {
-            var changes = new C4CollectionChange[100];
+            var changes = new C4DatabaseChange[100];
             bool external;
             var changeCount = Native.c4dbobs_getChanges(_dbObserver, changes, 100, &external);
             changeCount.Should().Be((uint)expectedDocIDs.Count, "because otherwise we didn't get the correct number of changes");
@@ -177,9 +177,9 @@ namespace LiteCore.Tests
 
 
 #if __IOS__
-        [ObjCRuntime.MonoPInvokeCallback(typeof(C4CollectionObserverCallback))]
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
 #endif
-        private static void DBObserverCallback(C4CollectionObserver* obs, void* context)
+        private static void DBObserverCallback(C4DatabaseObserver* obs, void* context)
         {
             var obj = GCHandle.FromIntPtr((IntPtr) context).Target as ObserverTest;
             obj.DbObserverCalled(obs);
@@ -194,7 +194,7 @@ namespace LiteCore.Tests
             obj.DocObserverCalled(obs, docId.CreateString(), sequence);
         }
 
-        private void DbObserverCalled(C4CollectionObserver *obs)
+        private void DbObserverCalled(C4DatabaseObserver *obs)
         {
             ((long)obs).Should().Be((long)_dbObserver, "because the callback should be for the proper DB");
             _dbCallbackCalls++;

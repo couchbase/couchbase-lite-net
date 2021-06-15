@@ -28,13 +28,13 @@ namespace LiteCore.Interop
     internal unsafe static partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4CollectionObserver* c4dbobs_create(C4Database* database, C4CollectionObserverCallback callback, void* context);
+        public static extern C4DatabaseObserver* c4dbobs_create(C4Database* database, C4DatabaseObserverCallback callback, void* context);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint c4dbobs_getChanges(C4CollectionObserver* observer, [Out]C4CollectionChange[] outChanges, uint maxChanges, bool* outExternal);
+        public static extern uint c4dbobs_getChanges(C4DatabaseObserver* observer, [Out]C4DatabaseChange[] outChanges, uint maxChanges, bool* outExternal);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4dbobs_releaseChanges(C4CollectionChange[] changes, uint numChanges);
+        public static extern void c4dbobs_releaseChanges(C4DatabaseChange[] changes, uint numChanges);
 
         public static C4DocumentObserver* c4docobs_create(C4Database* database, string docID, C4DocumentObserverCallback callback, void* context)
         {

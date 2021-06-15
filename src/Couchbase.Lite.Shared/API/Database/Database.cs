@@ -114,7 +114,7 @@ namespace Couchbase.Lite
         private const string Tag = nameof(Database);
 
         private static readonly C4DocumentObserverCallback _DocumentObserverCallback = DocObserverCallback;
-        private static readonly C4CollectionObserverCallback _DatabaseObserverCallback = DbObserverCallback;
+        private static readonly C4DatabaseObserverCallback _DatabaseObserverCallback = DbObserverCallback;
 
         #endregion
 
@@ -141,7 +141,7 @@ namespace Couchbase.Lite
         private IJsonSerializer _jsonSerializer;
 #endif
 
-        private C4CollectionObserver* _obs;
+        private C4DatabaseObserver* _obs;
         private GCHandle _obsContext;
         private C4Database* _c4db;
         private bool _isClosing;
@@ -1215,9 +1215,9 @@ namespace Couchbase.Lite
         }
 
 #if __IOS__
-        [ObjCRuntime.MonoPInvokeCallback(typeof(C4CollectionObserverCallback))]
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
 #endif
-        private static void DbObserverCallback(C4CollectionObserver* db, void* context)
+        private static void DbObserverCallback(C4DatabaseObserver* db, void* context)
         {
             var dbObj = GCHandle.FromIntPtr((IntPtr) context).Target as Database;
             dbObj?._callbackFactory.StartNew(() =>
@@ -1343,7 +1343,7 @@ namespace Couchbase.Lite
                 const uint maxChanges = 100u;
                 var external = false;
                 uint nChanges;
-                var changes = new C4CollectionChange[maxChanges];
+                var changes = new C4DatabaseChange[maxChanges];
                 var docIDs = new List<string>();
                 do {
                     // Read changes in batches of MaxChanges:
