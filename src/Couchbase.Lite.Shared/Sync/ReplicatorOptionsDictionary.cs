@@ -52,7 +52,7 @@ namespace Couchbase.Lite.Sync
         private const string ResetKey = "reset";
         private const string MaxRetriesKey = "maxRetries";
         private const string MaxRetryIntervalKey = "maxRetryInterval";
-        private const string EnableAutoPurgeKey = "enableAutoPurge";
+        private const string EnableAutoPurgeKey = "autoPurge";
 
         // HTTP options:
         private const string HeadersKey = "headers";
