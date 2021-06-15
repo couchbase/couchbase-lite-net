@@ -1214,9 +1214,9 @@ namespace Couchbase.Lite
                 throw new RuntimeException("Path.Combine failed to return a non-null value!");
         }
 
-#if __IOS__
+        #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
-#endif
+        #endif
         private static void DbObserverCallback(C4DatabaseObserver* db, void* context)
         {
             var dbObj = GCHandle.FromIntPtr((IntPtr) context).Target as Database;
