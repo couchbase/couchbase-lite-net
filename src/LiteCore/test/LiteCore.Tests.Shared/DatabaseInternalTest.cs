@@ -237,7 +237,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                if (!IsRevTrees()) {
+                if (!IsRevTrees(Db)) {
                     return;
                 }
 
@@ -420,7 +420,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                if (!IsRevTrees()) {
+                if (!IsRevTrees(Db)) {
                     return;
                 }
 
@@ -454,7 +454,7 @@ namespace LiteCore.Tests
             // prevent false conflicts when two peers make the same change to the same parent revision.
             RunTestVariants(() =>
             {
-                if (!IsRevTrees()) {
+                if (!IsRevTrees(Db)) {
                     return;
                 }
 
@@ -485,7 +485,7 @@ namespace LiteCore.Tests
             // and that the saved deleted revision will preserve any extra properties
             RunTestVariants(() =>
             {
-                if (!IsRevTrees()) {
+                if (!IsRevTrees(Db)) {
                     return;
                 }
 
@@ -525,7 +525,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                if (!IsRevTrees()) {
+                if (!IsRevTrees(Db)) {
                     return;
                 }
 
@@ -556,7 +556,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                if (!IsRevTrees()) {
+                if (!IsRevTrees(Db)) {
                     return;
                 }
 
@@ -707,7 +707,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                if (IsRevTrees()) {
+                if (IsRevTrees(Db)) {
                     return;
                 }
 

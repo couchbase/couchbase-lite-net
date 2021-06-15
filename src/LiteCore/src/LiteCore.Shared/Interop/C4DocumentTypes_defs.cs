@@ -63,6 +63,8 @@ namespace LiteCore.Interop
 
     internal unsafe struct C4Document
     {
+        void* _internal1;
+        void* _internal2;
         public C4DocumentFlags flags;
         public FLHeapSlice docID;
         public FLHeapSlice revID;
@@ -84,7 +86,7 @@ namespace LiteCore.Interop
         public uint maxRevTreeDepth;
         public uint remoteDBID;
         public FLSliceResult allocedBody;
-        public IntPtr deltaCB;
+        private IntPtr _deltaCB;
         public void* deltaCBContext;
         public FLSlice deltaSourceRevID;
 
@@ -125,6 +127,16 @@ namespace LiteCore.Interop
             }
             set {
                 _save = Convert.ToByte(value);
+            }
+        }
+
+        public C4DocDeltaApplier deltaCB
+        {
+            get {
+                return Marshal.GetDelegateForFunctionPointer<C4DocDeltaApplier>(_deltaCB);
+            }
+            set {
+                _deltaCB = Marshal.GetFunctionPointerForDelegate(value);
             }
         }
     }

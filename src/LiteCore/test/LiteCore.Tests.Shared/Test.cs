@@ -70,11 +70,11 @@ namespace LiteCore.Tests
 
         internal FLSlice DocID => FLSlice.Constant("mydoc");
 
-        internal FLSlice RevID => IsRevTrees() ? FLSlice.Constant("1-abcd") : FLSlice.Constant("1@*");
+        internal FLSlice RevID => IsRevTrees(Db) ? FLSlice.Constant("1-abcd") : FLSlice.Constant("1@*");
 
-        internal FLSlice Rev2ID => IsRevTrees() ? FLSlice.Constant("2-c001d00d") : FLSlice.Constant("2@*");
+        internal FLSlice Rev2ID => IsRevTrees(Db) ? FLSlice.Constant("2-c001d00d") : FLSlice.Constant("2@*");
 
-        internal FLSlice Rev3ID => IsRevTrees() ? FLSlice.Constant("3-deadbeef") : FLSlice.Constant("3@*");
+        internal FLSlice Rev3ID => IsRevTrees(Db) ? FLSlice.Constant("3-deadbeef") : FLSlice.Constant("3@*");
 
         static Test()
         {
@@ -125,9 +125,9 @@ namespace LiteCore.Tests
             }
         }
 
-        protected bool IsRevTrees()
+        internal bool IsRevTrees(C4Database* db)
         {
-            return (Native.c4db_getConfig2(Db)->flags & C4DatabaseFlags.VersionVectors) == 0;
+            return (Native.c4db_getConfig2(db)->flags & C4DatabaseFlags.VersionVectors) == 0;
         }
 
         protected void DeleteAndRecreateDB()
@@ -191,28 +191,47 @@ namespace LiteCore.Tests
             LiteCoreBridge.Check(err => Native.c4db_beginTransaction(db, err));
             try {
                 var curDoc = (C4Document *)LiteCoreBridge.Check(err => Native.c4db_getDoc(db, docID, 
-                    false, C4DocContentLevel.DocGetCurrentRev, err));
-                var history = new[] { revID, curDoc->revID };
-                fixed(FLSlice* h = history) {
-                    var rq = new C4DocPutRequest {
-                        existingRevision = true,
-                        docID = curDoc->docID,
-                        history = h,
-                        historyCount = curDoc->revID.buf != null ? 2UL : 1UL,
-                        body = body,
-                        revFlags = flags,
-                        save = true
-                    };
-
-                    var doc = (C4Document *)LiteCoreBridge.Check(err => {
-                        var localRq = rq;
-                        return Native.c4doc_put(db, &localRq, null, err);
-                    });
-                    Native.c4doc_release(doc);
-                    Native.c4doc_release(curDoc);
-                }
+                    false, C4DocContentLevel.DocGetAll, err));
+                curDoc->Should().NotBeNull();
+                FLSlice parentID;
+                if (IsRevTrees(db))
+                    parentID = curDoc->revID;
+                //else
+                //    parentID = c4doc_getRevisionHistory(curDoc, 0, nullptr, 0);
+                CreateConflictingRev(db, curDoc->docID, curDoc->revID, revID, body, flags);
+                Native.c4doc_release(curDoc);
             } finally {
                 LiteCoreBridge.Check(err => Native.c4db_endTransaction(db, true, err));
+            }
+        }
+
+        private void CreateConflictingRev(C4Database* db,
+                                  FLSlice docID,
+                                  FLSlice parentRevID,
+                                  FLSlice newRevID,
+                                  FLSlice body,
+                                  C4RevisionFlags flags)
+        {
+            var history = new[] { newRevID, parentRevID };
+            fixed (FLSlice* h = history)
+            {
+                var rq = new C4DocPutRequest
+                {
+                    existingRevision = true,
+                    allowConflict = true,
+                    docID = docID,
+                    history = h,
+                    historyCount = parentRevID.buf != null ? 2UL : 1UL,
+                    body = body,
+                    revFlags = flags,
+                    save = true
+                };
+
+                var doc = (C4Document*)LiteCoreBridge.Check(err => {
+                    var localRq = rq;
+                    return Native.c4doc_put(db, &localRq, null, err);
+                });
+                Native.c4doc_release(doc);
             }
         }
 
