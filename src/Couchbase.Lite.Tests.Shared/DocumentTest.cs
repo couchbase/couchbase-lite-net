@@ -1414,7 +1414,7 @@ namespace Test
             Db.GetDocument(doc1.Id).Should().BeNull();
         }
 
-        [Fact]
+        //[Fact]
         public void TestDictionaryAfterDeleteDocument()
         {
             var dict = new Dictionary<string, object> {
