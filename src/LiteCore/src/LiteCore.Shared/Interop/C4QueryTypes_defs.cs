@@ -46,7 +46,7 @@ namespace LiteCore.Interop
         }
     }
 
-    internal unsafe partial struct C4FullTextMatch
+	internal unsafe partial struct C4FullTextMatch
     {
         public ulong dataSource;
         public uint property;
@@ -55,7 +55,7 @@ namespace LiteCore.Interop
         public uint length;
     }
 
-    internal unsafe struct C4QueryEnumerator
+	internal unsafe struct C4QueryEnumerator
     {
         public FLArrayIterator columns;
         public ulong missingColumns;
