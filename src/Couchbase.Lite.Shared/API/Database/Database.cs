@@ -717,14 +717,14 @@ namespace Couchbase.Lite
         [@ItemNotNull]
         public IList<string> GetIndexes()
         {
-            object retVal = null;
+            List<string> retVal = new List<string>();
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 var result = new FLSliceResult();
                 LiteCoreBridge.Check(err =>
                 {
-                    result = NativeRaw.c4db_getIndexes(c4db, err);
+                    result = NativeRaw.c4db_getIndexesInfo(c4db, err);
                     return result.buf != null;
                 });
 
@@ -734,7 +734,12 @@ namespace Couchbase.Lite
                     throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError);
                 }
 
-                retVal = FLValueConverter.ToCouchbaseObject(val, this, true, typeof(string));
+                var indexesInfo = FLValueConverter.ToCouchbaseObject(val, this, true) as IList<object>;
+                foreach (var a in indexesInfo) {
+                    var indexInfo = a as Dictionary<string, object>;
+                    retVal.Add((string)indexInfo["name"]);
+                }
+
                 Native.FLSliceResult_Release(result);
             });
 
