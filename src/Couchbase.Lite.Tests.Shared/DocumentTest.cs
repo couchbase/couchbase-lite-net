@@ -2085,7 +2085,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestRevisionIDExistingDoc()
         {
             using (var doc = new MutableDocument("doc1")) {
