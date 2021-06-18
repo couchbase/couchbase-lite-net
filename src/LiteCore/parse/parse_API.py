@@ -98,7 +98,11 @@ if __name__ == "__main__":
                 continue
 
             seen_functions.add(fn_name)
-            return_type = function["rtnType"].replace(" ","").replace("struct_","").replace("struct","").replace("const","").replace("staticinline","")
+            return_type = function["rtnType"] \
+                .replace(" ","").replace("struct_","").replace("struct","") \
+                .replace("const","").replace("staticinline","").replace("MUST_USE_RESULT", "") \
+                .replace("C4NULLABLE", "").replace("C4_ASSUME_NONNULL_BEGIN", "") \
+                .replace("C4API_BEGIN_DECLS", "")
             if return_type in type_map:
                 return_type = type_map[return_type]
 
@@ -107,7 +111,8 @@ if __name__ == "__main__":
                 bridge_def[0] = ".bridge"
 
             for param in function["parameters"]:
-                type = param["type"].replace("const","").replace(" ","")
+                type = param["type"].replace("const","").replace("NONNULL", "") \
+                      .replace("FL_NONNULL", "").replace("C4NULLABLE", "").replace(" ","")
                 if param["array"]:
                     type += "[]"
 
@@ -117,7 +122,9 @@ if __name__ == "__main__":
                 if type in param_bridge_types:
                     bridge_def[0] = ".bridge"
 
-                name = param["name"]
+                name = param["name"].replace("NONNULL", "") \
+                      .replace("FL_NONNULL", "").replace("C4NULLABLE", "")
+                
                 if len(name) == 0:
                     name = default_param_name[type] if type in default_param_name else "x"
 

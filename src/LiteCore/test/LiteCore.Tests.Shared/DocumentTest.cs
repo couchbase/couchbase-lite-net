@@ -178,7 +178,7 @@ namespace LiteCore.Tests
                 doc->selectedRev.sequence.Should().Be(2, "because it is the second revision");
                 NativeRaw.c4doc_getRevisionBody(doc).Should().Be(Body2, "because the body should load correctly");
 
-                if(IsRevTrees()) {
+                if(IsRevTrees(Db)) {
                     // Select 1st revision:
                     LiteCoreBridge.Check(err => Native.c4doc_selectParentRevision(doc));
                     doc->selectedRev.revID.Should().Be(RevID, "because now the first revision is selected");
@@ -290,66 +290,6 @@ namespace LiteCore.Tests
         }
 
         [Fact]
-        public void TestMaxRevTreeDepth()
-        {
-            RunTestVariants(() =>
-            {
-                if (IsRevTrees()) {
-                    Native.c4db_getMaxRevTreeDepth(Db).Should().Be(20, "because that is the default");
-                    Native.c4db_setMaxRevTreeDepth(Db, 30U);
-                    Native.c4db_getMaxRevTreeDepth(Db).Should().Be(30);
-                    ReopenDB();
-                    Native.c4db_getMaxRevTreeDepth(Db).Should().Be(30, "because the value should be persistent");
-                }
-
-                const uint NumRevs = 10000;
-                var st = Stopwatch.StartNew();
-                var doc = (C4Document*) LiteCoreBridge.Check(err => NativeRaw.c4db_getDoc(Db, DocID, false, C4DocContentLevel.DocGetCurrentRev, err));
-                LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
-                try {
-                    for (uint i = 0; i < NumRevs; i++) {
-                        var rq = new C4DocPutRequest();
-                        rq.docID = doc->docID;
-                        rq.history = (FLSlice*)&doc->revID;
-                        rq.historyCount = 1;
-                        rq.body = FleeceBody;
-                        rq.save = true;
-                        var savedDoc = (C4Document*) LiteCoreBridge.Check(err =>
-                        {
-                            var localPut = rq;
-                            return Native.c4doc_put(Db, &localPut, null, err);
-                        });
-                        Native.c4doc_release(doc);
-                        doc = savedDoc;
-                    }
-                } finally {
-                    LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
-                }
-
-                st.Stop();
-                WriteLine($"Created {NumRevs} revisions in {st.ElapsedMilliseconds} ms");
-
-                uint nRevs = 0;
-                Native.c4doc_selectCurrentRevision(doc);
-                do {
-                    if (IsRevTrees()) {
-                        NativeRaw.c4rev_getGeneration(doc->selectedRev.revID).Should()
-                            .Be(NumRevs - nRevs, "because the tree should be pruned");
-                    }
-
-                    ++nRevs;
-                } while (Native.c4doc_selectParentRevision(doc));
-
-                WriteLine($"Document rev tree depth is {nRevs}");
-                if (IsRevTrees()) {
-                    nRevs.Should().Be(30, "because the tree should be pruned");
-                }
-
-                Native.c4doc_release(doc);
-            });
-        }
-
-        [Fact]
         public void TestPut()
         {
             RunTestVariants(() => {
@@ -368,7 +308,7 @@ namespace LiteCore.Tests
                     });
 
                     doc->docID.Equals(DocID).Should().BeTrue("because the doc should have the correct doc ID");
-                    var expectedRevID = IsRevTrees() ? FLSlice.Constant("1-042ca1d3a1d16fd5ab2f87efc7ebbf50b7498032") :
+                    var expectedRevID = IsRevTrees(Db) ? FLSlice.Constant("1-042ca1d3a1d16fd5ab2f87efc7ebbf50b7498032") :
                         FLSlice.Constant("1@*");
                     doc->revID.Equals(expectedRevID).Should().BeTrue("because the doc should have the correct rev ID");
                     doc->flags.Should().Be(C4DocumentFlags.DocExists, "because the document exists");
@@ -393,7 +333,7 @@ namespace LiteCore.Tests
                     }
 
                     commonAncestorIndex.Should().Be(0UL, "because there are no common ancestors");
-                    var expectedRev2ID = IsRevTrees() ? FLSlice.Constant("2-201796aeeaa6ddbb746d6cab141440f23412ac51") : 
+                    var expectedRev2ID = IsRevTrees(Db) ? FLSlice.Constant("2-201796aeeaa6ddbb746d6cab141440f23412ac51") : 
                         FLSlice.Constant("2@*");
                     doc->revID.Equals(expectedRev2ID).Should().BeTrue("because the doc should have the updated rev ID");
                     doc->flags.Should().Be(C4DocumentFlags.DocExists, "because the document exists");
@@ -406,7 +346,7 @@ namespace LiteCore.Tests
                     rq.body = (FLSlice)body;
                     rq.existingRevision = true;
                     rq.remoteDBID = 1;
-                    var conflictRevID = IsRevTrees() ? FLSlice.Constant("2-deadbeef") : FLSlice.Constant("1@binky");
+                    var conflictRevID = IsRevTrees(Db) ? FLSlice.Constant("2-deadbeef") : FLSlice.Constant("1@binky");
                     tmp = new[] { conflictRevID, expectedRevID };
                     rq.historyCount = 2;
                     rq.allowConflict = true;
@@ -449,7 +389,7 @@ namespace LiteCore.Tests
                 }
 
                 WriteLine("After save");
-                var expectedRevID = IsRevTrees() 
+                var expectedRevID = IsRevTrees(Db) 
                     ? FLSlice.Constant("1-042ca1d3a1d16fd5ab2f87efc7ebbf50b7498032")
                     : FLSlice.Constant("1@*");
 
@@ -459,7 +399,7 @@ namespace LiteCore.Tests
                 doc->docID.Equals(DocID).Should().BeTrue("because that is the document ID that it was saved with");
 
                 // Read the doc into another C4Document
-                var doc2 = (C4Document*) LiteCoreBridge.Check(err => NativeRaw.c4db_getDoc(Db, DocID, false, C4DocContentLevel.DocGetCurrentRev, err));
+                var doc2 = (C4Document*) LiteCoreBridge.Check(err => NativeRaw.c4db_getDoc(Db, DocID, false, C4DocContentLevel.DocGetAll, err));
                 doc->revID.Equals(expectedRevID).Should()
                     .BeTrue("because the other reference should have the same rev ID");
 
@@ -474,8 +414,8 @@ namespace LiteCore.Tests
                         var updatedDoc =
                             (C4Document*) LiteCoreBridge.Check(
                                 err => NativeRaw.c4doc_update(doc, (FLSlice) body, 0, err));
-                        doc->selectedRev.revID.Equals(oldRevID).Should().BeTrue();
-                        doc->revID.Equals(oldRevID).Should().BeTrue();
+                        //doc->selectedRev.revID.Equals(oldRevID).Should().BeTrue();
+                        //doc->revID.Equals(oldRevID).Should().BeTrue();
                         Native.c4doc_release(doc);
                         doc = updatedDoc;
                         Native.FLSliceResult_Release(body);
@@ -487,7 +427,7 @@ namespace LiteCore.Tests
                 }
 
                 WriteLine("After multiple updates");
-                var expectedRev2ID = IsRevTrees() 
+                var expectedRev2ID = IsRevTrees(Db) 
                     ? FLSlice.Constant("5-a452899fa8e69b06d936a5034018f6fff0a8f906")
                     : FLSlice.Constant("5@*");
                 doc->revID.Equals(expectedRev2ID).Should().BeTrue();
@@ -531,7 +471,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                if(!IsRevTrees()) {
+                if(!IsRevTrees(Db)) {
                     return;
                 }
 

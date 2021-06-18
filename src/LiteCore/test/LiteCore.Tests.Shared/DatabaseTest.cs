@@ -267,28 +267,28 @@ namespace LiteCore.Tests
                 }
 
                 var store = (C4BlobStore*) LiteCoreBridge.Check(err => Native.c4db_getBlobStore(Db, err));
-                LiteCoreBridge.Check(err => Native.c4db_compact(Db, err));
+                LiteCoreBridge.Check(err => Native.c4db_maintenance(Db, C4MaintenanceType.Compact, err));
                 Native.c4blob_getSize(store, key1).Should()
                     .BeGreaterThan(0, "because the attachment should survive the first compact");
                 Native.c4blob_getSize(store, key2).Should()
                     .BeGreaterThan(0, "because the attachment should survive the first compact");
 
                 CreateRev("doc001", Rev2ID, FLSlice.Null, C4RevisionFlags.Deleted);
-                LiteCoreBridge.Check(err => Native.c4db_compact(Db, err));
+                LiteCoreBridge.Check(err => Native.c4db_maintenance(Db, C4MaintenanceType.Compact, err));
                 Native.c4blob_getSize(store, key1).Should().Be(-1,
                     "because the attachment should be collected in the second compact");
                 Native.c4blob_getSize(store, key2).Should()
                     .BeGreaterThan(0, "because the attachment should survive the second compact");
 
                 CreateRev("doc002", Rev2ID, FLSlice.Null, C4RevisionFlags.Deleted);
-                LiteCoreBridge.Check(err => Native.c4db_compact(Db, err));
+                LiteCoreBridge.Check(err => Native.c4db_maintenance(Db, C4MaintenanceType.Compact, err));
                 Native.c4blob_getSize(store, key1).Should().Be(-1,
                     "because the attachment should still be gone in the third compact");
                 Native.c4blob_getSize(store, key2).Should()
                     .BeGreaterThan(0, "because the attachment should survive the third compact");
 
                 CreateRev("doc003", Rev2ID, FLSlice.Null, C4RevisionFlags.Deleted);
-                LiteCoreBridge.Check(err => Native.c4db_compact(Db, err));
+                LiteCoreBridge.Check(err => Native.c4db_maintenance(Db, C4MaintenanceType.Compact, err));
                 Native.c4blob_getSize(store, key1).Should().Be(-1,
                     "because the attachment should still be gone in the fourth compact");
                 Native.c4blob_getSize(store, key2).Should().Be(-1,

@@ -1,7 +1,7 @@
 //
 // C4Index_native.cs
 //
-// Copyright (c) 2020 Couchbase, Inc All rights reserved.
+// Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,14 +42,6 @@ namespace LiteCore.Interop
             }
         }
 
-        public static byte[] c4db_getIndexes(C4Database* database, C4Error* outError)
-        {
-            using(var retVal = NativeRaw.c4db_getIndexes(database, outError)) {
-                return ((FLSlice)retVal).ToArrayFast();
-            }
-        }
-
-
     }
 
     internal unsafe static partial class NativeRaw
@@ -63,7 +55,7 @@ namespace LiteCore.Interop
         public static extern bool c4db_deleteIndex(C4Database* database, FLSlice name, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4db_getIndexes(C4Database* database, C4Error* outError);
+        public static extern FLSliceResult c4db_getIndexesInfo(C4Database* database, C4Error* outError);
 
 
     }

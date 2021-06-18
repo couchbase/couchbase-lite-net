@@ -59,6 +59,7 @@ if __name__ == "__main__":
         in_typedef_struct = False
         in_normal_struct = False
         in_comment = 0
+        in_ifdef = 0
         for line in fin:
             if in_typedef_struct or in_normal_struct:
                 finished = False
@@ -88,11 +89,23 @@ if __name__ == "__main__":
 
                         continue
 
+                    if in_ifdef > 0:
+                        if "#ifdef" in line:
+                            in_ifdef += 1
+                        elif "#endif" in line:
+                            in_ifdef -= 1
+                        
+                        continue
+
                     if "/*" in line:
                         in_comment += 1
                         if "*/" in line:
                             in_comment -= 1
                             continue
+
+                    if "#ifdef __cplusplus" in line:
+                        in_ifdef += 1
+                        continue
 
                     stripped = re.search(r'([^ ;{}]+) +(\**)([^ ;{}*]+);', line)
                     if not stripped:

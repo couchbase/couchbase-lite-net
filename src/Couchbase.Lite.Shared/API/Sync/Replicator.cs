@@ -197,7 +197,7 @@ namespace Couchbase.Lite.Sync
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
             var cbHandler = new CouchbaseEventHandler<DocumentReplicationEventArgs>(handler, scheduler);
             if (_documentEndedUpdate.Add(cbHandler) == 0) {
-                SetProgressLevel(C4ReplicatorProgressLevel.PerDocument);
+                SetProgressLevel(C4ReplicatorProgressLevel.ReplProgressPerDocument);
             }
             
             return new ListenerToken(cbHandler, "repl");
@@ -213,7 +213,7 @@ namespace Couchbase.Lite.Sync
         {
             _statusChanged.Remove(token);
             if (_documentEndedUpdate.Remove(token) == 0) {
-                SetProgressLevel(C4ReplicatorProgressLevel.Overall);
+                SetProgressLevel(C4ReplicatorProgressLevel.ReplProgressOverall);
             }
         }
 
@@ -460,7 +460,7 @@ namespace Couchbase.Lite.Sync
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
         #endif
-        private static bool PullValidateCallback(FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
+        private static bool PullValidateCallback(FLSlice collectionName, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
             if (replicator == null) {
@@ -482,7 +482,7 @@ namespace Couchbase.Lite.Sync
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
         #endif
-        private static bool PushFilterCallback(FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
+        private static bool PushFilterCallback(FLSlice collectionName, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
             if (replicator == null) {
@@ -734,7 +734,7 @@ namespace Couchbase.Lite.Sync
                     _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
 
                 if (_documentEndedUpdate.Counter > 0) {
-                    SetProgressLevel(C4ReplicatorProgressLevel.PerDocument);
+                    SetProgressLevel(C4ReplicatorProgressLevel.ReplProgressPerDocument);
                 }
 
                 err = localErr;

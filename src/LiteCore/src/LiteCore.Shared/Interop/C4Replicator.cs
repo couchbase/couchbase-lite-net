@@ -44,8 +44,8 @@ namespace LiteCore.Interop
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     [return: MarshalAs(UnmanagedType.U1)]
-    internal unsafe delegate bool C4ReplicatorValidationFunction(FLSlice docID, FLSlice revID,
-        C4RevisionFlags revisionFlags, FLDict* body, void* context);
+    internal unsafe delegate bool C4ReplicatorValidationFunction(FLSlice collectionName, FLSlice docID,
+        FLSlice revID, C4RevisionFlags revisionFlags, FLDict* body, void* context);
 }
 
 namespace LiteCore.Interop

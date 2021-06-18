@@ -237,7 +237,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                if (!IsRevTrees()) {
+                if (!IsRevTrees(Db)) {
                     return;
                 }
 
@@ -382,7 +382,7 @@ namespace LiteCore.Tests
                 doc->selectedRev.revID.CreateString().Should().Be(revID2);
                 Native.c4doc_release(doc);
 
-                LiteCoreBridge.Check(err => Native.c4db_compact(Db, err));
+                LiteCoreBridge.Check(err => Native.c4db_maintenance(Db, C4MaintenanceType.Compact, err));
                 doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, docID, true, C4DocContentLevel.DocGetAll, err));
                 LiteCoreBridge.Check(err => Native.c4doc_selectRevision(doc, revID2, true, err));
                 doc->selectedRev.revID.CreateString().Should().Be(revID2);
@@ -420,7 +420,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                if (!IsRevTrees()) {
+                if (!IsRevTrees(Db)) {
                     return;
                 }
 
@@ -454,7 +454,7 @@ namespace LiteCore.Tests
             // prevent false conflicts when two peers make the same change to the same parent revision.
             RunTestVariants(() =>
             {
-                if (!IsRevTrees()) {
+                if (!IsRevTrees(Db)) {
                     return;
                 }
 
@@ -485,7 +485,7 @@ namespace LiteCore.Tests
             // and that the saved deleted revision will preserve any extra properties
             RunTestVariants(() =>
             {
-                if (!IsRevTrees()) {
+                if (!IsRevTrees(Db)) {
                     return;
                 }
 
@@ -525,7 +525,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                if (!IsRevTrees()) {
+                if (!IsRevTrees(Db)) {
                     return;
                 }
 
@@ -556,7 +556,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                if (!IsRevTrees()) {
+                if (!IsRevTrees(Db)) {
                     return;
                 }
 
@@ -707,7 +707,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() =>
             {
-                if (IsRevTrees()) {
+                if (IsRevTrees(Db)) {
                     return;
                 }
 

@@ -74,7 +74,9 @@ namespace LiteCore.Interop
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Cert* c4repl_getPeerTLSCertificate(C4Replicator* repl, C4Error* outErr);
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4repl_setProgressLevel(C4Replicator* repl, C4ReplicatorProgressLevel level, C4Error* outErr);
+
         public static bool c4db_setCookie(C4Database* db, string setCookieHeader, string fromHost, string fromPath, C4Error* outError)
         {
             using(var setCookieHeader_ = new C4String(setCookieHeader))
@@ -91,9 +93,6 @@ namespace LiteCore.Interop
             }
         }
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4repl_setProgressLevel(C4Replicator* repl, C4ReplicatorProgressLevel level, C4Error* outErr);
 
     }
 

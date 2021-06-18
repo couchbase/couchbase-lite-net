@@ -120,8 +120,6 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        private static readonly TimeSpan HousekeepingDelayAfterOpen = TimeSpan.FromSeconds(3);
-
         [@NotNull]
         private readonly Dictionary<string, Tuple<IntPtr, GCHandle>> _docObs = new Dictionary<string, Tuple<IntPtr, GCHandle>>();
 
@@ -547,22 +545,6 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// [DEPRECATED] Compacts the database file by deleting unused attachment files and vacuuming
-        /// the SQLite database
-        /// </summary>
-        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        [Obsolete("This method deprecated, please use PerformMaintenance(MaintenanceType type) to compact the database file.")]
-        public void Compact()
-        {
-            ThreadSafety.DoLockedBridge(err =>
-            {
-                CheckOpen();
-                return Native.c4db_compact(_c4db, err);
-            });
-        }
-
-        /// <summary>
         /// Creates an index which could be a value index from <see cref="IndexBuilder.ValueIndex"/> or a full-text search index
         /// from <see cref="IndexBuilder.FullTextIndex"/> with the given name.
         /// The name can be used for deleting the index. Creating a new different index with an existing
@@ -735,14 +717,14 @@ namespace Couchbase.Lite
         [@ItemNotNull]
         public IList<string> GetIndexes()
         {
-            object retVal = null;
+            List<string> retVal = new List<string>();
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 var result = new FLSliceResult();
                 LiteCoreBridge.Check(err =>
                 {
-                    result = NativeRaw.c4db_getIndexes(c4db, err);
+                    result = NativeRaw.c4db_getIndexesInfo(c4db, err);
                     return result.buf != null;
                 });
 
@@ -752,7 +734,12 @@ namespace Couchbase.Lite
                     throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError);
                 }
 
-                retVal = FLValueConverter.ToCouchbaseObject(val, this, true, typeof(string));
+                var indexesInfo = FLValueConverter.ToCouchbaseObject(val, this, true) as IList<object>;
+                foreach (var a in indexesInfo) {
+                    var indexInfo = a as Dictionary<string, object>;
+                    retVal.Add((string)indexInfo["name"]);
+                }
+
                 Native.FLSliceResult_Release(result);
             });
 
@@ -1348,8 +1335,6 @@ namespace Couchbase.Lite
                     return Native.c4db_openNamed(Name, &localConfig2, err);
                 });
             });
-
-            Native.c4db_startHousekeeping(_c4db);
         }
 
         private void PostDatabaseChanged()

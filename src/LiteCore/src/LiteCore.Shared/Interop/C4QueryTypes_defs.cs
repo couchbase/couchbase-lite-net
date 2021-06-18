@@ -1,5 +1,5 @@
 //
-// FLSlice_defs.cs
+// C4QueryTypes_defs.cs
 //
 // Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
@@ -25,37 +25,41 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-
-
-	internal unsafe partial struct FLSlice
+    internal enum C4QueryLanguage : uint
     {
-        public void* buf;
-        private UIntPtr _size;
+        JSONQuery,
+        N1QLQuery,
+    }
 
-        public ulong size
+	internal unsafe partial struct C4QueryOptions
+    {
+        private byte _rankFullText_DEPRECATED;
+
+        public bool rankFullText_DEPRECATED
         {
             get {
-                return _size.ToUInt64();
+                return Convert.ToBoolean(_rankFullText_DEPRECATED);
             }
             set {
-                _size = (UIntPtr)value;
+                _rankFullText_DEPRECATED = Convert.ToByte(value);
             }
         }
     }
 
-	internal unsafe partial struct FLSliceResult
+	internal unsafe partial struct C4FullTextMatch
     {
-        public void* buf;
-        private UIntPtr _size;
+        public ulong dataSource;
+        public uint property;
+        public uint term;
+        public uint start;
+        public uint length;
+    }
 
-        public ulong size
-        {
-            get {
-                return _size.ToUInt64();
-            }
-            set {
-                _size = (UIntPtr)value;
-            }
-        }
+	internal unsafe struct C4QueryEnumerator
+    {
+        public FLArrayIterator columns;
+        public ulong missingColumns;
+        public uint fullTextMatchCount;
+        public C4FullTextMatch* fullTextMatches;
     }
 }

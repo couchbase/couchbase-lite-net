@@ -68,7 +68,10 @@ namespace Test
                 Db.Save(d2);
             }
 
-            using (var q = Db.CreateQuery($"SELECT firstName, lastName FROM {Db.Name}"))
+            // With collections "SELECT firstName, lastName FROM _default" or "SELECT firstName, lastName FROM _default as whatever"
+            // default collection is named _default.
+            //Without collections "SELECT firstName, lastName FROM {Db.Name}"
+            using (var q = Db.CreateQuery($"SELECT firstName, lastName FROM _default"))
             {
                 var res = q.Execute().AllResults();
                 res.Count.Should().Be(2);

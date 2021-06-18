@@ -1,5 +1,5 @@
 //
-// C4Base_native.cs
+// C4Log_native.cs
 //
 // Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
@@ -28,59 +28,48 @@ namespace LiteCore.Interop
     internal unsafe static partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void* c4base_retain(void* obj);
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4log_writeToBinaryFile(C4LogFileOptions options, C4Error* error);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4base_release(void* obj);
+        public static extern C4LogLevel c4log_binaryFileLevel();
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Document* c4doc_retain(C4Document* x);
+        public static extern void c4log_setBinaryFileLevel(C4LogLevel level);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4QueryEnumerator* c4queryenum_retain(C4QueryEnumerator* x);
+        public static extern void c4log_writeToCallback(C4LogLevel level, C4LogCallback callback, [MarshalAs(UnmanagedType.U1)]bool preformatted);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4doc_release(C4Document* x);
+        public static extern C4LogLevel c4log_callbackLevel();
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4queryenum_release(C4QueryEnumerator* x);
+        public static extern void c4log_setCallbackLevel(C4LogLevel level);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4dbobs_free(C4DatabaseObserver* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4docobs_free(C4DocumentObserver* observer);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4enum_free(C4DocEnumerator* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4listener_free(C4Listener* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4raw_free(C4RawDocument* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4repl_free(C4Replicator* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4stream_close(C4ReadStream* stream);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4stream_closeWriter(C4WriteStream* stream);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int c4_getObjectCount();
-
-        public static string c4_getVersion()
+        public static string c4log_getDomainName(C4LogDomain* x)
         {
-            using(var retVal = NativeRaw.c4_getVersion()) {
-                return ((FLSlice)retVal).CreateString();
-            }
+            var retVal = NativeRaw.c4log_getDomainName(x);
+            return Marshal.PtrToStringAnsi((IntPtr)retVal);
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern long c4_now();
+        public static extern C4LogLevel c4log_getLevel(C4LogDomain* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4log_setLevel(C4LogDomain* c4Domain, C4LogLevel level);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4log_warnOnErrors([MarshalAs(UnmanagedType.U1)]bool b);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4log_enableFatalExceptionBacktrace();
+
+        public static void c4slog(C4LogDomain* domain, C4LogLevel level, string msg)
+        {
+            using (var msg_ = new C4String(msg)) {
+                NativeRaw.c4slog(domain, level, msg_.AsFLSlice());
+            }
+        }
 
 
     }
@@ -88,8 +77,10 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4_getVersion();
+        public static extern byte* c4log_getDomainName(C4LogDomain* x);
 
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4slog(C4LogDomain* domain, C4LogLevel level, FLSlice msg);
 
     }
 }

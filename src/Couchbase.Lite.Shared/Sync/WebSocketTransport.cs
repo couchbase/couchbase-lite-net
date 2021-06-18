@@ -61,7 +61,7 @@ namespace Couchbase.Lite.Sync
 
         private static void DoClose(C4Socket* socket)
         {
-            var id = (int) socket->nativeHandle;
+            var id = (int) Native.c4Socket_getNativeHandle(socket);
             if (Sockets.TryGetValue(id, out var socketWrapper)) {
                 socketWrapper.CloseSocket();
             } else {
@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Sync
 
         private static void DoCompleteReceive(C4Socket* socket, ulong bytecount)
         {
-            var id = (int)socket->nativeHandle;
+            var id = (int)Native.c4Socket_getNativeHandle(socket);
 
             if (Sockets.TryGetValue(id, out var socketWrapper)) {
                 socketWrapper.CompletedReceive(bytecount);
@@ -82,7 +82,7 @@ namespace Couchbase.Lite.Sync
 
         private static void DoDispose(C4Socket* socket)
         {
-            var id = (int) socket->nativeHandle;
+            var id = (int)Native.c4Socket_getNativeHandle(socket);
             Sockets.TryRemove(id, out var tmp);
         }
 
@@ -119,7 +119,7 @@ namespace Couchbase.Lite.Sync
             var replicationOptions = new ReplicatorOptionsDictionary(opts);
             
             var id = Interlocked.Increment(ref _NextID);
-            socket->nativeHandle = (void*)id;
+            Native.c4Socket_setNativeHandle(socket, (void*)id);
             var socketWrapper = new WebSocketWrapper(uri, socket, replicationOptions);
             var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
             replicator?.WatchForCertificate(socketWrapper);
@@ -130,7 +130,7 @@ namespace Couchbase.Lite.Sync
 
         private static void DoWrite(C4Socket* socket, byte[] data)
         {
-            var id = (int)socket->nativeHandle;
+            var id = (int)Native.c4Socket_getNativeHandle(socket);
             if (Sockets.TryGetValue(id, out var socketWrapper)) {
                 socketWrapper.Write(data);
             } else {

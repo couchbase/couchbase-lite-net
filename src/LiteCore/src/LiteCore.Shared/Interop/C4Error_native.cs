@@ -1,5 +1,5 @@
 //
-// C4PredictiveQuery_native.cs
+// C4Error_native.cs
 //
 // Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
@@ -27,18 +27,38 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4pred_registerModel([MarshalAs(UnmanagedType.LPStr)]string name, C4PredictiveModel x);
+        public static string c4error_getMessage(C4Error error)
+        {
+            using (var retVal = NativeRaw.c4error_getMessage(error))
+            {
+                return ((FLSlice)retVal).CreateString();
+            }
+        }
+
+        public static C4Error c4error_make(C4ErrorDomain domain, int code, string message)
+        {
+            using (var message_ = new C4String(message)) {
+                return NativeRaw.c4error_make(domain, code, message_.AsFLSlice());
+            }
+        }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4pred_unregisterModel([MarshalAs(UnmanagedType.LPStr)]string name);
+        public static extern bool c4error_mayBeTransient(C4Error err);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4error_mayBeNetworkDependent(C4Error err);
 
 
     }
 
     internal unsafe static partial class NativeRaw
     {
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4error_getMessage(C4Error error);
 
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4Error c4error_make(C4ErrorDomain domain, int code, FLSlice message);
     }
 }

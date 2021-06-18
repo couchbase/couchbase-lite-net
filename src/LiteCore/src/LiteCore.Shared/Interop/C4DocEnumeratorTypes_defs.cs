@@ -1,5 +1,5 @@
 //
-// C4Observer_defs.cs
+// C4DocEnumeratorTypes_defs.cs
 //
 // Copyright (c) 2021 Couchbase, Inc All rights reserved.
 //
@@ -25,13 +25,30 @@ using LiteCore.Util;
 
 namespace LiteCore.Interop
 {
-
-
-	internal unsafe struct C4DatabaseChange
+    [Flags]
+    internal enum C4EnumeratorFlags : ushort
     {
+        Descending           = 0x01,
+        Unsorted             = 0x02,
+        IncludeDeleted       = 0x08,
+        IncludeNonConflicted = 0x10,
+        IncludeBodies        = 0x20,
+        IncludeRevHistory    = 0x40
+    }
+
+	internal unsafe partial struct C4EnumeratorOptions
+    {
+        public C4EnumeratorFlags flags;
+    }
+
+	internal unsafe struct C4DocumentInfo
+    {
+        public C4DocumentFlags flags;
         public FLHeapSlice docID;
         public FLHeapSlice revID;
         public ulong sequence;
-        public C4RevisionFlags flags;
+        public ulong bodySize;
+        public ulong metaSize;
+        public long expiration;
     }
 }

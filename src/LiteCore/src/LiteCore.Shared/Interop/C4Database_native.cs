@@ -93,32 +93,21 @@ namespace LiteCore.Interop
         public static extern long c4db_nextDocExpiration(C4Database* database);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_startHousekeeping(C4Database* db);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint c4db_getMaxRevTreeDepth(C4Database* database);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4db_setMaxRevTreeDepth(C4Database* database, uint maxRevTreeDepth);
+        public static extern long c4db_purgeExpiredDocs(C4Database* db, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_getUUIDs(C4Database* database, C4UUID* publicUUID, C4UUID* privateUUID, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4ExtraInfo c4db_getExtraInfo(C4Database* database);
+        public static extern void c4db_setExtraInfo(C4Database* database, C4ExtraInfo x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4db_setExtraInfo(C4Database* database, C4ExtraInfo x);
+        public static extern C4ExtraInfo c4db_getExtraInfo(C4Database* database);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_maintenance(C4Database* database, C4MaintenanceType type, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_compact(C4Database* database, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

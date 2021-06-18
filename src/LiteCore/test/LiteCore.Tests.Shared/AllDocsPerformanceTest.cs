@@ -62,7 +62,7 @@ namespace LiteCore.Tests
                 using(var docID = new C4String($"doc-{rng.Next():D8}-{rng.Next():D8}-{rng.Next():D8}-{i:D4}"))
                 using(var revID = new C4String("1-deadbeefcafebabe80081e50"))
                 using(var json = new C4String("{{\"content\":\"{content}\"}}")) {
-                    var history = IsRevTrees() ? new C4String[1] { new C4String("1-deadbeefcafebabe80081e50") }
+                    var history = IsRevTrees(Db) ? new C4String[1] { new C4String("1-deadbeefcafebabe80081e50") }
                         : new C4String[1] { new C4String("1@deadbeefcafebabe80081e50") };
 
                     var rawHistory = history.Select(x => x.AsFLSlice()).ToArray();
