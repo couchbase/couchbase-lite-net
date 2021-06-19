@@ -656,93 +656,84 @@ namespace Couchbase.Lite.Sync
 
             // Target:
             var addr = new C4Address();
-            var scheme = new C4String();
-            var host = new C4String();
-            var path = new C4String();
             Database otherDB = null;
             var remoteUrl = Config.RemoteUrl;
-            string dbNameStr = null;
-            if (remoteUrl != null) {
-                var pathStr = String.Concat(remoteUrl.Segments.Take(remoteUrl.Segments.Length - 1));
-                dbNameStr = remoteUrl.Segments.Last().TrimEnd('/');
-                scheme = new C4String(remoteUrl.Scheme);
-                host = new C4String(remoteUrl.Host);
-                path = new C4String(pathStr);
-                addr.scheme = scheme.AsFLSlice();
-                addr.hostname = host.AsFLSlice();
-                addr.port = (ushort) remoteUrl.Port;
-                addr.path = path.AsFLSlice();
+            string dbNameStr = remoteUrl?.Segments?.Last().TrimEnd('/');
+            using (var dbNameStr_ = new C4String(dbNameStr))
+            using (var remoteUrlStr_ = new C4String(remoteUrl?.AbsoluteUri)) {
+                FLSlice dn = dbNameStr_.AsFLSlice();
+                C4Address localAddr;
+                var addrFromUrl = NativeRaw.c4address_fromURL(remoteUrlStr_.AsFLSlice(), &localAddr, &dn);
+                addr = localAddr;
 
-                //get cookies from url and add to replicator options
-                var cookiestring = Config.Database.GetCookies(remoteUrl);
-                if (!String.IsNullOrEmpty(cookiestring)) {
-                    var split = cookiestring.Split(';') ?? Enumerable.Empty<string>();
-                    foreach (var entry in split) {
-                        var pieces = entry?.Split('=');
-                        if (pieces?.Length != 2) {
-                            WriteLog.To.Sync.W(Tag, "Garbage cookie value, ignoring");
-                            continue;
+                if (addrFromUrl) {
+                    //get cookies from url and add to replicator options
+                    var cookiestring = Config.Database.GetCookies(remoteUrl);
+                    if (!String.IsNullOrEmpty(cookiestring))  {
+                        var split = cookiestring.Split(';') ?? Enumerable.Empty<string>();
+                        foreach (var entry in split) {
+                            var pieces = entry?.Split('=');
+                            if (pieces?.Length != 2) {
+                                WriteLog.To.Sync.W(Tag, "Garbage cookie value, ignoring");
+                                continue;
+                            }
+
+                            Config.Options.Cookies.Add(new Cookie(pieces[0]?.Trim(), pieces[1]?.Trim()));
                         }
-
-                        Config.Options.Cookies.Add(new Cookie(pieces[0]?.Trim(), pieces[1]?.Trim()));
                     }
+
+                } else {
+                    Config.OtherDB?.CheckOpenLocked();
+                    otherDB = Config.OtherDB;
                 }
 
-            } else {
-                Config.OtherDB?.CheckOpenLocked();
-                otherDB = Config.OtherDB;
-            }
+                var options = Config.Options;
 
-            var options = Config.Options;
+                Config.Authenticator?.Authenticate(options);
 
-            Config.Authenticator?.Authenticate(options);
+                options.Build();
+                var push = Config.ReplicatorType.HasFlag(ReplicatorType.Push);
+                var pull = Config.ReplicatorType.HasFlag(ReplicatorType.Pull);
+                var continuous = Config.Continuous;
 
-            options.Build();
-            var push = Config.ReplicatorType.HasFlag(ReplicatorType.Push);
-            var pull = Config.ReplicatorType.HasFlag(ReplicatorType.Pull);
-            var continuous = Config.Continuous;
-            
-            var socketFactory = Config.SocketFactory;
-            socketFactory.context = GCHandle.ToIntPtr(GCHandle.Alloc(this)).ToPointer();
-            _nativeParams = new ReplicatorParameters(options)
-            {
-                Push = Mkmode(push, continuous),
-                Pull = Mkmode(pull, continuous),
-                Context = this,
-                OnDocumentEnded = OnDocEnded,
-                OnStatusChanged = StatusChangedCallback,
-                SocketFactory = &socketFactory
-            };
+                var socketFactory = Config.SocketFactory;
+                socketFactory.context = GCHandle.ToIntPtr(GCHandle.Alloc(this)).ToPointer();
+                _nativeParams = new ReplicatorParameters(options)
+                {
+                    Push = Mkmode(push, continuous),
+                    Pull = Mkmode(pull, continuous),
+                    Context = this,
+                    OnDocumentEnded = OnDocEnded,
+                    OnStatusChanged = StatusChangedCallback,
+                    SocketFactory = &socketFactory
+                };
 
-            // Clear the reset flag, it is a one-time thing
-            options.Reset = false;
+                // Clear the reset flag, it is a one-time thing
+                options.Reset = false;
 
-            if (Config.PushFilter != null)
-                _nativeParams.PushFilter = PushFilterCallback;
-            if (Config.PullFilter != null)
-                _nativeParams.PullFilter = PullValidateCallback;
+                if (Config.PushFilter != null)
+                    _nativeParams.PushFilter = PushFilterCallback;
+                if (Config.PullFilter != null)
+                    _nativeParams.PullFilter = PullValidateCallback;
 
-            DispatchQueue.DispatchSync(() =>
-            {
-                C4Error localErr = new C4Error();
-            #if COUCHBASE_ENTERPRISE
-                if (otherDB != null)
-                    _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
-                        &localErr);
-                else
-            #endif
+                DispatchQueue.DispatchSync(() =>
+                {
+                    C4Error localErr = new C4Error();
+                    #if COUCHBASE_ENTERPRISE
+                    if (otherDB != null)
+                        _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
+                            &localErr);
+                    else
+                    #endif
                     _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
 
-                if (_documentEndedUpdate.Counter > 0) {
-                    SetProgressLevel(C4ReplicatorProgressLevel.ReplProgressPerDocument);
-                }
+                    if (_documentEndedUpdate.Counter > 0) {
+                        SetProgressLevel(C4ReplicatorProgressLevel.ReplProgressPerDocument);
+                    }
 
-                err = localErr;
-            });
-
-            scheme.Dispose();
-            path.Dispose();
-            host.Dispose();
+                    err = localErr;
+                });
+            }
 
             return err;
         }
