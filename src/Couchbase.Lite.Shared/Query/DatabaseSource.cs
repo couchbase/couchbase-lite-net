@@ -71,12 +71,12 @@ namespace Couchbase.Lite.Internal.Query
 
         public override object ToJSON()
         {
-            if (_as == null) {
+            if (ColumnName == null) {
                 return null;
             }
 
             return new Dictionary<string, object> {
-                ["AS"] = _as
+                ["AS"] = ColumnName
             };
         }
 
