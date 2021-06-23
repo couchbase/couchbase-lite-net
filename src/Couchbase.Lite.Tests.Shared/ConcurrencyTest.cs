@@ -244,7 +244,7 @@ namespace Test
             ConcurrentRuns(nConcurrent, index =>
             {
                 for (uint i = 0; i < nRounds; i++) {
-                    Db.Compact();
+                    Db.PerformMaintenance(MaintenanceType.Compact);
                 }
             });
         }
@@ -292,7 +292,7 @@ namespace Test
                 CreateDocs(nDocs, "Create").ToList();
             });
 
-            Db.Compact();
+            Db.PerformMaintenance(MaintenanceType.Compact);
             exp1.WaitForResult(TimeSpan.FromSeconds(60));
         }
 
