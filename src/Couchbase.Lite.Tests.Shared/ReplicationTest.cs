@@ -1397,7 +1397,7 @@ namespace Test
             }
         }
 
-        //[Fact] hang
+        [Fact]
         public void TestConflictResolverCalledTwice()
         {
             int resolveCnt = 0;
