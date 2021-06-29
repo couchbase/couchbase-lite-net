@@ -93,7 +93,17 @@ namespace Couchbase.Lite
         /// <summary>
         /// [VOLATILE] Check for the database’s corruption. If found, an error will be returned.
         /// </summary>
-        IntegrityCheck
+        IntegrityCheck,
+
+        /// <summary>
+        /// Quickly update db statistics to help optimize queries
+        /// </summary>
+        Optimize,
+
+        /// <summary>
+        /// Full update of db statistics; takes longer than Optimize
+        /// </summary>
+        FullOptimize
     }
 
     /// <summary>
