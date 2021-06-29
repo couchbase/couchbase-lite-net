@@ -50,13 +50,6 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_delete(C4Database* database, C4Error* outError);
 
-        public static bool c4db_deleteAtPath(string dbPath, C4Error* outError)
-        {
-            using(var dbPath_ = new C4String(dbPath)) {
-                return NativeRaw.c4db_deleteAtPath(dbPath_.AsFLSlice(), outError);
-            }
-        }
-
         public static bool c4db_deleteNamed(string dbName, string inDirectory, C4Error* outError)
         {
             using(var dbName_ = new C4String(dbName))
@@ -146,10 +139,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_copyNamed(FLSlice sourcePath, FLSlice destinationName, C4DatabaseConfig2* config, C4Error* error);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_deleteAtPath(FLSlice dbPath, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]

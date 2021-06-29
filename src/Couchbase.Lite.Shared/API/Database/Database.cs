@@ -382,7 +382,6 @@ namespace Couchbase.Lite
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(path), path);
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
-            var destPath = DatabasePath(name, config?.Directory);
             LiteCoreBridge.Check(err =>
             {
                 var nativeConfig = DBConfig;
@@ -416,8 +415,8 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
-            var path = DatabasePath(name, directory);
-            LiteCoreBridge.Check(err => Native.c4db_deleteAtPath(path, err) || err->code == 0);
+            var path = DatabasePath(directory);
+            LiteCoreBridge.Check(err => Native.c4db_deleteNamed(name, path, err) || err->code == 0);
         }
 
         /// <summary>
@@ -1200,7 +1199,7 @@ namespace Couchbase.Lite
         #region Private Methods
 
         [@NotNull]
-        private static string DatabasePath(string name, string directory)
+        private static string DatabasePath(string directory)
         {
             var directoryToUse = String.IsNullOrWhiteSpace(directory)
                 ? Service.GetRequiredInstance<IDefaultDirectoryResolver>().DefaultDirectory()
@@ -1211,7 +1210,15 @@ namespace Couchbase.Lite
                     CouchbaseLiteErrorMessage.ResolveDefaultDirectoryFailed);
             }
 
-            if (String.IsNullOrWhiteSpace(name)) {
+            return directoryToUse;
+        }
+
+        private static string DatabasePath(string name, string directory)
+        {
+            var directoryToUse = DatabasePath(directory);
+
+            if (String.IsNullOrWhiteSpace(name))
+            {
                 return directoryToUse;
             }
 
@@ -1306,7 +1313,6 @@ namespace Couchbase.Lite
                     CouchbaseLiteErrorMessage.CreateDBDirectoryFailed, e);
             }
 
-            var path = DatabasePath(Name, Config.Directory);
             var config = DBConfig;
             config.ParentDirectory = Config.Directory;
 
@@ -1325,7 +1331,7 @@ namespace Couchbase.Lite
             }
             #endif
 
-            WriteLog.To.Database.I(Tag, $"Opening {encrypted} database at {path}");
+            WriteLog.To.Database.I(Tag, $"Opening {encrypted} database at { DatabasePath(Name, Config.Directory)}");
             var localConfig1 = config;
             ThreadSafety.DoLocked(() =>
             {
