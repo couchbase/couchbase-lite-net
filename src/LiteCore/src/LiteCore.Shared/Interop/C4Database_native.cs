@@ -117,6 +117,10 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_endTransaction(C4Database* database, [MarshalAs(UnmanagedType.U1)]bool commit, C4Error* outError);
 
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4db_isInTransaction(C4Database* database);
+
         public static C4RawDocument* c4raw_get(C4Database* database, string storeName, string docID, C4Error* outError)
         {
             using(var storeName_ = new C4String(storeName))

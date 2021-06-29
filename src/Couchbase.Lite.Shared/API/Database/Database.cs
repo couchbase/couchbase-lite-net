@@ -1387,7 +1387,7 @@ namespace Couchbase.Lite
             DocumentChangedEventArgs change = null;
             ThreadSafety.DoLocked(() =>
             {
-                if (IsClosed || !_docObs.ContainsKey(documentID)) {
+                if (IsClosed || !_docObs.ContainsKey(documentID) || Native.c4db_isInTransaction(_c4db)) {
                     return;
                 }
 
