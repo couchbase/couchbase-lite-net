@@ -246,12 +246,17 @@ namespace Couchbase.Lite.Sync
                 }
 
                 if (_repl != null) {
-                    ServerCertificate = null;
-                    WriteLog.To.Sync.I(Tag, $"{this}: Starting");
-                    Native.c4repl_start(_repl, Config.Options.Reset || reset);
-                    Config.Options.Reset = false;
-                    Config.Database.AddActiveStoppable(this);
                     status = Native.c4repl_getStatus(_repl);
+                    if (status.level == C4ReplicatorActivityLevel.Stopped
+                    || status.level == C4ReplicatorActivityLevel.Stopping
+                    || status.level == C4ReplicatorActivityLevel.Offline) {
+                        ServerCertificate = null;
+                        WriteLog.To.Sync.I(Tag, $"{this}: Starting");
+                        Native.c4repl_start(_repl, Config.Options.Reset || reset);
+                        Config.Options.Reset = false;
+                        Config.Database.AddActiveStoppable(this);
+                        status = Native.c4repl_getStatus(_repl);
+                    }
                 } else {
                     status = new C4ReplicatorStatus {
                         error = err,
