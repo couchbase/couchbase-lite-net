@@ -105,7 +105,7 @@ namespace Couchbase.Lite.Sync
     {
         #region Constants
 
-        private const uint MaxReceivedBytesPending = 100 * 1024;
+        private const uint MaxReceivedBytesPending = 100 * 850;
         private const string Tag = nameof(WebSocketWrapper);
 
 
@@ -152,7 +152,6 @@ namespace Couchbase.Lite.Sync
             _socket = socket;
             _logic = new HTTPLogic(url);
             _options = options;
-            _reachability.StatusChanged += ReachabilityChanged;
             _reachability.Url = url;
             _reachability.Start();
 
@@ -179,6 +178,8 @@ namespace Couchbase.Lite.Sync
 
                     WriteLog.To.Sync.I(Tag, "Closing socket normally due to request from LiteCore");
                     Native.c4socket_closed(_socket, new C4Error(0, 0));
+                    if(_reachability != null)
+                        _reachability.StatusChanged -= ReachabilityChanged;
                     _closed = true;
                 });
             });
@@ -213,6 +214,7 @@ namespace Couchbase.Lite.Sync
                 _readWriteCancellationTokenSource = new CancellationTokenSource();
                 _writeQueue = new BlockingCollection<byte[]>();
                 _receivePause = new ManualResetEventSlim(true);
+                _reachability.StatusChanged += ReachabilityChanged;
 
                 // STEP 1: Create the TcpClient, which is responsible for negotiating
                 // the socket connection between here and the server
@@ -338,6 +340,8 @@ namespace Couchbase.Lite.Sync
                 }
 
                 Native.c4socket_closed(_socket, c4Err);
+                if (_reachability != null)
+                    _reachability.StatusChanged -= ReachabilityChanged;
                 _closed = true;
             });
         }
@@ -364,6 +368,8 @@ namespace Couchbase.Lite.Sync
                 }
 
                 Native.c4socket_closed(_socket, c4errCopy);
+                if(_reachability != null)
+                    _reachability.StatusChanged -= ReachabilityChanged;
                 _closed = true;
             });
         }
@@ -624,8 +630,10 @@ namespace Couchbase.Lite.Sync
             var socket = _socket;
             _c4Queue.DispatchAsync(() =>
             {
-                var dict = parser.Headers?.ToDictionary(x => x.Key, x => (object) x.Value) ?? new Dictionary<string, object>();
-                Native.c4socket_gotHTTPResponse(socket, httpStatus, dict);
+                if (!_closed) {
+                    var dict = parser.Headers?.ToDictionary(x => x.Key, x => (object)x.Value) ?? new Dictionary<string, object>();
+                    Native.c4socket_gotHTTPResponse(socket, httpStatus, dict);
+                }
             });
 
             // Success is a 101 response, anything else is not good
@@ -808,7 +816,7 @@ namespace Couchbase.Lite.Sync
                 chain.Build(cert2);
             }
 
-#if COUCHBASE_ENTERPRISE
+            #if COUCHBASE_ENTERPRISE
             var onlySelfSigned = _options.AcceptOnlySelfSignedServerCertificate;
             #else
             var onlySelfSigned = false;
