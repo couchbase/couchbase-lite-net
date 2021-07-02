@@ -32,13 +32,13 @@ namespace Couchbase.Lite.Support
     [CouchbaseDependency(Lazy = true, Transient = true)]
     internal sealed class iOSReachability : IReachability
     {
-        #region Constants
+#region Constants
 
         private const string Tag = nameof(iOSReachability);
 
-        #endregion
+#endregion
 
-        #region Variables
+#region Variables
 
         private DispatchQueue _queue;
 
@@ -47,9 +47,9 @@ namespace Couchbase.Lite.Support
 
         public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
 
-        #endregion
+#endregion
 
-        #region Properties
+#region Properties
 
         public NetworkReachabilityFlags ReachabilityFlags { get; private set; }
 
@@ -57,18 +57,18 @@ namespace Couchbase.Lite.Support
 
         public Uri Url { get; set; }
 
-        #endregion
+#endregion
 
-        #region Constructors
+#region Constructors
 
         public iOSReachability()
         {
             _queue = new DispatchQueue("Reachability", false);
         }
 
-        #endregion
+#endregion
 
-        #region Private Methods
+#region Private Methods
 
         private void ClientCallback(NetworkReachabilityFlags flags)
         {
@@ -96,9 +96,9 @@ namespace Couchbase.Lite.Support
             });
         }
 
-        #endregion
+#endregion
 
-        #region IReachability
+#region IReachability
 
         public void Start()
         {
@@ -147,6 +147,11 @@ namespace Couchbase.Lite.Support
                 _ref?.Dispose();
                 _ref = null;
             });
+        }
+        
+        public void Dispose()
+        {
+            Stop();
         }
 
         #endregion
