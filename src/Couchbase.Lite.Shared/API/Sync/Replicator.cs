@@ -777,7 +777,7 @@ namespace Couchbase.Lite.Sync
         {
             if(_reachability != null)
                 _reachability.StatusChanged -= ReachabilityChanged;
-            _reachability?.Stop();
+            _reachability?.Dispose();
             _reachability = null;
         }
 

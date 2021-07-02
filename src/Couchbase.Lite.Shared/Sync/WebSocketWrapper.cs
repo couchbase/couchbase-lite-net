@@ -153,7 +153,6 @@ namespace Couchbase.Lite.Sync
             _logic = new HTTPLogic(url);
             _options = options;
             _reachability.Url = url;
-            _reachability.Start();
 
             SetupAuth();
         }
@@ -178,8 +177,7 @@ namespace Couchbase.Lite.Sync
 
                     WriteLog.To.Sync.I(Tag, "Closing socket normally due to request from LiteCore");
                     Native.c4socket_closed(_socket, new C4Error(0, 0));
-                    if(_reachability != null)
-                        _reachability.StatusChanged -= ReachabilityChanged;
+                    StopReachability();
                     _closed = true;
                 });
             });
@@ -215,7 +213,7 @@ namespace Couchbase.Lite.Sync
                 _writeQueue = new BlockingCollection<byte[]>();
                 _receivePause = new ManualResetEventSlim(true);
                 _reachability.StatusChanged += ReachabilityChanged;
-
+                _reachability.Start();
                 // STEP 1: Create the TcpClient, which is responsible for negotiating
                 // the socket connection between here and the server
                 try {
@@ -297,6 +295,15 @@ namespace Couchbase.Lite.Sync
             });
         }
 
+        private void StopReachability()
+        {
+            if (_reachability != null)
+            {
+                _reachability.StatusChanged -= ReachabilityChanged;
+                _reachability.Dispose();
+            }
+        }
+
         private async void connectProxyAsync(IProxy proxy, string user, string password)
         {
             try {
@@ -340,8 +347,7 @@ namespace Couchbase.Lite.Sync
                 }
 
                 Native.c4socket_closed(_socket, c4Err);
-                if (_reachability != null)
-                    _reachability.StatusChanged -= ReachabilityChanged;
+                StopReachability();
                 _closed = true;
             });
         }
@@ -368,8 +374,7 @@ namespace Couchbase.Lite.Sync
                 }
 
                 Native.c4socket_closed(_socket, c4errCopy);
-                if(_reachability != null)
-                    _reachability.StatusChanged -= ReachabilityChanged;
+                StopReachability();
                 _closed = true;
             });
         }
