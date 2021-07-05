@@ -105,7 +105,7 @@ namespace Couchbase.Lite.Sync
     {
         #region Constants
 
-        private const uint MaxReceivedBytesPending = 100 * 850;
+        private const uint MaxReceivedBytesPending = 100 * 1024;
         private const string Tag = nameof(WebSocketWrapper);
 
 
@@ -297,10 +297,9 @@ namespace Couchbase.Lite.Sync
 
         private void StopReachability()
         {
-            if (_reachability != null)
-            {
+            if (_reachability != null) {
                 _reachability.StatusChanged -= ReachabilityChanged;
-                _reachability.Dispose();
+                _reachability.Stop();
             }
         }
 

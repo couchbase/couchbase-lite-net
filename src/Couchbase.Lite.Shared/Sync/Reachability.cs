@@ -116,8 +116,7 @@ namespace Couchbase.Lite.Sync
             if (!NetworkInterface.GetIsNetworkAvailable()) {
                 WriteLog.To.Sync.I(Tag, "NetworkInterface.GetIsNetworkAvailable() indicated no network available");
                 status = NetworkReachabilityStatus.Unreachable;
-            }
-            else {
+            } else {
                 var firstValidIP = NetworkInterface.GetAllNetworkInterfaces().Where(IsInterfaceValid)
                     .SelectMany(x => x.GetIPProperties().UnicastAddresses)
                     .Select(x => x.Address).FirstOrDefault();
@@ -146,11 +145,6 @@ namespace Couchbase.Lite.Sync
         public void Stop()
         {
             NetworkChange.NetworkAddressChanged -= OnNetworkChange;
-        }
-
-        public void Dispose()
-        {
-            Stop();
         }
 
         #endregion

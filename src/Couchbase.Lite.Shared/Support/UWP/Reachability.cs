@@ -28,19 +28,19 @@ namespace Couchbase.Lite.Support
     [CouchbaseDependency(Transient = true)]
     internal sealed class Reachability : IReachability
     {
-#region Variables
+        #region Variables
 
         public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
 
-#endregion
+        #endregion
         
-#region Properties
+        #region Properties
         
         public Uri Url { get; set; }
         
-#endregion
+        #endregion
 
-#region Private Methods
+        #region Private Methods
 
         private void OnNetworkStatusChanged(object sender)
         {
@@ -52,7 +52,7 @@ namespace Couchbase.Lite.Support
 			Task.Factory.StartNew(() => { StatusChanged?.Invoke(this, new NetworkReachabilityChangeEventArgs(status)); });
         }
 
-#endregion
+        #endregion
 
         #region IReachability
 
@@ -64,11 +64,6 @@ namespace Couchbase.Lite.Support
         public void Stop()
         {
             NetworkInformation.NetworkStatusChanged -= OnNetworkStatusChanged;
-        }
-        
-        public void Dispose()
-        {
-            Stop();
         }
 
         #endregion
