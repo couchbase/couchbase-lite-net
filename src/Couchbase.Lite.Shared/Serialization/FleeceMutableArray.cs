@@ -25,36 +25,27 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Lite.Internal.Doc;
+using System.Diagnostics;
 
 namespace Couchbase.Lite.Fleece
 {
-    internal sealed unsafe class FleeceMutableArray : MCollection, IList<object>, IDisposable
+    internal sealed unsafe class FleeceMutableArray : MCollection, IList<object>
     {
-        #region Constants
-
-        private const string Tag = nameof(FleeceMutableArray);
-
-        #endregion
-
         #region Variables
 
         [NotNull]
         [ItemNotNull]
         private List<MValue> _vec = new List<MValue>();
 
-        private FLArray* _flArr;
-
-        private bool _releaseRequired = false;
-
         #endregion
 
         #region Properties
 
-        public int Count => (int)Native.FLArray_Count(_flArr);
+        public FLArray* BaseArray { get; private set; }
+
+        public int Count => _vec.Count;
 
         public bool IsReadOnly => !IsMutable;
-
-        public bool IsEmpty => Native.FLArray_IsEmpty(_flArr);
 
         public object this[int index]
         {
@@ -68,8 +59,7 @@ namespace Couchbase.Lite.Fleece
 
         public FleeceMutableArray()
         {
-            _flArr = (FLArray*)Native.FLMutableArray_New();
-            _releaseRequired = true;
+
         }
 
         public FleeceMutableArray(MValue mv, MCollection parent)
@@ -84,13 +74,15 @@ namespace Couchbase.Lite.Fleece
         [NotNull]
         public MValue Get(int index)
         {
-            if (index < 0 || index >= _vec.Count) {
+            if (index < 0 || index >= _vec.Count)
+            {
                 return MValue.Empty;
             }
 
             var val = _vec[index];
-            if (val.IsEmpty) {
-                val = new MValue(Native.FLArray_Get(_flArr, (uint)index));
+            if (val.IsEmpty)
+            {
+                val = new MValue(Native.FLArray_Get(BaseArray, (uint)index));
                 _vec[index] = val;
             }
 
@@ -105,7 +97,7 @@ namespace Couchbase.Lite.Fleece
         public void RemoveRange(int start, int count = 1)
         {
             if (!IsMutable) {
-                throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotRemoveItemsFromNonMutableMArray);
+                throw new InvalidOperationException("Cannot remove items from a non-mutable FleeceMutableArray");
             }
 
             var end = start + count;
@@ -114,30 +106,29 @@ namespace Couchbase.Lite.Fleece
             }
 
             if (start < 0) {
-                throw new ArgumentOutOfRangeException(String.Format(CouchbaseLiteErrorMessage.CannotRemoveStartingFromIndexLessThan, start));
+                throw new ArgumentOutOfRangeException($"Cannot remove starting from an index less than 0 (got {start})");
             }
 
             if (end < start) {
-                throw new ArgumentOutOfRangeException(String.Format(CouchbaseLiteErrorMessage.CannotRemoveRangeEndsBeforeItStarts, start, count));
+                throw new ArgumentOutOfRangeException($"Cannot remove a range that ends before it starts (got start={start}, count = {count})");
             }
 
             if (end > _vec.Count) {
-                throw new ArgumentOutOfRangeException(String.Format(CouchbaseLiteErrorMessage.RangeEndForRemoveExceedsArrayLength, start, count));
+                throw new ArgumentOutOfRangeException($"Range end for remove exceeds the length of the array (got start={start}, count = {count})");
             }
 
             if (end < Count) {
-                PopulateArr();
+                PopulateVec();
             }
 
             Mutate();
-            Native.FLMutableArray_Remove((FLMutableArray*)_flArr, (uint)start, (uint)count);
             _vec.RemoveRange(start, count);
         }
 
         public void Set(int index, object val)
         {
             if (!IsMutable) {
-                throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotSetItemsInNonMutableMArray);
+                throw new InvalidOperationException("Cannot set items in a non-mutable FleeceMutableArray");
             }
 
             if (index < 0 || index >= Count) {
@@ -148,40 +139,26 @@ namespace Couchbase.Lite.Fleece
                 throw new ArgumentNullException(nameof(val));
             }
 
-            SetValue(index, val);
+            Mutate();
             _vec[index] = new MValue(val);
-        }
-
-        #endregion
-
-        #region Internal Methods
-
-        internal string ToJSON()
-        {
-            return Native.FLValue_ToJSON((FLValue*) _flArr);
         }
 
         #endregion
 
         #region Private Methods
 
-        private void PopulateArr()
+        private void PopulateVec()
         {
             for (int i = 0; i < _vec.Count; i++) {
                 var v = _vec[i];
                 if (v.IsEmpty) {
-                    var val = Native.FLArray_Get(_flArr, (uint)i);
-                    _vec[i] = new MValue(val);
+                    _vec[i] = new MValue(Native.FLArray_Get(BaseArray, (uint)i));
                 }
             }
         }
 
         private void Resize(int newSize)
         {
-            if (IsMutable) {
-                Native.FLMutableArray_Resize((FLMutableArray*)_flArr, (uint)newSize);
-            }
-
             var count = _vec.Count;
             if (newSize < count) {
                 _vec.RemoveRange(newSize, count - newSize);
@@ -194,22 +171,6 @@ namespace Couchbase.Lite.Fleece
             }
         }
 
-        private void SetValue(int index, object val, bool isInserting = false)
-        {
-            if (index < Count) {
-                PopulateArr();
-            }
-
-            Mutate();
-            //Use ToCouchbaseObject method to throw ArgumentException when the value is not a Couchbase object
-            var cbVal = DataOps.ToCouchbaseObject(val);
-            if (isInserting) {
-                Native.FLMutableArray_Insert((FLMutableArray*)_flArr, (uint)index, 1);
-            }
-
-            cbVal.FLSlotSet(Native.FLMutableArray_Set((FLMutableArray*)_flArr, (uint)index));
-        }
-
         #endregion
 
         #region Overrides
@@ -218,38 +179,22 @@ namespace Couchbase.Lite.Fleece
         {
             var a = original as FleeceMutableArray;
             base.InitAsCopyOf(original, isMutable);
-            _flArr = a != null ? a._flArr : null;
+            BaseArray = a != null ? a.BaseArray : null;
             _vec = a?._vec ?? new List<MValue>();
         }
 
         protected override void InitInSlot(MValue slot, MCollection parent, bool isMutable)
         {
             base.InitInSlot(slot, parent, isMutable);
-            var b = Native.FLValue_AsArray(slot.Value);
-            if (isMutable) {
-                _flArr = (FLArray*)Native.FLArray_MutableCopy(b, FLCopyFlags.DefaultCopy);
-            } else {
-                _flArr = b; //don't need to make copies of immutable arrays
-            }
-
-            Resize((int)Native.FLArray_Count(_flArr));
-            _releaseRequired = isMutable;
-        }
-
-        public override unsafe void FLSlotSet(FLSlot* slot)
-        {
-            if (_flArr == null) {
-                Native.FLSlot_SetNull(slot);
-            } else {
-                Native.FLSlot_SetValue(slot, (FLValue*) _flArr);
-            }
+            Debug.Assert(BaseArray == null);
+            BaseArray = Native.FLValue_AsArray(slot.Value);
+            Resize((int)Native.FLArray_Count(BaseArray));
         }
 
         #endregion
 
         #region ICollection<object>
 
-        //append the item at the end of array
         public void Add(object item)
         {
             Insert(Count, item);
@@ -258,7 +203,7 @@ namespace Couchbase.Lite.Fleece
         public void Clear()
         {
             if (!IsMutable) {
-                throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotClearNonMutableMArray);
+                throw new InvalidOperationException("Cannot clear a non-mutable FleeceMutableArray");
             }
 
             if (!_vec.Any()) {
@@ -266,7 +211,6 @@ namespace Couchbase.Lite.Fleece
             }
 
             Mutate();
-            Native.FLMutableArray_Remove((FLMutableArray*)_flArr, 0, (uint)Count);
             _vec.Clear();
         }
 
@@ -283,34 +227,6 @@ namespace Couchbase.Lite.Fleece
         public bool Remove(object item)
         {
             throw new NotImplementedException();
-        }
-
-        #endregion
-
-        #region IList<object>
-
-        public int IndexOf(object item)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Insert(int index, object val)
-        {
-            if (!IsMutable) {
-                throw new InvalidOperationException(CouchbaseLiteErrorMessage.CannotInsertItemsInNonMutableMArray);
-            }
-
-            if (index < 0 || index > _vec.Count) {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
-
-            SetValue(index, val, true);
-            _vec.Insert(index, new MValue(val));
-        }
-
-        public void RemoveAt(int index)
-        {
-            RemoveRange(index);
         }
 
         #endregion
@@ -338,95 +254,134 @@ namespace Couchbase.Lite.Fleece
         public override void FLEncode(FLEncoder* enc)
         {
             if (!IsMutated) {
-                if (_flArr == null) {
+                if (BaseArray == null) {
                     Native.FLEncoder_BeginArray(enc, 0UL);
                     Native.FLEncoder_EndArray(enc);
                 } else {
-                    Native.FLEncoder_WriteValue(enc, (FLValue*)_flArr);
+                    Native.FLEncoder_WriteValue(enc, (FLValue*)BaseArray);
                 }
             } else {
                 Native.FLEncoder_BeginArray(enc, (uint)Count);
-                for (int i = 0; i < Count; i++) {
-                    var item = Get(i);
+                uint i = 0;
+                foreach (var item in _vec) {
                     if (item.IsEmpty) {
-                        Native.FLEncoder_WriteValue(enc, Native.FLArray_Get(_flArr, (uint)i));
+                        Native.FLEncoder_WriteValue(enc, Native.FLArray_Get(BaseArray, i));
                     } else {
                         item.FLEncode(enc);
                     }
+
+                    ++i;
                 }
 
                 Native.FLEncoder_EndArray(enc);
             }
-
         }
 
         #endregion
 
-        #region IDisposable
+        #region IList<object>
 
-        public void Dispose()
+        public int IndexOf(object item)
         {
-            if (_releaseRequired) {
-                Native.FLValue_Release((FLValue*)_flArr);
+            throw new NotImplementedException();
+        }
+
+        public void Insert(int index, object val)
+        {
+            if (!IsMutable) {
+                throw new InvalidOperationException("Cannot insert items in a non-mutable FleeceMutableArray");
             }
-            Context?.Dispose();
+
+            if (index < 0 || index > Count) {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            if (index < Count) {
+                PopulateVec();
+            }
+
+            Mutate();
+            _vec.Insert(index, new MValue(val));
+        }
+
+        public void RemoveAt(int index)
+        {
+            RemoveRange(index);
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        internal string ToJSON()
+        {
+            return Native.FLValue_ToJSON((FLValue*)BaseArray);
+        }
+
+        #endregion
+
+        public override unsafe void FLSlotSet(FLSlot* slot)
+        {
+            if (BaseArray == null) {
+                Native.FLSlot_SetNull(slot);
+            } else {
+                Native.FLSlot_SetValue(slot, (FLValue*)BaseArray);
+            }
+        }
+
+        #region Nested
+
+        private class Enumerator : IEnumerator<object>
+        {
+            #region Variables
+
+            private readonly FleeceMutableArray _parent;
+            private int _current = -1;
+
+            #endregion
+
+            #region Properties
+
+            public object Current => _parent[_current];
+
+            object IEnumerator.Current => Current;
+
+            #endregion
+
+            #region Constructors
+
+            public Enumerator(FleeceMutableArray parent)
+            {
+                _parent = parent;
+            }
+
+            #endregion
+
+            #region IDisposable
+
+            public void Dispose()
+            {
+
+            }
+
+            #endregion
+
+            #region IEnumerator
+
+            public bool MoveNext()
+            {
+                ++_current;
+                return _current < _parent.Count;
+            }
+
+            public void Reset()
+            {
+                _current = -1;
+            }
+
+            #endregion
         }
 
         #endregion
     }
-
-    #region Nested
-
-    unsafe class Enumerator : IEnumerator<object>
-    {
-        #region Variables 
-
-        private readonly FleeceMutableArray _parent;
-        private int _current = -1;
-
-        #endregion
-
-        #region Properties
-
-        public object Current => _parent[_current];
-
-        object IEnumerator.Current => Current;
-
-        #endregion
-
-        #region Constructors
-
-        public Enumerator(FleeceMutableArray parent)
-        {
-            _parent = parent;
-        }
-
-        #endregion
-
-        #region IDisposable
-
-        public void Dispose()
-        {
-
-        }
-
-        #endregion
-
-        #region IEnumerator
-
-        public bool MoveNext()
-        {
-            ++_current;
-            return _current < _parent.Count;
-        }
-
-        public void Reset()
-        {
-            _current = -1;
-        }
-
-        #endregion
-    }
-
-    #endregion
 }

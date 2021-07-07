@@ -294,8 +294,8 @@ namespace Test
             }};
 
             var listContainsBlobJson = JsonConvert.SerializeObject(blobDict);
-            using(var md = new MutableDocument("doc1"))
-            using (var ma = new MutableArrayObject(listContainsBlobJson)) {
+            using (var md = new MutableDocument("doc1")) {
+                var ma = new MutableArrayObject(listContainsBlobJson);
                 var blobInMa = (MutableDictionaryObject)ma.GetValue(0);
                 var blobInMD = new Blob(blobInMa.ToDictionary());
                 blobInMD.Content.Should().BeNull(CouchbaseLiteErrorMessage.BlobDbNull);
