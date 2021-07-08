@@ -33,7 +33,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A class representing a readonly ordered collection of objects
     /// </summary>
-    public class ArrayObject : IArray, IJSON, IDisposable
+    public class ArrayObject : IArray, IJSON
     {
         #region Variables
 
@@ -229,15 +229,6 @@ namespace Couchbase.Lite
             }
 
             return _array.ToJSON();
-        }
-
-        #endregion
-
-        #region IDisposable
-
-        public void Dispose()
-        {
-            _array.Dispose();
         }
 
         #endregion
