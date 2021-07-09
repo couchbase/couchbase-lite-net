@@ -176,9 +176,7 @@ namespace Couchbase.Lite.Sync
                     }
 
                     WriteLog.To.Sync.I(Tag, "Closing socket normally due to request from LiteCore");
-                    Native.c4socket_closed(_socket, new C4Error(0, 0));
-                    StopReachability();
-                    _closed = true;
+                    ReleaseSocket(new C4Error(0, 0));
                 });
             });
         }
@@ -200,7 +198,7 @@ namespace Couchbase.Lite.Sync
 
         // This starts the flow of data, and it is quite an intense multi step process
         // So I will label it in sequential order
-        public void Start()
+        public unsafe void Start()
         {
             _queue.DispatchAsync(() =>
             {
@@ -208,6 +206,9 @@ namespace Couchbase.Lite.Sync
                     WriteLog.To.Sync.W(Tag, "Ignoring duplicate call to Start...");
                     return;
                 }
+
+                Native.c4socket_retain(_socket);
+                WriteLog.To.Sync.I(Tag, "c4Socket is retained.");
 
                 _readWriteCancellationTokenSource = new CancellationTokenSource();
                 _writeQueue = new BlockingCollection<byte[]>();
@@ -262,6 +263,18 @@ namespace Couchbase.Lite.Sync
         #endregion
 
         #region Private Methods
+
+        private unsafe void ReleaseSocket(C4Error errorIfAny)
+        {
+            _queue.DispatchAsync(() =>
+            {
+                Native.c4socket_closed(_socket, errorIfAny);
+                Native.c4socket_release(_socket);
+                StopReachability();
+                _closed = true;
+                WriteLog.To.Sync.I(Tag, $"c4Socket is closed and released.");
+            });
+        }
 
         private static string Base64Digest(string input)
         {
@@ -345,9 +358,7 @@ namespace Couchbase.Lite.Sync
                     return;
                 }
 
-                Native.c4socket_closed(_socket, c4Err);
-                StopReachability();
-                _closed = true;
+                ReleaseSocket(c4Err);
             });
         }
 
@@ -372,9 +383,7 @@ namespace Couchbase.Lite.Sync
                     return;
                 }
 
-                Native.c4socket_closed(_socket, c4errCopy);
-                StopReachability();
-                _closed = true;
+                ReleaseSocket(c4errCopy);
             });
         }
 
@@ -564,6 +573,7 @@ namespace Couchbase.Lite.Sync
                         if (!_closed) {
                             unsafe {
                                 Native.c4socket_completedWrite(_socket, (ulong) nextData.Length);
+                                WriteLog.To.Sync.I(Tag, "c4Socket completed Write.");
                             }
                         }
                     });
