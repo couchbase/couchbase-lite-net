@@ -208,7 +208,7 @@ namespace Couchbase.Lite.Sync
                 }
 
                 Native.c4socket_retain(_socket);
-                WriteLog.To.Sync.I(Tag, "c4Socket is retained.");
+                WriteLog.To.Sync.I(Tag, "c4Socket is retained, and reachability status monitor is starting.");
 
                 _readWriteCancellationTokenSource = new CancellationTokenSource();
                 _writeQueue = new BlockingCollection<byte[]>();
@@ -268,7 +268,7 @@ namespace Couchbase.Lite.Sync
         {
             Native.c4socket_closed(_socket, errorIfAny);
             Native.c4socket_release(_socket);
-            WriteLog.To.Sync.I(Tag, $"c4Socket is closed and released.");
+            WriteLog.To.Sync.I(Tag, $"c4Socket is closed and released, reachability is stopping monitor.");
             StopReachability();
             _closed = true;
         }
