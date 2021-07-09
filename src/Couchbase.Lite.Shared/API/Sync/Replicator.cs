@@ -775,8 +775,11 @@ namespace Couchbase.Lite.Sync
 
         private void StopReachabilityObserver()
         {
-            _reachability?.Stop();
-            _reachability = null;
+            if (_reachability != null) {
+                _reachability.StatusChanged -= ReachabilityChanged;
+                _reachability.Stop();
+                _reachability = null;
+            }
         }
 
         // Must be called from within the ThreadSafety

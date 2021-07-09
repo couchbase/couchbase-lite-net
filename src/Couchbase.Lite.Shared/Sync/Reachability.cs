@@ -116,8 +116,7 @@ namespace Couchbase.Lite.Sync
             if (!NetworkInterface.GetIsNetworkAvailable()) {
                 WriteLog.To.Sync.I(Tag, "NetworkInterface.GetIsNetworkAvailable() indicated no network available");
                 status = NetworkReachabilityStatus.Unreachable;
-            }
-            else {
+            } else {
                 var firstValidIP = NetworkInterface.GetAllNetworkInterfaces().Where(IsInterfaceValid)
                     .SelectMany(x => x.GetIPProperties().UnicastAddresses)
                     .Select(x => x.Address).FirstOrDefault();
@@ -125,8 +124,7 @@ namespace Couchbase.Lite.Sync
                 if (firstValidIP == null) {
                     WriteLog.To.Sync.I(Tag, "No acceptable IP addresses found, signaling network unreachable");
                     status = NetworkReachabilityStatus.Unreachable;
-                }
-                else {
+                } else {
                     WriteLog.To.Sync.I(Tag, "At least one acceptable IP address found ({0}), signaling network reachable", new SecureLogString(firstValidIP, LogMessageSensitivity.PotentiallyInsecure));
                     status = NetworkReachabilityStatus.Reachable;
                 }
