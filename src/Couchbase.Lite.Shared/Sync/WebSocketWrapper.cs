@@ -266,14 +266,11 @@ namespace Couchbase.Lite.Sync
 
         private unsafe void ReleaseSocket(C4Error errorIfAny)
         {
-            _queue.DispatchAsync(() =>
-            {
-                Native.c4socket_closed(_socket, errorIfAny);
-                Native.c4socket_release(_socket);
-                StopReachability();
-                _closed = true;
-                WriteLog.To.Sync.I(Tag, $"c4Socket is closed and released.");
-            });
+            Native.c4socket_closed(_socket, errorIfAny);
+            Native.c4socket_release(_socket);
+            WriteLog.To.Sync.I(Tag, $"c4Socket is closed and released.");
+            StopReachability();
+            _closed = true;
         }
 
         private static string Base64Digest(string input)
@@ -303,6 +300,7 @@ namespace Couchbase.Lite.Sync
             _c4Queue.DispatchAsync(() =>
             {
                 Native.c4socket_opened(socket);
+                WriteLog.To.Sync.I(Tag, "c4Socket is open.");
                 Task.Factory.StartNew(PerformWrite);
                 Task.Factory.StartNew(PerformRead);
             });
@@ -573,7 +571,7 @@ namespace Couchbase.Lite.Sync
                         if (!_closed) {
                             unsafe {
                                 Native.c4socket_completedWrite(_socket, (ulong) nextData.Length);
-                                WriteLog.To.Sync.I(Tag, "c4Socket completed Write.");
+                                WriteLog.To.Sync.V(Tag, "c4Socket completed Write.");
                             }
                         }
                     });
@@ -611,6 +609,7 @@ namespace Couchbase.Lite.Sync
                     // Guard against closure / disposal
                     if (!_closed) {
                         Native.c4socket_received(socket, data);
+                        WriteLog.To.Sync.V(Tag, "c4Socket received.");
                         if (_receivedBytesPending >= MaxReceivedBytesPending) {
                             WriteLog.To.Sync.V(Tag, "Too much pending data, throttling Receive...");
                             _receivePause?.Reset();
@@ -647,6 +646,7 @@ namespace Couchbase.Lite.Sync
                 if (!_closed) {
                     var dict = parser.Headers?.ToDictionary(x => x.Key, x => (object)x.Value) ?? new Dictionary<string, object>();
                     Native.c4socket_gotHTTPResponse(socket, httpStatus, dict);
+                    WriteLog.To.Sync.V(Tag, "c4Socket got http response.");
                 }
             });
 
