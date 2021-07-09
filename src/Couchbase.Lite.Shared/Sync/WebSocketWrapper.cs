@@ -177,9 +177,7 @@ namespace Couchbase.Lite.Sync
                     }
 
                     WriteLog.To.Sync.I(Tag, "Closing socket normally due to request from LiteCore");
-                    Native.c4socket_closed(_socket, new C4Error(0, 0));
-                    StopReachability();
-                    _closed = true;
+                    ReleaseSocket(new C4Error(0, 0));
                 });
             });
         }
@@ -201,7 +199,7 @@ namespace Couchbase.Lite.Sync
 
         // This starts the flow of data, and it is quite an intense multi step process
         // So I will label it in sequential order
-        public void Start()
+        public unsafe void Start()
         {
             _queue.DispatchAsync(() =>
             {
@@ -209,6 +207,9 @@ namespace Couchbase.Lite.Sync
                     WriteLog.To.Sync.W(Tag, "Ignoring duplicate call to Start...");
                     return;
                 }
+
+                Native.c4socket_retain(_socket);
+                WriteLog.To.Sync.I(Tag, "c4Socket is retained, and reachability status monitor is starting.");
 
                 _readWriteCancellationTokenSource = new CancellationTokenSource();
                 _writeQueue = new BlockingCollection<byte[]>();
@@ -264,6 +265,15 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods
 
+        private unsafe void ReleaseSocket(C4Error errorIfAny)
+        {
+            Native.c4socket_closed(_socket, errorIfAny);
+            Native.c4socket_release(_socket);
+            WriteLog.To.Sync.I(Tag, $"c4Socket is closed and released, reachability is stopping monitor.");
+            StopReachability();
+            _closed = true;
+        }
+
         private static string Base64Digest(string input)
         {
             var data = Encoding.ASCII.GetBytes(input);
@@ -291,6 +301,7 @@ namespace Couchbase.Lite.Sync
             _c4Queue.DispatchAsync(() =>
             {
                 Native.c4socket_opened(socket);
+                WriteLog.To.Sync.I(Tag, "c4Socket is open.");
                 Task.Factory.StartNew(PerformWrite);
                 Task.Factory.StartNew(PerformRead);
             });
@@ -346,9 +357,7 @@ namespace Couchbase.Lite.Sync
                     return;
                 }
 
-                Native.c4socket_closed(_socket, c4Err);
-                StopReachability();
-                _closed = true;
+                ReleaseSocket(c4Err);
             });
         }
 
@@ -373,9 +382,7 @@ namespace Couchbase.Lite.Sync
                     return;
                 }
 
-                Native.c4socket_closed(_socket, c4errCopy);
-                StopReachability();
-                _closed = true;
+                ReleaseSocket(c4errCopy);
             });
         }
 
@@ -565,6 +572,7 @@ namespace Couchbase.Lite.Sync
                         if (!_closed) {
                             unsafe {
                                 Native.c4socket_completedWrite(_socket, (ulong) nextData.Length);
+                                WriteLog.To.Sync.V(Tag, "c4Socket completed Write.");
                             }
                         }
                     });
@@ -602,6 +610,7 @@ namespace Couchbase.Lite.Sync
                     // Guard against closure / disposal
                     if (!_closed) {
                         Native.c4socket_received(socket, data);
+                        WriteLog.To.Sync.V(Tag, "c4Socket received.");
                         if (_receivedBytesPending >= MaxReceivedBytesPending) {
                             WriteLog.To.Sync.V(Tag, "Too much pending data, throttling Receive...");
                             _receivePause?.Reset();
@@ -638,6 +647,7 @@ namespace Couchbase.Lite.Sync
                 if (!_closed) {
                     var dict = parser.Headers?.ToDictionary(x => x.Key, x => (object)x.Value) ?? new Dictionary<string, object>();
                     Native.c4socket_gotHTTPResponse(socket, httpStatus, dict);
+                    WriteLog.To.Sync.V(Tag, "c4Socket got http response.");
                 }
             });
 
