@@ -46,7 +46,13 @@ namespace LiteCore.Interop
         public static extern void c4queryenum_release(C4QueryEnumerator* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4dbobs_free(C4DatabaseObserver* x);
+        public static extern C4Socket* c4socket_retain(C4Socket* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4socket_release(C4Socket* x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4dbobs_free(C4DatabaseObserver* observer);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4docobs_free(C4DocumentObserver* observer);
