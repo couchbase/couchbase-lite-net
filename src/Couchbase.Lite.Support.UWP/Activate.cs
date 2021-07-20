@@ -31,15 +31,6 @@ namespace Couchbase.Lite.Support
         #region Public Methods
 
         /// <summary>
-        /// Activates the support classes for UWP
-        /// </summary>
-        /// <exception cref="InvalidProgramException">Thrown if Couchbase.Lite and Couchbase.Lite.Support.UWP do not match</exception>
-        [Obsolete("This call is no longer needed, and will be removed in 3.0")]
-        public static void Activate()
-        {
-        }
-
-        /// <summary>
         /// A sanity check to ensure that the versions of Couchbase.Lite and Couchbase.Lite.Support.UWP match.
         /// These libraries are not independent and must have the exact same version
         /// </summary>
@@ -67,17 +58,6 @@ namespace Couchbase.Lite.Support
                 throw new InvalidProgramException(
                     $"Mismatch between Couchbase.Lite ({version2.InformationalVersion}) and Couchbase.Lite.Support.UWP ({version1.InformationalVersion})");
             }
-        }
-
-        /// <summary>
-        /// [DEPRECATED] Enables text based logging for debugging.  Logs will be written to
-        /// a file in the "Logs" folder inside of the application package's
-        /// local files directory
-        /// </summary>
-        [Obsolete("This has been superceded by Database.Log.Console.  It is a no-op now")]
-        public static void EnableTextLogging()
-        {
-            Debug.WriteLine("CouchbaseLite Warning:  EnableTextLogging() is now a no-op");
         }
 
         #endregion

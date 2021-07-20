@@ -41,15 +41,6 @@ namespace Couchbase.Lite.Support
         #region Public Methods
 
         /// <summary>
-        /// Activates the support classes for .NET Core / .NET Framework
-        /// </summary>
-        /// <exception cref="InvalidProgramException">Thrown if Couchbase.Lite and Couchbase.Lite.Support.NetDesktop do not match</exception>
-        [Obsolete("This method is no longer needed, and will be removed in 3.0")]
-        public static void Activate()
-        {
-        }
-
-        /// <summary>
         /// A sanity check to ensure that the versions of Couchbase.Lite and Couchbase.Lite.Support.NetDesktop match.
         /// These libraries are not independent and must have the exact same version
         /// </summary>
@@ -70,66 +61,6 @@ namespace Couchbase.Lite.Support
             if (!version1.Equals(version2)) {
                 throw new InvalidProgramException(
                     $"Mismatch between Couchbase.Lite ({version2.InformationalVersion}) and Couchbase.Lite.Support.NetDesktop ({version1.InformationalVersion})");
-            }
-        }
-
-        /// <summary>
-        /// <para>[DEPRECATED] Turns on text based logging for debugging purposes.  The logs will be written 
-        /// to the directory specified in <paramref name="directoryPath"/>.  It is equivalent to setting
-        /// a configuration with <c>UsePlaintext</c> set to <c>true</c> on <c>Database.Log.File.Config</c></para>
-        ///
-        /// <para>This will override binary
-        /// logging.  It is not recommended to use this method anymore, but to use <c>Database.Log.Console</c>
-        /// to get information to the console, or <c>Database.Log.Custom</c> to set up custom logging logic
-        /// </para>
-        /// </summary>
-        /// <param name="directoryPath">The directory to write logs to</param>
-        [Obsolete("This has been superseded by new logging logic.  See doc comments for details.")]
-        public static void EnableTextLogging(string directoryPath)
-        {
-            var dbType = Type.GetType("Couchbase.Lite.Database, Couchbase.Lite");
-            var logType = Type.GetType("Couchbase.Lite.Logging.Log, Couchbase.Lite");
-            var fileLoggerType = Type.GetType("Couchbase.Lite.Logging.FileLogger, Couchbase.Lite");
-
-            var logObject = dbType.GetProperty("Log", BindingFlags.Static | BindingFlags.Public).GetValue(null);
-            var fileLoggerObject = logType.GetProperty("File", BindingFlags.Public | BindingFlags.Instance).GetValue(logObject);
-            var configProperty = fileLoggerType.GetProperty("Config", BindingFlags.Public | BindingFlags.Instance);
-            if (directoryPath == null) {
-                configProperty.SetValue(fileLoggerObject, null);
-            } else {
-                var logFileConfigType = Type.GetType("Couchbase.Lite.Logging.LogFileConfiguration, Couchbase.Lite");
-                var constructor = logFileConfigType.GetConstructor(new[] {typeof(string), logFileConfigType});
-                var oldConfig = configProperty.GetValue(fileLoggerObject);
-                var newConfig = constructor.Invoke(new[] {directoryPath, oldConfig});
-                var usePlaintextProperty = logFileConfigType.GetProperty("UsePlaintext", BindingFlags.Public | BindingFlags.Instance);
-                usePlaintextProperty.SetValue(newConfig, true);
-                configProperty.SetValue(fileLoggerObject, newConfig);
-            }
-        }
-
-        /// <summary>
-        /// [DEPRECATED] Directs the binary log files to write to the specified directory.  Useful if
-        /// the default directory does not have write permission.
-        /// </summary>
-        /// <param name="directoryPath">The path to write binary logs to</param>
-        [Obsolete("This has been superseded by Database.Log.File.Directory.")]
-        public static void SetBinaryLogDirectory(string directoryPath)
-        {
-            var dbType = Type.GetType("Couchbase.Lite.Database, Couchbase.Lite");
-            var logType = Type.GetType("Couchbase.Lite.Logging.Log, Couchbase.Lite");
-            var fileLoggerType = Type.GetType("Couchbase.Lite.Logging.FileLogger, Couchbase.Lite");
-
-            var logObject = dbType.GetProperty("Log", BindingFlags.Static | BindingFlags.Public).GetValue(null);
-            var fileLoggerObject = logType.GetProperty("File", BindingFlags.Public | BindingFlags.Instance).GetValue(logObject);
-            var configProperty = fileLoggerType.GetProperty("Config", BindingFlags.Public | BindingFlags.Instance);
-            if (directoryPath == null) {
-                configProperty.SetValue(fileLoggerObject, null);
-            } else {
-                var logFileConfigType = Type.GetType("Couchbase.Lite.Logging.LogFileConfiguration, Couchbase.Lite");
-                var constructor = logFileConfigType.GetConstructor(new[] {typeof(string), logFileConfigType});
-                var oldConfig = configProperty.GetValue(fileLoggerObject);
-                var newConfig = constructor.Invoke(new[] {directoryPath, oldConfig});
-                configProperty.SetValue(fileLoggerObject, newConfig);
             }
         }
 
