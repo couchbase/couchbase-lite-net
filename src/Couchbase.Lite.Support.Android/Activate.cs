@@ -76,16 +76,6 @@ namespace Couchbase.Lite.Support
             }
         }
 
-        /// <summary>
-		/// [DEPRECATED] Enables text based logging for debugging purposes.  Log statements will
-		/// be printed to logcat under the CouchbaseLite tag.
-		/// </summary>
-		[Obsolete("This has been superceded by Database.Log.Console.  It is a no-op now")]
-		public static void EnableTextLogging()
-        {
-            global::Android.Util.Log.Warn("CouchbaseLite", "Call to EnableTextLogging is now a no-op!");
-        }
-
         #endregion
     }
 }
