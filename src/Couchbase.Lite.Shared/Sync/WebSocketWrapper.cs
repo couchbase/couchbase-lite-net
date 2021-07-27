@@ -424,6 +424,11 @@ namespace Couchbase.Lite.Sync
                 return false;
             }
 
+            if (!t.IsCompletedSuccessfully || t.IsFaulted) {
+                DidClose(new SocketException((int)SocketError.SocketError));
+                return false;
+            }
+
             return true;
         }
 
@@ -467,6 +472,7 @@ namespace Couchbase.Lite.Sync
                         if (!NetworkTaskSuccessful(t)) {
                             return;
                         }
+
                         _queue.DispatchAsync(StartInternal);
 
                     });
