@@ -46,8 +46,6 @@ namespace Couchbase.Lite.Tests.iOS
         //
         public override bool FinishedLaunching(UIApplication app, NSDictionary options)
         {
-            Couchbase.Lite.Support.iOS.Activate();
-
             // We need this to ensure the execution assembly is part of the app bundle
             AddExecutionAssembly(typeof(ExtensibilityPointFactory).Assembly);
 
