@@ -423,7 +423,11 @@ namespace Couchbase.Lite.Sync
                 return false;
             }
 
+#if NETCOREAPP3_1 // looks like IsCompletedSuccessfully is only available for .Net Core 2.0+ and .Net Standard 2.1+
             if (!t.IsCompletedSuccessfully || t.IsFaulted) {
+#else
+            if (!t.IsCompleted || t.IsFaulted) {
+#endif
                 DidClose(new SocketException((int)SocketError.SocketError));
                 return false;
             }
