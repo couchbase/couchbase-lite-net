@@ -48,6 +48,11 @@ namespace LiteCore.Tests
         }
 #endif
 
+        /// <summary>
+        /// File exists
+        /// </summary>
+        public static readonly int EEXIST = 17;
+
         private void SetupAllDocs()
         {
             CreateNumberedDocs(99);
@@ -60,6 +65,11 @@ namespace LiteCore.Tests
         {
             var msg = Native.c4error_getMessage(new C4Error(domain, code));
             msg.Should().Be(expected, "because the error message should match the code");
+        }
+
+        private int GetPosixExist(string name)
+        {
+            return (int)EEXIST;
         }
 
         [Fact]
@@ -367,7 +377,6 @@ namespace LiteCore.Tests
 
             AssertMessage(C4ErrorDomain.SQLiteDomain, (int)SQLiteStatus.Corrupt, "database disk image is malformed");
             AssertMessage(C4ErrorDomain.LiteCoreDomain, (int)C4ErrorCode.InvalidParameter, "invalid parameter");
-            AssertMessage(C4ErrorDomain.POSIXDomain, PosixBase.GetCode(nameof(PosixBase.ENOENT)), "No such file or directory");
             AssertMessage(C4ErrorDomain.LiteCoreDomain, (int)C4ErrorCode.TransactionNotClosed, "transaction not closed");
             AssertMessage(C4ErrorDomain.SQLiteDomain, -1234, "unknown error (-1234)");
             AssertMessage((C4ErrorDomain)Byte.MaxValue, -1234, "invalid C4Error (unknown domain)");
@@ -613,7 +622,7 @@ namespace LiteCore.Tests
 
                 srcPath = originalSrc;
                 a.Should().Throw<CouchbasePosixException>().Where(e =>
-                    e.Error == PosixBase.GetCode(nameof(PosixBase.EEXIST)) && e.Domain == CouchbaseLiteErrorType.POSIX);
+                    e.Error == GetPosixExist(nameof(EEXIST)) && e.Domain == CouchbaseLiteErrorType.POSIX);
                 nudb = (C4Database*)LiteCoreBridge.Check(err =>
                 {
                     var localConfig = DBConfig2;

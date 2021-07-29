@@ -91,6 +91,17 @@ namespace LiteCore.Interop
         Unknown,
         TLSCertRevoked,
         TLSCertNameMismatch,
+        NetworkReset,
+        ConnectionAborted,
+        ConnectionReset,
+        ConnectionRefused,
+        NetworkDown,         // 20
+        NetworkUnreachable,
+        NotConnected,
+        HostDown,
+        HostUnreachable,
+        AddressNotAvailableAIL,
+        BrokenPipe,
         NumNetErrorCodesPlus1
     }
 

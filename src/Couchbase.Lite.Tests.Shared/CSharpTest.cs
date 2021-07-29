@@ -493,10 +493,10 @@ Transfer-Encoding: chunked";
             var errors = new[]
             {
                 new C4Error(C4NetworkErrorCode.UnknownHost),
-                new C4Error(C4NetworkErrorCode.DNSFailure),
+                new C4Error(C4NetworkErrorCode.HostUnreachable),
                 new C4Error(C4NetworkErrorCode.Timeout),
-                new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.GetCode(nameof(PosixWindows.ECONNRESET))),
-                new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.GetCode(nameof(PosixWindows.ECONNREFUSED))),
+                new C4Error(C4ErrorDomain.NetworkDomain, (int)C4NetworkErrorCode.ConnectionAborted),
+                new C4Error(C4ErrorDomain.NetworkDomain, (int)C4NetworkErrorCode.ConnectionRefused),
                 new C4Error(C4ErrorDomain.LiteCoreDomain, (int)C4ErrorCode.UnexpectedError) 
             };
 
@@ -562,16 +562,16 @@ Transfer-Encoding: chunked";
         [Fact]
         public void TestTransientAndNetworkDependent()
         {
-            foreach (var err in new[]
-                { "ENETRESET", "ECONNABORTED", "ECONNRESET", "ETIMEDOUT", "ECONNREFUSED" }) {
-                var code = PosixBase.GetCode(err);
-                Native.c4error_mayBeTransient(new C4Error(C4ErrorDomain.POSIXDomain, code)).Should().BeTrue($"because {err} should be transient");
+            foreach (var err in new C4NetworkErrorCode[]
+                { C4NetworkErrorCode.NetworkReset, C4NetworkErrorCode.ConnectionAborted, C4NetworkErrorCode.ConnectionReset, C4NetworkErrorCode.Timeout, C4NetworkErrorCode.ConnectionRefused }) {
+                var code = (int)err;
+                Native.c4error_mayBeTransient(new C4Error(C4ErrorDomain.NetworkDomain, code)).Should().BeTrue($"because {err} should be transient");
             }
 
-            foreach (var err in new[]
-                { "ENETDOWN", "ENETUNREACH", "ENOTCONN", "ETIMEDOUT", "EHOSTUNREACH", "EADDRNOTAVAIL" }) {
-                var code = PosixBase.GetCode(err);
-                Native.c4error_mayBeNetworkDependent(new C4Error(C4ErrorDomain.POSIXDomain, code)).Should().BeTrue($"because {err} should be network dependent");
+            foreach (var err in new C4NetworkErrorCode[]
+                { C4NetworkErrorCode.NetworkDown, C4NetworkErrorCode.NetworkUnreachable, C4NetworkErrorCode.NotConnected, C4NetworkErrorCode.Timeout, C4NetworkErrorCode.HostUnreachable, C4NetworkErrorCode.AddressNotAvailableAIL }) {
+                var code = (int)err;
+                Native.c4error_mayBeNetworkDependent(new C4Error(C4ErrorDomain.NetworkDomain, code)).Should().BeTrue($"because {err} should be network dependent");
             }
         }
 
@@ -623,11 +623,11 @@ Transfer-Encoding: chunked";
             webSocketException = new CouchbaseWebsocketException(10404);
             webSocketException = new CouchbaseWebsocketException(10404, "HTTP Not Found");
 
-            var posixException = CouchbaseException.Create(new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.EACCES)) as CouchbasePosixException;
-            posixException.Error.Should().Be(PosixBase.EACCES);
-            posixException.Domain.Should().Be(CouchbaseLiteErrorType.POSIX);
-            posixException = new CouchbasePosixException(999992);
-            posixException = new CouchbasePosixException(999992, "new posix lite exception");
+            //var posixException = CouchbaseException.Create(new C4Error(C4ErrorDomain.POSIXDomain, PosixBase.EACCES)) as CouchbasePosixException;
+            //posixException.Error.Should().Be(PosixBase.EACCES);
+            //posixException.Domain.Should().Be(CouchbaseLiteErrorType.POSIX);
+            //posixException = new CouchbasePosixException(999992);
+            //posixException = new CouchbasePosixException(999992, "new posix lite exception");
 
             var networkException =
                 CouchbaseException.Create(new C4Error(C4NetworkErrorCode.InvalidURL)) as CouchbaseNetworkException;

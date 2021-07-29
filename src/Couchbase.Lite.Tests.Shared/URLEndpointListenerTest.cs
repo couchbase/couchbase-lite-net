@@ -141,7 +141,7 @@ namespace Test
             _listener = CreateListener(false);
             //listener1 uses the same port as listener
             var config = CreateListenerConfig(false);
-            var listener1 = Listen(config, PosixBase.GetCode(nameof(PosixWindows.EADDRINUSE)), CouchbaseLiteErrorType.POSIX);
+            var listener1 = Listen(config, (int)C4NetworkErrorCode.AddressNotAvailableAIL, CouchbaseLiteErrorType.POSIX);
 
             _listener.Stop();
             listener1.Stop();
