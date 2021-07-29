@@ -95,12 +95,12 @@ namespace LiteCore.Interop
         ConnectionAborted,
         ConnectionReset,
         ConnectionRefused,
-        NetworkDown,         // 20
+        NetworkDown,
         NetworkUnreachable,
         NotConnected,
         HostDown,
         HostUnreachable,
-        AddressNotAvailableAIL,
+        AddressNotAvailable,
         BrokenPipe,
         NumNetErrorCodesPlus1
     }

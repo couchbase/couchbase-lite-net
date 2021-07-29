@@ -103,7 +103,7 @@ namespace Couchbase.Lite
                             case SocketError.AddressNotAvailable:
                                 message = se.Message;
                                 c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.AddressNotAvailableAIL;
+                                c4err.code = (int)C4NetworkErrorCode.AddressNotAvailable;
                                 break;
                             case SocketError.NetworkReset:
                                 message = se.Message;

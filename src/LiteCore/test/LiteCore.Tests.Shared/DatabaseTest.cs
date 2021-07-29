@@ -67,11 +67,6 @@ namespace LiteCore.Tests
             msg.Should().Be(expected, "because the error message should match the code");
         }
 
-        private int GetPosixExist(string name)
-        {
-            return (int)EEXIST;
-        }
-
         [Fact]
         public void TestAllDocs()
         {
@@ -622,7 +617,7 @@ namespace LiteCore.Tests
 
                 srcPath = originalSrc;
                 a.Should().Throw<CouchbasePosixException>().Where(e =>
-                    e.Error == GetPosixExist(nameof(EEXIST)) && e.Domain == CouchbaseLiteErrorType.POSIX);
+                    e.Error == EEXIST && e.Domain == CouchbaseLiteErrorType.POSIX);
                 nudb = (C4Database*)LiteCoreBridge.Check(err =>
                 {
                     var localConfig = DBConfig2;
