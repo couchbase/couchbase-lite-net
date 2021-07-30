@@ -149,10 +149,6 @@ namespace Couchbase.Lite
                             c4err.domain = C4ErrorDomain.NetworkDomain;
                             c4err.code = (int)C4NetworkErrorCode.ConnectionReset;
                         }
-// #elif __ANDROID__
-// EPIPE = .NET SocketException's SocketErrorCode ConnectionReset
-// Broken pipe is caused by the system sending SIGPIPE signal, which is an inter-process communication mechanism of Linux.
-
 #endif
                         break;
                 }
