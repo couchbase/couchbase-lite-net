@@ -256,6 +256,76 @@ namespace Couchbase.Lite
         InvalidRedirect = C4NetworkErrorCode.InvalidRedirect + NetworkBase,
 
         /// <summary>
+        /// Unknown Network error
+        /// </summary>
+        Unknown = C4NetworkErrorCode.Unknown + NetworkBase,
+
+        /// <summary>
+        /// Peer's cert has been revoked
+        /// </summary>
+        TLSCertRevoked = C4NetworkErrorCode.TLSCertRevoked + NetworkBase,
+
+        /// <summary>
+        /// Peer's cert's Common Name doesn't match hostname
+        /// </summary>
+        TLSCertNameMismatch = C4NetworkErrorCode.TLSCertNameMismatch + NetworkBase,
+
+        /// <summary>
+        /// The network subsystem was reset [ENETRESET, retryable]
+        /// </summary>
+        NetworkReset = C4NetworkErrorCode.NetworkReset + NetworkBase,
+
+        /// <summary>
+        /// The connection was aborted by the OS [ECONNABORTED, retryable]
+        /// </summary>
+        ConnectionAborted = C4NetworkErrorCode.ConnectionAborted + NetworkBase,
+
+        /// <summary>
+        /// The connection was reset by the other side [ECONNRESET, retryable]
+        /// </summary>
+        ConnectionReset = C4NetworkErrorCode.ConnectionReset + NetworkBase,
+
+        /// <summary>
+        /// The other side refused the connection [ECONNREFUSED, retryable]
+        /// </summary>
+        ConnectionRefused = C4NetworkErrorCode.ConnectionRefused + NetworkBase,
+
+        /// <summary>
+        /// The network subsystem is not functioning [ENETDOWN, retryable]
+        /// </summary>
+        NetworkDown = C4NetworkErrorCode.NetworkDown + NetworkBase,
+
+        /// <summary>
+        /// There is no usable network at the moment [ENETUNREACH, retryable]
+        /// </summary>
+        NetworkUnreachable = C4NetworkErrorCode.NetworkUnreachable + NetworkBase,
+
+        /// <summary>
+        /// The socket in question is no longer connected [ENOTCONN, retryable]
+        /// </summary>
+        NotConnected = C4NetworkErrorCode.NotConnected + NetworkBase,
+
+        /// <summary>
+        /// The other side reports it is down [EHOSTDOWN, retryable]
+        /// </summary>
+        HostDown = C4NetworkErrorCode.HostDown + NetworkBase,
+
+        /// <summary>
+        /// There is no network path to the host [EHOSTUNREACH, retryable]
+        /// </summary>
+        HostUnreachable = C4NetworkErrorCode.HostUnreachable + NetworkBase,
+
+        /// <summary>
+        /// The address in question is already being used [EADDRNOTAVAIL, retryable]
+        /// </summary>
+        AddressNotAvailable = C4NetworkErrorCode.AddressNotAvailable + NetworkBase,
+
+        /// <summary>
+        /// Broken pipe [EPIPE, retryable]
+        /// </summary>
+        BrokenPipe = C4NetworkErrorCode.BrokenPipe + NetworkBase,
+
+        /// <summary>
         /// Not an actual error, but serves as the lower bound for HTTP related
         /// errors
         /// </summary>
