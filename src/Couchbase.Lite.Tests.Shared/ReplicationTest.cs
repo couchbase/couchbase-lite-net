@@ -1670,6 +1670,44 @@ namespace Test
         }
 
         [Fact]
+        public void TestConflictResolverReturningBlobWithFlagChecking()
+        {
+            C4DocumentFlags flags;
+            //return new doc with a blob object
+            CreateReplicationConflict("doc1", true);
+
+            var config = CreateConfig(false, true, false);
+
+            config.ConflictResolver = new TestConflictResolver((conflict) => {
+                var evilByteArray = new byte[] { 6, 6, 6 };
+                var dict = new MutableDictionaryObject();
+                dict.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
+                var doc = new MutableDocument();
+                doc.SetValue("nestedBlob", dict);
+                unsafe
+                {
+                    flags = conflict.LocalDocument.c4Doc.RawDoc->flags;
+                    flags.HasFlag(C4DocumentFlags.DocConflicted).Should().BeTrue();
+                    flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+                }
+
+                return doc;
+            });
+
+            RunReplication(config, 0, 0);
+
+            using (var doc = Db.GetDocument("doc1"))
+            {
+                ((DictionaryObject) doc.GetValue("nestedBlob")).GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 6, 6, 6 });
+                unsafe
+                {
+                    flags = doc.c4Doc.RawDoc->flags;
+                    flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+                }
+            }
+        }
+
+        [Fact]
         public void TestConflictResolverReturningBlobFromDifferentDB()
         {
             var blobFromOtherDbResolver = new TestConflictResolver((conflict) => {

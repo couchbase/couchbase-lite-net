@@ -1495,12 +1495,12 @@ namespace Couchbase.Lite
                     WriteLog.To.Database.E(Tag, "Save of disposed document {0} attempted, skipping...", new SecureLogString(doc.Id, LogMessageSensitivity.PotentiallyInsecure));
                     return;
                 }
-
-                FLDoc* fleeceDoc = Native.FLDoc_FromResultData(body,
-                    FLTrust.Trusted,
-                    Native.c4db_getFLSharedKeys(_c4db), FLSlice.Null);
+                
                 ThreadSafety.DoLocked(() =>
                 {
+                    FLDoc* fleeceDoc = Native.FLDoc_FromResultData(body,
+                    FLTrust.Trusted,
+                    Native.c4db_getFLSharedKeys(_c4db), FLSlice.Null);
                     if (Native.c4doc_dictContainsBlobs((FLDict*) Native.FLDoc_GetRoot(fleeceDoc))) {
                         revFlags |= C4RevisionFlags.HasAttachments;
                     }
