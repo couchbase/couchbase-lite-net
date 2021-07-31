@@ -69,37 +69,66 @@ namespace Couchbase.Lite
                                 c4err.domain = C4ErrorDomain.NetworkDomain;
                                 c4err.code = (int)C4NetworkErrorCode.UnknownHost;
                                 break;
-                            case SocketError.HostUnreachable:
-                                message = se.Message;
-                                c4err.domain = C4ErrorDomain.NetworkDomain;
-                                c4err.code = (int)C4NetworkErrorCode.DNSFailure;
-                                break;
                             case SocketError.TimedOut:
                                 message = se.Message;
                                 c4err.domain = C4ErrorDomain.NetworkDomain;
                                 c4err.code = (int)C4NetworkErrorCode.Timeout;
                                 break;
                             case SocketError.ConnectionAborted:
+                                message = se.Message;
+                                c4err.domain = C4ErrorDomain.NetworkDomain;
+                                c4err.code = (int)C4NetworkErrorCode.ConnectionAborted;
+                                break;
                             case SocketError.ConnectionReset:
                             case SocketError.Shutdown:
                                 message = se.Message;
-                                c4err.domain = C4ErrorDomain.POSIXDomain;
-                                c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNRESET));
+                                c4err.domain = C4ErrorDomain.NetworkDomain;
+                                c4err.code = (int)C4NetworkErrorCode.ConnectionReset;
                                 break;
                             case SocketError.NetworkUnreachable:
                                 message = se.Message;
-                                c4err.domain = C4ErrorDomain.POSIXDomain;
-                                c4err.code = PosixBase.GetCode(nameof(PosixWindows.ENETRESET));
+                                c4err.domain = C4ErrorDomain.NetworkDomain;
+                                c4err.code = (int)C4NetworkErrorCode.NetworkUnreachable;
                                 break;
                             case SocketError.ConnectionRefused:
                                 message = se.Message;
-                                c4err.domain = C4ErrorDomain.POSIXDomain;
-                                c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNREFUSED));
+                                c4err.domain = C4ErrorDomain.NetworkDomain;
+                                c4err.code = (int)C4NetworkErrorCode.ConnectionRefused;
                                 break;
                             case SocketError.NetworkDown:
                                 message = se.Message;
-                                c4err.domain = C4ErrorDomain.POSIXDomain;
-                                c4err.code = PosixBase.GetCode(nameof(PosixWindows.ENETDOWN));
+                                c4err.domain = C4ErrorDomain.NetworkDomain;
+                                c4err.code = (int)C4NetworkErrorCode.NetworkDown;
+                                break;
+                            case SocketError.AddressNotAvailable:
+                                message = se.Message;
+                                c4err.domain = C4ErrorDomain.NetworkDomain;
+                                c4err.code = (int)C4NetworkErrorCode.AddressNotAvailable;
+                                break;
+                            case SocketError.NetworkReset:
+                                message = se.Message;
+                                c4err.domain = C4ErrorDomain.NetworkDomain;
+                                c4err.code = (int)C4NetworkErrorCode.NetworkReset;
+                                break;
+                            case SocketError.NotConnected:
+                                message = se.Message;
+                                c4err.domain = C4ErrorDomain.NetworkDomain;
+                                c4err.code = (int)C4NetworkErrorCode.NotConnected;
+                                break;
+                            case SocketError.HostDown:
+                                message = se.Message;
+                                c4err.domain = C4ErrorDomain.NetworkDomain;
+                                c4err.code = (int)C4NetworkErrorCode.HostDown;
+                                break;
+                            case SocketError.HostUnreachable:
+                                message = se.Message;
+                                c4err.domain = C4ErrorDomain.NetworkDomain;
+                                c4err.code = (int)C4NetworkErrorCode.HostUnreachable;
+                                break;
+                            case SocketError.SocketError:
+                                message = se.Message;
+                                c4err.domain = C4ErrorDomain.NetworkDomain;
+                                c4err.code = (int)C4NetworkErrorCode.Unknown;
                                 break;
                         }
 
@@ -110,16 +139,17 @@ namespace Couchbase.Lite
                             c4err.domain = C4ErrorDomain.NetworkDomain;
                             c4err.code = (int) C4NetworkErrorCode.TLSHandshakeFailed;
                         }
-                    #if __IOS__
+
+#if __IOS__
                         if (ie.Message == "Connection closed.") {
                         //AppleTlsContext.cs
                         //case SslStatus.ClosedAbort:
                         //  throw new IOException("Connection closed.");
                         message = ie.Message;
-                            c4err.domain = C4ErrorDomain.POSIXDomain;
-                            c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNRESET));
+                            c4err.domain = C4ErrorDomain.NetworkDomain;
+                            c4err.code = (int)C4NetworkErrorCode.ConnectionReset;
                         }
-                    #endif
+#endif
                         break;
                 }
             }

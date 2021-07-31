@@ -38,6 +38,7 @@ using Couchbase.Lite.Sync;
 
 using FluentAssertions;
 using LiteCore.Interop;
+using System.Runtime.InteropServices;
 
 #if !WINDOWS_UWP
 using Xunit;
@@ -138,10 +139,12 @@ namespace Test
         [Fact]
         public void TestBusyPort()
         {
-            _listener = CreateListener(false);
+            _listener = CreateListener(false, false);
+            _listener.Start();
+
             //listener1 uses the same port as listener
-            var config = CreateListenerConfig(false);
-            var listener1 = Listen(config, PosixBase.GetCode(nameof(PosixWindows.EADDRINUSE)), CouchbaseLiteErrorType.POSIX);
+            var config = CreateListenerConfig(false, false, stopListener: false);
+            var listener1 = Listen(config, GetEADDRINUSECode(), CouchbaseLiteErrorType.POSIX, stopListener: false);
 
             _listener.Stop();
             listener1.Stop();
@@ -858,6 +861,22 @@ namespace Test
 
         #region Private Methods
 
+        private int GetEADDRINUSECode()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return 100;
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return 48;
+            }
+            else
+            {
+                return 98; // Linux
+            }
+        }
+
         private void WithActiveReplicatorAndURLEndpointListeners(bool isCloseNotDelete)
         {
             WaitAssert waitIdleAssert1 = new WaitAssert();
@@ -1157,9 +1176,10 @@ namespace Test
         }
 
         private URLEndpointListenerConfiguration CreateListenerConfig(bool tls = true, bool useDynamicPort = true,
-            IListenerAuthenticator auth = null, TLSIdentity id = null)
+            IListenerAuthenticator auth = null, TLSIdentity id = null, bool stopListener = true)
         {
-            _listener?.Stop();
+            if(stopListener)
+                _listener?.Stop();
 
             var config = new URLEndpointListenerConfiguration(OtherDb);
             if (useDynamicPort) {
@@ -1194,9 +1214,10 @@ namespace Test
         }
 
         private URLEndpointListener Listen(URLEndpointListenerConfiguration config,
-            int expectedErrCode = 0, CouchbaseLiteErrorType expectedErrDomain = 0)
+            int expectedErrCode = 0, CouchbaseLiteErrorType expectedErrDomain = 0, bool stopListener = true)
         {
-            _listener?.Stop();
+            if(stopListener)
+                _listener?.Stop();
 
             _listener = new URLEndpointListener(config);
 
@@ -1222,6 +1243,13 @@ namespace Test
 
                 ne.Domain.Should().Be(expectedErrDomain);
                 ne.Error.Should().Be(expectedErrCode);
+            } catch (CouchbasePosixException pe) {
+                if (expectedErrCode == 0) {
+                    throw;
+                }
+
+                pe.Domain.Should().Be(expectedErrDomain);
+                pe.Error.Should().Be(expectedErrCode);
             }
 
             return _listener;

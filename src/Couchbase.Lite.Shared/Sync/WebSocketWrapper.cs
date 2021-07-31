@@ -518,7 +518,7 @@ namespace Couchbase.Lite.Sync
                     if (received == 0) {
                         if (zeroByteCount++ >= 10) {
                             WriteLog.To.Sync.I(Tag, "Failed to read from stream too many times, signaling closed...");
-                            DidClose(new CouchbasePosixException(PosixBase.GetCode(nameof(PosixWindows.ECONNRESET))));
+                            DidClose(new CouchbaseNetworkException(C4NetworkErrorCode.ConnectionReset));
                             return;
                         }
 
