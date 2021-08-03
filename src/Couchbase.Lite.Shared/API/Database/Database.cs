@@ -1574,6 +1574,14 @@ namespace Couchbase.Lite
             if (resolvedDoc == null || resolvedDoc.IsDeleted)
                 mergedFlags |= C4RevisionFlags.Deleted;
 
+            FLDoc* fleeceDoc = Native.FLDoc_FromResultData(mergedBody, FLTrust.Trusted,
+                Native.c4db_getFLSharedKeys(_c4db), FLSlice.Null);
+            if (Native.c4doc_dictContainsBlobs((FLDict*)Native.FLDoc_GetRoot(fleeceDoc))) {
+                mergedFlags |= C4RevisionFlags.HasAttachments;
+            }
+
+            Native.FLDoc_Release(fleeceDoc);
+
             // Tell LiteCore to do the resolution:
             C4Document* rawDoc = localDoc.c4Doc != null ? localDoc.c4Doc.RawDoc : null;
             using (var winningRevID_ = new C4String(winningRevID))
