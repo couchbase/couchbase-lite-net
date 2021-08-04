@@ -1672,71 +1672,61 @@ namespace Test
         [Fact]
         public void TestConflictResolverReturningBlobWithFlagChecking()
         {
-            C4DocumentFlags flags= (C4DocumentFlags)0;;
-            //return new doc with a blob object
-            unsafe
+            C4DocumentFlags flags = (C4DocumentFlags)0;
+            unsafe 
             {
-                using (var doc1 = new MutableDocument("doc1"))
-                {
+                using (var doc1 = new MutableDocument("doc1")) {
                     doc1.SetString("name", "Tiger");
                     Db.Save(doc1);
-                        flags = doc1.c4Doc.RawDoc->flags;
-                        flags.HasFlag(C4DocumentFlags.DocExists).Should().BeTrue();
+                    flags = doc1.c4Doc.RawDoc->flags;
+                    flags.HasFlag(C4DocumentFlags.DocExists).Should().BeTrue();
                 }
 
-                using (var doc1 = new MutableDocument("doc1"))
-                {
+                using (var doc1 = new MutableDocument("doc1")) {
                     doc1.SetString("name", "Tiger");
                     OtherDb.Save(doc1);
-                        flags = doc1.c4Doc.RawDoc->flags;
-                        flags.HasFlag(C4DocumentFlags.DocExists).Should().BeTrue();
+                    flags = doc1.c4Doc.RawDoc->flags;
+                    flags.HasFlag(C4DocumentFlags.DocExists).Should().BeTrue();
                 }
 
                 // Force a conflict
                 using (var doc1a = Db.GetDocument("doc1"))
-                using (var doc1aMutable = doc1a.ToMutable())
-                {
+                using (var doc1aMutable = doc1a.ToMutable()) {
                     doc1aMutable.SetString("name", "Cat");
                     Db.Save(doc1aMutable);
-                        flags = doc1aMutable.c4Doc.RawDoc->flags;
-                        flags.HasFlag(C4DocumentFlags.DocExists).Should().BeTrue();
+                    flags = doc1aMutable.c4Doc.RawDoc->flags;
+                    flags.HasFlag(C4DocumentFlags.DocExists).Should().BeTrue();
                 }
 
                 using (var doc1a = OtherDb.GetDocument("doc1"))
-                using (var doc1aMutable = doc1a.ToMutable())
-                {
+                using (var doc1aMutable = doc1a.ToMutable()) {
                     doc1aMutable.SetString("name", "Lion");
                     OtherDb.Save(doc1aMutable);
-                        flags = doc1aMutable.c4Doc.RawDoc->flags;
-                        flags.HasFlag(C4DocumentFlags.DocExists).Should().BeTrue();
+                    flags = doc1aMutable.c4Doc.RawDoc->flags;
+                    flags.HasFlag(C4DocumentFlags.DocExists).Should().BeTrue();
                 }
-            }
 
-            var config = CreateConfig(false, true, false);
 
-            config.ConflictResolver = new TestConflictResolver((conflict) => {
-                var evilByteArray = new byte[] { 6, 6, 6 };
-                var dict = new MutableDictionaryObject();
-                dict.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
-                var doc = new MutableDocument();
-                doc.SetValue("nestedBlob", dict);
-                unsafe
+                var config = CreateConfig(false, true, false);
+
+                config.ConflictResolver = new TestConflictResolver((conflict) =>
                 {
+                    var evilByteArray = new byte[] { 6, 6, 6 };
+                    var dict = new MutableDictionaryObject();
+                    dict.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
+                    var doc = new MutableDocument();
+                    doc.SetValue("nestedBlob", dict);
                     flags = conflict.LocalDocument.c4Doc.RawDoc->flags;
                     flags.HasFlag(C4DocumentFlags.DocConflicted).Should().BeTrue();
-                }
 
-                return doc;
-            });
+                    return doc;
+                });
 
-            RunReplication(config, 0, 0);
+                RunReplication(config, 0, 0);
 
-            using (var doc = Db.GetDocument("doc1"))
-            {
-                var dict = doc.GetValue("nestedBlob");
-                ((DictionaryObject)dict).GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 6, 6, 6 });
-                unsafe
-                {
+                using (var doc = Db.GetDocument("doc1")) {
+                    var dict = doc.GetValue("nestedBlob");
+                    ((DictionaryObject)dict).GetBlob("blob")?.Content.Should().ContainInOrder(new byte[] { 6, 6, 6 });
                     flags = doc.c4Doc.RawDoc->flags;
                     flags.HasFlag(C4DocumentFlags.DocHasAttachments).Should().BeTrue();
                 }
