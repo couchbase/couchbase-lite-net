@@ -2,7 +2,7 @@ param (
     [Parameter(Mandatory=$true)][string]$version,
     [switch]$debugProject
 )
-$sourceProjectFile = "Couchbase.Lite.Tests.UWP.Source.csproj"
+$sourceProjectFile = "Couchbase.Lite.Tests.UWP.Coverage.csproj"
 if (-NOT (Test-Path $sourceProjectFile)) {
     $scriptpath = Split-Path $MyInvocation.MyCommand.Path
     Push-Location $scriptpath
@@ -30,7 +30,7 @@ if (-NOT (Test-Path $sourceProjectFile)) {
     if($debugProject){
         $content = [System.IO.File]::ReadAllLines("Couchbase.Lite.Tests.UWP.csproj")
     } else {
-        $content = [System.IO.File]::ReadAllLines("Couchbase.Lite.Tests.UWP.Source.csproj")
+        $content = [System.IO.File]::ReadAllLines("Couchbase.Lite.Tests.UWP.Coverage.csproj")
     }
 
     $regex = New-Object -TypeName "System.Text.RegularExpressions.Regex" ".*?<Version>([0-9]\.[0-9]\.[0-9]-b[0-9]{4})<.*?"
@@ -47,6 +47,6 @@ if (-NOT (Test-Path $sourceProjectFile)) {
     if($debugProject){
         [System.IO.File]::WriteAllLines("Couchbase.Lite.Tests.UWP.csproj", $content)
     } else {
-        [System.IO.File]::WriteAllLines("Couchbase.Lite.Tests.UWP.Source.csproj", $content)
+        [System.IO.File]::WriteAllLines("Couchbase.Lite.Tests.UWP.Coverage.csproj", $content)
     }
 }
