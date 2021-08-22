@@ -646,23 +646,7 @@ namespace Test
                     .OnlyContain(str => regex.IsMatch(str), "because otherwise an incorrect entry came in");
             }
         }
-
-        [Fact]
-        public void TestN1QLFTSQuery()
-        {
-            LoadJSONResource("sentences");
-            Db.CreateIndex("sentence", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("sentence")));
-
-            using (var q = Db.CreateQuery("SELECT _id FROM _default WHERE MATCH(sentence, 'Dummie woman')")) {
-                var numRows = VerifyQuery(q, (n, row) =>
-                {
-
-                });
-
-                numRows.Should().Be(2, "because two rows in the data match the query");
-            }
-        }
-
+        
         [Fact]
         public void TestWhereMatch()
         {

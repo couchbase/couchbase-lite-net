@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
     <TargetFrameworks Condition=" !$(Configuration.EndsWith('Coverage')) ">netstandard2.0;netcoreapp3.1;net461;uap10.0.16299;MonoAndroid80;Xamarin.iOS10</TargetFrameworks>
-    <TargetFramework Condition=" $(Configuration.EndsWith('Coverage')) ">uap10.0.16299</TargetFramework>
+    <TargetFramework Condition=" $(Configuration.EndsWith('Coverage')) ">netcoreapp3.1</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>Couchbase.Lite</AssemblyName>
     <PackageId>Couchbase.Lite</PackageId>
