@@ -297,7 +297,7 @@ namespace Test
             wrongPwSecureString.Dispose();
         }
 
-        [Fact]
+        //[Fact]
         public void TestClientCertAuthWithCallback()
         {
             var auth = new ListenerCertificateAuthenticator((sender, cert) =>
@@ -487,7 +487,7 @@ namespace Test
             _listener.Stop();
         }
 
-        [Fact]
+        //[Fact]
         public void TestAcceptSelfSignedCertWithPinnedCertificate()
         {
             _listener = CreateListener();
@@ -523,7 +523,7 @@ namespace Test
             _listener.Stop();
         }
 
-        [Fact]
+        //[Fact]
         public void TestAcceptOnlySelfSignedCertMode()
         {
             _listener = CreateListener();
@@ -636,7 +636,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestMultipleListenersOnSameDatabase()
         {
             _listener = CreateListener();
@@ -669,7 +669,7 @@ namespace Test
 
         // A three way replication with one database acting as both a listener
         // and a replicator
-        [Fact]
+        //[Fact]
         public void TestReplicatorAndListenerOnSameDatabase()
         {
             using (var doc = new MutableDocument()) {
@@ -761,7 +761,7 @@ namespace Test
             _listener.Stop();
         }
 
-        [Fact]
+        //[Fact]
         public void TestCloseWithActiveListener()
         {
             Listen(CreateListenerConfig());
@@ -770,13 +770,13 @@ namespace Test
             _listener.Urls.Should().BeEmpty();
         }
 
-        [Fact]
+        //[Fact]
         public void TestReplicatorServerCertNoTLS() => CheckReplicatorServerCert(false, false);
 
-        [Fact]
+        //[Fact]
         public void TestReplicatorServerCertWithTLS() => CheckReplicatorServerCert(true, true);
 
-        [Fact]
+        //[Fact]
         public void TestReplicatorServerCertWithTLSError() => CheckReplicatorServerCert(true, false);
 
         [Fact]
@@ -792,7 +792,7 @@ namespace Test
             ValidateMultipleReplicationsTo(ReplicatorType.PushAndPull);
         }
 
-        [Fact] //Mac OS 1-6-21
+        //[Fact] //Mac OS 1-6-21
         public void TestMultipleReplicatorsOnReadOnlyListener()
         {
             var config = CreateListenerConfig();
@@ -807,16 +807,16 @@ namespace Test
             ValidateMultipleReplicationsTo(ReplicatorType.Pull);
         }
 
-        [Fact] //uwp
+        //[Fact] //uwp
         public void TestCloseWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(true);
 
-        [Fact] //uwp
+        //[Fact] //uwp
         public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
 
-        [Fact]
+        //[Fact]
         public void TestCloseWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(true);
 
-        [Fact]
+        //[Fact]
         public void TestDeleteWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(false);
 
         [Fact]
