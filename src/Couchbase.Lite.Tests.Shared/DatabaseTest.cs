@@ -163,6 +163,12 @@ namespace Test
         }
 
         [Fact]
+        public void TestGetDocumentWithEmptyStringId()
+        {
+            Db.GetDocument("").Should().BeNull();
+        }
+
+        [Fact]
         public void TestGetNonExistingDocWithID()
         {
             Db.GetDocument("non-exist").Should().BeNull("because it doesn't exist");
