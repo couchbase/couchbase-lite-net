@@ -792,7 +792,7 @@ namespace Test
             ValidateMultipleReplicationsTo(ReplicatorType.PushAndPull);
         }
 
-        //[Fact] //Mac OS 1-6-21
+        [Fact]
         public void TestMultipleReplicatorsOnReadOnlyListener()
         {
             var config = CreateListenerConfig();
