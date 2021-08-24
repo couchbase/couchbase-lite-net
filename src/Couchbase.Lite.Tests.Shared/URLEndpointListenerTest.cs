@@ -297,7 +297,7 @@ namespace Test
             wrongPwSecureString.Dispose();
         }
 
-        //[Fact]
+        [Fact]
         public void TestClientCertAuthWithCallback()
         {
             var auth = new ListenerCertificateAuthenticator((sender, cert) =>
@@ -487,7 +487,7 @@ namespace Test
             _listener.Stop();
         }
 
-        //[Fact]
+        [Fact]
         public void TestAcceptSelfSignedCertWithPinnedCertificate()
         {
             _listener = CreateListener();
@@ -523,7 +523,7 @@ namespace Test
             _listener.Stop();
         }
 
-        //[Fact]
+        [Fact]
         public void TestAcceptOnlySelfSignedCertMode()
         {
             _listener = CreateListener();
