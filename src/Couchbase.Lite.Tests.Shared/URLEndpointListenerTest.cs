@@ -776,7 +776,7 @@ namespace Test
         [Fact]
         public void TestReplicatorServerCertWithTLS() => CheckReplicatorServerCert(true, true);
 
-        //[Fact]
+        [Fact]
         public void TestReplicatorServerCertWithTLSError() => CheckReplicatorServerCert(true, false);
 
         [Fact]
