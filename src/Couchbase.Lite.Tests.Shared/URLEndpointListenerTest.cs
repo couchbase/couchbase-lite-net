@@ -770,13 +770,13 @@ namespace Test
             _listener.Urls.Should().BeEmpty();
         }
 
-        [Fact]
+        //[Fact]
         public void TestReplicatorServerCertNoTLS() => CheckReplicatorServerCert(false, false);
 
-        [Fact]
+        //[Fact]
         public void TestReplicatorServerCertWithTLS() => CheckReplicatorServerCert(true, true);
 
-        [Fact]
+        //[Fact]
         public void TestReplicatorServerCertWithTLSError() => CheckReplicatorServerCert(true, false);
 
         [Fact]
