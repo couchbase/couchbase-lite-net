@@ -807,16 +807,16 @@ namespace Test
             ValidateMultipleReplicationsTo(ReplicatorType.Pull);
         }
 
-        //[Fact] //uwp
+        [Fact]
         public void TestCloseWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(true);
 
-        //[Fact] //uwp
+        [Fact]
         public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
 
         [Fact]
         public void TestCloseWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(true);
 
-        //[Fact]
+        [Fact]
         public void TestDeleteWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(false);
 
         [Fact]
