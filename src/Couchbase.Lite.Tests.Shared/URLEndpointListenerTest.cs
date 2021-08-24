@@ -813,7 +813,7 @@ namespace Test
         //[Fact] //uwp
         public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
 
-        //[Fact]
+        [Fact]
         public void TestCloseWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(true);
 
         //[Fact]
