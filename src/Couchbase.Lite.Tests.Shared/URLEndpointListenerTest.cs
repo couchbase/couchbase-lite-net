@@ -636,7 +636,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestMultipleListenersOnSameDatabase()
         {
             _listener = CreateListener();
@@ -669,7 +669,7 @@ namespace Test
 
         // A three way replication with one database acting as both a listener
         // and a replicator
-        //[Fact]
+        [Fact]
         public void TestReplicatorAndListenerOnSameDatabase()
         {
             using (var doc = new MutableDocument()) {
