@@ -163,6 +163,15 @@ namespace Test
         }
 
         [Fact]
+        public void TestGetDocumentWirhEmptyAndNullId()
+        {
+            Action badAction = (() => Db.GetDocument(null));
+            badAction.Should().Throw<ArgumentNullException>(); //CouchbaseLiteException (LiteCoreDomain / 9): Invalid cookie.
+            badAction = (() => Db.GetDocument(""));
+            badAction.Should().Throw<CouchbaseLiteException>();
+        }
+
+        [Fact]
         public void TestGetNonExistingDocWithID()
         {
             Db.GetDocument("non-exist").Should().BeNull("because it doesn't exist");
