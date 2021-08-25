@@ -792,7 +792,7 @@ namespace Test
             ValidateMultipleReplicationsTo(ReplicatorType.PushAndPull);
         }
 
-        [Fact] //Mac OS 1-6-21
+        //[Fact] //Mac OS 8-23-21 hang with LiteCore Commit: 5d9539fae43e9282787c2b68772bb85ecbc00b5c [5d9539f]
         public void TestMultipleReplicatorsOnReadOnlyListener()
         {
             var config = CreateListenerConfig();
