@@ -146,6 +146,7 @@ namespace LiteCore.Interop
         public FLHeapSlice docID;
         public FLHeapSlice revID;
         public ulong sequence;
+        public uint bodySize;
         public C4RevisionFlags flags;
     }
 }
