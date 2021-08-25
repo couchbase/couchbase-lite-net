@@ -715,6 +715,11 @@ namespace Couchbase.Lite
         public Document GetDocument([@NotNull]string id)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
+            if (id.Equals("")) {
+                WriteLog.To.Database.W(Tag, "The doc id should not be an empty string.");
+                return null;
+            }
+
             return ThreadSafety.DoLocked(() => GetDocumentInternal(id));
         }
 
