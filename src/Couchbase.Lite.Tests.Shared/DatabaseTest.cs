@@ -68,10 +68,10 @@ namespace Test
                 Db.Save(d2);
             }
 
-            // With collections "SELECT firstName, lastName FROM _default" or "SELECT firstName, lastName FROM _default as whatever"
-            // default collection is named _default.
-            //Without collections "SELECT firstName, lastName FROM {Db.Name}"
-            using (var q = Db.CreateQuery($"SELECT firstName, lastName FROM _default"))
+            // With new collections implementation, N1QL call will look like "SELECT firstName, lastName FROM _" or "SELECT firstName, lastName FROM _ as whatever"
+            // default collection is named _.
+            // "SELECT firstName, lastName FROM {Db.Name}" is still valid as well.
+            using (var q = Db.CreateQuery($"SELECT firstName, lastName FROM _"))
             {
                 var res = q.Execute().AllResults();
                 res.Count.Should().Be(2);

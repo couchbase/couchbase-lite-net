@@ -653,14 +653,28 @@ namespace Test
             LoadJSONResource("sentences");
             Db.CreateIndex("sentence", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("sentence")));
 
-            using (var q = Db.CreateQuery("SELECT _id FROM _default WHERE MATCH(sentence, 'Dummie woman')"))
-            {
+            using (var q = Db.CreateQuery("SELECT _id FROM _ WHERE MATCH(sentence, 'Dummie woman')")) 
+            { // CBL developer notes: use '_default' instead of '_' also valid. (No one else needs to know about this ;) )
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
 
                 });
 
                 numRows.Should().Be(2, "because two rows in the data match the query");
+            }
+
+            using(var db = new Database("testN1QLDB")) {
+                LoadJSONResource("sentences", db);
+                db.CreateIndex("sentence", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("sentence")));
+
+                using (var q = db.CreateQuery("SELECT _id FROM testN1QLDB WHERE MATCH(sentence, 'Dummie woman')")) { 
+                    var numRows = VerifyQuery(q, (n, row) =>
+                    {
+
+                    });
+
+                    numRows.Should().Be(2, "because two rows in the data match the query");
+                }
             }
         }
 

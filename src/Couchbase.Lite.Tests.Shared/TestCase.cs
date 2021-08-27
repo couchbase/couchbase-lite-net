@@ -466,9 +466,12 @@ namespace Test
         }
 
 #if !CBL_NO_EXTERN_FILES
-        protected void LoadJSONResource(string resourceName)
+        protected void LoadJSONResource(string resourceName, Database db = null)
         {
-            Db.InBatch(() =>
+            if (db == null)
+                db = Db;
+
+            db.InBatch(() =>
             {
                 var n = 0ul;
                 ReadFileByLines($"C/tests/data/{resourceName}.json", line =>
@@ -478,7 +481,7 @@ namespace Test
                     json.Should().NotBeNull("because otherwise the line failed to parse");
                     var doc = new MutableDocument(docID);
                     doc.SetData(json);
-                    Db.Save(doc);
+                    db.Save(doc);
 
                     return true;
                 });
