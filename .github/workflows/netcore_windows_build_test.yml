@@ -1,0 +1,174 @@
+# This continuous integration pipeline is triggered anytime a user pushes code to the repo.
+# This pipeline builds the UWP project, runs unit tests.
+name: CBL NetCore Windows PR Validation
+
+# Trigger on every master branch push and pull request
+on:
+  push:
+    branches:
+      - master
+      - 'release/*'
+  pull_request:
+    branches:
+      - '**'
+    
+jobs:
+  build_netcore3_windows:
+    if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/release/lithium') && github.event_name == 'push' 
+    strategy:
+      fail-fast: false
+      matrix:
+      #[ubuntu-latest, windows-latest, macos-latest]
+        os: [ windows-latest ]
+      #[x86, x64] Let's do x64 only
+        targetplatform: [x64]
+        
+        dotnet-version: ['3.1']
+
+    runs-on: ${{ matrix.os }}
+    
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1 #opt-out of telemetry being sent to Microsoft (default: false)
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      NUGET_XMLDOC_MODE: skip
+      Cbl_EE_Project_Path: src\Couchbase.Lite.Enterprise\Couchbase.Lite.Enterprise.csproj
+      Test_Project_Path: couchbase-lite-net\src\Couchbase.Lite.Tests.NetCore\Couchbase.Lite.Tests.NetCore.Source.csproj
+
+#### BUILD and TEST
+
+    steps:
+    
+    #Checkout CBL Net EE
+    - name: Checkout CBL Net EE ${{ matrix.dotnet-version }}
+      uses: actions/checkout@v2
+      with:
+        repository: couchbaselabs/couchbase-lite-net-ee
+        token: ${{ secrets.GITHUBACTIONS_AT }}
+        path: ./
+        
+    #Checkout LiteCore EE
+    - name: Checkout LiteCore EE
+      uses: actions/checkout@v2
+      with:
+        repository: couchbase/couchbase-lite-core-EE
+        token: ${{ secrets.GITHUBACTIONS_AT }}
+        path: ./couchbase-lite-core-EE
+
+    #Checkout
+    - name: Checkout ${{ matrix.dotnet-version }}
+      uses: actions/checkout@v2
+      with:
+        path: ./couchbase-lite-net
+        
+    #Submodule Update
+    - name: Submodule Update
+      run: pwsh -command ".\$GITHUB_WORKSPACE\couchbase-lite-net\validations\submodule_update.ps1"
+        
+    #Build LiteCore    
+    - name: Build LiteCore
+      run: pwsh -command ".\$GITHUB_WORKSPACE\couchbase-lite-net\validations\litecore_netcore_build.ps1"
+      
+    #Setup .NET Core SDK
+    - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: ${{ matrix.dotnet-version }}
+
+    #Restore CBL EE
+    #- name: Restore CBL EE
+    #  run: dotnet restore $env:Cbl_EE_Project_Path
+      
+    #Build Test
+    #- name: Build CBL EE
+    #  run: dotnet build $env:Cbl_EE_Project_Path --configuration Debug
+        
+    #Restore Test
+    #- name: Restore Test
+    #  run: dotnet restore couchbase-lite-net\src\Couchbase.Lite.Tests.NetCore\Couchbase.Lite.Tests.NetCore.Source.csproj
+      
+    #Restore Support NetDesktop
+    #- name: Restore Support NetDesktop
+    #  run: dotnet restore couchbase-lite-net\src\Couchbase.Lite.Support.NetDesktop\Couchbase.Lite.Support.NetDesktop.csproj
+      
+    #Build Test
+    - name: Build Test
+      run: dotnet build $env:Test_Project_Path --configuration Debug
+    
+    #Test    
+    - name: Run Test
+      run: dotnet test $env:Test_Project_Path /p:CollectCoverage=true /p:CoverletOutputFormat=lcov -v n /p:Configuration=Debug
+      
+  build_netcore2_windows:
+    if: (github.ref == 'refs/heads/release/hydrogen' || github.ref == 'refs/heads/release/cobalt' || github.ref == 'refs/heads/release/mercury') && github.event_name == 'push' 
+    strategy:
+      fail-fast: false
+      matrix:
+      #[ubuntu-latest, windows-latest, macos-latest]
+        os: [ windows-latest ]
+      #[x86, x64] Let's do x64 only
+        targetplatform: [x64]
+        
+        dotnet-version: ['2.0']
+
+    runs-on: ${{ matrix.os }}
+    
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1 #opt-out of telemetry being sent to Microsoft (default: false)
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      NUGET_XMLDOC_MODE: skip
+
+#### BUILD and TEST
+
+    steps:
+    
+    #Checkout CBL Net EE
+    - name: Checkout CBL Net EE ${{ matrix.dotnet-version }}
+      uses: actions/checkout@v2
+      with:
+        repository: couchbaselabs/couchbase-lite-net-ee
+        token: ${{ secrets.GITHUBACTIONS_AT }}
+        path: ./
+
+    #Checkout
+    - name: Checkout ${{ matrix.dotnet-version }}
+      uses: actions/checkout@v2
+      with:
+        path: ./couchbase-lite-net
+        
+    #Submodule Update
+    - name: Submodule Update
+      run: pwsh -command ".\$GITHUB_WORKSPACE\couchbase-lite-net\validations\submodule_update.ps1"
+    
+    #Checkout LiteCore EE
+    - name: Checkout LiteCore EE
+      uses: actions/checkout@v2
+      with:
+        repository: couchbase/couchbase-lite-core-EE
+        token: ${{ secrets.GITHUBACTIONS_AT }}
+        path: ./couchbase-lite-net/vendor/couchbase-lite-core-EE
+        
+    #Build LiteCore    
+    - name: Build LiteCore
+      run: pwsh -command ".\$GITHUB_WORKSPACE\couchbase-lite-net\validations\litecore_netcore_build.ps1"
+      
+    #Setup .NET Core SDK
+    - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: ${{ matrix.dotnet-version }}
+    
+    #Restore Support NetDesktop
+    - name: Restore Support NetDesktop
+      run: dotnet restore couchbase-lite-net\src\Couchbase.Lite.Support.NetDesktop\Couchbase.Lite.Support.NetDesktop.csproj
+    
+    #Restore CBL EE
+    - name: Restore CBL EE
+      run: dotnet restore src\Couchbase.Lite.Enterprise\Couchbase.Lite.Enterprise.csproj
+      
+    #Restore Test
+    - name: Restore Test
+      run: dotnet restore couchbase-lite-net\src\Couchbase.Lite.Tests.NetCore\Couchbase.Lite.Tests.NetCore.Source.csproj
+      
+    #Test    
+    - name: Test
+      run: dotnet test couchbase-lite-net\src\Couchbase.Lite.Tests.NetCore\Couchbase.Lite.Tests.NetCore.Source.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=lcov -v n

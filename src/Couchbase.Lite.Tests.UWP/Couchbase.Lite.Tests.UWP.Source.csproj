@@ -129,8 +129,8 @@
       <Name>Couchbase.Lite.Support.UWP</Name>
     </ProjectReference>
     <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj">
-      <Project>{45AF0A03-89B9-4177-83E6-AC519EC8DDD5}</Project>
-      <Name>Couchbase.Lite.Enterprise</Name>
+      <Project>{D9B75FE7-CE95-4F4B-983B-96955FAE9652}</Project>
+      <Name>Couchbase.Lite</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
