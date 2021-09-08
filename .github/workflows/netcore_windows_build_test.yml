@@ -23,7 +23,7 @@ jobs:
       #[x86, x64] Let's do x64 only
         targetplatform: [x64]
         
-        dotnet-version: ['3.1']
+        dotnet-version: ['3.1.x']
 
     runs-on: ${{ matrix.os }}
     
