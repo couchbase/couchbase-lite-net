@@ -10,7 +10,7 @@ $MSBuild = "$VSInstall\MSBuild\Current\Bin\MSBuild.exe"
 Write-Host
 Write-Host *** TRANSFORMING TEMPLATES ***
 Write-Host
-& $MSBuild Couchbase.Lite.csproj /t:TransformTemplates
+& $MSBuild Couchbase.Lite.csproj /t:TransformAll
 
 Write-Host
 Write-Host *** RESTORING PACKAGES ***
