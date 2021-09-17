@@ -1075,6 +1075,8 @@ namespace Test
             while (repl1.Status.Activity != ReplicatorActivityLevel.Busy ||
                 repl2.Status.Activity != ReplicatorActivityLevel.Busy) {
                 Console.WriteLine($"OtherDb.Count: {OtherDb.Count}, Db.Count: {Db.Count}, urlepTestDb.Count: {urlepTestDb.Count}");
+                Console.WriteLine($"repl1 Status.Activity: {repl1.Status.Activity}, args.Status.Progress.Total: {repl1.Status.Progress.Total}, args.Status.Progress.Completed: {repl1.Status.Progress.Completed}");
+                Console.WriteLine($"repl2 Status.Activity: {repl2.Status.Activity}, args.Status.Progress.Total: {repl1.Status.Progress.Total}, args.Status.Progress.Completed: {repl2.Status.Progress.Completed}");
                 Thread.Sleep(100);
             }
 
