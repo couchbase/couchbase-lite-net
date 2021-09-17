@@ -1051,12 +1051,8 @@ namespace Test
 
                 if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
                     args.Status.Progress.Total) {
-
-                    if ((replicatorType == ReplicatorType.PushAndPull && OtherDb.Count == 3
-                    && Db.Count == 3 && urlepTestDb.Count == 3) || (replicatorType == ReplicatorType.Pull && OtherDb.Count == 1
-                    && Db.Count == 2 && urlepTestDb.Count == 2)) {
+                    if (replicatorType == ReplicatorType.PushAndPull && OtherDb.Count == 3 && Db.Count == 3 && urlepTestDb.Count == 3) 
                         ((Replicator) sender).Stop();
-                    }
                 } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
                     if (sender == repl1) {
                         wait1.Set();
@@ -1072,8 +1068,14 @@ namespace Test
             repl1.Start();
             repl2.Start();
 
-            while (repl1.Status.Activity != ReplicatorActivityLevel.Busy ||
-                repl2.Status.Activity != ReplicatorActivityLevel.Busy) {
+            while (repl1.Status.Activity != ReplicatorActivityLevel.Busy || repl2.Status.Activity != ReplicatorActivityLevel.Busy) {
+                if(replicatorType == ReplicatorType.Pull && OtherDb.Count == 1 && Db.Count == 2 && urlepTestDb.Count == 2) {
+                    if (repl1.Status.Activity != ReplicatorActivityLevel.Stopped && repl1.Status.Progress.Completed == repl1.Status.Progress.Total)
+                        repl1.Stop();
+                    if (repl2.Status.Activity != ReplicatorActivityLevel.Stopped && repl2.Status.Progress.Completed == repl2.Status.Progress.Total)
+                        repl2.Stop();
+                }
+
                 Console.WriteLine($"OtherDb.Count: {OtherDb.Count}, Db.Count: {Db.Count}, urlepTestDb.Count: {urlepTestDb.Count}");
                 Console.WriteLine($"repl1 Status.Activity: {repl1.Status.Activity}, args.Status.Progress.Total: {repl1.Status.Progress.Total}, args.Status.Progress.Completed: {repl1.Status.Progress.Completed}");
                 Console.WriteLine($"repl2 Status.Activity: {repl2.Status.Activity}, args.Status.Progress.Total: {repl1.Status.Progress.Total}, args.Status.Progress.Completed: {repl2.Status.Progress.Completed}");
