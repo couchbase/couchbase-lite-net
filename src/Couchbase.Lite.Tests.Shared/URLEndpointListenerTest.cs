@@ -1078,12 +1078,12 @@ namespace Test
                             repl1.Stop();
                     }
 
-                    if (repl1.Status.Activity == ReplicatorActivityLevel.Stopped && !wait1.IsSet) {
+                    if (repl1.Status.Activity == ReplicatorActivityLevel.Stopped) {
                         wait1.Set();
                     }
 
-                    if (repl2.Status.Activity == ReplicatorActivityLevel.Stopped && !wait2.IsSet) {
-                            wait2.Set();
+                    if (repl2.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                        wait2.Set();
                     }
                 }
 
