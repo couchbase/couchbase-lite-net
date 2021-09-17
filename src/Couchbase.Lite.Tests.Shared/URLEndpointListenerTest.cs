@@ -1075,8 +1075,7 @@ namespace Test
 
             while (repl1.Status.Activity != ReplicatorActivityLevel.Busy || repl2.Status.Activity != ReplicatorActivityLevel.Busy)
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && replicatorType == ReplicatorType.Pull)
-                {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && replicatorType == ReplicatorType.Pull) {
                     Console.WriteLine("I am OSX");
                     if (OtherDb.Count == 1 && Db.Count == 2 && urlepTestDb.Count == 2) {
                         if (repl1.Status.Activity == ReplicatorActivityLevel.Idle && repl1.Status.Progress.Completed == repl1.Status.Progress.Total) {
@@ -1090,6 +1089,10 @@ namespace Test
                         }
                     }
 
+                    Console.WriteLine($"wait1 IsSet {wait1.IsSet}");
+                    Console.WriteLine($"wait2 IsSet {wait2.IsSet}");
+
+
                     if (repl1.Status.Activity == ReplicatorActivityLevel.Stopped && !wait1.IsSet) {
                         Console.WriteLine("wait1 Set");
                         wait1.Set();
@@ -1099,10 +1102,6 @@ namespace Test
                         Console.WriteLine("wait2 set");
                         wait2.Set();
                     }
-
-                    Console.WriteLine($"OtherDb.Count: {OtherDb.Count}, Db.Count: {Db.Count}, urlepTestDb.Count: {urlepTestDb.Count}");
-                    Console.WriteLine($"repl1 Status.Activity: {repl1.Status.Activity}, args.Status.Progress.Total: {repl1.Status.Progress.Total}, args.Status.Progress.Completed: {repl1.Status.Progress.Completed}");
-                    Console.WriteLine($"repl2 Status.Activity: {repl2.Status.Activity}, args.Status.Progress.Total: {repl1.Status.Progress.Total}, args.Status.Progress.Completed: {repl2.Status.Progress.Completed}");
                 }
                
                 Thread.Sleep(100);
