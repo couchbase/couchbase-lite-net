@@ -1050,10 +1050,14 @@ namespace Test
                 maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
                 
                 if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
-                    if ((replicatorType == ReplicatorType.PushAndPull && OtherDb.Count == 3 && Db.Count == 3 && urlepTestDb.Count == 3) 
-                    || (replicatorType == ReplicatorType.Pull && OtherDb.Count == 1 && Db.Count == 2 && urlepTestDb.Count == 2)
-                    && args.Status.Progress.Completed == args.Status.Progress.Total)
-                        ((Replicator)sender).Stop();
+                    if (args.Status.Progress.Completed == args.Status.Progress.Total) {
+                        if (replicatorType == ReplicatorType.PushAndPull && OtherDb.Count == 3 && Db.Count == 3 && urlepTestDb.Count == 3)
+                            ((Replicator)sender).Stop();
+
+                        if(! RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                        if (replicatorType == ReplicatorType.Pull && OtherDb.Count == 1 && Db.Count == 2 && urlepTestDb.Count == 2)
+                            ((Replicator)sender).Stop();
+                    }
                 } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
                     if (sender == repl1) {
                         wait1.Set();
@@ -1074,18 +1078,24 @@ namespace Test
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && replicatorType == ReplicatorType.Pull)
                 {
                     Console.WriteLine("I am OSX");
-                    if (repl1.Status.Activity == ReplicatorActivityLevel.Idle) {
-                        if ((OtherDb.Count == 1 && Db.Count == 2 && urlepTestDb.Count == 2)
-                        && repl1.Status.Progress.Completed == repl1.Status.Progress.Total)
+                    if (OtherDb.Count == 1 && Db.Count == 2 && urlepTestDb.Count == 2) {
+                        if (repl1.Status.Activity == ReplicatorActivityLevel.Idle && repl1.Status.Progress.Completed == repl1.Status.Progress.Total) {
+                            Console.WriteLine("repl1 stop");
                             repl1.Stop();
+                        }
+
+                        if (repl2.Status.Activity == ReplicatorActivityLevel.Idle && repl2.Status.Progress.Completed == repl2.Status.Progress.Total) {
+                            Console.WriteLine("repl2 stop");
+                            repl2.Stop();
+                        }
                     }
 
-                    if (repl1.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                    if (repl1.Status.Activity == ReplicatorActivityLevel.Stopped && !wait1.IsSet) {
                         Console.WriteLine("wait1 Set");
                         wait1.Set();
                     }
 
-                    if (repl2.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                    if (repl2.Status.Activity == ReplicatorActivityLevel.Stopped && !wait2.IsSet) {
                         Console.WriteLine("wait2 set");
                         wait2.Set();
                     }
