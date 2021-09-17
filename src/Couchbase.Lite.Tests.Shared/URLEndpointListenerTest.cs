@@ -1070,6 +1070,16 @@ namespace Test
             repl2.Start();
 
             while (repl1.Status.Activity != ReplicatorActivityLevel.Busy || repl2.Status.Activity != ReplicatorActivityLevel.Busy) {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    if (repl1.Status.Activity == ReplicatorActivityLevel.Idle)
+                    {
+                        if ((replicatorType == ReplicatorType.Pull && OtherDb.Count == 1 && Db.Count == 2 && urlepTestDb.Count == 2)
+                        && repl1.Status.Progress.Completed == repl1.Status.Progress.Total)
+                            repl1.Stop();
+                    }
+                }
+
                 Console.WriteLine($"OtherDb.Count: {OtherDb.Count}, Db.Count: {Db.Count}, urlepTestDb.Count: {urlepTestDb.Count}");
                 Console.WriteLine($"repl1 Status.Activity: {repl1.Status.Activity}, args.Status.Progress.Total: {repl1.Status.Progress.Total}, args.Status.Progress.Completed: {repl1.Status.Progress.Completed}");
                 Console.WriteLine($"repl2 Status.Activity: {repl2.Status.Activity}, args.Status.Progress.Total: {repl1.Status.Progress.Total}, args.Status.Progress.Completed: {repl2.Status.Progress.Completed}");
