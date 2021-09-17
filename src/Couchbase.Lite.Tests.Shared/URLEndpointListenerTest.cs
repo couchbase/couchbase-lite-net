@@ -804,7 +804,9 @@ namespace Test
                 OtherDb.Save(doc);
             }
 
+            Database.Log.Console.Level = Couchbase.Lite.Logging.LogLevel.Verbose;
             ValidateMultipleReplicationsTo(ReplicatorType.Pull);
+            Database.Log.Console.Level = Couchbase.Lite.Logging.LogLevel.None;
         }
 
         [Fact] //uwp
@@ -1072,6 +1074,7 @@ namespace Test
 
             while (repl1.Status.Activity != ReplicatorActivityLevel.Busy ||
                 repl2.Status.Activity != ReplicatorActivityLevel.Busy) {
+                Console.WriteLine($"OtherDb.Count: {OtherDb.Count}, Db.Count: {Db.Count}, urlepTestDb.Count: {urlepTestDb.Count}");
                 Thread.Sleep(100);
             }
 
@@ -1097,14 +1100,14 @@ namespace Test
                 urlepTestDb.Count.Should().Be(existingDocsInListener + 1UL);
             }
 
-            repl1.Stop();
-            repl2.Stop();
             _listener.Stop();
 
             Thread.Sleep(500);
 
             wait1.Dispose();
             wait2.Dispose(); 
+            repl1.Dispose();
+            repl2.Dispose();
             urlepTestDb.Delete();
         }
 
