@@ -1050,8 +1050,9 @@ namespace Test
                 maxActiveCount = Math.Max(maxActiveCount, _listener.Status.ActiveConnectionCount);
                 
                 if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
-                    if ((replicatorType == ReplicatorType.PushAndPull && OtherDb.Count == 3 && Db.Count == 3 && urlepTestDb.Count == 3) ||
-                        (replicatorType == ReplicatorType.Pull && OtherDb.Count == 1 && Db.Count == 2 && urlepTestDb.Count == 2) && args.Status.Progress.Completed == args.Status.Progress.Total)
+                    if ((replicatorType == ReplicatorType.PushAndPull && OtherDb.Count == 3 && Db.Count == 3 && urlepTestDb.Count == 3) 
+                    || (replicatorType == ReplicatorType.Pull && OtherDb.Count == 1 && Db.Count == 2 && urlepTestDb.Count == 2)
+                    && args.Status.Progress.Completed == args.Status.Progress.Total)
                         ((Replicator)sender).Stop();
                 } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
                     if (sender == repl1) {
@@ -1072,7 +1073,7 @@ namespace Test
                 Console.WriteLine($"OtherDb.Count: {OtherDb.Count}, Db.Count: {Db.Count}, urlepTestDb.Count: {urlepTestDb.Count}");
                 Console.WriteLine($"repl1 Status.Activity: {repl1.Status.Activity}, args.Status.Progress.Total: {repl1.Status.Progress.Total}, args.Status.Progress.Completed: {repl1.Status.Progress.Completed}");
                 Console.WriteLine($"repl2 Status.Activity: {repl2.Status.Activity}, args.Status.Progress.Total: {repl1.Status.Progress.Total}, args.Status.Progress.Completed: {repl2.Status.Progress.Completed}");
-               // Thread.Sleep(100);
+                Thread.Sleep(100);
             }
 
             WaitHandle.WaitAll(new[] { wait1.WaitHandle, wait2.WaitHandle }, TimeSpan.FromSeconds(30))
