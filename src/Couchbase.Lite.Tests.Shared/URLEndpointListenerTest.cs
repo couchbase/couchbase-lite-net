@@ -1069,14 +1069,21 @@ namespace Test
             repl1.Start();
             repl2.Start();
 
-            while (repl1.Status.Activity != ReplicatorActivityLevel.Busy || repl2.Status.Activity != ReplicatorActivityLevel.Busy) {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
-                    if (repl1.Status.Activity == ReplicatorActivityLevel.Idle)
-                    {
-                        if ((replicatorType == ReplicatorType.Pull && OtherDb.Count == 1 && Db.Count == 2 && urlepTestDb.Count == 2)
+            while (repl1.Status.Activity != ReplicatorActivityLevel.Busy || repl2.Status.Activity != ReplicatorActivityLevel.Busy)
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && replicatorType == ReplicatorType.Pull) {
+                    if (repl1.Status.Activity == ReplicatorActivityLevel.Idle) {
+                        if ((OtherDb.Count == 1 && Db.Count == 2 && urlepTestDb.Count == 2)
                         && repl1.Status.Progress.Completed == repl1.Status.Progress.Total)
                             repl1.Stop();
+                    }
+
+                    if (repl1.Status.Activity == ReplicatorActivityLevel.Stopped && !wait1.IsSet) {
+                        wait1.Set();
+                    }
+
+                    if (repl2.Status.Activity == ReplicatorActivityLevel.Stopped && !wait2.IsSet) {
+                            wait2.Set();
                     }
                 }
 
