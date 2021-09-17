@@ -27,7 +27,7 @@
     <file target="lib\net461\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\Couchbase.Lite.Support.NetDesktop.dll" />
     <file target="lib\net461\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\Couchbase.Lite.Support.NetDesktop.pdb" />
     <file target="lib\net461\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\Couchbase.Lite.Support.NetDesktop.xml" />
-	  <file target="lib\netcoreapp3.1\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp3.1\Couchbase.Lite.Support.NetDesktop.dll" />
+	<file target="lib\netcoreapp3.1\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp3.1\Couchbase.Lite.Support.NetDesktop.dll" />
     <file target="lib\netcoreapp3.1\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp3.1\Couchbase.Lite.Support.NetDesktop.pdb" />
     <file target="lib\netcoreapp3.1\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp3.1\Couchbase.Lite.Support.NetDesktop.xml" />
     <file target="runtimes\win7-x86\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\x86\LiteCore.dll" />

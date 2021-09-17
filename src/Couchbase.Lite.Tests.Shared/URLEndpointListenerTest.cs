@@ -792,7 +792,7 @@ namespace Test
             ValidateMultipleReplicationsTo(ReplicatorType.PushAndPull);
         }
 
-        //[Fact] //Mac OS 8-23-21 hang with LiteCore Commit: 5d9539fae43e9282787c2b68772bb85ecbc00b5c [5d9539f]
+        [Fact] //Mac OS 8-23-21 hang with LiteCore Commit: 5d9539fae43e9282787c2b68772bb85ecbc00b5c [5d9539f]
         public void TestMultipleReplicatorsOnReadOnlyListener()
         {
             var config = CreateListenerConfig();
@@ -1097,18 +1097,15 @@ namespace Test
                 urlepTestDb.Count.Should().Be(existingDocsInListener + 1UL);
             }
 
-            repl1.RemoveChangeListener(token1);
-            repl2.RemoveChangeListener(token2);
-
-            repl1.Dispose();
-            repl2.Dispose();
-            wait1.Dispose();
-            wait2.Dispose();
-            urlepTestDb.Delete();
-
+            repl1.Stop();
+            repl2.Stop();
             _listener.Stop();
 
             Thread.Sleep(500);
+
+            wait1.Dispose();
+            wait2.Dispose(); 
+            urlepTestDb.Delete();
         }
 
         private void RunReplicatorServerCert(Replicator repl, bool hasIdle, X509Certificate2 serverCert)

@@ -228,9 +228,7 @@ namespace Test
             }
         }
 
-//        Exception thrown at 0x00007FFE3090A799 in dotnet.exe: Microsoft C++ exception: EEFileLoadException at memory location 0x000000C288E79D88.
-//Exception thrown at 0x00007FFE3090A799 in dotnet.exe: Microsoft C++ exception: [rethrow] at memory location 0x0000000000000000.
-        //[Fact] //uwp
+        [Fact]
         public void TestP2PPassiveCloseAll()
         {
             using (var doc = new MutableDocument("test")) {
@@ -257,46 +255,37 @@ namespace Test
             };
 
             using (var replicator = new Replicator(config))
-            using (var replicator2 = new Replicator(config2)) {
-                replicator.Start();
-                replicator2.Start();
-
-                var count = 0;
-                while (count++ < 15 && replicator.Status.Activity != ReplicatorActivityLevel.Idle &&
-                       replicator2.Status.Activity != ReplicatorActivityLevel.Idle) {
-                    Thread.Sleep(500);
-                    count.Should().BeLessThan(15, "because otherwise the replicator(s) never went idle");
-                }
-
-                errorLogic.ErrorActive = true;
-                listener.AddChangeListener((sender, args) => {
+            using (var replicator2 = new Replicator(config2))
+            {
+                EventHandler<ReplicatorStatusChangedEventArgs> changeListener = (sender, args) =>
+                {
                     if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                        if (args.Connection == serverConnection1) {
+                        if (sender == replicator) {
                             closeWait1.Set();
                         } else {
                             closeWait2.Set();
                         }
                     }
-                });
-                var connection = listener.Connections;
-                listener.CloseAll();
-                count = 0;
-                while (count++ < 10 && replicator.Status.Activity != ReplicatorActivityLevel.Stopped &&
-                       replicator2.Status.Activity != ReplicatorActivityLevel.Stopped) {
-                    Thread.Sleep(500);
-                    count.Should().BeLessThan(10, "because otherwise the replicator(s) never stopped");
-                }
+                };
 
-                closeWait1.Wait(TimeSpan.FromSeconds(5)).Should()
-                    .BeTrue("because otherwise the first listener did not stop");
-                closeWait2.Wait(TimeSpan.FromSeconds(5)).Should()
-                    .BeTrue("because otherwise the second listener did not stop");
+                replicator.AddChangeListener(changeListener);
+                replicator2.AddChangeListener(changeListener);
+                replicator.Start();
+                replicator2.Start();
+
+                errorLogic.ErrorActive = true;
+                listener.CloseAll();
+
+                WaitHandle.WaitAll(new[] { closeWait1.WaitHandle, closeWait2.WaitHandle }, TimeSpan.FromSeconds(20)).Should().BeTrue();
 
                 replicator.Status.Error.Should()
                     .NotBeNull("because closing the passive side creates an error on the active one");
                 replicator2.Status.Error.Should()
                     .NotBeNull("because closing the passive side creates an error on the active one");
             }
+
+            closeWait1.Dispose();
+            closeWait2.Dispose();
         }
 
         [Fact] //uwp
