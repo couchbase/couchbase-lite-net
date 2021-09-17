@@ -1092,16 +1092,8 @@ namespace Test
                     Console.WriteLine($"wait1 IsSet {wait1.IsSet}");
                     Console.WriteLine($"wait2 IsSet {wait2.IsSet}");
 
-
-                    if (repl1.Status.Activity == ReplicatorActivityLevel.Stopped && !wait1.IsSet) {
-                        Console.WriteLine("wait1 Set");
-                        wait1.Set();
-                    }
-
-                    if (repl2.Status.Activity == ReplicatorActivityLevel.Stopped && !wait2.IsSet) {
-                        Console.WriteLine("wait2 set");
-                        wait2.Set();
-                    }
+                    if (repl1.Status.Activity == ReplicatorActivityLevel.Stopped && repl2.Status.Activity == ReplicatorActivityLevel.Stopped)
+                        break;
                 }
                
                 Thread.Sleep(100);
