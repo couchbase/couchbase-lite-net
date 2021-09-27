@@ -78,53 +78,53 @@ namespace LiteCore.Interop
     /// Callbacks that must be provided to create an external key; these perform the crypto operations.
     /// For Xamarin Android
     /// </summary>
-    [ExcludeFromCodeCoverage]
-    internal static unsafe class ExternalKeyCallbacks
-    {
-        private static C4ExternalKeyCallbacks _c4ExternalKeyCallbacks;
-        private static ExternalKeyPublicKeyDataCallback _publicKeyData;
-        private static ExternalKeyDecryptCallback _decrypt;
-        private static ExternalKeySignCallback _sign;
-        private static ExternalKeyFreeCallback _free;
+    //[ExcludeFromCodeCoverage]
+    //internal static unsafe class ExternalKeyCallbacks
+    //{
+    //    private static C4ExternalKeyCallbacks _c4ExternalKeyCallbacks;
+    //    private static ExternalKeyPublicKeyDataCallback _publicKeyData;
+    //    private static ExternalKeyDecryptCallback _decrypt;
+    //    private static ExternalKeySignCallback _sign;
+    //    private static ExternalKeyFreeCallback _free;
 
-        public static C4ExternalKeyCallbacks C4ExternalKeyCallbacks => _c4ExternalKeyCallbacks;
+    //    public static C4ExternalKeyCallbacks C4ExternalKeyCallbacks => _c4ExternalKeyCallbacks;
 
-        public static ExternalKeyPublicKeyDataCallback ExternalKeyPublicKeyDataCallback
-        {
-            get => _publicKeyData;
-            set {
-                _publicKeyData = value;
-                _c4ExternalKeyCallbacks.publicKeyData = Marshal.GetFunctionPointerForDelegate(value);
-            }
-        }
+    //    public static ExternalKeyPublicKeyDataCallback ExternalKeyPublicKeyDataCallback
+    //    {
+    //        get => _publicKeyData;
+    //        set {
+    //            _publicKeyData = value;
+    //            _c4ExternalKeyCallbacks.publicKeyData = Marshal.GetFunctionPointerForDelegate(value);
+    //        }
+    //    }
 
-        public static ExternalKeyDecryptCallback ExternalKeyDecryptCallback
-        {
-            get => _decrypt;
-            set {
-                _decrypt = value;
-                _c4ExternalKeyCallbacks.decrypt = Marshal.GetFunctionPointerForDelegate(value);
-            }
-        }
+    //    public static ExternalKeyDecryptCallback ExternalKeyDecryptCallback
+    //    {
+    //        get => _decrypt;
+    //        set {
+    //            _decrypt = value;
+    //            _c4ExternalKeyCallbacks.decrypt = Marshal.GetFunctionPointerForDelegate(value);
+    //        }
+    //    }
 
-        public static ExternalKeySignCallback ExternalKeySignCallback
-        {
-            get => _sign;
-            set {
-                _sign = value;
-                _c4ExternalKeyCallbacks.sign = Marshal.GetFunctionPointerForDelegate(value);
-            }
-        }
+    //    public static ExternalKeySignCallback ExternalKeySignCallback
+    //    {
+    //        get => _sign;
+    //        set {
+    //            _sign = value;
+    //            _c4ExternalKeyCallbacks.sign = Marshal.GetFunctionPointerForDelegate(value);
+    //        }
+    //    }
 
-        public static ExternalKeyFreeCallback ExternalKeyFreeCallback
-        {
-            get => _free;
-            set {
-                _free = value;
-                _c4ExternalKeyCallbacks.free = Marshal.GetFunctionPointerForDelegate(value);
-            }
-        }
-    }
+    //    public static ExternalKeyFreeCallback ExternalKeyFreeCallback
+    //    {
+    //        get => _free;
+    //        set {
+    //            _free = value;
+    //            _c4ExternalKeyCallbacks.free = Marshal.GetFunctionPointerForDelegate(value);
+    //        }
+    //    }
+    //}
 
     [ExcludeFromCodeCoverage]
     internal sealed class CertIssuerParameters

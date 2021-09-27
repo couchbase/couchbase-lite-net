@@ -42,10 +42,10 @@ namespace LiteCore.Interop
         AES256,
     }
 
-    internal enum C4EncryptionKeySize : ulong
-    {
-        KeySizeAES256 = 32,
-    }
+    //internal enum C4EncryptionKeySize : ulong
+    //{
+    //    KeySizeAES256 = 32,
+    //}
 
     internal enum C4MaintenanceType : uint
     {
@@ -56,12 +56,12 @@ namespace LiteCore.Interop
         FullOptimize,
     }
 
-    internal enum C4DocumentVersioning : uint
-    {
-        TreeVersioning_v2,
-        TreeVersioning,
-        VectorVersioning
-    }
+    //internal enum C4DocumentVersioning : uint
+    //{
+    //    TreeVersioning_v2,
+    //    TreeVersioning,
+    //    VectorVersioning
+    //}
 
 	internal unsafe partial struct C4EncryptionKey
     {

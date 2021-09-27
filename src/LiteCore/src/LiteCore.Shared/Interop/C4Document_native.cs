@@ -60,10 +60,10 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_hasRevisionBody(C4Document* doc);
 
-        public static byte[] c4doc_getRevisionBody(C4Document* doc)
-        {
-            return NativeRaw.c4doc_getRevisionBody(doc).ToArrayFast();
-        }
+        //public static byte[] c4doc_getRevisionBody(C4Document* doc)
+        //{
+        //    return NativeRaw.c4doc_getRevisionBody(doc).ToArrayFast();
+        //}
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -85,12 +85,12 @@ namespace LiteCore.Interop
             }
         }
 
-        public static uint c4rev_getGeneration(string revID)
-        {
-            using(var revID_ = new C4String(revID)) {
-                return NativeRaw.c4rev_getGeneration(revID_.AsFLSlice());
-            }
-        }
+        //public static uint c4rev_getGeneration(string revID)
+        //{
+        //    using(var revID_ = new C4String(revID)) {
+        //        return NativeRaw.c4rev_getGeneration(revID_.AsFLSlice());
+        //    }
+        //}
 
         public static int c4doc_purgeRevision(C4Document* doc, string revID, C4Error* outError)
         {
@@ -99,14 +99,14 @@ namespace LiteCore.Interop
             }
         }
 
-        public static bool c4doc_resolveConflict(C4Document* doc, string winningRevID, string losingRevID, byte[] mergedBody, C4RevisionFlags mergedFlags, C4Error* error)
-        {
-            using(var winningRevID_ = new C4String(winningRevID))
-            using(var losingRevID_ = new C4String(losingRevID))
-            fixed(byte *mergedBody_ = mergedBody) {
-                return NativeRaw.c4doc_resolveConflict(doc, winningRevID_.AsFLSlice(), losingRevID_.AsFLSlice(), new FLSlice(mergedBody_, mergedBody == null ? 0 : (ulong)mergedBody.Length), mergedFlags, error);
-            }
-        }
+        //public static bool c4doc_resolveConflict(C4Document* doc, string winningRevID, string losingRevID, byte[] mergedBody, C4RevisionFlags mergedFlags, C4Error* error)
+        //{
+        //    using(var winningRevID_ = new C4String(winningRevID))
+        //    using(var losingRevID_ = new C4String(losingRevID))
+        //    fixed(byte *mergedBody_ = mergedBody) {
+        //        return NativeRaw.c4doc_resolveConflict(doc, winningRevID_.AsFLSlice(), losingRevID_.AsFLSlice(), new FLSlice(mergedBody_, mergedBody == null ? 0 : (ulong)mergedBody.Length), mergedFlags, error);
+        //    }
+        //}
 
         public static bool c4db_purgeDoc(C4Database* database, string docID, C4Error* outError)
         {
@@ -141,20 +141,20 @@ namespace LiteCore.Interop
         }
 
 
-        public static C4Document* c4doc_create(C4Database* db, string docID, byte[] body, C4RevisionFlags revisionFlags, C4Error* error)
-        {
-            using(var docID_ = new C4String(docID))
-            fixed(byte *body_ = body) {
-                return NativeRaw.c4doc_create(db, docID_.AsFLSlice(), new FLSlice(body_, body == null ? 0 : (ulong)body.Length), revisionFlags, error);
-            }
-        }
+        //public static C4Document* c4doc_create(C4Database* db, string docID, byte[] body, C4RevisionFlags revisionFlags, C4Error* error)
+        //{
+        //    using(var docID_ = new C4String(docID))
+        //    fixed(byte *body_ = body) {
+        //        return NativeRaw.c4doc_create(db, docID_.AsFLSlice(), new FLSlice(body_, body == null ? 0 : (ulong)body.Length), revisionFlags, error);
+        //    }
+        //}
 
-        public static C4Document* c4doc_update(C4Document* doc, byte[] revisionBody, C4RevisionFlags revisionFlags, C4Error* error)
-        {
-            fixed(byte *revisionBody_ = revisionBody) {
-                return NativeRaw.c4doc_update(doc, new FLSlice(revisionBody_, revisionBody == null ? 0 : (ulong)revisionBody.Length), revisionFlags, error);
-            }
-        }
+        //public static C4Document* c4doc_update(C4Document* doc, byte[] revisionBody, C4RevisionFlags revisionFlags, C4Error* error)
+        //{
+        //    fixed(byte *revisionBody_ = revisionBody) {
+        //        return NativeRaw.c4doc_update(doc, new FLSlice(revisionBody_, revisionBody == null ? 0 : (ulong)revisionBody.Length), revisionFlags, error);
+        //    }
+        //}
 
 
     }

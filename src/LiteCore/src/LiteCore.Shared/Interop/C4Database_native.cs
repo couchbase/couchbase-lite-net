@@ -85,18 +85,18 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern long c4db_nextDocExpiration(C4Database* database);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern long c4db_purgeExpiredDocs(C4Database* db, C4Error* outError);
+        //[DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern long c4db_purgeExpiredDocs(C4Database* db, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_getUUIDs(C4Database* database, C4UUID* publicUUID, C4UUID* privateUUID, C4Error* outError);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4db_setExtraInfo(C4Database* database, C4ExtraInfo x);
+        //[DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern void c4db_setExtraInfo(C4Database* database, C4ExtraInfo x);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4ExtraInfo c4db_getExtraInfo(C4Database* database);
+        //[DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern C4ExtraInfo c4db_getExtraInfo(C4Database* database);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -118,15 +118,15 @@ namespace LiteCore.Interop
             }
         }
 
-        public static bool c4raw_put(C4Database* database, string storeName, string key, string meta, string body, C4Error* outError)
-        {
-            using(var storeName_ = new C4String(storeName))
-            using(var key_ = new C4String(key))
-            using(var meta_ = new C4String(meta))
-            using(var body_ = new C4String(body)) {
-                return NativeRaw.c4raw_put(database, storeName_.AsFLSlice(), key_.AsFLSlice(), meta_.AsFLSlice(), body_.AsFLSlice(), outError);
-            }
-        }
+        //public static bool c4raw_put(C4Database* database, string storeName, string key, string meta, string body, C4Error* outError)
+        //{
+        //    using(var storeName_ = new C4String(storeName))
+        //    using(var key_ = new C4String(key))
+        //    using(var meta_ = new C4String(meta))
+        //    using(var body_ = new C4String(body)) {
+        //        return NativeRaw.c4raw_put(database, storeName_.AsFLSlice(), key_.AsFLSlice(), meta_.AsFLSlice(), body_.AsFLSlice(), outError);
+        //    }
+        //}
 
 
     }

@@ -27,8 +27,8 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4ListenerAPIs c4listener_availableAPIs();
+        //[DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern C4ListenerAPIs c4listener_availableAPIs();
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Listener* c4listener_start(C4ListenerConfig* config, C4Error* error);
@@ -40,9 +40,9 @@ namespace LiteCore.Interop
             }
         }
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4listener_unshareDB(C4Listener* listener, C4Database* db, C4Error* outError);
+        //[DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        //[return: MarshalAs(UnmanagedType.U1)]
+        //public static extern bool c4listener_unshareDB(C4Listener* listener, C4Database* db, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLMutableArray* c4listener_getURLs(C4Listener* listener, C4Database* db, C4ListenerAPIs api, C4Error* err);

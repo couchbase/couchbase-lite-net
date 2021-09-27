@@ -69,12 +69,12 @@ namespace LiteCore.Interop
         DeepCopyImmutables = (DeepCopy | CopyImmutables),
     }
 
-    internal enum FLEncoderFormat
-    {
-        EncodeFleece,
-        EncodeJSON,
-        EncodeJSON5
-    }
+    //internal enum FLEncoderFormat
+    //{
+    //    EncodeFleece,
+    //    EncodeJSON,
+    //    EncodeJSON5
+    //}
 
 	internal unsafe struct FLValue
     {
@@ -155,21 +155,21 @@ namespace LiteCore.Interop
         #pragma warning restore CS0169
     }
 
-	internal unsafe struct FLDeepIterator
-    {
-    }
+	//internal unsafe struct FLDeepIterator
+ //   {
+ //   }
 
-	internal unsafe struct FLPathComponent
-    {
-        public FLSlice key;
-        public uint index;
-    }
+	//internal unsafe struct FLPathComponent
+ //   {
+ //       public FLSlice key;
+ //       public uint index;
+ //   }
 
-	internal unsafe struct FLKeyPath
-    {
-    }
+	//internal unsafe struct FLKeyPath
+ //   {
+ //   }
 
-	internal unsafe struct FLSharedKeyScope
-    {
-    }
+	//internal unsafe struct FLSharedKeyScope
+ //   {
+ //   }
 }

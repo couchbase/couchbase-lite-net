@@ -40,11 +40,11 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4log_writeToCallback(C4LogLevel level, C4LogCallback callback, [MarshalAs(UnmanagedType.U1)]bool preformatted);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4LogLevel c4log_callbackLevel();
+        //[DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern C4LogLevel c4log_callbackLevel();
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4log_setCallbackLevel(C4LogLevel level);
+        //[DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern void c4log_setCallbackLevel(C4LogLevel level);
 
         public static string c4log_getDomainName(C4LogDomain* x)
         {
@@ -52,14 +52,14 @@ namespace LiteCore.Interop
             return Marshal.PtrToStringAnsi((IntPtr)retVal);
         }
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4LogLevel c4log_getLevel(C4LogDomain* x);
+        //[DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern C4LogLevel c4log_getLevel(C4LogDomain* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4log_setLevel(C4LogDomain* c4Domain, C4LogLevel level);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4log_warnOnErrors([MarshalAs(UnmanagedType.U1)]bool b);
+        //[DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        //public static extern void c4log_warnOnErrors([MarshalAs(UnmanagedType.U1)]bool b);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4log_enableFatalExceptionBacktrace();

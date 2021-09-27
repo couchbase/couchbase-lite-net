@@ -54,11 +54,11 @@ namespace LiteCore.Interop
         SignatureDigestRIPEMD160,
     }
 
-	internal unsafe struct C4CertNameInfo
-    {
-        public FLSliceResult id;
-        public FLSliceResult value;
-    }
+	//internal unsafe struct C4CertNameInfo
+ //   {
+ //       public FLSliceResult id;
+ //       public FLSliceResult value;
+ //   }
 
 	internal unsafe struct C4CertNameComponent
     {
