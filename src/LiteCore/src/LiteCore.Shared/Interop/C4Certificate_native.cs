@@ -134,8 +134,8 @@ namespace LiteCore.Interop
         //    }
         //}
 
-        //[DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        //public static extern C4KeyPair* c4keypair_generate(C4KeyPairAlgorithm algorithm, uint sizeInBits, [MarshalAs(UnmanagedType.U1)]bool persistent, C4Error* outError);
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4KeyPair* c4keypair_generate(C4KeyPairAlgorithm algorithm, uint sizeInBits, [MarshalAs(UnmanagedType.U1)]bool persistent, C4Error* outError);
 
         //public static C4KeyPair* c4keypair_fromPublicKeyData(byte[] publicKeyData, C4Error* outError)
         //{
@@ -170,12 +170,13 @@ namespace LiteCore.Interop
         //    }
         //}
 
-        //public static byte[] c4keypair_privateKeyData(C4KeyPair* x)
-        //{
-        //    using(var retVal = NativeRaw.c4keypair_privateKeyData(x)) {
-        //        return ((FLSlice)retVal).ToArrayFast();
-        //    }
-        //}
+        public static byte[] c4keypair_privateKeyData(C4KeyPair* x)
+        {
+            using (var retVal = NativeRaw.c4keypair_privateKeyData(x))
+            {
+                return ((FLSlice)retVal).ToArrayFast();
+            }
+        }
 
         //[DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         //[return: MarshalAs(UnmanagedType.U1)]
@@ -245,8 +246,8 @@ namespace LiteCore.Interop
         //[DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         //public static extern FLSliceResult c4keypair_publicKeyData(C4KeyPair* x);
 
-        //[DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        //public static extern FLSliceResult c4keypair_privateKeyData(C4KeyPair* x);
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLSliceResult c4keypair_privateKeyData(C4KeyPair* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4KeyPair* c4keypair_fromExternal(C4KeyPairAlgorithm algorithm, UIntPtr keySizeInBits, void* externalKey, C4ExternalKeyCallbacks callbacks, C4Error* outError);
