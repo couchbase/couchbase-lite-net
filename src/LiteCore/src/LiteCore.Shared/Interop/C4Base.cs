@@ -40,11 +40,7 @@ namespace LiteCore.Interop
 
         public static void c4cert_release(C4Cert* cert) => c4base_release(cert);
 
-        public static void* c4cert_retain(C4Cert* cert) => c4base_retain(cert);
-
         public static void c4keypair_release(C4KeyPair* keyPair) => c4base_release(keyPair);
-
-        public static void* c4keypair_retain(C4KeyPair* keyPair) => c4base_retain(keyPair);
 
         public static void FLSliceResult_Release(FLSliceResult flSliceResult) => _FLBuf_Release(flSliceResult.buf);
     }

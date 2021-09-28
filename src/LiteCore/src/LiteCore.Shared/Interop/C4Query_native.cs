@@ -47,13 +47,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSlice c4query_columnTitle(C4Query* query, uint column);
 
-        public static void c4query_setParameters(C4Query* query, string encodedParameters)
-        {
-            using(var encodedParameters_ = new C4String(encodedParameters)) {
-                NativeRaw.c4query_setParameters(query, encodedParameters_.AsFLSlice());
-            }
-        }
-
         public static C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, string encodedParameters, C4Error* outError)
         {
             using(var encodedParameters_ = new C4String(encodedParameters)) {
@@ -72,9 +65,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4QueryEnumerator* c4queryenum_refresh(C4QueryEnumerator* e, C4Error* outError);
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4queryenum_close(C4QueryEnumerator* x);
-
 
     }
 
@@ -85,9 +75,6 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSliceResult c4query_explain(C4Query* query);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4query_setParameters(C4Query* query, FLSlice encodedParameters);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, FLSlice encodedParameters, C4Error* outError);

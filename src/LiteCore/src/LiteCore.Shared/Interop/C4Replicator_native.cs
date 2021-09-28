@@ -29,13 +29,7 @@ namespace LiteCore.Interop
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Replicator* c4repl_new(C4Database* db, C4Address remoteAddress, FLSlice remoteDatabaseName, C4ReplicatorParameters @params, C4Error* outError);
-        public static bool c4address_fromURL(string url, C4Address* address, FLSlice* dbName)
-        {
-            using(var url_ = new C4String(url)) {
-                return NativeRaw.c4address_fromURL(url_.AsFLSlice(), address, dbName);
-            }
-        }
-
+        
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Replicator* c4repl_newLocal(C4Database* db, C4Database* otherLocalDB, C4ReplicatorParameters @params, C4Error* outError);
 
@@ -47,10 +41,6 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4repl_stop(C4Replicator* repl);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4repl_retry(C4Replicator* repl, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4repl_setHostReachable(C4Replicator* repl, [MarshalAs(UnmanagedType.U1)]bool reachable);

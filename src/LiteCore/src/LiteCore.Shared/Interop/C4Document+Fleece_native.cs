@@ -51,15 +51,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLEncoder* c4db_getSharedFleeceEncoder(C4Database* db);
 
-        public static byte[] c4db_encodeJSON(C4Database* db, string jsonData, C4Error* outError)
-        {
-            using(var jsonData_ = new C4String(jsonData)) {
-                using(var retVal = NativeRaw.c4db_encodeJSON(db, jsonData_.AsFLSlice(), outError)) {
-                    return ((FLSlice)retVal).ToArrayFast();
-                }
-            }
-        }
-
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSharedKeys* c4db_getFLSharedKeys(C4Database* db);
 

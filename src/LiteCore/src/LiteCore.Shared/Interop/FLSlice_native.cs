@@ -38,9 +38,6 @@ namespace LiteCore.Interop
         public static extern FLSliceResult FLSlice_Copy(FLSlice slice);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void _FLBuf_Retain(void* x);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void _FLBuf_Release(void* x);
 
 

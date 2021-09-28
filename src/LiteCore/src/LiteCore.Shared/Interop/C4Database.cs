@@ -20,16 +20,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using LiteCore.Util;
 
-namespace LiteCore
-{
-
-    [ExcludeFromCodeCoverage]
-    internal struct C4StorageEngine
-    {
-        public static readonly string SQLite = "SQLite";
-    }
-}
-
 namespace LiteCore.Interop
 {
 
