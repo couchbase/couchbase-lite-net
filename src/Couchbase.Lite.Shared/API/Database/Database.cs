@@ -381,6 +381,12 @@ namespace Couchbase.Lite
         /// configuration.  Without given the database configuration, the default configuration that
         /// is equivalent to setting all properties in the configuration to <c>null</c> will be used.
         /// </summary>
+        ///<remarks>
+        /// Note: This method will copy the database without changing the encryption key of
+        /// the original database:  the encryption key specified in the given config is the
+        /// encryption key used for both the original and copied database.To change or add
+        /// the encryption key for the copied database, call Database.changeEncryptionKey(key) for the copy.
+        ///</remarks>
         /// <param name="path">The source database path (i.e. path to the cblite2 folder)</param>
         /// <param name="name">The name of the new database to be created</param>
         /// <param name="config">The database configuration for the new database</param>
