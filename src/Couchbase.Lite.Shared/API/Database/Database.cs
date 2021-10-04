@@ -1300,7 +1300,7 @@ namespace Couchbase.Lite
                 LiteCoreBridge.Check(err => Native.c4db_close(_c4db, err));
             }
 
-            FreeC4Db();
+            ReleaseC4Db();
 
             _closeCondition.Dispose();
         }
@@ -1653,7 +1653,7 @@ namespace Couchbase.Lite
             });
         }
 
-        private void FreeC4Db()
+        private void ReleaseC4Db()
         {
             Native.c4db_release(_c4db);
             _c4db = null;
