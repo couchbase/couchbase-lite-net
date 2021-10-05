@@ -27,8 +27,8 @@ jobs:
     env:
       SigningCertificate_Path: couchbase-lite-net\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP_TemporaryKey.pfx
       Solution_Path: couchbase-lite-net\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.sln
-      Test_Project_Path: couchbase-lite-net\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.Source.csproj
-      Test_Exe_Path: couchbase-lite-net\src\Couchbase.Lite.Tests.UWP\bin\x64\Debug\Couchbase.Lite.Tests.UWP.Source.build.appxrecipe #AppxPackages\Couchbase.Lite.Tests.UWP.Source.0.0.0_x64_Debug_Test\Couchbase.Lite.Tests.UWP.Source_1.0.0.0_x64_Debug.appx
+      Test_Project_Path: couchbase-lite-net\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.Validation.csproj
+      Test_Exe_Path: couchbase-lite-net\src\Couchbase.Lite.Tests.UWP\bin\x64\Debug\Couchbase.Lite.Tests.UWP.Validation.build.appxrecipe #AppxPackages\Couchbase.Lite.Tests.UWP.Source.0.0.0_x64_Debug_Test\Couchbase.Lite.Tests.UWP.Validation_1.0.0.0_x64_Debug.appx
       Cbl_Project_Path: couchbase-lite-net\src\Couchbase.Lite\Couchbase.Lite.csproj
       Cbl_EE_Project_Path: src\Couchbase.Lite.Enterprise\Couchbase.Lite.Enterprise.csproj
       UwpSupport_Project_Directory: couchbase-lite-net\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj

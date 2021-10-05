@@ -10,7 +10,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Lite", "..\Couchb
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Support.UWP", "..\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj", "{E0AE6111-4039-4DB9-A1D9-21D6F92C4A6A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.UWP.Source", "Couchbase.Lite.Tests.UWP.Source.csproj", "{916CEC66-5029-40CD-B583-6FF04A7AD8C7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests.UWP.Validation", "Couchbase.Lite.Tests.UWP.Validation.csproj", "{916CEC66-5029-40CD-B583-6FF04A7AD8C7}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution

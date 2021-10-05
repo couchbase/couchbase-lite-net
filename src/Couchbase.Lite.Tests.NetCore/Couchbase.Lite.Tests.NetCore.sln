@@ -9,7 +9,7 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Tests.Shared
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LiteCore.Tests.Shared", "..\LiteCore\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.shproj", "{6EC40F09-4C86-4F51-9F0E-C4397601A567}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Lite.Tests.NetCore.Source", "Couchbase.Lite.Tests.NetCore.Source.csproj", "{9B85A5EE-61FF-4785-A7B4-097F887AEB15}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Lite.Tests.NetCore.Validation", "Couchbase.Lite.Tests.NetCore.Validation.csproj", "{9B85A5EE-61FF-4785-A7B4-097F887AEB15}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution

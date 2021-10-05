@@ -32,7 +32,7 @@ jobs:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
       NUGET_XMLDOC_MODE: skip
       Cbl_EE_Project_Path: src\Couchbase.Lite.Enterprise\Couchbase.Lite.Enterprise.csproj
-      Test_Project_Path: couchbase-lite-net\src\Couchbase.Lite.Tests.NetCore\Couchbase.Lite.Tests.NetCore.Source.csproj
+      Test_Project_Path: couchbase-lite-net\src\Couchbase.Lite.Tests.NetCore\Couchbase.Lite.Tests.NetCore.Validation.csproj
 
 #### BUILD and TEST
 
@@ -84,7 +84,7 @@ jobs:
         
     #Restore Test
     #- name: Restore Test
-    #  run: dotnet restore couchbase-lite-net\src\Couchbase.Lite.Tests.NetCore\Couchbase.Lite.Tests.NetCore.Source.csproj
+    #  run: dotnet restore couchbase-lite-net\src\Couchbase.Lite.Tests.NetCore\Couchbase.Lite.Tests.NetCore.Validation.csproj
       
     #Restore Support NetDesktop
     #- name: Restore Support NetDesktop
@@ -167,8 +167,8 @@ jobs:
       
     #Restore Test
     - name: Restore Test
-      run: dotnet restore couchbase-lite-net\src\Couchbase.Lite.Tests.NetCore\Couchbase.Lite.Tests.NetCore.Source.csproj
+      run: dotnet restore couchbase-lite-net\src\Couchbase.Lite.Tests.NetCore\Couchbase.Lite.Tests.NetCore.Validation.csproj
       
     #Test    
     - name: Test
-      run: dotnet test couchbase-lite-net\src\Couchbase.Lite.Tests.NetCore\Couchbase.Lite.Tests.NetCore.Source.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=lcov -v n
+      run: dotnet test couchbase-lite-net\src\Couchbase.Lite.Tests.NetCore\Couchbase.Lite.Tests.NetCore.Validation.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=lcov -v n
