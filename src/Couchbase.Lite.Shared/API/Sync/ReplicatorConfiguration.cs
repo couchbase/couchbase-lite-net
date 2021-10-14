@@ -207,14 +207,16 @@ namespace Couchbase.Lite.Sync
 
         /// <summary>
         /// Gets or sets the value to enable/disable the auto-purge feature. 
-        /// The default value is true which means that the document will be automatically purged 
+        /// * The default value is <c>true</c> which means that the document will be automatically purged 
         /// by the pull replicator when the user loses access to the document from both removed 
-        /// and revoked scenarios. When the value is set to false, the document will not be 
-        /// purged when the user loses access to the document.
-        /// Note: Changing the value of the replicator will only affect the future change; 
-        /// For example, changing from false to true will not purge the documents to which the 
-        /// user’s access has been previously revoked even if the replicator is restarted with 
-        /// reset checkpoint equals to true. 
+        /// and revoked scenarios. 
+        /// * If set the property to <c>false</c>, AutoPurge is disabled, the replicator will notify the registered 
+        /// DocumentReplicationListener <see cref="Replicator.AddDocumentReplicationListener"/> with an "access removed" 
+        /// event <see cref="DocumentFlags.AccessRemoved"/> when access to the document is revoked on the Sync Gateway. 
+        /// On receiving the event, the application may decide to manually purge the document. However, for performance reasons,
+        /// any DocumentReplicationListeners added <see cref="Replicator.AddDocumentReplicationListener"/> to the replicator 
+        /// after the replicator is started will not receive the access removed events until the replicator is restarted or 
+        /// reconnected with Sync Gateway.
         /// </summary>
         public bool EnableAutoPurge
         {
