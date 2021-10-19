@@ -38,10 +38,13 @@ namespace Couchbase.Lite.Internal.Query
         #endregion
 
         #region Constructors
-        public NQuery(string n1qlQueryExpression, Database database) : base()
+        internal NQuery(string n1qlQueryExpression, Database database) : base()
         {
             Database = database;
             _n1qlQueryExpression = n1qlQueryExpression;
+
+            // Catch N1QL compile error sooner
+            Compile();
         }
         #endregion
 
@@ -57,10 +60,6 @@ namespace Couchbase.Lite.Internal.Query
             {
                 if (_disposalWatchdog.IsDisposed) {
                     return null;
-                }
-
-                if (_c4Query == null) {
-                    Check();
                 }
 
                 var localOpts = options;
@@ -79,12 +78,6 @@ namespace Couchbase.Lite.Internal.Query
         public override unsafe string Explain()
         {
             _disposalWatchdog.CheckDisposed();
-
-            // Used for debugging
-            if (_c4Query == null) {
-                Check();
-            }
-
             return ThreadSafety?.DoLocked(() => Native.c4query_explain(_c4Query)) ?? "(Unable to explain)";
         }
 
@@ -113,8 +106,11 @@ namespace Couchbase.Lite.Internal.Query
         #endregion
 
         #region Private Methods
-        private unsafe void Check()
+        private unsafe void Compile()
         {
+            if (_c4Query != null)
+                return;
+
             ThreadSafety.DoLockedBridge(err =>
             {
                 if (_disposalWatchdog.IsDisposed) {

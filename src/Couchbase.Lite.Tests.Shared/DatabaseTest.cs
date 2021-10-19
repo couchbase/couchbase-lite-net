@@ -68,6 +68,9 @@ namespace Test
                 Db.Save(d2);
             }
 
+            // Test to catch N1QL query compile error in database CreateQuery() call
+            Db.Invoking(o => o.CreateQuery($"SELECT firstName, lastName FROM *")).Should().Throw<CouchbaseLiteException>("because the input N1QL query string has syntax error near character 33.");
+
             // With new collections implementation, N1QL call will look like "SELECT firstName, lastName FROM _" or "SELECT firstName, lastName FROM _ as whatever"
             // default collection is named _.
             // "SELECT firstName, lastName FROM {Db.Name}" is still valid as well.
