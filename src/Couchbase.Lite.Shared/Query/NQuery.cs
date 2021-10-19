@@ -62,8 +62,6 @@ namespace Couchbase.Lite.Internal.Query
                     return null;
                 }
 
-                Compile();
-
                 var localOpts = options;
                 return NativeRaw.c4query_run(_c4Query, &localOpts, FLSlice.Null, err);
             });
@@ -80,10 +78,6 @@ namespace Couchbase.Lite.Internal.Query
         public override unsafe string Explain()
         {
             _disposalWatchdog.CheckDisposed();
-
-            // Used for debugging
-            Compile();
-
             return ThreadSafety?.DoLocked(() => Native.c4query_explain(_c4Query)) ?? "(Unable to explain)";
         }
 
