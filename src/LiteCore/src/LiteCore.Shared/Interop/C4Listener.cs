@@ -166,7 +166,6 @@ namespace LiteCore.Interop
 
         private C4ListenerConfig _c4ListenerConfig;
         private C4ListenerHTTPAuthCallback _onHTTPAuthCallback;
-        private TLSConfig _tlsConfig;
         private C4String _networkInterface;
 
         #endregion

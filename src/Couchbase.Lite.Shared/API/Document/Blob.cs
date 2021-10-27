@@ -503,6 +503,12 @@ namespace Couchbase.Lite
             return false;
         }
 
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
+
         /// <summary>
         /// Returns a string that represents the current object.
         /// </summary>
