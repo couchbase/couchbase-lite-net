@@ -35,10 +35,6 @@ namespace Couchbase.Lite.Internal.Query
         private string _locale = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
         private readonly IValueIndexItem[] _valueItems;
 
-        #if COUCHBASE_ENTERPRISE
-        private readonly string[] _predictiveItems;
-        #endif
-
         #endregion
 
         #region Properties
