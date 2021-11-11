@@ -342,22 +342,27 @@ namespace Couchbase.Lite.Sync
             }
 
             if (ContainsKey(CookiesKey)) {
-                var split = ((string) this[CookiesKey])?.Split(';') ?? Enumerable.Empty<string>();
-                foreach (var entry in split) {
-                    var pieces = entry?.Split('=');
-                    if (pieces?.Length != 2) {
-                        WriteLog.To.Sync.W(Tag, "Garbage cookie value, ignoring");
-                        continue;
-                    }
-
-                    Cookies.Add(new Cookie(pieces[0]?.Trim(), pieces[1]?.Trim()));
-                }
+                AddCookies((string)this[CookiesKey]);
             }
         }
 
         #endregion
 
         #region Private Methods
+
+        private void AddCookies(string cookiesString)
+        {
+            var split = cookiesString?.Split(';') ?? Enumerable.Empty<string>();
+            foreach (var entry in split) {
+                var pieces = entry?.Split('=');
+                if (pieces?.Length != 2) {
+                    WriteLog.To.Sync.W(Tag, "Garbage cookie value, ignoring");
+                    continue;
+                }
+
+                Cookies.Add(new Cookie(pieces[0]?.Trim(), pieces[1]?.Trim()));
+            }
+        }
 
         private void Dispose(bool finalizing)
         {
@@ -377,6 +382,10 @@ namespace Couchbase.Lite.Sync
         internal override void BuildInternal()
         {
             Auth?.Build();
+
+            // If Headers contain Cookie
+            AddCookies(Headers["Cookie"]);
+
             if (Cookies.Count > 0) {
                 this[CookiesKey] = Cookies.Select(x => $"{x.Name}={x.Value}").Aggregate((l, r) => $"{l}; {r}");
             }
