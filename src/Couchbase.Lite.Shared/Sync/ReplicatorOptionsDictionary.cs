@@ -384,7 +384,8 @@ namespace Couchbase.Lite.Sync
             Auth?.Build();
 
             // If Headers contain Cookie
-            AddCookies(Headers["Cookie"]);
+            if(Headers.ContainsKey("Cookie"))
+                AddCookies(Headers["Cookie"]);
 
             if (Cookies.Count > 0) {
                 this[CookiesKey] = Cookies.Select(x => $"{x.Name}={x.Value}").Aggregate((l, r) => $"{l}; {r}");
