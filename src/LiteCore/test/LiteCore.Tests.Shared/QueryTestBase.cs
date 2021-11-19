@@ -21,6 +21,7 @@ using FluentAssertions;
 
 using System.Collections.Generic;
 using System.Text;
+using LiteCore.Util;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -123,6 +124,57 @@ namespace LiteCore.Tests
             Native.c4query_release(_query);
             _query = (C4Query*)LiteCoreBridge.Check(err => Native.c4query_new2(Db, C4QueryLanguage.JSONQuery, queryString, null, err));
             return _query;
+        }
+
+        internal void AddPersonInState(string docID, string state, string firstName = null)
+        {
+            LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
+            C4Error error;
+            var enc = Native.c4db_getSharedFleeceEncoder(Db);
+            try {
+                Native.FLEncoder_BeginDict(enc, 3);
+                Native.FLEncoder_WriteKey(enc, "custom");
+                Native.FLEncoder_WriteBool(enc, true);
+                if (!string.IsNullOrEmpty(firstName)) {
+                    Native.FLEncoder_WriteKey(enc, "name");
+                    Native.FLEncoder_BeginDict(enc, 2);
+                    Native.FLEncoder_WriteKey(enc, "first");
+                    Native.FLEncoder_WriteString(enc, firstName);
+                    Native.FLEncoder_WriteKey(enc, "last");
+                    Native.FLEncoder_WriteString(enc, "lastname");
+                    Native.FLEncoder_EndDict(enc);
+                }
+
+                Native.FLEncoder_WriteKey(enc, "contact");
+                Native.FLEncoder_BeginDict(enc, 1);
+                Native.FLEncoder_WriteKey(enc, "address");
+                Native.FLEncoder_BeginDict(enc, 1);
+                Native.FLEncoder_WriteKey(enc, "state");
+                Native.FLEncoder_WriteString(enc, state);
+                Native.FLEncoder_EndDict(enc);
+                Native.FLEncoder_EndDict(enc);
+                Native.FLEncoder_EndDict(enc);
+
+                // Save document:
+                FLSliceResult body = NativeRaw.FLEncoder_Finish(enc, null);
+                //REQUIRE(body.buf);
+                using (var docID_ = new C4String(docID)){
+                    var rq = new C4DocPutRequest {
+                        allowConflict = false,
+                        docID = docID_.AsFLSlice(),
+                        allocedBody = body,
+                        save = true
+                    };
+
+                    C4Document* doc;
+                    doc = Native.c4doc_put(Db, &rq, null, &error);
+                    ((long)doc).Should().NotBe(0, "because otherwise the put failed");
+                    Native.c4doc_release(doc);
+                    Native.FLSliceResult_Release(body);
+                }
+            } finally {
+                LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
+            }
         }
 
         protected override void SetupVariant(int option)
