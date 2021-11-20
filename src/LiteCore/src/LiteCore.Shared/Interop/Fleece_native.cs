@@ -76,6 +76,10 @@ namespace LiteCore.Interop
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool FLValue_IsEqual(FLValue* value1, FLValue* value2);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool FLValue_IsInteger(FLValue* value);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]

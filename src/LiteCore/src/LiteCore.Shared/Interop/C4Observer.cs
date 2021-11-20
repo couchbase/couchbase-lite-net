@@ -25,4 +25,7 @@ namespace LiteCore.Interop
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate void C4DocumentObserverCallback(C4DocumentObserver* observer, FLSlice docID, ulong sequence, void* context);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    internal unsafe delegate void C4QueryObserverCallback(C4QueryObserver* observer, C4Query* query, void* context);
 }

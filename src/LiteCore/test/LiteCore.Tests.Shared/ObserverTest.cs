@@ -19,7 +19,6 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-
 using FluentAssertions;
 using LiteCore.Interop;
 #if !WINDOWS_UWP
@@ -38,15 +37,13 @@ namespace LiteCore.Tests
     {
         private static readonly C4DatabaseObserverCallback DatabaseCallback = DBObserverCallback;
         private static readonly C4DocumentObserverCallback DocumentCallback = DocObserverCallback;
-
+        
         private C4DatabaseObserver* _dbObserver;
         private C4DocumentObserver* _docObserver;
-
+       
         private int _dbCallbackCalls;
 
         private int _docCallbackCalls;
-
-        protected override int NumberOfOptions => 1;
 
 #if !WINDOWS_UWP
         public ObserverTest(ITestOutputHelper output) : base(output)

@@ -43,6 +43,15 @@ namespace LiteCore.Interop
             }
         }
 
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4QueryObserver* c4queryobs_create(C4Query* query, C4QueryObserverCallback callback, void* context);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4queryobs_setEnabled(C4QueryObserver* obs, [MarshalAs(UnmanagedType.U1)]bool enabled);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4QueryEnumerator* c4queryobs_getEnumerator(C4QueryObserver* obs, [MarshalAs(UnmanagedType.U1)]bool forget, C4Error* error);
+
 
     }
 
