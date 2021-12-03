@@ -73,6 +73,244 @@ namespace Couchbase.Lite.Sync
         AccessRemoved = 1 << 1
     }
 
+#if NET5_0_OR_GREATER
+    /// <summary>
+    /// A class representing configuration options for a <see cref="Replicator"/>
+    /// </summary>
+    public sealed record ReplicatorConfiguration
+    {
+        #region Constants
+
+        private const string Tag = nameof(ReplicatorConfiguration);
+
+        #endregion
+
+        #region Variables
+
+        [NotNull] private readonly Freezer _freezer = new Freezer();
+        private Database _otherDb;
+        private Uri _remoteUrl;
+        private C4SocketFactory _socketFactory;
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Gets or sets the class which will authenticate the replication
+        /// </summary>
+        [CanBeNull]
+        public Authenticator Authenticator { get; init; }
+
+        /// <summary>
+        /// A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
+        /// The default value is null, meaning that all accessible channels will be pulled.
+        /// Note: channels that are not accessible to the user will be ignored by Sync Gateway.
+        /// </summary>
+        [CanBeNull]
+        public IList<string> Channels
+        {
+            get => Options.Channels;
+            init => Options.Channels = value;
+        }
+
+        /// <summary>
+        /// Gets or sets whether or not the <see cref="Replicator"/> should stay
+        /// active indefinitely.  The default is <c>false</c>
+        /// </summary>
+        public bool Continuous { get; init; }
+
+        /// <summary>
+        /// Gets the local database participating in the replication. 
+        /// </summary>
+        [NotNull]
+        public Database Database { get; }
+
+        /// <summary>
+        /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
+        /// and/or pulled
+        /// </summary>
+        [CanBeNull]
+        public IList<string> DocumentIDs
+        {
+            get => Options.DocIDs;
+            init => Options.DocIDs = value;
+        }
+
+        /// <summary>
+        /// Extra HTTP headers to send in all requests to the remote target
+        /// </summary>
+        [CanBeNull]
+        public IDictionary<string, string> Headers
+        {
+            get => Options.Headers;
+            init => Options.Headers = value;
+        }
+
+        /// <summary>
+        /// Gets or sets a certificate to trust.  All other certificates received
+        /// by a <see cref="Replicator"/> with this configuration will be rejected.
+        /// </summary>
+        [CanBeNull]
+        public X509Certificate2 PinnedServerCertificate
+        {
+            get => Options.PinnedServerCertificate;
+            init => Options.PinnedServerCertificate = value;
+        }
+
+        /// <summary>
+        /// Func delegate that takes Document input parameter and bool output parameter
+        /// Document pull will be allowed if output is true, othewise, Document pull 
+        /// will not be allowed
+        /// </summary>
+        [CanBeNull]
+        public Func<Document, DocumentFlags, bool> PullFilter { get; init; }
+
+        /// <summary>
+        /// Func delegate that takes Document input parameter and bool output parameter
+        /// Document push will be allowed if output is true, othewise, Document push 
+        /// will not be allowed
+        /// </summary>
+        [CanBeNull]
+        public Func<Document, DocumentFlags, bool> PushFilter { get; init; }
+
+        /// <summary>
+        /// A value indicating the direction of the replication.  The default is
+        /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
+        /// </summary>
+        public ReplicatorType ReplicatorType { get; init; } = ReplicatorType.PushAndPull;
+
+        /// <summary>
+        /// Gets or sets the replicator heartbeat keep-alive interval. 
+        /// The default is null (5 min interval is applied). 
+        /// * <c>5</c> min interval is applied when Heartbeat is set to null.
+        /// * null will be returned when default <c>5</c> min interval is applied.
+        /// </summary>
+        /// <exception cref="ArgumentException"> 
+        /// Throw if set the Heartbeat to less or equal to 0 full seconds.
+        /// </exception>
+        public TimeSpan? Heartbeat
+        {
+            get => Options.Heartbeat;
+            init => Options.Heartbeat = value;
+        }
+
+        /// <summary>
+        /// Gets or sets the Max number of retry attempts. The retry attempts will reset
+        /// after the replicator is connected to a remote peer. 
+        /// The default is <c>0</c> (<c>10</c> for a single shot replicator or 
+        /// <see cref="int.MaxValue" /> for a continuous replicator is applied.)
+        /// * <c>10</c> for a single shot replicator or <see cref="int.MaxValue" /> for a 
+        /// continuous replicator is applied when user set MaxAttempts to 0.
+        /// * 0 will be returned when default <c>10</c> for a single shot replicator or 
+        /// <see cref="int.MaxValue" /> for a continuous replicator is applied.
+        /// * Setting the value to 1 means that the replicator will try connect once and 
+        /// the replicator will stop if there is a transient error.
+        /// </summary>
+        /// <exception cref="ArgumentException">
+        /// Throw if set the MaxAttempts to a negative value.
+        /// </exception>
+        public int MaxAttempts
+        {
+            get => Options.MaxAttempts;
+            init => Options.MaxAttempts = value;
+        }
+
+        /// <summary>
+        /// Gets or sets the Max delay between retries.
+        /// The default is null (5 min interval is applied).
+        /// * <c>5</c> min interval is applied when MaxAttemptsWaitTime is set to null.
+        /// * null will be returned when default <c>5</c> min interval is applied.
+        /// </summary>
+        /// <exception cref="ArgumentException"> 
+        /// Throw if set the MaxRetryWaitTime to less than 0 full seconds.
+        /// </exception>
+        public TimeSpan? MaxRetryWaitTime
+        {
+            get => Options.MaxAttemptsWaitTime;
+            init => Options.MaxAttemptsWaitTime = value;
+        }
+
+        /// <summary>
+        /// Gets the target to replicate with (either <see cref="Database"/>
+        /// or <see cref="Uri"/>
+        /// </summary>
+        [NotNull]
+        public IEndpoint Target { get; }
+
+        /// <summary>
+        /// The implemented custom conflict resolver object can be registered to the replicator 
+        /// at ConflictResolver property. The default value of the conflictResolver is null. 
+        /// When the value is null, the default conflict resolution will be applied.
+        /// </summary>
+        [CanBeNull]
+        public IConflictResolver ConflictResolver { get; init; }
+
+        #if COUCHBASE_ENTERPRISE
+        /// <summary>
+        /// Get or set the way that the replicator will validate TLS certificates.  This
+        /// property will be overriden if the <see cref="PinnedServerCertificate"/> property
+        /// is set.
+        /// </summary>
+        public bool AcceptOnlySelfSignedServerCertificate
+        {
+            get => Options.AcceptOnlySelfSignedServerCertificate;
+            init => Options.AcceptOnlySelfSignedServerCertificate = value;
+        }
+        #endif
+
+        internal TimeSpan CheckpointInterval
+        {
+            get => Options.CheckpointInterval;
+            set => _freezer.PerformAction(() => Options.CheckpointInterval = value);
+        }
+
+        [NotNull]
+        internal ReplicatorOptionsDictionary Options { get; set; } = new ReplicatorOptionsDictionary();
+
+        [CanBeNull]
+        internal Database OtherDB
+        {
+            get => _otherDb;
+            set => _freezer.SetValue(ref _otherDb, value);
+        }
+
+        [CanBeNull]
+        internal Uri RemoteUrl
+        {
+            get => _remoteUrl;
+            set => _freezer.SetValue(ref _remoteUrl, value);
+        }
+
+        internal C4SocketFactory SocketFactory
+        {
+            get => _socketFactory.open != IntPtr.Zero ? _socketFactory : LiteCore.Interop.SocketFactory.InternalFactory;
+            set => _freezer.SetValue(ref _socketFactory, value);
+        }
+
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Constructs a new builder object with the required properties
+        /// </summary>
+        /// <param name="database">The database that will serve as the local side of the replication</param>
+        /// <param name="target">The endpoint to replicate to, either local or remote</param>
+        /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
+        /// is provided as <paramref name="target"/></exception>
+        public ReplicatorConfiguration([NotNull] Database database, [NotNull] IEndpoint target)
+        {
+            Database = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(database), database);
+            Target = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(target), target);
+
+            var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
+            castTarget.Visit(this);
+        }
+
+        #endregion
+    }
+#else
     /// <summary>
     /// A class representing configuration options for a <see cref="Replicator"/>
     /// </summary>
@@ -86,7 +324,7 @@ namespace Couchbase.Lite.Sync
 
         #region Variables
 
-        [NotNull]private readonly Freezer _freezer = new Freezer();
+        [NotNull] private readonly Freezer _freezer = new Freezer();
         private Authenticator _authenticator;
         private bool _continuous;
         private Func<Document, DocumentFlags, bool> _pushFilter;
@@ -130,7 +368,7 @@ namespace Couchbase.Lite.Sync
         public bool Continuous
         {
             get => _continuous;
-            set =>_freezer.SetValue(ref _continuous, value);
+            set => _freezer.SetValue(ref _continuous, value);
         }
 
         /// <summary>
@@ -147,7 +385,7 @@ namespace Couchbase.Lite.Sync
         public IList<string> DocumentIDs
         {
             get => Options.DocIDs;
-            set => _freezer.PerformAction(() =>  Options.DocIDs = value);
+            set => _freezer.PerformAction(() => Options.DocIDs = value);
         }
 
         /// <summary>
@@ -371,4 +609,5 @@ namespace Couchbase.Lite.Sync
 
         #endregion
     }
+#endif
 }
