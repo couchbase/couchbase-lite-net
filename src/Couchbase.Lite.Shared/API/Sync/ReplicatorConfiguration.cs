@@ -73,9 +73,9 @@ namespace Couchbase.Lite.Sync
         AccessRemoved = 1 << 1
     }
 
-#if NET5_0_OR_GREATER
+#if NET6_0_WINDOWS || NET6_0_WINDOWS10_0_17763_0 //Needs to specify TargetPlatform Version, just net6.0-windows/NET6_0_WINDOWS doesn't work as expected..
     /// <summary>
-    /// A class representing configuration options for a <see cref="Replicator"/>
+    /// A record representing configuration options for a <see cref="Replicator"/>
     /// </summary>
     public sealed record ReplicatorConfiguration
     {
@@ -225,7 +225,7 @@ namespace Couchbase.Lite.Sync
         /// <exception cref="ArgumentException"> 
         /// Throw if set the MaxRetryWaitTime to less than 0 full seconds.
         /// </exception>
-        public TimeSpan? MaxRetryWaitTime
+        public TimeSpan? MaxAttemptsWaitTime
         {
             get => Options.MaxAttemptsWaitTime;
             init => Options.MaxAttemptsWaitTime = value;

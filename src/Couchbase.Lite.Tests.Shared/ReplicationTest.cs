@@ -113,20 +113,22 @@ namespace Test
         protected ReplicatorConfiguration CreateConfig(IEndpoint target, ReplicatorType type, bool continuous,
             Authenticator authenticator = null, X509Certificate2 serverCert = null, Database sourceDb = null)
         {
+            X509Certificate2 pinnedServerCertificate = null;
+            if ((target as URLEndpoint)?.Url?.Scheme == "wss") {
+                if (serverCert != null) {
+                    pinnedServerCertificate = serverCert;
+                } else if (!DisableDefaultServerCertPinning) {
+                    pinnedServerCertificate = DefaultServerCert;
+                }
+            }
+
             var c = new ReplicatorConfiguration(sourceDb ?? Db, target)
             {
                 ReplicatorType = type,
                 Continuous = continuous,
-                Authenticator = authenticator
+                Authenticator = authenticator,
+                PinnedServerCertificate = pinnedServerCertificate
             };
-
-            if ((target as URLEndpoint)?.Url?.Scheme == "wss") {
-                if (serverCert != null) {
-                    c.PinnedServerCertificate = serverCert;
-                } else if (!DisableDefaultServerCertPinning) {
-                    c.PinnedServerCertificate = DefaultServerCert;
-                }
-            }
 
             if (continuous) {
                 c.CheckpointInterval = TimeSpan.FromSeconds(1);
@@ -141,12 +143,17 @@ namespace Test
             X509Certificate2 serverCert = null)
         {
             var c = CreateConfig(target, type, continuous, authenticator, serverCert);
+            #if NET5_0_OR_GREATER
+            var nc = c with { AcceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate };
+            return nc;
+            #else
             c.AcceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate;
             return c;
+            #endif
         }
-        #endif
+#endif
 
-        protected void RunReplication(ReplicatorConfiguration config, int expectedErrCode, CouchbaseLiteErrorType expectedErrDomain, bool reset = false,
+            protected void RunReplication(ReplicatorConfiguration config, int expectedErrCode, CouchbaseLiteErrorType expectedErrDomain, bool reset = false,
             Action<Replicator> onReplicatorReady = null)
         {
             Misc.SafeSwap(ref _repl, new Replicator(config));
@@ -274,13 +281,35 @@ namespace Test
             using (var repl = new Replicator(config))
             {
                 repl.Config.Options.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec is applied, and no value returns from Core..");
-
+                #if !NET5_0_OR_GREATER
                 badAction = (() => repl.Config.Heartbeat = TimeSpan.FromSeconds(2));
                 badAction.Should().Throw<InvalidOperationException>("Cannot modify a ReplicatorConfiguration (Heartbeat) that is in use.");
-
+                #endif
                 repl.Config.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
             }
 
+            #if NET5_0_OR_GREATER
+            var config1 = config with { Heartbeat = TimeSpan.FromSeconds(60) };
+            using (var repl = new Replicator(config1)) {
+                repl.Config.Options.Heartbeat.Should().Be(TimeSpan.FromSeconds(60));
+                repl.Config.Heartbeat.Should().Be(TimeSpan.FromSeconds(60));
+            }
+
+            var config2 = config with { Heartbeat = null };
+            using (var repl = new Replicator(config2)) {
+                repl.Config.Options.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec is applied, and no value returns from Core..");
+                repl.Config.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
+            }
+
+            config.Invoking(c => c with { Heartbeat = TimeSpan.FromSeconds(0) }).Should().Throw<ArgumentException>("Assigning Heartbeat to an invalid value (<= 0).");
+            config.Invoking(c => c with { Heartbeat = TimeSpan.FromMilliseconds(800) }).Should().Throw<ArgumentException>("Assigning Heartbeat to an invalid value.");
+            
+            using (var repl = new Replicator(config2))
+            {
+                repl.Config.Options.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec is applied, and no value returns from Core..");
+                repl.Config.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
+            }
+            #else
             config.Heartbeat = TimeSpan.FromSeconds(60);
             using (var repl = new Replicator(config))
             {
@@ -306,6 +335,7 @@ namespace Test
                 repl.Config.Options.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec is applied, and no value returns from Core..");
                 repl.Config.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
             }
+            #endif
         }
 
         [Fact]
@@ -315,13 +345,37 @@ namespace Test
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
                 repl.Config.Options.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Interval is 300 sec is applied, and no value returns from Core..");
-
+                #if !NET5_0_OR_GREATER
                 badAction = (() => repl.Config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(2));
                 badAction.Should().Throw<InvalidOperationException>("Cannot modify a ReplicatorConfiguration (MaxAttemptsWaitTime) that is in use.");
-
+                #endif
                 repl.Config.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
             }
 
+            #if NET5_0_OR_GREATER
+            var config1 = config with { MaxAttemptsWaitTime = TimeSpan.FromSeconds(60) };
+            using (var repl = new Replicator(config1))
+            {
+                repl.Config.Options.MaxAttemptsWaitTime.Should().Be(TimeSpan.FromSeconds(60));
+                repl.Config.MaxAttemptsWaitTime.Should().Be(TimeSpan.FromSeconds(60));
+            }
+
+            var config2 = config with { MaxAttemptsWaitTime = null };
+            using (var repl = new Replicator(config2))
+            {
+                repl.Config.Options.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Interval is 300 sec is applied, and no value returns from Core..");
+                repl.Config.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
+            }
+
+            config.Invoking(c => c with { MaxAttemptsWaitTime = TimeSpan.FromSeconds(0) }).Should().Throw<ArgumentException>("Assigning Max Retry Wait Time to an invalid value (<= 0).");
+            config.Invoking(c => c with { MaxAttemptsWaitTime = TimeSpan.FromMilliseconds(800) }).Should().Throw<ArgumentException>("Assigning Max Retry Wait Time to an invalid value.");
+
+            using (var repl = new Replicator(config2))
+            {
+                repl.Config.Options.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Interval is 300 sec is applied, and no value returns from Core..");
+                repl.Config.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
+            }
+            #else
             config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(60);
             using (var repl = new Replicator(config)) {
                 repl.Config.Options.MaxAttemptsWaitTime.Should().Be(TimeSpan.FromSeconds(60));
@@ -346,6 +400,7 @@ namespace Test
                 repl.Config.Options.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Interval is 300 sec is applied, and no value returns from Core..");
                 repl.Config.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
             }
+            #endif
         }
 
         [Fact]
@@ -355,10 +410,10 @@ namespace Test
             var config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb));
             using (var repl = new Replicator(config)) {
                 repl.Config.MaxAttempts.Should().Be(0, "Because default Max Attempts is 10 times for a Single Shot Replicator and 0 is returned.");
-
+                #if !NET5_0_OR_GREATER
                 badAction = (() => repl.Config.MaxAttempts = 2);
                 badAction.Should().Throw<InvalidOperationException>("Cannot modify a ReplicatorConfiguration (MaxAttempts) that is in use.");
-
+                #endif
                 repl.Config.Options.MaxAttempts.Should().Be( 0 , $"Because default value 9 is for Max Retries for a Single Shot Replicator is applied, and no value returns from Core..");
             }
 
@@ -375,12 +430,21 @@ namespace Test
                 repl.Config.Options.MaxAttempts.Should().Be(attempts, $"Because {attempts} is the value set for MaxAttempts.");
             }
 
+            #if NET5_0_OR_GREATER
+            var config1 = config with { MaxAttempts = 0 };
+            using (var repl = new Replicator(config1))
+            {
+                repl.Config.MaxAttempts.Should().Be(0, "Because default Max Attempts is 10 times for a Single Shot Replicator and 0 is returned.");
+                repl.Config.Options.MaxAttempts.Should().Be(0, $"Because default value 9 is for Max Retries for a Single Shot Replicator is applied, and no value returns from Core..");
+            }
+            #else
             config.MaxAttempts = 0;
             using (var repl = new Replicator(config))
             {
                 repl.Config.MaxAttempts.Should().Be(0, "Because default Max Attempts is 10 times for a Single Shot Replicator and 0 is returned.");
                 repl.Config.Options.MaxAttempts.Should().Be(0, $"Because default value 9 is for Max Retries for a Single Shot Replicator is applied, and no value returns from Core..");
             }
+            #endif
 
             config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb)) { MaxAttempts = attempts, Continuous = true };
             using (var repl = new Replicator(config))
@@ -388,10 +452,12 @@ namespace Test
                 repl.Config.MaxAttempts.Should().Be(attempts, $"Because {attempts} is the value set for MaxAttempts.");
                 repl.Config.Options.MaxAttempts.Should().Be(attempts, $"Because {attempts}  is the value set for MaxAttempts.");
             }
-
+            #if NET5_0_OR_GREATER
+            config.Invoking(c => c with { MaxAttempts = -1 }).Should().Throw<ArgumentException>("Assigning Max Retries to an invalid value (< 0).");
+            #else
             badAction = (() => config.MaxAttempts = -1);
             badAction.Should().Throw<ArgumentException>("Assigning Max Retries to an invalid value (< 0).");
-
+            #endif
             using (var repl = new Replicator(config))
             {
                 repl.Config.MaxAttempts.Should().Be(attempts, $"Because {attempts}  is the value set for MaxAttempts.");
@@ -411,8 +477,10 @@ namespace Test
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
                 config = repl.Config;
+#if !NET5_0_OR_GREATER
                 config.Invoking(c => c.ReplicatorType = ReplicatorType.PushAndPull)
                     .Should().Throw<InvalidOperationException>("because the configuration from a replicator should be read only");
+#endif
             }
         }
 
@@ -433,8 +501,16 @@ namespace Test
         public void TestPushPullKeepsFilter()
         {
             var config = CreateConfig(true, true, false);
+#if NET5_0_OR_GREATER
+            var config1 = config with
+            {
+                PullFilter = _replicator__filterCallback,
+                PushFilter = _replicator__filterCallback
+            };
+#else
             config.PullFilter = _replicator__filterCallback;
             config.PushFilter = _replicator__filterCallback;
+#endif
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "donotpass");
                 Db.Save(doc1);
@@ -446,7 +522,11 @@ namespace Test
             }
 
             for (int i = 0; i < 2; i++) {
+#if NET5_0_OR_GREATER
+                RunReplication(config1, 0, 0);
+#else
                 RunReplication(config, 0, 0);
+#endif
                 Db.Count.Should().Be(1, "because the pull should have rejected the other document");
                 OtherDb.Count.Should().Be(1, "because the push should have rejected the local document");
             }
@@ -465,8 +545,13 @@ namespace Test
             }
 
             var config = CreateConfig(true, false, false);
+#if NET5_0_OR_GREATER
+            var config1 = config with { PushFilter = _replicator__filterCallback };
+            RunReplication(config1, 0, 0);
+#else
             config.PushFilter = _replicator__filterCallback;
             RunReplication(config, 0, 0);
+#endif
             _isFilteredCallback.Should().BeTrue();
             OtherDb.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
             OtherDb.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
@@ -477,8 +562,11 @@ namespace Test
                 Db.Delete(doc1);
                 Db.Delete(doc2);
             }
-
+#if NET5_0_OR_GREATER
+            RunReplication(config1, 0, 0);
+#else
             RunReplication(config, 0, 0);
+#endif
             _isFilteredCallback.Should().BeTrue();
             OtherDb.GetDocument("doc1").Should().NotBeNull("because doc1's deletion should be rejected");
             OtherDb.GetDocument("pass").Should().BeNull("because the next document's deletion is not rejected");
@@ -498,6 +586,39 @@ namespace Test
 
             var config = CreateConfig(true, true, false);
             var exceptions = new List<Exception>();
+#if NET5_0_OR_GREATER
+            var config1 = config with {
+                PullFilter = (doc, isPush) => {
+                    try {
+                        doc.GetInt("Two").Should().Be(2);
+                        doc.RevisionID.Should().NotBeNull();
+                        Action act = () => doc.ToMutable();
+                        act.Should().Throw<InvalidOperationException>()
+                          .WithMessage(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
+                    } catch (Exception e) {
+                        exceptions.Add(e);
+                    }
+
+                    return true;
+                },
+                PushFilter = (doc, isPush) => {
+                    try {
+                        doc.GetInt("One").Should().Be(1);
+                        doc.RevisionID.Should().NotBeNull();
+                        Action act = () => doc.ToMutable();
+                        act.Should().Throw<InvalidOperationException>()
+                          .WithMessage(CouchbaseLiteErrorMessage.NoDocEditInReplicationFilter);
+
+                    } catch (Exception e) {
+                        exceptions.Add(e);
+                    }
+
+                    return true;
+                }
+            };
+
+            RunReplication(config1, 0, 0);
+#else
             config.PullFilter = (doc, isPush) => {
                 try {
                     doc.GetInt("Two").Should().Be(2);
@@ -528,6 +649,7 @@ namespace Test
             };
 
             RunReplication(config, 0, 0);
+#endif
             exceptions.Count.Should().Be(0);
         }
 
@@ -551,6 +673,36 @@ namespace Test
 
             var config = CreateConfig(true, true, false);
             var exceptions = new List<Exception>();
+#if NET5_0_OR_GREATER
+            var config1 = config with {
+                PullFilter = (doc, isPush) => {
+                    try {
+                        var nestedBlob = doc.GetArray("outer_arr")?.GetBlob(0);
+                        nestedBlob.Should().NotBeNull("because the actual blob object should be intact");
+                        var gotContent = nestedBlob.Content;
+                        gotContent.Should().BeNull("because the blob is not yet available");
+                        doc.RevisionID.Should().NotBeNull();
+                    } catch (Exception e) {
+                        exceptions.Add(e);
+                    }
+
+                    return true;
+                },
+                PushFilter = (doc, isPush) => {
+                    try {
+                        var gotContent = doc.GetDictionary("outer_dict")?.GetBlob("inner_blob")?.Content;
+                        gotContent.Should().NotBeNull("because the nested blob should be intact in the push");
+                        gotContent.Should().ContainInOrder(content1, "because the nested blob should be intact in the push");
+                        doc.RevisionID.Should().NotBeNull();
+                    } catch (Exception e) {
+                        exceptions.Add(e);
+                    }
+
+                    return true;
+                }
+            };
+            RunReplication(config1, 0, 0);
+#else
             config.PullFilter = (doc, isPush) => {
                 try {
                     var nestedBlob = doc.GetArray("outer_arr")?.GetBlob(0);
@@ -578,6 +730,7 @@ namespace Test
                 return true;
             };
             RunReplication(config, 0, 0);
+#endif
             exceptions.Should().BeEmpty("because there should be no errors");
         }
 
@@ -638,9 +791,12 @@ namespace Test
                 doc2.SetString("name", "pass");
                 OtherDb.Save(doc2);
             }
-
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with { PullFilter = _replicator__filterCallback };
+#else
             var config = CreateConfig(false, true, false);
             config.PullFilter = _replicator__filterCallback;
+#endif
             RunReplication(config, 0, 0);
             _isFilteredCallback.Should().BeTrue();
             Db.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
@@ -659,9 +815,12 @@ namespace Test
                 doc2.SetString("name", "pass");
                 OtherDb.Save(doc2);
             }
-
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with { PullFilter = _replicator__filterCallback };
+#else
             var config = CreateConfig(false, true, false);
             config.PullFilter = _replicator__filterCallback;
+#endif
             RunReplication(config, 0, 0);
             _isFilteredCallback.Should().BeTrue();
             Db.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
@@ -692,9 +851,12 @@ namespace Test
                 doc2.SetString("name", "pass");
                 OtherDb.Save(doc2);
             }
-
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with { PullFilter = _replicator__filterCallback };
+#else
             var config = CreateConfig(false, true, false);
             config.PullFilter = _replicator__filterCallback;
+#endif
             RunReplication(config, 0, 0);
             _isFilteredCallback.Should().BeTrue();
             Db.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
@@ -794,9 +956,12 @@ namespace Test
             OtherDb.Save(doc4);
             doc4.SetString("pattern", "striped");
             OtherDb.Save(doc4);
-
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(true, true, false) with { DocumentIDs = new[] { "doc1", "doc3" } };
+#else
             var config = CreateConfig(true, true, false);
             config.DocumentIDs = new[] { "doc1", "doc3" };
+#endif
             RunReplication(config, 0, 0);
             Db.Count.Should().Be(3, "because only one document should have been pulled");
             Db.GetDocument("doc3").Should().NotBeNull();
@@ -1040,9 +1205,12 @@ namespace Test
                 doc2.SetString("pattern", "striped");
                 Db.Save(doc2);
             }
-
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(true, false, false) with { DocumentIDs = new[] { "doc1" }};
+#else
             var config = CreateConfig(true, false, false);
             config.DocumentIDs = new[] { "doc1" };
+#endif
             RunReplication(config, 0, 0);
 
             OtherDb.Count.Should().Be(1UL);
@@ -1162,7 +1330,17 @@ namespace Test
             Db.Count.Should().Be(1);
 
             OtherDb.Delete(OtherDb.GetDocument("doc1"));
-
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with {
+                ConflictResolver = new TestConflictResolver((conflict) => {
+                using (var doc1 = Db.GetDocument("doc1"))
+                {
+                    Db.Delete(doc1);
+                }
+                resolveCnt++;
+                return conflict.LocalDocument;
+            }) };
+#else
             var config = CreateConfig(false, true, false);
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 using (var doc1 = Db.GetDocument("doc1")) {
@@ -1171,7 +1349,7 @@ namespace Test
                 resolveCnt++;
                 return conflict.LocalDocument;
             });
-
+#endif
             RunReplication(config, 0, 0);
             resolveCnt.Should().Be(1);
             Db.Count.Should().Be(0);
@@ -1180,18 +1358,24 @@ namespace Test
         [Fact]
         public void TestConflictResolverPropertyInReplicationConfig()
         {
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with {
+                ConflictResolver = new TestConflictResolver((conflict) => {
+                return conflict.RemoteDocument;
+            }) };
+#else
             var config = CreateConfig(false, true, false);
-
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 return conflict.RemoteDocument;
             });
-
+#endif
             config.ConflictResolver.GetType().Should().Be(typeof(TestConflictResolver));
 
             using (var replicator = new Replicator(config)) {
-
+#if !NET5_0_OR_GREATER
                 Action badAction = (() => replicator.Config.ConflictResolver = new FakeConflictResolver());
                 badAction.Should().Throw<InvalidOperationException>("Attempt to modify a frozen object is prohibited.");
+#endif
             }
         }
 
@@ -1216,7 +1400,35 @@ namespace Test
                 doc1.SetString("location", "Japan");
                 OtherDb.Save(doc1);
             }
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(true, true, false) with {
+                ConflictResolver = new TestConflictResolver((conflict) => {
+                    var localDoc = conflict.LocalDocument;
+                    var remoteDoc = conflict.RemoteDocument;
 
+                    var updateDocDict = localDoc.ToDictionary();
+                    var curDocDict = remoteDoc.ToDictionary();
+
+                    foreach (var value in curDocDict)
+                    {
+                        if (updateDocDict.ContainsKey(value.Key) && !value.Value.Equals(updateDocDict[value.Key]))
+                        {
+                            updateDocDict[value.Key] = value.Value + ", " + updateDocDict[value.Key];
+                        }
+                        else if (!updateDocDict.ContainsKey(value.Key))
+                        {
+                            updateDocDict.Add(value.Key, value.Value);
+                        }
+                    }
+
+                    WriteLine($"Resulting merge: {JsonConvert.SerializeObject(updateDocDict)}");
+
+                    var doc1 = new MutableDocument(conflict.DocumentID);
+                    doc1.SetData(updateDocDict);
+                    return doc1;
+                })
+            };
+#else
             var config = CreateConfig(true, true, false);
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 var localDoc = conflict.LocalDocument;
@@ -1239,6 +1451,7 @@ namespace Test
                 doc1.SetData(updateDocDict);
                 return doc1;
             });
+#endif
 
             RunReplication(config, 0, 0);
 
@@ -1282,14 +1495,19 @@ namespace Test
         {
             bool conflictResolved = false;
             CreateReplicationConflict("doc1");
-
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with {
+                ConflictResolver = new TestConflictResolver((conflict) => {
+                conflictResolved = true;
+                return null;
+            }) };
+#else
             var config = CreateConfig(false, true, false);
-
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 conflictResolved = true;
                 return null;
             });
-
+#endif
             RunReplication(config, 0, 0, onReplicatorReady: r =>
             {
                 r.AddDocumentReplicationListener((sender, args) =>
@@ -1326,13 +1544,21 @@ namespace Test
                 OtherDb.Save(doc1);
             }
 
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with {
+                ConflictResolver = new TestConflictResolver((conflict) => {
+                localDoc = conflict.LocalDocument;
+                remoteDoc = conflict.RemoteDocument;
+                return null;
+            }) };
+#else
             var config = CreateConfig(false, true, false);
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 localDoc = conflict.LocalDocument;
                 remoteDoc = conflict.RemoteDocument;
                 return null;
             });
-
+#endif
             RunReplication(config, 0, 0);
 
             localDoc.Should().BeNull();
@@ -1364,14 +1590,21 @@ namespace Test
             Db.Count.Should().Be(1);
 
             OtherDb.Delete(OtherDb.GetDocument("doc1"));
-
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with {
+                ConflictResolver = new TestConflictResolver((conflict) => {
+                localDoc = conflict.LocalDocument;
+                remoteDoc = conflict.RemoteDocument;
+                return null;
+            }) };
+#else
             var config = CreateConfig(false, true, false);
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 localDoc = conflict.LocalDocument;
                 remoteDoc = conflict.RemoteDocument;
                 return null;
             });
-
+#endif
             RunReplication(config, 0, 0);
             remoteDoc.Should().BeNull();
             localDoc.Should().NotBeNull();
@@ -1382,14 +1615,21 @@ namespace Test
         public void TestConflictResolverWrongDocID()
         {
             CreateReplicationConflict("doc1");
-
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with {
+                ConflictResolver = new TestConflictResolver((conflict) => {
+                var doc = new MutableDocument("wrong_id");
+                doc.SetString("wrong_id_key", "wrong_id_value");
+                return doc;
+            }) };
+#else
             var config = CreateConfig(false, true, false);
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 var doc = new MutableDocument("wrong_id");
                 doc.SetString("wrong_id_key", "wrong_id_value");
                 return doc;
             });
-
+#endif
             RunReplication(config, 0, 0);
 
             using (var db = Db.GetDocument("doc1")) {
@@ -1402,9 +1642,24 @@ namespace Test
         {
             int resolveCnt = 0;
             CreateReplicationConflict("doc1");
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with {
+                ConflictResolver = new TestConflictResolver((conflict) => {
+                if (resolveCnt == 0)
+                {
+                    using (var d = Db.GetDocument("doc1"))
+                    using (var doc = d.ToMutable())
+                    {
+                        doc.SetString("name", "Cougar");
+                        Db.Save(doc);
+                    }
+                }
 
+                resolveCnt++;
+                return conflict.LocalDocument;
+            }) };
+#else
             var config = CreateConfig(false, true, false);
-
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 if (resolveCnt == 0) {
                     using (var d = Db.GetDocument("doc1"))
@@ -1417,8 +1672,8 @@ namespace Test
                 resolveCnt++;
                 return conflict.LocalDocument;
             });
-
-            using(var repl = new Replicator(config)){
+#endif
+            using (var repl = new Replicator(config)){
                 repl.Start();
 
                 while (resolveCnt < 2){
@@ -1439,6 +1694,32 @@ namespace Test
         {
             int resolveCnt = 0;
             CreateReplicationConflict("doc1");
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with {
+                ConflictResolver = new TestConflictResolver((conflict) => {
+                    if (resolveCnt == 0)
+                    {
+                        Task.Run(() =>
+                        {
+                            using (var d = Db.GetDocument("doc1"))
+                            using (var doc = d.ToMutable())
+                            {
+                                d.GetString("name").Should().Be("Cat");
+                                doc.SetString("name", "Cougar");
+                                Db.Save(doc);
+                                using (var docCheck = Db.GetDocument("doc1"))
+                                {
+                                    docCheck.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
+                                }
+                            }
+                        });
+                    }
+
+                    resolveCnt++;
+                    return null;
+                })
+            };
+#else
             var config = CreateConfig(false, true, false);
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 if (resolveCnt == 0) {
@@ -1459,7 +1740,7 @@ namespace Test
                 resolveCnt++;
                 return null;
             });
-
+#endif
             RunReplication(config, 0, 0);
 
             // This will be 0 if the test resolver threw an exception
@@ -1475,10 +1756,33 @@ namespace Test
         {
             CreateReplicationConflict("doc1");
             CreateReplicationConflict("doc2");
-            var config = CreateConfig(false, true, false);
             ManualResetEvent manualResetEvent = new ManualResetEvent(false);
             Queue<string> q = new Queue<string>();
             var wa = new WaitAssert();
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with {
+                ConflictResolver = new TestConflictResolver((conflict) => {
+                var cnt = 0;
+                lock (q) {
+                    q.Enqueue(conflict.LocalDocument.Id);
+                    cnt = q.Count;
+                }
+
+                if (cnt == 1) {
+                    manualResetEvent.WaitOne();
+                }
+
+                q.Enqueue(conflict.LocalDocument.Id);
+                wa.RunConditionalAssert(() => q.Count.Equals(4));
+
+                if (cnt != 1) {
+                    manualResetEvent.Set();
+                }
+
+                return conflict.RemoteDocument;
+            }) };
+#else
+            var config = CreateConfig(false, true, false);
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 var cnt = 0;
                 lock (q) {
@@ -1499,7 +1803,7 @@ namespace Test
 
                 return conflict.RemoteDocument;
             });
-
+#endif
             RunReplication(config, 0, 0);
 
             wa.WaitForResult(TimeSpan.FromMilliseconds(5000));
@@ -1520,7 +1824,16 @@ namespace Test
             var firstReplicatorStart = new ManualResetEventSlim();
             var secondReplicatorFinish = new ManualResetEventSlim();
             int resolveCnt = 0;
-
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with { 
+                ConflictResolver = new TestConflictResolver((conflict) => {
+                firstReplicatorStart.Set();
+                secondReplicatorFinish.Wait();
+                Thread.Sleep(500);
+                resolveCnt++;
+                return conflict.LocalDocument;
+            })};
+#else
             var config = CreateConfig(false, true, false);
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 firstReplicatorStart.Set();
@@ -1529,14 +1842,23 @@ namespace Test
                 resolveCnt++;
                 return conflict.LocalDocument;
             });
+#endif
             Replicator replicator = new Replicator(config);
-
+#if NET5_0_OR_GREATER
+            var config1 = CreateConfig(false, true, false) with {
+                ConflictResolver = new TestConflictResolver((conflict) => {
+                resolveCnt++;
+                Task.Delay(500).ContinueWith(t => secondReplicatorFinish.Set()); // Set after return
+                return conflict.RemoteDocument;
+            }) };
+#else
             var config1 = CreateConfig(false, true, false);
             config1.ConflictResolver = new TestConflictResolver((conflict) => {
                 resolveCnt++;
                 Task.Delay(500).ContinueWith(t => secondReplicatorFinish.Set()); // Set after return
                 return conflict.RemoteDocument;
             });
+#endif
             Replicator replicator1 = new Replicator(config1);
 
             _waitAssert = new WaitAssert();
@@ -1593,9 +1915,17 @@ namespace Test
         {
             int resolveCnt = 0;
             CreateReplicationConflict("doc1");
-
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with { ConflictResolver = new TestConflictResolver((conflict) => {
+                if (resolveCnt == 0)
+                {
+                    Db.Purge(conflict.DocumentID);
+                }
+                resolveCnt++;
+                return conflict.RemoteDocument;
+            })};
+#else
             var config = CreateConfig(false, true, false);
-
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 if (resolveCnt == 0) {
                     Db.Purge(conflict.DocumentID);
@@ -1603,7 +1933,7 @@ namespace Test
                 resolveCnt++;
                 return conflict.RemoteDocument;
             });
-
+#endif
             RunReplication(config, 0, 0, onReplicatorReady: r =>
             {
                 r.AddDocumentReplicationListener((sender, args) =>
@@ -1651,9 +1981,16 @@ namespace Test
 
             //return new doc with a blob object
             CreateReplicationConflict("doc1");
-
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with {
+                ConflictResolver = new TestConflictResolver((conflict) => {
+                var winByteArray = new byte[] { 8, 8, 8 };
+                var doc = new MutableDocument();
+                doc.SetBlob("blob", new Blob("text/plaintext", winByteArray));
+                return doc;
+            }) };
+#else
             var config = CreateConfig(false, true, false);
-
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 var winByteArray = new byte[] { 8, 8, 8 };
 
@@ -1661,7 +1998,7 @@ namespace Test
                 doc.SetBlob("blob", new Blob("text/plaintext", winByteArray));
                 return doc;
             });
-
+#endif
             RunReplication(config, 0, 0);
 
             using (var doc = Db.GetDocument("doc1")) {
@@ -1706,9 +2043,21 @@ namespace Test
                     flags.HasFlag(C4DocumentFlags.DocExists).Should().BeTrue();
                 }
 
+#if NET5_0_OR_GREATER
+                var config = CreateConfig(false, true, false) with {
+                    ConflictResolver = new TestConflictResolver((conflict) => {
+                    var evilByteArray = new byte[] { 6, 6, 6 };
+                    var dict = new MutableDictionaryObject();
+                    dict.SetBlob("blob", new Blob("text/plaintext", evilByteArray));
+                    var doc = new MutableDocument();
+                    doc.SetValue("nestedBlob", dict);
+                    flags = conflict.LocalDocument.c4Doc.RawDoc->flags;
+                    flags.HasFlag(C4DocumentFlags.DocConflicted).Should().BeTrue();
 
+                    return doc;
+                }) };
+#else
                 var config = CreateConfig(false, true, false);
-
                 config.ConflictResolver = new TestConflictResolver((conflict) =>
                 {
                     var evilByteArray = new byte[] { 6, 6, 6 };
@@ -1721,7 +2070,7 @@ namespace Test
 
                     return doc;
                 });
-
+#endif
                 RunReplication(config, 0, 0);
 
                 using (var doc = Db.GetDocument("doc1")) {
@@ -1754,9 +2103,18 @@ namespace Test
         {
             //force conflicts and check flags
             CreateReplicationConflict("doc1", true);
-
-            var config = CreateConfig(false, true, false);
             C4DocumentFlags flags = (C4DocumentFlags)0;
+#if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with {ConflictResolver = new TestConflictResolver((conflict) => {
+                unsafe {
+                    flags = conflict.LocalDocument.c4Doc.RawDoc->flags;
+                    flags.HasFlag(C4DocumentFlags.DocConflicted).Should().BeTrue();
+                    flags.HasFlag(C4DocumentFlags.DocExists | C4DocumentFlags.DocHasAttachments).Should().BeTrue();
+                    return conflict.LocalDocument;
+                }
+            }) }; 
+#else
+            var config = CreateConfig(false, true, false);
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 unsafe {
                     flags = conflict.LocalDocument.c4Doc.RawDoc->flags;
@@ -1765,7 +2123,7 @@ namespace Test
                     return conflict.LocalDocument;
                 }
             });
-
+#endif
             RunReplication(config, 0, 0);
 
             using (var doc = Db.GetDocument("doc1")) {
@@ -2248,12 +2606,22 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                     idsSet.Remove(DocIdForTest);
                 }
             } else if (selection == PENDING_DOC_ID_SEL.FILTER) {
+                #if NET5_0_OR_GREATER
+                config = config with {
+                    PushFilter = (doc, isPush) => {
+                        if (doc.Id.Equals(DocIdForTest))
+                            return true;
+                        return false;
+                    }
+                };
+                #else
                 config.PushFilter = (doc, isPush) =>
                 {
                     if (doc.Id.Equals(DocIdForTest))
                         return true;
                     return false;
                 };
+                #endif
             }
 
             using (var replicator = new Replicator(config)) {
@@ -2317,12 +2685,22 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                     Db.Purge(d);
                 }
             } else if (selection == PENDING_DOC_ID_SEL.FILTER) {
+#if NET5_0_OR_GREATER
+                config = config with {
+                    PushFilter = (doc, isPush) => {
+                        if (doc.Id.Equals(DocIdForTest))
+                            return true;
+                        return false;
+                    }
+                };
+#else
                 config.PushFilter = (doc, isPush) =>
                 {
                     if (doc.Id.Equals(DocIdForTest))
                         return true;
                     return false;
                 };
+#endif
             }
 
             using (var replicator = new Replicator(config)) {
@@ -2493,9 +2871,12 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
         {
             CreateReplicationConflict("doc1");
 
+            #if NET5_0_OR_GREATER
+            var config = CreateConfig(true, true, false) with { ConflictResolver = resolver };
+            #else
             var config = CreateConfig(true, true, false);
             config.ConflictResolver = resolver;
-
+            #endif
             using (var repl = new Replicator(config)) {
                 var wa = new WaitAssert();
                 var token = repl.AddDocumentReplicationListener((sender, args) => {
@@ -2533,12 +2914,21 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
 
                 if (!continueWithWorkingResolver)
                     return;
-
+                #if NET5_0_OR_GREATER
+                config= config with {
+                    ConflictResolver = new TestConflictResolver((conflict) => {
+                        var doc = new MutableDocument("doc1");
+                        doc.SetString("name", "Human");
+                        return doc;
+                    })
+                };
+                #else
                 config.ConflictResolver = new TestConflictResolver((conflict) => {
                     var doc = new MutableDocument("doc1");
                     doc.SetString("name", "Human");
                     return doc;
                 });
+                #endif
                 RunReplication(config, 0, 0);
             }
         }
@@ -2546,16 +2936,24 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
         private void TestConflictResolverWins(bool returnRemoteDoc)
         {
             CreateReplicationConflict("doc1");
-
+            #if NET5_0_OR_GREATER
+            var config = CreateConfig(false, true, false) with {
+                ConflictResolver = new TestConflictResolver((conflict) => {
+                    if (returnRemoteDoc) {
+                        return conflict.RemoteDocument;
+                    } else {
+                        return conflict.LocalDocument;
+                    }
+            }) };
+            #else
             var config = CreateConfig(false, true, false);
-
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 if (returnRemoteDoc) {
                     return conflict.RemoteDocument;
                 } else
                     return conflict.LocalDocument;
             });
-
+            #endif
             RunReplication(config, 0, 0);
 
             using (var doc = Db.GetDocument("doc1")) {
@@ -2636,9 +3034,12 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                 doc2.SetString("name", "pass");
                 Db.Save(doc2);
             }
-
+            #if NET5_0_OR_GREATER
+            var config = CreateConfig(true, false, continuous) with { PushFilter = _replicator__filterCallback};
+            #else
             var config = CreateConfig(true, false, continuous);
             config.PushFilter = _replicator__filterCallback;
+            #endif
             RunReplication(config, 0, 0);
             _isFilteredCallback.Should().BeTrue();
             OtherDb.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
@@ -2659,7 +3060,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
         }
 #endif
 
-        private bool _replicator__filterCallback(Document document, DocumentFlags flags)
+            private bool _replicator__filterCallback(Document document, DocumentFlags flags)
         {
             _isFilteredCallback = true;
             if (flags != 0) {
@@ -2680,9 +3081,15 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             if (pull) {
                 type |= ReplicatorType.Pull;
             }
-
+            #if NET5_0_OR_GREATER
+            config = config with {
+                ReplicatorType = type,
+                Continuous = continuous
+            };
+            #else
             config.ReplicatorType = type;
             config.Continuous = continuous;
+            #endif
             return config;
         }
 

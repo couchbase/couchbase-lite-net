@@ -284,6 +284,15 @@ namespace Test
                 }
             }
 
+            #if NET5_0_OR_GREATER
+            // Replicator - Wrong Credentials
+            var wrongConfig = config with { Authenticator = new BasicAuthenticator("daniel", wrongPwSecureString) };
+            RunReplication(wrongConfig, (int)CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
+
+            // Replicator - Success
+            var successConfig = config with { Authenticator = new BasicAuthenticator("daniel", pwSecureString) };
+            RunReplication(successConfig, 0, 0);
+            #else
             // Replicator - Wrong Credentials
             config.Authenticator = new BasicAuthenticator("daniel", wrongPwSecureString);
             RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
@@ -291,6 +300,7 @@ namespace Test
             // Replicator - Success
             config.Authenticator = new BasicAuthenticator("daniel", pwSecureString);
             RunReplication(config, 0, 0);
+            #endif
 
             _listener.Stop();
             pwSecureString.Dispose();

@@ -656,7 +656,7 @@ Transfer-Encoding: chunked";
             }
         }
 
-        #if !NETCOREAPP3_1
+        #if !NETCOREAPP3_1 && !NET5_0_OR_GREATER
 
         [Fact]
         public async Task TestMainThreadScheduler()
@@ -670,8 +670,6 @@ Transfer-Encoding: chunked";
             onMainThread = await t;
             onMainThread.Should().BeTrue();
         }
-
-#else
 
         #endif
 
