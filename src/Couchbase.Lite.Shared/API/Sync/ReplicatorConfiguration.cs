@@ -77,7 +77,7 @@ namespace Couchbase.Lite.Sync
     /// <summary>
     /// A record representing configuration options for a <see cref="Replicator"/>
     /// </summary>
-    public sealed record ReplicatorConfiguration
+    public sealed partial record ReplicatorConfiguration
     {
         #region Constants
 
@@ -245,19 +245,6 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         [CanBeNull]
         public IConflictResolver ConflictResolver { get; init; }
-
-        #if COUCHBASE_ENTERPRISE
-        /// <summary>
-        /// Get or set the way that the replicator will validate TLS certificates.  This
-        /// property will be overriden if the <see cref="PinnedServerCertificate"/> property
-        /// is set.
-        /// </summary>
-        public bool AcceptOnlySelfSignedServerCertificate
-        {
-            get => Options.AcceptOnlySelfSignedServerCertificate;
-            init => Options.AcceptOnlySelfSignedServerCertificate = value;
-        }
-        #endif
 
         internal TimeSpan CheckpointInterval
         {
