@@ -21,6 +21,9 @@ using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 
 using Couchbase.Lite.Internal.Logging;
+#if COUCHBASE_ENTERPRISE
+using Couchbase.Lite.P2P;
+#endif
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
@@ -87,9 +90,6 @@ namespace Couchbase.Lite.Sync
 
         #region Variables
 
-        [NotNull] private readonly Freezer _freezer = new Freezer();
-        private Database _otherDb;
-        private Uri _remoteUrl;
         private C4SocketFactory _socketFactory;
 
         #endregion
@@ -249,30 +249,22 @@ namespace Couchbase.Lite.Sync
         internal TimeSpan CheckpointInterval
         {
             get => Options.CheckpointInterval;
-            set => _freezer.PerformAction(() => Options.CheckpointInterval = value);
+            init => Options.CheckpointInterval = value;
         }
 
         [NotNull]
         internal ReplicatorOptionsDictionary Options { get; set; } = new ReplicatorOptionsDictionary();
 
         [CanBeNull]
-        internal Database OtherDB
-        {
-            get => _otherDb;
-            set => _freezer.SetValue(ref _otherDb, value);
-        }
+        internal Database OtherDB { get; init; }
 
         [CanBeNull]
-        internal Uri RemoteUrl
-        {
-            get => _remoteUrl;
-            set => _freezer.SetValue(ref _remoteUrl, value);
-        }
+        internal Uri RemoteUrl { get; init; }
 
         internal C4SocketFactory SocketFactory
         {
             get => _socketFactory.open != IntPtr.Zero ? _socketFactory : LiteCore.Interop.SocketFactory.InternalFactory;
-            set => _freezer.SetValue(ref _socketFactory, value);
+            init => _socketFactory = value;
         }
 
         #endregion
@@ -291,8 +283,18 @@ namespace Couchbase.Lite.Sync
             Database = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(database), database);
             Target = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(target), target);
 
-            var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
-            castTarget.Visit(this);
+            if(target.GetType() == typeof(URLEndpoint)) {
+                RemoteUrl = ((URLEndpoint)target).Url;
+            }
+            #if COUCHBASE_ENTERPRISE
+            else if(target.GetType() == typeof(DatabaseEndpoint)) {
+                OtherDB = ((DatabaseEndpoint)target).Database;
+            } else if (target.GetType() == typeof(MessageEndpoint)) {
+                _socketFactory = ((MessageEndpoint)target).SocketFactory;
+                RemoteUrl = new Uri("x-msg-endpoint://");
+                Options.RemoteDBUniqueID = ((MessageEndpoint)target).Uid;
+            }
+            #endif
         }
 
         #endregion

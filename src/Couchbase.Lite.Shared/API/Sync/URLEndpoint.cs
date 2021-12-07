@@ -83,7 +83,9 @@ namespace Couchbase.Lite.Sync
 
         void IEndpointInternal.Visit(ReplicatorConfiguration config)
         {
+            #if !NET6_0_WINDOWS10_0_17763_0
             config.RemoteUrl = Url;
+            #endif
         }
 
         #endregion

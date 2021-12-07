@@ -131,7 +131,11 @@ namespace Test
             };
 
             if (continuous) {
+                #if NET5_0_OR_GREATER
+                c = c with { CheckpointInterval = TimeSpan.FromSeconds(1) };
+                #else
                 c.CheckpointInterval = TimeSpan.FromSeconds(1);
+                #endif
             }
 
             return c;
@@ -477,10 +481,10 @@ namespace Test
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
                 config = repl.Config;
-#if !NET5_0_OR_GREATER
+                #if !NET5_0_OR_GREATER
                 config.Invoking(c => c.ReplicatorType = ReplicatorType.PushAndPull)
                     .Should().Throw<InvalidOperationException>("because the configuration from a replicator should be read only");
-#endif
+                #endif
             }
         }
 
@@ -769,9 +773,12 @@ namespace Test
                 doc2.SetString("name", "Cat");
                 OtherDb.Save(doc2);
             }
-
             var config = CreateConfig(true, false, true);
+            #if NET5_0_OR_GREATER
+            config = config with {CheckpointInterval = TimeSpan.FromSeconds(1) };
+            #else
             config.CheckpointInterval = TimeSpan.FromSeconds(1);
+            #endif
             RunReplication(config, 0, 0);
 
             OtherDb.Count.Should().Be(2UL);
@@ -919,9 +926,12 @@ namespace Test
                 doc2.SetString("name", "Cat");
                 OtherDb.Save(doc2);
             }
-
             var config = CreateConfig(false, true, true);
+            #if NET5_0_OR_GREATER
+            config = config with {CheckpointInterval = TimeSpan.FromSeconds(1) };
+            #else
             config.CheckpointInterval = TimeSpan.FromSeconds(1);
+            #endif
             RunReplication(config, 0, 0);
 
             Db.Count.Should().Be(2, "because the replicator should have pulled doc2 from the other DB");
