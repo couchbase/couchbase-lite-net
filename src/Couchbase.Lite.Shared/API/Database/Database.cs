@@ -983,7 +983,10 @@ namespace Couchbase.Lite
         /// <summary>
         /// Save a blob object directly into the database without associating it with any documents.
         /// </summary>
-        /// <remarks>The blobs that are not associated with any documents will be removed from the database when compacting the database.</remarks>
+        /// <remarks>
+        /// &gt; **UNCOMMITTED:** Use this API if you are developing Javascript language bindings. If you are developing a native app, you must use the Blob API.
+        /// The blobs that are not associated with any documents will be removed from the database when compacting the database.
+        /// </remarks>
         /// <exception cref="CouchbaseLiteException">Thrown if an error occurs during the blob save operation.</exception>
         /// <param name="blob">The blob object will be saved into Database.</param>
         public void SaveBlob(Blob blob)
@@ -994,7 +997,10 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the <see cref="Blob"/> of a given blob dictionary.
         /// </summary>
-        /// <remarks>The blobs that are not associated with any documents are/will be removed from the database after compacting the database.</remarks>
+        /// <remarks>
+        /// &gt; **UNCOMMITTED:** Use this API if you are developing Javascript language bindings. If you are developing a native app, you must use the Blob API.
+        /// The blobs that are not associated with any documents are/will be removed from the database after compacting the database.
+        /// </remarks>
         /// <param name="blobDict"> 
         /// JSON Dictionary represents in the <see cref="Blob"/> and the value will be validated in <see cref="Blob.IsBlob(IDictionary{string, object})"/>
         /// </param>
