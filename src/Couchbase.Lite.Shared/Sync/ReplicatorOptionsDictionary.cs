@@ -43,11 +43,9 @@ namespace Couchbase.Lite.Sync
         private const string ChannelsKey = "channels";
         private const string CheckpointIntervalKey = "checkpointInterval";
         private const string ClientCertKey = "clientCert";
-        private const string ClientCertKeyKey = "clientCertKey";
         private const string DocIDsKey = "docIDs";
         private const string FilterKey = "filter";
         private const string FilterParamsKey = "filterParams";
-        private const string LevelKey = "progress";
         private const string RemoteDBUniqueIDKey = "remoteDBUniqueID";
         private const string ResetKey = "reset";
         private const string MaxRetriesKey = "maxRetries";
@@ -60,7 +58,6 @@ namespace Couchbase.Lite.Sync
         private const string AuthOption = "auth";
 
         // TLS options:
-        private const string RootCertsKey = "rootCerts";
         private const string PinnedCertKey = "pinnedCert";
         private const string OnlySelfSignedServerCert = "onlySelfSignedServer";
 
