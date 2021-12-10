@@ -15,7 +15,7 @@ on:
 jobs:
   build_netcore3_windows:
     #if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/release/lithium' ) && github.event_name == 'push' 
-    if: (github.ref != 'refs/heads/release/hydrogen' && github.ref != 'refs/heads/release/cobalt' && github.ref != 'refs/heads/release/mercury') && github.event_name == 'push'
+    if: (github.ref != 'refs/heads/release/hydrogen' && github.ref != 'refs/heads/release/cobalt' && github.ref != 'refs/heads/release/mercury') && (github.event_name == 'push' || github.event_name == 'pull_request')
     strategy:
       fail-fast: false
       matrix:
@@ -100,7 +100,7 @@ jobs:
       run: dotnet test $env:Test_Project_Path /p:CollectCoverage=true /p:CoverletOutputFormat=lcov -v n /p:Configuration=Debug
       
   build_netcore2_windows:
-    if: (github.ref == 'refs/heads/release/hydrogen' || github.ref == 'refs/heads/release/cobalt' || github.ref == 'refs/heads/release/mercury') && github.event_name == 'push' 
+    if: (github.ref == 'refs/heads/release/hydrogen' || github.ref == 'refs/heads/release/cobalt' || github.ref == 'refs/heads/release/mercury') && (github.event_name == 'push' || github.event_name == 'pull_request') 
     strategy:
       fail-fast: false
       matrix:
