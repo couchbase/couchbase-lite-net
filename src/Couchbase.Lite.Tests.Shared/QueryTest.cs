@@ -766,6 +766,130 @@ namespace Test
         }
 
         [Fact]
+        public void TestQueryObserver()
+        {
+            LoadJSONResource("names_100");
+            using (var q = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
+                .From(DataSource.Database(Db))
+                .Where(Expression.Property("contact.address.state").EqualTo(Expression.String("CA"))))
+            {
+                var wa = new WaitAssert();
+                var wa2 = new WaitAssert();
+                var wa3 = new WaitAssert();
+                var count = 0;
+                q.AddChangeListener(null, (sender, args) =>
+                {
+                    count++;
+                    var list = args.Results.ToList();
+                    if (count == 1) { //get init query result
+                        wa.RunConditionalAssert(() => list.Count() == 8);
+                    } else if (count == 2) {
+                        wa2.RunConditionalAssert(() => list.Count() == 9);
+                    } else {
+                        wa3.RunConditionalAssert(() => list.Count() == 8);
+                    }       
+                });
+
+                wa.WaitForResult(TimeSpan.FromSeconds(2));
+                count.Should().Be(1, "because we should have received a callback");
+                AddPersonInState("after1", "AL");
+                Thread.Sleep(2000); 
+                count.Should().Be(1, "because we should not receive a callback since AL is not part of query result");
+                AddPersonInState("after2", "CA"); 
+                wa2.WaitForResult(TimeSpan.FromSeconds(2));
+                count.Should().Be(2, "because we should have received a callback, query result has updated");
+                Db.Purge("after2");
+                wa3.WaitForResult(TimeSpan.FromSeconds(2));
+                count.Should().Be(3, "because we should have received a callback, query result has updated");
+            }
+        }
+
+        [Fact]
+        public void TestMultipleQueryObservers()
+        {
+            LoadJSONResource("names_100");
+            var query = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
+                .From(DataSource.Database(Db))
+                .Where(Expression.Property("contact.address.state").EqualTo(Expression.String("CA")));
+
+            using (var q = query)
+            using (var q1 = query)
+            using (var q2 = query)
+            {
+                var wa = new WaitAssert();
+                var wa2 = new WaitAssert();
+                var qCount = 0;
+                var q1Count = 0;
+                var q2Count = 0;
+                q.AddChangeListener(null, (sender, args) =>
+                {
+                    qCount++;
+                    var list = args.Results.ToList();
+                    if (qCount == 1) { //get init query result
+                        wa.RunConditionalAssert(() => list.Count() == 8);
+                    }
+                });
+
+                q1.AddChangeListener(null, (sender, args) =>
+                {
+                    q1Count++;
+                    var list = args.Results.ToList();
+                    //if (q1Count == 1) { //get init query result
+                    //    wa2.RunConditionalAssert(() => list.Count() == 8);
+                    //}
+                });
+
+                wa.WaitForResult(TimeSpan.FromSeconds(5));
+                qCount.Should().Be(1, "because we should have received a callback");
+                q1Count.Should().Be(1, "because we should have received a callback");
+                q2.AddChangeListener(null, (sender, args) =>
+                {
+                    q2Count++;
+                    var list = args.Results.ToList();
+                    if (q2Count == 1) { //get init query result
+                        wa2.RunConditionalAssert(() => list.Count() == 8);
+                    }
+                });
+
+                wa2.WaitForResult(TimeSpan.FromSeconds(2));
+                q2Count.Should().Be(1, "because we should have received a callback");
+            }
+
+            query.Dispose();
+        }
+
+        [Fact]
+        public void TestQueryObserverWithChangingQueryParameters()
+        {
+            LoadJSONResource("names_100");
+            var query = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
+                .From(DataSource.Database(Db))
+                .Where(Expression.Property("contact.address.state").EqualTo(Expression.Parameter("state")));
+
+            query.Parameters.SetString("state", "CA");
+            var wa = new WaitAssert();
+            var wa2 = new WaitAssert();
+            var count = 0;
+            query.AddChangeListener(null, (sender, args) =>
+            {
+                count++;
+                var list = args.Results.ToList();
+                if (count == 1) { //get init query result
+                    wa.RunConditionalAssert(() => list.Count() == 8);
+                } else if (count == 2) {
+                    wa2.RunConditionalAssert(() => list.Count() == 9);
+                }
+            });
+
+            wa.WaitForResult(TimeSpan.FromSeconds(2));
+            count.Should().Be(1, "because we should have received a callback");
+            query.Parameters.SetString("state", "NY");
+            wa2.WaitForResult(TimeSpan.FromSeconds(2));
+            count.Should().Be(2, "because we should have received a callback, query result has updated");
+            query.Dispose();
+        }
+
+        [Fact]
         public async Task TestLiveQuery()
         {
             LoadNumbers(100);
@@ -2594,6 +2718,29 @@ namespace Test
                 });
             }
         }
+
+        private void AddPersonInState(string docID, string state, string firstName = null)
+        {
+            using (var doc = new MutableDocument(docID))
+            {
+                doc.SetBoolean("custom", true);
+                if (!string.IsNullOrEmpty(firstName)) {
+                    var nameDict = new MutableDictionaryObject();
+                    nameDict.SetString("first", firstName).SetString("last", "lastname");
+                    doc.SetDictionary("name", nameDict);
+                }
+
+                var addressDoc = new MutableDictionaryObject();
+                addressDoc.SetString("state", state);
+                var contactDoc = new MutableDictionaryObject();
+                contactDoc.SetDictionary("address", addressDoc);
+                doc.SetDictionary("contact", contactDoc);
+
+                // Save document:
+                Db.Save(doc);
+            }
+        }
+
 
         private void CreateDateDocs()
         {

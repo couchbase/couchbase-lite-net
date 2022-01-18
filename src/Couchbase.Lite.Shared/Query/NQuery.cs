@@ -18,10 +18,8 @@
 
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
-using JetBrains.Annotations;
 using LiteCore.Interop;
 using System;
-using System.Collections.Generic;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -29,19 +27,13 @@ namespace Couchbase.Lite.Internal.Query
     {
         #region Variables
         private const string Tag = nameof(NQuery);
-        private string _n1qlQueryExpression = "";
-        #endregion
-
-        #region Properties
-        [NotNull]
-        ThreadSafety ThreadSafety { get; } = new ThreadSafety();
         #endregion
 
         #region Constructors
         internal NQuery(string n1qlQueryExpression, Database database) : base()
         {
             Database = database;
-            _n1qlQueryExpression = n1qlQueryExpression;
+            QueryExpression = n1qlQueryExpression;
 
             // Catch N1QL compile error sooner
             Compile();
@@ -49,6 +41,7 @@ namespace Couchbase.Lite.Internal.Query
         #endregion
 
         #region Override Methods
+
         public override unsafe IResultSet Execute()
         {
             if (Database == null) {
@@ -92,6 +85,12 @@ namespace Couchbase.Lite.Internal.Query
                     }
 
                     _history.Clear();
+                    foreach (var querier in _liveQueriers) {
+                        if (querier.Value != null)
+                            querier.Value.Dispose(finalizing);
+                    }
+
+                    _liveQueriers.Clear();
                     Native.c4query_release(_c4Query);
                     _c4Query = null;
                     _disposalWatchdog.Dispose();
@@ -103,9 +102,11 @@ namespace Couchbase.Lite.Internal.Query
                 _c4Query = null;
             }
         }
+
         #endregion
 
         #region Private Methods
+
         private unsafe void Compile()
         {
             if (_c4Query != null)
@@ -117,7 +118,7 @@ namespace Couchbase.Lite.Internal.Query
                     return true;
                 }
 
-                var query = Native.c4query_new2(Database.c4db, C4QueryLanguage.N1QLQuery, _n1qlQueryExpression, null, err);
+                var query = Native.c4query_new2(Database.c4db, C4QueryLanguage.N1QLQuery, QueryExpression, null, err);
                 if (query == null) {
                     return false;
                 }
@@ -130,23 +131,6 @@ namespace Couchbase.Lite.Internal.Query
                 _c4Query = query;
                 return true;
             });
-        }
-
-        private unsafe Dictionary<string, int> CreateColumnNames(C4Query* query)
-        {
-            var map = new Dictionary<string, int>();
-            var columnCnt = Native.c4query_columnCount(query);
-            for (int i = 0; i < columnCnt; i++) {
-                var titleStr = Native.c4query_columnTitle(query, (uint)i).CreateString();
-                if (map.ContainsKey(titleStr)) {
-                    throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery,
-                        String.Format(CouchbaseLiteErrorMessage.DuplicateSelectResultName, titleStr));
-                }
-
-                map.Add(titleStr, i);
-            }
-
-            return map;
         }
 
         #endregion

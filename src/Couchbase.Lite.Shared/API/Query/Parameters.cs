@@ -21,6 +21,7 @@ using System.Collections.Generic;
 
 using Couchbase.Lite.Internal.Doc;
 using Couchbase.Lite.Internal.Logging;
+using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
@@ -49,6 +50,8 @@ namespace Couchbase.Lite.Query
 
         [NotNull] private readonly Dictionary<string, object> _params;
 
+        [NotNull] private readonly QueryBase _query;
+
         #endregion
 
         #region Constructors
@@ -74,6 +77,12 @@ namespace Couchbase.Lite.Query
         internal Parameters([NotNull]Dictionary<string, object> values)
         {
             _params = values;
+        }
+
+        internal Parameters(QueryBase query)
+        {
+            _params = new Dictionary<string, object>();
+            _query = query;
         }
 
         #endregion
@@ -210,7 +219,9 @@ namespace Couchbase.Lite.Query
             }
 
             _freezer.PerformAction(() => _params[name] = value);
-            
+            if (_query != null)
+                _query.SetParameters(this.ToString());
+
             return this;
         }
 
