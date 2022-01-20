@@ -50,7 +50,8 @@ namespace Couchbase.Lite.Query
 
         [NotNull] private readonly Dictionary<string, object> _params;
 
-        [NotNull] private readonly QueryBase _query;
+        // LiveQuerier needs QueryBase to SetParameters.
+        [CanBeNull] private QueryBase _query;
 
         #endregion
 
