@@ -74,35 +74,6 @@ namespace Couchbase.Lite.Internal.Query
             return ThreadSafety?.DoLocked(() => Native.c4query_explain(_c4Query)) ?? "(Unable to explain)";
         }
 
-        protected override unsafe void Dispose(bool finalizing)
-        {
-            if (!finalizing) {
-                Stop();
-                ThreadSafety.DoLocked(() =>
-                {
-                    foreach (var e in _history) {
-                        e.Release();
-                    }
-
-                    _history.Clear();
-                    foreach (var querier in _liveQueriers) {
-                        if (querier != null)
-                            querier.Dispose(finalizing);
-                    }
-
-                    _liveQueriers.Clear();
-                    Native.c4query_release(_c4Query);
-                    _c4Query = null;
-                    _disposalWatchdog.Dispose();
-                });
-            } else {
-                // Database is not valid inside finalizer, but thread safety
-                // is guaranteed
-                Native.c4query_release(_c4Query);
-                _c4Query = null;
-            }
-        }
-
         #endregion
 
         #region Private Methods

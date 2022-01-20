@@ -49,6 +49,7 @@ namespace Couchbase.Lite.Internal.Query
         [NotNull] protected List<QueryResultSet> _history = new List<QueryResultSet>();
         [NotNull] protected Parameters _queryParameters;
         protected List<LiveQuerier> _liveQueriers = new List<LiveQuerier>();
+        protected Dictionary<ListenerToken, LiveQuerier> _listenerTokens = new Dictionary<ListenerToken, LiveQuerier>();
         protected int _observingCount;
         internal Dictionary<string, int> ColumnNames;
 
@@ -164,6 +165,7 @@ namespace Couchbase.Lite.Internal.Query
             if (this is XQuery) {
                 fromImpl = FromImpl;
                 Debug.Assert(fromImpl != null, "CreateColumnNames reached without a FROM clause received");
+                ThreadSafety = fromImpl.ThreadSafety;
             }
 
             var map = new Dictionary<string, int>();
@@ -196,7 +198,34 @@ namespace Couchbase.Lite.Internal.Query
             Dispose(false);
         }
 
-        protected abstract void Dispose(bool finalizing);
+        private unsafe void Dispose(bool finalizing)
+        {
+            if (!finalizing) {
+                Stop();
+                ThreadSafety.DoLocked(() =>
+                {
+                    foreach (var e in _history) {
+                        e.Release();
+                    }
+
+                    _history.Clear();
+                    foreach (var querier in _liveQueriers) {
+                        if (querier != null)
+                            querier.Dispose(finalizing);
+                    }
+
+                    _liveQueriers.Clear();
+                    Native.c4query_release(_c4Query);
+                    _c4Query = null;
+                    _disposalWatchdog.Dispose();
+                });
+            } else {
+                // Database is not valid inside finalizer, but thread safety
+                // is guaranteed
+                Native.c4query_release(_c4Query);
+                _c4Query = null;
+            }
+        }
 
         #endregion
 
@@ -230,6 +259,8 @@ namespace Couchbase.Lite.Internal.Query
         public unsafe void RemoveChangeListener(ListenerToken token)
         {
             _disposalWatchdog.CheckDisposed();
+            _listenerTokens[token].StopObserver();
+            _listenerTokens.Remove(token);
             if (Interlocked.Decrement(ref _observingCount) == 0) {
                 Stop();
             }
@@ -304,6 +335,7 @@ namespace Couchbase.Lite.Internal.Query
                 var liveQuerier = new LiveQuerier(this);
                 liveQuerier.CreateLiveQuerier(_c4Query, listenerToken);
                 _liveQueriers.Add(liveQuerier);
+                _listenerTokens.Add(listenerToken, liveQuerier);
                 liveQuerier.StartObserver();
             }
         }
