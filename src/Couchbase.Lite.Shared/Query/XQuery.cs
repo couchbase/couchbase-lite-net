@@ -97,7 +97,10 @@ namespace Couchbase.Lite.Internal.Query
                 return new NullResultSet();
             }
 
-            var retVal = new QueryResultSet(this, fromImpl.ThreadSafety, e, _columnNames);
+            if (ColumnNames == null)
+                ColumnNames = CreateColumnNames(_c4Query);
+
+            var retVal = new QueryResultSet(this, fromImpl.ThreadSafety, e, ColumnNames);
             _history.Add(retVal);
             return retVal;
         }
@@ -125,14 +128,14 @@ namespace Couchbase.Lite.Internal.Query
                     }
 
                     _history.Clear();
-                    Native.c4query_release(_c4Query);
-                    _c4Query = null;
                     foreach (var querier in _liveQueriers) {
-                        if (querier.Value != null)
-                            querier.Value.Dispose(finalizing);
+                        if (querier != null)
+                            querier.Dispose(finalizing);
                     }
 
                     _liveQueriers.Clear();
+                    Native.c4query_release(_c4Query);
+                    _c4Query = null;
                     _disposalWatchdog.Dispose();
                 });
             } else {
@@ -162,8 +165,8 @@ namespace Couchbase.Lite.Internal.Query
                     return false;
                 }
 
-                if (_columnNames == null) {
-                    _columnNames = CreateColumnNames(_c4Query);
+                if (ColumnNames == null) {
+                    ColumnNames = CreateColumnNames(_c4Query);
                 }
 
                 return true;

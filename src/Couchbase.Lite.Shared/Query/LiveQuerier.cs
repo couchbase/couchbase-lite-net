@@ -17,12 +17,12 @@
 // 
 
 using Couchbase.Lite.Query;
-using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using LiteCore.Interop;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -38,20 +38,13 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Variables
 
-        [NotNull] internal readonly Event<QueryChangedEventArgs> _changed = new Event<QueryChangedEventArgs>();
+        [NotNull] private readonly Event<QueryChangedEventArgs> _changed = new Event<QueryChangedEventArgs>();
         private C4QueryObserver* _queryObserver; //uniqe long value
         private bool _disposed;
         private QueryBase _queryBase;
         private long _rowCount;
-        private C4Query* _c4Query;
-
-        #endregion
-
-        #region Properties
-
-        internal SerialQueue DispatchQueue { get; } = new SerialQueue();
-        internal C4QueryObserver* QueryObserver => _queryObserver;
-        internal long RowCount => _rowCount;
+        private ListenerToken _listenerToken;
+        private int _startedObserving;
 
         #endregion
 
@@ -71,44 +64,38 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Internal Methods
 
-        internal unsafe LiveQuerier CreateLiveQuerier(C4Query* c4Query)
+        internal unsafe LiveQuerier CreateLiveQuerier(C4Query* c4Query, ListenerToken listenerToken)
         {
-            _c4Query = c4Query;
-            _queryObserver = Native.c4queryobs_create(_c4Query, QueryCallback, GCHandle.ToIntPtr(_queryBase.Handle).ToPointer());
+            _listenerToken = listenerToken;
+            _queryBase.ThreadSafety.DoLocked(() =>
+            {
+                var handle = GCHandle.Alloc(this);
+                _queryObserver = Native.c4queryobs_create(c4Query, QueryCallback, GCHandle.ToIntPtr(handle).ToPointer());
+            });
+
             return this;
         }
 
-        internal void StartObserver(CouchbaseEventHandler<QueryChangedEventArgs> handler)
+        internal void StartObserver()
         {
-            _changed.Add(handler);
-            Native.c4queryobs_setEnabled(_queryObserver, true);
+            if (Interlocked.Increment(ref _startedObserving) == 1) {
+                _changed.Add((CouchbaseEventHandler<QueryChangedEventArgs>)_listenerToken.EventHandler);
+                Native.c4queryobs_setEnabled(_queryObserver, true);
+            }
         }
 
         internal void StopObserver()
         {
-            Native.c4queryobs_setEnabled(_queryObserver, false);
-        }
-
-        internal QueryResultSet GetResults()
-        {
-            C4Error error;
-            var newEnum = (C4QueryEnumerator*)_queryBase.ThreadSafety.DoLockedBridge(err =>
-            {
-                return Native.c4queryobs_getEnumerator(_queryObserver, true, err);
-            });
-
-            if (newEnum != null) {
-                _rowCount = Native.c4queryenum_getRowCount(newEnum, &error);
-                return new QueryResultSet(_queryBase, _queryBase.ThreadSafety, newEnum, _queryBase.CreateColumnNames(_c4Query));
+            if (Interlocked.Decrement(ref _startedObserving) == 0) {
+                _changed.Remove(_listenerToken);
+                Native.c4queryobs_setEnabled(_queryObserver, false);
             }
-
-            return null;
         }
 
-            internal void Dispose(bool finalizing)
+        internal void Dispose(bool finalizing)
         {
             if (!finalizing) {
-                DispatchQueue.DispatchSync(() =>
+                _queryBase.DispatchQueue.DispatchSync(() =>
                 {
                     if (_disposed) {
                         return;
@@ -135,8 +122,42 @@ namespace Couchbase.Lite.Internal.Query
         #endif
         private static void QueryObserverCallback(C4QueryObserver* obs, C4Query* query, void* context)
         {
-            var obj = GCHandle.FromIntPtr((IntPtr)context).Target as QueryBase;
+            var obj = GCHandle.FromIntPtr((IntPtr)context).Target as LiveQuerier;
             obj.QueryObserverCalled(obs, query);
+        }
+
+        private unsafe void QueryObserverCalled(C4QueryObserver* obs, C4Query* query)
+        {
+            _queryBase.DispatchQueue.DispatchSync(() =>
+            {
+                Exception exp = null;
+
+                if (_queryBase.ColumnNames == null) {
+                    _queryBase.ColumnNames = _queryBase.CreateColumnNames(query);
+                }
+
+                var newEnum = GetResults();
+
+                if (newEnum != null) {
+                    _changed.Fire(this, new QueryChangedEventArgs(newEnum, exp));
+                }
+            });
+        }
+
+        private QueryResultSet GetResults()
+        {
+            C4Error error;
+            var newEnum = (C4QueryEnumerator*)_queryBase.ThreadSafety.DoLockedBridge(err =>
+            {
+                return Native.c4queryobs_getEnumerator(_queryObserver, true, err);
+            });
+
+            if (newEnum != null) {
+                _rowCount = Native.c4queryenum_getRowCount(newEnum, &error);
+                return new QueryResultSet(_queryBase, _queryBase.ThreadSafety, newEnum, _queryBase.ColumnNames);
+            }
+
+            return null;
         }
 
         #endregion
