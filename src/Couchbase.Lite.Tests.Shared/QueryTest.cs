@@ -740,31 +740,7 @@ namespace Test
                 }
             }
         }
-        #endif
-
-        [Fact]
-        public void TestSelectDistinct()
-        {
-            var doc1 = new MutableDocument();
-            doc1.SetInt("number", 1);
-            Db.Save(doc1);
-
-            var doc2 = new MutableDocument();
-            doc2.SetInt("number", 1);
-            Db.Save(doc2);
-
-            using (var q = QueryBuilder.SelectDistinct(SelectResult.Expression(Expression.Property("number")))
-                .From(DataSource.Database(Db))) {
-                var numRows = VerifyQuery(q, (n, row) =>
-                {
-                    var number = row.GetInt(0);
-                    number.Should().Be(1);
-                });
-
-                numRows.Should().Be(1, "because there is only one distinct row");
-            }
-        }
-
+        
         [Fact]
         public void TestQueryObserver()
         {
@@ -781,6 +757,9 @@ namespace Test
         [Fact]
         public void TestMultipleQueryObservers()
         {
+            var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM _ WHERE contact.address.state = 'CA'");
+            TestMultipleQueryObserversWithQuery(n1qlQ);
+            n1qlQ.Dispose();
             var query = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
                 .From(DataSource.Database(Db))
                 .Where(Expression.Property("contact.address.state").EqualTo(Expression.String("CA")));
@@ -801,6 +780,32 @@ namespace Test
                 .Where(Expression.Property("contact.address.state").EqualTo(Expression.Parameter("state")));
             TestQueryObserverWithChangingQueryParametersWithQuery(query);
             query.Dispose();
+        }
+
+        #endif
+
+        [Fact]
+        public void TestSelectDistinct()
+        {
+            var doc1 = new MutableDocument();
+            doc1.SetInt("number", 1);
+            Db.Save(doc1);
+
+            var doc2 = new MutableDocument();
+            doc2.SetInt("number", 1);
+            Db.Save(doc2);
+
+            using (var q = QueryBuilder.SelectDistinct(SelectResult.Expression(Expression.Property("number")))
+                .From(DataSource.Database(Db)))
+            {
+                var numRows = VerifyQuery(q, (n, row) =>
+                {
+                    var number = row.GetInt(0);
+                    number.Should().Be(1);
+                });
+
+                numRows.Should().Be(1, "because there is only one distinct row");
+            }
         }
 
         [Fact]
@@ -2653,6 +2658,7 @@ namespace Test
             }
         }
 
+        #if !CBL_NO_EXTERN_FILES
         private void TestQueryObserverWithQuery(IQuery query)
         {
             LoadJSONResource("names_100");
@@ -2694,29 +2700,35 @@ namespace Test
             using (var q = query)
             using (var q1 = query)
             using (var q2 = query) {
-                var wa = new WaitAssert();
+                var wait1 = new ManualResetEventSlim();
+                var wait2 = new ManualResetEventSlim();
                 var wa2 = new WaitAssert();
                 var qCount = 0;
                 var q1Count = 0;
                 var q2Count = 0;
+                int qResultCnt = 0;
+                int q1ResultCnt = 0;
                 q.AddChangeListener(null, (sender, args) =>
                 {
                     qCount++;
                     var list = args.Results.ToList();
-                    if (qCount == 1) { //get init query result
-                        wa.RunConditionalAssert(() => list.Count() == 8);
-                    }
+                    qResultCnt = list.Count;
+                    wait1.Set();
                 });
 
                 q1.AddChangeListener(null, (sender, args) =>
                 {
                     q1Count++;
                     var list = args.Results.ToList();
+                    q1ResultCnt = list.Count;
+                    wait2.Set();
                 });
 
-                wa.WaitForResult(TimeSpan.FromSeconds(5));
-                qCount.Should().Be(1, $"because we should have received a query callback");
+                WaitHandle.WaitAll(new[] { wait1.WaitHandle, wait2.WaitHandle }, TimeSpan.FromSeconds(2)).Should().BeTrue();
+                qCount.Should().Be(1, $"because we should have received a callback");
+                qResultCnt.Should().Be(8);
                 q1Count.Should().Be(1, $"because we should have received a callback");
+                q1ResultCnt.Should().Be(8);
                 q2.AddChangeListener(null, (sender, args) =>
                 {
                     q2Count++;
@@ -2762,6 +2774,7 @@ namespace Test
             wa2.WaitForResult(TimeSpan.FromSeconds(2));
             count.Should().Be(2, "because we should have received a callback, query result has updated");
         }
+        #endif
 
         private void CreateDateDocs()
         {

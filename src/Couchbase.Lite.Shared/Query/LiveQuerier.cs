@@ -20,9 +20,10 @@ using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 using LiteCore.Interop;
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
+
+using JetBrains.Annotations;
 
 namespace Couchbase.Lite.Internal.Query
 {
