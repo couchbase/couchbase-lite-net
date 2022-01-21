@@ -127,9 +127,6 @@ namespace Couchbase.Lite.Internal.Query
                 return new NullResultSet();
             }
 
-            if (ColumnNames == null)
-                ColumnNames = CreateColumnNames(_c4Query);
-
             var retVal = new QueryResultSet(this, fromImpl.ThreadSafety, e, ColumnNames);
             _history.Add(retVal);
             return retVal;
@@ -162,7 +159,7 @@ namespace Couchbase.Lite.Internal.Query
             }
         }
 
-        internal override unsafe Dictionary<string, int> CreateColumnNames(C4Query* query)
+        protected override unsafe Dictionary<string, int> CreateColumnNames(C4Query* query)
         {
             var fromImpl = FromImpl;
             Debug.Assert(fromImpl != null, "CreateColumnNames reached without a FROM clause received");
@@ -268,10 +265,6 @@ namespace Couchbase.Lite.Internal.Query
                 CreateQuery();
                 if (_c4Query == null) {
                     return false;
-                }
-
-                if (ColumnNames == null) {
-                    ColumnNames = CreateColumnNames(_c4Query);
                 }
 
                 return true;

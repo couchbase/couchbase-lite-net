@@ -91,7 +91,7 @@ namespace Couchbase.Lite.Internal.Query
             }
         }
 
-        internal override unsafe Dictionary<string, int> CreateColumnNames(C4Query* query)
+        protected override unsafe Dictionary<string, int> CreateColumnNames(C4Query* query)
         {
             var map = new Dictionary<string, int>();
 
@@ -128,10 +128,6 @@ namespace Couchbase.Lite.Internal.Query
                 CreateQuery();
                 if (_c4Query == null) {
                     return false;
-                }
-
-                if (ColumnNames == null) {
-                    ColumnNames = CreateColumnNames(_c4Query);
                 }
 
                 return true;

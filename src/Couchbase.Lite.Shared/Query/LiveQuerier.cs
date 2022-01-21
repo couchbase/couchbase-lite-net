@@ -131,11 +131,6 @@ namespace Couchbase.Lite.Internal.Query
             _queryBase.DispatchQueue.DispatchSync(() =>
             {
                 Exception exp = null;
-
-                if (_queryBase.ColumnNames == null) {
-                    _queryBase.ColumnNames = _queryBase.CreateColumnNames(query);
-                }
-
                 var newEnum = GetResults();
 
                 if (newEnum != null) {
