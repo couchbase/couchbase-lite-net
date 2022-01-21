@@ -40,7 +40,7 @@ namespace Couchbase.Lite.Internal.Query
         #region Variables
 
         [NotNull] private readonly Event<QueryChangedEventArgs> _changed = new Event<QueryChangedEventArgs>();
-        private C4QueryObserver* _queryObserver; //uniqe long value
+        private C4QueryObserver* _queryObserver;
         private bool _disposed;
         private QueryBase _queryBase;
         private long _rowCount;

@@ -20,20 +20,25 @@ using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 using LiteCore.Interop;
 using System;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Internal.Query
 {
     internal sealed class NQuery : QueryBase
     {
-        #region Variables
+        #region Constants
         private const string Tag = nameof(NQuery);
+        #endregion
+
+        #region Variables
+        private string _n1qlQueryExpression;
         #endregion
 
         #region Constructors
         internal NQuery(string n1qlQueryExpression, Database database) : base()
         {
             Database = database;
-            QueryExpression = n1qlQueryExpression;
+            _n1qlQueryExpression = n1qlQueryExpression;
 
             // Catch N1QL compile error sooner
             Compile();
@@ -74,6 +79,37 @@ namespace Couchbase.Lite.Internal.Query
             return ThreadSafety?.DoLocked(() => Native.c4query_explain(_c4Query)) ?? "(Unable to explain)";
         }
 
+        protected override unsafe void CreateQuery()
+        {
+            if (_c4Query == null) {
+                C4Query* query = (C4Query*)ThreadSafety.DoLockedBridge(err =>
+                {
+                    return Native.c4query_new2(Database.c4db, C4QueryLanguage.N1QLQuery, _n1qlQueryExpression, null, err);
+                });
+
+                _c4Query = query;
+            }
+        }
+
+        internal override unsafe Dictionary<string, int> CreateColumnNames(C4Query* query)
+        {
+            var map = new Dictionary<string, int>();
+
+            var columnCnt = Native.c4query_columnCount(query);
+            for (int i = 0; i < columnCnt; i++) {
+                var titleStr = Native.c4query_columnTitle(query, (uint)i).CreateString();
+
+                if (map.ContainsKey(titleStr)) {
+                    throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery,
+                        String.Format(CouchbaseLiteErrorMessage.DuplicateSelectResultName, titleStr));
+                }
+
+                map.Add(titleStr, i);
+            }
+
+            return map;
+        }
+
         #endregion
 
         #region Private Methods
@@ -89,7 +125,7 @@ namespace Couchbase.Lite.Internal.Query
                     return true;
                 }
 
-                var query = Native.c4query_new2(Database.c4db, C4QueryLanguage.N1QLQuery, QueryExpression, null, err);
+                var query = Native.c4query_new2(Database.c4db, C4QueryLanguage.N1QLQuery, _n1qlQueryExpression, null, err);
                 if (query == null) {
                     return false;
                 }
