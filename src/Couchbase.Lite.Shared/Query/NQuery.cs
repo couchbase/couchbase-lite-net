@@ -125,17 +125,15 @@ namespace Couchbase.Lite.Internal.Query
                     return true;
                 }
 
-                var query = Native.c4query_new2(Database.c4db, C4QueryLanguage.N1QLQuery, _n1qlQueryExpression, null, err);
-                if (query == null) {
+                CreateQuery();
+                if (_c4Query == null) {
                     return false;
                 }
 
                 if (ColumnNames == null) {
-                    ColumnNames = CreateColumnNames(query);
+                    ColumnNames = CreateColumnNames(_c4Query);
                 }
 
-                Native.c4query_release(_c4Query);
-                _c4Query = query;
                 return true;
             });
         }
