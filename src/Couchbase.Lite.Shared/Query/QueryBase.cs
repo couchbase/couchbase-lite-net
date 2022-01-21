@@ -18,8 +18,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -30,7 +28,6 @@ using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
 using LiteCore.Interop;
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
 {
@@ -51,7 +48,6 @@ namespace Couchbase.Lite.Internal.Query
         protected List<LiveQuerier> _liveQueriers = new List<LiveQuerier>();
         protected Dictionary<ListenerToken, LiveQuerier> _listenerTokens = new Dictionary<ListenerToken, LiveQuerier>();
         protected int _observingCount;
-        internal Dictionary<string, int> ColumnNames;
 
         #endregion
 
@@ -73,6 +69,8 @@ namespace Couchbase.Lite.Internal.Query
         internal ThreadSafety ThreadSafety { get; set; } = new ThreadSafety();
 
         internal SerialQueue DispatchQueue { get; } = new SerialQueue();
+
+        internal unsafe Dictionary<string, int> ColumnNames => CreateColumnNames(_c4Query);
 
         #endregion
 
@@ -198,7 +196,7 @@ namespace Couchbase.Lite.Internal.Query
 
         protected abstract void CreateQuery();
 
-        internal abstract unsafe Dictionary<string, int> CreateColumnNames(C4Query* query);
+        protected abstract unsafe Dictionary<string, int> CreateColumnNames(C4Query* query);
 
         #endregion
 
