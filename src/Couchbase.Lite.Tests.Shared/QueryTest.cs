@@ -2673,9 +2673,9 @@ namespace Test
                     var list = args.Results.ToList();
                     if (count == 1) { //get init query result
                         wa.RunConditionalAssert(() => list.Count() == 8);
-                    } else if (count == 2) {
+                    } else if (count == 2) { // 1 doc addition
                         wa2.RunConditionalAssert(() => list.Count() == 9);
-                    } else {
+                    } else { // 1 doc purged
                         wa3.RunConditionalAssert(() => list.Count() == 8);
                     }
                 });
@@ -2725,9 +2725,9 @@ namespace Test
                 });
 
                 WaitHandle.WaitAll(new[] { wait1.WaitHandle, wait2.WaitHandle }, TimeSpan.FromSeconds(2)).Should().BeTrue();
-                qCount.Should().Be(1, $"because we should have received a callback");
+                qCount.Should().Be(1, "because we should have received a callback");
                 qResultCnt.Should().Be(8);
-                q1Count.Should().Be(1, $"because we should have received a callback");
+                q1Count.Should().Be(1, "because we should have received a callback");
                 q1ResultCnt.Should().Be(8);
                 q2.AddChangeListener(null, (sender, args) =>
                 {
@@ -2739,7 +2739,7 @@ namespace Test
                 });
 
                 wa2.WaitForResult(TimeSpan.FromSeconds(2));
-                q2Count.Should().Be(1, $"because we should have received a callback");
+                q2Count.Should().Be(1, "because we should have received a callback");
             }
         }
 
@@ -2756,12 +2756,9 @@ namespace Test
             {
                 count++;
                 var list = args.Results.ToList();
-                if (count == 1)
-                { //get init query result
+                if (count == 1) { // get init query result where sate == CA
                     wa.RunConditionalAssert(() => list.Count() == 8);
-                }
-                else if (count == 2)
-                {
+                } else if (count == 2) { // get query result where sate == NY
                     wa2.RunConditionalAssert(() => list.Count() == 9);
                 }
             });
@@ -2774,6 +2771,7 @@ namespace Test
             wa2.WaitForResult(TimeSpan.FromSeconds(2));
             count.Should().Be(2, "because we should have received a callback, query result has updated");
         }
+
         #endif
 
         private void CreateDateDocs()

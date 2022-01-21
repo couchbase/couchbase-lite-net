@@ -17,6 +17,7 @@
 // 
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -25,13 +26,42 @@ using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 
 using LiteCore.Interop;
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Internal.Query
 {
     internal class XQuery : QueryBase
     {
-        #region Variables
+        #region Constants
         private const string Tag = nameof(XQuery);
+        #endregion
+
+        #region Variables
+        private string _queryExpression;
+        #endregion
+
+        #region Properties
+
+        protected bool Distinct { get; set; }
+
+        protected QueryDataSource FromImpl { get; set; }
+
+        protected QueryGroupBy GroupByImpl { get; set; }
+
+        protected Having HavingImpl { get; set; }
+
+        protected QueryJoin JoinImpl { get; set; }
+
+        protected IExpression LimitValue { get; set; }
+
+        protected QueryOrderBy OrderByImpl { get; set; }
+
+        protected Select SelectImpl { get; set; }
+
+        protected IExpression SkipValue { get; set; }
+
+        protected QueryExpression WhereImpl { get; set; }
+
         #endregion
 
         #region Protected Methods
@@ -57,6 +87,64 @@ namespace Couchbase.Lite.Internal.Query
                 var message = String.Format(CouchbaseLiteErrorMessage.ExpressionsMustContainOnePlusElement, tag);
                 CBDebug.LogAndThrow(WriteLog.To.Query, new InvalidOperationException(message), Tag, message, true);
             }
+        }
+
+        protected string EncodeAsJSON()
+        {
+            var parameters = new Dictionary<string, object>();
+            if (WhereImpl != null) {
+                parameters["WHERE"] = WhereImpl.ConvertToJSON();
+            }
+
+            if (Distinct) {
+                parameters["DISTINCT"] = true;
+            }
+
+            if (LimitValue != null) {
+                var e = Misc.TryCast<IExpression, QueryExpression>(LimitValue);
+                parameters["LIMIT"] = e.ConvertToJSON();
+            }
+
+            if (SkipValue != null) {
+                var e = Misc.TryCast<IExpression, QueryExpression>(SkipValue);
+                parameters["OFFSET"] = e.ConvertToJSON();
+            }
+
+            if (OrderByImpl != null) {
+                parameters["ORDER_BY"] = OrderByImpl.ToJSON();
+            }
+
+            var selectParam = SelectImpl?.ToJSON();
+            if (selectParam != null) {
+                parameters["WHAT"] = selectParam;
+            }
+
+            if (JoinImpl != null) {
+                var fromJson = FromImpl?.ToJSON();
+                if (fromJson == null) {
+                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.NoAliasInJoin);
+                }
+
+                var joinJson = JoinImpl.ToJSON() as IList<object>;
+                Debug.Assert(joinJson != null);
+                joinJson.Insert(0, fromJson);
+                parameters["FROM"] = joinJson;
+            } else {
+                var fromJson = FromImpl?.ToJSON();
+                if (fromJson != null) {
+                    parameters["FROM"] = new[] { fromJson };
+                }
+            }
+
+            if (GroupByImpl != null) {
+                parameters["GROUP_BY"] = GroupByImpl.ToJSON();
+            }
+
+            if (HavingImpl != null) {
+                parameters["HAVING"] = HavingImpl.ToJSON();
+            }
+
+            return JsonConvert.SerializeObject(parameters);
         }
 
         #endregion
@@ -117,6 +205,48 @@ namespace Couchbase.Lite.Internal.Query
             return FromImpl?.ThreadSafety?.DoLocked(() => Native.c4query_explain(_c4Query)) ?? "(Unable to explain)";
         }
 
+        protected override unsafe void CreateQuery()
+        {
+            if (_c4Query == null)
+            {
+                C4Query* query = (C4Query*)ThreadSafety.DoLockedBridge(err =>
+                {
+                    _queryExpression = EncodeAsJSON();
+                    WriteLog.To.Query.I(Tag, $"Query encoded as {_queryExpression}");
+                    return Native.c4query_new2(Database.c4db, C4QueryLanguage.JSONQuery, _queryExpression, null, err);
+                });
+
+                _c4Query = query;
+            }
+        }
+
+        internal override unsafe Dictionary<string, int> CreateColumnNames(C4Query* query)
+        {
+            var fromImpl = FromImpl;
+            Debug.Assert(fromImpl != null, "CreateColumnNames reached without a FROM clause received");
+            ThreadSafety = fromImpl.ThreadSafety;
+
+            var map = new Dictionary<string, int>();
+
+            var columnCnt = Native.c4query_columnCount(query);
+            for (int i = 0; i < columnCnt; i++) {
+                var titleStr = Native.c4query_columnTitle(query, (uint)i).CreateString();
+
+                if (titleStr.StartsWith("*")) {
+                    titleStr = fromImpl.ColumnName;
+                }
+
+                if (map.ContainsKey(titleStr)) {
+                    throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery,
+                        String.Format(CouchbaseLiteErrorMessage.DuplicateSelectResultName, titleStr));
+                }
+
+                map.Add(titleStr, i);
+            }
+
+            return map;
+        }
+
         #endregion
 
         #region Private Methods
@@ -132,8 +262,16 @@ namespace Couchbase.Lite.Internal.Query
                     return true;
                 }
 
+                _queryExpression = EncodeAsJSON();
+                WriteLog.To.Query.I(Tag, $"Query encoded as {_queryExpression}");
+
+                var query = (C4Query*)ThreadSafety.DoLockedBridge(err =>
+                {
+                    return Native.c4query_new2(Database.c4db, C4QueryLanguage.JSONQuery, _queryExpression, null, err);
+                });
+
                 CreateQuery();
-                if (_c4Query == null) { 
+                if (_c4Query == null) {
                     return false;
                 }
 

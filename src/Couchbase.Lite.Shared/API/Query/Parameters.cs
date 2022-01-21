@@ -220,8 +220,7 @@ namespace Couchbase.Lite.Query
             }
 
             _freezer.PerformAction(() => _params[name] = value);
-            if (_query != null)
-                _query.SetParameters(this.ToString());
+            _query?.SetParameters(this.ToString());
 
             return this;
         }

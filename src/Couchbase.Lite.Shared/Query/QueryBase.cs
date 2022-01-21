@@ -69,36 +69,10 @@ namespace Couchbase.Lite.Internal.Query
             }
         }
 
-        internal string QueryExpression { get; set; }
-
         [NotNull]
         internal ThreadSafety ThreadSafety { get; set; } = new ThreadSafety();
 
         internal SerialQueue DispatchQueue { get; } = new SerialQueue();
-
-        #endregion
-
-        #region Properties - Json Query Expression
-
-        protected bool Distinct { get; set; }
-
-        protected QueryDataSource FromImpl { get; set; }
-
-        protected QueryGroupBy GroupByImpl { get; set; }
-
-        protected Having HavingImpl { get; set; }
-
-        protected QueryJoin JoinImpl { get; set; }
-
-        protected IExpression LimitValue { get; set; }
-
-        protected QueryOrderBy OrderByImpl { get; set; }
-
-        protected Select SelectImpl { get; set; }
-
-        protected IExpression SkipValue { get; set; }
-
-        protected QueryExpression WhereImpl { get; set; }
 
         #endregion
 
@@ -133,60 +107,12 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Internal Methods
 
-        internal unsafe void CreateQuery()
-        {
-            if (_c4Query == null) {
-                C4Query* query = (C4Query*)ThreadSafety.DoLockedBridge(err =>
-                {
-                    if (this is XQuery) {
-                        QueryExpression = EncodeAsJSON();
-                        WriteLog.To.Query.I(Tag, $"Query encoded as {QueryExpression}");
-                        return Native.c4query_new2(Database.c4db, C4QueryLanguage.JSONQuery, QueryExpression, null, err);
-                    } else { //NQuery - N1QL
-                        return Native.c4query_new2(Database.c4db, C4QueryLanguage.N1QLQuery, QueryExpression, null, err);
-                    }
-                });
-
-                _c4Query = query;
-            }
-        }
-
         internal unsafe void SetParameters(string parameters)
         {
             CreateQuery();
             if (_c4Query != null && !String.IsNullOrEmpty(parameters)) {
                 Native.c4query_setParameters(_c4Query, parameters);
             }
-        }
-
-        internal unsafe Dictionary<string, int> CreateColumnNames(C4Query* query)
-        {
-            QueryDataSource fromImpl = null;
-            if (this is XQuery) {
-                fromImpl = FromImpl;
-                Debug.Assert(fromImpl != null, "CreateColumnNames reached without a FROM clause received");
-                ThreadSafety = fromImpl.ThreadSafety;
-            }
-
-            var map = new Dictionary<string, int>();
-
-            var columnCnt = Native.c4query_columnCount(query);
-            for (int i = 0; i < columnCnt; i++) {
-                var titleStr = Native.c4query_columnTitle(query, (uint)i).CreateString();
-
-                if (this is XQuery && titleStr.StartsWith("*")) {
-                    titleStr = fromImpl.ColumnName;
-                }
-
-                if (map.ContainsKey(titleStr)) {
-                    throw new CouchbaseLiteException(C4ErrorCode.InvalidQuery,
-                        String.Format(CouchbaseLiteErrorMessage.DuplicateSelectResultName, titleStr));
-                }
-
-                map.Add(titleStr, i);
-            }
-
-            return map;
         }
 
         #endregion
@@ -256,7 +182,7 @@ namespace Couchbase.Lite.Internal.Query
             return AddChangeListener(null, handler);
         }
 
-        public unsafe void RemoveChangeListener(ListenerToken token)
+        public void RemoveChangeListener(ListenerToken token)
         {
             _disposalWatchdog.CheckDisposed();
             _listenerTokens[token].StopObserver();
@@ -268,65 +194,15 @@ namespace Couchbase.Lite.Internal.Query
 
         #endregion
 
+        #region QueryBase
+
+        protected abstract void CreateQuery();
+
+        internal abstract unsafe Dictionary<string, int> CreateColumnNames(C4Query* query);
+
+        #endregion
+
         #region Protected Methods
-
-        protected string EncodeAsJSON()
-        {
-            var parameters = new Dictionary<string, object>();
-            if (WhereImpl != null) {
-                parameters["WHERE"] = WhereImpl.ConvertToJSON();
-            }
-
-            if (Distinct) {
-                parameters["DISTINCT"] = true;
-            }
-
-            if (LimitValue != null) {
-                var e = Misc.TryCast<IExpression, QueryExpression>(LimitValue);
-                parameters["LIMIT"] = e.ConvertToJSON();
-            }
-
-            if (SkipValue != null) {
-                var e = Misc.TryCast<IExpression, QueryExpression>(SkipValue);
-                parameters["OFFSET"] = e.ConvertToJSON();
-            }
-
-            if (OrderByImpl != null) {
-                parameters["ORDER_BY"] = OrderByImpl.ToJSON();
-            }
-
-            var selectParam = SelectImpl?.ToJSON();
-            if (selectParam != null) {
-                parameters["WHAT"] = selectParam;
-            }
-
-            if (JoinImpl != null) {
-                var fromJson = FromImpl?.ToJSON();
-                if (fromJson == null) {
-                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.NoAliasInJoin);
-                }
-
-                var joinJson = JoinImpl.ToJSON() as IList<object>;
-                Debug.Assert(joinJson != null);
-                joinJson.Insert(0, fromJson);
-                parameters["FROM"] = joinJson;
-            } else {
-                var fromJson = FromImpl?.ToJSON();
-                if (fromJson != null) {
-                    parameters["FROM"] = new[] { fromJson };
-                }
-            }
-
-            if (GroupByImpl != null) {
-                parameters["GROUP_BY"] = GroupByImpl.ToJSON();
-            }
-
-            if (HavingImpl != null) {
-                parameters["HAVING"] = HavingImpl.ToJSON();
-            }
-
-            return JsonConvert.SerializeObject(parameters);
-        }
 
         protected unsafe void CreateLiveQuerier(ListenerToken listenerToken)
         {
