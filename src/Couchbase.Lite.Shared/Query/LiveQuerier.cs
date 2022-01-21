@@ -43,7 +43,6 @@ namespace Couchbase.Lite.Internal.Query
         private C4QueryObserver* _queryObserver;
         private bool _disposed;
         private QueryBase _queryBase;
-        private long _rowCount;
         private ListenerToken _listenerToken;
         private int _startedObserving;
 
@@ -147,14 +146,12 @@ namespace Couchbase.Lite.Internal.Query
 
         private QueryResultSet GetResults()
         {
-            C4Error error;
             var newEnum = (C4QueryEnumerator*)_queryBase.ThreadSafety.DoLockedBridge(err =>
             {
                 return Native.c4queryobs_getEnumerator(_queryObserver, true, err);
             });
 
             if (newEnum != null) {
-                _rowCount = Native.c4queryenum_getRowCount(newEnum, &error);
                 return new QueryResultSet(_queryBase, _queryBase.ThreadSafety, newEnum, _queryBase.ColumnNames);
             }
 
