@@ -115,12 +115,30 @@ namespace Couchbase.Lite
                         //AppleTlsContext.cs
                         //case SslStatus.ClosedAbort:
                         //  throw new IOException("Connection closed.");
-                        message = ie.Message;
+                            message = ie.Message;
+                            c4err.domain = C4ErrorDomain.POSIXDomain;
+                            c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNRESET));
+                        }
+                    #elif __ANDROID__
+                        if(ie.Message.Contains("Operation aborted")) {
+                            message = ie.Message;
                             c4err.domain = C4ErrorDomain.POSIXDomain;
                             c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNRESET));
                         }
                     #endif
                         break;
+                    
+                    #if __ANDROID__
+                    case AggregateException ae:
+                        if(ae.Message.Contains("Operation aborted")) {
+                            message = ae.Message;
+                            c4err.domain = C4ErrorDomain.POSIXDomain;
+                            c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNRESET));
+                        }
+
+                        break;
+                    #endif
+                        
                 }
             }
 
