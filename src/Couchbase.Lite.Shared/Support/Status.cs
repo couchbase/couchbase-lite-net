@@ -140,17 +140,34 @@ namespace Couchbase.Lite
                             c4err.code = (int) C4NetworkErrorCode.TLSHandshakeFailed;
                         }
 
-#if __IOS__
+                    #if __IOS__
                         if (ie.Message == "Connection closed.") {
                         //AppleTlsContext.cs
                         //case SslStatus.ClosedAbort:
                         //  throw new IOException("Connection closed.");
-                        message = ie.Message;
+                            message = ie.Message;
                             c4err.domain = C4ErrorDomain.NetworkDomain;
                             c4err.code = (int)C4NetworkErrorCode.ConnectionReset;
                         }
-#endif
+                    #elif __ANDROID__
+                        if(ie.Message.Contains("Operation aborted")) {
+                            message = ie.Message;
+                            c4err.domain = C4ErrorDomain.NetworkDomain;
+                            c4err.code = (int)C4NetworkErrorCode.ConnectionReset;
+                        }
+                    #endif
                         break;
+
+                    #if __ANDROID__
+                    case AggregateException ae:
+                        if(ae.Message.Contains("Operation aborted")) {
+                            message = ae.Message;
+                            c4err.domain = C4ErrorDomain.NetworkDomain;
+                            c4err.code = (int)C4NetworkErrorCode.ConnectionReset;
+                        }
+
+                        break;
+                    #endif
                 }
             }
 
