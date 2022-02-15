@@ -150,7 +150,7 @@ namespace Couchbase.Lite
                             c4err.code = (int)C4NetworkErrorCode.ConnectionReset;
                         }
                     #elif __ANDROID__
-                        if(ie.Message.Contains("Operation aborted")) {
+                        if(ie.Message.Contains("Unable to read data from the transport connection: Operation aborted")) {
                             message = ie.Message;
                             c4err.domain = C4ErrorDomain.NetworkDomain;
                             c4err.code = (int)C4NetworkErrorCode.ConnectionReset;
@@ -160,7 +160,7 @@ namespace Couchbase.Lite
 
                     #if __ANDROID__
                     case AggregateException ae:
-                        if(ae.Message.Contains("Operation aborted")) {
+                        if(ae.Message.Contains("Unable to read data from the transport connection: Operation aborted")) {
                             message = ae.Message;
                             c4err.domain = C4ErrorDomain.NetworkDomain;
                             c4err.code = (int)C4NetworkErrorCode.ConnectionReset;
