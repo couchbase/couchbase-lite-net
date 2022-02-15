@@ -74,6 +74,7 @@ namespace Couchbase.Lite
                                 c4err.domain = C4ErrorDomain.NetworkDomain;
                                 c4err.code = (int)C4NetworkErrorCode.Timeout;
                                 break;
+                            case SocketError.OperationAborted:
                             case SocketError.ConnectionAborted:
                                 message = se.Message;
                                 c4err.domain = C4ErrorDomain.NetworkDomain;
@@ -133,6 +134,7 @@ namespace Couchbase.Lite
                         }
 
                         break;
+
                     case IOException ie:
                         if (ie.Message == "The handshake failed due to an unexpected packet format.") {
                             message = ie.Message;
@@ -149,25 +151,8 @@ namespace Couchbase.Lite
                             c4err.domain = C4ErrorDomain.NetworkDomain;
                             c4err.code = (int)C4NetworkErrorCode.ConnectionReset;
                         }
-                    #elif __ANDROID__
-                        if(ie.Message.Contains("Unable to read data from the transport connection: Operation aborted")) {
-                            message = ie.Message;
-                            c4err.domain = C4ErrorDomain.NetworkDomain;
-                            c4err.code = (int)C4NetworkErrorCode.ConnectionReset;
-                        }
                     #endif
                         break;
-
-                    #if __ANDROID__
-                    case AggregateException ae:
-                        if(ae.Message.Contains("Unable to read data from the transport connection: Operation aborted")) {
-                            message = ae.Message;
-                            c4err.domain = C4ErrorDomain.NetworkDomain;
-                            c4err.code = (int)C4NetworkErrorCode.ConnectionReset;
-                        }
-
-                        break;
-                    #endif
                 }
             }
 
