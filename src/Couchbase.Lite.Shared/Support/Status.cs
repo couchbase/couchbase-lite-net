@@ -120,9 +120,15 @@ namespace Couchbase.Lite
                             c4err.domain = C4ErrorDomain.POSIXDomain;
                             c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNRESET));
                         }
+                    #elif __ANDROID__
+                        if(ie.Message.Contains("Unable to read data from the transport connection: Operation aborted")) {
+                            message = ie.Message;
+                            c4err.domain = C4ErrorDomain.POSIXDomain;
+                            c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNRESET));
+                        }
                     #endif
                         break;
-                             
+                        
                 }
             }
 
