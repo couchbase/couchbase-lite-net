@@ -79,6 +79,7 @@ namespace Couchbase.Lite
                                 c4err.domain = C4ErrorDomain.NetworkDomain;
                                 c4err.code = (int)C4NetworkErrorCode.Timeout;
                                 break;
+                            case SocketError.OperationAborted:
                             case SocketError.ConnectionAborted:
                             case SocketError.ConnectionReset:
                             case SocketError.Shutdown:
@@ -119,26 +120,9 @@ namespace Couchbase.Lite
                             c4err.domain = C4ErrorDomain.POSIXDomain;
                             c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNRESET));
                         }
-                    #elif __ANDROID__
-                        if(ie.Message.Contains("Operation aborted")) {
-                            message = ie.Message;
-                            c4err.domain = C4ErrorDomain.POSIXDomain;
-                            c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNRESET));
-                        }
                     #endif
                         break;
-                    
-                    #if __ANDROID__
-                    case AggregateException ae:
-                        if(ae.Message.Contains("Operation aborted")) {
-                            message = ae.Message;
-                            c4err.domain = C4ErrorDomain.POSIXDomain;
-                            c4err.code = PosixBase.GetCode(nameof(PosixWindows.ECONNRESET));
-                        }
-
-                        break;
-                    #endif
-                        
+                             
                 }
             }
 
