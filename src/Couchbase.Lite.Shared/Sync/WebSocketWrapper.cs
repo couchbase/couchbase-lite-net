@@ -573,7 +573,6 @@ namespace Couchbase.Lite.Sync
                         await stream.WriteAsync(nextData, 0, nextData.Length, cancelSource.Token).ConfigureAwait(false);
                     } catch (Exception e) {
                         DidClose(e);
-                        await NetworkStream?.FlushAsync(cancelSource.Token);
                         return;
                     }
 
