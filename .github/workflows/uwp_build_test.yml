@@ -22,16 +22,13 @@ jobs:
       #[x86, x64] Let's do x64 only
         targetplatform: [x64]
 
-    runs-on: windows-latest
+    runs-on: windows-2019
     
     env:
       SigningCertificate_Path: couchbase-lite-net\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP_TemporaryKey.pfx
-      Solution_Path: couchbase-lite-net\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.sln
       Test_Project_Path: couchbase-lite-net\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP.Validation.csproj
       Test_Exe_Path: couchbase-lite-net\src\Couchbase.Lite.Tests.UWP\bin\x64\Debug\Couchbase.Lite.Tests.UWP.Validation.build.appxrecipe #AppxPackages\Couchbase.Lite.Tests.UWP.Source.0.0.0_x64_Debug_Test\Couchbase.Lite.Tests.UWP.Validation_1.0.0.0_x64_Debug.appx
-      Cbl_Project_Path: couchbase-lite-net\src\Couchbase.Lite\Couchbase.Lite.csproj
       Cbl_EE_Project_Path: src\Couchbase.Lite.Enterprise\Couchbase.Lite.Enterprise.csproj
-      UwpSupport_Project_Directory: couchbase-lite-net\src\Couchbase.Lite.Support.UWP\Couchbase.Lite.Support.UWP.csproj
 
 #### BUILD and TEST
 
@@ -76,12 +73,6 @@ jobs:
       run:  msbuild $env:Cbl_EE_Project_Path /t:Restore /p:Configuration=$env:Configuration
       env:
         Configuration: Debug
-      
-    # Restore CBL Net
-    #- name: Restore CBL Net
-    #  run:  msbuild $env:Cbl_Project_Path /t:Restore /p:Configuration=$env:Configuration
-    #  env:
-    #    Configuration: Debug
         
     # Build CBL Net
     - name: Build CBL EE
@@ -103,14 +94,6 @@ jobs:
     - name: Debug Build UWP app
       run: msbuild $env:Test_Project_Path /p:Configuration=Debug /p:AppxBundlePlatforms="x64" /p:AppxPackageDir=".\AppxPackages" /p:AppxBundle=Never /p:UapAppxPackageBuildMode=SideloadOnly /p:PackageCertificateKeyFile=$env:SigningCertificate_Path
         
-    
-    #- name: Build Projects
-    #  run: msbuild $env:Solution_Path /p:Configuration=$env:Configuration /p:Platform=$env:Platform /t:Rebuild
-    #  env:
-    #    Configuration: Debug
-    #    Platform: ${{ matrix.targetplatform }}
-
-
     # Locate vstest.console.exe and add to PATH
     - name: Setup VSTest path
       uses: darenm/Setup-VSTest@v1

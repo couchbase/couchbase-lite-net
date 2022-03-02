@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
       #[ubuntu-latest, windows-latest, macos-latest]
-        os: [ windows-latest ]
+        os: [ windows-2019 ]
       #[x86, x64] Let's do x64 only
         targetplatform: [x64]
         
@@ -105,7 +105,7 @@ jobs:
       fail-fast: false
       matrix:
       #[ubuntu-latest, windows-latest, macos-latest]
-        os: [ windows-latest ]
+        os: [ windows-2019 ]
       #[x86, x64] Let's do x64 only
         targetplatform: [x64]
         
