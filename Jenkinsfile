@@ -4,9 +4,9 @@ pipeline {
         timeout(time: 30, unit: 'MINUTES') 
     }
     stages {
-        stage("Entry") {
-            parallel {
-                stage("Windows Node") {
+        //stage("Entry") {
+            //parallel {
+                /* stage("Windows Node") {
                     agent { label 'couchbase-lite-net-validation' }
                     environment {
                         NEXUS_REPO="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
@@ -52,7 +52,7 @@ pipeline {
                         // }
                     }
                 }
-                /* stage("Linux Node") {
+                stage("Linux Node") {
                     agent { label 's61113u16 (litecore)' }
                     environment {
                         NEXUS_REPO="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
@@ -136,7 +136,7 @@ pipeline {
                         }
                     }
                 }
-            }
-        }
+            //}
+        //}
     }   
 }
