@@ -1,5 +1,5 @@
 # This continuous integration pipeline is triggered anytime a user pushes code to the repo.
-# This pipeline builds the UWP project, runs unit tests.
+# This pipeline builds the .Net Core Windows project, runs unit tests.
 name: CBL NetCore Windows PR Validation
 
 # Trigger on every master branch push and pull request
