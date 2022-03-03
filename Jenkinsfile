@@ -121,26 +121,29 @@ pipeline {
                         }
                         stage(".NET Core Mac") {
                             steps {
-                                sh 'jenkins/run_unix_tests.sh'
-								catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                                    sh "exit 1"
+								catchError {
+                                    sh 'jenkins/run_unix_tests.sh'
                                 }
+								
+								echo currentBuild.result
                             }
                         }
 						stage("Xamarin iOS") {
                             steps {
-                                sh 'jenkins/run_ios_tests.sh'
-								catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                                    sh "exit 1"
-                                }
+							    catchError {
+                                    sh 'jenkins/run_ios_tests.sh'
+								}
+								
+								echo currentBuild.result
                             }
                         }
 						stage("Xamarin Android") {
                             steps {
-                                sh 'jenkins/run_android_tests.sh'
-								catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                                    sh "exit 1"
-                                }
+							    catchError {
+                                    sh 'jenkins/run_android_tests.sh'
+								}
+								
+								echo currentBuild.result
                             }
                         }
                     }
