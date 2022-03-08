@@ -167,7 +167,6 @@ namespace Couchbase.Lite.Sync
             // Wait my turn!
             _queue.DispatchAsync(() =>
             {
-                ResetConnections();
                 _c4Queue.DispatchAsync(() =>
                 {
                     if (_closed) {
@@ -178,7 +177,7 @@ namespace Couchbase.Lite.Sync
                     WriteLog.To.Sync.I(Tag, "Closing socket normally due to request from LiteCore");
                     ReleaseSocket(new C4Error(0, 0));
                 });
-            });
+            }).ContinueWith(t=> ResetConnections());
         }
 
         // LiteCore finished processing X number of bytes
@@ -688,11 +687,7 @@ namespace Couchbase.Lite.Sync
             {
                 _client?.Dispose();
                 _client = null;
-                NetworkStream?.Dispose();
-                NetworkStream = null;
                 _readWriteCancellationTokenSource?.Cancel();
-                _readWriteCancellationTokenSource?.Dispose();
-                _readWriteCancellationTokenSource = null;
                 _receivePause?.Dispose();
                 _receivePause = null;
                 _writeQueue?.CompleteAdding();
@@ -708,6 +703,11 @@ namespace Couchbase.Lite.Sync
                 lock (_writeQueueLock) {
                     Misc.SafeSwap(ref _writeQueue, null);
                 }
+
+                NetworkStream?.Dispose();
+                NetworkStream = null;
+                _readWriteCancellationTokenSource?.Dispose();
+                _readWriteCancellationTokenSource = null;
             });
         }
 
