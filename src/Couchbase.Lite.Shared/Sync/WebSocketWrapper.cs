@@ -606,21 +606,23 @@ namespace Couchbase.Lite.Sync
         {
             // Schedule the processing to happen on the queue.  Out of order
             // messages cause checksum errors!
-            _c4Queue.DispatchAsync(() =>
+            _queue.DispatchAsync(() =>
             {
                 _receivedBytesPending += (uint)data.Length;
                 WriteLog.To.Sync.V(Tag, $"<<< received {data.Length} bytes [now {_receivedBytesPending} pending]");
-
                 var socket = _socket;
-                // Guard against closure / disposal
-                if (!_closed) {
-                    Native.c4socket_received(socket, data);
-                    WriteLog.To.Sync.V(Tag, "c4Socket received.");
-                    if (_receivedBytesPending >= MaxReceivedBytesPending) {
-                        WriteLog.To.Sync.V(Tag, "Too much pending data, throttling Receive...");
-                        _receivePause?.Reset();
+                _c4Queue.DispatchAsync(() =>
+                {
+                    // Guard against closure / disposal
+                    if (!_closed) {
+                        Native.c4socket_received(socket, data);
+                        WriteLog.To.Sync.V(Tag, "c4Socket received.");
+                        if (_receivedBytesPending >= MaxReceivedBytesPending) {
+                            WriteLog.To.Sync.V(Tag, "Too much pending data, throttling Receive...");
+                            _receivePause?.Reset();
+                        }
                     }
-                }
+                });
             });
         }
 
@@ -681,18 +683,27 @@ namespace Couchbase.Lite.Sync
         {
             _queue.DispatchAsync(() =>
             {
-                _client?.Dispose();
-                _client = null;
                 _readWriteCancellationTokenSource?.Cancel();
-                _receivePause?.Dispose();
-                _receivePause = null;
                 _writeQueue?.CompleteAdding();
+                var count = 0;
+                while (count++ < 5 && _writeQueue != null && !_writeQueue.IsCompleted) {
+                    Thread.Sleep(500);
+                }
+
+                if (_writeQueue != null && !_writeQueue.IsCompleted) {
+                    WriteLog.To.Sync.W(Tag, "Timed out waiting for _writeQueue to finish, forcing Dispose...");
+                }
+
                 lock (_writeQueueLock) {
                     Misc.SafeSwap(ref _writeQueue, null);
                 }
 
+                _client?.Dispose();
+                _client = null;
                 NetworkStream?.Dispose();
                 NetworkStream = null;
+                _receivePause?.Dispose();
+                _receivePause = null;
                 _readWriteCancellationTokenSource?.Dispose();
                 _readWriteCancellationTokenSource = null;
             });
