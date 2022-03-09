@@ -497,10 +497,13 @@ namespace Couchbase.Lite.Sync
             var cancelSource = CancellationTokenSource.CreateLinkedTokenSource(original.Token);
             while (!cancelSource.IsCancellationRequested) {
                 try {
-                    _receivePause?.Wait(cancelSource.Token);
+                    WriteLog.To.Sync.V(Tag, "_receivePause wait");
+                   _receivePause?.Wait(cancelSource.Token);
                 } catch (ObjectDisposedException) {
+                    WriteLog.To.Sync.V(Tag, "_receivePause wait catch ObjectDisposedException");
                     return;
                 } catch (OperationCanceledException) {
+                    WriteLog.To.Sync.V(Tag, "_receivePause wait catch OperationCanceledException");
                     return;
                 }
 
@@ -683,30 +686,36 @@ namespace Couchbase.Lite.Sync
         {
             _queue.DispatchAsync(() =>
             {
-                _client?.Dispose();
-                _client = null;
-                NetworkStream?.Dispose();
-                NetworkStream = null;
                 _readWriteCancellationTokenSource?.Cancel();
-                _readWriteCancellationTokenSource?.Dispose();
-                _readWriteCancellationTokenSource = null;
+                ResetWriteQueue();
                 _receivePause?.Dispose();
                 _receivePause = null;
-                _writeQueue?.CompleteAdding();
-                var count = 0;
-                while (count++ < 5 && _writeQueue != null && !_writeQueue.IsCompleted) {
-                    Thread.Sleep(500);
-                }
+                NetworkStream?.Dispose();
+                NetworkStream = null;
+                _client?.Dispose();
+                _client = null;
+                _readWriteCancellationTokenSource?.Dispose();
+                _readWriteCancellationTokenSource = null;
 
-                if (_writeQueue != null && !_writeQueue.IsCompleted) {
-                    WriteLog.To.Sync.W(Tag, "Timed out waiting for _writeQueue to finish, forcing Dispose...");
-                }
-
-                lock (_writeQueueLock) {
-                    Misc.SafeSwap(ref _writeQueue, null);
-                }
-
+                WriteLog.To.Sync.V(Tag, "Reset Connections completed.");
             });
+        }
+
+        private void ResetWriteQueue()
+        {
+            _writeQueue?.CompleteAdding();
+            var count = 0;
+            while (count++ < 5 && _writeQueue != null && !_writeQueue.IsCompleted) {
+                Thread.Sleep(500);
+            }
+
+            if (_writeQueue != null && !_writeQueue.IsCompleted) {
+                WriteLog.To.Sync.W(Tag, "Timed out waiting for _writeQueue to finish, forcing Dispose...");
+            }
+
+            lock (_writeQueueLock) {
+                Misc.SafeSwap(ref _writeQueue, null);
+            }
         }
 
         private void SetupAuth()
