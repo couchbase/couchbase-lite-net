@@ -165,19 +165,17 @@ namespace Couchbase.Lite.Sync
         public unsafe void CloseSocket()
         {
             // Wait my turn!
-            _queue.DispatchAsync(() =>
+            ResetConnections();
+            _c4Queue.DispatchAsync(() =>
             {
-                _c4Queue.DispatchAsync(() =>
-                {
-                    if (_closed) {
-                        WriteLog.To.Sync.W(Tag, "Double close detected, ignoring...");
-                        return;
-                    }
-
-                    WriteLog.To.Sync.I(Tag, "Closing socket normally due to request from LiteCore");
-                    ReleaseSocket(new C4Error(0, 0));
-                });
-            }).ContinueWith(t=> ResetConnections());
+                if (_closed) {
+                    WriteLog.To.Sync.W(Tag, "Double close detected, ignoring...");
+                    return;
+                }
+                
+                WriteLog.To.Sync.I(Tag, "Closing socket normally due to request from LiteCore");
+                ReleaseSocket(new C4Error(0, 0));
+            });
         }
 
         // LiteCore finished processing X number of bytes
@@ -608,23 +606,21 @@ namespace Couchbase.Lite.Sync
         {
             // Schedule the processing to happen on the queue.  Out of order
             // messages cause checksum errors!
-            _queue.DispatchAsync(() =>
+            _c4Queue.DispatchAsync(() =>
             {
-                _receivedBytesPending += (uint) data.Length;
+                _receivedBytesPending += (uint)data.Length;
                 WriteLog.To.Sync.V(Tag, $"<<< received {data.Length} bytes [now {_receivedBytesPending} pending]");
+
                 var socket = _socket;
-                _c4Queue.DispatchAsync(() =>
-                {
-                    // Guard against closure / disposal
-                    if (!_closed) {
-                        Native.c4socket_received(socket, data);
-                        WriteLog.To.Sync.V(Tag, "c4Socket received.");
-                        if (_receivedBytesPending >= MaxReceivedBytesPending) {
-                            WriteLog.To.Sync.V(Tag, "Too much pending data, throttling Receive...");
-                            _receivePause?.Reset();
-                        }
+                // Guard against closure / disposal
+                if (!_closed) {
+                    Native.c4socket_received(socket, data);
+                    WriteLog.To.Sync.V(Tag, "c4Socket received.");
+                    if (_receivedBytesPending >= MaxReceivedBytesPending) {
+                        WriteLog.To.Sync.V(Tag, "Too much pending data, throttling Receive...");
+                        _receivePause?.Reset();
                     }
-                });
+                }
             });
         }
 
@@ -691,15 +687,6 @@ namespace Couchbase.Lite.Sync
                 _receivePause?.Dispose();
                 _receivePause = null;
                 _writeQueue?.CompleteAdding();
-                var count = 0;
-                while (count++ < 5 && _writeQueue != null && !_writeQueue.IsCompleted) {
-                    Thread.Sleep(500);
-                }
-
-                if (_writeQueue != null && !_writeQueue.IsCompleted) {
-                    WriteLog.To.Sync.W(Tag, "Timed out waiting for _writeQueue to finish, forcing Dispose...");
-                }
-
                 lock (_writeQueueLock) {
                     Misc.SafeSwap(ref _writeQueue, null);
                 }
