@@ -683,7 +683,15 @@ namespace Couchbase.Lite.Sync
         {
             _queue.DispatchAsync(() =>
             {
+                _client?.Dispose();
+                _client = null;
+                NetworkStream?.Dispose();
+                NetworkStream = null;
                 _readWriteCancellationTokenSource?.Cancel();
+                _readWriteCancellationTokenSource?.Dispose();
+                _readWriteCancellationTokenSource = null;
+                _receivePause?.Dispose();
+                _receivePause = null;
                 _writeQueue?.CompleteAdding();
                 var count = 0;
                 while (count++ < 5 && _writeQueue != null && !_writeQueue.IsCompleted) {
@@ -698,14 +706,6 @@ namespace Couchbase.Lite.Sync
                     Misc.SafeSwap(ref _writeQueue, null);
                 }
 
-                _client?.Dispose();
-                _client = null;
-                NetworkStream?.Dispose();
-                NetworkStream = null;
-                _receivePause?.Dispose();
-                _receivePause = null;
-                _readWriteCancellationTokenSource?.Dispose();
-                _readWriteCancellationTokenSource = null;
             });
         }
 
