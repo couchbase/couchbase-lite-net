@@ -165,16 +165,19 @@ namespace Couchbase.Lite.Sync
         public unsafe void CloseSocket()
         {
             // Wait my turn!
-            ResetConnections();
-            _c4Queue.DispatchAsync(() =>
+            _queue.DispatchAsync(() =>
             {
-                if (_closed) {
-                    WriteLog.To.Sync.W(Tag, "Double close detected, ignoring...");
-                    return;
-                }
-                
-                WriteLog.To.Sync.I(Tag, "Closing socket normally due to request from LiteCore");
-                ReleaseSocket(new C4Error(0, 0));
+                ResetConnections();
+                _c4Queue.DispatchAsync(() =>
+                {
+                    if (_closed) {
+                        WriteLog.To.Sync.W(Tag, "Double close detected, ignoring...");
+                        return;
+                    }
+
+                    WriteLog.To.Sync.I(Tag, "Closing socket normally due to request from LiteCore");
+                    ReleaseSocket(new C4Error(0, 0));
+                });
             });
         }
 
