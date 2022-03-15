@@ -221,7 +221,11 @@ namespace Couchbase.Lite.Internal.Logging
             ["WS"] = LogDomain.Network,
             ["BLIP"] = LogDomain.Network,
             ["BLIPMessages"] = LogDomain.Network,
-            ["Zip"] = LogDomain.Network
+            ["Zip"] = LogDomain.Network,
+            ["TLS"] = LogDomain.Network,
+#if COUCHBASE_ENTERPRISE
+            ["Listener"] = LogDomain.Listener
+#endif
         };
 
         #endregion
