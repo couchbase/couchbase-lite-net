@@ -1,0 +1,67 @@
+# This continuous integration pipeline is triggered anytime a user pushes code to the repo.
+# This pipeline builds the .Net Core MacOS, Xamarin iOS, Xamarin Android projects, runs unit tests.
+name: CBL NetCore MacOS, Xamarin iOS, Xamarin Android PR Validation
+
+# Trigger on every master branch push and pull request
+on:
+  push:
+    branches:
+      - master
+      - 'release/*'
+  pull_request:
+    branches:
+      - '**'
+    
+jobs:
+
+  build:
+
+    strategy:
+      fail-fast: false
+      matrix:
+      #[x86, x64] Let's do x64 only
+        targetplatform: [x64]
+
+    runs-on: macOS-latest
+    
+    steps: 
+    
+    #Checkout CBL Net EE
+    - name: Checkout CBL Net EE ${{ matrix.dotnet-version }}
+      uses: actions/checkout@v2
+      with:
+        repository: couchbaselabs/couchbase-lite-net-ee
+        token: ${{ secrets.GITHUBACTIONS_AT }}
+        path: ./
+        
+    #Checkout LiteCore EE
+    - name: Checkout LiteCore EE
+      uses: actions/checkout@v2
+      with:
+        repository: couchbase/couchbase-lite-core-EE
+        token: ${{ secrets.GITHUBACTIONS_AT }}
+        path: ./couchbase-lite-core-EE
+    
+    - name: Checkout Couchbase Lite
+      working-directory: ${{github.workspace}}/build
+      shell: bash
+      run: |
+        sh '''#!/bin/bash
+        set -e
+        shopt -s extglob dotglob
+        mkdir tmp
+        mv !(tmp) tmp
+        git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $BRANCH_NAME --depth 1 couchbase-lite-net-ee || \
+            git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $CHANGE_TARGET --depth 1 couchbase-lite-net-ee
+        mv couchbase-lite-net-ee/* .
+        mv tmp/* couchbase-lite-net
+        rmdir tmp
+        
+        pushd couchbase-lite-net
+        git submodule update --init
+        popd
+        
+        pushd jenkins
+        git clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 proj
+        popd
+        '''
