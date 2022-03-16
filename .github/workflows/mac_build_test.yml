@@ -19,10 +19,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-      #[x86, x64] Let's do x64 only
+        #[ubuntu-latest, windows-latest, macos-latest]
+        os: [ macOS-latest ]
+        #[x86, x64] Let's do x64 only
         targetplatform: [x64]
+        
+        dotnet-version: ['3.1.x']
 
-    runs-on: macOS-latest
+    runs-on: ${{ matrix.os }}
+    
+    env:
+      NEXUS_REPO: http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore
+      KEYCHAIN_PWD: credentials("mobile-mac-mini-keychain")
     
     steps: 
     
@@ -34,34 +42,23 @@ jobs:
         token: ${{ secrets.GITHUBACTIONS_AT }}
         path: ./
         
-    #Checkout LiteCore EE
-    - name: Checkout LiteCore EE
+    #Checkout CBL Net
+    - name: Checkout ${{ matrix.dotnet-version }}
       uses: actions/checkout@v2
       with:
-        repository: couchbase/couchbase-lite-core-EE
-        token: ${{ secrets.GITHUBACTIONS_AT }}
-        path: ./couchbase-lite-core-EE
-    
-    - name: Checkout Couchbase Lite
-      working-directory: ${{github.workspace}}/build
+        path: ./couchbase-lite-net
+        
+    #Checkout CBL Net Validation solution
+    - name: Checkout ${{ matrix.dotnet-version }}
+      uses: actions/checkout@v2
+      with:
+        repository: couchbaselabs/couchbase-lite-net-validation
+        path: ./jenkins/proj 
+        
+    #Run .Net Core MacOS tests
+    - name: Run .Net Core ${{ matrix.dotnet-version }} MacOS tests
+      working-directory: ${{github.workspace}}/jenkins
       shell: bash
-      run: |
-        sh '''#!/bin/bash
-        set -e
-        shopt -s extglob dotglob
-        mkdir tmp
-        mv !(tmp) tmp
-        git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $BRANCH_NAME --depth 1 couchbase-lite-net-ee || \
-            git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $CHANGE_TARGET --depth 1 couchbase-lite-net-ee
-        mv couchbase-lite-net-ee/* .
-        mv tmp/* couchbase-lite-net
-        rmdir tmp
-        
-        pushd couchbase-lite-net
-        git submodule update --init
-        popd
-        
-        pushd jenkins
-        git clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 proj
-        popd
-        '''
+      run: run_unix_tests.sh
+    
+    
