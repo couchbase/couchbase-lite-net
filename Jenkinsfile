@@ -5,7 +5,7 @@ pipeline {
     }
     stages {
 	    stage("Mac Node") {
-		    agent { label 'mobile-mac-mini'  }
+		    agent { label 'net-mobile-mac-mini'  }
 			    environment {
 				    NEXUS_REPO="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
                     KEYCHAIN_PWD = credentials("mobile-mac-mini-keychain")
