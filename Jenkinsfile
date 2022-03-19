@@ -8,7 +8,7 @@ pipeline {
 		    agent { label 'dotnet-mobile-mac-mini'  }
 			    environment {
 				    NEXUS_REPO="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
-                    KEYCHAIN_PWD = credentials("dotnet-mobile-mac-mini-keychain")
+                    KEYCHAIN_PWD = credentials("mackeychain")
                 }
 				stages {
 				    stage("Checkout") {
