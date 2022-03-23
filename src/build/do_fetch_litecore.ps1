@@ -1,124 +1,80 @@
 param(
-    [Parameter(Mandatory=$true)][string]$NexusRepo,
     [Parameter(Mandatory=$true)][string[]]$Variants,
     [Parameter(Mandatory=$true)][string]$Sha,
     [switch]$DebugLib
 )
 
+#python "..\..\vendor\couchbase-lite-core\scripts\fetch_litecore.py" --variants "windows-win64", "windows-win32" --ce "C:\Development\couchbase-lite-net-ee\couchbase-lite-net\vendor\couchbase-lite-core"
+python "..\..\vendor\couchbase-lite-core\scripts\fetch_litecore.py" -v $Variants -d -s $Sha -o "..\..\vendor\couchbase-lite-core\build_cmake"
+
 Push-Location $PSScriptRoot\..\..\vendor\couchbase-lite-core\build_cmake
-$suffix = ""
-if($DebugLib) {
-    $suffix = "-debug"
-}
 
-Write-Host "Fetching variants for $Sha..."
-if($Variants[0].ToLower() -eq "all") {
-    $Variants = @("macosx", "linux", "ios", "android-x86", "android-x86_64", "android-armeabi-v7a", "android-arm64-v8a", "windows-win32", "windows-win64", "windows-arm")
-}
-
-$VARIANT_EXT = @{
-  "macosx" = "zip"; 
-  "ios" = "zip"; 
-  "linux" = "tar.gz"; 
-  "android-x86" = "zip"; 
-  "android-x86_64" = "zip";
-  "android-armeabi-v7a" = "zip";
-  "android-arm64-v8a" = "zip";
-  "windows-win32" = "zip";
-  "windows-win64" = "zip";
-  "windows-arm" = "zip"
-}
-
-try {
-    $i = 0
-    foreach ($variant in $Variants) {
-        Write-Output "Fetching $variant..."
-        $extension = $VARIANT_EXT[$variant]
-        
-        Write-Output $NexusRepo/couchbase-litecore-$variant/$Sha/couchbase-litecore-$variant-$Sha$suffix.$extension
-        Invoke-WebRequest $NexusRepo/couchbase-litecore-$variant/$Sha/couchbase-litecore-$variant-$Sha$suffix.$extension -OutFile litecore-$variant$suffix.$extension
-        
-        if($variant.StartsWith("windows-win")) {
-            Write-Output $NexusRepo/couchbase-litecore-$variant/$Sha/couchbase-litecore-$variant-$Sha-store$suffix.$extension
-            Invoke-WebRequest $NexusRepo/couchbase-litecore-$variant/$Sha/couchbase-litecore-$variant-$Sha-store$suffix.$extension -OutFile litecore-$variant-store$suffix.$extension
-        }
+# Process Windows Libraries
+if(Test-Path "windows/arm-store"){
+	if(Test-Path "arm/RelWithDebInfo"){
+		Remove-item "arm/RelWithDebInfo" -Recurse
+	}
+	
+	if(!(Test-Path "arm")){
+		New-Item -ItemType directory "arm" -Force
     }
-} catch [System.Net.WebException] {
-    Pop-Location
-    if($_.Exception.Status -eq [System.Net.WebExceptionStatus]::ProtocolError) {
-        $res = $_.Exception.Response.StatusCode
-        if($res -eq 404) {
-            Write-Host "$variant for $Sha is not ready yet!"
-            exit 1
-        }
-    }
-    
-    throw
+	
+	Move-Item "windows/arm-store" "arm" -Force
+	Rename-Item "arm/arm-store" "RelWithDebInfo"
 }
 
-if(Test-Path "litecore-macosx$suffix.zip"){
-    & 7z e -y litecore-macosx$suffix.zip lib/libLiteCore.dylib
-    rm litecore-macosx$suffix.zip
+if(Test-Path "windows/x86-store"){
+	if(Test-Path "x86_store/RelWithDebInfo"){
+		Remove-item "x86_store/RelWithDebInfo" -Recurse
+	} 
+	
+	if(!(Test-Path "x86_store")){
+		New-Item -ItemType directory "x86_store" -Force
+	}
+	
+	Move-Item "windows/x86-store" "x86_store" -Force
+	Rename-Item "x86_store/x86-store" "RelWithDebInfo"
 }
 
-if(Test-Path "litecore-linux$suffix.tar.gz"){
-    & 7z x litecore-linux$suffix.tar.gz
-    & 7z e -y litecore-linux$suffix.tar lib/libLiteCore.so lib/libsqlite3.so `
-     lib/libstdc++.so lib/libstdc++.so.6 lib/libicudata.so.54.1 `
-     lib/libicui18n.so.54.1 lib/libicuuc.so.54.1
-    Move-Item -Force libstdc++.so libstdc++.so
-    Move-Item -Force libstdc++.so.6 libstdc++.so.6
-    Move-Item -Force libicudata.so.54.1 libicudata.so.54
-    Move-Item -Force libicui18n.so.54.1 libicui18n.so.54
-    Move-Item -Force libicuuc.so.54.1 libicuuc.so.54
-    rm litecore-linux$suffix.tar
-    rm litecore-linux$suffix.tar.gz
+if(Test-Path "windows/x86_64-store"){
+	if(Test-Path "x64_store/RelWithDebInfo"){
+		Remove-item "x64_store/RelWithDebInfo" -Recurse
+	} 
+	
+	if(!(Test-Path "x64_store")){
+		New-Item -ItemType directory "x64_store" -Force
+	}
+	
+	Move-Item "windows/x86_64-store" "x64_store" -Force
+	Rename-Item "x64_store/x86_64-store" "RelWithDebInfo"
 }
 
-if(Test-Path "litecore-ios$suffix.zip") {
-    New-Item -Type directory -ErrorAction Ignore ios-fat
-    Set-Location ios-fat
-    Move-Item ..\litecore-ios$suffix.zip .
-    & 7z x -y litecore-ios$suffix.zip
-    rm litecore-ios$suffix.zip
-    Set-Location ..
+if(Test-Path "windows/x86"){
+	if(Test-Path "x86/RelWithDebInfo"){
+		Remove-item "x86/RelWithDebInfo" -Recurse
+	}
+	
+	if(!(Test-Path "x86")){
+		New-Item -ItemType directory "x86" -Force
+	}
+	
+	Move-Item "windows/x86" "x86" -Force
+	Rename-Item "x86/x86" "RelWithDebInfo"
 }
 
-foreach($arch in @("x86", "x86_64", "armeabi-v7a", "arm64-v8a")) {
-    if(Test-Path "litecore-android-$arch$suffix.zip") {
-        New-Item -Type directory -ErrorAction Ignore android\lib\$arch
-        Set-Location android\lib\$arch
-        Move-Item ..\..\..\litecore-android-$arch$suffix.zip .
-        & 7z e -y litecore-android-$arch$suffix.zip
-        rm litecore-android-$arch$suffix.zip
-        Set-Location ..\..\..
-    }
+if(Test-Path "windows/x86_64"){
+	if(Test-Path "x64/RelWithDebInfo"){
+		Remove-item "x64/RelWithDebInfo" -Recurse
+	} 
+	
+	if(!(Test-Path "x64")){
+		New-Item -ItemType directory "x64" -Force
+	}
+	
+	Move-Item "windows/x86_64" "x64" -Force
+	Rename-Item "x64/x86_64" "RelWithDebInfo"
 }
 
-foreach($arch in @("win32", "win64", "arm")) {
-    $alt_arch = $arch
-    if($arch -eq "win64") {
-        $alt_arch = "x64"
-    } elseif($arch -eq "win32") {
-        $alt_arch = "x86"
-    }
-    
-    if(Test-Path "litecore-windows-$arch$suffix.zip") {
-        New-Item -Type directory -ErrorAction Ignore $alt_arch\RelWithDebInfo
-        Set-Location $alt_arch\RelWithDebInfo
-        Move-Item ..\..\litecore-windows-$arch$suffix.zip .
-        & 7z e -y litecore-windows-$arch$suffix.zip
-        rm litecore-windows-$arch$suffix.zip
-        Set-Location ..\..
-    }
-    
-    if(Test-Path "litecore-windows-$arch-store$suffix.zip") {
-        New-Item -Type directory -ErrorAction Ignore ${alt_arch}_store\RelWithDebInfo
-        Set-Location ${alt_arch}_store\RelWithDebInfo
-        Move-Item ..\..\litecore-windows-$arch-store$suffix.zip .
-        & 7z e -y litecore-windows-$arch-store$suffix.zip
-        rm litecore-windows-$arch-store$suffix.zip
-        Set-Location ..\..
-    }
-}
+Remove-Item "windows"
+
 Pop-Location
