@@ -58,8 +58,6 @@ namespace Couchbase.Lite.Support
 
         #region Properties
 
-        public int Count { get; private set; }
-
         internal bool IsInQueue => Environment.CurrentManagedThreadId == _currentProcessingThread;
 
         private SerialQueueState State
@@ -84,13 +82,11 @@ namespace Couchbase.Lite.Support
 
         public Task DispatchAsync(Action a)
         {
+            if(a.Target is Sync.WebSocketWrapper)
+                WriteLog.To.Sync.V(Tag, $"DispatchAsync {a.Method}");
             var tcs = new TaskCompletionSource<bool>();
             _queue.Enqueue(new SerialQueueItem { Action = a, Tcs = tcs, SyncContext = SynchronizationContext.Current ?? new SynchronizationContext() });
-            Count++;
-            var old = Interlocked.CompareExchange(ref _state, (int)SerialQueueState.Scheduled, (int)SerialQueueState.Idle);
-            if(old == (int)SerialQueueState.Idle) {
-                Task.Factory.StartNew(ProcessAsync, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-            }
+            StartProcessAsync();
 
             return tcs.Task;
         }
@@ -201,11 +197,21 @@ namespace Couchbase.Lite.Support
                         _currentProcessingThread = oldThread;
                     }
                 }
-
-                Count--;
             }
-
+            
             State = SerialQueueState.Idle;
+
+            if (!_queue.IsEmpty) {
+                StartProcessAsync();
+            }
+        }
+
+        private void StartProcessAsync()
+        {
+            var old = Interlocked.CompareExchange(ref _state, (int)SerialQueueState.Scheduled, (int)SerialQueueState.Idle);
+            if (old == (int)SerialQueueState.Idle) {
+                Task.Factory.StartNew(ProcessAsync, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            }
         }
 
         #endregion

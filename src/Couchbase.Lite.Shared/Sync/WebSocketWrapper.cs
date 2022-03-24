@@ -708,6 +708,8 @@ namespace Couchbase.Lite.Sync
                 lock (_writeQueueLock) {
                     Misc.SafeSwap(ref _writeQueue, null);
                 }
+
+                WriteLog.To.Sync.V(Tag, "Reset Connections completed..");
             });
         }
 
