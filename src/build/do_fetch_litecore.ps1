@@ -9,6 +9,50 @@ python "..\..\vendor\couchbase-lite-core\scripts\fetch_litecore.py" -v $Variants
 
 Push-Location $PSScriptRoot\..\..\vendor\couchbase-lite-core\build_cmake
 
+# Process MacOS Library
+if(Test-Path "macos/x86_64/lib/libLiteCore.dylib"){
+	if(Test-Path "libLiteCore.dylib"){
+	    Remove-item "libLiteCore.dylib"
+	}
+	
+	Move-Item "macos/x86_64/lib/libLiteCore.dylib" .
+	Remove-Item "macos" -Recurse
+}
+
+# Process Linux Libraries
+foreach($arch in @("libLiteCore.so", "libstdc++.so", "libstdc++.so.6", "libicudata.so.54.1", "libicui18n.so.54.1", "libicuuc.so.54.1")) {
+	if(Test-Path linux\x86_64\lib\$arch){
+        if(Test-Path $arch){
+		    Remove-item $arch
+	    }
+	
+	    Move-Item -Force linux\x86_64\lib\$arch .
+    }
+}
+
+Remove-Item "linux" -Recurse
+	
+# Process iOS Library
+if(Test-Path "ios/LiteCore.framework/LiteCore") {
+    New-Item -Type directory -ErrorAction Ignore ios-fat
+    Set-Location ios-fat
+    Move-Item ..\ios\LiteCore.framework\LiteCore .
+    Set-Location ..
+	Remove-Item "ios" -Recurse
+}
+
+# Process Android Libraries
+foreach($arch in @("x86", "x86_64", "armeabi-v7a", "arm64-v8a")) {
+    if(Test-Path android\$arch\lib\libLiteCore.so) {
+        New-Item -Type directory -ErrorAction Ignore android\lib\$arch
+        Set-Location android\lib\$arch
+        Move-Item ..\..\$arch\lib\libLiteCore.so .
+        Set-Location ..\..
+		Remove-Item $arch -Recurse
+		Set-Location ..
+    }
+}
+
 # Process Windows Libraries
 if(Test-Path "windows/arm-store"){
 	if(Test-Path "arm/RelWithDebInfo"){
