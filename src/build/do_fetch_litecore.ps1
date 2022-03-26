@@ -34,14 +34,22 @@ Remove-Item "linux" -Recurse
 	
 # Process iOS Library
 if(Test-Path "ios/LiteCore.framework/LiteCore") {
-    New-Item -Type directory -ErrorAction Ignore ios-fat
-    Set-Location ios-fat
-    Move-Item ..\ios\LiteCore.framework\LiteCore .
-    Set-Location ..
+	if(Test-Path "ios-fat/LiteCore.framework/LiteCore") {
+		Remove-Item "ios-fat" -Recurse
+	}
+	
+    New-Item -Type directory -ErrorAction Ignore ios-fat\LiteCore.framework
+    Set-Location ios-fat\LiteCore.framework
+    Move-Item ..\..\ios\LiteCore.framework\LiteCore .
+    Set-Location ..\..
 	Remove-Item "ios" -Recurse
 }
 
 # Process Android Libraries
+if(Test-Path "android\lib\arm64-v8a\libLiteCore.so") {
+	Remove-Item "android" -Recurse
+}
+
 foreach($arch in @("x86", "x86_64", "armeabi-v7a", "arm64-v8a")) {
     if(Test-Path android\$arch\lib\libLiteCore.so) {
         New-Item -Type directory -ErrorAction Ignore android\lib\$arch
