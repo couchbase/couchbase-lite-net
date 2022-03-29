@@ -4,40 +4,50 @@ param(
     [switch]$DebugLib
 )
 
-#python "..\..\vendor\couchbase-lite-core\scripts\fetch_litecore.py" --variants "windows-win64", "windows-win32" --ce "C:\Development\couchbase-lite-net-ee\couchbase-lite-net\vendor\couchbase-lite-core"
-python "..\..\vendor\couchbase-lite-core\scripts\fetch_litecore.py" -v $Variants -d -s $Sha -o "..\..\vendor\couchbase-lite-core\build_cmake"
-
 Push-Location $PSScriptRoot\..\..\vendor\couchbase-lite-core\build_cmake
 
+$isDebug = ""
+if($DebugLib) {
+    $isDebug = "-d"
+}
+
+python -m venv venv
+venv\Scripts\activate 
+pip install GitPython
+python "..\scripts\fetch_litecore.py" -v $Variants $isDebug -s $Sha -o .
+venv\Scripts\deactivate
+
 # Process MacOS Library
-if(Test-Path "macos/x86_64/lib/libLiteCore.dylib"){
-	if(Test-Path "libLiteCore.dylib"){
-	    Remove-item "libLiteCore.dylib"
-	}
+if(Test-Path "libLiteCore.dylib"){
+	Remove-item "libLiteCore.dylib"
+}
 	
+if(Test-Path "macos/x86_64/lib/libLiteCore.dylib"){
 	Move-Item "macos/x86_64/lib/libLiteCore.dylib" .
 	Remove-Item "macos" -Recurse
 }
 
 # Process Linux Libraries
-foreach($arch in @("libLiteCore.so", "libstdc++.so", "libstdc++.so.6", "libicudata.so.54.1", "libicui18n.so.54.1", "libicuuc.so.54.1")) {
-	if(Test-Path linux\x86_64\lib\$arch){
-        if(Test-Path $arch){
-		    Remove-item $arch
-	    }
+foreach($arch in @("libLiteCore.so", "libstdc++.so", "libstdc++.so.6", "libicudata.so.54", "libicui18n.so.54", "libicuuc.so.54")) {
+	if(Test-Path $arch){
+		Remove-item $arch
+	}
 	
+	if(Test-Path linux\x86_64\lib\$arch){
 	    Move-Item -Force linux\x86_64\lib\$arch .
     }
 }
 
-Remove-Item "linux" -Recurse
+if(Test-Path linux){
+    Remove-Item linux -Recurse
+}
 	
 # Process iOS Library
-if(Test-Path "ios/LiteCore.framework/LiteCore") {
-	if(Test-Path "ios-fat/LiteCore.framework/LiteCore") {
-		Remove-Item "ios-fat" -Recurse
-	}
+if(Test-Path "ios-fat") {
+	Remove-Item "ios-fat" -Recurse
+}
 	
+if(Test-Path "ios/LiteCore.framework/LiteCore") {
     New-Item -Type directory -ErrorAction Ignore ios-fat\LiteCore.framework
     Set-Location ios-fat\LiteCore.framework
     Move-Item ..\..\ios\LiteCore.framework\LiteCore .
@@ -46,8 +56,8 @@ if(Test-Path "ios/LiteCore.framework/LiteCore") {
 }
 
 # Process Android Libraries
-if(Test-Path "android\lib\arm64-v8a\libLiteCore.so") {
-	Remove-Item "android" -Recurse
+if(Test-Path android\lib){
+    Remove-Item android\lib -Recurse
 }
 
 foreach($arch in @("x86", "x86_64", "armeabi-v7a", "arm64-v8a")) {
@@ -62,6 +72,12 @@ foreach($arch in @("x86", "x86_64", "armeabi-v7a", "arm64-v8a")) {
 }
 
 # Process Windows Libraries
+foreach($arch in @("x64", "x86", "x64_store", "x86_store")) {
+	if(Test-Path $arch){
+		Remove-item $arch -Recurse
+	}
+}
+
 if(Test-Path "windows/arm-store"){
 	if(Test-Path "arm/RelWithDebInfo"){
 		Remove-item "arm/RelWithDebInfo" -Recurse
@@ -127,6 +143,11 @@ if(Test-Path "windows/x86_64"){
 	Rename-Item "x64/x86_64" "RelWithDebInfo"
 }
 
-Remove-Item "windows"
+if(Test-Path windows){
+    Remove-Item windows -Recurse
+}
 
+if(Test-Path venv){
+    Remove-Item venv -Recurse
+}
 Pop-Location
