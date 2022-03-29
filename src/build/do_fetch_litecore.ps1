@@ -11,10 +11,10 @@ if($DebugLib) {
     $isDebug = "-d"
 }
 
-python -m venv venv
+c:\python37\python.exe -m venv venv
 venv\Scripts\activate 
-pip install GitPython
-python "..\scripts\fetch_litecore.py" -v $Variants $isDebug -s $Sha -o .
+pip3 install GitPython
+c:\python37\python.exe "..\scripts\fetch_litecore.py" -v $Variants $isDebug -s $Sha -o .
 venv\Scripts\deactivate
 
 # Process MacOS Library
