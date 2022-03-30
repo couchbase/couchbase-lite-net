@@ -33,8 +33,13 @@ foreach($arch in @("libLiteCore.so", "libstdc++.so", "libstdc++.so.6", "libicuda
 		Remove-item $arch
 	}
 	
-	if(Test-Path linux\x86_64\lib\$arch){
-	    Move-Item -Force linux\x86_64\lib\$arch .
+    if(Test-Path linux\x86_64\lib\$arch){
+	    if($arch -eq 'libicudata.so.54' -Or $arch -eq 'libicui18n.so.54' -Or $arch -eq 'libicuuc.so.54'){
+			$arch1 = $arch.Replace(".54", ".54.1")
+		    Move-Item -Force linux\x86_64\lib\$arch1 $arch
+		} else {
+	        Move-Item -Force linux\x86_64\lib\$arch .
+		}
     }
 }
 
