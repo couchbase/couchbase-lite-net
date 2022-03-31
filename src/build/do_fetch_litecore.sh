@@ -8,34 +8,9 @@ function usage() {
 }
 
 VARIANTS="$2"
-
 DEBUG_LIB=""
-shopt -s nocasematch
-while [[ $# -gt 0 ]]; do
-    key="$1"
-
-    case $key in 
-        -v|--variants)
-        IFS=',' read -ra VARIANTS <<< "$2"
-        shift
-        shift
-        ;;
-        -d|--debug-lib)
-        DEBUG_LIB="-d"
-        shift
-        ;;
-        *)
-        echo >&2 "Unrecognized option $key, aborting..."
-        usage
-        exit 1
-        ;;
-    esac
-done
-
-if [ -z "$VARIANTS" ]; then
-    echo >&2 "Missing --variants option, aborting..."
-    usage
-    exit 1
+if [ "$3" = "--debug-lib" ]; then
+    DEBUG_LIB="-d"
 fi
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
