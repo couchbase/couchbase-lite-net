@@ -7,13 +7,42 @@ function usage() {
     echo
 }
 
-Variants="$2"
+VARIANTS="$2"
+
+DEBUG_LIB=""
+shopt -s nocasematch
+while [[ $# -gt 0 ]]; do
+    key="$1"
+
+    case $key in 
+        -v|--variants)
+        IFS=',' read -ra VARIANTS <<< "$2"
+        shift
+        shift
+        ;;
+        -d|--debug-lib)
+        DEBUG_LIB="-d"
+        shift
+        ;;
+        *)
+        echo >&2 "Unrecognized option $key, aborting..."
+        usage
+        exit 1
+        ;;
+    esac
+done
+
+if [ -z "$VARIANTS" ]; then
+    echo >&2 "Missing --variants option, aborting..."
+    usage
+    exit 1
+fi
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 pushd $SCRIPT_DIR/../couchbase-lite-net/vendor/couchbase-lite-core/build_cmake
 Sha=`"$SCRIPT_DIR/amalgamate_sha.sh"`
 
-python3 $SCRIPT_DIR/../couchbase-lite-net/vendor/couchbase-lite-core/scripts/fetch_litecore.py -v $Variants -d -s $Sha -o $SCRIPT_DIR/../couchbase-lite-net/vendor/couchbase-lite-core/build_cmake
+python3 $SCRIPT_DIR/../couchbase-lite-net/vendor/couchbase-lite-core/scripts/fetch_litecore.py -v $VARIANTS $DEBUG_LIB -s $Sha -o $SCRIPT_DIR/../couchbase-lite-net/vendor/couchbase-lite-core/build_cmake
 
 if [ -f "macos/x86_64/lib/libLiteCore.dylib" ]; then
     mv -f macos/x86_64/lib/libLiteCore.dylib libLiteCore.dylib
