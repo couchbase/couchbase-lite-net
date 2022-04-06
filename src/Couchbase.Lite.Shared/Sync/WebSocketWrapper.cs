@@ -825,6 +825,9 @@ namespace Couchbase.Lite.Sync
             X509Certificate2 cert2 = new X509Certificate2(certificate);
             PeerCertificateReceived?.Invoke(this, new TlsCertificateReceivedEventArgs(cert2));
 
+            var retVal = _options.PinnedServerCertificate != null && certificate.Equals(_options.PinnedServerCertificate);
+            if (retVal) return true;
+
             // Mono doesn't pass chain information?
             if (chain?.ChainElements?.Count == 0) {
                 chain = X509Chain.Create();
@@ -832,7 +835,7 @@ namespace Couchbase.Lite.Sync
             }
 
             if (_options.PinnedServerCertificate != null) {
-                var retVal = IsPinnedCertMatchOneCertInServerCertChain(certificate, chain);
+                retVal = IsPinnedCertMatchOneCertInServerCertChain(chain);
                 if(!retVal) {
                     WriteLog.To.Sync.W(Tag, "Server certificate did not match the pinned one!");
                     _validationException = new TlsCertificateException("The certificate does not match the pinned certificate",
@@ -843,7 +846,7 @@ namespace Couchbase.Lite.Sync
             }
 
             #if COUCHBASE_ENTERPRISE
-                var onlySelfSigned = _options.AcceptOnlySelfSignedServerCertificate;
+            var onlySelfSigned = _options.AcceptOnlySelfSignedServerCertificate;
             #else
             var onlySelfSigned = false;
             #endif
@@ -913,20 +916,17 @@ namespace Couchbase.Lite.Sync
             return false;
         }
 
-        private bool IsPinnedCertMatchOneCertInServerCertChain(X509Certificate certificate, X509Chain chain)
+        private bool IsPinnedCertMatchOneCertInServerCertChain(X509Chain chain)
         {
-            var chainCount = chain.ChainElements.Count;
-            var retVal = certificate.Equals(_options.PinnedServerCertificate);
-            if (chainCount == 1 && !retVal) {
-                return false;
-            } else if(chainCount > 1) {
-                foreach (var c in chain?.ChainElements) {
+            var chainCount = chain?.ChainElements?.Count;
+            if(chainCount > 1) {
+                foreach (var c in chain.ChainElements) {
                     if(c.Certificate.Equals(_options.PinnedServerCertificate))
                         return true;
                 }
             }
             
-            return retVal;
+            return false;
         }
 
         private async Task WaitForResponse(Stream stream)
