@@ -7,7 +7,7 @@ pipeline {
 	    stage("Mac Node") {
 		    agent { label 'dotnet-mobile-mac-mini'  }
 			    environment {
-				    KEYCHAIN_PWD = credentials("mackeychain")
+				    KEYCHAIN_PWD = credentials("mobile-mac-mini-keychain")
 					NETCORE_VERSION = "${BRANCH_NAME == "release/hydrogen" ? "netcoreapp2.0" : "netcoreapp3.1"}"
                 }
 				stages {
