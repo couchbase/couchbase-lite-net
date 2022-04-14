@@ -14,7 +14,7 @@ if($DebugLib) {
 c:\python37\python.exe -m venv venv
 venv\Scripts\activate 
 pip3 install GitPython
-c:\python37\python.exe "..\scripts\fetch_litecore.py" -v $Variants $isDebug -s $Sha -o .
+c:\python37\python.exe "..\tools\fetch_litecore.py" -v $Variants $isDebug -s $Sha -o .
 venv\Scripts\deactivate
 
 # Process MacOS Library
@@ -22,8 +22,8 @@ if(Test-Path "libLiteCore.dylib"){
 	Remove-item "libLiteCore.dylib"
 }
 	
-if(Test-Path "macos/x86_64/lib/libLiteCore.dylib"){
-	Move-Item "macos/x86_64/lib/libLiteCore.dylib" .
+if(Test-Path "macos/lib/libLiteCore.dylib"){
+	Move-Item "macos/lib/libLiteCore.dylib" .
 	Remove-Item "macos" -Recurse
 }
 
@@ -83,69 +83,59 @@ foreach($arch in @("x64", "x86", "x64_store", "x86_store")) {
 	}
 }
 
-if(Test-Path "windows/arm-store"){
+if(Test-Path "windows/arm-store/bin"){
 	if(Test-Path "arm/RelWithDebInfo"){
 		Remove-item "arm/RelWithDebInfo" -Recurse
 	}
 	
-	if(!(Test-Path "arm")){
-		New-Item -ItemType directory "arm" -Force
-    }
-	
-	Move-Item "windows/arm-store" "arm" -Force
-	Rename-Item "arm/arm-store" "RelWithDebInfo"
+	New-Item -Type directory -ErrorAction Ignore arm\RelWithDebInfo
+	Set-Location arm\RelWithDebInfo
+	Move-Item ..\..\windows\arm-store\bin\LiteCore.dll,..\..\windows\arm-store\bin\LiteCore.pdb .
+    Set-Location ..\..
 }
 
-if(Test-Path "windows/x86-store"){
+if(Test-Path "windows/x86-store/bin"){
 	if(Test-Path "x86_store/RelWithDebInfo"){
 		Remove-item "x86_store/RelWithDebInfo" -Recurse
 	} 
 	
-	if(!(Test-Path "x86_store")){
-		New-Item -ItemType directory "x86_store" -Force
-	}
-	
-	Move-Item "windows/x86-store" "x86_store" -Force
-	Rename-Item "x86_store/x86-store" "RelWithDebInfo"
+	New-Item -Type directory -ErrorAction Ignore x86_store\RelWithDebInfo
+	Set-Location x86_store\RelWithDebInfo
+	Move-Item ..\..\windows\x86-store\bin\LiteCore.dll,..\..\windows\x86-store\bin\LiteCore.pdb .
+    Set-Location ..\..
 }
 
-if(Test-Path "windows/x86_64-store"){
+if(Test-Path "windows/x86_64-store/bin"){
 	if(Test-Path "x64_store/RelWithDebInfo"){
 		Remove-item "x64_store/RelWithDebInfo" -Recurse
-	} 
-	
-	if(!(Test-Path "x64_store")){
-		New-Item -ItemType directory "x64_store" -Force
 	}
 	
-	Move-Item "windows/x86_64-store" "x64_store" -Force
-	Rename-Item "x64_store/x86_64-store" "RelWithDebInfo"
+	New-Item -Type directory -ErrorAction Ignore x64_store\RelWithDebInfo
+	Set-Location x64_store\RelWithDebInfo
+	Move-Item ..\..\windows\x86_64-store\bin\LiteCore.dll,..\..\windows\x86_64-store\bin\LiteCore.pdb .
+    Set-Location ..\..
 }
 
-if(Test-Path "windows/x86"){
+if(Test-Path "windows/x86/bin"){
 	if(Test-Path "x86/RelWithDebInfo"){
 		Remove-item "x86/RelWithDebInfo" -Recurse
 	}
 	
-	if(!(Test-Path "x86")){
-		New-Item -ItemType directory "x86" -Force
-	}
-	
-	Move-Item "windows/x86" "x86" -Force
-	Rename-Item "x86/x86" "RelWithDebInfo"
+	New-Item -Type directory -ErrorAction Ignore x86\RelWithDebInfo
+	Set-Location x86\RelWithDebInfo
+	Move-Item ..\..\windows\x86\bin\LiteCore.dll,..\..\windows\x86\bin\LiteCore.pdb .
+    Set-Location ..\..
 }
 
-if(Test-Path "windows/x86_64"){
+if(Test-Path "windows/x86_64/bin"){
 	if(Test-Path "x64/RelWithDebInfo"){
 		Remove-item "x64/RelWithDebInfo" -Recurse
 	} 
 	
-	if(!(Test-Path "x64")){
-		New-Item -ItemType directory "x64" -Force
-	}
-	
-	Move-Item "windows/x86_64" "x64" -Force
-	Rename-Item "x64/x86_64" "RelWithDebInfo"
+	New-Item -Type directory -ErrorAction Ignore x64\RelWithDebInfo
+	Set-Location x64\RelWithDebInfo
+	Move-Item ..\..\windows\x86_64\bin\LiteCore.dll,..\..\windows\x86_64\bin\LiteCore.pdb .
+    Set-Location ..\..
 }
 
 if(Test-Path windows){
