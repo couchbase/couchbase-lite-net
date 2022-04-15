@@ -1,11 +1,11 @@
 pipeline {
-    agent any
+    agent none
     options {
         timeout(time: 30, unit: 'MINUTES') 
     }
     stages {
 	    stage("Mac Node") {
-		    agent { label 'mobile-mac-mini'  }
+		    agent { label 'dotnet-mobile-mac-mini'  }
 			    environment {
 				    KEYCHAIN_PWD = credentials("mobile-mac-mini-keychain")
 					NETCORE_VERSION = "${BRANCH_NAME == "release/hydrogen" ? "netcoreapp2.0" : "netcoreapp3.1"}"
@@ -25,7 +25,7 @@ pipeline {
                             rmdir tmp
 
                             pushd couchbase-lite-net
-                            git submodule update --init
+                            git submodule update --init --recursive
                             popd
 
                             pushd jenkins
