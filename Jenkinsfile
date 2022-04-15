@@ -25,7 +25,7 @@ pipeline {
                             rmdir tmp
 
                             pushd couchbase-lite-net
-                            git submodule update --init
+                            git submodule update --init --recursive
                             popd
 
                             pushd jenkins
