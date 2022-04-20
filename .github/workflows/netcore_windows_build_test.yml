@@ -60,9 +60,10 @@ jobs:
       with:
         submodules: recursive
         path: ./couchbase-lite-net
+        
     #Submodule Update
-    #- name: Submodule Update
-    #  run: pwsh -command ".\$GITHUB_WORKSPACE\couchbase-lite-net\validations\submodule_update.ps1"
+    - name: Submodule Update
+      run: pwsh -command ".\$GITHUB_WORKSPACE\couchbase-lite-net\validations\submodule_update.ps1"
 
     #Build LiteCore    
     - name: Build LiteCore
@@ -77,7 +78,11 @@ jobs:
     #Build Test
     - name: Build Test
       run: dotnet build $env:Test_Project_Path --configuration Debug
+      with:
+        dotnet-version: ${{ matrix.dotnet-version }}
     
     #Test    
     - name: Run Test
       run: dotnet test $env:Test_Project_Path /p:CollectCoverage=true /p:CoverletOutputFormat=lcov -v n /p:Configuration=Debug
+      with:
+        dotnet-version: ${{ matrix.dotnet-version }}
