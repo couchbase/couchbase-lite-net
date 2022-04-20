@@ -1,7 +1,7 @@
 # .Net Core PR Validation
 
 # Move LiteCore EE
-Move-Item -Path couchbase-lite-core-EE -Destination couchbase-lite-net/vendor
+#Move-Item -Path couchbase-lite-core-EE -Destination couchbase-lite-net/vendor
 
 # Build LiteCore
 New-Item -Type Directory couchbase-lite-net/vendor/couchbase-lite-core/build_cmake/x86/RelWithDebInfo

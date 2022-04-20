@@ -55,12 +55,12 @@ jobs:
         path: ./
         
     #Checkout LiteCore EE
-    #- name: Checkout LiteCore EE
-    #  uses: actions/checkout@v2
-    #  with:
-    #    repository: couchbase/couchbase-lite-core-EE
-    #    token: ${{ secrets.GITHUBACTIONS_AT }}
-    #    path: ./couchbase-lite-net/vendor/couchbase-lite-core-EE
+    - name: Checkout LiteCore EE
+      uses: actions/checkout@v2
+      with:
+        repository: couchbase/couchbase-lite-core-EE
+        token: ${{ secrets.GITHUBACTIONS_AT }}
+        path: ./couchbase-lite-net/vendor/couchbase-lite-core-EE
 
     #Submodule Update
     #- name: Submodule Update
