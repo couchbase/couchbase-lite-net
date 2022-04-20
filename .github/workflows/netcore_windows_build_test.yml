@@ -2,7 +2,7 @@
 # This pipeline builds the .Net Core Windows project, runs unit tests.
 name: CBL NetCore Windows PR Validation
 
-# Trigger on every master branch push and pull request
+# Trigger on every master and release branch push and pull request
 on:
   push:
     branches:
@@ -36,34 +36,36 @@ jobs:
 
     steps:
     
-    #Checkout CBL Net EE
-    - name: Checkout CBL Net EE ${{ matrix.dotnet-version }}
+    #Checkout CBL Net and submodules
+    - name: Checkout CBL with .Net Core ${{ matrix.dotnet-version }}
       uses: actions/checkout@v2
       with:
+        submodules: recursive
+        dotnet-version: ${{ matrix.dotnet-version }}
+        path: ./couchbase-lite-net
+    
+    #Checkout CBL Net EE
+    - name: Checkout CBL EE with .Net Core ${{ matrix.dotnet-version }}
+      uses: actions/checkout@v2
+      with:
+        submodules: true
         dotnet-version: ${{ matrix.dotnet-version }}
         repository: couchbaselabs/couchbase-lite-net-ee
         token: ${{ secrets.GITHUBACTIONS_AT }}
         path: ./
         
     #Checkout LiteCore EE
-    - name: Checkout LiteCore EE
-      uses: actions/checkout@v2
-      with:
-        repository: couchbase/couchbase-lite-core-EE
-        token: ${{ secrets.GITHUBACTIONS_AT }}
-        path: ./couchbase-lite-net/vendor/couchbase-lite-core-EE
+    #- name: Checkout LiteCore EE
+    #  uses: actions/checkout@v2
+    #  with:
+    #    repository: couchbase/couchbase-lite-core-EE
+    #    token: ${{ secrets.GITHUBACTIONS_AT }}
+    #    path: ./couchbase-lite-net/vendor/couchbase-lite-core-EE
 
-    #Checkout
-    - name: Checkout ${{ matrix.dotnet-version }}
-      uses: actions/checkout@v2
-      with:
-        dotnet-version: ${{ matrix.dotnet-version }}
-        path: ./couchbase-lite-net
-        
     #Submodule Update
-    - name: Submodule Update
-      run: pwsh -command ".\$GITHUB_WORKSPACE\couchbase-lite-net\validations\submodule_update.ps1"
-        
+    #- name: Submodule Update
+    #  run: pwsh -command ".\$GITHUB_WORKSPACE\couchbase-lite-net\validations\submodule_update.ps1"
+
     #Build LiteCore    
     - name: Build LiteCore
       run: pwsh -command ".\$GITHUB_WORKSPACE\couchbase-lite-net\validations\litecore_netcore_build.ps1"
