@@ -1,8 +1,8 @@
 ﻿<Project Sdk="MSBuild.Sdk.Extras">
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
-    <TargetFrameworks Condition=" !$(Configuration.EndsWith('Coverage')) ">netstandard2.0;netcoreapp2.0;net461;uap10.0.16299;MonoAndroid80;Xamarin.iOS10</TargetFrameworks>
-    <TargetFramework Condition=" $(Configuration.EndsWith('Coverage')) ">netcoreapp2.0</TargetFramework>
+    <TargetFrameworks Condition=" !$(Configuration.EndsWith('Coverage')) ">netstandard2.0;netcoreapp2.0;netcoreapp3.1;net461;uap10.0.16299;MonoAndroid80;Xamarin.iOS10</TargetFrameworks>
+    <TargetFrameworks Condition=" $(Configuration.EndsWith('Coverage')) ">netcoreapp2.0;netcoreapp3.1</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>Couchbase.Lite</AssemblyName>
     <PackageId>Couchbase.Lite</PackageId>
@@ -19,6 +19,9 @@
     <DebugType Condition= " !$(TargetFramework.StartsWith('uap')) ">portable</DebugType>
     <DebugSymbols>True</DebugSymbols>
   </PropertyGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='netcoreapp2.0'">
+	<PackageReference Include="Microsoft.NetCore.App" Version="2.0" />
+  </ItemGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
     <Optimize>True</Optimize>
     <DocumentationFile>bin\Packaging\netstandard2.0\Couchbase.Lite.xml</DocumentationFile>
