@@ -54,11 +54,10 @@ jobs:
         token: ${{ secrets.GITHUBACTIONS_AT }}
         path: ./couchbase-lite-core-EE
 
-    #Checkout CBL Net and submodules
+    #Checkout CBL Net
     - name: Checkout CBL
       uses: actions/checkout@v2
       with:
-        submodules: recursive
         path: ./couchbase-lite-net
         
     #Submodule Update
