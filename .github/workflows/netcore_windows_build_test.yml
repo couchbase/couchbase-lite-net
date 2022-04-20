@@ -74,10 +74,6 @@ jobs:
       uses: actions/setup-dotnet@v2
       with:
         dotnet-version: ${{ matrix.dotnet-version }}
-        
-    #Restore Test    
-    - name: Install dependencies
-        run: dotnet restore $env:Test_Project_Path
       
     #Build Test
     - name: Build Test
