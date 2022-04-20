@@ -826,21 +826,24 @@ namespace Couchbase.Lite.Sync
             X509Certificate2 cert2 = new X509Certificate2(certificate);
             PeerCertificateReceived?.Invoke(this, new TlsCertificateReceivedEventArgs(cert2));
 
-            if (_options.PinnedServerCertificate != null) {
-                var retVal = certificate.Equals(_options.PinnedServerCertificate);
-                if (!retVal) {
-                    WriteLog.To.Sync.W(Tag, "Server certificate did not match the pinned one!");
-                    _validationException = new TlsCertificateException("The certificate does not match the pinned certificate",
-                        C4NetworkErrorCode.TLSCertUnknownRoot, X509ChainStatusFlags.ExplicitDistrust);
-                }
-
-                return retVal;
-            }
+            var retVal = _options.PinnedServerCertificate != null && certificate.Equals(_options.PinnedServerCertificate);
+            if (retVal) return true;
 
             // Mono doesn't pass chain information?
             if (chain?.ChainElements?.Count == 0) {
                 chain = X509Chain.Create();
                 chain.Build(cert2);
+            }
+
+            if (_options.PinnedServerCertificate != null) {
+                retVal = IsPinnedCertMatchOneCertInServerCertChain(chain);
+                if(!retVal) {
+                    WriteLog.To.Sync.W(Tag, "Server certificate did not match the pinned one!");
+                    _validationException = new TlsCertificateException("The certificate does not match the pinned certificate",
+                        C4NetworkErrorCode.TLSCertUntrusted, X509ChainStatusFlags.ExplicitDistrust);
+                }
+
+                return retVal;
             }
 
             #if COUCHBASE_ENTERPRISE
@@ -914,38 +917,17 @@ namespace Couchbase.Lite.Sync
             return false;
         }
 
-        //Add to debug https://issues.couchbase.com/browse/CBL-1393
-        private void PrintCertChain(X509Chain ch)
+        private bool IsPinnedCertMatchOneCertInServerCertChain(X509Chain chain)
         {
-            Debug.WriteLine("Chain Information");
-            Debug.WriteLine("Chain revocation flag: {0}", ch.ChainPolicy.RevocationFlag);
-            Debug.WriteLine("Chain revocation mode: {0}", ch.ChainPolicy.RevocationMode);
-            Debug.WriteLine("Chain verification flag: {0}", ch.ChainPolicy.VerificationFlags);
-            Debug.WriteLine("Chain verification time: {0}", ch.ChainPolicy.VerificationTime);
-            Debug.WriteLine("Chain status length: {0}", ch.ChainStatus.Length);
-            Debug.WriteLine("Chain application policy count: {0}", ch.ChainPolicy.ApplicationPolicy.Count);
-            Debug.WriteLine("Chain certificate policy count: {0} {1}", ch.ChainPolicy.CertificatePolicy.Count, Environment.NewLine);
-
-            //Output chain element information.
-            Debug.WriteLine("Chain Element Information");
-            Debug.WriteLine("Number of chain elements: {0}", ch.ChainElements.Count);
-            Debug.WriteLine("Chain elements synchronized? {0} {1}", ch.ChainElements.IsSynchronized, Environment.NewLine);
-
-            foreach (X509ChainElement element in ch.ChainElements) {
-                Debug.WriteLine("Element issuer name: {0}", element.Certificate.Issuer);
-                Debug.WriteLine("Element certificate valid until: {0}", element.Certificate.NotAfter);
-                Debug.WriteLine("Element certificate is valid: {0}", element.Certificate.Verify());
-                Debug.WriteLine("Element error status length: {0}", element.ChainElementStatus.Length);
-                Debug.WriteLine("Element information: {0}", element.Information);
-                Debug.WriteLine("Number of element extensions: {0}{1}", element.Certificate.Extensions.Count, Environment.NewLine);
-
-                if (ch.ChainStatus.Length > 1) {
-                    for (int index = 0; index < element.ChainElementStatus.Length; index++) {
-                        Debug.WriteLine(element.ChainElementStatus[index].Status);
-                        Debug.WriteLine(element.ChainElementStatus[index].StatusInformation);
-                    }
+            var chainCount = chain?.ChainElements?.Count;
+            if(chainCount > 1) {
+                foreach (var c in chain.ChainElements) {
+                    if(c.Certificate.Equals(_options.PinnedServerCertificate))
+                        return true;
                 }
             }
+            
+            return false;
         }
 
         private async Task WaitForResponse(Stream stream)
