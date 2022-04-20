@@ -1766,6 +1766,238 @@ namespace Test
 
         //end pending doc id tests
 
+        /*
+         SG Config
+        ===========
+         {
+            "disable_persistent_config": true,
+            "logging": {
+                "console": { "log_level": "info", "color_enabled": true, "log_keys": ["*"] }
+            },
+            "SSLCert": "./certs.pem",
+            "SSLKey": "./certs.key",
+            "databases": {
+                "db": {
+                    "server": "walrus:app",
+                    "users": { "GUEST": { "disabled": false, "admin_channels": ["*"] } }
+                }
+            }
+        }
+
+        certs.pem
+        ==========
+        -----BEGIN CERTIFICATE-----
+MIICoDCCAYgCCQDOqeOThcl0DTANBgkqhkiG9w0BAQsFADAQMQ4wDAYDVQQDDAVJ
+bnRlcjAeFw0yMjA0MDgwNDE2MjNaFw0zMjA0MDUwNDE2MjNaMBQxEjAQBgNVBAMM
+CWxvY2FsaG9zdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMt7VQ0j
+74/GJVnTfC0YQZHeCFoZbZyJ/4KPOpe1UoqRQ1xNtllPMHf4ukIeNd3tS4CHQDqK
+83a7uGXEOzY3JFaVRnTpMcHRMnpmZQLWZs+WMCP5fzI4EcaJjFmqQSUjfZiocdh/
+n5vKc64bhKyUStE2CSObMnJ/L5mPY1JUAgxQrXtK4lw1T/ppV2m4hiutr+gkhXjc
+Sam4DheuMg7hSUZSwh7VI253ev1Hp4JdSmndQHvle99S+N5jJ11NZnEuQxcImmOI
+MBVfRFpREFPOH+JrqsnYSic2GQvv31nAJsXzYX2t/VT0a3TUes3B9OZfAVA7nMFA
+r3E9mjVGYVtn7skCAwEAATANBgkqhkiG9w0BAQsFAAOCAQEADbjYO9VxOGZT5LAv
+ON+U+2FPG5Tons1ubWslThROqml7CCfNKPVhZCwe0BUQLWc35NYvqVjoSAenCHu6
+EUANfqtuNxQAoeDCaP1epGYZ8fakJXvuyTjek3RV2PeiuFUIZQP/HWGfI640kh4V
+xvUBa3joelnt+KjDB/yJemmf0dIXJ0dLtFBTN+YVp4aSFTtzcbqh50H6BSAgSiWR
+ocTu5YpDXHZ6ufaMTRa2HUcSmFeWi75sS6ySgECTbeld1/mFZcSf1zXHU9WFg39D
+knQNR2i1cJMbMZ3GCRyB6y3SxFb7/9BS70DV3p4n5BjYMlhNnHJx4u1JUTLWgybV
+qrV+HA==
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIIDFTCCAf2gAwIBAgIJANZ8gSANI5jNMA0GCSqGSIb3DQEBCwUAMA8xDTALBgNV
+BAMMBFJvb3QwHhcNMjIwNDA4MDQxNjIzWhcNMzIwNDA1MDQxNjIzWjAQMQ4wDAYD
+VQQDDAVJbnRlcjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAOm1MUNQ
+xZKOCXw93eB/pmyCk5kEV3+H8RQC5Nq7orHvnHL6D/YVfVsobZyHkMSP3FVzl0bo
+s1s+8kCjJ7O+M3TpzuSL8y4uLSEPmZF5qY2N7QobabrKVYueFxFmOD7+ypILx2QC
++hWd3J3XiLiiXqOO2jtjtwwy2+pD21DjmcPHGC4GKyv8/jp7hH4MFF6ux1wRQej1
+on5jJQNFERUFdfX3wAmZgjww8bfyCEkHxnyIfJjEhyOtMLGGNUu8Hms7az+uYT6I
+S4Q6VeBJ5WTKyhk7aJB1Rl6zZbROvTIq+ZaxAJNwsIzd/HiaoTwFUe3EFilIeGFK
+w3vnPwiq99tDBHsCAwEAAaNzMHEwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQU
+WXW5x/ufCrRKhv3F5wBqY0JVUEswPwYDVR0jBDgwNoAUefIiQi9GC9aBspej7UJT
+zQzs/mKhE6QRMA8xDTALBgNVBAMMBFJvb3SCCQD1tOzs5zPQ/zANBgkqhkiG9w0B
+AQsFAAOCAQEAEJhO1fA0d8Hu/5IHTlsGfmtcXOyXDcQQVz/3FKWrTPgDOYeMMNbG
+WqvuG4YxmXt/+2OC1IYK/slrIK5XXldfRu90UM4wVXeD3ATLS3AG0Z/+yPRGbUbF
+y5+11nXySGyKdV1ik0KgLGeYf0cuJ/vu+/7mkj4mGDfmTQv+8/HYKNaOqgKuVRlf
+LHBh/RlbHMBn2nwL79vbrIeDaQ0zq9srt9F3CEy+SvlxX63Txmrym3fqTQjPUi5s
+rEsy+eNr4N+aDWqGRcUkbP/C/ktGGNBHYG1NaPJq7CV1tdLe+usIcRWRR9vOBWbr
+EkBGJMvCdhlWRv2FnrQ+VUQ+mhYHBS2Kng==
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIIDFDCCAfygAwIBAgIJAPW07OznM9D/MA0GCSqGSIb3DQEBCwUAMA8xDTALBgNV
+BAMMBFJvb3QwHhcNMjIwNDA4MDQxNjIzWhcNMzIwNDA1MDQxNjIzWjAPMQ0wCwYD
+VQQDDARSb290MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvJV+Ptou
+R1BS/0XXN+JImdNesaBJ2tcHrFHq2yK9V4qu2iUX8LgOcBpPg8yR0zJlzjwF+SLE
+R8jBhD79YF8kF+r7cqBhsvy+e/ri0AaBiGsdP7NFPFEUCOukhnMIvLt10BvsRoCd
++eFrDZO0ZJer3ylp2GeB01rTgngWfrenhZdyGR8ISn+ijtN+J2IhAxsoLGDWiAL/
+XWX55agSuAGi6zlomkReTMuyfkidLfrejUQCnrcDQQ7xqjdCB1QYBt6o1U1oHN3F
+D6ICXirXJyVDJ2Ry6q+FrGJbJDUPlNwlPqAyukFFbeOINPKWiFQUw8nSo3i3DFMG
+UZ3HhkQ/xfboZQIDAQABo3MwcTAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBR5
+8iJCL0YL1oGyl6PtQlPNDOz+YjA/BgNVHSMEODA2gBR58iJCL0YL1oGyl6PtQlPN
+DOz+YqETpBEwDzENMAsGA1UEAwwEUm9vdIIJAPW07OznM9D/MA0GCSqGSIb3DQEB
+CwUAA4IBAQANxGwoeEBaibMQAqSWPnDBISiwk9uKy3buateXOtLlBSpM9ohE4iPG
+GDFZ+9LoKJGy4vWmv6XD4zBeoqZ9hOgnvdEu0P+JITffjXCsfb0JPsOOjwbcJ+5+
+TnfoXCyPRTEi/6OG1sKO2ibav5vMTUuUDdVYbPA2hfEAdn/n0GrN4fQ1USMKk+Ld
+KWgWGZto+l0fKIXdHHpxr01V9Q/+6kzbpZOSxw41m/o1TwJxYSuRXZfK67YpBYGO
+N4X2c7Qsvjd52vcZdRra+bkS0BJXwEDZZdmrZOlRAYIhE7lZ5ojqcZ+/UJztyPZq
+Dbr9kMLDVeMuJfGyebdZ0zeMhVSv0PlD
+-----END CERTIFICATE-----
+
+        certs.key
+        ==========
+        -----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEAy3tVDSPvj8YlWdN8LRhBkd4IWhltnIn/go86l7VSipFDXE22
+WU8wd/i6Qh413e1LgIdAOorzdru4ZcQ7NjckVpVGdOkxwdEyemZlAtZmz5YwI/l/
+MjgRxomMWapBJSN9mKhx2H+fm8pzrhuErJRK0TYJI5sycn8vmY9jUlQCDFCte0ri
+XDVP+mlXabiGK62v6CSFeNxJqbgOF64yDuFJRlLCHtUjbnd6/Uengl1Kad1Ae+V7
+31L43mMnXU1mcS5DFwiaY4gwFV9EWlEQU84f4muqydhKJzYZC+/fWcAmxfNhfa39
+VPRrdNR6zcH05l8BUDucwUCvcT2aNUZhW2fuyQIDAQABAoIBABkmMSjinCVE9DDZ
+9qsMKG6C5r1cDzQdyjq0wSUnAACoW474++Sl6POrBjpNyZKYVZCZJtMVgWnXYb8S
+Nc9JmXAqGv8wIzo1ROvj4/Ap16MoiOKpX5MxYuEK9xHN/Sc977QCfa+odm2m5A1M
+0WUTHvwklZSVBfMozRVJp5jxUR98UL89wy8b6acuhqCMPLwmNi0+JuRx4eCLa0eK
+Hn0OKCuil2xR0iA+3mno4G9BoxCIX5p+ZPiBHJazFoqM/ld3hq2jc3/1e5OUeIvC
+yJ4DEj/7bseXbYE5wQJq93VofxLUZJn7JsW5RqzSr4o/OWQjuihpklNCsKp1rg3E
+6NfKitECgYEA7RrI7itQS6LJTLZchOJEBD4CLJu0yfh3SXeuT48Tps8m8lNYJRa2
+AV0E207KZhB4o55ZFVrd5uZm0mxtb5IxAIYeyj2WL1y6eUazaWJT7DdyTX960B/P
+FaZw2VJMtNfiZBcgI5+QwPUQdn5PPLQoMx+bScGL2EKjEau5lssj6VcCgYEA27KZ
+5aALzcHwQtw6lvSeUGgh9q4aBmEP2WQISnE+nXp/R0vD1nSMS3VM9qyeUqUi3sQT
+LkuhB5u1n7rIK1IZQeWsdqlkDFF71ExF56UhMazRM7quutyRzIZdt0H8Fu3UlEVQ
+Qpv6OCY3re+pN8YXAF/KFSc+YzgC0DwWYTvWNN8CgYEAjjf4udNFMHkOIXNo/1Pw
+1FKVX0huIo9kja654YLCmNW8WLHhNy3uMdcnqJwUDzBmDE5YxNRiMbOVjTX4Vmnr
+9pJ8OXbDdNk8CK59wwJ1sER5zT5f3iKWRjg1jEUvOXIcm0i7wGJfoz3biBevU4wE
+aNXWgWEUjr05rsnAYlCq07UCgYB1ehdY9i/Zom67EdAykDNng4dFxOsdpiE3eYoF
+ZHC6/Jm6ogTiVAgBAYRaEwvF3Y+71tT62G4PB3AjLVmD8K6Y0htaiFF7VMcGSpLG
+v0H0shhbtONiADfmSaMrLxmBmUMm1bmJJKa0B5uWYqT1sfLyvEXu8cEmhPjcKIU/
+ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
+7qx19fVGXW4S6GQEVyssj4KusiNpPItEfacY3NQaByBsOsVrUcOTbWH9NjP+6q17
+3uz5P9XvLMiqYBXia52n3Nz7mFzXUeN/E/IyQtHMQxndKr9tatP17w==
+-----END RSA PRIVATE KEY-----
+
+
+         */
+
+        //[Fact] //Manul test with SG 3.0 official release 
+        public void TestVerifiedPinnedInvalidCertificate()
+        {
+            var pinnedCert = @"-----BEGIN CERTIFICATE-----
+        MIICpDCCAYwCCQCskbhc/nbA5jANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAls
+        b2NhbGhvc3QwHhcNMjIwNDA4MDEwNDE1WhcNMzIwNDA1MDEwNDE1WjAUMRIwEAYD
+        VQQDDAlsb2NhbGhvc3QwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDQ
+        vl0M5D7ZglW76p428x7iQoSkhNyRBEjZgSqvQW3jAIsIElWu7mVIIAm1tpZ5i5+Q
+        CHnFLha1TDACb0MUa1knnGj/8EsdOADvBfdBq7AotypiqBayRUNdZmLoQEhDDsen
+        pEHMDmBrDsWrgNG82OMFHmjK+x0RioYTOlvBbqMAX8Nqp6Yu/9N2vW7YBZ5ovsr7
+        vdFJkSgUYXID9zw/MN4asBQPqMT6jMwlxR1bPqjsNgXrMOaFHT/2xXdfCvq2TBXu
+        H7evR6F7ayNcMReeMPuLOSWxA6Fefp8L4yDMW23jizNIGN122BgJXTyLXFtvg7CQ
+        tMnE7k07LLYg3LcIeamrAgMBAAEwDQYJKoZIhvcNAQELBQADggEBABdQVNSIWcDS
+        sDPXk9ZMY3stY9wj7VZF7IO1V57n+JYV1tJsyU7HZPgSle5oGTSkB2Dj1oBuPqnd
+        8XTS/b956hdrqmzxNii8sGcHvWWaZhHrh7Wqa5EceJrnyVM/Q4uoSbOJhLntLE+a
+        FeFLQkPpJxdtjEUHSAB9K9zCO92UC/+mBUelHgztsTl+PvnRRGC+YdLy521ST8BI
+        luKJ3JANncQ4pCTrobH/EuC46ola0fxF8G5LuP+kEpLAh2y2nuB+FWoUatN5FQxa
+        +4F330aYRvDKDf8r+ve3DtchkUpV9Xa1kcDFyTcYGKBrINtjRmCIblA1fezw59ZT
+        S5TnM2/TjtQ=
+        -----END CERTIFICATE-----";
+
+            var certPemString = pinnedCert
+                    .Replace("-----BEGIN CERTIFICATE-----", null)
+                    .Replace("-----END CERTIFICATE-----", null);
+            var cert = new X509Certificate2(Convert.FromBase64String(certPemString));
+
+            var targetEndpoint = new URLEndpoint(new Uri("wss://10.100.174.37:4984/db"));
+            var config = new ReplicatorConfiguration(Db, targetEndpoint)
+            {
+                Continuous = false,
+                PinnedServerCertificate = cert
+            };
+
+            RunReplication(config, (int)CouchbaseLiteError.TLSCertUntrusted, CouchbaseLiteErrorType.CouchbaseLite);
+        }
+
+        //[Fact] //Manul test with SG 3.0 official release 
+        public void TestVerifiedPinnedValidCertificateInChain()
+        {
+            var chainCerts = new List<string>();
+
+            var pinnedCertLeaf = @"-----BEGIN CERTIFICATE-----
+        MIICoDCCAYgCCQDOqeOThcl0DTANBgkqhkiG9w0BAQsFADAQMQ4wDAYDVQQDDAVJ
+        bnRlcjAeFw0yMjA0MDgwNDE2MjNaFw0zMjA0MDUwNDE2MjNaMBQxEjAQBgNVBAMM
+        CWxvY2FsaG9zdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMt7VQ0j
+        74/GJVnTfC0YQZHeCFoZbZyJ/4KPOpe1UoqRQ1xNtllPMHf4ukIeNd3tS4CHQDqK
+        83a7uGXEOzY3JFaVRnTpMcHRMnpmZQLWZs+WMCP5fzI4EcaJjFmqQSUjfZiocdh/
+        n5vKc64bhKyUStE2CSObMnJ/L5mPY1JUAgxQrXtK4lw1T/ppV2m4hiutr+gkhXjc
+        Sam4DheuMg7hSUZSwh7VI253ev1Hp4JdSmndQHvle99S+N5jJ11NZnEuQxcImmOI
+        MBVfRFpREFPOH+JrqsnYSic2GQvv31nAJsXzYX2t/VT0a3TUes3B9OZfAVA7nMFA
+        r3E9mjVGYVtn7skCAwEAATANBgkqhkiG9w0BAQsFAAOCAQEADbjYO9VxOGZT5LAv
+        ON+U+2FPG5Tons1ubWslThROqml7CCfNKPVhZCwe0BUQLWc35NYvqVjoSAenCHu6
+        EUANfqtuNxQAoeDCaP1epGYZ8fakJXvuyTjek3RV2PeiuFUIZQP/HWGfI640kh4V
+        xvUBa3joelnt+KjDB/yJemmf0dIXJ0dLtFBTN+YVp4aSFTtzcbqh50H6BSAgSiWR
+        ocTu5YpDXHZ6ufaMTRa2HUcSmFeWi75sS6ySgECTbeld1/mFZcSf1zXHU9WFg39D
+        knQNR2i1cJMbMZ3GCRyB6y3SxFb7/9BS70DV3p4n5BjYMlhNnHJx4u1JUTLWgybV
+        qrV+HA==                                                         
+        -----END CERTIFICATE-----";
+
+            chainCerts.Add(pinnedCertLeaf);
+
+            var pinnedCertIntermediate = @"-----BEGIN CERTIFICATE-----
+        MIIDFTCCAf2gAwIBAgIJANZ8gSANI5jNMA0GCSqGSIb3DQEBCwUAMA8xDTALBgNV
+        BAMMBFJvb3QwHhcNMjIwNDA4MDQxNjIzWhcNMzIwNDA1MDQxNjIzWjAQMQ4wDAYD
+        VQQDDAVJbnRlcjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAOm1MUNQ
+        xZKOCXw93eB/pmyCk5kEV3+H8RQC5Nq7orHvnHL6D/YVfVsobZyHkMSP3FVzl0bo
+        s1s+8kCjJ7O+M3TpzuSL8y4uLSEPmZF5qY2N7QobabrKVYueFxFmOD7+ypILx2QC
+        +hWd3J3XiLiiXqOO2jtjtwwy2+pD21DjmcPHGC4GKyv8/jp7hH4MFF6ux1wRQej1
+        on5jJQNFERUFdfX3wAmZgjww8bfyCEkHxnyIfJjEhyOtMLGGNUu8Hms7az+uYT6I
+        S4Q6VeBJ5WTKyhk7aJB1Rl6zZbROvTIq+ZaxAJNwsIzd/HiaoTwFUe3EFilIeGFK
+        w3vnPwiq99tDBHsCAwEAAaNzMHEwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQU
+        WXW5x/ufCrRKhv3F5wBqY0JVUEswPwYDVR0jBDgwNoAUefIiQi9GC9aBspej7UJT
+        zQzs/mKhE6QRMA8xDTALBgNVBAMMBFJvb3SCCQD1tOzs5zPQ/zANBgkqhkiG9w0B
+        AQsFAAOCAQEAEJhO1fA0d8Hu/5IHTlsGfmtcXOyXDcQQVz/3FKWrTPgDOYeMMNbG
+        WqvuG4YxmXt/+2OC1IYK/slrIK5XXldfRu90UM4wVXeD3ATLS3AG0Z/+yPRGbUbF
+        y5+11nXySGyKdV1ik0KgLGeYf0cuJ/vu+/7mkj4mGDfmTQv+8/HYKNaOqgKuVRlf
+        LHBh/RlbHMBn2nwL79vbrIeDaQ0zq9srt9F3CEy+SvlxX63Txmrym3fqTQjPUi5s
+        rEsy+eNr4N+aDWqGRcUkbP/C/ktGGNBHYG1NaPJq7CV1tdLe+usIcRWRR9vOBWbr
+        EkBGJMvCdhlWRv2FnrQ+VUQ+mhYHBS2Kng==
+        -----END CERTIFICATE-----";
+
+            chainCerts.Add(pinnedCertIntermediate);
+
+            var pinnedCertRoot = @"-----BEGIN CERTIFICATE-----
+        MIIDFDCCAfygAwIBAgIJAPW07OznM9D/MA0GCSqGSIb3DQEBCwUAMA8xDTALBgNV
+        BAMMBFJvb3QwHhcNMjIwNDA4MDQxNjIzWhcNMzIwNDA1MDQxNjIzWjAPMQ0wCwYD
+        VQQDDARSb290MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvJV+Ptou
+        R1BS/0XXN+JImdNesaBJ2tcHrFHq2yK9V4qu2iUX8LgOcBpPg8yR0zJlzjwF+SLE
+        R8jBhD79YF8kF+r7cqBhsvy+e/ri0AaBiGsdP7NFPFEUCOukhnMIvLt10BvsRoCd
+        +eFrDZO0ZJer3ylp2GeB01rTgngWfrenhZdyGR8ISn+ijtN+J2IhAxsoLGDWiAL/
+        XWX55agSuAGi6zlomkReTMuyfkidLfrejUQCnrcDQQ7xqjdCB1QYBt6o1U1oHN3F
+        D6ICXirXJyVDJ2Ry6q+FrGJbJDUPlNwlPqAyukFFbeOINPKWiFQUw8nSo3i3DFMG
+        UZ3HhkQ/xfboZQIDAQABo3MwcTAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBR5
+        8iJCL0YL1oGyl6PtQlPNDOz+YjA/BgNVHSMEODA2gBR58iJCL0YL1oGyl6PtQlPN
+        DOz+YqETpBEwDzENMAsGA1UEAwwEUm9vdIIJAPW07OznM9D/MA0GCSqGSIb3DQEB
+        CwUAA4IBAQANxGwoeEBaibMQAqSWPnDBISiwk9uKy3buateXOtLlBSpM9ohE4iPG
+        GDFZ+9LoKJGy4vWmv6XD4zBeoqZ9hOgnvdEu0P+JITffjXCsfb0JPsOOjwbcJ+5+
+        TnfoXCyPRTEi/6OG1sKO2ibav5vMTUuUDdVYbPA2hfEAdn/n0GrN4fQ1USMKk+Ld
+        KWgWGZto+l0fKIXdHHpxr01V9Q/+6kzbpZOSxw41m/o1TwJxYSuRXZfK67YpBYGO
+        N4X2c7Qsvjd52vcZdRra+bkS0BJXwEDZZdmrZOlRAYIhE7lZ5ojqcZ+/UJztyPZq
+        Dbr9kMLDVeMuJfGyebdZ0zeMhVSv0PlD
+        -----END CERTIFICATE-----";
+
+            chainCerts.Add(pinnedCertRoot);
+
+            foreach (var certStr in chainCerts)
+            {
+                var certPemString = certStr
+                    .Replace("-----BEGIN CERTIFICATE-----", null)
+                    .Replace("-----END CERTIFICATE-----", null);
+                var cert = new X509Certificate2(Convert.FromBase64String(certPemString));
+                
+                var targetEndpoint = new URLEndpoint(new Uri("wss://10.100.174.37:4984/db"));
+                var config = new ReplicatorConfiguration(Db, targetEndpoint)
+                {
+                    Continuous = false,
+                    PinnedServerCertificate = cert
+                };
+                
+                RunReplication(config, 0, 0);
+            }
+        }
+
 #endif
 
         enum PENDING_DOC_ID_SEL { CREATE = 0, UPDATE, DELETE, PURGE, FILTER }
