@@ -17,7 +17,7 @@
 //
 
 // Windows 2012 doesn't define the more generic variants
-#if NETFRAMEWORK || NET461 || NETCOREAPP || NETCOREAPP2_0
+#if NETFRAMEWORK || NET461 || NETCOREAPP || NETCOREAPP2_0_OR_GREATER
 using System;
 using System.IO;
 using Couchbase.Lite.DI;

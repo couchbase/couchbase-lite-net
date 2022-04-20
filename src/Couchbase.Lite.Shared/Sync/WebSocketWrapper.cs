@@ -424,7 +424,7 @@ namespace Couchbase.Lite.Sync
                 return false;
             }
 
-#if NETCOREAPP2_0 // looks like IsCompletedSuccessfully is only available for .Net Core 2.0+ and .Net Standard 2.1+
+#if NETCOREAPP2_0_OR_GREATER // looks like IsCompletedSuccessfully is only available for .Net Core 2.0+ and .Net Standard 2.1+
             if (!t.IsCompletedSuccessfully || t.IsFaulted) {
 #else
             if (!t.IsCompleted || t.IsFaulted) {
