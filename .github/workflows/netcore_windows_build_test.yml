@@ -37,19 +37,16 @@ jobs:
     steps:
     
     #Checkout CBL Net and submodules
-    - name: Checkout CBL with .Net Core ${{ matrix.dotnet-version }}
+    - name: Checkout CBL
       uses: actions/checkout@v2
       with:
         submodules: recursive
-        dotnet-version: ${{ matrix.dotnet-version }}
         path: ./couchbase-lite-net
     
     #Checkout CBL Net EE
-    - name: Checkout CBL EE with .Net Core ${{ matrix.dotnet-version }}
+    - name: Checkout CBL EE
       uses: actions/checkout@v2
       with:
-        submodules: true
-        dotnet-version: ${{ matrix.dotnet-version }}
         repository: couchbaselabs/couchbase-lite-net-ee
         token: ${{ secrets.GITHUBACTIONS_AT }}
         path: ./
