@@ -51,7 +51,7 @@ namespace Test
 #endif
     public sealed class LogTest
     {
-#if NETCOREAPP2_0 && !CBL_NO_VERSION_CHECK
+#if NETCOREAPP2_0_OR_GREATER && !CBL_NO_VERSION_CHECK
         static LogTest()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();

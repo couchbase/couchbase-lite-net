@@ -656,7 +656,7 @@ Transfer-Encoding: chunked";
             }
         }
 
-        #if !NETCOREAPP2_0
+#if !NETCOREAPP2_0_OR_GREATER
 
         [Fact]
         public async Task TestMainThreadScheduler()
@@ -673,7 +673,7 @@ Transfer-Encoding: chunked";
 
 #else
 
-        #endif
+#endif
 
         [Fact]
         public void TestCBDebugItemsMustNotBeNull()

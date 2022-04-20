@@ -76,7 +76,7 @@ namespace LiteCore.Tests
 
         static Test()
         {
-            #if NETCOREAPP2_0 && !CBL_NO_VERSION_CHECK
+            #if NETCOREAPP2_0_OR_GREATER && !CBL_NO_VERSION_CHECK
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
             #endif
             var enc = Native.FLEncoder_New();
