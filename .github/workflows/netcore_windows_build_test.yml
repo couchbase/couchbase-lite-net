@@ -35,14 +35,7 @@ jobs:
 #### BUILD and TEST
 
     steps:
-    
-    #Checkout CBL Net and submodules
-    - name: Checkout CBL
-      uses: actions/checkout@v2
-      with:
-        submodules: recursive
-        path: ./couchbase-lite-net
-    
+
     #Checkout CBL Net EE
     - name: Checkout CBL EE
       uses: actions/checkout@v3
@@ -59,8 +52,14 @@ jobs:
         ref: ${{ github.base_ref }}
         repository: couchbase/couchbase-lite-core-EE
         token: ${{ secrets.GITHUBACTIONS_AT }}
-        path: ./couchbase-lite-net/vendor/couchbase-lite-core-EE
+        path: ./couchbase-lite-core-EE
 
+    #Checkout CBL Net and submodules
+    - name: Checkout CBL
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+        path: ./couchbase-lite-net
     #Submodule Update
     #- name: Submodule Update
     #  run: pwsh -command ".\$GITHUB_WORKSPACE\couchbase-lite-net\validations\submodule_update.ps1"
