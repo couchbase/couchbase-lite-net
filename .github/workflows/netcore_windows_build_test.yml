@@ -17,13 +17,13 @@ jobs:
       fail-fast: false
       matrix:
       #[ubuntu-latest, windows-latest, macos-latest]
-        os: [ windows-2019 ]
+        #os: [ windows-2019 ]
       #[x86, x64] Let's do x64 only
         targetplatform: [x64]
         
         dotnet-version: ['2.0', '3.1.x']
 
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-2019
     
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: 1 #opt-out of telemetry being sent to Microsoft (default: false)
@@ -40,6 +40,7 @@ jobs:
     - name: Checkout CBL Net EE ${{ matrix.dotnet-version }}
       uses: actions/checkout@v2
       with:
+        dotnet-version: ${{ matrix.dotnet-version }}
         repository: couchbaselabs/couchbase-lite-net-ee
         token: ${{ secrets.GITHUBACTIONS_AT }}
         path: ./
@@ -56,6 +57,7 @@ jobs:
     - name: Checkout ${{ matrix.dotnet-version }}
       uses: actions/checkout@v2
       with:
+        dotnet-version: ${{ matrix.dotnet-version }}
         path: ./couchbase-lite-net
         
     #Submodule Update
