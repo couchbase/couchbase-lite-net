@@ -2,7 +2,7 @@
 # This pipeline builds the .Net Core Windows project, runs unit tests.
 name: CBL NetCore Windows PR Validation
 
-# Trigger on every master branch push and pull request
+# Trigger on every master and release branch push and pull request
 on:
   push:
     branches:
@@ -13,21 +13,17 @@ on:
       - '**'
     
 jobs:
-  build_netcore3_windows:
-    #if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/release/lithium' ) && github.event_name == 'push' 
-    if: (github.ref != 'refs/heads/release/hydrogen' && github.ref != 'refs/heads/release/cobalt' && github.ref != 'refs/heads/release/mercury') && (github.event_name == 'push' || github.event_name == 'pull_request')
+  build:
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
-      #[ubuntu-latest, windows-latest, macos-latest]
-        os: [ windows-2019 ]
+
       #[x86, x64] Let's do x64 only
         targetplatform: [x64]
         
         dotnet-version: ['3.1.x']
 
-    runs-on: ${{ matrix.os }}
-    
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: 1 #opt-out of telemetry being sent to Microsoft (default: false)
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
