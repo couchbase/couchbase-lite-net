@@ -1,4 +1,6 @@
-options {
+pipeline {
+    agent none
+	options {
         timeout(time: 30, unit: 'MINUTES') 
     }
     stages {
@@ -148,3 +150,4 @@ options {
             }
         }
     }
+}
