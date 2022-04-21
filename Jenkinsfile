@@ -9,7 +9,7 @@ pipeline {
 			    environment {
 				    NEXUS_REPO="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
                     KEYCHAIN_PWD = credentials("mobile-mac-mini-keychain")
-					NETCORE_VERSION = "${BRANCH_NAME == "release/hydrogen" ? "netcoreapp2.0" : "netcoreapp3.1"}"
+                    NETCORE_VERSION = "${BRANCH_NAME == "release/hydrogen" ? "netcoreapp2.0" : "netcoreapp3.1"}"
                 }
 				stages {
 				    stage("Checkout") {
