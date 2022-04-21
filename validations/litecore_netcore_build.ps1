@@ -12,7 +12,7 @@ Pop-Location
 
 New-Item -Type Directory couchbase-lite-net/vendor/couchbase-lite-core/build_cmake/x64
 Push-Location couchbase-lite-net/vendor/couchbase-lite-core/build_cmake/x64
-cmake -G "Visual Studio 16 2019" -A x64 -DBUILD_ENTERPRISE=ON ..\..
+cmake -G "Visual Studio 17 2022" -A x64 -DBUILD_ENTERPRISE=ON ..\..
 cmake --build . --target LiteCore --config RelWithDebInfo
 Pop-Location
 

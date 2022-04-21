@@ -36,22 +36,24 @@ jobs:
     
     #Checkout CBL Net EE
     - name: Checkout CBL Net EE
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
+        ref: ${{ github.base_ref }}
         repository: couchbaselabs/couchbase-lite-net-ee
         token: ${{ secrets.GITHUBACTIONS_AT }}
         path: ./
         
     #Checkout LiteCore EE
     - name: Checkout LiteCore EE
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
+        ref: ${{ github.base_ref }}
         repository: couchbase/couchbase-lite-core-EE
         token: ${{ secrets.GITHUBACTIONS_AT }}
         path: ./couchbase-lite-core-EE
 
-    #Checkout
-    - name: Checkout
+    #Checkout CBL Net
+    - name: Checkout CBL
       uses: actions/checkout@v2
       with:
         path: ./couchbase-lite-net
