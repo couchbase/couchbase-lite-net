@@ -501,7 +501,7 @@ namespace Test
                 null, //authenticator
                 true, //accept only self signed server cert
                 DefaultServerCert, //server cert
-                (int) CouchbaseLiteError.TLSCertUnknownRoot,
+                (int) CouchbaseLiteError.TLSCertUntrusted,
                 CouchbaseLiteErrorType.CouchbaseLite
             );
 
