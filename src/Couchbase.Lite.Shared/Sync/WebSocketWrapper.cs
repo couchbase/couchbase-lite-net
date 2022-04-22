@@ -825,21 +825,24 @@ namespace Couchbase.Lite.Sync
             X509Certificate2 cert2 = new X509Certificate2(certificate);
             PeerCertificateReceived?.Invoke(this, new TlsCertificateReceivedEventArgs(cert2));
 
-            if (_options.PinnedServerCertificate != null) {
-                var retVal = certificate.Equals(_options.PinnedServerCertificate);
-                if (!retVal) {
-                    WriteLog.To.Sync.W(Tag, "Server certificate did not match the pinned one!");
-                    _validationException = new TlsCertificateException("The certificate does not match the pinned certificate",
-                        C4NetworkErrorCode.TLSCertUnknownRoot, X509ChainStatusFlags.ExplicitDistrust);
-                }
-
-                return retVal;
-            }
+            var retVal = _options.PinnedServerCertificate != null && certificate.Equals(_options.PinnedServerCertificate);
+            if (retVal) return true;
 
             // Mono doesn't pass chain information?
             if (chain?.ChainElements?.Count == 0) {
                 chain = X509Chain.Create();
                 chain.Build(cert2);
+            }
+
+            if (_options.PinnedServerCertificate != null) {
+                retVal = IsPinnedCertMatchOneCertInServerCertChain(chain);
+                if(!retVal) {
+                    WriteLog.To.Sync.W(Tag, "Server certificate did not match the pinned one!");
+                    _validationException = new TlsCertificateException("The certificate does not match the pinned certificate",
+                        C4NetworkErrorCode.TLSCertUntrusted, X509ChainStatusFlags.ExplicitDistrust);
+                }
+
+                return retVal;
             }
 
             #if COUCHBASE_ENTERPRISE
@@ -910,6 +913,19 @@ namespace Couchbase.Lite.Sync
 
             _validationException = new TlsCertificateException("Certificate verification failed",
                         C4NetworkErrorCode.TLSCertUntrusted, sslPolicyErrors);
+            return false;
+        }
+
+        private bool IsPinnedCertMatchOneCertInServerCertChain(X509Chain chain)
+        {
+            var chainCount = chain?.ChainElements?.Count;
+            if(chainCount > 1) {
+                foreach (var c in chain.ChainElements) {
+                    if(c.Certificate.Equals(_options.PinnedServerCertificate))
+                        return true;
+                }
+            }
+            
             return false;
         }
 
