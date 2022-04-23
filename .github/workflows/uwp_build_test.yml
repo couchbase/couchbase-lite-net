@@ -4,10 +4,10 @@ name: CBL UWP PR Validation
 
 # Trigger on every master branch push and pull request
 on:
-  push:
-    branches:
-      - master
-      - 'release/*'
+  #push:
+  #  branches:
+  #    - master
+  #    - 'release/*'
   pull_request:
     branches:
       - '**'
