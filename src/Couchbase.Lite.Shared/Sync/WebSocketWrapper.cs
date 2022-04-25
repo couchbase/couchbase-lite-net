@@ -839,7 +839,7 @@ namespace Couchbase.Lite.Sync
                 if(!retVal) {
                     WriteLog.To.Sync.W(Tag, "Server certificate did not match the pinned one!");
                     _validationException = new TlsCertificateException("The certificate does not match the pinned certificate",
-                        C4NetworkErrorCode.TLSCertUnknownRoot, X509ChainStatusFlags.ExplicitDistrust);
+                        C4NetworkErrorCode.TLSCertUntrusted, X509ChainStatusFlags.ExplicitDistrust);
                 }
 
                 return retVal;
