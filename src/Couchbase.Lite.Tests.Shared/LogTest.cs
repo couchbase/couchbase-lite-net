@@ -458,7 +458,12 @@ namespace Test
                     }
 
                     var expectedHebrew = "[{\"hebrew\":\"" + hebrew + "\"}]";
-                    customLogger.Lines.Any(x => x.Contains(expectedHebrew)).Should().BeTrue();
+                    var lines = customLogger.Lines;
+                    foreach (var l in lines) {
+                        Console.WriteLine(l);
+                    }
+
+                    lines.Any(x => x.Contains(expectedHebrew)).Should().BeTrue();
                 }
             } finally {
                 Database.Log.Custom = null;
