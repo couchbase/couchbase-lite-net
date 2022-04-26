@@ -4,10 +4,7 @@ name: CBL NetCore Windows PR Validation
 
 # Trigger on every master and release branch push and pull request
 on:
-  push:
-    branches:
-      - master
-      - 'release/*'
+
   pull_request:
     branches:
       - '**'
