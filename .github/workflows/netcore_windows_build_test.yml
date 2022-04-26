@@ -4,10 +4,7 @@ name: CBL NetCore Windows PR Validation
 
 # Trigger on every master and release branch push and pull request
 on:
-  #push:
-  #  branches:
-  #    - master
-  #    - 'release/*'
+
   pull_request:
     branches:
       - '**'
@@ -23,7 +20,7 @@ jobs:
       #[x86, x64] Let's do x64 only
         targetplatform: [x64]
         
-        dotnet-version: ['3.1.x', '6.0']
+        dotnet-version: ['3.1.x']
 
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: 1 #opt-out of telemetry being sent to Microsoft (default: false)
