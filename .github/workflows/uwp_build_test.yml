@@ -19,7 +19,7 @@ jobs:
       #[x86, x64] Let's do x64 only
         targetplatform: [x64]
 
-    runs-on: windows-2019
+    runs-on: windows-latest
     
     env:
       SigningCertificate_Path: couchbase-lite-net\src\Couchbase.Lite.Tests.UWP\Couchbase.Lite.Tests.UWP_TemporaryKey.pfx
