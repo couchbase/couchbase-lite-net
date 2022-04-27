@@ -284,7 +284,7 @@ namespace Test
                 }
             }
 
-            #if NET5_0_OR_GREATER
+            #if NET6_0_OR_GREATER
             // Replicator - Wrong Credentials
             var wrongConfig = config with { Authenticator = new BasicAuthenticator("daniel", wrongPwSecureString) };
             RunReplication(wrongConfig, (int)CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);

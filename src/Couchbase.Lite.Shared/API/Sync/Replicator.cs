@@ -119,7 +119,7 @@ namespace Couchbase.Lite.Sync
         /// <param name="config">The configuration to use to create the replicator</param>
         public Replicator([NotNull]ReplicatorConfiguration config)
         {
-            #if NET6_0_WINDOWS || NET6_0_WINDOWS10_0_17763_0
+            #if NET6_0_OR_GREATER //|| NET6_0_WINDOWS || NET6_0_WINDOWS10_0_17763_0
             Config = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(config), config);
             #else
             Config = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(config), config).Freeze();

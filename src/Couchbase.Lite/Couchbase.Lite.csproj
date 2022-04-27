@@ -1,8 +1,8 @@
 ﻿<Project Sdk="MSBuild.Sdk.Extras">
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
-    <TargetFrameworks Condition=" !$(Configuration.EndsWith('Coverage')) ">netstandard2.0;netcoreapp3.1;net461;uap10.0.16299;MonoAndroid80;Xamarin.iOS10</TargetFrameworks>
-    <TargetFramework Condition=" $(Configuration.EndsWith('Coverage')) ">netcoreapp3.1</TargetFramework>
+    <TargetFrameworks Condition=" !$(Configuration.EndsWith('Coverage')) ">netstandard2.0;netcoreapp3.1;net6.0;net461;uap10.0.16299;MonoAndroid80;Xamarin.iOS10</TargetFrameworks>
+    <TargetFrameworks Condition=" $(Configuration.EndsWith('Coverage')) ">netcoreapp3.1;net6.0</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>Couchbase.Lite</AssemblyName>
     <PackageId>Couchbase.Lite</PackageId>
@@ -42,7 +42,7 @@
     <DefineConstants>TRACE;LITECORE_PACKAGED;TEST_COVERAGE</DefineConstants>
     <EnableSourceLink>false</EnableSourceLink>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'net461' or $(TargetFramework.StartsWith('netcoreapp')) ">
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net461' or $(TargetFramework.StartsWith('netcoreapp')) or $(TargetFramework.StartsWith('net6')) ">
     <DefineConstants>$(DefineConstants);NEEDS_LITECORE_LOAD</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
@@ -55,11 +55,11 @@
     <DotNetCliToolReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="dotnet-sourcelink-git" Version="2.1.2" />
   </ItemGroup>
 
-  <ItemGroup Condition=" $(TargetFramework.StartsWith('netcoreapp')) ">
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('netcoreapp')) or $(TargetFramework.StartsWith('net6')) ">
     <PackageReference Include="Microsoft.Win32.Registry" Version="4.5.0" />
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' or $(TargetFramework.StartsWith('netcoreapp')) ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' or $(TargetFramework.StartsWith('netcoreapp')) or $(TargetFramework.StartsWith('net6')) ">
     <ProjectReference Include="..\..\src\Couchbase.Lite.Support.NetDesktop\Couchbase.Lite.Support.NetDesktop.csproj" />
   </ItemGroup>
 
