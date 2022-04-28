@@ -2,7 +2,7 @@
 # This pipeline builds the .Net Core Windows project, runs unit tests.
 name: CBL NetCore Windows PR Validation
 
-# Trigger on every master and release branch push and pull request
+# Trigger on every master and release branch pull request
 on:
 
   pull_request:

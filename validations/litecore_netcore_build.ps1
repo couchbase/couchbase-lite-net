@@ -15,6 +15,3 @@ Push-Location couchbase-lite-net/vendor/couchbase-lite-core/build_cmake/x64
 cmake -G "Visual Studio 17 2022" -A x64 -DBUILD_ENTERPRISE=ON ..\..
 cmake --build . --target LiteCore --config RelWithDebInfo
 Pop-Location
-
-# Test the debug build
-#dotnet test -v n --framework netcoreapp3.1 --logger "trx;LogFileName=unit_tests.xml" 
