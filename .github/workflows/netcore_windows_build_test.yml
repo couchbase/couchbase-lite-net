@@ -74,8 +74,8 @@ jobs:
     #Build Test
     - name: Build Test
       run: |
-        #$NETCORE_VERSION = "${{ matrix.dotnet-version }}" == "6.0.x" ? "net6.0" : "netcoreapp3.1"
-        If(${{ matrix.dotnet-version }}.Equals("6.0.x")) { $NETCORE_VERSION = "net6.0"} Else { $NETCORE_VERSION = "netcoreapp3.1"}
+        $dotnetVersion = "${{ matrix.dotnet-version }}"
+        If($dotnetVersion.Equals("6.0.x")) { $NETCORE_VERSION = "net6.0"} Else { $NETCORE_VERSION = "netcoreapp3.1"}
         dotnet build $env:Test_Project_Path --framework $NETCORE_VERSION --configuration Debug
     
     #Test    
