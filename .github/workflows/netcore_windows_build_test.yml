@@ -76,10 +76,14 @@ jobs:
       uses: actions/setup-dotnet@v2
       with:
         dotnet-version: 6.0.x
-      
-    #Test    
-    - name: Build & Run Test
+        
+    #Build Test
+    - name: Build Test
       run: |
         $dotnetVersion = "${{ matrix.dotnet-version }}"
         If($dotnetVersion.Equals("6.0.x")) { $NETCORE_VERSION = "net6.0"} Else { $NETCORE_VERSION = "netcoreapp3.1"}
-        dotnet test $env:Test_Project_Path --framework $NETCORE_VERSION /p:CollectCoverage=true /p:CoverletOutputFormat=lcov -v n /p:Configuration=Debug
+        dotnet build $env:Test_Project_Path --framework $NETCORE_VERSION --configuration Debug
+      
+    #Test    
+    - name: Run Test
+      run: dotnet test $env:Test_Project_Path --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=lcov -v n /p:Configuration=Debug
