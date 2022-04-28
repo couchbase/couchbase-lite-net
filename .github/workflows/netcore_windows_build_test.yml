@@ -65,21 +65,20 @@ jobs:
     - name: Build LiteCore
       run: pwsh -command ".\$GITHUB_WORKSPACE\couchbase-lite-net\validations\litecore_netcore_build.ps1"
       
-    #Setup .NET Core SDK
-    - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+    #Setup .NET Core SDKs
+    
+    - name: Setup .NET Core SDK 3.1.x
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: ${{ matrix.dotnet-version }}
-      
-    #Build Test
-    #- name: Build Test
-    #  run: |
-    #    $dotnetVersion = "${{ matrix.dotnet-version }}"
-    #    If($dotnetVersion.Equals("6.0.x")) { $NETCORE_VERSION = "net6.0"} Else { $NETCORE_VERSION = "netcoreapp3.1"}
-    #    dotnet build $env:Test_Project_Path --framework $NETCORE_VERSION --configuration Debug
+        dotnet-version: 3.1.x
     
+    - name: Setup .NET Core SDK 6.0.x
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.0.x
+      
     #Test    
-    - name: Run Test
+    - name: Build & Run Test
       run: |
         $dotnetVersion = "${{ matrix.dotnet-version }}"
         If($dotnetVersion.Equals("6.0.x")) { $NETCORE_VERSION = "net6.0"} Else { $NETCORE_VERSION = "netcoreapp3.1"}
