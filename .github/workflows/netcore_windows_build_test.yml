@@ -72,12 +72,15 @@ jobs:
         dotnet-version: ${{ matrix.dotnet-version }}
       
     #Build Test
-    - name: Build Test
-      run: |
-        $dotnetVersion = "${{ matrix.dotnet-version }}"
-        If($dotnetVersion.Equals("6.0.x")) { $NETCORE_VERSION = "net6.0"} Else { $NETCORE_VERSION = "netcoreapp3.1"}
-        dotnet build $env:Test_Project_Path --framework $NETCORE_VERSION --configuration Debug
+    #- name: Build Test
+    #  run: |
+    #    $dotnetVersion = "${{ matrix.dotnet-version }}"
+    #    If($dotnetVersion.Equals("6.0.x")) { $NETCORE_VERSION = "net6.0"} Else { $NETCORE_VERSION = "netcoreapp3.1"}
+    #    dotnet build $env:Test_Project_Path --framework $NETCORE_VERSION --configuration Debug
     
     #Test    
     - name: Run Test
-      run: dotnet test $env:Test_Project_Path /p:CollectCoverage=true /p:CoverletOutputFormat=lcov -v n /p:Configuration=Debug
+      run: |
+        $dotnetVersion = "${{ matrix.dotnet-version }}"
+        If($dotnetVersion.Equals("6.0.x")) { $NETCORE_VERSION = "net6.0"} Else { $NETCORE_VERSION = "netcoreapp3.1"}
+        dotnet test $env:Test_Project_Path --framework $NETCORE_VERSION /p:CollectCoverage=true /p:CoverletOutputFormat=lcov -v n /p:Configuration=Debug
