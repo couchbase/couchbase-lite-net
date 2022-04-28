@@ -73,7 +73,9 @@ jobs:
       
     #Build Test
     - name: Build Test
-      run: dotnet build $env:Test_Project_Path --configuration Debug
+      run: |
+        NETCORE_VERSION = "${matrix.dotnet-version == "6.0.x" ? "net6.0" : "netcoreapp3.1"}"
+        dotnet build $env:Test_Project_Path --framework $env:NETCORE_VERSION --configuration Debug
     
     #Test    
     - name: Run Test
