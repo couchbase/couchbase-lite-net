@@ -74,7 +74,8 @@ jobs:
     #Build Test
     - name: Build Test
       run: |
-        NETCORE_VERSION = "${matrix.dotnet-version == "6.0.x" ? "net6.0" : "netcoreapp3.1"}"
+        echo "${{ matrix.dotnet-version }}"
+        NETCORE_VERSION = "${{ matrix.dotnet-version }}" == "6.0.x" ? "net6.0" : "netcoreapp3.1"
         dotnet build $env:Test_Project_Path --framework $env:NETCORE_VERSION --configuration Debug
     
     #Test    
