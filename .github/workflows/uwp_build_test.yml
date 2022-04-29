@@ -67,8 +67,13 @@ jobs:
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@v1.0.2
       
+    - name: Setup .NET Core SDK 6.0.x
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.0.x
+      
     # Restore CBL Net EE
-    - name: Restore CBL EE
+    - name: Restore CBL Net EE
       run:  msbuild $env:Cbl_EE_Project_Path /t:Restore /p:Configuration=$env:Configuration
       env:
         Configuration: Debug
