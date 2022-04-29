@@ -77,13 +77,9 @@ jobs:
       with:
         dotnet-version: 6.0.x
         
-    #Build Test
-    - name: Build Test
+    #Build and Test    
+    - name: Run Test
       run: |
         $dotnetVersion = "${{ matrix.dotnet-version }}"
         If($dotnetVersion.Equals("6.0.x")) { $NETCORE_VERSION = "net6.0"} Else { $NETCORE_VERSION = "netcoreapp3.1"}
-        dotnet build $env:Test_Project_Path --framework $NETCORE_VERSION --configuration Debug
-      
-    #Test    
-    - name: Run Test
-      run: dotnet test $env:Test_Project_Path --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=lcov -v n /p:Configuration=Debug
+        dotnet test $env:Test_Project_Path --framework $NETCORE_VERSION /p:CollectCoverage=true /p:CoverletOutputFormat=lcov -v n /p:Configuration=Debug
