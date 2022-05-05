@@ -17,7 +17,7 @@ namespace Couchbase.Lite
         /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public ListenerToken<TEventType> AddChangeListener([CanBeNull] TaskScheduler scheduler,
+        ListenerToken<TEventType> AddChangeListener([CanBeNull] TaskScheduler scheduler,
             [NotNull] EventHandler<TEventType> handler);
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace Couchbase.Lite
         /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public ListenerToken<TEventType> AddChangeListener([NotNull] EventHandler<TEventType> handler);
+        ListenerToken<TEventType> AddChangeListener([NotNull] EventHandler<TEventType> handler);
 
         /// <summary>
         /// Removes a previously added change listener via its <see cref="ListenerToken"/> and/or
@@ -37,6 +37,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{ReplicatorStatusChangedEventArgs})"/>
         /// and/or The token received from <see cref="AddDocumentReplicationListener(TaskScheduler, EventHandler{DocumentReplicationEventArgs})"/></param>
-        public void RemoveChangeListener(ListenerToken<TEventType> token);
+        void RemoveChangeListener(ListenerToken<TEventType> token);
     }
 }

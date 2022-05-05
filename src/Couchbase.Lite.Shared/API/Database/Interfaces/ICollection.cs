@@ -10,17 +10,17 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the Collection Name
         /// </summary>
-        public string Name { get; }
+        string Name { get; }
 
         /// <summary>
         /// Gets the Scope of the Collection belongs to
         /// </summary>
-        public Scope Scope { get; }
+        Scope Scope { get; }
 
         /// <summary>
         /// Gets the total documents in the Collection
         /// </summary>
-        public ulong Count { get; }
+        ulong Count { get; }
 
         /// <summary>
         /// Gets the <see cref="Document"/> with the specified ID
@@ -28,7 +28,7 @@ namespace Couchbase.Lite
         /// <param name="id">The ID to use when creating or getting the document</param>
         /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
         [CanBeNull]
-        public Document GetDocument([NotNull] string id);
+        Document GetDocument([NotNull] string id);
 
         /// <summary>
         /// Saves the given <see cref="MutableDocument"/> into this database.  This call is equivalent to calling
@@ -38,7 +38,7 @@ namespace Couchbase.Lite
         /// <param name="document">The document to save</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
         /// other than the one it was previously added to</exception>
-        public void Save([NotNull] MutableDocument document); // => Save(document, ConcurrencyControl.LastWriteWins);
+        void Save([NotNull] MutableDocument document); // => Save(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
         /// Saves the given <see cref="MutableDocument"/> into this database
@@ -48,7 +48,7 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
         /// other than the one it was previously added to</exception>
         /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
-        public bool Save([NotNull] MutableDocument document, ConcurrencyControl concurrencyControl);
+        bool Save([NotNull] MutableDocument document, ConcurrencyControl concurrencyControl);
 
         /// <summary>
         /// Saves a document to the database. When write operations are executed concurrently, 
@@ -59,7 +59,7 @@ namespace Couchbase.Lite
         /// <param name="document">The document to save</param>
         /// <param name="conflictHandler">The conflict handler block which can be used to resolve it.</param> 
         /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
-        public bool Save(MutableDocument document, Func<MutableDocument, Document, bool> conflictHandler);
+        bool Save(MutableDocument document, Func<MutableDocument, Document, bool> conflictHandler);
 
         /// <summary>
         /// Deletes a document from the database.  When write operations are executed
@@ -74,7 +74,7 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
         /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public void Delete([NotNull] Document document);// => Delete(document, ConcurrencyControl.LastWriteWins);
+        void Delete([NotNull] Document document);// => Delete(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
         /// Deletes the given <see cref="Document"/> from this database
@@ -88,7 +88,7 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
         /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public bool Delete([NotNull] Document document, ConcurrencyControl concurrencyControl);
+        bool Delete([NotNull] Document document, ConcurrencyControl concurrencyControl);
 
         /// <summary>
         /// Purges the given <see cref="Document"/> from the database.  This leaves
@@ -97,7 +97,7 @@ namespace Couchbase.Lite
         /// <param name="document">The document to purge</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a database
         /// other than the one it was previously added to</exception>
-        public void Purge([NotNull] Document document);
+        void Purge([NotNull] Document document);
 
         /// <summary>
         /// Purges the given document id of the <see cref="Document"/> 
@@ -107,7 +107,7 @@ namespace Couchbase.Lite
         /// <param name="docId">The id of the document to purge</param>
         /// <exception cref="C4ErrorCode.NotFound">Throws NOT FOUND error if the document 
         /// of the docId doesn't exist.</exception>
-        public void Purge([NotNull] string docId);
+        void Purge([NotNull] string docId);
 
         /// <summary>
         /// Sets an expiration date on a document. After this time, the document
@@ -120,7 +120,7 @@ namespace Couchbase.Lite
         /// <returns>Whether successfully sets an expiration date on the document</returns>
         /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
         /// doesn't exist</exception>
-        public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration);
+        bool SetDocumentExpiration(string docId, DateTimeOffset? expiration);
 
         /// <summary>
         /// Returns the expiration time of the document. <c>null</c> will be returned
@@ -131,11 +131,10 @@ namespace Couchbase.Lite
         /// of the document or <c>null</c> if time not set. </returns>
         /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
         /// doesn't exist</exception>
-        public DateTimeOffset? GetDocumentExpiration(string docId);
+        DateTimeOffset? GetDocumentExpiration(string docId);
 
         /// <summary>
-        /// [Obsolete("AddDocumentChangeListener is deprecated, please use <see cref="GetDefaultCollection().AddDocumentChangeListener"/>.")]
-        /// [DEPRECATED] Adds a document change listener for the document with the given ID and the <see cref="TaskScheduler"/>
+        /// Adds a document change listener for the document with the given ID and the <see cref="TaskScheduler"/>
         /// that will be used to invoke the callback.  If the scheduler is not specified, then the default scheduler
         /// will be used (scheduled via thread pool)
         /// </summary>
@@ -146,12 +145,11 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
         /// is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public ListenerToken<DocumentChangedEventArgs> AddDocumentChangeListener([NotNull] string id, [CanBeNull] TaskScheduler scheduler,
+        ListenerToken<DocumentChangedEventArgs> AddDocumentChangeListener([NotNull] string id, [CanBeNull] TaskScheduler scheduler,
             [NotNull] EventHandler<DocumentChangedEventArgs> handler);
 
         /// <summary>
-        /// [Obsolete("AddDocumentChangeListener is deprecated, please use <see cref="GetDefaultCollection().AddDocumentChangeListener"/>.")]
-        /// [DEPRECATED] Adds a document change listener for the document with the given ID.  The callback will be
+        /// Adds a document change listener for the document with the given ID.  The callback will be
         /// invoked on a thread pool thread.
         /// </summary>
         /// <param name="id">The document ID</param>
@@ -160,7 +158,7 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
         /// is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public ListenerToken<DocumentChangedEventArgs> AddDocumentChangeListener([NotNull] string id, [NotNull] EventHandler<DocumentChangedEventArgs> handler);// => AddDocumentChangeListener(id, null, handler);
+        ListenerToken<DocumentChangedEventArgs> AddDocumentChangeListener([NotNull] string id, [NotNull] EventHandler<DocumentChangedEventArgs> handler);// => AddDocumentChangeListener(id, null, handler);
 
     }
 }

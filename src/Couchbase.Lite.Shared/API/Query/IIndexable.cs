@@ -14,7 +14,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The list of created index names</returns>
         [NotNull]
         [ItemNotNull]
-        public IList<string> GetIndexes();
+        IList<string> GetIndexes();
 
         /// <summary>
         /// Creates a SQL index which could be a value index from <see cref="ValueIndexConfiguration"/> or a full-text search index
@@ -30,12 +30,12 @@ namespace Couchbase.Lite.Query
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
         /// provided ones is used</exception>
-        public void CreateIndex([NotNull] string name, [NotNull] IndexConfiguration indexConfig);
+        void CreateIndex([NotNull] string name, [NotNull] IndexConfiguration indexConfig);
 
         /// <summary>
         /// Deletes the index with the given name
         /// </summary>
         /// <param name="name">The name of the index to delete</param>
-        public void DeleteIndex([NotNull] string name);
+        void DeleteIndex([NotNull] string name);
     }
 }
