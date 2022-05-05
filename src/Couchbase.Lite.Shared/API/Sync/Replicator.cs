@@ -423,12 +423,13 @@ namespace Couchbase.Lite.Sync
             var documentReplications = new List<ReplicatedDocument>();
             for (int i = 0; i < (int) numDocs; i++) {
                 var current = docs[i];
+                var collection = replicator.Config.Database.GetCollection(current->collectionName.CreateString());
                 if (!pushing && current->error.domain == C4ErrorDomain.LiteCoreDomain &&
                     current->error.code == (int) C4ErrorCode.Conflict) {
-                    replicatedDocumentsContainConflict.Add(new ReplicatedDocument(current->docID.CreateString() ?? "", replicator.Config.Database.GetCollection(current->collectionName.CreateString()),
+                    replicatedDocumentsContainConflict.Add(new ReplicatedDocument(current->docID.CreateString() ?? "",
                         current->flags, current->error, current->errorIsTransient));
                 } else {
-                    documentReplications.Add(new ReplicatedDocument(current->docID.CreateString() ?? "", replicator.Config.Database.GetCollection(current->collectionName.CreateString()),
+                    documentReplications.Add(new ReplicatedDocument(current->docID.CreateString() ?? "",
                         current->flags, current->error, current->errorIsTransient));
                 }
             }

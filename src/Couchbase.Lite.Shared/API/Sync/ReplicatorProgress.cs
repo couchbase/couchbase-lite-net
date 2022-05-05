@@ -77,6 +77,17 @@ namespace Couchbase.Lite.Sync
 
         internal C4Error NativeError { get; }
 
+        internal ReplicatedDocument([NotNull] string docID, C4RevisionFlags flags, C4Error error,
+            bool isTransient)
+        {
+            Collection = null;
+            Id = docID;
+            Flags = flags.ToDocumentFlags();
+            NativeError = error;
+            Error = error.domain == 0 ? null : CouchbaseException.Create(error);
+            IsTransient = isTransient;
+        }
+
         internal ReplicatedDocument([NotNull]string docID, Collection collection, C4RevisionFlags flags, C4Error error,
             bool isTransient)
         {
