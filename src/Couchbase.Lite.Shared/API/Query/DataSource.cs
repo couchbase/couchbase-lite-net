@@ -39,6 +39,21 @@ namespace Couchbase.Lite.Query
 
         /// <summary>
         /// Creates a data source for an <see cref="IQuery" /> that gets results from the given
+        /// <see cref="Collection(Lite.Collection)" />
+        /// </summary>
+        /// <param name="collection">The collection to operate on</param>
+        /// <returns>The source of data for the <see cref="IQuery" /></returns>
+        [NotNull]
+        public static IDataSourceAs Collection([NotNull] Collection collection)
+        {
+            var db = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(collection), collection);
+
+            return new DatabaseSource(collection, collection.ThreadSafety);
+        }
+
+        /// <summary>
+        /// [Obsolete("DataSource.Database is deprecated, please use <see cref="DataSource.Collection"/>.")]
+        /// [DEPRECATED] Creates a data source for an <see cref="IQuery" /> that gets results from the given
         /// <see cref="Database" />
         /// </summary>
         /// <param name="database">The database to operate on</param>

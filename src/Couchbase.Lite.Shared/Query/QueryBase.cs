@@ -46,7 +46,7 @@ namespace Couchbase.Lite.Internal.Query
         [NotNull] protected List<QueryResultSet> _history = new List<QueryResultSet>();
         [NotNull] protected Parameters _queryParameters;
         protected List<LiveQuerier> _liveQueriers = new List<LiveQuerier>();
-        protected Dictionary<ListenerToken, LiveQuerier> _listenerTokens = new Dictionary<ListenerToken, LiveQuerier>();
+        protected Dictionary<ListenerToken<QueryChangedEventArgs>, LiveQuerier> _listenerTokens = new Dictionary<ListenerToken<QueryChangedEventArgs>, LiveQuerier>();
         protected int _observingCount;
 
         #endregion
@@ -159,7 +159,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public abstract unsafe string Explain();
 
-        public ListenerToken AddChangeListener(TaskScheduler scheduler, [NotNull] EventHandler<QueryChangedEventArgs> handler)
+        public ListenerToken<QueryChangedEventArgs> AddChangeListener(TaskScheduler scheduler, [NotNull] EventHandler<QueryChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(handler), handler);
             _disposalWatchdog.CheckDisposed();
@@ -169,18 +169,19 @@ namespace Couchbase.Lite.Internal.Query
             }
 
             var cbHandler = new CouchbaseEventHandler<QueryChangedEventArgs>(handler, scheduler);
-            var listenerToken = new ListenerToken(cbHandler, "query");
-            CreateLiveQuerier(listenerToken);
+            //var listenerToken = new ListenerToken<QueryChangedEventArgs>(cbHandler, "query", );
+            
+            var listenerToken = CreateLiveQuerier(cbHandler);
 
             return listenerToken;
         }
 
-        public ListenerToken AddChangeListener([NotNull] EventHandler<QueryChangedEventArgs> handler)
+        public ListenerToken<QueryChangedEventArgs> AddChangeListener([NotNull] EventHandler<QueryChangedEventArgs> handler)
         {
             return AddChangeListener(null, handler);
         }
 
-        public void RemoveChangeListener(ListenerToken token)
+        public void RemoveChangeListener(ListenerToken<QueryChangedEventArgs> token)
         {
             _disposalWatchdog.CheckDisposed();
             _listenerTokens[token].StopObserver();
@@ -202,16 +203,20 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Protected Methods
 
-        protected unsafe void CreateLiveQuerier(ListenerToken listenerToken)
+        protected unsafe ListenerToken<QueryChangedEventArgs> CreateLiveQuerier(CouchbaseEventHandler<QueryChangedEventArgs> cbEventHandler)
         {
             CreateQuery();
+            LiveQuerier liveQuerier = null;
             if (_c4Query != null) {
-                var liveQuerier = new LiveQuerier(this);
-                liveQuerier.CreateLiveQuerier(_c4Query, listenerToken);
+                liveQuerier = new LiveQuerier(this);
+                liveQuerier.CreateLiveQuerier(_c4Query);
                 _liveQueriers.Add(liveQuerier);
-                _listenerTokens.Add(listenerToken, liveQuerier);
-                liveQuerier.StartObserver();
             }
+            
+            var e = liveQuerier?.StartObserver(cbEventHandler);
+            var token = new ListenerToken<QueryChangedEventArgs>(cbEventHandler, ListenerTokenType.Query, e);
+            _listenerTokens.Add(token, liveQuerier);
+            return token;
         }
 
         #endregion

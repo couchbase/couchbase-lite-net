@@ -32,10 +32,16 @@ namespace Couchbase.Lite
         #region Properties
 
         /// <summary>
-        /// Gets the database in which the change occurred
+        /// [DEPRECATED] Gets the database in which the change occurred
         /// </summary>
         [NotNull]
         public Database Database { get; }
+
+        /// <summary>
+        /// Gets the collection in which the change occurred
+        /// </summary>
+        [NotNull]
+        public Collection Collection { get; }
 
         /// <summary>
         /// Gets the document that was changed
@@ -48,12 +54,24 @@ namespace Couchbase.Lite
 
         #region Constructors
 
+        /// <summary>
+        /// [DEPRECATED]
+        /// </summary>
         internal DatabaseChangedEventArgs([NotNull]Database database, [NotNull][ItemNotNull]IReadOnlyList<string> documentIDs)
         {
             Debug.Assert(database != null);
             Debug.Assert(documentIDs != null);
             Debug.Assert(documentIDs.All(x => x != null));
             Database = database;
+            DocumentIDs = documentIDs;
+        }
+
+        internal DatabaseChangedEventArgs([NotNull] Collection collection, [NotNull][ItemNotNull] IReadOnlyList<string> documentIDs)
+        {
+            Debug.Assert(collection != null);
+            Debug.Assert(documentIDs != null);
+            Debug.Assert(documentIDs.All(x => x != null));
+            Collection = collection;
             DocumentIDs = documentIDs;
         }
 

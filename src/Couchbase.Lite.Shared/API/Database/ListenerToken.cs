@@ -19,15 +19,26 @@
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
+using System;
 
 namespace Couchbase.Lite
 {
+    internal enum ListenerTokenType
+    {
+        Database,
+        Document,
+        Query,
+        Replicator,
+        DocReplicated,
+        MessageEndpoint
+    }
+
     /// <summary>
     /// A token that stores information about an event handler that
     /// is registered on a Couchbase Lite object (for example
     /// <see cref="Database.AddChangeListener(System.EventHandler{DatabaseChangedEventArgs})"/>)
     /// </summary>
-    public struct ListenerToken
+    public struct ListenerToken<TEventType> where TEventType : EventArgs
     {
         #region Variables
 
@@ -35,18 +46,26 @@ namespace Couchbase.Lite
         internal readonly CouchbaseEventHandler EventHandler;
 
         [NotNull]
-        internal readonly string Type;
+        internal readonly ListenerTokenType Type;
+
+        internal readonly Event<TEventType> Event;
 
         #endregion
 
         #region Constructors
 
-        internal ListenerToken([NotNull]CouchbaseEventHandler handler,  [NotNull]string type)
+        internal ListenerToken([NotNull]CouchbaseEventHandler handler,  [NotNull] ListenerTokenType type, Event<TEventType> e)
         {
             EventHandler = handler;
             Type = type;
+            Event = e;
         }
 
         #endregion
+
+        public int Remove()
+        {
+            return Event.Remove(this);
+        }
     }
 }

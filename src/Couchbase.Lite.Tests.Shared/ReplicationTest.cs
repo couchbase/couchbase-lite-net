@@ -197,6 +197,7 @@ namespace Test
                 _repl.Stop();
                 throw;
             } finally {
+                //token.Remove();
                 _repl.RemoveChangeListener(token);
             }
         }
@@ -862,6 +863,7 @@ namespace Test
                     try {
                         waitAssert.WaitForResult(TimeSpan.FromSeconds(5));
                     } finally {
+                        //token.Remove();
                         r.RemoveChangeListener(token);
                     }
 
@@ -906,6 +908,8 @@ namespace Test
                 _repl.Stop();
                 throw;
             } finally {
+                //token.Remove();
+                //token1.Remove();
                 _repl.RemoveChangeListener(token);
                 _repl.RemoveChangeListener(token1);
             }
@@ -1577,6 +1581,8 @@ namespace Test
                 replicator.Stop();
                 throw;
             } finally {
+                //token.Remove();
+                //token1.Remove();
                 replicator.RemoveChangeListener(token);
                 replicator1.RemoveChangeListener(token1);
                 replicator.Dispose();
@@ -1826,6 +1832,7 @@ namespace Test
                     wa.WaitForResult(TimeSpan.FromSeconds(100));
                     replicator.Status.Activity.Should().Be(ReplicatorActivityLevel.Stopped);
                 } finally {
+                    //token.Remove();
                     replicator.RemoveChangeListener(token);
                 }
             }
@@ -1878,6 +1885,7 @@ namespace Test
                     wa.WaitForResult(TimeSpan.FromSeconds(100));
                     replicator.Status.Activity.Should().Be(ReplicatorActivityLevel.Stopped);
                 } finally {
+                    //token.Remove();
                     replicator.RemoveChangeListener(token);
                 }
 
@@ -2220,6 +2228,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
 
             // Wait for the replicator to be stopped
             waitAssert.WaitForResult(TimeSpan.FromSeconds(60));
+            //token.Remove();
             repl.RemoveChangeListener(token);
 
             count.Should().Be(attempts - 1);
@@ -2290,6 +2299,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                     .Go().Should().BeTrue();
 
                 replicator.GetPendingDocumentIDs().Count.Should().Be(0);
+                //token.Remove();
                 replicator.RemoveChangeListener(token);
             }
 
@@ -2364,6 +2374,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                     .Go().Should().BeTrue();
 
                 replicator.IsDocumentPending(DocIdForTest).Should().BeFalse();
+                //token.Remove();
                 replicator.RemoveChangeListener(token);
             }
 
@@ -2529,6 +2540,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
                     .Go().Should().BeTrue();
 
                 repl.Status.Activity.Should().Be(ReplicatorActivityLevel.Stopped);
+                //token.Remove();
                 repl.RemoveChangeListener(token);
 
                 if (!continueWithWorkingResolver)
@@ -2800,7 +2812,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
 
     public class ListenerAwaiter
     {
-        private readonly ListenerToken _token;
+        private readonly ListenerToken<MessageEndpointListenerChangedEventArgs> _token;
         private readonly ManualResetEventSlim _mre = new ManualResetEventSlim();
         private readonly List<Exception> _exceptions = new List<Exception>();
         private readonly MessageEndpointListener _listener;
@@ -2826,6 +2838,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             }
 
             if (e.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                //_token.Remove();
                 _listener.RemoveChangeListener(_token);
                 _mre.Set();
             }

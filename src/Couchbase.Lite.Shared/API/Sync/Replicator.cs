@@ -47,7 +47,7 @@ namespace Couchbase.Lite.Sync
     /// (i.e. pusher and puller are no longer separate) between a database and a URL
     /// or a database and another database on the same filesystem.
     /// </summary>
-    public sealed unsafe class Replicator : IDisposable, IStoppable
+    public sealed unsafe class Replicator : IDisposable, IStoppable, IChangeObservable<ReplicatorStatusChangedEventArgs>
     {
         #region Constants
 
@@ -140,7 +140,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        public ListenerToken AddChangeListener([NotNull]EventHandler<ReplicatorStatusChangedEventArgs> handler)
+        public ListenerToken<ReplicatorStatusChangedEventArgs> AddChangeListener([NotNull]EventHandler<ReplicatorStatusChangedEventArgs> handler)
         {
             return AddChangeListener(null, handler);
         }
@@ -154,14 +154,19 @@ namespace Couchbase.Lite.Sync
         /// (<c>null</c> for default)</param>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        public ListenerToken AddChangeListener([CanBeNull]TaskScheduler scheduler,
+        public ListenerToken<ReplicatorStatusChangedEventArgs> AddChangeListener([CanBeNull]TaskScheduler scheduler,
             [NotNull]EventHandler<ReplicatorStatusChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
 
             var cbHandler = new CouchbaseEventHandler<ReplicatorStatusChangedEventArgs>(handler, scheduler);
             _statusChanged.Add(cbHandler);
-            return new ListenerToken(cbHandler, "repl");
+            return new ListenerToken<ReplicatorStatusChangedEventArgs>(cbHandler, ListenerTokenType.Replicator, _statusChanged);
+        }
+
+        public void RemoveChangeListener(ListenerToken<ReplicatorStatusChangedEventArgs> token)
+        {
+            _statusChanged.Remove(token);
         }
 
         /// <summary>
@@ -172,7 +177,7 @@ namespace Couchbase.Lite.Sync
         /// </remarks>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        public ListenerToken AddDocumentReplicationListener([NotNull]EventHandler<DocumentReplicationEventArgs> handler)
+        public ListenerToken<DocumentReplicationEventArgs> AddDocumentReplicationListener([NotNull]EventHandler<DocumentReplicationEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
 
@@ -191,7 +196,7 @@ namespace Couchbase.Lite.Sync
         /// (<c>null</c> for default)</param>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        public ListenerToken AddDocumentReplicationListener([CanBeNull]TaskScheduler scheduler,
+        public ListenerToken<DocumentReplicationEventArgs> AddDocumentReplicationListener([CanBeNull]TaskScheduler scheduler,
             [NotNull]EventHandler<DocumentReplicationEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
@@ -200,7 +205,7 @@ namespace Couchbase.Lite.Sync
                 SetProgressLevel(C4ReplicatorProgressLevel.ReplProgressPerDocument);
             }
             
-            return new ListenerToken(cbHandler, "repl");
+            return new ListenerToken<DocumentReplicationEventArgs>(cbHandler, ListenerTokenType.DocReplicated, _documentEndedUpdate);
         }
 
         /// <summary>
@@ -209,9 +214,8 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{ReplicatorStatusChangedEventArgs})"/>
         /// and/or The token received from <see cref="AddDocumentReplicationListener(TaskScheduler, EventHandler{DocumentReplicationEventArgs})"/></param>
-        public void RemoveChangeListener(ListenerToken token)
+        public void RemoveChangeListener(ListenerToken<DocumentReplicationEventArgs> token)
         {
-            _statusChanged.Remove(token);
             if (_documentEndedUpdate.Remove(token) == 0) {
                 SetProgressLevel(C4ReplicatorProgressLevel.ReplProgressOverall);
             }
@@ -413,21 +417,21 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
+            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+
             var replicatedDocumentsContainConflict = new List<ReplicatedDocument>();
             var documentReplications = new List<ReplicatedDocument>();
             for (int i = 0; i < (int) numDocs; i++) {
                 var current = docs[i];
                 if (!pushing && current->error.domain == C4ErrorDomain.LiteCoreDomain &&
                     current->error.code == (int) C4ErrorCode.Conflict) {
-                    replicatedDocumentsContainConflict.Add(new ReplicatedDocument(current->docID.CreateString() ?? "",
+                    replicatedDocumentsContainConflict.Add(new ReplicatedDocument(current->docID.CreateString() ?? "", replicator.Config.Database.GetCollection(current->collectionName.CreateString()),
                         current->flags, current->error, current->errorIsTransient));
                 } else {
-                    documentReplications.Add(new ReplicatedDocument(current->docID.CreateString() ?? "",
+                    documentReplications.Add(new ReplicatedDocument(current->docID.CreateString() ?? "", replicator.Config.Database.GetCollection(current->collectionName.CreateString()),
                         current->flags, current->error, current->errorIsTransient));
                 }
             }
-
-            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
 
             if (documentReplications.Count > 0) {
                 replicator?.DispatchQueue.DispatchAsync(() =>

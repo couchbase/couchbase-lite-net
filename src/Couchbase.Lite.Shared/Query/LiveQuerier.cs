@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Internal.Query
         private C4QueryObserver* _queryObserver;
         private bool _disposed;
         private QueryBase _queryBase;
-        private ListenerToken _listenerToken;
+        private ListenerToken<QueryChangedEventArgs> _listenerToken;
         private int _startedObserving;
 
         #endregion
@@ -64,9 +64,8 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Internal Methods
 
-        internal unsafe LiveQuerier CreateLiveQuerier(C4Query* c4Query, ListenerToken listenerToken)
+        internal unsafe LiveQuerier CreateLiveQuerier(C4Query* c4Query)
         {
-            _listenerToken = listenerToken;
             _queryBase.ThreadSafety.DoLocked(() =>
             {
                 var handle = GCHandle.Alloc(this);
@@ -76,12 +75,14 @@ namespace Couchbase.Lite.Internal.Query
             return this;
         }
 
-        internal void StartObserver()
+        internal Event<QueryChangedEventArgs> StartObserver(CouchbaseEventHandler<QueryChangedEventArgs> cbEventHandler)
         {
             if (Interlocked.Increment(ref _startedObserving) == 1) {
-                _changed.Add((CouchbaseEventHandler<QueryChangedEventArgs>)_listenerToken.EventHandler);
+                _changed.Add(cbEventHandler);
                 Native.c4queryobs_setEnabled(_queryObserver, true);
             }
+
+            return _changed;
         }
 
         internal void StopObserver()

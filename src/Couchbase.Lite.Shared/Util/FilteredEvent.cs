@@ -175,10 +175,10 @@ namespace Couchbase.Lite.Util
             }
         }
 
-        public int Remove(ListenerToken id)
+        public int Remove(ListenerToken<TEventType> token)
         {
             lock (_locker) {
-                _events.Remove(id.EventHandler as CouchbaseEventHandler<TEventType>);
+                _events.Remove(token.EventHandler as CouchbaseEventHandler<TEventType>);
                 return _events.Count;
             }
         }
@@ -211,7 +211,7 @@ namespace Couchbase.Lite.Util
         #endregion
     }
 
-    internal sealed class FilteredEvent<TFilterType, TEventType> where TEventType : EventArgs
+    internal sealed class FilteredEvent<TFilterType, TEventType> : Event<TEventType> where TEventType : EventArgs
     {
         #region Variables
 
@@ -235,7 +235,7 @@ namespace Couchbase.Lite.Util
             }
         }
 
-        public int Remove(ListenerToken token, out TFilterType filter)
+        public int Remove(ListenerToken<TEventType> token, out TFilterType filter)
         {
             filter = default(TFilterType);
             if (!(token.EventHandler is CouchbaseEventHandler<TFilterType, TEventType> handler)) {

@@ -101,6 +101,9 @@ namespace Couchbase.Lite.Sync
 
         #region Properties
 
+        [CanBeNull]
+        public IDictionary<Collection, CollectionConfiguration> CollectionConfigs { get; set; }
+
         /// <summary>
         /// Gets or sets the class which will authenticate the replication
         /// </summary>
@@ -112,7 +115,8 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
+        /// [Obsolete("Channels is deprecated, please use <see cref="CollectionConfiguration.Channels"/>.")]
+        /// [DEPRECATED] A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
         /// The default value is null, meaning that all accessible channels will be pulled.
         /// Note: channels that are not accessible to the user will be ignored by Sync Gateway.
         /// </summary>
@@ -140,7 +144,8 @@ namespace Couchbase.Lite.Sync
         public Database Database { get; }
 
         /// <summary>
-        /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
+        /// [Obsolete("DocumentIDs is deprecated, please use <see cref="CollectionConfiguration.DocumentIDs"/>.")]
+        /// [DEPRECATED] A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
         /// and/or pulled
         /// </summary>
         [CanBeNull]
@@ -172,7 +177,8 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// Func delegate that takes Document input parameter and bool output parameter
+        /// [Obsolete("PullFilter is deprecated, please use <see cref="CollectionConfiguration.PullFilter"/>.")]
+        /// [DEPRECATED] Func delegate that takes Document input parameter and bool output parameter
         /// Document pull will be allowed if output is true, othewise, Document pull 
         /// will not be allowed
         /// </summary>
@@ -184,7 +190,8 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// Func delegate that takes Document input parameter and bool output parameter
+        /// [Obsolete("PushFilter is deprecated, please use <see cref="CollectionConfiguration.PushFilter"/>.")]
+        /// [DEPRECATED] Func delegate that takes Document input parameter and bool output parameter
         /// Document push will be allowed if output is true, othewise, Document push 
         /// will not be allowed
         /// </summary>
@@ -283,7 +290,8 @@ namespace Couchbase.Lite.Sync
         public IEndpoint Target { get; }
 
         /// <summary>
-        /// The implemented custom conflict resolver object can be registered to the replicator 
+        /// [Obsolete("ConflictResolver is deprecated, please use <see cref="CollectionConfiguration.ConflictResolver"/>.")]
+        /// [DEPRECATED] The implemented custom conflict resolver object can be registered to the replicator 
         /// at ConflictResolver property. The default value of the conflictResolver is null. 
         /// When the value is null, the default conflict resolution will be applied.
         /// </summary>
@@ -331,6 +339,22 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Constructs a new builder object with the required properties
         /// </summary>
+        /// <param name="target">The endpoint to replicate to, either local or remote</param>
+        /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
+        /// is provided as <paramref name="target"/></exception>
+        public ReplicatorConfiguration([NotNull] IEndpoint target)
+        {
+            Target = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(target), target);
+
+            var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
+            castTarget.Visit(this);
+
+        }
+
+        /// <summary>
+        /// [Obsolete("Constructor ReplicatorConfiguration([NotNull] Database database, [NotNull] IEndpoint target) is deprecated, please use <see cref="ReplicatorConfiguration([NotNull] IEndpoint target)"/>.")]
+        /// [DEPRECATED] Constructs a new builder object with the required properties
+        /// </summary>
         /// <param name="database">The database that will serve as the local side of the replication</param>
         /// <param name="target">The endpoint to replicate to, either local or remote</param>
         /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
@@ -342,6 +366,33 @@ namespace Couchbase.Lite.Sync
 
             var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
             castTarget.Visit(this);
+        }
+
+        #endregion
+
+        #region Public Methods - Scopes and Collections
+
+        public void AddCollections(IList<Collection> collections, [CanBeNull]CollectionConfiguration config = null)
+        {
+            foreach(var col in collections) {
+                CollectionConfigs.Add(col, config);
+            }
+        }
+
+        public void AddCollection(Collection collection, [CanBeNull] CollectionConfiguration config = null)
+        {
+            CollectionConfigs.Add(collection, config);
+        }
+
+        public void RemoveCollection(Collection collection)
+        {
+            CollectionConfigs.Remove(collection);
+        }
+
+        [CanBeNull]
+        public CollectionConfiguration GetCollectionConfig(Collection collection)
+        {
+            return CollectionConfigs[collection];
         }
 
         #endregion

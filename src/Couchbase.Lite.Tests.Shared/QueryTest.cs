@@ -2838,7 +2838,8 @@ namespace Test
                         .BeTrue("because the Changed event should fire once for the initial results");
                     are.WaitOne(5000).Should().BeFalse("because the Changed event should not fire needlessly");
                 } finally {
-                    q.RemoveChangeListener(token);
+                    token.Remove();
+                    //q.RemoveChangeListener(token);
                 }
             }
         }

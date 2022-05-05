@@ -34,9 +34,17 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public ReplicatorStatus Status { get; }
 
+        public Collection Collection { get; }
+
         #endregion
 
         #region Constructors
+
+        internal ReplicatorStatusChangedEventArgs(ReplicatorStatus status, Collection collection)
+        {
+            Status = status;
+            Collection = collection;
+        }
 
         internal ReplicatorStatusChangedEventArgs(ReplicatorStatus status)
         {

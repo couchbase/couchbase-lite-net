@@ -245,6 +245,7 @@ namespace Test
                 try {
                     waitAssert.WaitForResult(TimeSpan.FromSeconds(100));
                 } finally {
+                    //token.Remove();
                     repl.RemoveChangeListener(token);
                 }
             }
@@ -722,6 +723,8 @@ namespace Test
             WaitHandle.WaitAll(new[] {wait1.WaitHandle, wait2.WaitHandle}, TimeSpan.FromSeconds(20))
                 .Should().BeTrue();
 
+            //token1.Remove();
+            //token2.Remove();
             repl1.RemoveChangeListener(token1);
             repl2.RemoveChangeListener(token2);
 
@@ -1100,6 +1103,8 @@ namespace Test
                 urlepTestDb.Count.Should().Be(existingDocsInListener + 1UL);
             }
 
+            //token1.Remove();
+            //token2.Remove();
             repl1.RemoveChangeListener(token1);
             repl2.RemoveChangeListener(token2);
 

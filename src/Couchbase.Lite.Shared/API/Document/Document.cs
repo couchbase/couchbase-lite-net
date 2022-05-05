@@ -96,6 +96,12 @@ namespace Couchbase.Lite
         [CanBeNull]
         internal Database Database { get; set; }
 
+        /// <summary>
+        /// Gets the Collection that this document belongs to, if any
+        /// </summary>
+        [CanBeNull]
+        public Collection Collection { get; set; }
+
         internal bool Exists => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true && c4Doc.RawDoc->flags.HasFlag(C4DocumentFlags.DocExists));
 
         internal virtual uint Generation => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true ? NativeRaw.c4rev_getGeneration(c4Doc.RawDoc->selectedRev.revID) : 0U);
