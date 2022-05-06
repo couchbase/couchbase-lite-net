@@ -132,33 +132,5 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
         /// doesn't exist</exception>
         DateTimeOffset? GetDocumentExpiration(string docId);
-
-        /// <summary>
-        /// Adds a document change listener for the document with the given ID and the <see cref="TaskScheduler"/>
-        /// that will be used to invoke the callback.  If the scheduler is not specified, then the default scheduler
-        /// will be used (scheduled via thread pool)
-        /// </summary>
-        /// <param name="id">The document ID</param>
-        /// <param name="scheduler">The scheduler to use when firing the event handler</param>
-        /// <param name="handler">The logic to handle the event</param>
-        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the listener later</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
-        /// is <c>null</c></exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        ListenerToken<DocumentChangedEventArgs> AddDocumentChangeListener([NotNull] string id, [CanBeNull] TaskScheduler scheduler,
-            [NotNull] EventHandler<DocumentChangedEventArgs> handler);
-
-        /// <summary>
-        /// Adds a document change listener for the document with the given ID.  The callback will be
-        /// invoked on a thread pool thread.
-        /// </summary>
-        /// <param name="id">The document ID</param>
-        /// <param name="handler">The logic to handle the event</param>
-        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the listener later</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
-        /// is <c>null</c></exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        ListenerToken<DocumentChangedEventArgs> AddDocumentChangeListener([NotNull] string id, [NotNull] EventHandler<DocumentChangedEventArgs> handler);// => AddDocumentChangeListener(id, null, handler);
-
     }
 }

@@ -5,12 +5,12 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
-    public interface IChangeObservableRemovable<TEventType> where TEventType : EventArgs
+    public interface IChangeObservableRemovable
     {
-        void RemoveChangeListener(ListenerToken<TEventType> token);
+        void RemoveChangeListener(ListenerToken token);
     }
 
-    public interface IChangeObservable<TEventType> : IChangeObservableRemovable<TEventType> where TEventType : EventArgs
+    public interface IChangeObservable<TEventType> : IChangeObservableRemovable where TEventType : EventArgs
     {
         /// <summary>
         /// Adds a change listener for the changes that occur in this database.  Signatures
@@ -23,8 +23,7 @@ namespace Couchbase.Lite
         /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        ListenerToken<TEventType> AddChangeListener([CanBeNull] TaskScheduler scheduler,
-            [NotNull] EventHandler<TEventType> handler);
+        ListenerToken AddChangeListener([CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<TEventType> handler);
 
         /// <summary>
         /// Adds a change listener for the changes that occur in this database.  Signatures
@@ -35,22 +34,22 @@ namespace Couchbase.Lite
         /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        ListenerToken<TEventType> AddChangeListener([NotNull] EventHandler<TEventType> handler);
+        ListenerToken AddChangeListener([NotNull] EventHandler<TEventType> handler);
     }
 
-    public interface IDocumentChangeObservable<TEventType> : IChangeObservableRemovable<TEventType> where TEventType : EventArgs
+    public interface IDocumentChangeObservable : IChangeObservableRemovable
     {
-        public ListenerToken<DocumentChangedEventArgs> AddDocumentChangeListener([NotNull] string id, [CanBeNull] TaskScheduler scheduler,
+        public ListenerToken AddDocumentChangeListener([NotNull] string id, [CanBeNull] TaskScheduler scheduler,
             [NotNull] EventHandler<DocumentChangedEventArgs> handler);
 
-        public ListenerToken<DocumentChangedEventArgs> AddDocumentChangeListener([NotNull] string id, [NotNull] EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
+        public ListenerToken AddDocumentChangeListener([NotNull] string id, [NotNull] EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
     }
 
-    public interface IDocumentReplicatedObservable<TEventType> : IChangeObservableRemovable<TEventType> where TEventType : EventArgs
+    public interface IDocumentReplicatedObservable : IChangeObservableRemovable
     {
-        public ListenerToken<DocumentReplicationEventArgs> AddDocumentReplicationListener([NotNull] EventHandler<DocumentReplicationEventArgs> handler);
+        public ListenerToken AddDocumentReplicationListener([NotNull] EventHandler<DocumentReplicationEventArgs> handler);
 
-        public ListenerToken<DocumentReplicationEventArgs> AddDocumentReplicationListener([CanBeNull] TaskScheduler scheduler,
+        public ListenerToken AddDocumentReplicationListener([CanBeNull] TaskScheduler scheduler,
             [NotNull] EventHandler<DocumentReplicationEventArgs> handler);
     }
 }

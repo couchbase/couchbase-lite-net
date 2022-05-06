@@ -113,7 +113,7 @@ namespace Couchbase.Lite
     /// and can be seeded with pre-populated data if desired.
     /// </summary>
     public sealed unsafe partial class Database : ICollection, IQueryFactory, IDisposable, IChangeObservable<DatabaseChangedEventArgs>,
-        IDocumentChangeObservable<DocumentChangedEventArgs>
+        IDocumentChangeObservable
     {
         #region Constants
 
@@ -558,7 +558,7 @@ namespace Couchbase.Lite
         /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public ListenerToken<DatabaseChangedEventArgs> AddChangeListener([@CanBeNull]TaskScheduler scheduler,
+        public ListenerToken AddChangeListener([@CanBeNull]TaskScheduler scheduler,
             [@NotNull]EventHandler<DatabaseChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
@@ -573,7 +573,7 @@ namespace Couchbase.Lite
                     _obs = Native.c4dbobs_create(_c4db, _DatabaseObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer());
                 }
 
-                return new ListenerToken<DatabaseChangedEventArgs>(cbHandler, ListenerTokenType.Database, this);
+                return new ListenerToken(cbHandler, ListenerTokenType.Database, this);
             });
         }
 
@@ -587,7 +587,7 @@ namespace Couchbase.Lite
         /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public ListenerToken<DatabaseChangedEventArgs> AddChangeListener([@NotNull]EventHandler<DatabaseChangedEventArgs> handler) => AddChangeListener(null, handler);
+        public ListenerToken AddChangeListener([@NotNull]EventHandler<DatabaseChangedEventArgs> handler) => AddChangeListener(null, handler);
 
         /// <summary>
         /// [Obsolete("RemoveChangeListener is deprecated, please use <see cref="GetDefaultCollection().RemoveChangeListener"/>.")]
@@ -595,21 +595,21 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{DatabaseChangedEventArgs})"/>
         /// and family</param>
-        public void RemoveChangeListener(ListenerToken<DatabaseChangedEventArgs> token)
-        {
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
+        //public void RemoveChangeListener(ListenerToken token)
+        //{
+        //    ThreadSafety.DoLocked(() =>
+        //    {
+        //        CheckOpen();
 
-                if (_databaseChanged.Remove(token) == 0) {
-                    Native.c4dbobs_free(_obs);
-                    _obs = null;
-                    if (_obsContext.IsAllocated) {
-                        _obsContext.Free();
-                    }
-                }
-            });
-        }
+        //        if (_databaseChanged.Remove(token) == 0) {
+        //            Native.c4dbobs_free(_obs);
+        //            _obs = null;
+        //            if (_obsContext.IsAllocated) {
+        //                _obsContext.Free();
+        //            }
+        //        }
+        //    });
+        //}
 
         /// <summary>
         /// [Obsolete("AddDocumentChangeListener is deprecated, please use <see cref="GetDefaultCollection().AddDocumentChangeListener"/>.")]
@@ -624,7 +624,7 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
         /// is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public ListenerToken<DocumentChangedEventArgs> AddDocumentChangeListener([@NotNull]string id, [@CanBeNull]TaskScheduler scheduler,
+        public ListenerToken AddDocumentChangeListener([@NotNull]string id, [@CanBeNull]TaskScheduler scheduler,
             [@NotNull]EventHandler<DocumentChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
@@ -643,7 +643,7 @@ namespace Couchbase.Lite
                     _docObs[id] = Tuple.Create((IntPtr) docObs, handle);
                 }
 
-                return new ListenerToken<DocumentChangedEventArgs>(cbHandler, ListenerTokenType.Document, this);
+                return new ListenerToken(cbHandler, ListenerTokenType.Document, this);
             });
         }
 
@@ -658,20 +658,28 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
         /// is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public ListenerToken<DocumentChangedEventArgs> AddDocumentChangeListener([@NotNull]string id, [@NotNull]EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
+        public ListenerToken AddDocumentChangeListener([@NotNull]string id, [@NotNull]EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
 
-        public void RemoveChangeListener(ListenerToken<DocumentChangedEventArgs> token)
+        public void RemoveChangeListener(ListenerToken token)
         {
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
 
-                if (_documentChanged.Remove(token, out var docID) == 0) {
-                    if (_docObs.TryGetValue(docID, out var observer)) {
-                        _docObs.Remove(docID);
-                        Native.c4docobs_free((C4DocumentObserver*)observer.Item1);
-                        observer.Item2.Free();
+                if (token.Type == ListenerTokenType.Database) {
+                    if (_databaseChanged.Remove(token) == 0) {
+                        Native.c4dbobs_free(_obs);
+                        _obs = null;
+                        if (_obsContext.IsAllocated) {
+                            _obsContext.Free();
+                        }
                     }
+                } else if (_documentChanged.Remove(token, out var docID) == 0) {
+                        if (_docObs.TryGetValue(docID, out var observer)) {
+                            _docObs.Remove(docID);
+                            Native.c4docobs_free((C4DocumentObserver*)observer.Item1);
+                            observer.Item2.Free();
+                        }
                 }
             });
         }

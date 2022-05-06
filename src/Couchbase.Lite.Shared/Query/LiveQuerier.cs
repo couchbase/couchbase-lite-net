@@ -43,7 +43,7 @@ namespace Couchbase.Lite.Internal.Query
         private C4QueryObserver* _queryObserver;
         private bool _disposed;
         private QueryBase _queryBase;
-        private ListenerToken<QueryChangedEventArgs> _listenerToken;
+        private ListenerToken _listenerToken;
         private int _startedObserving;
 
         #endregion

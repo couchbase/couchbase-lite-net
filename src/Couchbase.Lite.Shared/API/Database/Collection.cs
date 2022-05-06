@@ -7,7 +7,8 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
-    public sealed class Collection : ICollection, IDisposable, IChangeObservable<DatabaseChangedEventArgs>
+    public sealed class Collection : ICollection, IDisposable, IChangeObservable<DatabaseChangedEventArgs>,
+        IDocumentChangeObservable
     {
         [NotNull]
         internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
@@ -18,22 +19,22 @@ namespace Couchbase.Lite
 
         public ulong Count => throw new NotImplementedException();
 
-        public ListenerToken<DatabaseChangedEventArgs> AddChangeListener([CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<DatabaseChangedEventArgs> handler)
+        public ListenerToken AddChangeListener([CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<DatabaseChangedEventArgs> handler)
         {
             throw new NotImplementedException();
         }
 
-        public ListenerToken<DatabaseChangedEventArgs> AddChangeListener([NotNull] EventHandler<DatabaseChangedEventArgs> handler)
+        public ListenerToken AddChangeListener([NotNull] EventHandler<DatabaseChangedEventArgs> handler)
         {
             throw new NotImplementedException();
         }
 
-        public ListenerToken<DocumentChangedEventArgs> AddDocumentChangeListener([NotNull] string id, [CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<DocumentChangedEventArgs> handler)
+        public ListenerToken AddDocumentChangeListener([NotNull] string id, [CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<DocumentChangedEventArgs> handler)
         {
             throw new NotImplementedException();
         }
 
-        public ListenerToken<DocumentChangedEventArgs> AddDocumentChangeListener([NotNull] string id, [NotNull] EventHandler<DocumentChangedEventArgs> handler)
+        public ListenerToken AddDocumentChangeListener([NotNull] string id, [NotNull] EventHandler<DocumentChangedEventArgs> handler)
         {
             throw new NotImplementedException();
         }
@@ -88,7 +89,7 @@ namespace Couchbase.Lite
             throw new NotImplementedException();
         }
 
-        public void RemoveChangeListener(ListenerToken<DatabaseChangedEventArgs> token)
+        public void RemoveChangeListener(ListenerToken token)
         {
             throw new NotImplementedException();
         }

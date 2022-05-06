@@ -2812,7 +2812,7 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
 
     public class ListenerAwaiter
     {
-        private readonly ListenerToken<MessageEndpointListenerChangedEventArgs> _token;
+        private readonly ListenerToken _token;
         private readonly ManualResetEventSlim _mre = new ManualResetEventSlim();
         private readonly List<Exception> _exceptions = new List<Exception>();
         private readonly MessageEndpointListener _listener;

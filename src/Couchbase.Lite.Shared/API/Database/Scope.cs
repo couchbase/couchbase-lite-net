@@ -12,17 +12,17 @@ namespace Couchbase.Lite
 
         public List<Collection> Collections => throw new NotImplementedException();
 
-        public ListenerToken<DatabaseChangedEventArgs> AddChangeListener([CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<DatabaseChangedEventArgs> handler)
+        public ListenerToken AddChangeListener([CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<DatabaseChangedEventArgs> handler)
         {
             throw new NotImplementedException();
         }
 
-        public ListenerToken<DatabaseChangedEventArgs> AddChangeListener([NotNull] EventHandler<DatabaseChangedEventArgs> handler)
+        public ListenerToken AddChangeListener([NotNull] EventHandler<DatabaseChangedEventArgs> handler)
         {
             throw new NotImplementedException();
         }
 
-        public void RemoveChangeListener(ListenerToken<DatabaseChangedEventArgs> token)
+        public void RemoveChangeListener(ListenerToken token)
         {
             throw new NotImplementedException();
         }

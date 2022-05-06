@@ -48,7 +48,7 @@ namespace Couchbase.Lite.Sync
     /// or a database and another database on the same filesystem.
     /// </summary>
     public sealed unsafe class Replicator : IDisposable, IStoppable, IChangeObservable<ReplicatorStatusChangedEventArgs>,
-        IDocumentReplicatedObservable<DocumentReplicationEventArgs>
+        IDocumentReplicatedObservable
     {
         #region Constants
 
@@ -141,7 +141,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        public ListenerToken<ReplicatorStatusChangedEventArgs> AddChangeListener([NotNull]EventHandler<ReplicatorStatusChangedEventArgs> handler)
+        public ListenerToken AddChangeListener([NotNull]EventHandler<ReplicatorStatusChangedEventArgs> handler)
         {
             return AddChangeListener(null, handler);
         }
@@ -155,19 +155,14 @@ namespace Couchbase.Lite.Sync
         /// (<c>null</c> for default)</param>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        public ListenerToken<ReplicatorStatusChangedEventArgs> AddChangeListener([CanBeNull]TaskScheduler scheduler,
+        public ListenerToken AddChangeListener([CanBeNull]TaskScheduler scheduler,
             [NotNull]EventHandler<ReplicatorStatusChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
 
             var cbHandler = new CouchbaseEventHandler<ReplicatorStatusChangedEventArgs>(handler, scheduler);
             _statusChanged.Add(cbHandler);
-            return new ListenerToken<ReplicatorStatusChangedEventArgs>(cbHandler, ListenerTokenType.Replicator, this);
-        }
-
-        public void RemoveChangeListener(ListenerToken<ReplicatorStatusChangedEventArgs> token)
-        {
-            _statusChanged.Remove(token);
+            return new ListenerToken(cbHandler, ListenerTokenType.Replicator, this);
         }
 
         /// <summary>
@@ -178,7 +173,7 @@ namespace Couchbase.Lite.Sync
         /// </remarks>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        public ListenerToken<DocumentReplicationEventArgs> AddDocumentReplicationListener([NotNull]EventHandler<DocumentReplicationEventArgs> handler)
+        public ListenerToken AddDocumentReplicationListener([NotNull]EventHandler<DocumentReplicationEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
 
@@ -197,7 +192,7 @@ namespace Couchbase.Lite.Sync
         /// (<c>null</c> for default)</param>
         /// <param name="handler">The logic to run during the callback</param>
         /// <returns>A token to remove the handler later</returns>
-        public ListenerToken<DocumentReplicationEventArgs> AddDocumentReplicationListener([CanBeNull]TaskScheduler scheduler,
+        public ListenerToken AddDocumentReplicationListener([CanBeNull]TaskScheduler scheduler,
             [NotNull]EventHandler<DocumentReplicationEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(handler), handler);
@@ -206,7 +201,7 @@ namespace Couchbase.Lite.Sync
                 SetProgressLevel(C4ReplicatorProgressLevel.ReplProgressPerDocument);
             }
             
-            return new ListenerToken<DocumentReplicationEventArgs>(cbHandler, ListenerTokenType.DocReplicated, this);
+            return new ListenerToken(cbHandler, ListenerTokenType.DocReplicated, this);
         }
 
         /// <summary>
@@ -215,9 +210,11 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{ReplicatorStatusChangedEventArgs})"/>
         /// and/or The token received from <see cref="AddDocumentReplicationListener(TaskScheduler, EventHandler{DocumentReplicationEventArgs})"/></param>
-        public void RemoveChangeListener(ListenerToken<DocumentReplicationEventArgs> token)
+        public void RemoveChangeListener(ListenerToken token)
         {
-            if (_documentEndedUpdate.Remove(token) == 0) {
+            if (token.Type == ListenerTokenType.Replicator) {
+                _statusChanged.Remove(token);
+            } else if (_documentEndedUpdate.Remove(token) == 0) {
                 SetProgressLevel(C4ReplicatorProgressLevel.ReplProgressOverall);
             }
         }

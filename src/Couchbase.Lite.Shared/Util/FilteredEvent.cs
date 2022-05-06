@@ -175,7 +175,7 @@ namespace Couchbase.Lite.Util
             }
         }
 
-        public int Remove(ListenerToken<TEventType> token)
+        public int Remove(ListenerToken token)
         {
             lock (_locker) {
                 _events.Remove(token.EventHandler as CouchbaseEventHandler<TEventType>);
@@ -235,7 +235,7 @@ namespace Couchbase.Lite.Util
             }
         }
 
-        public int Remove(ListenerToken<TEventType> token, out TFilterType filter)
+        public int Remove(ListenerToken token, out TFilterType filter)
         {
             filter = default(TFilterType);
             if (!(token.EventHandler is CouchbaseEventHandler<TFilterType, TEventType> handler)) {

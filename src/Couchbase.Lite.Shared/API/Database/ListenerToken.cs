@@ -43,7 +43,7 @@ namespace Couchbase.Lite
     /// is registered on a Couchbase Lite object (for example
     /// <see cref="Database.AddChangeListener(System.EventHandler{DatabaseChangedEventArgs})"/>)
     /// </summary>
-    public struct ListenerToken<TEventType> : iListenerToken where TEventType : EventArgs
+    public struct ListenerToken : iListenerToken
     {
         #region Variables
 
@@ -53,16 +53,14 @@ namespace Couchbase.Lite
         [NotNull]
         internal readonly ListenerTokenType Type;
 
-        //internal readonly Event Event;
-
-        internal readonly IChangeObservableRemovable<TEventType> ChangeObservableRemovable;
+        internal readonly IChangeObservableRemovable ChangeObservableRemovable;
 
         #endregion
 
         #region Constructors
 
-        internal ListenerToken([NotNull]CouchbaseEventHandler handler,  [NotNull] ListenerTokenType type,// Event<TEventType> e,
-            IChangeObservableRemovable<TEventType> changeObservableRemovable)
+        internal ListenerToken([NotNull]CouchbaseEventHandler handler,  [NotNull] ListenerTokenType type,
+            IChangeObservableRemovable changeObservableRemovable)
         {
             EventHandler = handler;
             Type = type;
