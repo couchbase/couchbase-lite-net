@@ -330,8 +330,8 @@ namespace Test
                 statuses.Add(args.Status.Activity);
             });
             var connection = listener.Connections;
-            //token.Remove();
-            listener.RemoveChangeListener(token);
+            token.Remove();
+            //listener.RemoveChangeListener(token);
             RunReplication(config, 0, 0);
             awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
             awaiter.Validate();
@@ -523,8 +523,8 @@ namespace Test
                 _repl.Stop();
                 throw;
             } finally {
-                //token.Remove();
-                _repl.RemoveChangeListener(token);
+                token.Remove();
+                //_repl.RemoveChangeListener(token);
             }
         }
 

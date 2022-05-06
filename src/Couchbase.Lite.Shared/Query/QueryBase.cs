@@ -214,7 +214,7 @@ namespace Couchbase.Lite.Internal.Query
             }
             
             var e = liveQuerier?.StartObserver(cbEventHandler);
-            var token = new ListenerToken<QueryChangedEventArgs>(cbEventHandler, ListenerTokenType.Query, e);
+            var token = new ListenerToken<QueryChangedEventArgs>(cbEventHandler, ListenerTokenType.Query, this);
             _listenerTokens.Add(token, liveQuerier);
             return token;
         }

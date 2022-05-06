@@ -21,6 +21,11 @@ using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 using System;
 
+public interface iListenerToken
+{
+    void Remove();
+}
+
 namespace Couchbase.Lite
 {
     internal enum ListenerTokenType
@@ -38,7 +43,7 @@ namespace Couchbase.Lite
     /// is registered on a Couchbase Lite object (for example
     /// <see cref="Database.AddChangeListener(System.EventHandler{DatabaseChangedEventArgs})"/>)
     /// </summary>
-    public struct ListenerToken<TEventType> where TEventType : EventArgs
+    public struct ListenerToken<TEventType> : iListenerToken where TEventType : EventArgs
     {
         #region Variables
 
@@ -48,24 +53,27 @@ namespace Couchbase.Lite
         [NotNull]
         internal readonly ListenerTokenType Type;
 
-        internal readonly Event<TEventType> Event;
+        //internal readonly Event Event;
+
+        internal readonly IChangeObservableRemovable<TEventType> ChangeObservableRemovable;
 
         #endregion
 
         #region Constructors
 
-        internal ListenerToken([NotNull]CouchbaseEventHandler handler,  [NotNull] ListenerTokenType type, Event<TEventType> e)
+        internal ListenerToken([NotNull]CouchbaseEventHandler handler,  [NotNull] ListenerTokenType type,// Event<TEventType> e,
+            IChangeObservableRemovable<TEventType> changeObservableRemovable)
         {
             EventHandler = handler;
             Type = type;
-            Event = e;
+            ChangeObservableRemovable = changeObservableRemovable;
         }
 
         #endregion
 
-        public int Remove()
+        public void Remove()
         {
-            return Event.Remove(this);
+            ChangeObservableRemovable.RemoveChangeListener(this);
         }
     }
 }

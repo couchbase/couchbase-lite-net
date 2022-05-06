@@ -245,8 +245,8 @@ namespace Test
                 try {
                     waitAssert.WaitForResult(TimeSpan.FromSeconds(100));
                 } finally {
-                    //token.Remove();
-                    repl.RemoveChangeListener(token);
+                    token.Remove();
+                    //repl.RemoveChangeListener(token);
                 }
             }
 
@@ -723,10 +723,10 @@ namespace Test
             WaitHandle.WaitAll(new[] {wait1.WaitHandle, wait2.WaitHandle}, TimeSpan.FromSeconds(20))
                 .Should().BeTrue();
 
-            //token1.Remove();
-            //token2.Remove();
-            repl1.RemoveChangeListener(token1);
-            repl2.RemoveChangeListener(token2);
+            token1.Remove();
+            token2.Remove();
+            //repl1.RemoveChangeListener(token1);
+            //repl2.RemoveChangeListener(token2);
 
             Db.Count.Should().Be(3, "because otherwise not all docs were received into Db");
             OtherDb.Count.Should().Be(3, "because otherwise not all docs were received into OtherDb");
@@ -1103,10 +1103,10 @@ namespace Test
                 urlepTestDb.Count.Should().Be(existingDocsInListener + 1UL);
             }
 
-            //token1.Remove();
-            //token2.Remove();
-            repl1.RemoveChangeListener(token1);
-            repl2.RemoveChangeListener(token2);
+            token1.Remove();
+            token2.Remove();
+            //repl1.RemoveChangeListener(token1);
+            //repl2.RemoveChangeListener(token2);
 
             repl1.Dispose();
             repl2.Dispose();

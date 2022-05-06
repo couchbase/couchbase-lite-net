@@ -47,7 +47,8 @@ namespace Couchbase.Lite.Sync
     /// (i.e. pusher and puller are no longer separate) between a database and a URL
     /// or a database and another database on the same filesystem.
     /// </summary>
-    public sealed unsafe class Replicator : IDisposable, IStoppable, IChangeObservable<ReplicatorStatusChangedEventArgs>
+    public sealed unsafe class Replicator : IDisposable, IStoppable, IChangeObservable<ReplicatorStatusChangedEventArgs>,
+        IDocumentReplicatedObservable<DocumentReplicationEventArgs>
     {
         #region Constants
 
@@ -161,7 +162,7 @@ namespace Couchbase.Lite.Sync
 
             var cbHandler = new CouchbaseEventHandler<ReplicatorStatusChangedEventArgs>(handler, scheduler);
             _statusChanged.Add(cbHandler);
-            return new ListenerToken<ReplicatorStatusChangedEventArgs>(cbHandler, ListenerTokenType.Replicator, _statusChanged);
+            return new ListenerToken<ReplicatorStatusChangedEventArgs>(cbHandler, ListenerTokenType.Replicator, this);
         }
 
         public void RemoveChangeListener(ListenerToken<ReplicatorStatusChangedEventArgs> token)
@@ -205,7 +206,7 @@ namespace Couchbase.Lite.Sync
                 SetProgressLevel(C4ReplicatorProgressLevel.ReplProgressPerDocument);
             }
             
-            return new ListenerToken<DocumentReplicationEventArgs>(cbHandler, ListenerTokenType.DocReplicated, _documentEndedUpdate);
+            return new ListenerToken<DocumentReplicationEventArgs>(cbHandler, ListenerTokenType.DocReplicated, this);
         }
 
         /// <summary>

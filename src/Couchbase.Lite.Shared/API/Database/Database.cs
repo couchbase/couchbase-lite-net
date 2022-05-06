@@ -112,7 +112,8 @@ namespace Couchbase.Lite
     /// <see cref="Document"/> instances.  It is portable between platforms if the file is retrieved,
     /// and can be seeded with pre-populated data if desired.
     /// </summary>
-    public sealed unsafe partial class Database : ICollection, IQueryFactory, IDisposable, IChangeObservable<DatabaseChangedEventArgs>
+    public sealed unsafe partial class Database : ICollection, IQueryFactory, IDisposable, IChangeObservable<DatabaseChangedEventArgs>,
+        IDocumentChangeObservable<DocumentChangedEventArgs>
     {
         #region Constants
 
@@ -572,7 +573,7 @@ namespace Couchbase.Lite
                     _obs = Native.c4dbobs_create(_c4db, _DatabaseObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer());
                 }
 
-                return new ListenerToken<DatabaseChangedEventArgs>(cbHandler, ListenerTokenType.Database, _databaseChanged);
+                return new ListenerToken<DatabaseChangedEventArgs>(cbHandler, ListenerTokenType.Database, this);
             });
         }
 
@@ -642,7 +643,7 @@ namespace Couchbase.Lite
                     _docObs[id] = Tuple.Create((IntPtr) docObs, handle);
                 }
 
-                return new ListenerToken<DocumentChangedEventArgs>(cbHandler, ListenerTokenType.Document, _documentChanged);
+                return new ListenerToken<DocumentChangedEventArgs>(cbHandler, ListenerTokenType.Document, this);
             });
         }
 

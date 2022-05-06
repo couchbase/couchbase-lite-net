@@ -1,10 +1,16 @@
-﻿using JetBrains.Annotations;
+﻿using Couchbase.Lite.Sync;
+using JetBrains.Annotations;
 using System;
 using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
-    public interface IChangeObservable<TEventType> where TEventType : EventArgs
+    public interface IChangeObservableRemovable<TEventType> where TEventType : EventArgs
+    {
+        void RemoveChangeListener(ListenerToken<TEventType> token);
+    }
+
+    public interface IChangeObservable<TEventType> : IChangeObservableRemovable<TEventType> where TEventType : EventArgs
     {
         /// <summary>
         /// Adds a change listener for the changes that occur in this database.  Signatures
@@ -30,13 +36,21 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         ListenerToken<TEventType> AddChangeListener([NotNull] EventHandler<TEventType> handler);
+    }
 
-        /// <summary>
-        /// Removes a previously added change listener via its <see cref="ListenerToken"/> and/or
-        /// Removes a previously added documents ended listener via its <see cref="ListenerToken"/>
-        /// </summary>
-        /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{ReplicatorStatusChangedEventArgs})"/>
-        /// and/or The token received from <see cref="AddDocumentReplicationListener(TaskScheduler, EventHandler{DocumentReplicationEventArgs})"/></param>
-        void RemoveChangeListener(ListenerToken<TEventType> token);
+    public interface IDocumentChangeObservable<TEventType> : IChangeObservableRemovable<TEventType> where TEventType : EventArgs
+    {
+        public ListenerToken<DocumentChangedEventArgs> AddDocumentChangeListener([NotNull] string id, [CanBeNull] TaskScheduler scheduler,
+            [NotNull] EventHandler<DocumentChangedEventArgs> handler);
+
+        public ListenerToken<DocumentChangedEventArgs> AddDocumentChangeListener([NotNull] string id, [NotNull] EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
+    }
+
+    public interface IDocumentReplicatedObservable<TEventType> : IChangeObservableRemovable<TEventType> where TEventType : EventArgs
+    {
+        public ListenerToken<DocumentReplicationEventArgs> AddDocumentReplicationListener([NotNull] EventHandler<DocumentReplicationEventArgs> handler);
+
+        public ListenerToken<DocumentReplicationEventArgs> AddDocumentReplicationListener([CanBeNull] TaskScheduler scheduler,
+            [NotNull] EventHandler<DocumentReplicationEventArgs> handler);
     }
 }
