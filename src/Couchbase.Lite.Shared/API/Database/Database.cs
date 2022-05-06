@@ -307,7 +307,7 @@ namespace Couchbase.Lite
             }
         }
 
-        public Scope Scope => GetDefaultScope();
+        public IScope Scope => GetDefaultScope();
 
         #endregion
 
@@ -407,7 +407,7 @@ namespace Couchbase.Lite
         /// under it.
         /// </summary>
         /// <returns></returns>
-        public List<Scope> GetScopes()
+        public IReadOnlyList<IScope> GetScopes()
         {
             throw new NotImplementedException();
         }
@@ -419,7 +419,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public Scope GetScope(string name)
+        public IScope GetScope(string name)
         {
             throw new NotImplementedException();
         }
@@ -428,7 +428,7 @@ namespace Couchbase.Lite
         /// Get all collections of given Scope name.
         /// </summary>
         /// <returns></returns>
-        public List<Collection> GetCollections(string scope = DefaultScopeName)
+        public IReadOnlyList<ICollection> GetCollections(string scope = DefaultScopeName)
         {
             throw new NotImplementedException();
         }
@@ -745,7 +745,7 @@ namespace Couchbase.Lite
 
         /// <summary>
         /// [Obsolete("CreateIndex is deprecated, please use <see cref="GetDefaultCollection().CreateIndex"/>.")]
-        /// [DEPRECATED] Creates a SQL query index which could be a value index from <see cref="ValueIndexConfiguration"/> or a full-text search index
+        /// [DEPRECATED] Creates a SQL++ query index which could be a value index from <see cref="ValueIndexConfiguration"/> or a full-text search index
         /// from <see cref="FullTextIndexConfiguration"/> with the given name.
         /// The name can be used for deleting the index. Creating a new different index with an existing
         /// index name will replace the old index; creating the same index with the same name will be no-ops.
@@ -779,9 +779,9 @@ namespace Couchbase.Lite
             });
         }
 
-        /// Creates a Query object from the given SQL string.
+        /// Creates a Query object from the given SQL++ string.
         /// </summary>
-        /// <param name="queryExpression">SQL Expression</param>
+        /// <param name="queryExpression">SQL++ Expression</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="queryExpression"/>
         /// is <c>null</c></exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>

@@ -15,7 +15,7 @@ namespace Couchbase.Lite
 
         public string Name => throw new NotImplementedException();
 
-        public Scope Scope => throw new NotImplementedException();
+        public IScope Scope => throw new NotImplementedException();
 
         public ulong Count => throw new NotImplementedException();
 

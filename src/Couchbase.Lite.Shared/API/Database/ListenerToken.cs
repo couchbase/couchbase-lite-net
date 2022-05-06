@@ -19,12 +19,6 @@
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
-using System;
-
-public interface iListenerToken
-{
-    void Remove();
-}
 
 namespace Couchbase.Lite
 {
@@ -43,7 +37,7 @@ namespace Couchbase.Lite
     /// is registered on a Couchbase Lite object (for example
     /// <see cref="Database.AddChangeListener(System.EventHandler{DatabaseChangedEventArgs})"/>)
     /// </summary>
-    public struct ListenerToken : iListenerToken
+    public struct ListenerToken
     {
         #region Variables
 

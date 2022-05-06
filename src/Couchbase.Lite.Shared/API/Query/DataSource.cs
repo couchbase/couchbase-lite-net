@@ -48,7 +48,7 @@ namespace Couchbase.Lite.Query
         {
             var db = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(collection), collection);
 
-            return new DatabaseSource(collection, collection.ThreadSafety);
+            return new DatabaseSource(db, db.ThreadSafety);
         }
 
         /// <summary>

@@ -1,4 +1,5 @@
 ﻿using Couchbase.Lite.Query;
+using Couchbase.Lite.Support;
 using JetBrains.Annotations;
 using System;
 using System.Threading.Tasks;
@@ -15,7 +16,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the Scope of the Collection belongs to
         /// </summary>
-        Scope Scope { get; }
+        IScope Scope { get; }
 
         /// <summary>
         /// Gets the total documents in the Collection

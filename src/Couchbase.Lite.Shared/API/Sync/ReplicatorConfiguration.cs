@@ -392,7 +392,13 @@ namespace Couchbase.Lite.Sync
         [CanBeNull]
         public CollectionConfiguration GetCollectionConfig(Collection collection)
         {
-            return CollectionConfigs[collection];
+            CollectionConfiguration config = null;
+            if (!CollectionConfigs.TryGetValue(collection, out config)) {
+                WriteLog.To.Sync.W(Tag, $"Failed getting config.");
+                return null;
+            }
+
+            return config;
         }
 
         #endregion

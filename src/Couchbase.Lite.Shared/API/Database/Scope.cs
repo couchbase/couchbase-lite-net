@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
-    public sealed class Scope : IScope, IDisposable, IChangeObservable<DatabaseChangedEventArgs>
+    public sealed class Scope : IScope, IChangeObservable<DatabaseChangedEventArgs>
     {
         public string Name => throw new NotImplementedException();
 
@@ -28,11 +28,6 @@ namespace Couchbase.Lite
         }
 
         public IQuery CreateQuery([NotNull] string queryExpression)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Dispose()
         {
             throw new NotImplementedException();
         }
