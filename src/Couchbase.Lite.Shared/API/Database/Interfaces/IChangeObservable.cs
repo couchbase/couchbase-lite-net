@@ -39,17 +39,17 @@ namespace Couchbase.Lite
 
     public interface IDocumentChangeObservable : IChangeObservableRemovable
     {
-        public ListenerToken AddDocumentChangeListener([NotNull] string id, [CanBeNull] TaskScheduler scheduler,
+        ListenerToken AddDocumentChangeListener([NotNull] string id, [CanBeNull] TaskScheduler scheduler,
             [NotNull] EventHandler<DocumentChangedEventArgs> handler);
 
-        public ListenerToken AddDocumentChangeListener([NotNull] string id, [NotNull] EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
+        ListenerToken AddDocumentChangeListener([NotNull] string id, [NotNull] EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
     }
 
     public interface IDocumentReplicatedObservable : IChangeObservableRemovable
     {
-        public ListenerToken AddDocumentReplicationListener([NotNull] EventHandler<DocumentReplicationEventArgs> handler);
+        ListenerToken AddDocumentReplicationListener([NotNull] EventHandler<DocumentReplicationEventArgs> handler);
 
-        public ListenerToken AddDocumentReplicationListener([CanBeNull] TaskScheduler scheduler,
+        ListenerToken AddDocumentReplicationListener([CanBeNull] TaskScheduler scheduler,
             [NotNull] EventHandler<DocumentReplicationEventArgs> handler);
     }
 }
