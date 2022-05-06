@@ -590,28 +590,6 @@ namespace Couchbase.Lite
         public ListenerToken AddChangeListener([@NotNull]EventHandler<DatabaseChangedEventArgs> handler) => AddChangeListener(null, handler);
 
         /// <summary>
-        /// [Obsolete("RemoveChangeListener is deprecated, please use <see cref="GetDefaultCollection().RemoveChangeListener"/>.")]
-        /// [DEPRECATED] Removes a database changed listener by token
-        /// </summary>
-        /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{DatabaseChangedEventArgs})"/>
-        /// and family</param>
-        //public void RemoveChangeListener(ListenerToken token)
-        //{
-        //    ThreadSafety.DoLocked(() =>
-        //    {
-        //        CheckOpen();
-
-        //        if (_databaseChanged.Remove(token) == 0) {
-        //            Native.c4dbobs_free(_obs);
-        //            _obs = null;
-        //            if (_obsContext.IsAllocated) {
-        //                _obsContext.Free();
-        //            }
-        //        }
-        //    });
-        //}
-
-        /// <summary>
         /// [Obsolete("AddDocumentChangeListener is deprecated, please use <see cref="GetDefaultCollection().AddDocumentChangeListener"/>.")]
         /// [DEPRECATED] Adds a document change listener for the document with the given ID and the <see cref="TaskScheduler"/>
         /// that will be used to invoke the callback.  If the scheduler is not specified, then the default scheduler
