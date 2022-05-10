@@ -1,4 +1,22 @@
-﻿using Couchbase.Lite.Internal.Query;
+﻿// 
+//  Collection.cs
+// 
+//  Copyright (c) 2022 Couchbase, Inc All rights reserved.
+// 
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+// 
+//  http://www.apache.org/licenses/LICENSE-2.0
+// 
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+// 
+
+using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Support;
 using JetBrains.Annotations;
 using System;
@@ -10,14 +28,20 @@ namespace Couchbase.Lite
     public sealed class Collection : ICollection, IDisposable, IChangeObservable<DatabaseChangedEventArgs>,
         IDocumentChangeObservable
     {
-        [NotNull]
-        internal ThreadSafety ThreadSafety { get; } = new ThreadSafety();
+        #region Properties
+
+        [NotNull] //TODO: expose Database.ThreadSafety and assign here
+        internal ThreadSafety ThreadSafety { get; }
 
         public string Name => throw new NotImplementedException();
 
         public IScope Scope => throw new NotImplementedException();
 
         public ulong Count => throw new NotImplementedException();
+
+        #endregion
+
+        #region IChangeObservable
 
         public ListenerToken AddChangeListener([CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<DatabaseChangedEventArgs> handler)
         {
@@ -29,6 +53,10 @@ namespace Couchbase.Lite
             throw new NotImplementedException();
         }
 
+        #endregion
+
+        #region IDocumentChangeObservable
+
         public ListenerToken AddDocumentChangeListener([NotNull] string id, [CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<DocumentChangedEventArgs> handler)
         {
             throw new NotImplementedException();
@@ -38,6 +66,19 @@ namespace Couchbase.Lite
         {
             throw new NotImplementedException();
         }
+
+        #endregion
+
+        #region IChangeObservableRemovable
+
+        public void RemoveChangeListener(ListenerToken token)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
+        #region ICollection
 
         public void CreateIndex([NotNull] string name, [NotNull] IndexConfiguration indexConfig)
         {
@@ -59,11 +100,6 @@ namespace Couchbase.Lite
             throw new NotImplementedException();
         }
 
-        public void Dispose()
-        {
-            throw new NotImplementedException();
-        }
-
         public Document GetDocument([NotNull] string id)
         {
             throw new NotImplementedException();
@@ -74,7 +110,7 @@ namespace Couchbase.Lite
             throw new NotImplementedException();
         }
 
-        public IList<string> GetIndexes()
+        public IReadOnlyList<string> GetIndexes()
         {
             throw new NotImplementedException();
         }
@@ -85,11 +121,6 @@ namespace Couchbase.Lite
         }
 
         public void Purge([NotNull] string docId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void RemoveChangeListener(ListenerToken token)
         {
             throw new NotImplementedException();
         }
@@ -113,5 +144,16 @@ namespace Couchbase.Lite
         {
             throw new NotImplementedException();
         }
+
+        #endregion
+
+        #region IDispose
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
     }
 }

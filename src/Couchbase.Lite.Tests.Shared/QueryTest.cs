@@ -2839,7 +2839,6 @@ namespace Test
                     are.WaitOne(5000).Should().BeFalse("because the Changed event should not fire needlessly");
                 } finally {
                     token.Remove();
-                    //q.RemoveChangeListener(token);
                 }
             }
         }

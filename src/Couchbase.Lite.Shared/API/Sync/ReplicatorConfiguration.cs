@@ -115,11 +115,11 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// [Obsolete("Channels is deprecated, please use <see cref="CollectionConfiguration.Channels"/>.")]
         /// [DEPRECATED] A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
         /// The default value is null, meaning that all accessible channels will be pulled.
         /// Note: channels that are not accessible to the user will be ignored by Sync Gateway.
         /// </summary>
+        [Obsolete("Channels is deprecated, please use CollectionConfiguration.Channels")]
         [CanBeNull]
         public IList<string> Channels
         {
@@ -144,10 +144,10 @@ namespace Couchbase.Lite.Sync
         public Database Database { get; }
 
         /// <summary>
-        /// [Obsolete("DocumentIDs is deprecated, please use <see cref="CollectionConfiguration.DocumentIDs"/>.")]
         /// [DEPRECATED] A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
         /// and/or pulled
         /// </summary>
+        [Obsolete("DocumentIDs is deprecated, please use CollectionConfiguration.DocumentIDs")]
         [CanBeNull]
         public IList<string> DocumentIDs
         {
@@ -177,11 +177,11 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// [Obsolete("PullFilter is deprecated, please use <see cref="CollectionConfiguration.PullFilter"/>.")]
         /// [DEPRECATED] Func delegate that takes Document input parameter and bool output parameter
         /// Document pull will be allowed if output is true, othewise, Document pull 
         /// will not be allowed
         /// </summary>
+        [Obsolete("PullFilter is deprecated, please use CollectionConfiguration.PullFilter")]
         [CanBeNull]
         public Func<Document, DocumentFlags, bool> PullFilter
         {
@@ -190,11 +190,11 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// [Obsolete("PushFilter is deprecated, please use <see cref="CollectionConfiguration.PushFilter"/>.")]
         /// [DEPRECATED] Func delegate that takes Document input parameter and bool output parameter
         /// Document push will be allowed if output is true, othewise, Document push 
         /// will not be allowed
         /// </summary>
+        [Obsolete("PushFilter is deprecated, please use CollectionConfiguration.PushFilter")]
         [CanBeNull]
         public Func<Document, DocumentFlags, bool> PushFilter
         {
@@ -290,11 +290,11 @@ namespace Couchbase.Lite.Sync
         public IEndpoint Target { get; }
 
         /// <summary>
-        /// [Obsolete("ConflictResolver is deprecated, please use <see cref="CollectionConfiguration.ConflictResolver"/>.")]
         /// [DEPRECATED] The implemented custom conflict resolver object can be registered to the replicator 
         /// at ConflictResolver property. The default value of the conflictResolver is null. 
         /// When the value is null, the default conflict resolution will be applied.
         /// </summary>
+        [Obsolete("ConflictResolver is deprecated, please use CollectionConfiguration.ConflictResolver")]
         [CanBeNull]
         public IConflictResolver ConflictResolver
         {
@@ -352,13 +352,13 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// [Obsolete("Constructor ReplicatorConfiguration([NotNull] Database database, [NotNull] IEndpoint target) is deprecated, please use <see cref="ReplicatorConfiguration([NotNull] IEndpoint target)"/>.")]
         /// [DEPRECATED] Constructs a new builder object with the required properties
         /// </summary>
         /// <param name="database">The database that will serve as the local side of the replication</param>
         /// <param name="target">The endpoint to replicate to, either local or remote</param>
         /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
         /// is provided as <paramref name="target"/></exception>
+        [Obsolete("Constructor ReplicatorConfiguration([NotNull] Database database, [NotNull] IEndpoint target) is deprecated, please use ReplicatorConfiguration([NotNull] IEndpoint target)")]
         public ReplicatorConfiguration([NotNull] Database database, [NotNull] IEndpoint target)
         {
             Database = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(database), database);

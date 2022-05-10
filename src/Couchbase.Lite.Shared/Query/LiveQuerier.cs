@@ -43,7 +43,6 @@ namespace Couchbase.Lite.Internal.Query
         private C4QueryObserver* _queryObserver;
         private bool _disposed;
         private QueryBase _queryBase;
-        private ListenerToken _listenerToken;
         private int _startedObserving;
 
         #endregion
@@ -85,10 +84,10 @@ namespace Couchbase.Lite.Internal.Query
             return _changed;
         }
 
-        internal void StopObserver()
+        internal void StopObserver(ListenerToken listenerToken)
         {
             if (Interlocked.Decrement(ref _startedObserving) == 0) {
-                _changed.Remove(_listenerToken);
+                _changed.Remove(listenerToken);
                 Native.c4queryobs_setEnabled(_queryObserver, false);
             }
         }
@@ -102,7 +101,6 @@ namespace Couchbase.Lite.Internal.Query
                         return;
                     }
 
-                    StopObserver();
                     /* Stops an observer and frees the resources it's using. It is safe to pass NULL to this call. */
                     Native.c4queryobs_free(_queryObserver);
                     _queryObserver = null;

@@ -41,7 +41,7 @@ namespace Couchbase.Lite
         /// Gets the collection in which the change occurred
         /// </summary>
         [NotNull]
-        public Collection Collection { get; }
+        public ICollection Collection { get; }
 
         /// <summary>
         /// Gets the document that was changed
@@ -66,7 +66,7 @@ namespace Couchbase.Lite
             DocumentIDs = documentIDs;
         }
 
-        internal DatabaseChangedEventArgs([NotNull] Collection collection, [NotNull][ItemNotNull] IReadOnlyList<string> documentIDs)
+        internal DatabaseChangedEventArgs([NotNull] ICollection collection, [NotNull][ItemNotNull] IReadOnlyList<string> documentIDs)
         {
             Debug.Assert(collection != null);
             Debug.Assert(documentIDs != null);

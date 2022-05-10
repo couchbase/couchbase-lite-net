@@ -331,7 +331,6 @@ namespace Test
             });
             var connection = listener.Connections;
             token.Remove();
-            //listener.RemoveChangeListener(token);
             RunReplication(config, 0, 0);
             awaiter.WaitHandle.WaitOne(TimeSpan.FromSeconds(10)).Should().BeTrue();
             awaiter.Validate();
@@ -524,7 +523,6 @@ namespace Test
                 throw;
             } finally {
                 token.Remove();
-                //_repl.RemoveChangeListener(token);
             }
         }
 

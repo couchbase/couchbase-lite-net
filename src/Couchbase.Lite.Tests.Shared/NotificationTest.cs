@@ -151,7 +151,6 @@ namespace Test
             Db.Save(doc1);
             _wa.WaitForResult(TimeSpan.FromSeconds(5));
             token.Remove();
-            //Db.RemoveChangeListener(token);
 
             _wa = new WaitAssert();
             _docCallbackShouldThrow = true;
@@ -163,7 +162,6 @@ namespace Test
 
             // Remove again
             token.Remove();
-            //Db.RemoveChangeListener(token);
         }
 
         [Fact]

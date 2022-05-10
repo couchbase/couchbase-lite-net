@@ -100,7 +100,7 @@ namespace Couchbase.Lite
         /// Gets the Collection that this document belongs to, if any
         /// </summary>
         [CanBeNull]
-        public Collection Collection { get; set; }
+        public ICollection Collection { get; set; }
 
         internal bool Exists => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true && c4Doc.RawDoc->flags.HasFlag(C4DocumentFlags.DocExists));
 

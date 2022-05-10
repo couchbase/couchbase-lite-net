@@ -21,6 +21,7 @@ using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
+using System;
 
 namespace Couchbase.Lite.Query
 {
@@ -52,12 +53,12 @@ namespace Couchbase.Lite.Query
         }
 
         /// <summary>
-        /// [Obsolete("DataSource.Database is deprecated, please use <see cref="DataSource.Collection"/>.")]
         /// [DEPRECATED] Creates a data source for an <see cref="IQuery" /> that gets results from the given
         /// <see cref="Database" />
         /// </summary>
         /// <param name="database">The database to operate on</param>
         /// <returns>The source of data for the <see cref="IQuery" /></returns>
+        [Obsolete("DataSource.Database is deprecated, please use DataSource.Collection")]
         [NotNull]
         public static IDataSourceAs Database([NotNull]Database database)
         {

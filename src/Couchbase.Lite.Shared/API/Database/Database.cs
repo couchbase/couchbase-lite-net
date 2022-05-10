@@ -128,8 +128,11 @@ namespace Couchbase.Lite
         private static readonly C4DocumentObserverCallback _DocumentObserverCallback = DocObserverCallback;
         private static readonly C4DatabaseObserverCallback _DatabaseObserverCallback = DbObserverCallback;
 
-        public const string DefaultScopeName = "_default";
-        public const string DefaultCollectionName = "_default";
+        private const string _defaultScopeName = "_default";
+        private const string _defaultCollectionName = "_default";
+
+        public static readonly string DefaultScopeName = _defaultScopeName;
+        public static readonly string DefaultCollectionName = _defaultCollectionName;
 
         #endregion
 
@@ -175,9 +178,9 @@ namespace Couchbase.Lite
         public DatabaseConfiguration Config { get; }
 
         /// <summary>
-        /// [Obsolete("Count is deprecated, please use <see cref="GetDefaultCollection().Count"/>.")]
         /// [DEPRECATED] Gets the number of documents in the database
         /// </summary>
+        [Obsolete("Count is deprecated, please use GetDefaultCollection().Count")]
         public ulong Count => ThreadSafety.DoLocked(() => Native.c4db_getDocumentCount(_c4db));
 
         /// <summary>
@@ -387,7 +390,7 @@ namespace Couchbase.Lite
         /// Get the default scope. 
         /// </summary>
         /// <returns></returns>
-        public Scope GetDefaultScope()
+        public IScope GetDefaultScope()
         {
             throw new NotImplementedException();
         }
@@ -396,7 +399,7 @@ namespace Couchbase.Lite
         /// Get the default collection.
         /// </summary>
         /// <returns></returns>
-        public Collection GetDefaultCollection()
+        public ICollection GetDefaultCollection()
         {
             throw new NotImplementedException();
         }
@@ -428,7 +431,7 @@ namespace Couchbase.Lite
         /// Get all collections of given Scope name.
         /// </summary>
         /// <returns></returns>
-        public IReadOnlyList<ICollection> GetCollections(string scope = DefaultScopeName)
+        public IReadOnlyList<ICollection> GetCollections(string scope = _defaultScopeName)
         {
             throw new NotImplementedException();
         }
@@ -439,7 +442,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public Collection CreateCollection(string name, string scope = DefaultScopeName)
+        public Collection CreateCollection(string name, string scope = _defaultScopeName)
         {
             throw new NotImplementedException();
         }
@@ -450,7 +453,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public Collection GetCollection(string name, string scope = DefaultScopeName)
+        public ICollection GetCollection(string name, string scope = _defaultScopeName)
         {
             throw new NotImplementedException();
         }
@@ -461,7 +464,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name"></param>
         /// <param name="scope"></param>
-        public void DeleteCollection(string name, string scope = DefaultScopeName)
+        public void DeleteCollection(string name, string scope = _defaultScopeName)
         {
             throw new NotImplementedException();
         }
@@ -547,122 +550,6 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// [Obsolete("AddChangeListener is deprecated, please use <see cref="GetDefaultCollection().AddChangeListener"/>.")]
-        /// [DEPRECATED] Adds a change listener for the changes that occur in this database.  Signatures
-        /// are the same as += style event handlers, but the callbacks will be called using the
-        /// specified <see cref="TaskScheduler"/>.  If the scheduler is null, the default task
-        /// scheduler will be used (scheduled via thread pool).
-        /// </summary>
-        /// <param name="scheduler">The scheduler to use when firing the change handler</param>
-        /// <param name="handler">The handler to invoke</param>
-        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public ListenerToken AddChangeListener([@CanBeNull]TaskScheduler scheduler,
-            [@NotNull]EventHandler<DatabaseChangedEventArgs> handler)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
-
-            return ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-
-                var cbHandler = new CouchbaseEventHandler<DatabaseChangedEventArgs>(handler, scheduler);
-                if (_databaseChanged.Add(cbHandler) == 0) {
-                    _obsContext = GCHandle.Alloc(this);
-                    _obs = Native.c4dbobs_create(_c4db, _DatabaseObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer());
-                }
-
-                return new ListenerToken(cbHandler, ListenerTokenType.Database, this);
-            });
-        }
-
-        /// <summary>
-        /// [Obsolete("AddChangeListener is deprecated, please use <see cref="GetDefaultCollection().AddChangeListener"/>.")]
-        /// [DEPRECATED] Adds a change listener for the changes that occur in this database.  Signatures
-        /// are the same as += style event handlers.  The callback will be invoked on a thread pool
-        /// thread.
-        /// </summary>
-        /// <param name="handler">The handler to invoke</param>
-        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public ListenerToken AddChangeListener([@NotNull]EventHandler<DatabaseChangedEventArgs> handler) => AddChangeListener(null, handler);
-
-        /// <summary>
-        /// [Obsolete("AddDocumentChangeListener is deprecated, please use <see cref="GetDefaultCollection().AddDocumentChangeListener"/>.")]
-        /// [DEPRECATED] Adds a document change listener for the document with the given ID and the <see cref="TaskScheduler"/>
-        /// that will be used to invoke the callback.  If the scheduler is not specified, then the default scheduler
-        /// will be used (scheduled via thread pool)
-        /// </summary>
-        /// <param name="id">The document ID</param>
-        /// <param name="scheduler">The scheduler to use when firing the event handler</param>
-        /// <param name="handler">The logic to handle the event</param>
-        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the listener later</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
-        /// is <c>null</c></exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public ListenerToken AddDocumentChangeListener([@NotNull]string id, [@CanBeNull]TaskScheduler scheduler,
-            [@NotNull]EventHandler<DocumentChangedEventArgs> handler)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
-
-            return ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-
-                var cbHandler =
-                    new CouchbaseEventHandler<string, DocumentChangedEventArgs>(handler, id, scheduler);
-                var count = _documentChanged.Add(cbHandler);
-                if (count == 0) {
-                    var handle = GCHandle.Alloc(this);
-                    var docObs = Native.c4docobs_create(_c4db, id, _DocumentObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
-                    _docObs[id] = Tuple.Create((IntPtr) docObs, handle);
-                }
-
-                return new ListenerToken(cbHandler, ListenerTokenType.Document, this);
-            });
-        }
-
-        /// <summary>
-        /// [Obsolete("AddDocumentChangeListener is deprecated, please use <see cref="GetDefaultCollection().AddDocumentChangeListener"/>.")]
-        /// [DEPRECATED] Adds a document change listener for the document with the given ID.  The callback will be
-        /// invoked on a thread pool thread.
-        /// </summary>
-        /// <param name="id">The document ID</param>
-        /// <param name="handler">The logic to handle the event</param>
-        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the listener later</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
-        /// is <c>null</c></exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public ListenerToken AddDocumentChangeListener([@NotNull]string id, [@NotNull]EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
-
-        public void RemoveChangeListener(ListenerToken token)
-        {
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-
-                if (token.Type == ListenerTokenType.Database) {
-                    if (_databaseChanged.Remove(token) == 0) {
-                        Native.c4dbobs_free(_obs);
-                        _obs = null;
-                        if (_obsContext.IsAllocated) {
-                            _obsContext.Free();
-                        }
-                    }
-                } else if (_documentChanged.Remove(token, out var docID) == 0) {
-                        if (_docObs.TryGetValue(docID, out var observer)) {
-                            _docObs.Remove(docID);
-                            Native.c4docobs_free((C4DocumentObserver*)observer.Item1);
-                            observer.Item2.Free();
-                        }
-                }
-            });
-        }
-
-        /// <summary>
         /// Close database synchronously. Before closing the database, the active replicators, listeners and live queries will be stopped.
         /// </summary>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.Busy"/> if there are still active replicators
@@ -722,7 +609,6 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// [Obsolete("CreateIndex is deprecated, please use <see cref="GetDefaultCollection().CreateIndex"/>.")]
         /// [DEPRECATED] Creates a SQL++ query index which could be a value index from <see cref="ValueIndexConfiguration"/> or a full-text search index
         /// from <see cref="FullTextIndexConfiguration"/> with the given name.
         /// The name can be used for deleting the index. Creating a new different index with an existing
@@ -736,6 +622,7 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
         /// provided ones is used</exception>
+        [Obsolete("CreateIndex is deprecated, please use GetDefaultCollection().CreateIndex")]
         public void CreateIndex([@NotNull] string name, [@NotNull] IndexConfiguration indexConfig)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
@@ -790,7 +677,6 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// [Obsolete("Delete is deprecated, please use <see cref="GetDefaultCollection().Delete"/>.")]
         /// [DEPRECATED] Deletes a document from the database.  When write operations are executed
         /// concurrently, the last writer will overwrite all other written values.
         /// Calling this method is the same as calling <see cref="Delete(Document, ConcurrencyControl)"/>
@@ -803,10 +689,10 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
         /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        [Obsolete("Delete is deprecated, please use GetDefaultCollection().Delete")]
         public void Delete([@NotNull]Document document) => Delete(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
-        /// [Obsolete("Delete is deprecated, please use <see cref="GetDefaultCollection().Delete"/>.")]
         /// [DEPRECATED] Deletes the given <see cref="Document"/> from this database
         /// </summary>
         /// <param name="document">The document to save</param>
@@ -818,6 +704,7 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
         /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        [Obsolete("Delete is deprecated, please use GetDefaultCollection().Delete")]
         public bool Delete([@NotNull]Document document, ConcurrencyControl concurrencyControl)
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
@@ -825,10 +712,10 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// [Obsolete("DeleteIndex is deprecated, please use <see cref="GetDefaultCollection().DeleteIndex"/>.")]
         /// [DEPRECATED] Deletes the index with the given name
         /// </summary>
         /// <param name="name">The name of the index to delete</param>
+        [Obsolete("DeleteIndex is deprecated, please use GetDefaultCollection().DeleteIndex")]
         public void DeleteIndex([@NotNull]string name)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
@@ -841,11 +728,11 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// [Obsolete("GetDocument is deprecated, please use <see cref="GetDefaultCollection().GetDocument"/>.")]
         /// [DEPRECATED] Gets the <see cref="Document"/> with the specified ID
         /// </summary>
         /// <param name="id">The ID to use when creating or getting the document</param>
         /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
+        [Obsolete("GetDocument is deprecated, please use GetDefaultCollection().GetDocument")]
         [@CanBeNull]
         public Document GetDocument([@NotNull]string id)
         {
@@ -859,13 +746,13 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// [Obsolete("GetIndexes is deprecated, please use <see cref="GetDefaultCollection().GetIndexes"/>.")]
         /// [DEPRECATED] Gets a list of index names that are present in the database
         /// </summary>
         /// <returns>The list of created index names</returns>
+        [Obsolete("GetIndexes is deprecated, please use GetDefaultCollection().GetIndexes")]
         [@NotNull]
         [@ItemNotNull]
-        public IList<string> GetIndexes()
+        public IReadOnlyList<string> GetIndexes()
         {
             List<string> retVal = new List<string>();
             ThreadSafety.DoLocked(() =>
@@ -893,7 +780,7 @@ namespace Couchbase.Lite
                 Native.FLSliceResult_Release(result);
             });
 
-            return retVal as IList<string> ?? new List<string>();
+            return retVal as IReadOnlyList<string> ?? new List<string>();
         }
 
         /// <summary>
@@ -928,13 +815,13 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// [Obsolete("Purge is deprecated, please use <see cref="GetDefaultCollection().Purge"/>.")]
         /// [DEPRECATED] Purges the given <see cref="Document"/> from the database.  This leaves
         /// no trace behind and will not be replicated
         /// </summary>
         /// <param name="document">The document to purge</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a database
         /// other than the one it was previously added to</exception>
+        [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
         public void Purge([@NotNull]Document document)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
@@ -952,7 +839,6 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// [Obsolete("Purge is deprecated, please use <see cref="GetDefaultCollection().Purge"/>.")]
         /// [DEPRECATED] Purges the given document id of the <see cref="Document"/> 
         /// from the database.  This leaves no trace behind and will 
         /// not be replicated
@@ -960,6 +846,7 @@ namespace Couchbase.Lite
         /// <param name="docId">The id of the document to purge</param>
         /// <exception cref="C4ErrorCode.NotFound">Throws NOT FOUND error if the document 
         /// of the docId doesn't exist.</exception>
+        [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
         public void Purge([@NotNull]string docId)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(docId), docId);
@@ -967,7 +854,6 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// [Obsolete("SetDocumentExpiration is deprecated, please use <see cref="GetDefaultCollection().SetDocumentExpiration"/>.")]
         /// [DEPRECATED] Sets an expiration date on a document. After this time, the document
         /// will be purged from the database.
         /// </summary>
@@ -978,6 +864,7 @@ namespace Couchbase.Lite
         /// <returns>Whether successfully sets an expiration date on the document</returns>
         /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
         /// doesn't exist</exception>
+        [Obsolete("SetDocumentExpiration is deprecated, please use GetDefaultCollection().SetDocumentExpiration")]
         public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)
         {
             var succeed = false;
@@ -996,7 +883,6 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// [Obsolete("GetDocumentExpiration is deprecated, please use <see cref="GetDefaultCollection().GetDocumentExpiration"/>.")]
         /// [DEPRECATED] Returns the expiration time of the document. <c>null</c> will be returned
         /// if there is no expiration time set
         /// </summary>
@@ -1005,6 +891,7 @@ namespace Couchbase.Lite
         /// of the document or <c>null</c> if time not set. </returns>
         /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
         /// doesn't exist</exception>
+        [Obsolete("GetDocumentExpiration is deprecated, please use GetDefaultCollection().GetDocumentExpiration")]
         public DateTimeOffset? GetDocumentExpiration(string docId)
         {
             if (LiteCoreBridge.Check(err => Native.c4db_getDoc(_c4db, docId, true, C4DocContentLevel.DocGetCurrentRev, err)) == null) {
@@ -1025,7 +912,6 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// [Obsolete("Save is deprecated, please use <see cref="GetDefaultCollection().Save"/>.")]
         /// [DEPRECATED] Saves the given <see cref="MutableDocument"/> into this database.  This call is equivalent to calling
         /// <see cref="Save(MutableDocument, ConcurrencyControl)" /> with a second argument of
         /// <see cref="ConcurrencyControl.LastWriteWins"/>
@@ -1033,10 +919,10 @@ namespace Couchbase.Lite
         /// <param name="document">The document to save</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
         /// other than the one it was previously added to</exception>
+        [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
         public void Save([@NotNull]MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
-        /// [Obsolete("Save is deprecated, please use <see cref="GetDefaultCollection().Save"/>.")]
         /// [DEPRECATED] Saves the given <see cref="MutableDocument"/> into this database
         /// </summary>
         /// <param name="document">The document to save</param>
@@ -1044,6 +930,7 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
         /// other than the one it was previously added to</exception>
         /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
+        [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
         public bool Save([@NotNull]MutableDocument document, ConcurrencyControl concurrencyControl)
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
@@ -1051,7 +938,6 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// [Obsolete("Save is deprecated, please use <see cref="GetDefaultCollection().Save"/>.")]
         /// [DEPRECATED] Saves a document to the database. When write operations are executed concurrently, 
         /// and if conflicts occur, conflict handler will be called. Use the handler to directly
         /// edit the document.Returning true, will save the document. Returning false, will cancel
@@ -1060,6 +946,7 @@ namespace Couchbase.Lite
         /// <param name="document">The document to save</param>
         /// <param name="conflictHandler">The conflict handler block which can be used to resolve it.</param> 
         /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
+        [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
         public bool Save([@NotNull]MutableDocument document, [@NotNull]Func<MutableDocument, Document, bool> conflictHandler)
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
@@ -1149,6 +1036,136 @@ namespace Couchbase.Lite
             });
         }
 #endif
+
+        #endregion
+
+        #region IChangeObservable
+
+        /// <summary>
+        /// [DEPRECATED] Adds a change listener for the changes that occur in this database.  Signatures
+        /// are the same as += style event handlers, but the callbacks will be called using the
+        /// specified <see cref="TaskScheduler"/>.  If the scheduler is null, the default task
+        /// scheduler will be used (scheduled via thread pool).
+        /// </summary>
+        /// <param name="scheduler">The scheduler to use when firing the change handler</param>
+        /// <param name="handler">The handler to invoke</param>
+        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        [Obsolete("AddChangeListener is deprecated, please use GetDefaultCollection().AddChangeListener")]
+        public ListenerToken AddChangeListener([@CanBeNull] TaskScheduler scheduler,
+            [@NotNull] EventHandler<DatabaseChangedEventArgs> handler)
+        {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
+
+            return ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+
+                var cbHandler = new CouchbaseEventHandler<DatabaseChangedEventArgs>(handler, scheduler);
+                if (_databaseChanged.Add(cbHandler) == 0)
+                {
+                    _obsContext = GCHandle.Alloc(this);
+                    _obs = Native.c4dbobs_create(_c4db, _DatabaseObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer());
+                }
+
+                return new ListenerToken(cbHandler, ListenerTokenType.Database, this);
+            });
+        }
+
+        /// <summary>
+        /// [DEPRECATED] Adds a change listener for the changes that occur in this database.  Signatures
+        /// are the same as += style event handlers.  The callback will be invoked on a thread pool
+        /// thread.
+        /// </summary>
+        /// <param name="handler">The handler to invoke</param>
+        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        [Obsolete("AddChangeListener is deprecated, please use GetDefaultCollection().AddChangeListener")]
+        public ListenerToken AddChangeListener([@NotNull] EventHandler<DatabaseChangedEventArgs> handler) => AddChangeListener(null, handler);
+
+        #endregion
+
+        #region IDocumentChangeObservable
+
+        /// <summary>
+        /// [DEPRECATED] Adds a document change listener for the document with the given ID and the <see cref="TaskScheduler"/>
+        /// that will be used to invoke the callback.  If the scheduler is not specified, then the default scheduler
+        /// will be used (scheduled via thread pool)
+        /// </summary>
+        /// <param name="id">The document ID</param>
+        /// <param name="scheduler">The scheduler to use when firing the event handler</param>
+        /// <param name="handler">The logic to handle the event</param>
+        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the listener later</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
+        /// is <c>null</c></exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        [Obsolete("AddDocumentChangeListener is deprecated, please use GetDefaultCollection().AddDocumentChangeListener")]
+        public ListenerToken AddDocumentChangeListener([@NotNull] string id, [@CanBeNull] TaskScheduler scheduler,
+            [@NotNull] EventHandler<DocumentChangedEventArgs> handler)
+        {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
+
+            return ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+
+                var cbHandler =
+                    new CouchbaseEventHandler<string, DocumentChangedEventArgs>(handler, id, scheduler);
+                var count = _documentChanged.Add(cbHandler);
+                if (count == 0)
+                {
+                    var handle = GCHandle.Alloc(this);
+                    var docObs = Native.c4docobs_create(_c4db, id, _DocumentObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    _docObs[id] = Tuple.Create((IntPtr)docObs, handle);
+                }
+
+                return new ListenerToken(cbHandler, ListenerTokenType.Document, this);
+            });
+        }
+
+        /// <summary>
+        /// [DEPRECATED] Adds a document change listener for the document with the given ID.  The callback will be
+        /// invoked on a thread pool thread.
+        /// </summary>
+        /// <param name="id">The document ID</param>
+        /// <param name="handler">The logic to handle the event</param>
+        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the listener later</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
+        /// is <c>null</c></exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        [Obsolete("AddDocumentChangeListener is deprecated, please use GetDefaultCollection().AddDocumentChangeListener")]
+        public ListenerToken AddDocumentChangeListener([@NotNull] string id, [@NotNull] EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
+
+        #endregion
+
+        #region IChangeObservableRemovable
+
+        public void RemoveChangeListener(ListenerToken token)
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+
+                if (token.Type == ListenerTokenType.Database) {
+                    if (_databaseChanged.Remove(token) == 0) {
+                        Native.c4dbobs_free(_obs);
+                        _obs = null;
+                        if (_obsContext.IsAllocated) {
+                            _obsContext.Free();
+                        }
+                    }
+                } else if (_documentChanged.Remove(token, out var docID) == 0) {
+                    if (_docObs.TryGetValue(docID, out var observer)) {
+                        _docObs.Remove(docID);
+                        Native.c4docobs_free((C4DocumentObserver*)observer.Item1);
+                        observer.Item2.Free();
+                    }
+                }
+            });
+        }
 
         #endregion
 
