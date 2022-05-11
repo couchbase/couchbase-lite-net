@@ -51,6 +51,7 @@ namespace Couchbase.Lite.Sync
         private const string MaxRetriesKey = "maxRetries";
         private const string MaxRetryIntervalKey = "maxRetryInterval";
         private const string EnableAutoPurgeKey = "autoPurge";
+        private const string HeartbeatIntervalKey = "heartbeat"; //Interval in secs to send a keepalive ping
 
         // HTTP options:
         private const string HeadersKey = "headers";
@@ -63,7 +64,7 @@ namespace Couchbase.Lite.Sync
 
         // WebSocket options:
         private const string ProtocolsOptionKey = "WS-Protocols";
-        private const string HeartbeatIntervalKey = "heartbeat"; //Interval in secs to send a keepalive ping
+        private const string NetworkInterfaceKey = "networkInterface";
 
         #endregion
 
@@ -175,8 +176,14 @@ namespace Couchbase.Lite.Sync
         /// by a <see cref="Replicator"/> with this configuration will be rejected.
         /// </summary>
         [CanBeNull]
-        public X509Certificate2 PinnedServerCertificate { get; set; }
+        internal X509Certificate2 PinnedServerCertificate { get; set; }
 
+        [CanBeNull]
+        internal string NetworkInterface
+        {
+            get => this.GetCast<string>(NetworkInterfaceKey);
+            set => this[NetworkInterfaceKey] = value;
+        }
 
         /// <summary>
         /// Stable ID for remote db with unstable URL
