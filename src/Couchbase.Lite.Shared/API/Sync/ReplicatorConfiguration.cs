@@ -177,6 +177,22 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
+        /// The NetworkInterface will accept the networkInterface name such as en0, eth0, 
+        /// or pdp_ip0. When the network interface is specified, the replicator will use 
+        /// the specified network interface to connect with the remote server instead of 
+        /// using the default network interface as specified in the OS’s routing table. 
+        /// If the specified network interface is not valid, the Replicator will fail to 
+        /// connect with a permanent error, and the error code could be platform dependent 
+        /// depending on what is being used to communicate with the remote server.
+        /// </summary>
+        [CanBeNull]
+        public string NetworkInterface
+        {
+            get => Options.NetworkInterface;
+            set => _freezer.PerformAction(() => Options.NetworkInterface = value);
+        }
+
+        /// <summary>
         /// [DEPRECATED] Func delegate that takes Document input parameter and bool output parameter
         /// Document pull will be allowed if output is true, othewise, Document pull 
         /// will not be allowed
