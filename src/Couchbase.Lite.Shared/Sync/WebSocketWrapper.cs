@@ -215,21 +215,37 @@ namespace Couchbase.Lite.Sync
                 _receivePause = new ManualResetEventSlim(true);
                 _reachability.StatusChanged += ReachabilityChanged;
                 _reachability.Start();
+
                 // STEP 1: Create the TcpClient, which is responsible for negotiating
                 // the socket connection between here and the server
-                try {
-                    // ReSharper disable once UseObjectOrCollectionInitializer
-                    _client = new TcpClient(AddressFamily.InterNetworkV6);
-                } catch (Exception e) {
-                    DidClose(e);
-                    return;
-                }
 
-                try {
-                    _client.Client.DualMode = true;
-                } catch (ArgumentException) {
-                    WriteLog.To.Sync.I(Tag, "IPv4/IPv6 dual mode not supported on this device, falling back to IPv4");
-                    _client = new TcpClient(AddressFamily.InterNetwork);
+                if (!String.IsNullOrEmpty(_options.NetworkInterface)) {
+                    try {
+                        IPHostEntry entry = Dns.GetHostEntry(_options.NetworkInterface);
+                        IPAddress localAddress = entry.AddressList.FirstOrDefault();
+                        IPEndPoint localEndPoint = new IPEndPoint(localAddress, 0);
+                        var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                        socket.Bind(localEndPoint);
+                        _client = new TcpClient() { Client = socket };
+                    } catch (Exception e) {
+                        DidClose(e);
+                        return;
+                    }
+                } else {
+                    try {
+                        // ReSharper disable once UseObjectOrCollectionInitializer
+                        _client = new TcpClient(AddressFamily.InterNetworkV6);
+                    } catch (Exception e) {
+                        DidClose(e);
+                        return;
+                    }
+
+                    try {
+                        _client.Client.DualMode = true;
+                    } catch (ArgumentException)  {
+                        WriteLog.To.Sync.I(Tag, "IPv4/IPv6 dual mode not supported on this device, falling back to IPv4");
+                        _client = new TcpClient(AddressFamily.InterNetwork);
+                    }
                 }
 
                 // STEP 2.5: The IProxy interface will detect a system wide proxy that is set
