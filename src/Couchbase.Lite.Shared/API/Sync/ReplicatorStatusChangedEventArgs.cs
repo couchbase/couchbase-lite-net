@@ -34,7 +34,7 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public ReplicatorStatus Status { get; }
 
-        public Collection Collection { get; }
+        public ICollection Collection { get; }
 
         #endregion
 

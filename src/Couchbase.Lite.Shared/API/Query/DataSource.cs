@@ -48,7 +48,9 @@ namespace Couchbase.Lite.Query
         public static IDataSourceAs Collection([NotNull] Collection collection)
         {
             var db = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(collection), collection);
-
+            //TODO: possibly create an abstract base class and makes Database and Collection implement it.
+            //ThreadSafety will be in the base class
+            // parameter type will change to ICollection from Collection
             return new DatabaseSource(db, db.ThreadSafety);
         }
 

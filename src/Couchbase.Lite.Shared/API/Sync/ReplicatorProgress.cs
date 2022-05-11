@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Sync
         [CanBeNull]
         public CouchbaseException Error { get; internal set; }
 
-        public Collection Collection { get; }
+        public ICollection Collection { get; }
 
         internal bool IsTransient { get; }
 
@@ -88,7 +88,7 @@ namespace Couchbase.Lite.Sync
             IsTransient = isTransient;
         }
 
-        internal ReplicatedDocument([NotNull]string docID, Collection collection, C4RevisionFlags flags, C4Error error,
+        internal ReplicatedDocument([NotNull]string docID, ICollection collection, C4RevisionFlags flags, C4Error error,
             bool isTransient)
         {
             Id = docID;
@@ -99,7 +99,7 @@ namespace Couchbase.Lite.Sync
             IsTransient = isTransient;
         }
 
-        private ReplicatedDocument([NotNull] string docID, Collection collection, DocumentFlags flags, C4Error error,
+        private ReplicatedDocument([NotNull] string docID, ICollection collection, DocumentFlags flags, C4Error error,
             bool isTransient)
         {
             Id = docID;

@@ -10,7 +10,7 @@ namespace Couchbase.Lite
     {
         public string Name => throw new NotImplementedException();
 
-        public IReadOnlyList<Collection> Collections => throw new NotImplementedException();
+        public IReadOnlyList<ICollection> Collections => throw new NotImplementedException();
 
         public ListenerToken AddChangeListener([CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<DatabaseChangedEventArgs> handler)
         {

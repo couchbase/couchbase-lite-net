@@ -102,7 +102,7 @@ namespace Couchbase.Lite.Sync
         #region Properties
 
         [CanBeNull]
-        public IDictionary<Collection, CollectionConfiguration> CollectionConfigs { get; set; }
+        public IDictionary<ICollection, CollectionConfiguration> CollectionConfigs { get; set; }
 
         /// <summary>
         /// Gets or sets the class which will authenticate the replication

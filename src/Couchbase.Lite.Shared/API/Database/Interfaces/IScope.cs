@@ -13,7 +13,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets all collections in the Scope
         /// </summary>
-        IReadOnlyList<Collection> Collections { get; }
+        IReadOnlyList<ICollection> Collections { get; }
 
         /// <summary>
         /// Gets one collection of the given name
