@@ -372,25 +372,25 @@ namespace Couchbase.Lite.Sync
 
         #region Public Methods - Scopes and Collections
 
-        public void AddCollections(IList<Collection> collections, [CanBeNull]CollectionConfiguration config = null)
+        public void AddCollections(IList<ICollection> collections, [CanBeNull]CollectionConfiguration config = null)
         {
             foreach(var col in collections) {
                 CollectionConfigs.Add(col, config);
             }
         }
 
-        public void AddCollection(Collection collection, [CanBeNull] CollectionConfiguration config = null)
+        public void AddCollection(ICollection collection, [CanBeNull] CollectionConfiguration config = null)
         {
             CollectionConfigs.Add(collection, config);
         }
 
-        public void RemoveCollection(Collection collection)
+        public void RemoveCollection(ICollection collection)
         {
             CollectionConfigs.Remove(collection);
         }
 
         [CanBeNull]
-        public CollectionConfiguration GetCollectionConfig(Collection collection)
+        public CollectionConfiguration GetCollectionConfig(ICollection collection)
         {
             CollectionConfiguration config = null;
             if (!CollectionConfigs.TryGetValue(collection, out config)) {

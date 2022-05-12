@@ -110,7 +110,7 @@ namespace Couchbase.Lite
             throw new NotImplementedException();
         }
 
-        public IReadOnlyList<string> GetIndexes()
+        public IList<string> GetIndexes()
         {
             throw new NotImplementedException();
         }

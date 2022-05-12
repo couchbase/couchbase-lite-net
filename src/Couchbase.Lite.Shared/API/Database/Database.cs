@@ -442,7 +442,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public Collection CreateCollection(string name, string scope = _defaultScopeName)
+        public ICollection CreateCollection(string name, string scope = _defaultScopeName)
         {
             throw new NotImplementedException();
         }
@@ -752,7 +752,7 @@ namespace Couchbase.Lite
         [Obsolete("GetIndexes is deprecated, please use GetDefaultCollection().GetIndexes")]
         [@NotNull]
         [@ItemNotNull]
-        public IReadOnlyList<string> GetIndexes()
+        public IList<string> GetIndexes()
         {
             List<string> retVal = new List<string>();
             ThreadSafety.DoLocked(() =>
@@ -780,7 +780,7 @@ namespace Couchbase.Lite
                 Native.FLSliceResult_Release(result);
             });
 
-            return retVal as IReadOnlyList<string> ?? new List<string>();
+            return retVal as IList<string> ?? new List<string>();
         }
 
         /// <summary>

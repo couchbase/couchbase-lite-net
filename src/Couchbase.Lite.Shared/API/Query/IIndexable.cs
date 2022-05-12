@@ -14,7 +14,7 @@ namespace Couchbase.Lite.Query
         /// <returns>The list of created index names</returns>
         [NotNull]
         [ItemNotNull]
-        IReadOnlyList<string> GetIndexes();
+        IList<string> GetIndexes();
 
         /// <summary>
         /// Creates a SQL index which could be a value index from <see cref="ValueIndexConfiguration"/> or a full-text search index
