@@ -28,7 +28,7 @@ pipeline {
                                 Get-ChildItem -Force tmp\\* | Move-Item -Destination couchbase-lite-net
                                 Remove-Item tmp
                                 Push-Location couchbase-lite-net
-                                & 'C:\\Program Files\\Git\\bin\\git.exe' submodule update --init
+                                & 'C:\\Program Files\\Git\\bin\\git.exe' submodule update --init --recursive
                                 Pop-Location
                                 Push-Location jenkins
                                 & 'C:\\Program Files\\Git\\bin\\git.exe' clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 proj
