@@ -228,6 +228,7 @@ namespace Couchbase.Lite.Sync
                         socket.Bind(localEndPoint);
                         _client = new TcpClient() { Client = socket };
                     } catch (Exception e) {
+                        WriteLog.To.Sync.I(Tag, "Invalid Network Interface in Replicator Configuration.");
                         DidClose(e);
                         return;
                     }

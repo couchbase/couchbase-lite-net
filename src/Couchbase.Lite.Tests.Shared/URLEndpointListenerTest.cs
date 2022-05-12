@@ -858,12 +858,15 @@ namespace Test
                 // Check error
                 var error = repl.Status.Error.As<CouchbaseWebsocketException>();
                 error.Error.Should().Be((int)CouchbaseLiteError.WebSocketGoingAway);
+
+                repl.RemoveChangeListener(token);
             }
         }
 
         [Fact]
         public void TestReplicatorNetworkInterface()
         {
+            bool offline = false;
             var ni = GetNetworkInterface();
 
             ManualResetEventSlim waitIdleAssert = new ManualResetEventSlim();
@@ -895,15 +898,25 @@ namespace Test
 
                 repl.Start();
 
-                // Wait until idle then stop the listener
-                waitIdleAssert.Wait(TimeSpan.FromSeconds(15)).Should().BeTrue();
+                try {
+                    // Wait until idle then stop the listener
+                    waitIdleAssert.Wait(TimeSpan.FromSeconds(15)).Should().BeTrue();
+                } catch {
+                    offline = repl.Status.Activity == ReplicatorActivityLevel.Offline;
+                    ((CouchbaseNetworkException)repl.Status.Error).Error.Should().Be((int)CouchbaseLiteError.UnknownHost);
+                    repl.Stop();
+                }
 
                 // Wait for the replicator to be stopped
                 waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).Should().BeTrue();
 
                 // Check error
-                var error = repl.Status.Error.As<CouchbaseWebsocketException>();
-                error.Error.Should().Be((int)CouchbaseLiteError.WebSocketGoingAway);
+                if (!offline) {
+                    var error = repl.Status.Error.As<CouchbaseWebsocketException>();
+                    error.Error.Should().Be((int)CouchbaseLiteError.WebSocketGoingAway);
+                }
+
+                repl.RemoveChangeListener(token);
             }
         }
 
@@ -921,7 +934,7 @@ namespace Test
             } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
                 return "lo0";
             } else {
-                return "127.0.0.1";
+                return "Loopback Pseudo-Interface 1";
             }
 
 #elif UAP10_0_16299 || WINDOWS_UWP
