@@ -39,6 +39,7 @@ using Couchbase.Lite.Sync;
 using FluentAssertions;
 using LiteCore.Interop;
 using System.Runtime.InteropServices;
+using System.Net.Sockets;
 
 #if !WINDOWS_UWP
 using Xunit;
@@ -860,22 +861,95 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestReplicatorNetworkInterface()
+        {
+            var ni = GetNetworkInterface();
+
+            ManualResetEventSlim waitIdleAssert = new ManualResetEventSlim();
+            ManualResetEventSlim waitStoppedAssert = new ManualResetEventSlim();
+
+            var listenerConfig = CreateListenerConfig(false);
+            _listener = Listen(listenerConfig);
+
+            var target = _listener.LocalEndpoint();
+            var replicatorConfig = new ReplicatorConfiguration(Db, target) 
+            {
+                ReplicatorType = ReplicatorType.PushAndPull,
+                Continuous = true,
+                NetworkInterface = ni
+            };
+
+            using (var repl = new Replicator(replicatorConfig))
+            {
+                var token = repl.AddChangeListener((sender, args) =>
+                {
+                    if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
+                        waitIdleAssert.Set();
+                        // Stop listener aka server
+                        _listener.Stop();
+                    } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                        waitStoppedAssert.Set();
+                    }
+                });
+
+                repl.Start();
+
+                // Wait until idle then stop the listener
+                waitIdleAssert.Wait(TimeSpan.FromSeconds(15)).Should().BeTrue();
+
+                // Wait for the replicator to be stopped
+                waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).Should().BeTrue();
+
+                // Check error
+                var error = repl.Status.Error.As<CouchbaseWebsocketException>();
+                error.Error.Should().Be((int)CouchbaseLiteError.WebSocketGoingAway);
+            }
+        }
+
         #endregion
 
         #region Private Methods
 
+        private string GetNetworkInterface()
+        {
+
+#if NETFRAMEWORK || NET461 || NETCOREAPP || NETCOREAPP3_1_OR_GREATER
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+                return "lo";
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                return "lo0";
+            } else {
+                return "127.0.0.1";
+            }
+
+#elif UAP10_0_16299 || WINDOWS_UWP
+            // Use loopback interface connecting to localhost:
+            return "127.0.0.1"; //"Loopback Pseudo-Interface 1"
+
+#elif __IOS__
+
+            return "lo0";
+
+#elif __ANDROID__
+
+            return "lo";
+
+#else
+
+            return null;
+
+#endif
+        }
+
         private int GetEADDRINUSECode()
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 return 100;
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
                 return 48;
-            }
-            else
-            {
+            } else {
                 return 98; // Linux
             }
         }
