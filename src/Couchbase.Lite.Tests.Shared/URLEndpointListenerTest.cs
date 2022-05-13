@@ -910,6 +910,8 @@ namespace Test
                 // Wait for the replicator to be stopped
                 waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).Should().BeTrue();
 
+                offline.Should().BeFalse();
+
                 // Check error
                 if (!offline) {
                     var error = repl.Status.Error.As<CouchbaseWebsocketException>();
@@ -934,12 +936,12 @@ namespace Test
             } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
                 return "lo0";
             } else {
-                return "Loopback Pseudo-Interface 1";
+                return "Wi-Fi";
             }
 
 #elif UAP10_0_16299 || WINDOWS_UWP
             // Use loopback interface connecting to localhost:
-            return "127.0.0.1"; //"Loopback Pseudo-Interface 1"
+            return "Wi-Fi";//"127.0.0.1"; //"Loopback Pseudo-Interface 1"
 
 #elif __IOS__
 
@@ -951,7 +953,7 @@ namespace Test
 
 #else
 
-            return null;
+            return "127.0.0.1";
 
 #endif
         }
