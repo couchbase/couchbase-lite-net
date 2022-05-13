@@ -218,17 +218,17 @@ namespace Couchbase.Lite.Sync
                     try {
                         var localAddress = GetLocalNetworkInterface(_options.NetworkInterface);
                         if (localAddress == null) {
-                            WriteLog.To.Sync.I(Tag, "Invalid Network Interface in Replicator Configuration.");
+                            WriteLog.To.Sync.I(Tag, $"{_options.NetworkInterface} does not exit.");
                             DidClose(new CouchbaseNetworkException(C4NetworkErrorCode.UnknownHost));
                             return;
                         }
 
                         IPEndPoint localEndPoint = new IPEndPoint(localAddress, 0);
-                        var socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
+                        var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                         socket.Bind(localEndPoint);
                         _client = new TcpClient() { Client = socket };
                     } catch (Exception e) {
-                        WriteLog.To.Sync.I(Tag, "Connection failed with the Network Interface in Replicator Configuration.");
+                        WriteLog.To.Sync.I(Tag, $"Connection failed with {_options.NetworkInterface}/{_client.Client.LocalEndPoint} in Replicator Configuration.");
                         DidClose(e);
                         return;
                     }
@@ -294,7 +294,7 @@ namespace Couchbase.Lite.Sync
                     var ipv6Address = ni.GetIPProperties().UnicastAddresses[0].Address; //This will give ipv6 address of certain adapter
                     var ipv4Address = ni.GetIPProperties().UnicastAddresses[1].Address; //This will give ipv4 address of certain adapter
 
-                    return ipv6Address; 
+                    return ipv4Address; 
                 }
             }
 
