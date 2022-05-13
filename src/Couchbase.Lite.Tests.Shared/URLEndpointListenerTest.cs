@@ -866,8 +866,14 @@ namespace Test
         [Fact]
         public void TestReplicatorNetworkInterface()
         {
+            Database.Log.Console.Level = Couchbase.Lite.Logging.LogLevel.Info;
             bool offline = false;
             var ni = GetNetworkInterface();
+
+            if(ni == null) {
+                // Test will not run because there is no loopback NI to work with
+                return;
+            }
 
             ManualResetEventSlim waitIdleAssert = new ManualResetEventSlim();
             ManualResetEventSlim waitStoppedAssert = new ManualResetEventSlim();
@@ -928,34 +934,39 @@ namespace Test
 
         private string GetNetworkInterface()
         {
-
-#if NETFRAMEWORK || NET461 || NETCOREAPP || NETCOREAPP3_1_OR_GREATER
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-                return "lo";
-            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-                return "lo0";
-            } else {
-                return "Wi-Fi";
+            foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
+                if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback)
+                    return ni.Name;
             }
 
-#elif UAP10_0_16299 || WINDOWS_UWP
-            // Use loopback interface connecting to localhost:
-            return "Wi-Fi";//"127.0.0.1"; //"Loopback Pseudo-Interface 1"
+            return null;
+            //#if NETFRAMEWORK || NET461 || NETCOREAPP || NETCOREAPP3_1_OR_GREATER
 
-#elif __IOS__
+            //            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+            //                return "lo";
+            //            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+            //                return "lo0";
+            //            } else {
+            //                return "Wi-Fi";
+            //            }
 
-            return "lo0";
+            //#elif UAP10_0_16299 || WINDOWS_UWP
+            //            // Use loopback interface connecting to localhost:
+            //            return "Wi-Fi";//"127.0.0.1"; //"Loopback Pseudo-Interface 1"
 
-#elif __ANDROID__
+            //#elif __IOS__
 
-            return "lo";
+            //            return "lo0";
 
-#else
+            //#elif __ANDROID__
 
-            return "127.0.0.1";
+            //            return "lo";
 
-#endif
+            //#else
+
+            //            return "127.0.0.1";
+
+            //#endif
         }
 
         private int GetEADDRINUSECode()
