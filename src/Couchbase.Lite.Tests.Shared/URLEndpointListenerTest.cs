@@ -866,7 +866,6 @@ namespace Test
         [Fact]
         public void TestReplicatorNetworkInterface()
         {
-            Database.Log.Console.Level = Couchbase.Lite.Logging.LogLevel.Info;
             bool offline = false;
             var ni = GetNetworkInterface();
 

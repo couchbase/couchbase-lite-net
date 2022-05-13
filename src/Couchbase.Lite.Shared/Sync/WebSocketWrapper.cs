@@ -208,6 +208,9 @@ namespace Couchbase.Lite.Sync
                     return;
                 }
 
+                Native.c4socket_retain(_socket);
+                WriteLog.To.Sync.I(Tag, "c4Socket is retained, and reachability status monitor is starting.");
+
                 // STEP 1: Create the TcpClient, which is responsible for negotiating
                 // the socket connection between here and the server
 
@@ -221,7 +224,7 @@ namespace Couchbase.Lite.Sync
                         }
 
                         IPEndPoint localEndPoint = new IPEndPoint(localAddress, 0);
-                        var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                        var socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
                         socket.Bind(localEndPoint);
                         _client = new TcpClient() { Client = socket };
                     } catch (Exception e) {
@@ -245,9 +248,6 @@ namespace Couchbase.Lite.Sync
                         _client = new TcpClient(AddressFamily.InterNetwork);
                     }
                 }
-
-                Native.c4socket_retain(_socket);
-                WriteLog.To.Sync.I(Tag, "c4Socket is retained, and reachability status monitor is starting.");
 
                 _readWriteCancellationTokenSource = new CancellationTokenSource();
                 _writeQueue = new BlockingCollection<byte[]>();
@@ -292,9 +292,9 @@ namespace Couchbase.Lite.Sync
             foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
                 if (ni.Name == rni) {
                     var ipv6Address = ni.GetIPProperties().UnicastAddresses[0].Address; //This will give ipv6 address of certain adapter
-                    var ipv4Address = ni.GetIPProperties().UnicastAddresses[1].Address; //This will give ipv4 address of certain adapter (Work with Windows)
+                    var ipv4Address = ni.GetIPProperties().UnicastAddresses[1].Address; //This will give ipv4 address of certain adapter
 
-                    return ipv4Address; 
+                    return ipv6Address; 
                 }
             }
 
