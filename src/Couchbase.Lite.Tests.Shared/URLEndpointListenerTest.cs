@@ -864,11 +864,33 @@ namespace Test
         }
 
         #if !__ANDROID__ && !__IOS__ //Cannot run this test in emulators
+        enum TestReplicatorNIType
+        {
+            ValidNI_SERVER_REACHABLE,
+            ValidNI_SERVER_UNREACHABLE,
+            InValidNI
+        }
+
         [Fact]
         public void TestReplicatorNetworkInterface()
         {
+            // valid ni and able to connect to server
+            TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_REACHABLE);
+            // valid ni but server is not reachable
+            TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
+            // invalid ni
+            TestReplicatorNI(TestReplicatorNIType.InValidNI);
+        }
+        #endif
+
+        #endregion
+
+        #region Private Methods
+
+        private void TestReplicatorNI(TestReplicatorNIType type)
+        {
             bool offline = false;
-            var ni = GetNetworkInterface();
+            var ni = GetNetworkInterface(type);
 
             ni.Should().NotBeNull();
 
@@ -879,7 +901,7 @@ namespace Test
             _listener = Listen(listenerConfig);
             var target = _listener.LocalEndpoint();
 
-            var replicatorConfig = new ReplicatorConfiguration(Db, target) 
+            var replicatorConfig = new ReplicatorConfiguration(Db, target)
             {
                 ReplicatorType = ReplicatorType.PushAndPull,
                 Continuous = true,
@@ -906,14 +928,20 @@ namespace Test
                     waitIdleAssert.Wait(TimeSpan.FromSeconds(15)).Should().BeTrue();
                 } catch {
                     offline = repl.Status.Activity == ReplicatorActivityLevel.Offline;
-                    ((CouchbaseNetworkException)repl.Status.Error).Error.Should().Be((int)CouchbaseLiteError.UnknownHost);
+                    if (type == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE)
+                        ((CouchbaseNetworkException)repl.Status.Error).Error.Should().Be((int)CouchbaseLiteError.AddressNotAvailable);
+                    else
+                        ((CouchbaseNetworkException)repl.Status.Error).Error.Should().Be((int)CouchbaseLiteError.UnknownHost);
                     repl.Stop();
                 }
 
                 // Wait for the replicator to be stopped
                 waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).Should().BeTrue();
 
-                offline.Should().BeFalse();
+                if(type == TestReplicatorNIType.ValidNI_SERVER_REACHABLE)
+                    offline.Should().BeFalse();
+                else
+                    offline.Should().BeTrue();
 
                 // Check error
                 if (!offline) {
@@ -924,17 +952,17 @@ namespace Test
                 repl.RemoveChangeListener(token);
             }
         }
-        #endif
 
-        #endregion
-
-        #region Private Methods
-
-        private string GetNetworkInterface()
+        private string GetNetworkInterface(TestReplicatorNIType tyep)
         {
+            if (tyep == TestReplicatorNIType.InValidNI)
+                return "INVALID";
+
             foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
-                if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback)
+                if (tyep == TestReplicatorNIType.ValidNI_SERVER_REACHABLE && ni.NetworkInterfaceType == NetworkInterfaceType.Loopback)
                     return ni.Name;
+                else if(tyep == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE && ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
+                        return ni.Name;
             }
 
             return null;
