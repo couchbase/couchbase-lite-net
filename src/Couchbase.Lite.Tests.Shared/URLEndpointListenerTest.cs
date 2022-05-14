@@ -869,18 +869,15 @@ namespace Test
             bool offline = false;
             var ni = GetNetworkInterface();
 
-            if(ni == null) {
-                // Test will not run because there is no loopback NI to work with
-                return;
-            }
+            ni.Should().NotBeNull();
 
             ManualResetEventSlim waitIdleAssert = new ManualResetEventSlim();
             ManualResetEventSlim waitStoppedAssert = new ManualResetEventSlim();
 
             var listenerConfig = CreateListenerConfig(false);
             _listener = Listen(listenerConfig);
-
             var target = _listener.LocalEndpoint();
+
             var replicatorConfig = new ReplicatorConfiguration(Db, target) 
             {
                 ReplicatorType = ReplicatorType.PushAndPull,
@@ -939,33 +936,6 @@ namespace Test
             }
 
             return null;
-            //#if NETFRAMEWORK || NET461 || NETCOREAPP || NETCOREAPP3_1_OR_GREATER
-
-            //            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-            //                return "lo";
-            //            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-            //                return "lo0";
-            //            } else {
-            //                return "Wi-Fi";
-            //            }
-
-            //#elif UAP10_0_16299 || WINDOWS_UWP
-            //            // Use loopback interface connecting to localhost:
-            //            return "Wi-Fi";//"127.0.0.1"; //"Loopback Pseudo-Interface 1"
-
-            //#elif __IOS__
-
-            //            return "lo0";
-
-            //#elif __ANDROID__
-
-            //            return "lo";
-
-            //#else
-
-            //            return "127.0.0.1";
-
-            //#endif
         }
 
         private int GetEADDRINUSECode()
