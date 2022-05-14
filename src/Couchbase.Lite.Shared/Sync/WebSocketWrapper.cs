@@ -224,7 +224,7 @@ namespace Couchbase.Lite.Sync
                         }
 
                         IPEndPoint localEndPoint = new IPEndPoint(localAddress, 0);
-                        var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                        var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
                         socket.Bind(localEndPoint);
                         _client = new TcpClient() { Client = socket };
                     } catch (Exception e) {
@@ -294,7 +294,7 @@ namespace Couchbase.Lite.Sync
                     var ipv6Address = ni.GetIPProperties().UnicastAddresses[0].Address; //This will give ipv6 address of certain adapter
                     var ipv4Address = ni.GetIPProperties().UnicastAddresses[1].Address; //This will give ipv4 address of certain adapter
 
-                    return ipv4Address; 
+                    return ipv6Address; 
                 }
             }
 
