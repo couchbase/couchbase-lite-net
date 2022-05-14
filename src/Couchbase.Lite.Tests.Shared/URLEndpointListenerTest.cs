@@ -862,8 +862,7 @@ namespace Test
                 repl.RemoveChangeListener(token);
             }
         }
-
-        #if !__ANDROID__ && !__IOS__ //Cannot run this test in emulators
+        
         enum TestReplicatorNIType
         {
             ValidNI_SERVER_REACHABLE,
@@ -871,6 +870,8 @@ namespace Test
             InValidNI
         }
 
+        #if !__ANDROID__ && !__IOS__ //Cannot run this test in emulators
+        
         [Fact]
         public void TestReplicatorNetworkInterface()
         {
@@ -881,6 +882,7 @@ namespace Test
             // invalid ni
             TestReplicatorNI(TestReplicatorNIType.InValidNI);
         }
+
         #endif
 
         #endregion
