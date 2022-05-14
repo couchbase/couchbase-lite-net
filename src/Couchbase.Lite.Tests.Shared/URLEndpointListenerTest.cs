@@ -863,6 +863,7 @@ namespace Test
             }
         }
 
+        #if !__ANDROID__ && !__IOS__ //Cannot run this test in emulators
         [Fact]
         public void TestReplicatorNetworkInterface()
         {
@@ -923,6 +924,7 @@ namespace Test
                 repl.RemoveChangeListener(token);
             }
         }
+        #endif
 
         #endregion
 
