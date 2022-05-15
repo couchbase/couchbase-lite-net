@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
@@ -221,13 +222,19 @@ namespace Couchbase.Lite.Sync
 
                 if (!String.IsNullOrEmpty(_options.NetworkInterface)) {
                     try {
-                        IPHostEntry entry = Dns.GetHostEntry(_options.NetworkInterface);
-                        IPAddress localAddress = entry.AddressList.FirstOrDefault();
+                        var localAddress = GetLocalNetworkInterface(_options.NetworkInterface);
+                        if (localAddress == null) {
+                            WriteLog.To.Sync.I(Tag, $"{_options.NetworkInterface} does not exit.");
+                            DidClose(new CouchbaseNetworkException(C4NetworkErrorCode.UnknownHost));
+                            return;
+                        }
+
                         IPEndPoint localEndPoint = new IPEndPoint(localAddress, 0);
-                        var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                        var socket = new Socket(SocketType.Stream, ProtocolType.Tcp); 
                         socket.Bind(localEndPoint);
                         _client = new TcpClient() { Client = socket };
                     } catch (Exception e) {
+                        WriteLog.To.Sync.I(Tag, $"Connection failed with {_options.NetworkInterface}/{_client.Client.LocalEndPoint} in Replicator Configuration.");
                         DidClose(e);
                         return;
                     }
@@ -279,6 +286,20 @@ namespace Couchbase.Lite.Sync
         #endregion
 
         #region Private Methods
+
+        internal IPAddress GetLocalNetworkInterface(string rni)
+        {
+            foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
+                if (ni.Name == rni) { // UnicastAddresses[1] will give ipv4 address of certain adapter
+                    var ipv6Address = ni.GetIPProperties().UnicastAddresses[0].Address; //This will give ipv6 address of certain adapter
+
+                    return ipv6Address;
+                }
+            }
+
+            return null;
+        }
+
 
         private unsafe void ReleaseSocket(C4Error errorIfAny)
         {
