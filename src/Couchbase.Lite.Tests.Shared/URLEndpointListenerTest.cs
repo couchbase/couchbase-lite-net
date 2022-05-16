@@ -898,7 +898,6 @@ namespace Test
 
         private void TestReplicatorNI(TestReplicatorNIType type)
         {
-            bool offline = false;
             var ni = GetNetworkInterface(type);
 
             ni.Should().NotBeNull();
@@ -921,8 +920,7 @@ namespace Test
                     type == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE)
                 RunReplication(replicatorConfig, 0, 0);
 
-            else
-            {
+            else {
                 using (var repl = new Replicator(replicatorConfig)) {
                     var token = repl.AddChangeListener((sender, args) =>
                     {

@@ -224,7 +224,7 @@ namespace Couchbase.Lite.Sync
                     try {
                         _client = CreateClientFromNetworkInterface();
                     } catch (Exception e) {
-                        WriteLog.To.Sync.I(Tag, $"Connection failed with {_options.NetworkInterface}/{_client.Client.LocalEndPoint} in Replicator Configuration.");
+                        WriteLog.To.Sync.I(Tag, $"Connection failed with {_options.NetworkInterface}/{_client?.Client?.LocalEndPoint} in Replicator Configuration.");
                         DidClose(e);
                         return;
                     }
