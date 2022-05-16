@@ -222,15 +222,15 @@ namespace Couchbase.Lite.Sync
 
                 if (!String.IsNullOrEmpty(_options.NetworkInterface)) {
                     try {
-                        var localAddress = GetLocalNetworkInterface(_options.NetworkInterface);
+                        var localAddress = GetLocalNIAddress(_options.NetworkInterface);
                         if (localAddress == null) {
-                            WriteLog.To.Sync.I(Tag, $"{_options.NetworkInterface} does not exit.");
+                            WriteLog.To.Sync.I(Tag, $"Unknown Network Interface {_options.NetworkInterface}.");
                             DidClose(new CouchbaseNetworkException(C4NetworkErrorCode.UnknownHost));
                             return;
                         }
 
                         IPEndPoint localEndPoint = new IPEndPoint(localAddress, 0);
-                        var socket = new Socket(SocketType.Stream, ProtocolType.Tcp); 
+                        var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
                         socket.Bind(localEndPoint);
                         _client = new TcpClient() { Client = socket };
                     } catch (Exception e) {
@@ -287,19 +287,22 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods
 
-        internal IPAddress GetLocalNetworkInterface(string rni)
+        internal IPAddress GetLocalNIAddress(string rni)
         {
+            IPAddress addr = null;
+            if (IPAddress.TryParse(rni, out addr))
+                return addr;
+
             foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
                 if (ni.Name == rni) { // UnicastAddresses[1] will give ipv4 address of certain adapter
-                    var ipv6Address = ni.GetIPProperties().UnicastAddresses[0].Address; //This will give ipv6 address of certain adapter
+                    addr = ni.GetIPProperties().UnicastAddresses[0].Address; //This will give ipv6 address of certain adapter
 
-                    return ipv6Address;
+                    return addr;
                 }
             }
 
-            return null;
+            return addr;
         }
-
 
         private unsafe void ReleaseSocket(C4Error errorIfAny)
         {
