@@ -862,20 +862,130 @@ namespace Test
 
         #endregion
 
+        #region Replicator Config Network Interface
+
+        enum TestReplicatorNIType
+        {
+            ValidAddress_SERVER_REACHABLE,
+            ValidNI_SERVER_REACHABLE,
+            ValidNI_SERVER_UNREACHABLE,
+            InValidNI
+        }
+
+        #if !__ANDROID__ && !__IOS__ //Cannot run this test in emulators
+
+        [Fact]
+        public void TestReplicatorNetworkInterface()
+        {
+            // valid address and able to connect to server
+            TestReplicatorNI(TestReplicatorNIType.ValidAddress_SERVER_REACHABLE);
+            // valid ni and able to connect to server
+            TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_REACHABLE);
+            // valid ni but server is not reachable
+            TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
+            // invalid ni
+            TestReplicatorNI(TestReplicatorNIType.InValidNI);
+        }
+
+        #endif
+
+        #endregion
+
         #region Private Methods
+
+        private void TestReplicatorNI(TestReplicatorNIType type)
+        {
+            bool offline = false;
+            var ni = GetNetworkInterface(type);
+
+            ni.Should().NotBeNull();
+
+            ManualResetEventSlim waitIdleAssert = new ManualResetEventSlim();
+            ManualResetEventSlim waitStoppedAssert = new ManualResetEventSlim();
+
+            var listenerConfig = CreateListenerConfig(false);
+            _listener = Listen(listenerConfig);
+            var target = _listener.LocalEndpoint();
+
+            var replicatorConfig = new ReplicatorConfiguration(Db, target)
+            {
+                ReplicatorType = ReplicatorType.PushAndPull,
+                Continuous = true,
+                NetworkInterface = ni
+            };
+
+            using (var repl = new Replicator(replicatorConfig))
+            {
+                var token = repl.AddChangeListener((sender, args) =>
+                {
+                    if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
+                        waitIdleAssert.Set();
+                        // Stop listener aka server
+                        _listener.Stop();
+                    } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                        waitStoppedAssert.Set();
+                    }
+                });
+
+                repl.Start();
+
+                try {
+                    // Wait until idle then stop the listener
+                    waitIdleAssert.Wait(TimeSpan.FromSeconds(15)).Should().BeTrue();
+                } catch {
+                    offline = repl.Status.Activity == ReplicatorActivityLevel.Offline;
+                    if (type == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE)
+                        ((CouchbaseNetworkException)repl.Status.Error).Error.Should().Be((int)CouchbaseLiteError.AddressNotAvailable);
+                    else
+                        ((CouchbaseNetworkException)repl.Status.Error).Error.Should().Be((int)CouchbaseLiteError.UnknownHost);
+                    repl.Stop();
+                }
+
+                // Wait for the replicator to be stopped
+                waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).Should().BeTrue();
+
+                if (type == TestReplicatorNIType.ValidNI_SERVER_REACHABLE ||
+                    type == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE)
+                    offline.Should().BeFalse();
+                else
+                    offline.Should().BeTrue();
+
+                // Check error
+                if (!offline) {
+                    var error = repl.Status.Error.As<CouchbaseWebsocketException>();
+                    error.Error.Should().Be((int)CouchbaseLiteError.WebSocketGoingAway);
+                }
+
+                repl.RemoveChangeListener(token);
+            }
+        }
+
+        private string GetNetworkInterface(TestReplicatorNIType tyep)
+        {
+            if (tyep == TestReplicatorNIType.InValidNI)
+                return "INVALID";
+
+            foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
+                if (tyep <= TestReplicatorNIType.ValidNI_SERVER_REACHABLE && 
+                    ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) {
+                    if (tyep == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE)
+                        return ni.GetIPProperties().UnicastAddresses[1].Address.ToString();
+                    return ni.Name;
+                } else if (tyep == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE && 
+                    ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
+                    return ni.Name;
+            }
+
+            return null;
+        }
 
         private int GetEADDRINUSECode()
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 return 100;
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
                 return 48;
-            }
-            else
-            {
+            } else {
                 return 98; // Linux
             }
         }
