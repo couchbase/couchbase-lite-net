@@ -869,7 +869,8 @@ namespace Test
             ValidAddress_SERVER_REACHABLE,
             ValidNI_SERVER_REACHABLE,
             ValidNI_SERVER_UNREACHABLE,
-            InValidNI
+            InValidNI,
+            InValidAddress
         }
 
         #if !__ANDROID__ && !__IOS__ //Cannot run this test in emulators
@@ -885,6 +886,8 @@ namespace Test
             TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
             // invalid ni
             TestReplicatorNI(TestReplicatorNIType.InValidNI);
+            // invalid address
+            TestReplicatorNI(TestReplicatorNIType.InValidAddress);
         }
 
         #endif
@@ -900,7 +903,7 @@ namespace Test
 
             ni.Should().NotBeNull();
 
-            ManualResetEventSlim waitIdleAssert = new ManualResetEventSlim();
+            ManualResetEventSlim waitOfflineAssert = new ManualResetEventSlim();
             ManualResetEventSlim waitStoppedAssert = new ManualResetEventSlim();
 
             var listenerConfig = CreateListenerConfig(false);
@@ -914,56 +917,53 @@ namespace Test
                 NetworkInterface = ni
             };
 
-            using (var repl = new Replicator(replicatorConfig))
+            if (type == TestReplicatorNIType.ValidNI_SERVER_REACHABLE ||
+                    type == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE)
+                RunReplication(replicatorConfig, 0, 0);
+
+            else
             {
-                var token = repl.AddChangeListener((sender, args) =>
-                {
-                    if (args.Status.Activity == ReplicatorActivityLevel.Idle) {
-                        waitIdleAssert.Set();
-                        // Stop listener aka server
-                        _listener.Stop();
-                    } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                        waitStoppedAssert.Set();
-                    }
-                });
+                using (var repl = new Replicator(replicatorConfig)) {
+                    var token = repl.AddChangeListener((sender, args) =>
+                    {
+                        if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
+                            waitOfflineAssert.Set();
+                            // Stop listener aka server
+                            _listener.Stop();
+                        } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                            waitStoppedAssert.Set();
+                        }
+                    });
 
-                repl.Start();
+                    repl.Start();
 
-                try {
                     // Wait until idle then stop the listener
-                    waitIdleAssert.Wait(TimeSpan.FromSeconds(15)).Should().BeTrue();
-                } catch {
-                    offline = repl.Status.Activity == ReplicatorActivityLevel.Offline;
+                    waitOfflineAssert.Wait(TimeSpan.FromSeconds(15)).Should().BeTrue();
+
                     if (type == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE)
                         ((CouchbaseNetworkException)repl.Status.Error).Error.Should().Be((int)CouchbaseLiteError.AddressNotAvailable);
                     else
                         ((CouchbaseNetworkException)repl.Status.Error).Error.Should().Be((int)CouchbaseLiteError.UnknownHost);
+
                     repl.Stop();
+
+                    // Wait for the replicator to be stopped
+                    waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).Should().BeTrue();
+
+                    repl.RemoveChangeListener(token);
                 }
-
-                // Wait for the replicator to be stopped
-                waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).Should().BeTrue();
-
-                if (type == TestReplicatorNIType.ValidNI_SERVER_REACHABLE ||
-                    type == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE)
-                    offline.Should().BeFalse();
-                else
-                    offline.Should().BeTrue();
-
-                // Check error
-                if (!offline) {
-                    var error = repl.Status.Error.As<CouchbaseWebsocketException>();
-                    error.Error.Should().Be((int)CouchbaseLiteError.WebSocketGoingAway);
-                }
-
-                repl.RemoveChangeListener(token);
             }
+
+            _listener.Stop();
         }
 
         private string GetNetworkInterface(TestReplicatorNIType tyep)
         {
             if (tyep == TestReplicatorNIType.InValidNI)
                 return "INVALID";
+
+            if (tyep == TestReplicatorNIType.InValidAddress)
+                return "1.1.1.256";
 
             foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
                 if (tyep <= TestReplicatorNIType.ValidNI_SERVER_REACHABLE && 
