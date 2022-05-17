@@ -876,24 +876,26 @@ namespace Test
         #if !__ANDROID__ && !__IOS__ //Cannot run this test in emulators
 
         [Fact]
-        public void TestReplicatorInValidNI() => TestReplicatorNI(TestReplicatorNIType.InValidNI);
-
-        [Fact]
-        public void TestReplicatorNetworkInterface()
+        public void TestReplicatorValidNetworkInterface()
         {
             // valid address and able to connect to server
             TestReplicatorNI(TestReplicatorNIType.ValidAddress_SERVER_REACHABLE);
             // valid ni and able to connect to server
             TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_REACHABLE);
-            // invalid ni
-            //TestReplicatorNI(TestReplicatorNIType.InValidNI);
-            //// invalid address
-            //TestReplicatorNI(TestReplicatorNIType.InValidAddress);
-            //// valid ni but server is not reachable
-            //TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
         }
 
-        #endif
+        // Note: Mac tests will fail with db dispose failures (Infinite Taking a while for active items to stop...) if stacking below tests into one test
+        // Please note all tests below will end up with offline status by design. 
+        [Fact]
+        public void TestReplicatorInValidNetworkInterface() => TestReplicatorNI(TestReplicatorNIType.InValidNI);
+
+        [Fact]
+        public void TestReplicatorInValidNIIPAddress() => TestReplicatorNI(TestReplicatorNIType.InValidAddress);
+
+        [Fact]
+        public void TestReplicatorValidNIUnreachableServer() => TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
+
+#endif
 
         #endregion
 
