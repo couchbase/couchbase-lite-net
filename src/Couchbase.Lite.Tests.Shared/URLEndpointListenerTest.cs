@@ -892,7 +892,7 @@ namespace Test
         [Fact]
         public void TestReplicatorInValidNIIPAddress() => TestReplicatorNI(TestReplicatorNIType.InValidAddress);
 
-        //[Fact]
+        [Fact]
         public void TestReplicatorValidNIUnreachableServer() => TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
 
 #endif
