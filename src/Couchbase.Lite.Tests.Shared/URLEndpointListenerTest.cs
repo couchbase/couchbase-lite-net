@@ -867,7 +867,7 @@ namespace Test
         enum TestReplicatorNIType
         {
             ValidAddress_SERVER_REACHABLE,
-            ValidNI_SERVER_REACHABLE,
+            ValidNI,
             ValidNI_SERVER_UNREACHABLE,
             InValidNI,
             InValidAddress
@@ -881,7 +881,7 @@ namespace Test
             // valid address and able to connect to server
             TestReplicatorNI(TestReplicatorNIType.ValidAddress_SERVER_REACHABLE);
             // valid ni and able to connect to server
-            TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_REACHABLE);
+            TestReplicatorNI(TestReplicatorNIType.ValidNI);
         }
 
         // Note: Mac tests will fail with db dispose failures (Infinite Taking a while for active items to stop...) if stacking below tests into one test
@@ -892,10 +892,30 @@ namespace Test
         [Fact]
         public void TestReplicatorInValidNIIPAddress() => TestReplicatorNI(TestReplicatorNIType.InValidAddress);
 
-        [Fact]
-        public void TestReplicatorValidNIUnreachableServer() => TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
+        // TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE) failed in Mac. This test is pass on Windows.
+        // A valid ethernet adapter NI is used (but not connect to network)
+        //[Fact]
+        public void TestReplicatorValidAdapterNotConnectNetwork() => TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
 
-#endif
+        [Fact]
+        public void TestReplicatorValidNIUnreachableServer()
+        {
+            var ni = GetNetworkInterface(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
+
+            ni.Should().NotBeNull();
+
+            var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.117:4984/app"));
+            var config = new ReplicatorConfiguration(Db, targetEndpoint)
+            {
+                ReplicatorType = ReplicatorType.PushAndPull,
+                Continuous = true,
+                NetworkInterface = ni
+            };
+
+            RunReplication(config, (int)C4NetworkErrorCode.BrokenPipe, CouchbaseLiteErrorType.CouchbaseLite);
+        }
+
+        #endif
 
         #endregion
 
@@ -921,7 +941,7 @@ namespace Test
                 NetworkInterface = ni
             };
 
-            if (type == TestReplicatorNIType.ValidNI_SERVER_REACHABLE ||
+            if (type == TestReplicatorNIType.ValidNI ||
                     type == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE)
                 RunReplication(replicatorConfig, 0, 0);
 
@@ -967,8 +987,7 @@ namespace Test
                 return "1.1.1.256";
 
             foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
-                if (tyep <= TestReplicatorNIType.ValidNI_SERVER_REACHABLE && 
-                    ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) {
+                if (tyep <= TestReplicatorNIType.ValidNI && ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) {
                     if (tyep == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE)
                         return ni.GetIPProperties().UnicastAddresses[1].Address.ToString();
                     return ni.Name;
@@ -1390,7 +1409,7 @@ namespace Test
             base.Dispose(disposing);
 
             _store.Dispose();
-            _listener.Dispose();
+            _listener?.Dispose();
         }
     }
 }
