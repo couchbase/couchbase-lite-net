@@ -894,9 +894,11 @@ namespace Test
 
         // TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE) failed in Mac. This test is pass on Windows.
         // A valid ethernet adapter NI is used (but not connect to network)
-        //[Fact]
+        [Fact]
         public void TestReplicatorValidAdapterNotConnectNetwork() => TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
 
+        //This test is failed on Mac. Mac is getting Transient error (Network error 2, "CouchbaseLiteException (NetworkDomain / 2): unknown hostname.")
+        //Test is pass on Windows
         [Fact]
         public void TestReplicatorValidNIUnreachableServer()
         {
@@ -904,6 +906,7 @@ namespace Test
 
             ni.Should().NotBeNull();
 
+            //unreachable server
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.117:4984/app"));
             var config = new ReplicatorConfiguration(Db, targetEndpoint)
             {
