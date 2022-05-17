@@ -882,12 +882,12 @@ namespace Test
             TestReplicatorNI(TestReplicatorNIType.ValidAddress_SERVER_REACHABLE);
             // valid ni and able to connect to server
             TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_REACHABLE);
-            // valid ni but server is not reachable
-            TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
             // invalid ni
             TestReplicatorNI(TestReplicatorNIType.InValidNI);
             // invalid address
             TestReplicatorNI(TestReplicatorNIType.InValidAddress);
+            // valid ni but server is not reachable
+            TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
         }
 
         #endif
@@ -949,10 +949,9 @@ namespace Test
                     offline.Should().BeTrue();
 
                     repl.RemoveChangeListener(token);
+                    _listener.Stop();
                 }
             }
-
-            _listener.Stop();
         }
 
         private string GetNetworkInterface(TestReplicatorNIType tyep)
