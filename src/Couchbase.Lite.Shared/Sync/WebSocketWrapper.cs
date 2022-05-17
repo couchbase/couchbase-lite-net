@@ -276,16 +276,11 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods
 
-        private List<IPAddress> GetLocalNIAddress(string rni)
+        private UnicastIPAddressInformationCollection GetLocalNIAddress(string rni)
         {
-            List<IPAddress> addrs = new List<IPAddress>();
             foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
                 if (ni.Name == rni) {
-                    // UnicastAddresses[0] will give ipv6 address of certain adapter and UnicastAddresses[1] will give ipv4 address of certain adapter
-                    foreach (var a in ni.GetIPProperties().UnicastAddresses)
-                        addrs.Add(a.Address);
-
-                    return addrs;
+                    return ni.GetIPProperties().UnicastAddresses;
                 }
             }
 
@@ -294,32 +289,33 @@ namespace Couchbase.Lite.Sync
 
         private TcpClient CreateClientFromNetworkInterface()
         {
-            List<IPAddress> localAddresses;
-            IPEndPoint localEndPoint;
+            UnicastIPAddressInformationCollection localAddresses;
             IPAddress addr;
 
-            //Input NI canbe IPAddress string
+            //Input NI can be IPAddress string
             if (IPAddress.TryParse(_options.NetworkInterface, out addr)) {
-                localEndPoint = new IPEndPoint(addr, 0);
+                var localEndPoint = new IPEndPoint(addr, 0);
                 return new TcpClient(localEndPoint);
             } else {
-                //Get IPAddress(es) base on the NI adapter
+                //Get UnicastIPAddressInformationCollection from the NI adapter
                 localAddresses = GetLocalNIAddress(_options.NetworkInterface);
             }
 
-            //Throw if input adapter does not existed
-            if (localAddresses == null || localAddresses.Count == 0) {
+            //Throw if input adapter does not exist
+            if (localAddresses == null) {
                 WriteLog.To.Sync.I(Tag, $"Unknown Network Interface {_options.NetworkInterface}.");
                 throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownHost);
             }
 
             try {
                 //Create tcp client with ipv6 address for adapter
-                return new TcpClient(new IPEndPoint(localAddresses[0], 0));
+                var ipv6 = localAddresses.FirstOrDefault(x => x.Address.AddressFamily == AddressFamily.InterNetworkV6)?.Address;
+                return new TcpClient(new IPEndPoint(ipv6, 0));
             } catch (Exception e) {
-                WriteLog.To.Sync.I(Tag, $"TcpClient failed bind Network Interface {_options.NetworkInterface} IPv6.");
-                if (localAddresses.Count > 1) {
-                    return new TcpClient(new IPEndPoint(localAddresses[1], 0));
+                WriteLog.To.Sync.I(Tag, $"TcpClient failed to bind Network Interface {_options.NetworkInterface} IPv6.");
+                var ipv4 = localAddresses.FirstOrDefault(x => x.Address.AddressFamily == AddressFamily.InterNetwork)?.Address;
+                if (ipv4 != null) {
+                    return new TcpClient(new IPEndPoint(ipv4, 0));
                 } else {
                     WriteLog.To.Sync.I(Tag, $"No IPv4 for Network Interface {_options.NetworkInterface}.");
                     throw e;
