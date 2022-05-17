@@ -889,7 +889,7 @@ namespace Test
         [Fact]
         public void TestReplicatorInValidNetworkInterface() => TestReplicatorNI(TestReplicatorNIType.InValidNI);
 
-        //[Fact]
+        [Fact]
         public void TestReplicatorInValidNIIPAddress() => TestReplicatorNI(TestReplicatorNIType.InValidAddress);
 
         //[Fact]
@@ -941,6 +941,7 @@ namespace Test
 
                             waitOfflineAssert.Set();
                             repl.Stop();
+                            _listener.Stop();
                         } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
                             waitStoppedAssert.Set();
                         }
@@ -952,6 +953,8 @@ namespace Test
                     waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).Should().BeTrue();
                     repl.RemoveChangeListener(token);
                 }
+
+                Thread.Sleep(500);
             }
         }
 
