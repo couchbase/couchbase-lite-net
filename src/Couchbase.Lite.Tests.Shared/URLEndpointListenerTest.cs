@@ -926,8 +926,6 @@ namespace Test
                     {
                         if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
                             waitOfflineAssert.Set();
-                            // Stop listener aka server
-                            _listener.Stop();
                         } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
                             waitStoppedAssert.Set();
                         }
@@ -935,7 +933,7 @@ namespace Test
 
                     repl.Start();
 
-                    // Wait until idle then stop the listener
+                    // Wait until offline
                     waitOfflineAssert.Wait(TimeSpan.FromSeconds(15)).Should().BeTrue();
 
                     if (type == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE)
