@@ -176,7 +176,7 @@ namespace Couchbase.Lite.Sync
         /// by a <see cref="Replicator"/> with this configuration will be rejected.
         /// </summary>
         [CanBeNull]
-        internal X509Certificate2 PinnedServerCertificate { get; set; }
+        public X509Certificate2 PinnedServerCertificate { get; set; }
 
         [CanBeNull]
         internal string NetworkInterface
