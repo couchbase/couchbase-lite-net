@@ -898,6 +898,7 @@ namespace Test
 
         private void TestReplicatorNI(TestReplicatorNIType type)
         {
+            bool offline = false;
             var ni = GetNetworkInterface(type);
 
             ni.Should().NotBeNull();
@@ -925,7 +926,17 @@ namespace Test
                     var token = repl.AddChangeListener((sender, args) =>
                     {
                         if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
-                            waitOfflineAssert.Set();
+                            var expectedException = (CouchbaseNetworkException)args.Status.Error;
+                            if (type == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE) {
+                                expectedException.Error.Should().Be(CouchbaseLiteError.AddressNotAvailable);
+                                expectedException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+                            } else {
+                                expectedException.Error.Should().Be(CouchbaseLiteError.UnknownHost);
+                                expectedException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+                            }
+
+                            offline = true;
+                            repl.Stop();
                         } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
                             waitStoppedAssert.Set();
                         }
@@ -933,18 +944,9 @@ namespace Test
 
                     repl.Start();
 
-                    // Wait until offline
-                    waitOfflineAssert.Wait(TimeSpan.FromSeconds(15)).Should().BeTrue();
-
-                    if (type == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE)
-                        ((CouchbaseNetworkException)repl.Status.Error).Error.Should().Be((int)CouchbaseLiteError.AddressNotAvailable);
-                    else
-                        ((CouchbaseNetworkException)repl.Status.Error).Error.Should().Be((int)CouchbaseLiteError.UnknownHost);
-
-                    repl.Stop();
-
                     // Wait for the replicator to be stopped
                     waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).Should().BeTrue();
+                    offline.Should().BeTrue();
 
                     repl.RemoveChangeListener(token);
                 }
