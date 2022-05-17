@@ -222,19 +222,8 @@ namespace Couchbase.Lite.Sync
 
                 if (!String.IsNullOrEmpty(_options.NetworkInterface)) {
                     try {
-                        var localAddress = GetLocalNIAddress(_options.NetworkInterface);
-                        if (localAddress == null) {
-                            WriteLog.To.Sync.I(Tag, $"Unknown Network Interface {_options.NetworkInterface}.");
-                            DidClose(new CouchbaseNetworkException(C4NetworkErrorCode.UnknownHost));
-                            return;
-                        }
-
-                        IPEndPoint localEndPoint = new IPEndPoint(localAddress, 0);
-                        var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-                        socket.Bind(localEndPoint);
-                        _client = new TcpClient() { Client = socket };
+                        _client = CreateClientFromNetworkInterface();
                     } catch (Exception e) {
-                        WriteLog.To.Sync.I(Tag, $"Connection failed with {_options.NetworkInterface}/{_client.Client.LocalEndPoint} in Replicator Configuration.");
                         DidClose(e);
                         return;
                     }
@@ -287,21 +276,55 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods
 
-        internal IPAddress GetLocalNIAddress(string rni)
+        private List<IPAddress> GetLocalNIAddress(string rni)
         {
-            IPAddress addr = null;
-            if (IPAddress.TryParse(rni, out addr))
-                return addr;
-
+            List<IPAddress> addrs = new List<IPAddress>();
             foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
-                if (ni.Name == rni) { // UnicastAddresses[1] will give ipv4 address of certain adapter
-                    addr = ni.GetIPProperties().UnicastAddresses[0].Address; //This will give ipv6 address of certain adapter
+                if (ni.Name == rni) {
+                    // UnicastAddresses[0] will give ipv6 address of certain adapter and UnicastAddresses[1] will give ipv4 address of certain adapter
+                    foreach (var a in ni.GetIPProperties().UnicastAddresses)
+                        addrs.Add(a.Address);
 
-                    return addr;
+                    return addrs;
                 }
             }
 
-            return addr;
+            return null;
+        }
+
+        private TcpClient CreateClientFromNetworkInterface()
+        {
+            List<IPAddress> localAddresses;
+            IPEndPoint localEndPoint;
+            IPAddress addr;
+
+            //Input NI canbe IPAddress string
+            if (IPAddress.TryParse(_options.NetworkInterface, out addr)) {
+                localEndPoint = new IPEndPoint(addr, 0);
+                return new TcpClient(localEndPoint);
+            } else {
+                //Get IPAddress(es) base on the NI adapter
+                localAddresses = GetLocalNIAddress(_options.NetworkInterface);
+            }
+
+            //Throw if input adapter does not existed
+            if (localAddresses == null || localAddresses.Count == 0) {
+                WriteLog.To.Sync.I(Tag, $"Unknown Network Interface {_options.NetworkInterface}.");
+                throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownHost);
+            }
+
+            try {
+                //Create tcp client with ipv6 address for adapter
+                return new TcpClient(new IPEndPoint(localAddresses[0], 0));
+            } catch (Exception e) {
+                WriteLog.To.Sync.I(Tag, $"TcpClient failed bind Network Interface {_options.NetworkInterface} IPv6.");
+                if (localAddresses.Count > 1) {
+                    return new TcpClient(new IPEndPoint(localAddresses[1], 0));
+                } else {
+                    WriteLog.To.Sync.I(Tag, $"No IPv4 for Network Interface {_options.NetworkInterface}.");
+                    throw e;
+                }
+            }
         }
 
         private unsafe void ReleaseSocket(C4Error errorIfAny)
