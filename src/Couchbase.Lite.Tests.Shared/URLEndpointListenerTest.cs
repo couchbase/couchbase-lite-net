@@ -898,7 +898,6 @@ namespace Test
 
         private void TestReplicatorNI(TestReplicatorNIType type)
         {
-            bool offline = false;
             var ni = GetNetworkInterface(type);
 
             ni.Should().NotBeNull();
@@ -935,8 +934,7 @@ namespace Test
                                 expectedException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
                             }
 
-                            offline = true;
-                            repl.Stop();
+                            waitOfflineAssert.Set();
                         } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
                             waitStoppedAssert.Set();
                         }
@@ -944,12 +942,13 @@ namespace Test
 
                     repl.Start();
 
+                    waitOfflineAssert.Wait(TimeSpan.FromSeconds(10)).Should().BeTrue();
+
+                    repl.Stop();
+
                     // Wait for the replicator to be stopped
                     waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).Should().BeTrue();
-                    offline.Should().BeTrue();
-
                     repl.RemoveChangeListener(token);
-                    _listener.Stop();
                 }
             }
         }
