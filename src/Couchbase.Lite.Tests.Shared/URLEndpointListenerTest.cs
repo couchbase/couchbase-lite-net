@@ -897,25 +897,24 @@ namespace Test
         [Fact]
         public void TestReplicatorValidAdapterNotConnectNetwork() => TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
 
-        //This test is failed on Mac. Mac is getting Transient error (Network error 2, "CouchbaseLiteException (NetworkDomain / 2): unknown hostname.")
-        //Test is pass on Windows
         [Fact]
         public void TestReplicatorValidNIUnreachableServer()
         {
-            var ni = GetNetworkInterface(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
+            ManualResetEventSlim waitOfflineAssert = new ManualResetEventSlim();
+            ManualResetEventSlim waitStoppedAssert = new ManualResetEventSlim();
+
+            var ni = GetNetworkInterface(TestReplicatorNIType.ValidNI);
 
             ni.Should().NotBeNull();
 
             //unreachable server
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.117:4984/app"));
-            var config = new ReplicatorConfiguration(Db, targetEndpoint)
-            {
+            var config = new ReplicatorConfiguration(Db, targetEndpoint) {
                 ReplicatorType = ReplicatorType.PushAndPull,
-                Continuous = true,
                 NetworkInterface = ni
             };
 
-            RunReplication(config, (int)C4NetworkErrorCode.BrokenPipe, CouchbaseLiteErrorType.CouchbaseLite);
+            RunReplication(config, (int)CouchbaseLiteError.NetworkUnreachable, CouchbaseLiteErrorType.CouchbaseLite);
         }
 
         #endif
@@ -991,8 +990,13 @@ namespace Test
 
             foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
                 if (tyep <= TestReplicatorNIType.ValidNI && ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) {
-                    if (tyep == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE)
-                        return ni.GetIPProperties().UnicastAddresses[1].Address.ToString();
+                    if (tyep == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE) {
+                        if(ni.Supports(NetworkInterfaceComponent.IPv4))
+                            return ni.GetIPProperties().UnicastAddresses.FirstOrDefault(x => x.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)?.Address.ToString();
+                        else
+                            return ni.GetIPProperties().UnicastAddresses.FirstOrDefault(x => x.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)?.Address.ToString();
+                    }
+
                     return ni.Name;
                 } else if (tyep == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE && 
                     ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
