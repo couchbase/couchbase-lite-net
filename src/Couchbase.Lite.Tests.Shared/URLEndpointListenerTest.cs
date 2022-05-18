@@ -873,7 +873,7 @@ namespace Test
             InValidAddress
         }
 
-        //#if !__ANDROID__ && !__IOS__ //Cannot run this test in emulators
+        #if !__ANDROID__ && !__IOS__ //Cannot run this test in emulators
 
         [Fact]
         public void TestReplicatorValidNetworkInterface()
@@ -884,16 +884,6 @@ namespace Test
             TestReplicatorNI(TestReplicatorNIType.ValidNI);
         }
 
-        // Note: Mac tests will fail with db dispose failures (Infinite Taking a while for active items to stop...) if stacking below tests into one test
-        // Please note all tests below will end up with offline status by design. 
-        [Fact]
-        public void TestReplicatorInValidNetworkInterface() => TestReplicatorNI(TestReplicatorNIType.InValidNI);
-
-        [Fact]
-        public void TestReplicatorInValidNIIPAddress() => TestReplicatorNI(TestReplicatorNIType.InValidAddress);
-
-        // TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE) failed in Mac. This test is pass on Windows.
-        // A valid ethernet adapter NI is used (but not connect to network)
         [Fact]
         public void TestReplicatorValidAdapterNotConnectNetwork() => TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
 
@@ -910,7 +900,8 @@ namespace Test
 
             //unreachable server
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.117:4984/app"));
-            var config = new ReplicatorConfiguration(Db, targetEndpoint) {
+            var config = new ReplicatorConfiguration(Db, targetEndpoint)
+            {
                 ReplicatorType = ReplicatorType.PushAndPull,
                 NetworkInterface = ni
             };
@@ -918,7 +909,15 @@ namespace Test
             RunReplication(config, (int)CouchbaseLiteError.NetworkUnreachable, CouchbaseLiteErrorType.CouchbaseLite);
         }
 
-        //#endif
+        #endif
+
+        // Note: Mac tests will fail with db dispose failures (Infinite Taking a while for active items to stop...) if stacking below tests into one test
+        // Please note all tests below will end up with offline status by design. 
+        [Fact]
+        public void TestReplicatorInValidNetworkInterface() => TestReplicatorNI(TestReplicatorNIType.InValidNI);
+
+        [Fact]
+        public void TestReplicatorInValidNIIPAddress() => TestReplicatorNI(TestReplicatorNIType.InValidAddress);
 
         #endregion
 
