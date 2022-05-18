@@ -873,7 +873,7 @@ namespace Test
             InValidAddress
         }
 
-        #if !__ANDROID__ && !__IOS__ //Cannot run this test in emulators
+        //#if !__ANDROID__ && !__IOS__ //Cannot run this test in emulators
 
         [Fact]
         public void TestReplicatorValidNetworkInterface()
@@ -894,11 +894,11 @@ namespace Test
 
         // TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE) failed in Mac. This test is pass on Windows.
         // A valid ethernet adapter NI is used (but not connect to network)
-        //[Fact]
+        [Fact]
         public void TestReplicatorValidAdapterNotConnectNetwork() => TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
 
         //mac error code is different from windows error code..
-        //[Fact]
+        [Fact]
         public void TestReplicatorValidNIUnreachableServer()
         {
             ManualResetEventSlim waitOfflineAssert = new ManualResetEventSlim();
@@ -918,7 +918,7 @@ namespace Test
             RunReplication(config, (int)CouchbaseLiteError.NetworkUnreachable, CouchbaseLiteErrorType.CouchbaseLite);
         }
 
-        #endif
+        //#endif
 
         #endregion
 
@@ -954,13 +954,8 @@ namespace Test
                     {
                         if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
                             var expectedException = (CouchbaseNetworkException)args.Status.Error;
-                            if (type == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE) {
-                                expectedException.Error.Should().Be(CouchbaseLiteError.AddressNotAvailable);
-                                expectedException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
-                            } else {
-                                expectedException.Error.Should().Be(CouchbaseLiteError.UnknownHost);
-                                expectedException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
-                            }
+                            expectedException.Error.Should().Be(CouchbaseLiteError.UnknownHost);
+                            expectedException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
 
                             waitOfflineAssert.Set();
                             repl.Stop();
@@ -992,10 +987,10 @@ namespace Test
             foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
                 if (tyep <= TestReplicatorNIType.ValidNI && ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) {
                     if (tyep == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE) {
-                        if(ni.Supports(NetworkInterfaceComponent.IPv4))
-                            return ni.GetIPProperties().UnicastAddresses.FirstOrDefault(x => x.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)?.Address.ToString();
-                        else
+                        if(ni.Supports(NetworkInterfaceComponent.IPv6))
                             return ni.GetIPProperties().UnicastAddresses.FirstOrDefault(x => x.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)?.Address.ToString();
+                        else
+                            return ni.GetIPProperties().UnicastAddresses.FirstOrDefault(x => x.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)?.Address.ToString();
                     }
 
                     return ni.Name;
