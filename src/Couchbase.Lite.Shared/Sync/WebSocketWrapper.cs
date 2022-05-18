@@ -290,7 +290,8 @@ namespace Couchbase.Lite.Sync
                     return new TcpClient(localEndPoint);
                 } else {
                     //Get Network Interface
-                    ni = NetworkInterface.GetAllNetworkInterfaces().FirstOrDefault(x => x.Name == _options.NetworkInterface);
+                    ni = NetworkInterface.GetAllNetworkInterfaces().FirstOrDefault(x => x.Name == _options.NetworkInterface
+                        && x.OperationalStatus == OperationalStatus.Up);
                 }
                 
                 //Throw if input network adapter does not exist
@@ -298,7 +299,7 @@ namespace Couchbase.Lite.Sync
                     WriteLog.To.Sync.I(Tag, $"Unknown Network Interface {_options.NetworkInterface}.");
                     throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownHost);
                 }
-                
+
                 //Get UnicastIPAddressInformationCollection from the NI adapter
                 var addresses = ni.GetIPProperties().UnicastAddresses;
 
