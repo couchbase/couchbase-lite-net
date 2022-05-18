@@ -282,27 +282,29 @@ namespace Couchbase.Lite.Sync
             IPAddress addr, hostAddr;
             bool isRemoteHostIP = false;
 
-            //Input NI can be IPAddress string
-            if (IPAddress.TryParse(_options.NetworkInterface, out addr)) {
-                var localEndPoint = new IPEndPoint(addr, 0);
-                return new TcpClient(localEndPoint);
-            } else {
-                //Get Network Interface
-                ni = NetworkInterface.GetAllNetworkInterfaces().FirstOrDefault(x => x.Name == _options.NetworkInterface);
-            }
+            try
+            {
+                //Input NI can be IPAddress string
+                if (IPAddress.TryParse(_options.NetworkInterface, out addr)) {
+                    var localEndPoint = new IPEndPoint(addr, 0);
+                    return new TcpClient(localEndPoint);
+                } else {
+                    //Get Network Interface
+                    ni = NetworkInterface.GetAllNetworkInterfaces().FirstOrDefault(x => x.Name == _options.NetworkInterface);
+                }
+                
+                //Throw if input network adapter does not exist
+                if (ni == null) {
+                    WriteLog.To.Sync.I(Tag, $"Unknown Network Interface {_options.NetworkInterface}.");
+                    throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownHost);
+                }
+                
+                //Get UnicastIPAddressInformationCollection from the NI adapter
+                var addresses = ni.GetIPProperties().UnicastAddresses;
 
-            //Throw if input network adapter does not exist
-            if (ni == null) {
-                WriteLog.To.Sync.I(Tag, $"Unknown Network Interface {_options.NetworkInterface}.");
-                throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownHost);
-            }
-
-            //Get UnicastIPAddressInformationCollection from the NI adapter
-            var addresses = ni.GetIPProperties().UnicastAddresses;
-
-            // If remote host is IP, use the address family from the IP.
-            isRemoteHostIP = IPAddress.TryParse(_logic.UrlRequest.Host, out hostAddr);
-            try {
+                // If remote host is IP, use the address family from the IP.
+                isRemoteHostIP = IPAddress.TryParse(_logic.UrlRequest.Host, out hostAddr);
+            
                 if (isRemoteHostIP) {
                     return GetTcpClient(hostAddr.AddressFamily, addresses);
                 }
@@ -313,7 +315,7 @@ namespace Couchbase.Lite.Sync
                     return GetTcpClient(AddressFamily.InterNetwork, addresses);
                 }
 
-                WriteLog.To.Sync.I(Tag, $"Network Interface {_options.NetworkInterface} doesn't support neither IPv6 nor IPv4.");
+                WriteLog.To.Sync.I(Tag, $"Network Interface {_options.NetworkInterface} supports neither IPv6 nor IPv4.");
                 throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownHost);
 
             } catch (Exception ex) {
@@ -323,12 +325,14 @@ namespace Couchbase.Lite.Sync
 
         private TcpClient GetTcpClient(AddressFamily af, UnicastIPAddressInformationCollection localAddresses)
         {
+            IPAddress ip = null;
             try {
-                //Create tcp client with ipv6 address for adapter
-                var ip = localAddresses.FirstOrDefault(x => x.Address.AddressFamily == af)?.Address;
+                //Get the ip address base on the given address family
+                ip = localAddresses.FirstOrDefault(x => x.Address.AddressFamily == af)?.Address;
+                //Create and return tcp client, if ip address is null, ArgumentNullException will be thrown
                 return new TcpClient(new IPEndPoint(ip, 0));
             } catch (Exception e) {
-                WriteLog.To.Sync.I(Tag, $"TcpClient failed to bind Network Interface {_options.NetworkInterface} {af}.");
+                WriteLog.To.Sync.I(Tag, $"TcpClient failed to bind Network Interface {_options.NetworkInterface} with {ip} in family {af}.");
                 throw e;
             }
         }
