@@ -290,7 +290,9 @@ namespace Couchbase.Lite.Sync
         private TcpClient CreateClientFromNetworkInterface()
         {
             UnicastIPAddressInformationCollection localAddresses;
-            IPAddress addr;
+            IPAddress addr, hostAddr;
+            bool isRemoteHostIP = false;
+            bool? isRemoteHostAddrIPv6 = null;
 
             //Input NI can be IPAddress string
             if (IPAddress.TryParse(_options.NetworkInterface, out addr)) {
@@ -307,12 +309,18 @@ namespace Couchbase.Lite.Sync
                 throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownHost);
             }
 
+            // If host is IP, use the family from the IP.
+            isRemoteHostIP = IPAddress.TryParse(_logic.UrlRequest.Host, out hostAddr);
+            if (isRemoteHostIP)
+                isRemoteHostAddrIPv6 = hostAddr.AddressFamily == AddressFamily.InterNetworkV6;
+
             try {
                 //Create tcp client with ipv6 address for adapter
                 var ipv6 = localAddresses.FirstOrDefault(x => x.Address.AddressFamily == AddressFamily.InterNetworkV6)?.Address;
                 return new TcpClient(new IPEndPoint(ipv6, 0));
             } catch (Exception e) {
                 WriteLog.To.Sync.I(Tag, $"TcpClient failed to bind Network Interface {_options.NetworkInterface} IPv6.");
+                if (isRemoteHostAddrIPv6 == true) throw e;
                 var ipv4 = localAddresses.FirstOrDefault(x => x.Address.AddressFamily == AddressFamily.InterNetwork)?.Address;
                 if (ipv4 != null) {
                     return new TcpClient(new IPEndPoint(ipv4, 0));
