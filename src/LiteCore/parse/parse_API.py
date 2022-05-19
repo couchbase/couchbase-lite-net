@@ -45,8 +45,6 @@ if __name__ == "__main__":
     if args.symbol_list is not None:
         symbol_file = open(args.symbol_list, "r")
         symbol_list = symbol_file.read().splitlines()
-        end_index = symbol_list.index("; C4Tests")
-        symbol_list = symbol_list[:end_index]
         symbol_file.close()
 
     skip_files = []
