@@ -128,11 +128,8 @@ namespace Couchbase.Lite
         private static readonly C4DocumentObserverCallback _DocumentObserverCallback = DocObserverCallback;
         private static readonly C4DatabaseObserverCallback _DatabaseObserverCallback = DbObserverCallback;
 
-        private const string _defaultScopeName = "_default";
-        private const string _defaultCollectionName = "_default";
-
-        public static readonly string DefaultScopeName = _defaultScopeName;
-        public static readonly string DefaultCollectionName = _defaultCollectionName;
+        internal const string _defaultScopeName = "_default";
+        internal const string _defaultCollectionName = "_default";
 
         #endregion
 

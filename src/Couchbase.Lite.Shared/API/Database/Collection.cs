@@ -28,6 +28,13 @@ namespace Couchbase.Lite
     public sealed class Collection : ICollection, IDisposable, IChangeObservable<DatabaseChangedEventArgs>,
         IDocumentChangeObservable
     {
+        #region Constants
+
+        public static readonly string DefaultScopeName = Database._defaultScopeName;
+        public static readonly string DefaultCollectionName = Database._defaultCollectionName;
+
+        #endregion
+
         #region Properties
 
         [NotNull] //TODO: expose Database.ThreadSafety and assign here
