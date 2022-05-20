@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
@@ -215,21 +216,32 @@ namespace Couchbase.Lite.Sync
                 _receivePause = new ManualResetEventSlim(true);
                 _reachability.StatusChanged += ReachabilityChanged;
                 _reachability.Start();
+
                 // STEP 1: Create the TcpClient, which is responsible for negotiating
                 // the socket connection between here and the server
-                try {
-                    // ReSharper disable once UseObjectOrCollectionInitializer
-                    _client = new TcpClient(AddressFamily.InterNetworkV6);
-                } catch (Exception e) {
-                    DidClose(e);
-                    return;
-                }
 
-                try {
-                    _client.Client.DualMode = true;
-                } catch (ArgumentException) {
-                    WriteLog.To.Sync.I(Tag, "IPv4/IPv6 dual mode not supported on this device, falling back to IPv4");
-                    _client = new TcpClient(AddressFamily.InterNetwork);
+                if (!String.IsNullOrEmpty(_options.NetworkInterface)) {
+                    try {
+                        _client = CreateClientFromNetworkInterface();
+                    } catch (Exception e) {
+                        DidClose(e);
+                        return;
+                    }
+                } else {
+                    try {
+                        // ReSharper disable once UseObjectOrCollectionInitializer
+                        _client = new TcpClient(AddressFamily.InterNetworkV6);
+                    } catch (Exception e) {
+                        DidClose(e);
+                        return;
+                    }
+
+                    try {
+                        _client.Client.DualMode = true;
+                    } catch (ArgumentException)  {
+                        WriteLog.To.Sync.I(Tag, "IPv4/IPv6 dual mode not supported on this device, falling back to IPv4");
+                        _client = new TcpClient(AddressFamily.InterNetwork);
+                    }
                 }
 
                 // STEP 2.5: The IProxy interface will detect a system wide proxy that is set
@@ -263,6 +275,69 @@ namespace Couchbase.Lite.Sync
         #endregion
 
         #region Private Methods
+
+        private TcpClient CreateClientFromNetworkInterface()
+        {
+            NetworkInterface ni;
+            IPAddress addr, hostAddr;
+            bool isRemoteHostIP = false;
+
+            try
+            {
+                //Input NI can be IPAddress string
+                if (IPAddress.TryParse(_options.NetworkInterface, out addr)) {
+                    var localEndPoint = new IPEndPoint(addr, 0);
+                    return new TcpClient(localEndPoint);
+                } else {
+                    //Get Network Interface
+                    ni = NetworkInterface.GetAllNetworkInterfaces().FirstOrDefault(x => x.Name == _options.NetworkInterface
+                        && x.OperationalStatus == OperationalStatus.Up);
+                }
+                
+                //Throw if input network adapter does not exist
+                if (ni == null) {
+                    WriteLog.To.Sync.I(Tag, $"Unknown Network Interface {_options.NetworkInterface}.");
+                    throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownHost);
+                }
+
+                //Get UnicastIPAddressInformationCollection from the NI adapter
+                var addresses = ni.GetIPProperties().UnicastAddresses;
+
+                // If remote host is IP, use the address family from the IP.
+                isRemoteHostIP = IPAddress.TryParse(_logic.UrlRequest.Host, out hostAddr);
+            
+                if (isRemoteHostIP) {
+                    return GetTcpClient(hostAddr.AddressFamily, addresses);
+                }
+
+                if (ni.Supports(NetworkInterfaceComponent.IPv6)) {
+                    return GetTcpClient(AddressFamily.InterNetworkV6, addresses);
+                } else if (ni.Supports(NetworkInterfaceComponent.IPv4)) {
+                    return GetTcpClient(AddressFamily.InterNetwork, addresses);
+                }
+
+                WriteLog.To.Sync.I(Tag, $"Network Interface {_options.NetworkInterface} supports neither IPv6 nor IPv4.");
+                throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownHost);
+
+            } catch (Exception ex) {
+                WriteLog.To.Sync.I(Tag, $"Failed Creating Tcp Client with Network Interface {_options.NetworkInterface}.");
+                throw ex;
+            }
+        }
+
+        private TcpClient GetTcpClient(AddressFamily af, UnicastIPAddressInformationCollection localAddresses)
+        {
+            IPAddress ip = null;
+            try {
+                //Get the ip address base on the given address family
+                ip = localAddresses.FirstOrDefault(x => x.Address.AddressFamily == af)?.Address;
+                //Create and return tcp client, if ip address is null, ArgumentNullException will be thrown
+                return new TcpClient(new IPEndPoint(ip, 0));
+            } catch (Exception e) {
+                WriteLog.To.Sync.I(Tag, $"TcpClient failed to bind Network Interface {_options.NetworkInterface} with {ip} in family {af}.");
+                throw e;
+            }
+        }
 
         private unsafe void ReleaseSocket(C4Error errorIfAny)
         {
