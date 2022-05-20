@@ -1,7 +1,7 @@
 //
 // C4Base_defs.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2022 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -53,11 +53,15 @@ namespace LiteCore.Interop
     {
     }
 
+	internal unsafe struct C4Collection
+    {
+    }
+
 	internal unsafe struct C4Database
     {
     }
 
-	internal unsafe struct C4DatabaseObserver
+	internal unsafe struct C4CollectionObserver
     {
     }
 

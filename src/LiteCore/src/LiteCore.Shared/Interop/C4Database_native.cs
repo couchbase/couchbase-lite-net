@@ -1,7 +1,7 @@
 //
 // C4Database_native.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2022 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,6 +42,39 @@ namespace LiteCore.Interop
             }
         }
 
+        public static bool c4db_deleteNamed(string dbName, string inDirectory, C4Error* outError)
+        {
+            using (var dbName_ = new C4String(dbName))
+            using (var inDirectory_ = new C4String(inDirectory)) {
+                return NativeRaw.c4db_deleteNamed(dbName_.AsFLSlice(), inDirectory_.AsFLSlice(), outError);
+            }
+        }
+
+        public static string c4db_getPath(C4Database* db)
+        {
+            using (var retVal = NativeRaw.c4db_getPath(db)) {
+                return ((FLSlice)retVal).CreateString();
+            }
+        }
+
+        public static C4RawDocument* c4raw_get(C4Database* database, string storeName, string docID, C4Error* outError)
+        {
+            using (var storeName_ = new C4String(storeName))
+            using (var docID_ = new C4String(docID)) {
+                return NativeRaw.c4raw_get(database, storeName_.AsFLSlice(), docID_.AsFLSlice(), outError);
+            }
+        }
+
+        public static bool c4raw_put(C4Database* database, string storeName, string key, string meta, string body, C4Error* outError)
+        {
+            using (var storeName_ = new C4String(storeName))
+            using (var key_ = new C4String(key))
+            using (var meta_ = new C4String(meta))
+            using (var body_ = new C4String(body)) {
+                return NativeRaw.c4raw_put(database, storeName_.AsFLSlice(), key_.AsFLSlice(), meta_.AsFLSlice(), body_.AsFLSlice(), outError);
+            }
+        }
+
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_close(C4Database* database, C4Error* outError);
@@ -50,14 +83,6 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_delete(C4Database* database, C4Error* outError);
 
-        public static bool c4db_deleteNamed(string dbName, string inDirectory, C4Error* outError)
-        {
-            using(var dbName_ = new C4String(dbName))
-            using(var inDirectory_ = new C4String(inDirectory)) {
-                return NativeRaw.c4db_deleteNamed(dbName_.AsFLSlice(), inDirectory_.AsFLSlice(), outError);
-            }
-        }
-
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_rekey(C4Database* database, C4EncryptionKey* newKey, C4Error* outError);
@@ -65,13 +90,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4_shutdown(C4Error* outError);
-
-        public static string c4db_getPath(C4Database* db)
-        {
-            using(var retVal = NativeRaw.c4db_getPath(db)) {
-                return ((FLSlice)retVal).CreateString();
-            }
-        }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4DatabaseConfig2* c4db_getConfig2(C4Database* database);
@@ -86,8 +104,17 @@ namespace LiteCore.Interop
         public static extern long c4db_nextDocExpiration(C4Database* database);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern long c4db_purgeExpiredDocs(C4Database* db, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_getUUIDs(C4Database* database, C4UUID* publicUUID, C4UUID* privateUUID, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4db_setExtraInfo(C4Database* database, C4ExtraInfo x);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4ExtraInfo c4db_getExtraInfo(C4Database* database);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -101,14 +128,9 @@ namespace LiteCore.Interop
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_endTransaction(C4Database* database, [MarshalAs(UnmanagedType.U1)]bool commit, C4Error* outError);
 
-        public static C4RawDocument* c4raw_get(C4Database* database, string storeName, string docID, C4Error* outError)
-        {
-            using(var storeName_ = new C4String(storeName))
-            using(var docID_ = new C4String(docID)) {
-                return NativeRaw.c4raw_get(database, storeName_.AsFLSlice(), docID_.AsFLSlice(), outError);
-            }
-        }
-
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4db_isInTransaction(C4Database* database);
 
     }
 

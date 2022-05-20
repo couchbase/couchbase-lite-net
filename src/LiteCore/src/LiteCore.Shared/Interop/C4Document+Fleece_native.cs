@@ -1,7 +1,7 @@
 //
 // C4Document+Fleece_native.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2022 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -43,13 +43,22 @@ namespace LiteCore.Interop
 
         public static string c4doc_bodyAsJSON(C4Document* doc, bool canonical, C4Error* outError)
         {
-            using(var retVal = NativeRaw.c4doc_bodyAsJSON(doc, canonical, outError)) {
+            using (var retVal = NativeRaw.c4doc_bodyAsJSON(doc, canonical, outError)) {
                 return ((FLSlice)retVal).CreateString();
             }
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLEncoder* c4db_getSharedFleeceEncoder(C4Database* db);
+
+        public static byte[] c4db_encodeJSON(C4Database* db, string jsonData, C4Error* outError)
+        {
+            using(var jsonData_ = new C4String(jsonData)) {
+                using(var retVal = NativeRaw.c4db_encodeJSON(db, jsonData_.AsFLSlice(), outError)) {
+                    return ((FLSlice)retVal).ToArrayFast();
+                }
+            }
+        }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSharedKeys* c4db_getFLSharedKeys(C4Database* db);

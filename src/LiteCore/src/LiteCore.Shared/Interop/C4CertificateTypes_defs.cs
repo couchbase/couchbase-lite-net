@@ -1,7 +1,7 @@
 //
 // C4CertificateTypes_defs.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2022 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -52,6 +52,12 @@ namespace LiteCore.Interop
         SignatureDigestSHA384,
         SignatureDigestSHA512,
         SignatureDigestRIPEMD160,
+    }
+
+	internal unsafe struct C4CertNameInfo
+    {
+        public FLSliceResult id;
+        public FLSliceResult value;
     }
 
 	internal unsafe struct C4CertNameComponent

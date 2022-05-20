@@ -1,7 +1,7 @@
 //
 // C4DatabaseTypes_defs.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2022 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,6 +42,11 @@ namespace LiteCore.Interop
         AES256,
     }
 
+    internal enum C4EncryptionKeySize : ulong
+    {
+        KeySizeAES256 = 32,
+    }
+
     internal enum C4MaintenanceType : uint
     {
         Compact,
@@ -67,6 +72,12 @@ namespace LiteCore.Interop
 	internal unsafe partial struct C4UUID
     {
         public fixed byte bytes[16];
+    }
+
+	internal unsafe struct C4CollectionSpec
+    {
+        public FLSlice name;
+        public FLSlice scope;
     }
 
 	internal unsafe struct C4RawDocument

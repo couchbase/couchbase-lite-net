@@ -38,7 +38,7 @@ namespace LiteCore.Tests
         private static readonly C4DatabaseObserverCallback DatabaseCallback = DBObserverCallback;
         private static readonly C4DocumentObserverCallback DocumentCallback = DocObserverCallback;
         
-        private C4DatabaseObserver* _dbObserver;
+        private C4CollectionObserver* _dbObserver;
         private C4DocumentObserver* _docObserver;
        
         private int _dbCallbackCalls;
@@ -60,7 +60,7 @@ namespace LiteCore.Tests
                 var handle = GCHandle.Alloc(this);
                 try
                 {
-                    _dbObserver = Native.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    _dbObserver = NativeRaw.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     CreateRev("A", FLSlice.Constant("1-aa"), FleeceBody);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
                     CreateRev("B", FLSlice.Constant("1-bb"), FleeceBody);
@@ -117,7 +117,7 @@ namespace LiteCore.Tests
                 var handle = GCHandle.Alloc(this);
                 try
                 {
-                    _dbObserver = Native.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    _dbObserver = NativeRaw.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     CreateRev("A", FLSlice.Constant("1-aa"), FleeceBody);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
                     CreateRev("B", FLSlice.Constant("1-bb"), FleeceBody);
@@ -158,9 +158,9 @@ namespace LiteCore.Tests
 
         private void CheckChanges(IList<string> expectedDocIDs, IList<string> expectedRevIDs, bool expectedExternal = false)
         {
-            var changes = new C4DatabaseChange[100];
+            var changes = new C4CollectionChange[100];
             bool external;
-            var changeCount = Native.c4dbobs_getChanges(_dbObserver, changes, 100, &external);
+            var changeCount = NativeRaw.c4dbobs_getChanges(_dbObserver, changes, 100, &external);
             changeCount.Should().Be((uint)expectedDocIDs.Count, "because otherwise we didn't get the correct number of changes");
             for (int i = 0; i < changeCount; i++)
             {
@@ -168,7 +168,7 @@ namespace LiteCore.Tests
                 changes[i].revID.CreateString().Should().Be(expectedRevIDs[i], "because otherwise we have an invalid document revision ID");
             }
 
-            Native.c4dbobs_releaseChanges(changes, changeCount);
+            NativeRaw.c4dbobs_releaseChanges(changes, changeCount);
             external.Should().Be(expectedExternal, "because otherwise the external parameter was wrong");
         }
 
@@ -176,7 +176,7 @@ namespace LiteCore.Tests
 #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
 #endif
-        private static void DBObserverCallback(C4DatabaseObserver* obs, void* context)
+        private static void DBObserverCallback(C4CollectionObserver* obs, void* context)
         {
             var obj = GCHandle.FromIntPtr((IntPtr) context).Target as ObserverTest;
             obj.DbObserverCalled(obs);
@@ -191,7 +191,7 @@ namespace LiteCore.Tests
             obj.DocObserverCalled(obs, docId.CreateString(), sequence);
         }
 
-        private void DbObserverCalled(C4DatabaseObserver *obs)
+        private void DbObserverCalled(C4CollectionObserver *obs)
         {
             ((long)obs).Should().Be((long)_dbObserver, "because the callback should be for the proper DB");
             _dbCallbackCalls++;
