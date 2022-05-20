@@ -320,6 +320,7 @@ namespace Couchbase.Lite.Sync
                 throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownHost);
 
             } catch (Exception ex) {
+                WriteLog.To.Sync.I(Tag, $"Failed Creating Tcp Client with Network Interface {_options.NetworkInterface}.");
                 throw ex;
             }
         }
