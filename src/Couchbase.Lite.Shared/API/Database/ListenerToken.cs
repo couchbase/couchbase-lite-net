@@ -22,6 +22,16 @@ using JetBrains.Annotations;
 
 namespace Couchbase.Lite
 {
+    internal enum ListenerTokenType
+    {
+        Database,
+        Document,
+        Query,
+        Replicator,
+        DocReplicated,
+        MessageEndpoint
+    }
+
     /// <summary>
     /// A token that stores information about an event handler that
     /// is registered on a Couchbase Lite object (for example
@@ -35,18 +45,27 @@ namespace Couchbase.Lite
         internal readonly CouchbaseEventHandler EventHandler;
 
         [NotNull]
-        internal readonly string Type;
+        internal readonly ListenerTokenType Type;
+
+        internal readonly IChangeObservableRemovable ChangeObservableRemovable;
 
         #endregion
 
         #region Constructors
 
-        internal ListenerToken([NotNull]CouchbaseEventHandler handler,  [NotNull]string type)
+        internal ListenerToken([NotNull]CouchbaseEventHandler handler,  [NotNull] ListenerTokenType type,
+            IChangeObservableRemovable changeObservableRemovable)
         {
             EventHandler = handler;
             Type = type;
+            ChangeObservableRemovable = changeObservableRemovable;
         }
 
         #endregion
+
+        public void Remove()
+        {
+            ChangeObservableRemovable.RemoveChangeListener(this);
+        }
     }
 }

@@ -101,6 +101,9 @@ namespace Couchbase.Lite.Sync
 
         #region Properties
 
+        [CanBeNull]
+        public IDictionary<ICollection, CollectionConfiguration> CollectionConfigs { get; set; }
+
         /// <summary>
         /// Gets or sets the class which will authenticate the replication
         /// </summary>
@@ -112,10 +115,11 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
+        /// [DEPRECATED] A set of Sync Gateway channel names to pull from.  Ignored for push replicatoin.
         /// The default value is null, meaning that all accessible channels will be pulled.
         /// Note: channels that are not accessible to the user will be ignored by Sync Gateway.
         /// </summary>
+        [Obsolete("Channels is deprecated, please use CollectionConfiguration.Channels")]
         [CanBeNull]
         public IList<string> Channels
         {
@@ -140,9 +144,10 @@ namespace Couchbase.Lite.Sync
         public Database Database { get; }
 
         /// <summary>
-        /// A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
+        /// [DEPRECATED] A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
         /// and/or pulled
         /// </summary>
+        [Obsolete("DocumentIDs is deprecated, please use CollectionConfiguration.DocumentIDs")]
         [CanBeNull]
         public IList<string> DocumentIDs
         {
@@ -172,10 +177,11 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// Func delegate that takes Document input parameter and bool output parameter
+        /// [DEPRECATED] Func delegate that takes Document input parameter and bool output parameter
         /// Document pull will be allowed if output is true, othewise, Document pull 
         /// will not be allowed
         /// </summary>
+        [Obsolete("PullFilter is deprecated, please use CollectionConfiguration.PullFilter")]
         [CanBeNull]
         public Func<Document, DocumentFlags, bool> PullFilter
         {
@@ -184,10 +190,11 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// Func delegate that takes Document input parameter and bool output parameter
+        /// [DEPRECATED] Func delegate that takes Document input parameter and bool output parameter
         /// Document push will be allowed if output is true, othewise, Document push 
         /// will not be allowed
         /// </summary>
+        [Obsolete("PushFilter is deprecated, please use CollectionConfiguration.PushFilter")]
         [CanBeNull]
         public Func<Document, DocumentFlags, bool> PushFilter
         {
@@ -283,10 +290,11 @@ namespace Couchbase.Lite.Sync
         public IEndpoint Target { get; }
 
         /// <summary>
-        /// The implemented custom conflict resolver object can be registered to the replicator 
+        /// [DEPRECATED] The implemented custom conflict resolver object can be registered to the replicator 
         /// at ConflictResolver property. The default value of the conflictResolver is null. 
         /// When the value is null, the default conflict resolution will be applied.
         /// </summary>
+        [Obsolete("ConflictResolver is deprecated, please use CollectionConfiguration.ConflictResolver")]
         [CanBeNull]
         public IConflictResolver ConflictResolver
         {
@@ -331,10 +339,26 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Constructs a new builder object with the required properties
         /// </summary>
+        /// <param name="target">The endpoint to replicate to, either local or remote</param>
+        /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
+        /// is provided as <paramref name="target"/></exception>
+        public ReplicatorConfiguration([NotNull] IEndpoint target)
+        {
+            Target = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(target), target);
+
+            var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
+            castTarget.Visit(this);
+
+        }
+
+        /// <summary>
+        /// [DEPRECATED] Constructs a new builder object with the required properties
+        /// </summary>
         /// <param name="database">The database that will serve as the local side of the replication</param>
         /// <param name="target">The endpoint to replicate to, either local or remote</param>
         /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
         /// is provided as <paramref name="target"/></exception>
+        [Obsolete("Constructor ReplicatorConfiguration([NotNull] Database database, [NotNull] IEndpoint target) is deprecated, please use ReplicatorConfiguration([NotNull] IEndpoint target)")]
         public ReplicatorConfiguration([NotNull] Database database, [NotNull] IEndpoint target)
         {
             Database = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(database), database);
@@ -342,6 +366,39 @@ namespace Couchbase.Lite.Sync
 
             var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
             castTarget.Visit(this);
+        }
+
+        #endregion
+
+        #region Public Methods - Scopes and Collections
+
+        public void AddCollections(IList<ICollection> collections, [CanBeNull]CollectionConfiguration config = null)
+        {
+            foreach(var col in collections) {
+                CollectionConfigs.Add(col, config);
+            }
+        }
+
+        public void AddCollection(ICollection collection, [CanBeNull] CollectionConfiguration config = null)
+        {
+            CollectionConfigs.Add(collection, config);
+        }
+
+        public void RemoveCollection(ICollection collection)
+        {
+            CollectionConfigs.Remove(collection);
+        }
+
+        [CanBeNull]
+        public CollectionConfiguration GetCollectionConfig(ICollection collection)
+        {
+            CollectionConfiguration config = null;
+            if (!CollectionConfigs.TryGetValue(collection, out config)) {
+                WriteLog.To.Sync.W(Tag, $"Failed getting config.");
+                return null;
+            }
+
+            return config;
         }
 
         #endregion

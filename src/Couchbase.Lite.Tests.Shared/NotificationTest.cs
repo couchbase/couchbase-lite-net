@@ -150,8 +150,7 @@ namespace Test
             doc1.SetString("name", "Scott Tiger");
             Db.Save(doc1);
             _wa.WaitForResult(TimeSpan.FromSeconds(5));
-
-            Db.RemoveChangeListener(token);
+            token.Remove();
 
             _wa = new WaitAssert();
             _docCallbackShouldThrow = true;
@@ -162,7 +161,7 @@ namespace Test
             _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
 
             // Remove again
-            Db.RemoveChangeListener(token);
+            token.Remove();
         }
 
         [Fact]

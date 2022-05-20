@@ -60,6 +60,11 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
+        internal DatabaseSource([NotNull] ICollection collection, [NotNull] ThreadSafety threadSafety) : base(collection, threadSafety)
+        {
+            Debug.Assert(collection != null);
+        }
+
         internal DatabaseSource([NotNull]Database database, [NotNull]ThreadSafety threadSafety) : base(database, threadSafety)
         {
             Debug.Assert(database != null);

@@ -71,13 +71,16 @@ namespace Couchbase.Lite.Sync
         [CanBeNull]
         public CouchbaseException Error { get; internal set; }
 
+        public ICollection Collection { get; }
+
         internal bool IsTransient { get; }
 
         internal C4Error NativeError { get; }
 
-        internal ReplicatedDocument([NotNull]string docID, C4RevisionFlags flags, C4Error error,
+        internal ReplicatedDocument([NotNull] string docID, C4RevisionFlags flags, C4Error error,
             bool isTransient)
         {
+            Collection = null;
             Id = docID;
             Flags = flags.ToDocumentFlags();
             NativeError = error;
@@ -85,10 +88,22 @@ namespace Couchbase.Lite.Sync
             IsTransient = isTransient;
         }
 
-        private ReplicatedDocument([NotNull] string docID, DocumentFlags flags, C4Error error,
+        internal ReplicatedDocument([NotNull]string docID, ICollection collection, C4RevisionFlags flags, C4Error error,
             bool isTransient)
         {
             Id = docID;
+            Collection = collection;
+            Flags = flags.ToDocumentFlags();
+            NativeError = error;
+            Error = error.domain == 0 ? null : CouchbaseException.Create(error);
+            IsTransient = isTransient;
+        }
+
+        private ReplicatedDocument([NotNull] string docID, ICollection collection, DocumentFlags flags, C4Error error,
+            bool isTransient)
+        {
+            Id = docID;
+            Collection = collection;
             Flags = flags;
             NativeError = error;
             Error = error.domain == 0 ? null : CouchbaseException.Create(error);
@@ -97,7 +112,7 @@ namespace Couchbase.Lite.Sync
 
         internal ReplicatedDocument ClearError()
         {
-            return new ReplicatedDocument(Id, Flags, new C4Error(), IsTransient);
+            return new ReplicatedDocument(Id, Collection, Flags, new C4Error(), IsTransient);
         }
 
         /// <inheritdoc />

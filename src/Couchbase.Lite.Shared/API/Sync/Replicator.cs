@@ -47,7 +47,8 @@ namespace Couchbase.Lite.Sync
     /// (i.e. pusher and puller are no longer separate) between a database and a URL
     /// or a database and another database on the same filesystem.
     /// </summary>
-    public sealed unsafe class Replicator : IDisposable, IStoppable
+    public sealed unsafe class Replicator : IDisposable, IStoppable, IChangeObservable<ReplicatorStatusChangedEventArgs>,
+        IDocumentReplicatedObservable
     {
         #region Constants
 
@@ -161,7 +162,7 @@ namespace Couchbase.Lite.Sync
 
             var cbHandler = new CouchbaseEventHandler<ReplicatorStatusChangedEventArgs>(handler, scheduler);
             _statusChanged.Add(cbHandler);
-            return new ListenerToken(cbHandler, "repl");
+            return new ListenerToken(cbHandler, ListenerTokenType.Replicator, this);
         }
 
         /// <summary>
@@ -200,7 +201,7 @@ namespace Couchbase.Lite.Sync
                 SetProgressLevel(C4ReplicatorProgressLevel.ReplProgressPerDocument);
             }
             
-            return new ListenerToken(cbHandler, "repl");
+            return new ListenerToken(cbHandler, ListenerTokenType.DocReplicated, this);
         }
 
         /// <summary>
@@ -211,8 +212,9 @@ namespace Couchbase.Lite.Sync
         /// and/or The token received from <see cref="AddDocumentReplicationListener(TaskScheduler, EventHandler{DocumentReplicationEventArgs})"/></param>
         public void RemoveChangeListener(ListenerToken token)
         {
-            _statusChanged.Remove(token);
-            if (_documentEndedUpdate.Remove(token) == 0) {
+            if (token.Type == ListenerTokenType.Replicator) {
+                _statusChanged.Remove(token);
+            } else if (_documentEndedUpdate.Remove(token) == 0) {
                 SetProgressLevel(C4ReplicatorProgressLevel.ReplProgressOverall);
             }
         }
@@ -413,10 +415,13 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
+            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+
             var replicatedDocumentsContainConflict = new List<ReplicatedDocument>();
             var documentReplications = new List<ReplicatedDocument>();
             for (int i = 0; i < (int) numDocs; i++) {
                 var current = docs[i];
+                //var collection = replicator.Config.Database.GetCollection(current->collectionName.CreateString());
                 if (!pushing && current->error.domain == C4ErrorDomain.LiteCoreDomain &&
                     current->error.code == (int) C4ErrorCode.Conflict) {
                     replicatedDocumentsContainConflict.Add(new ReplicatedDocument(current->docID.CreateString() ?? "",
@@ -426,8 +431,6 @@ namespace Couchbase.Lite.Sync
                         current->flags, current->error, current->errorIsTransient));
                 }
             }
-
-            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
 
             if (documentReplications.Count > 0) {
                 replicator?.DispatchQueue.DispatchAsync(() =>

@@ -45,7 +45,6 @@ namespace Couchbase.Lite.Internal.Query
         protected unsafe C4Query* _c4Query;
         [NotNull] protected List<QueryResultSet> _history = new List<QueryResultSet>();
         [NotNull] protected Parameters _queryParameters;
-        protected List<LiveQuerier> _liveQueriers = new List<LiveQuerier>();
         protected Dictionary<ListenerToken, LiveQuerier> _listenerTokens = new Dictionary<ListenerToken, LiveQuerier>();
         protected int _observingCount;
 
@@ -93,12 +92,13 @@ namespace Couchbase.Lite.Internal.Query
         public void Stop()
         {
             Database?.RemoveActiveStoppable(this);
-            foreach (var querier in _liveQueriers) {
-                if (querier != null)
-                    querier.StopObserver();
+            foreach (var t in _listenerTokens) {
+                var token = t.Key;
+                var querier = t.Value;
+                querier?.StopObserver(token);
+                _listenerTokens.Remove(token);
+                querier?.Dispose();
             }
-
-            _liveQueriers.Clear();
         }
 
         #endregion
@@ -133,12 +133,14 @@ namespace Couchbase.Lite.Internal.Query
                     }
 
                     _history.Clear();
-                    foreach (var querier in _liveQueriers) {
-                        if (querier != null)
-                            querier.Dispose(finalizing);
+                    foreach(var t in _listenerTokens) {
+                        var token = t.Key;
+                        var querier = t.Value;
+                        querier?.StopObserver(token);
+                        _listenerTokens.Remove(token);
+                        querier?.Dispose();
                     }
 
-                    _liveQueriers.Clear();
                     Native.c4query_release(_c4Query);
                     _c4Query = null;
                     _disposalWatchdog.Dispose();
@@ -159,6 +161,10 @@ namespace Couchbase.Lite.Internal.Query
 
         public abstract unsafe string Explain();
 
+        #endregion
+
+        #region IChangeObservable
+
         public ListenerToken AddChangeListener(TaskScheduler scheduler, [NotNull] EventHandler<QueryChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(handler), handler);
@@ -169,8 +175,7 @@ namespace Couchbase.Lite.Internal.Query
             }
 
             var cbHandler = new CouchbaseEventHandler<QueryChangedEventArgs>(handler, scheduler);
-            var listenerToken = new ListenerToken(cbHandler, "query");
-            CreateLiveQuerier(listenerToken);
+            var listenerToken = CreateLiveQuerier(cbHandler);
 
             return listenerToken;
         }
@@ -180,10 +185,14 @@ namespace Couchbase.Lite.Internal.Query
             return AddChangeListener(null, handler);
         }
 
+        #endregion
+
+        #region IChangeObservableRemovable
+
         public void RemoveChangeListener(ListenerToken token)
         {
             _disposalWatchdog.CheckDisposed();
-            _listenerTokens[token].StopObserver();
+            _listenerTokens[token].StopObserver(token);
             _listenerTokens.Remove(token);
             if (Interlocked.Decrement(ref _observingCount) == 0) {
                 Stop();
@@ -202,16 +211,19 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Protected Methods
 
-        protected unsafe void CreateLiveQuerier(ListenerToken listenerToken)
+        protected unsafe ListenerToken CreateLiveQuerier(CouchbaseEventHandler<QueryChangedEventArgs> cbEventHandler)
         {
             CreateQuery();
+            LiveQuerier liveQuerier = null;
             if (_c4Query != null) {
-                var liveQuerier = new LiveQuerier(this);
-                liveQuerier.CreateLiveQuerier(_c4Query, listenerToken);
-                _liveQueriers.Add(liveQuerier);
-                _listenerTokens.Add(listenerToken, liveQuerier);
-                liveQuerier.StartObserver();
+                liveQuerier = new LiveQuerier(this);
+                liveQuerier.CreateLiveQuerier(_c4Query);
             }
+            
+            liveQuerier?.StartObserver(cbEventHandler);
+            var token = new ListenerToken(cbEventHandler, ListenerTokenType.Query, this);
+            _listenerTokens.Add(token, liveQuerier);
+            return token;
         }
 
         #endregion

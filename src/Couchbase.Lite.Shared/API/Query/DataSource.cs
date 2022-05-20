@@ -21,6 +21,7 @@ using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Util;
 
 using JetBrains.Annotations;
+using System;
 
 namespace Couchbase.Lite.Query
 {
@@ -39,10 +40,24 @@ namespace Couchbase.Lite.Query
 
         /// <summary>
         /// Creates a data source for an <see cref="IQuery" /> that gets results from the given
+        /// <see cref="Collection(Lite.Collection)" />
+        /// </summary>
+        /// <param name="collection">The collection to operate on</param>
+        /// <returns>The source of data for the <see cref="IQuery" /></returns>
+        [NotNull]
+        public static IDataSourceAs Collection([NotNull] ICollection collection)
+        {
+            var c = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(collection), collection);
+            return new DatabaseSource(c, ((Collection)c).ThreadSafety);
+        }
+
+        /// <summary>
+        /// [DEPRECATED] Creates a data source for an <see cref="IQuery" /> that gets results from the given
         /// <see cref="Database" />
         /// </summary>
         /// <param name="database">The database to operate on</param>
         /// <returns>The source of data for the <see cref="IQuery" /></returns>
+        [Obsolete("DataSource.Database is deprecated, please use DataSource.Collection")]
         [NotNull]
         public static IDataSourceAs Database([NotNull]Database database)
         {
