@@ -57,11 +57,12 @@ namespace LiteCore.Interop
     {
     }
 
-	internal unsafe struct C4Database
+    // C4DatabaseObserver is replaced
+    internal unsafe struct C4CollectionObserver
     {
     }
 
-	internal unsafe struct C4CollectionObserver
+	internal unsafe struct C4Database
     {
     }
 

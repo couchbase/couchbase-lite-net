@@ -36,6 +36,10 @@ namespace LiteCore.Interop
 
         public static void* c4db_retain(C4Database* db) => c4base_retain(db);
 
+        public static void c4coll_release(C4Collection* coll) => c4base_release(coll);
+
+        public static void* c4coll_retain(C4Collection* coll) => c4base_retain(coll);
+
         public static void c4query_release(C4Query* query) => c4base_release(query);
 
         public static void c4cert_release(C4Cert* cert) => c4base_release(cert);

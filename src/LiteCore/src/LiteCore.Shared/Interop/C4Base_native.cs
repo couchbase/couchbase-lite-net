@@ -52,7 +52,7 @@ namespace LiteCore.Interop
         public static extern void c4socket_release(C4Socket* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4dbobs_free(C4CollectionObserver* x);
+        public static extern void c4dbobs_free(C4CollectionObserver* observer);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern void c4docobs_free(C4DocumentObserver* observer);
