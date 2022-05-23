@@ -35,7 +35,7 @@ namespace LiteCore.Tests
 #endif
     public unsafe class ObserverTest : Test
     {
-        private static readonly C4DatabaseObserverCallback DatabaseCallback = DBObserverCallback;
+        private static readonly C4CollectionObserverCallback DatabaseCallback = DBObserverCallback;
         private static readonly C4DocumentObserverCallback DocumentCallback = DocObserverCallback;
         
         private C4CollectionObserver* _dbObserver;

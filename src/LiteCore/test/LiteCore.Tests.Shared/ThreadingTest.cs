@@ -40,7 +40,7 @@ namespace LiteCore.Tests
         private const int NumDocs = 10000;
         private const bool SharedHandle = false; // Use same C4Database on all threads_
         private object _observerMutex = new object();
-        private static readonly C4DatabaseObserverCallback ObserverCallback = ObsCallback;
+        private static readonly C4CollectionObserverCallback ObserverCallback = ObsCallback;
         private bool _changesToObserve;
 
 #if !WINDOWS_UWP

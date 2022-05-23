@@ -126,7 +126,7 @@ namespace Couchbase.Lite
         private const string Tag = nameof(Database);
 
         private static readonly C4DocumentObserverCallback _DocumentObserverCallback = DocObserverCallback;
-        private static readonly C4DatabaseObserverCallback _DatabaseObserverCallback = DbObserverCallback;
+        private static readonly C4CollectionObserverCallback _DatabaseObserverCallback = DbObserverCallback;
 
         internal const string _defaultScopeName = "_default";
         internal const string _defaultCollectionName = "_default";

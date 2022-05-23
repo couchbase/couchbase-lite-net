@@ -73,7 +73,7 @@ namespace LiteCore.Interop
         public C4ExtraInfo extraInfo;
     }
 
-	internal unsafe partial struct C4DocPutRequest
+    internal unsafe partial struct C4DocPutRequest
     {
         public FLSlice body;
         public FLSlice docID;

@@ -54,13 +54,13 @@ namespace LiteCore.Interop
         public static extern void c4queryobs_setEnabled(C4QueryObserver* obs, [MarshalAs(UnmanagedType.U1)] bool enabled);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4CollectionObserver* c4dbobs_create(C4Database* database, C4DatabaseObserverCallback callback, void* context);
+        public static extern C4CollectionObserver* c4dbobs_create(C4Database* database, C4CollectionObserverCallback callback, void* context);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4QueryEnumerator* c4queryobs_getEnumerator(C4QueryObserver* obs, [MarshalAs(UnmanagedType.U1)] bool forget, C4Error* error);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4CollectionObserver* c4dbobs_createOnCollection(C4Collection* collection, C4DatabaseObserverCallback callback, void* context);
+        public static extern C4CollectionObserver* c4dbobs_createOnCollection(C4Collection* collection, C4CollectionObserverCallback callback, void* context);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern uint c4dbobs_getChanges(C4CollectionObserver* observer, [Out] C4CollectionChange[] outChanges, uint maxChanges, bool* outExternal);
