@@ -21,6 +21,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)PerfTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)QueryTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)QueryTestBase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ScopeCollectionTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StopwatchExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Test.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TestBase.cs" />
