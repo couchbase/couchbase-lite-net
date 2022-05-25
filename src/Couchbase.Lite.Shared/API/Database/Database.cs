@@ -1368,7 +1368,7 @@ namespace Couchbase.Lite
         }
 
         #if __IOS__
-        [ObjCRuntime.MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4CollectionObserverCallback))]
         #endif
         private static void DbObserverCallback(C4CollectionObserver* db, void* context)
         {

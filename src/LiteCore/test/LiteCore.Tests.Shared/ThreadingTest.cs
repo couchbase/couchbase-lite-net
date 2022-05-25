@@ -132,7 +132,7 @@ namespace LiteCore.Tests
         }
 
         #if __IOS__
-        [ObjCRuntime.MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4CollectionObserverCallback))]
         #endif
         private static void ObsCallback(C4CollectionObserver* observer, void* context)
         {
