@@ -96,9 +96,10 @@ namespace Couchbase.Lite.Internal.Query
                 var token = t.Key;
                 var querier = t.Value;
                 querier?.StopObserver(token);
-                _listenerTokens.Remove(token);
                 querier?.Dispose();
             }
+
+            _listenerTokens.Clear();
         }
 
         #endregion
@@ -133,14 +134,6 @@ namespace Couchbase.Lite.Internal.Query
                     }
 
                     _history.Clear();
-                    foreach(var t in _listenerTokens) {
-                        var token = t.Key;
-                        var querier = t.Value;
-                        querier?.StopObserver(token);
-                        _listenerTokens.Remove(token);
-                        querier?.Dispose();
-                    }
-
                     Native.c4query_release(_c4Query);
                     _c4Query = null;
                     _disposalWatchdog.Dispose();
@@ -222,7 +215,7 @@ namespace Couchbase.Lite.Internal.Query
             
             liveQuerier?.StartObserver(cbEventHandler);
             var token = new ListenerToken(cbEventHandler, ListenerTokenType.Query, this);
-            _listenerTokens.Add(token, liveQuerier);
+            _listenerTokens.TryAdd(token, liveQuerier);
             return token;
         }
 
