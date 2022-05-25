@@ -85,8 +85,7 @@ namespace LiteCore.Interop
 
 	internal unsafe struct C4DocumentEnded
     {
-        public FLHeapSlice collectionName; // will be replaced by collectionSpec
-        //public C4CollectionSpec collectionSpec; // will enable
+        public C4CollectionSpec collectionSpec;
         public FLHeapSlice docID;
         public FLHeapSlice revID;
         public C4RevisionFlags flags;
