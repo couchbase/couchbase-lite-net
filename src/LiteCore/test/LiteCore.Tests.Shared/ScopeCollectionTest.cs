@@ -64,7 +64,7 @@ namespace LiteCore.Tests
                 collectionSpec.name.CreateString().Should().Be(Database._defaultCollectionName);
                 /** Returns true if the collection exists. */
                 var doesContainCollection = Native.c4db_hasCollection(Db, collectionSpec);
-                doesContainCollection.Should().BeTrue();
+                doesContainCollection.Should().BeTrue("Because old Db does contain default collection.");
                 var docCount = Native.c4coll_getDocumentCount(DefaultColl);
                 docCount.Should().Be(0);
             });
@@ -94,7 +94,7 @@ namespace LiteCore.Tests
                     collectionSpec.name.CreateString().Should().Be(collName);
                     collectionSpec.scope.CreateString().Should().Be(scopeName);
                     var doesContainCollection = Native.c4db_hasCollection(Db, collectionSpec);
-                    doesContainCollection.Should().BeTrue();
+                    doesContainCollection.Should().BeTrue("Because Db contains the collection that was created 6 lines ago.");
 
                     //FLSlice.Free(collectionSpec.name); //Why can't I free these?
                     //FLSlice.Free(collectionSpec.scope);
@@ -170,7 +170,7 @@ namespace LiteCore.Tests
                     var arrColl = Native.c4db_collectionNames(Db, scopeName + 1);
                     for (uint i = 1; i <= Native.FLArray_Count((FLArray*)arrColl); i++) {
                         var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i-1));
-                        collStr.Should().Be(collName + i);
+                        collStr.Should().Be(collName + i, "Because Scope contains all it's collections' name.");
                         cnt++;
                     }
 
@@ -179,16 +179,16 @@ namespace LiteCore.Tests
 
                     var arrCol2 = Native.c4db_collectionNames(Db, scopeName + 2);
                     var collStr2 = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrCol2, 0));
-                    collStr2.Should().Be(collName + 3);
+                    collStr2.Should().Be(collName + 3, "Because Scope contains it's collection's name.");
                     Native.FLValue_Release((FLValue*)arrCol2);
 
                     var arrScope = Native.c4db_scopeNames(Db);
                     for (uint i = 1; i <= Native.FLArray_Count((FLArray*)arrScope); i++) {
                         var scopeStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrScope, i-1));
                         if((i-1) == 0) 
-                            scopeStr.Should().Be(Database._defaultScopeName);
+                            scopeStr.Should().Be(Database._defaultScopeName, "Because the first socpe in db is default scope.");
                         else
-                            scopeStr.Should().Be(scopeName + (i-1));
+                            scopeStr.Should().Be(scopeName + (i-1), "Because Db contains the scopes just added.");
                     }
 
                     Native.FLValue_Release((FLValue*)arrScope);
@@ -204,7 +204,7 @@ namespace LiteCore.Tests
                     for (uint i = 1; i <= Native.FLArray_Count((FLArray*)arrColl); i++)
                     {
                         var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i - 1));
-                        collStr.Should().Be(collName + (i + 1));
+                        collStr.Should().Be(collName + (i + 1), "Because the deleted collection no longer is found in scope.");
                         cnt++;
                     }
 
@@ -307,8 +307,8 @@ namespace LiteCore.Tests
                     }
                 }
 
-                Native.c4coll_getDocumentCount(coll1).Should().Be(1);
-                Native.c4coll_getDocumentCount(coll2).Should().Be(0);
+                Native.c4coll_getDocumentCount(coll1).Should().Be(1, "Because coll1 should contain the doc that was just added.");
+                Native.c4coll_getDocumentCount(coll2).Should().Be(0, "Because there is no doc in coll2.");
 
                 //var moveDocSuccessful = (bool)LiteCoreBridge.Check(err =>
                 //{
@@ -321,10 +321,10 @@ namespace LiteCore.Tests
                 //    @return True on success, false on failure. */
                 //    return NativeRaw.c4coll_moveDoc(coll1, DocID, coll2, FLSlice.Null, err); //Exception thrown: read access violation. this was nullptr.
                 //});
-                //moveDocSuccessful.Should().BeTrue();
+                //moveDocSuccessful.Should().BeTrue("Because move doc from coll1 to coll2 should be successful.");
 
-                //Native.c4coll_getDocumentCount(coll1).Should().Be(0);
-                //Native.c4coll_getDocumentCount(coll2).Should().Be(1);
+                //Native.c4coll_getDocumentCount(coll1).Should().Be(0, "Because the doc is moved away.");
+                //Native.c4coll_getDocumentCount(coll2).Should().Be(1, "Because the doc is moved here.");
             });
         }
 
