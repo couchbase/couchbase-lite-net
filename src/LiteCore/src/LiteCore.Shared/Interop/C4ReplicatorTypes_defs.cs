@@ -1,7 +1,7 @@
 //
 // C4ReplicatorTypes_defs.cs
 //
-// Copyright (c) 2021 Couchbase, Inc All rights reserved.
+// Copyright (c) 2022 Couchbase, Inc All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -85,7 +85,8 @@ namespace LiteCore.Interop
 
 	internal unsafe struct C4DocumentEnded
     {
-        public FLHeapSlice collectionName;
+        public FLHeapSlice collectionName; // will be replaced by collectionSpec
+        //public C4CollectionSpec collectionSpec; // will enable
         public FLHeapSlice docID;
         public FLHeapSlice revID;
         public C4RevisionFlags flags;
@@ -102,6 +103,14 @@ namespace LiteCore.Interop
                 _errorIsTransient = Convert.ToByte(value);
             }
         }
+    }
+
+	internal unsafe struct C4ReplicationCollection
+    {
+        public C4CollectionSpec collection;
+        public C4ReplicatorMode push;
+        public C4ReplicatorMode pull;
+        public FLSlice optionsDictFleece;
     }
 
     internal unsafe struct C4ReplicatorParameters

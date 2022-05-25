@@ -199,13 +199,13 @@ namespace Couchbase.Lite.Logging
         /// </summary>
         public LogLevel Level
         {
-            get => (LogLevel)Native.c4log_binaryFileLevel();
+            get => (LogLevel)NativeRaw.c4log_binaryFileLevel();
             set {
                 if (Config == null) {
                     throw new InvalidOperationException("Cannot set logging level without a configuration");
                 }
 
-                Native.c4log_setBinaryFileLevel((C4LogLevel) value);
+                NativeRaw.c4log_setBinaryFileLevel((C4LogLevel) value);
             }
         }
 
@@ -219,7 +219,7 @@ namespace Couchbase.Lite.Logging
         public FileLogger()
         {
             SetupDomainObjects();
-            Native.c4log_setBinaryFileLevel(C4LogLevel.None);
+            NativeRaw.c4log_setBinaryFileLevel(C4LogLevel.None);
         }
 
         #endregion
@@ -241,7 +241,7 @@ namespace Couchbase.Lite.Logging
             _domainObjects[LogDomain.Replicator] = (IntPtr)Native.c4log_getDomain(bytes, true);
 
             foreach (var domain in _domainObjects) {
-                Native.c4log_setLevel((C4LogDomain *)domain.Value.ToPointer(),
+                NativeRaw.c4log_setLevel((C4LogDomain *)domain.Value.ToPointer(),
                     C4LogLevel.Debug);
             }
 
@@ -250,7 +250,7 @@ namespace Couchbase.Lite.Logging
                 WriteLog.LogDomainSyncBusy, 
                 WriteLog.LogDomainWebSocket
             }) {
-                Native.c4log_setLevel(domain, C4LogLevel.Debug);
+                NativeRaw.c4log_setLevel(domain, C4LogLevel.Debug);
             }
         }
 
@@ -271,7 +271,7 @@ namespace Couchbase.Lite.Logging
                     use_plaintext = _config?.UsePlaintext ?? false,
                     header = header.AsFLSlice()
                 };
-                LiteCoreBridge.Check(err => Native.c4log_writeToBinaryFile(options, err));
+                LiteCoreBridge.Check(err => NativeRaw.c4log_writeToBinaryFile(options, err));
             }
         }
 

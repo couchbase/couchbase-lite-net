@@ -20,6 +20,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Certificate.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4CertificateTypes_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Certificate_native.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Collection_native.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Database.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4DatabaseTypes_defs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Interop\C4Database_native.cs" />

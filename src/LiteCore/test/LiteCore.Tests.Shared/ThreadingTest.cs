@@ -40,7 +40,7 @@ namespace LiteCore.Tests
         private const int NumDocs = 10000;
         private const bool SharedHandle = false; // Use same C4Database on all threads_
         private object _observerMutex = new object();
-        private static readonly C4DatabaseObserverCallback ObserverCallback = ObsCallback;
+        private static readonly C4CollectionObserverCallback ObserverCallback = ObsCallback;
         private bool _changesToObserve;
 
 #if !WINDOWS_UWP
@@ -85,7 +85,7 @@ namespace LiteCore.Tests
         {
             var database = OpenDB();
             var handle = GCHandle.Alloc(this);
-            var observer = Native.c4dbobs_create(database, ObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
+            var observer = NativeRaw.c4dbobs_create(database, ObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
             var lastSequence = 0UL;
 
             try {
@@ -101,10 +101,10 @@ namespace LiteCore.Tests
                         _changesToObserve = false;
                     }
 
-                    var changes = new C4DatabaseChange[10];
+                    var changes = new C4CollectionChange[10];
                     uint nDocs;
                     bool external;
-                    while (0 < (nDocs = Native.c4dbobs_getChanges(observer, changes, 10U, &external)))
+                    while (0 < (nDocs = NativeRaw.c4dbobs_getChanges(observer, changes, 10U, &external)))
                     {
                         try
                         {
@@ -118,7 +118,7 @@ namespace LiteCore.Tests
                         }
                         finally
                         {
-                            Native.c4dbobs_releaseChanges(changes, nDocs);
+                            NativeRaw.c4dbobs_releaseChanges(changes, nDocs);
                         }
                     }
                     
@@ -132,15 +132,15 @@ namespace LiteCore.Tests
         }
 
         #if __IOS__
-        [ObjCRuntime.MonoPInvokeCallback(typeof(C4DatabaseObserverCallback))]
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4CollectionObserverCallback))]
         #endif
-        private static void ObsCallback(C4DatabaseObserver* observer, void* context)
+        private static void ObsCallback(C4CollectionObserver* observer, void* context)
         {
             var obj = GCHandle.FromIntPtr((IntPtr) context).Target as ThreadingTest;
             obj.Observe(observer);
         }
 
-        private void Observe(C4DatabaseObserver* observer)
+        private void Observe(C4CollectionObserver* observer)
         {
             Write("!");
             lock(_observerMutex) {
