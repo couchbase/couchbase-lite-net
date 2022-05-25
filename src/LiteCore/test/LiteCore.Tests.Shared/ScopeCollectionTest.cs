@@ -118,47 +118,47 @@ namespace LiteCore.Tests
                 using (var scopeName2_ = new C4String(scopeName + 2))
                 using (var collName3_ = new C4String(collName + 3))
                 using (var collName4_ = new C4String(collName + 4)) {
-                    var collectionSpec2 = new C4CollectionSpec() {
+                    var collectionSpecA = new C4CollectionSpec() {
                         name = collName1_.AsFLSlice(),
                         scope = scopeName1_.AsFLSlice()
                     };
 
                     var coll1 = (C4Collection*)LiteCoreBridge.Check(err =>
                     {
-                        return Native.c4db_createCollection(Db, collectionSpec2, err);
+                        return Native.c4db_createCollection(Db, collectionSpecA, err);
                     });
 
-                    var collectionSpec = new C4CollectionSpec() {
+                    var collectionSpecB = new C4CollectionSpec() {
                         name = collName2_.AsFLSlice(),
                         scope = scopeName1_.AsFLSlice()
                     };
 
                     var coll2 = (C4Collection*)LiteCoreBridge.Check(err =>
                     {
-                        return Native.c4db_createCollection(Db, collectionSpec, err);
+                        return Native.c4db_createCollection(Db, collectionSpecB, err);
                     });
 
-                    var collectionSpec1 = new C4CollectionSpec() {
+                    var collectionSpecC = new C4CollectionSpec() {
                         name = collName3_.AsFLSlice(),
                         scope = scopeName2_.AsFLSlice()
                     };
 
                     var coll3 = (C4Collection*)LiteCoreBridge.Check(err =>
                     {
-                        return Native.c4db_createCollection(Db, collectionSpec1, err);
+                        return Native.c4db_createCollection(Db, collectionSpecC, err);
                     });
 
-                    var c1 = Native.c4db_getCollection(Db, collectionSpec2);
+                    var c1 = Native.c4db_getCollection(Db, collectionSpecA);
                     var colSpec1 = Native.c4coll_getSpec(c1);
                     colSpec1.name.CreateString().Should().Be(collName + 1);
                     colSpec1.scope.CreateString().Should().Be(scopeName + 1);
 
-                    var c2 = Native.c4db_getCollection(Db, collectionSpec);
+                    var c2 = Native.c4db_getCollection(Db, collectionSpecB);
                     var colSpec2 = Native.c4coll_getSpec(c2);
                     colSpec2.name.CreateString().Should().Be(collName + 2);
                     colSpec2.scope.CreateString().Should().Be(scopeName + 1);
 
-                    var c3 = Native.c4db_getCollection(Db, collectionSpec1);
+                    var c3 = Native.c4db_getCollection(Db, collectionSpecC);
                     var colSpec3 = Native.c4coll_getSpec(c3);
                     colSpec3.name.CreateString().Should().Be(collName + 3);
                     colSpec3.scope.CreateString().Should().Be(scopeName + 2);
@@ -195,7 +195,7 @@ namespace LiteCore.Tests
 
                     var deleteSuccessful = (bool)LiteCoreBridge.Check(err =>
                     {
-                        return Native.c4db_deleteCollection(Db, collectionSpec2, err);
+                        return Native.c4db_deleteCollection(Db, collectionSpecA, err);
                     });
                     deleteSuccessful.Should().BeTrue("Deleting collection newColl successful.");
 
@@ -204,7 +204,7 @@ namespace LiteCore.Tests
                     for (uint i = 1; i <= Native.FLArray_Count((FLArray*)arrColl); i++)
                     {
                         var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i - 1));
-                        collStr.Should().Be(collName + (i + 1), "Because the deleted collection no longer is found in scope.");
+                        collStr.Should().Be(collName + (i + 1), "Because the deleted collection is no longer found in scope.");
                         cnt++;
                     }
 
@@ -215,11 +215,11 @@ namespace LiteCore.Tests
         }
 
         [Fact]
-        public void TestDatabaseInfo()
+        public void TestDefaultCollectionInfo()
         {
             RunTestVariants(() => {
-                Native.c4coll_getDocumentCount(DefaultColl).Should().Be(0, "because the database is empty");
-                Native.c4coll_getLastSequence(DefaultColl).Should().Be(0, "because the database is empty");
+                Native.c4coll_getDocumentCount(DefaultColl).Should().Be(0, "because the default collection is empty");
+                Native.c4coll_getLastSequence(DefaultColl).Should().Be(0, "because the default collection is empty");
                 var publicID = new C4UUID();
                 var privateID = new C4UUID();
                 C4Error err;
@@ -269,33 +269,32 @@ namespace LiteCore.Tests
         {
             var collName = "newColl";
             var scopeName = "newScope";
+            
             RunTestVariants(() =>
             {
-                C4Collection* coll1 = null;
-                C4Collection* coll2 = null;
                 C4Document* doc = null;
 
                 using (var collName1_ = new C4String(collName + 1))
                 using (var scopeName1_ = new C4String(scopeName + 1))
                 using (var collName2_ = new C4String(collName + 2)) {
-                    var collectionSpec2 = new C4CollectionSpec() {
+                    var collectionSpecA = new C4CollectionSpec() {
                         name = collName1_.AsFLSlice(),
                         scope = scopeName1_.AsFLSlice()
                     };
 
-                    coll1 = (C4Collection*)LiteCoreBridge.Check(err =>
+                    var coll1 = (C4Collection*)LiteCoreBridge.Check(err =>
                     {
-                        return Native.c4db_createCollection(Db, collectionSpec2, err);
+                        return Native.c4db_createCollection(Db, collectionSpecA, err);
                     });
 
-                    var collectionSpec = new C4CollectionSpec() {
+                    var collectionSpecB = new C4CollectionSpec() {
                         name = collName2_.AsFLSlice(),
                         scope = scopeName1_.AsFLSlice()
                     };
 
-                    coll2 = (C4Collection*)LiteCoreBridge.Check(err =>
+                    var coll2 = (C4Collection*)LiteCoreBridge.Check(err =>
                     {
-                        return Native.c4db_createCollection(Db, collectionSpec, err);
+                        return Native.c4db_createCollection(Db, collectionSpecB, err);
                     });
 
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
@@ -305,26 +304,27 @@ namespace LiteCore.Tests
                         LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
                         Native.c4doc_release(doc);
                     }
+
+                    Native.c4coll_getDocumentCount(coll1).Should().Be(1, "Because coll1 should contain the doc that was just added.");
+                    Native.c4coll_getDocumentCount(coll2).Should().Be(0, "Because there is no doc in coll2.");
+
+                    //var moveDocSuccessful = (bool)LiteCoreBridge.Check(err =>
+                    //{
+                    //    /* Moves a document to another collection, possibly with a different docID.
+                    //    @param collection  The document's original collection.
+                    //    @param docID  The ID of the document to move.
+                    //    @param toCollection  The collection to move to.
+                    //    @param newDocID  The docID in the new collection, or a NULL slice to keep the original ID.
+                    //    @param error Information about any error that occurred
+                    //    @return True on success, false on failure. */
+                    //    return NativeRaw.c4coll_moveDoc(coll1, DocID, coll2, FLSlice.Null, err); //Exception thrown: read access violation. this was nullptr.
+                    //});
+                    
+                    //moveDocSuccessful.Should().BeTrue("Because move doc from coll1 to coll2 should be successful.");
+
+                    //Native.c4coll_getDocumentCount(coll1).Should().Be(0, "Because the doc is moved away.");
+                    //Native.c4coll_getDocumentCount(coll2).Should().Be(1, "Because the doc is moved here.");
                 }
-
-                Native.c4coll_getDocumentCount(coll1).Should().Be(1, "Because coll1 should contain the doc that was just added.");
-                Native.c4coll_getDocumentCount(coll2).Should().Be(0, "Because there is no doc in coll2.");
-
-                //var moveDocSuccessful = (bool)LiteCoreBridge.Check(err =>
-                //{
-                //    /* Moves a document to another collection, possibly with a different docID.
-                //    @param collection  The document's original collection.
-                //    @param docID  The ID of the document to move.
-                //    @param toCollection  The collection to move to.
-                //    @param newDocID  The docID in the new collection, or a NULL slice to keep the original ID.
-                //    @param error Information about any error that occurred
-                //    @return True on success, false on failure. */
-                //    return NativeRaw.c4coll_moveDoc(coll1, DocID, coll2, FLSlice.Null, err); //Exception thrown: read access violation. this was nullptr.
-                //});
-                //moveDocSuccessful.Should().BeTrue("Because move doc from coll1 to coll2 should be successful.");
-
-                //Native.c4coll_getDocumentCount(coll1).Should().Be(0, "Because the doc is moved away.");
-                //Native.c4coll_getDocumentCount(coll2).Should().Be(1, "Because the doc is moved here.");
             });
         }
 
