@@ -65,6 +65,7 @@ namespace LiteCore.Tests
         private int _objectCount = 0;
 
         internal C4Database* Db { get; private set; }
+        internal C4Collection* DefaultColl => Native.c4db_getDefaultCollection(Db);
         internal C4DatabaseConfig2 DBConfig2 { get; set; }
         protected string Storage { get; private set; }
 
@@ -132,7 +133,7 @@ namespace LiteCore.Tests
 
         protected void DeleteAndRecreateDB()
         {
-            LiteCoreBridge.Check(err => Native.c4db_delete(Db, err));
+            LiteCoreBridge.Check(err => Native.c4db_deleteNamed(DBName, TestDir, err));
             Native.c4db_release(Db);
             Db = (C4Database*) LiteCoreBridge.Check(err =>
             {
@@ -181,23 +182,19 @@ namespace LiteCore.Tests
             LiteCoreBridge.Check(err => Native.c4db_delete(Db, err));
             Native.c4db_release(Db);
             Db = null;
-            //if(CurrentException == null) {
-            //    Native.c4_getObjectCount().Should().Be(_objectCount, "because otherwise an object was leaked");
-            //}
         }
 
-        internal void CreateRev(C4Database *db, string docID, FLSlice revID, FLSlice body, C4RevisionFlags flags = (C4RevisionFlags)0)
+        internal void CreateRev(C4Database* db, string docID, FLSlice revID, FLSlice body, C4RevisionFlags flags = (C4RevisionFlags)0)
         {
             LiteCoreBridge.Check(err => Native.c4db_beginTransaction(db, err));
             try {
-                var curDoc = (C4Document *)LiteCoreBridge.Check(err => Native.c4db_getDoc(db, docID, 
-                    false, C4DocContentLevel.DocGetAll, err));
+                var defaultColl = Native.c4db_getDefaultCollection(db); // Just simply get default collection from old db (pre version 3.1)
+                var curDoc = (C4Document*)LiteCoreBridge.Check(err => Native.c4coll_getDoc(defaultColl, docID,
+                   false, C4DocContentLevel.DocGetAll, err));
                 curDoc->Should().NotBeNull();
                 FLSlice parentID;
                 if (IsRevTrees(db))
                     parentID = curDoc->revID;
-                //else
-                //    parentID = c4doc_getRevisionHistory(curDoc, 0, nullptr, 0);
                 CreateConflictingRev(db, curDoc->docID, curDoc->revID, revID, body, flags);
                 Native.c4doc_release(curDoc);
             } finally {
@@ -227,9 +224,10 @@ namespace LiteCore.Tests
                     save = true
                 };
 
+                var defaultColl = Native.c4db_getDefaultCollection(db); // default collection from old db
                 var doc = (C4Document*)LiteCoreBridge.Check(err => {
                     var localRq = rq;
-                    return Native.c4doc_put(db, &localRq, null, err);
+                    return Native.c4coll_putDoc(defaultColl, &localRq, null, err);
                 });
                 Native.c4doc_release(doc);
             }
