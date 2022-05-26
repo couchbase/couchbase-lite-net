@@ -95,12 +95,6 @@ namespace LiteCore.Tests
                     collectionSpec.scope.CreateString().Should().Be(scopeName);
                     var doesContainCollection = Native.c4db_hasCollection(Db, collectionSpec);
                     doesContainCollection.Should().BeTrue("Because Db contains the collection that was created 6 lines ago.");
-
-                    //FLSlice.Free(collectionSpec.name); //Why can't I free these?
-                    //FLSlice.Free(collectionSpec.scope);
-
-                    //LiteCoreBridge.Check(err => Native.c4db_deleteCollection(Db, collectionSpec, err));
-                    //Native.c4coll_release(DefaultColl);
                 };
             });
         }
@@ -265,70 +259,6 @@ namespace LiteCore.Tests
         #region Document
 
         [Fact]
-        public void TestMoveDocWithinCollections()
-        {
-            var collName = "newColl";
-            var scopeName = "newScope";
-            
-            RunTestVariants(() =>
-            {
-                C4Document* doc = null;
-
-                using (var collName1_ = new C4String(collName + 1))
-                using (var scopeName1_ = new C4String(scopeName + 1))
-                using (var collName2_ = new C4String(collName + 2)) {
-                    var collectionSpecA = new C4CollectionSpec() {
-                        name = collName1_.AsFLSlice(),
-                        scope = scopeName1_.AsFLSlice()
-                    };
-
-                    var coll1 = (C4Collection*)LiteCoreBridge.Check(err =>
-                    {
-                        return Native.c4db_createCollection(Db, collectionSpecA, err);
-                    });
-
-                    var collectionSpecB = new C4CollectionSpec() {
-                        name = collName2_.AsFLSlice(),
-                        scope = scopeName1_.AsFLSlice()
-                    };
-
-                    var coll2 = (C4Collection*)LiteCoreBridge.Check(err =>
-                    {
-                        return Native.c4db_createCollection(Db, collectionSpecB, err);
-                    });
-
-                    LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
-                    try {
-                        doc = (C4Document*)LiteCoreBridge.Check(err => NativeRaw.c4coll_createDoc(coll1, DocID, FleeceBody, 0, err));
-                    } finally {
-                        LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
-                        Native.c4doc_release(doc);
-                    }
-
-                    Native.c4coll_getDocumentCount(coll1).Should().Be(1, "Because coll1 should contain the doc that was just added.");
-                    Native.c4coll_getDocumentCount(coll2).Should().Be(0, "Because there is no doc in coll2.");
-
-                    //var moveDocSuccessful = (bool)LiteCoreBridge.Check(err =>
-                    //{
-                    //    /* Moves a document to another collection, possibly with a different docID.
-                    //    @param collection  The document's original collection.
-                    //    @param docID  The ID of the document to move.
-                    //    @param toCollection  The collection to move to.
-                    //    @param newDocID  The docID in the new collection, or a NULL slice to keep the original ID.
-                    //    @param error Information about any error that occurred
-                    //    @return True on success, false on failure. */
-                    //    return NativeRaw.c4coll_moveDoc(coll1, DocID, coll2, FLSlice.Null, err); //Exception thrown: read access violation. this was nullptr.
-                    //});
-                    
-                    //moveDocSuccessful.Should().BeTrue("Because move doc from coll1 to coll2 should be successful.");
-
-                    //Native.c4coll_getDocumentCount(coll1).Should().Be(0, "Because the doc is moved away.");
-                    //Native.c4coll_getDocumentCount(coll2).Should().Be(1, "Because the doc is moved here.");
-                }
-            });
-        }
-
-        [Fact]
         public void TestCreateVersionedDoc()
         {
             RunTestVariants(() => {
@@ -375,18 +305,6 @@ namespace LiteCore.Tests
 
                 // Reload the doc:
                 doc = (C4Document*)LiteCoreBridge.Check(err => NativeRaw.c4coll_getDoc(DefaultColl, DocID, true, C4DocContentLevel.DocGetCurrentRev, err));
-                doc->flags.Should().Be(C4DocumentFlags.DocExists, "because this is an existing document");
-                doc->docID.Equals(DocID).Should().BeTrue("because the doc should have the stored doc ID");
-                doc->revID.Equals(RevID).Should().BeTrue("because the doc should have the stored rev ID");
-                doc->selectedRev.revID.Equals(RevID).Should().BeTrue("because the doc should have the stored rev ID");
-                doc->selectedRev.sequence.Should().Be(1, "because it is the first stored document");
-                NativeRaw.c4doc_getRevisionBody(doc).Equals(FleeceBody).Should().BeTrue("because the doc should have the stored body");
-                Native.c4doc_release(doc);
-
-                // Get the doc by its sequence
-                /** Gets a document from the collection given its sequence number.
-                @note  You must call `c4doc_release()` when finished with the document.  */
-                doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4coll_getDocBySequence(DefaultColl, 1, err));
                 doc->flags.Should().Be(C4DocumentFlags.DocExists, "because this is an existing document");
                 doc->docID.Equals(DocID).Should().BeTrue("because the doc should have the stored doc ID");
                 doc->revID.Equals(RevID).Should().BeTrue("because the doc should have the stored rev ID");
@@ -612,19 +530,18 @@ namespace LiteCore.Tests
             RunTestVariants(() =>
             {
                 C4Error error;
-                var db2 = Native.c4db_openNamed(DBName, Native.c4db_getConfig2(Db), &error);
-                ((long)db2).Should().NotBe(0);
+                var defaultSpec = Native.c4coll_getSpec(DefaultColl);
+                var coll2 = Native.c4db_createCollection(Db, defaultSpec, &error);
+                ((long)coll2).Should().NotBe(0);
 
-                Native.c4db_nextDocExpiration(Db).Should().Be(0);
-                Native.c4db_nextDocExpiration(db2).Should().Be(0);
+                Native.c4coll_nextDocExpiration(DefaultColl).Should().Be(0);
+                Native.c4coll_nextDocExpiration(coll2).Should().Be(0);
 
                 var docID = "expire_me";
                 CreateRev(docID, RevID, FleeceBody);
                 var expire = Native.c4_now() + 1000;
-                Native.c4doc_setExpiration(Db, docID, expire, &error);
-
-                Native.c4db_nextDocExpiration(db2).Should().Be(expire);
-                Native.c4db_release(db2);
+                Native.c4coll_setDocExpiration(DefaultColl, docID, expire, &error);
+                Native.c4coll_nextDocExpiration(coll2).Should().Be(expire); 
             });
         }
 
@@ -653,15 +570,5 @@ namespace LiteCore.Tests
          * c4coll_deleteIndex *
          * c4coll_getIndexesInfo *
          */
-
-        protected override void SetupVariant(int option)
-        {
-            base.SetupVariant(option);
-        }
-
-        protected override void TeardownVariant(int option)
-        {
-            base.TeardownVariant(option);
-        }
     }
 }
