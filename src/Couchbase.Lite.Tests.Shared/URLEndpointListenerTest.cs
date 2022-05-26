@@ -910,6 +910,148 @@ namespace Test
 
         #endregion
         #endif
+
+        #region Replicator Config Network Interface
+
+        enum TestReplicatorNIType
+        {
+            ValidAddress_SERVER_REACHABLE,
+            ValidNI,
+            ValidNI_SERVER_UNREACHABLE,
+            InValidNI,
+            InValidAddress
+        }
+
+        #if !__ANDROID__ && !__IOS__ //Cannot run this test in emulators
+
+        [Fact]
+        public void TestReplicatorValidNetworkInterface()
+        {
+            // valid address and able to connect to server
+            TestReplicatorNI(TestReplicatorNIType.ValidAddress_SERVER_REACHABLE);
+            // valid ni and able to connect to server
+            TestReplicatorNI(TestReplicatorNIType.ValidNI);
+        }
+
+        [Fact]
+        public void TestReplicatorValidAdapterNotConnectNetwork() => TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
+
+        //mac error code is different from windows error code..
+        [Fact]
+        public void TestReplicatorValidNIUnreachableServer()
+        {
+            ManualResetEventSlim waitOfflineAssert = new ManualResetEventSlim();
+            ManualResetEventSlim waitStoppedAssert = new ManualResetEventSlim();
+
+            var ni = GetNetworkInterface(TestReplicatorNIType.ValidNI);
+
+            ni.Should().NotBeNull();
+
+            //unreachable server
+            var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.117:4984/app"));
+            var config = new ReplicatorConfiguration(Db, targetEndpoint)
+            {
+                ReplicatorType = ReplicatorType.PushAndPull,
+                NetworkInterface = ni
+            };
+            //mac's error code is CouchbaseLiteError.AddressNotAvailable
+            RunReplication(config, (int)CouchbaseLiteError.NetworkUnreachable, CouchbaseLiteErrorType.CouchbaseLite);
+        }
+
+        #endif
+
+        // Note: Mac tests will fail with db dispose failures (Infinite Taking a while for active items to stop...) if stacking below tests into one test
+        // Please note all tests below will end up with offline status by design. 
+        [Fact]
+        public void TestReplicatorInValidNetworkInterface() => TestReplicatorNI(TestReplicatorNIType.InValidNI);
+
+        [Fact]
+        public void TestReplicatorInValidNIIPAddress() => TestReplicatorNI(TestReplicatorNIType.InValidAddress);
+
+        #endregion
+
+        #region Private Methods - NI Helper
+
+        private void TestReplicatorNI(TestReplicatorNIType type)
+        {
+            var ni = GetNetworkInterface(type);
+
+            ni.Should().NotBeNull();
+
+            ManualResetEventSlim waitOfflineAssert = new ManualResetEventSlim();
+            ManualResetEventSlim waitStoppedAssert = new ManualResetEventSlim();
+
+            var listenerConfig = CreateListenerConfig(false);
+            _listener = Listen(listenerConfig);
+            var target = _listener.LocalEndpoint();
+
+            var replicatorConfig = new ReplicatorConfiguration(Db, target)
+            {
+                ReplicatorType = ReplicatorType.PushAndPull,
+                Continuous = true,
+                NetworkInterface = ni
+            };
+
+            if (type == TestReplicatorNIType.ValidNI ||
+                    type == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE)
+                RunReplication(replicatorConfig, 0, 0);
+
+            else {
+                using (var repl = new Replicator(replicatorConfig)) {
+                    var token = repl.AddChangeListener((sender, args) =>
+                    {
+                        if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
+                            var expectedException = (CouchbaseNetworkException)args.Status.Error;
+                            expectedException.Error.Should().Be(CouchbaseLiteError.UnknownHost);
+                            expectedException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+
+                            waitOfflineAssert.Set();
+                            repl.Stop();
+                            _listener.Stop();
+                        } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
+                            waitStoppedAssert.Set();
+                        }
+                    });
+
+                    repl.Start();
+                    waitOfflineAssert.Wait(TimeSpan.FromSeconds(10)).Should().BeTrue();
+                    // Wait for the replicator to be stopped
+                    waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).Should().BeTrue();
+                    repl.RemoveChangeListener(token);
+                }
+
+                Thread.Sleep(500);
+            }
+        }
+
+        private string GetNetworkInterface(TestReplicatorNIType tyep)
+        {
+            if (tyep == TestReplicatorNIType.InValidNI)
+                return "INVALID";
+
+            if (tyep == TestReplicatorNIType.InValidAddress)
+                return "1.1.1.256";
+
+            foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
+                if (tyep <= TestReplicatorNIType.ValidNI && ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) {
+                    if (tyep == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE) {
+                        if (ni.Supports(NetworkInterfaceComponent.IPv6))
+                            return ni.GetIPProperties().UnicastAddresses.FirstOrDefault(x => x.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)?.Address.ToString();
+                        else
+                            return ni.GetIPProperties().UnicastAddresses.FirstOrDefault(x => x.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)?.Address.ToString();
+                    }
+
+                    return ni.Name;
+                } else if (tyep == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE &&
+                    ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
+                    return ni.Name;
+            }
+
+            return null;
+        }
+
+        #endregion
+
         #region Private Methods
 
         private void CollectionsPushPullReplication(bool continuous)
