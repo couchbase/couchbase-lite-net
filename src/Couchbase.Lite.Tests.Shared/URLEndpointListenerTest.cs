@@ -936,7 +936,6 @@ namespace Test
         [Fact]
         public void TestReplicatorValidAdapterNotConnectNetwork() => TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
 
-        //mac error code is different from windows error code..
         [Fact]
         public void TestReplicatorValidNIUnreachableServer()
         {
@@ -949,19 +948,20 @@ namespace Test
 
             //unreachable server
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.117:4984/app"));
-            var config = new ReplicatorConfiguration(Db, targetEndpoint)
-            {
+            var config = new ReplicatorConfiguration(Db, targetEndpoint) {
                 ReplicatorType = ReplicatorType.PushAndPull,
                 NetworkInterface = ni
             };
-            //mac's error code is CouchbaseLiteError.AddressNotAvailable
-            RunReplication(config, (int)CouchbaseLiteError.NetworkUnreachable, CouchbaseLiteErrorType.CouchbaseLite);
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                RunReplication(config, (int)CouchbaseLiteError.NetworkUnreachable, CouchbaseLiteErrorType.CouchbaseLite);
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                RunReplication(config, (int)CouchbaseLiteError.AddressNotAvailable, CouchbaseLiteErrorType.CouchbaseLite);
+            }
         }
 
         #endif
 
-        // Note: Mac tests will fail with db dispose failures (Infinite Taking a while for active items to stop...) if stacking below tests into one test
-        // Please note all tests below will end up with offline status by design. 
         [Fact]
         public void TestReplicatorInValidNetworkInterface() => TestReplicatorNI(TestReplicatorNIType.InValidNI);
 
