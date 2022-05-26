@@ -467,7 +467,7 @@ namespace Couchbase.Lite.Sync
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
         #endif
-        private static bool PullValidateCallback(FLSlice collectionName, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
+        private static bool PullValidateCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
             if (replicator == null) {
@@ -489,7 +489,7 @@ namespace Couchbase.Lite.Sync
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
         #endif
-        private static bool PushFilterCallback(FLSlice collectionName, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
+        private static bool PushFilterCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
             if (replicator == null) {
