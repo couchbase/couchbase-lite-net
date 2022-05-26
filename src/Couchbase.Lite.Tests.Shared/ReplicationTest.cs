@@ -223,19 +223,17 @@ namespace Test
         protected override void Dispose(bool disposing)
         {
             Exception ex = null;
-            _repl?.Dispose();
+            var name = OtherDb?.Name;
+            OtherDb?.Close();
+            OtherDb = null;
             _repl = null;
 
             base.Dispose(disposing);
-            var name = OtherDb?.Name;
-            OtherDb?.Dispose();
-            OtherDb = null;
 
             var success = Try.Condition(() => {
                 try {
-                    if (name != null) {
+                    if (!string.IsNullOrEmpty(name))
                         Database.Delete(name, Directory);
-                    }
                 } catch (Exception e) {
                     ex = e;
                     return false;
@@ -2372,121 +2370,121 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
 
         private void WithActiveReplicationAndQuery(bool isCloseNotDelete)
         {
-            Database.Delete("closeDB", Db.Config.Directory);
-            using (var otherDb = new Database("closeDB", Db.Config)) {
-                WaitAssert waitIdleAssert = new WaitAssert();
-                WaitAssert waitStoppedAssert = new WaitAssert();
-                var config = CreateConfig(true, true, true, otherDb);
-                using (var repl = new Replicator(config)) {
+            WaitAssert waitIdleAssert = new WaitAssert();
+            WaitAssert waitStoppedAssert = new WaitAssert();
+            var config = CreateConfig(true, true, true, OtherDb);
+            using (var repl = new Replicator(config)) {
 
-                    var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(Db));
-                    var doc1Listener = new WaitAssert();
-                    query.AddChangeListener(null, (sender, args) => {
-                        foreach (var row in args.Results) {
-                            if (row.GetString("id") == "doc1") {
-                                doc1Listener.Fulfill();
-                            }
+                var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(Db));
+                var doc1Listener = new WaitAssert();
+                query.AddChangeListener(null, (sender, args) =>
+                {
+                    foreach (var row in args.Results) {
+                        if (row.GetString("id") == "doc1") {
+                            doc1Listener.Fulfill();
                         }
-                    });
-
-                    repl.AddChangeListener((sender, args) => {
-                        waitIdleAssert.RunConditionalAssert(() => {
-                            return args.Status.Activity == ReplicatorActivityLevel.Idle;
-                        });
-
-                        waitStoppedAssert.RunConditionalAssert(() => {
-                            return args.Status.Activity == ReplicatorActivityLevel.Stopped;
-                        });
-                    });
-
-                    repl.Start();
-
-                    using (var doc = new MutableDocument("doc1")) {
-                        doc.SetString("value", "string");
-                        Db.Save(doc); // Should still trigger since it is pointing to the same DB
                     }
+                });
 
-                    doc1Listener.WaitForResult(TimeSpan.FromSeconds(20));
-                    waitIdleAssert.WaitForResult(TimeSpan.FromSeconds(10));
+                repl.AddChangeListener((sender, args) =>
+                {
+                    waitIdleAssert.RunConditionalAssert(() =>
+                    {
+                        return args.Status.Activity == ReplicatorActivityLevel.Idle;
+                    });
 
-                    Db.ActiveStoppables.Count.Should().Be(2);
-                    //Db.ActiveLiveQueries.Count.Should().Be(1);
+                    waitStoppedAssert.RunConditionalAssert(() =>
+                    {
+                        return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                    });
+                });
 
-                    if (isCloseNotDelete)
-                        Db.Close();
-                    else
-                        Db.Delete();
+                repl.Start();
 
-                    Db.ActiveStoppables.Count.Should().Be(0);
-                    //Db.ActiveLiveQueries.Count.Should().Be(0);
-                    Db.IsClosedLocked.Should().Be(true);
-
-                    waitStoppedAssert.WaitForResult(TimeSpan.FromSeconds(30));
+                using (var doc = new MutableDocument("doc1")) {
+                    doc.SetString("value", "string");
+                    Db.Save(doc); // Should still trigger since it is pointing to the same DB
                 }
-            }
 
-            Database.Delete("closeDB", Db.Config.Directory);
+                doc1Listener.WaitForResult(TimeSpan.FromSeconds(20));
+                waitIdleAssert.WaitForResult(TimeSpan.FromSeconds(10));
+
+                Db.ActiveStoppables.Count.Should().Be(2);
+                //Db.ActiveLiveQueries.Count.Should().Be(1);
+
+                if (isCloseNotDelete)
+                    Db.Close();
+                else
+                    Db.Delete();
+
+                Db.ActiveStoppables.Count.Should().Be(0);
+                //Db.ActiveLiveQueries.Count.Should().Be(0);
+                Db.IsClosedLocked.Should().Be(true);
+
+                waitStoppedAssert.WaitForResult(TimeSpan.FromSeconds(30));
+            }
         }
 
         private void WithActiveReplications(bool isCloseNotDelete)
         {
-            Database.Delete("closeDB", Db.Config.Directory);
-            using (var otherDb = new Database("closeDB", Db.Config)) {
-                WaitAssert waitIdleAssert = new WaitAssert();
-                WaitAssert waitStoppedAssert = new WaitAssert();
-                WaitAssert waitIdleAssert1 = new WaitAssert();
-                WaitAssert waitStoppedAssert1 = new WaitAssert();
+            WaitAssert waitIdleAssert = new WaitAssert();
+            WaitAssert waitStoppedAssert = new WaitAssert();
+            WaitAssert waitIdleAssert1 = new WaitAssert();
+            WaitAssert waitStoppedAssert1 = new WaitAssert();
 
-                var config = CreateConfig(true, true, true, otherDb);
-                using (var repl = new Replicator(config))
-                using (var repl1 = new Replicator(config)) {
-                    var token = repl.AddChangeListener((sender, args) => {
-                        waitIdleAssert.RunConditionalAssert(() => {
-                            return args.Status.Activity == ReplicatorActivityLevel.Idle;
-                        });
-
-                        waitStoppedAssert.RunConditionalAssert(() => {
-                            return args.Status.Activity == ReplicatorActivityLevel.Stopped;
-                        });
+            var config = CreateConfig(true, true, true, OtherDb);
+            using (var repl = new Replicator(config))
+            using (var repl1 = new Replicator(config)) {
+                var token = repl.AddChangeListener((sender, args) =>
+                {
+                    waitIdleAssert.RunConditionalAssert(() =>
+                    {
+                        return args.Status.Activity == ReplicatorActivityLevel.Idle;
                     });
 
-                    var token1 = repl1.AddChangeListener((sender, args) => {
-                        waitIdleAssert1.RunConditionalAssert(() => {
-                            return args.Status.Activity == ReplicatorActivityLevel.Idle;
-                        });
+                    waitStoppedAssert.RunConditionalAssert(() =>
+                    {
+                        return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                    });
+                });
 
-                        waitStoppedAssert1.RunConditionalAssert(() => {
-                            return args.Status.Activity == ReplicatorActivityLevel.Stopped;
-                        });
+                var token1 = repl1.AddChangeListener((sender, args) =>
+                {
+                    waitIdleAssert1.RunConditionalAssert(() =>
+                    {
+                        return args.Status.Activity == ReplicatorActivityLevel.Idle;
                     });
 
-                    repl.Start();
-                    repl1.Start();
+                    waitStoppedAssert1.RunConditionalAssert(() =>
+                    {
+                        return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                    });
+                });
 
-                    using (var doc = new MutableDocument("doc1")) {
-                        doc.SetString("value", "string");
-                        otherDb.Save(doc); // Should still trigger since it is pointing to the same DB
-                    }
+                repl.Start();
+                repl1.Start();
 
-                    waitIdleAssert.WaitForResult(TimeSpan.FromSeconds(10));
-                    waitIdleAssert1.WaitForResult(TimeSpan.FromSeconds(10));
-
-                    Db.ActiveStoppables.Count.Should().Be(2);
-
-                    if (isCloseNotDelete)
-                        Db.Close();
-                    else
-                        Db.Delete();
-
-                    Db.ActiveStoppables.Count.Should().Be(0);
-                    Db.IsClosedLocked.Should().Be(true);
-
-                    waitStoppedAssert.WaitForResult(TimeSpan.FromSeconds(30));
-                    waitStoppedAssert1.WaitForResult(TimeSpan.FromSeconds(30));
+                using (var doc = new MutableDocument("doc1")) {
+                    doc.SetString("value", "string");
+                    OtherDb.Save(doc); // Should still trigger since it is pointing to the same DB
                 }
-            }
 
-            Database.Delete("closeDB", Db.Config.Directory);
+                waitIdleAssert.WaitForResult(TimeSpan.FromSeconds(10));
+                waitIdleAssert1.WaitForResult(TimeSpan.FromSeconds(10));
+
+                Db.ActiveStoppables.Count.Should().Be(2);
+
+                if (isCloseNotDelete)
+                    Db.Close();
+                else
+                    Db.Delete();
+
+                Db.ActiveStoppables.Count.Should().Be(0);
+                Db.IsClosedLocked.Should().Be(true);
+
+                waitStoppedAssert.WaitForResult(TimeSpan.FromSeconds(30));
+                waitStoppedAssert1.WaitForResult(TimeSpan.FromSeconds(30));
+            }
         }
 
         private void TestConflictResolverExceptionThrown(TestConflictResolver resolver, bool continueWithWorkingResolver = false, bool withBlob = false)

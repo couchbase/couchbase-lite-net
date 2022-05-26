@@ -735,8 +735,6 @@ namespace Test
             wait2.Dispose();
             urlepTestDb.Delete();
 
-            _listener.Stop();
-
             Thread.Sleep(500); // wait for everything to stop
         }
 
@@ -1108,8 +1106,6 @@ namespace Test
             wait1.Dispose();
             wait2.Dispose();
             urlepTestDb.Delete();
-
-            _listener.Stop();
 
             Thread.Sleep(500);
         }
