@@ -146,8 +146,6 @@ namespace Test
             var config = CreateListenerConfig(false, false, stopListener: false);
             var listener1 = Listen(config, GetEADDRINUSECode(), CouchbaseLiteErrorType.POSIX, stopListener: false);
 
-            _listener.Stop();
-            listener1.Stop();
             listener1.Dispose();
         }
 

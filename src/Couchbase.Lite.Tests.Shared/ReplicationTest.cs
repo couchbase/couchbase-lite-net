@@ -226,9 +226,10 @@ namespace Test
             var name = OtherDb?.Name;
             OtherDb?.Close();
             OtherDb = null;
-            _repl = null;
 
             base.Dispose(disposing);
+            
+            _repl = null;
 
             var success = Try.Condition(() => {
                 try {
