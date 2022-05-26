@@ -978,9 +978,6 @@ namespace Test
 
             ni.Should().NotBeNull();
 
-            ManualResetEventSlim waitOfflineAssert = new ManualResetEventSlim();
-            ManualResetEventSlim waitStoppedAssert = new ManualResetEventSlim();
-
             var listenerConfig = CreateListenerConfig(false);
             _listener = Listen(listenerConfig);
             var target = _listener.LocalEndpoint();
@@ -997,30 +994,31 @@ namespace Test
                 RunReplication(replicatorConfig, 0, 0);
 
             else {
+                _waitAssert = new WaitAssert();
                 using (var repl = new Replicator(replicatorConfig)) {
-                    var token = repl.AddChangeListener((sender, args) =>
+                    var token = repl.AddChangeListener((sender, args) => 
                     {
-                        if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
-                            var expectedException = (CouchbaseNetworkException)args.Status.Error;
-                            expectedException.Error.Should().Be(CouchbaseLiteError.UnknownHost);
-                            expectedException.Domain.Should().Be(CouchbaseLiteErrorType.CouchbaseLite);
+                        _waitAssert.RunConditionalAssert(() =>
+                        {
+                            VerifyChange(args, (int)CouchbaseLiteError.UnknownHost, CouchbaseLiteErrorType.CouchbaseLite);
+                            if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
+                                ((Replicator)sender).Stop();
+                            }
 
-                            waitOfflineAssert.Set();
-                            repl.Stop();
-                            _listener.Stop();
-                        } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
-                            waitStoppedAssert.Set();
-                        }
+                            return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                        });
                     });
 
                     repl.Start();
-                    waitOfflineAssert.Wait(TimeSpan.FromSeconds(10)).Should().BeTrue();
-                    // Wait for the replicator to be stopped
-                    waitStoppedAssert.Wait(TimeSpan.FromSeconds(20)).Should().BeTrue();
-                    repl.RemoveChangeListener(token);
+                    try {
+                        _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
+                    } catch {
+                        repl.Stop();
+                        throw;
+                    } finally {
+                        token.Remove();
+                    }
                 }
-
-                Thread.Sleep(500);
             }
         }
 
