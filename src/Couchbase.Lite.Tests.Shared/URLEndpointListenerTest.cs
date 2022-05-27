@@ -809,7 +809,7 @@ namespace Test
         [Fact] //uwp
         public void TestCloseWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(true);
 
-        [Fact] //uwp
+        [Fact]
         public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
 
         [Fact]
@@ -989,10 +989,7 @@ namespace Test
             if (isCloseNotDelete) {
                 urlepTestDb.Close();
                 OtherDb.Close();
-            } else {
-                urlepTestDb.Delete();
-                OtherDb.Delete();
-            }
+            } 
 
             OtherDb.ActiveStoppables.Count.Should().Be(0);
             urlepTestDb.ActiveStoppables.Count.Should().Be(0);
@@ -1001,6 +998,11 @@ namespace Test
 
             WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, TimeSpan.FromSeconds(20))
                 .Should().BeTrue();
+
+            if (!isCloseNotDelete) {// Delete db should wait until db usaged are all released. 
+                urlepTestDb.Delete();
+                OtherDb.Delete();
+            }
 
             waitIdleAssert1.Dispose();
             waitIdleAssert2.Dispose();
@@ -1103,7 +1105,7 @@ namespace Test
             repl2.Dispose();
             wait1.Dispose();
             wait2.Dispose();
-            urlepTestDb.Delete();
+            urlepTestDb.Close();
 
             Thread.Sleep(500);
         }
