@@ -928,79 +928,72 @@ namespace Test
         public void TestReplicatorValidNetworkInterface()
         {
             // valid address and able to connect to server
-            TestReplicatorNI(TestReplicatorNIType.ValidAddress_SERVER_REACHABLE);
+            RunReplicationNI(TestReplicatorNIType.ValidAddress_SERVER_REACHABLE);
             // valid ni and able to connect to server
-            TestReplicatorNI(TestReplicatorNIType.ValidNI);
+            RunReplicationNI(TestReplicatorNIType.ValidNI);
         }
 
         [Fact]
-        public void TestReplicatorValidAdapterNotConnectNetwork() => TestReplicatorNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE);
+        public void TestReplicatorValidAdapterNotConnectNetwork() => RunReplicationNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE,
+            errorCode:(int)CouchbaseLiteError.AddressNotAvailable, errorType:CouchbaseLiteErrorType.CouchbaseLite);
 
         [Fact]
         public void TestReplicatorValidNIUnreachableServer()
         {
-            ManualResetEventSlim waitOfflineAssert = new ManualResetEventSlim();
-            ManualResetEventSlim waitStoppedAssert = new ManualResetEventSlim();
-
-            var ni = GetNetworkInterface(TestReplicatorNIType.ValidNI);
-
-            ni.Should().NotBeNull();
-
             //unreachable server
             var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.117:4984/app"));
-            var config = new ReplicatorConfiguration(Db, targetEndpoint) {
-                ReplicatorType = ReplicatorType.PushAndPull,
-                NetworkInterface = ni
-            };
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                RunReplication(config, (int)CouchbaseLiteError.NetworkUnreachable, CouchbaseLiteErrorType.CouchbaseLite);
+                RunReplicationNI(TestReplicatorNIType.ValidNI, targetEndpoint, (int)CouchbaseLiteError.NetworkUnreachable, CouchbaseLiteErrorType.CouchbaseLite);
             } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-                RunReplication(config, (int)CouchbaseLiteError.AddressNotAvailable, CouchbaseLiteErrorType.CouchbaseLite);
+                RunReplicationNI(TestReplicatorNIType.ValidNI, targetEndpoint, (int)CouchbaseLiteError.AddressNotAvailable, CouchbaseLiteErrorType.CouchbaseLite);
             }
         }
 
         #endif
 
         [Fact]
-        public void TestReplicatorInValidNetworkInterface() => TestReplicatorNI(TestReplicatorNIType.InValidNI);
+        public void TestReplicatorInValidNetworkInterface() => RunReplicationNI(TestReplicatorNIType.InValidNI,
+            errorCode: (int)CouchbaseLiteError.UnknownHost, errorType: CouchbaseLiteErrorType.CouchbaseLite);
 
         [Fact]
-        public void TestReplicatorInValidNIIPAddress() => TestReplicatorNI(TestReplicatorNIType.InValidAddress);
+        public void TestReplicatorInValidNIIPAddress() => RunReplicationNI(TestReplicatorNIType.InValidAddress,
+            errorCode: (int)CouchbaseLiteError.UnknownHost, errorType: CouchbaseLiteErrorType.CouchbaseLite);
 
         #endregion
 
         #region Private Methods - NI Helper
 
-        private void TestReplicatorNI(TestReplicatorNIType type)
+        private void RunReplicationNI(TestReplicatorNIType type, URLEndpoint endpoint = null, int errorCode = 0, CouchbaseLiteErrorType errorType = 0)
         {
             var ni = GetNetworkInterface(type);
-
             ni.Should().NotBeNull();
 
-            var listenerConfig = CreateListenerConfig(false);
-            _listener = Listen(listenerConfig);
-            var target = _listener.LocalEndpoint();
+            if (endpoint == null) {
+                var listenerConfig = CreateListenerConfig(false);
+                _listener = Listen(listenerConfig);
+                endpoint = _listener.LocalEndpoint();
+            }
 
-            var replicatorConfig = new ReplicatorConfiguration(Db, target)
+            var replicatorConfig = new ReplicatorConfiguration(Db, endpoint)
             {
                 ReplicatorType = ReplicatorType.PushAndPull,
                 Continuous = true,
                 NetworkInterface = ni
             };
 
-            if (type == TestReplicatorNIType.ValidNI ||
-                    type == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE)
-                RunReplication(replicatorConfig, 0, 0);
 
+            if (errorCode == 0 && (type == TestReplicatorNIType.ValidNI ||
+                    type == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE))
+                RunReplication(replicatorConfig, errorCode, errorType);
             else {
                 _waitAssert = new WaitAssert();
                 using (var repl = new Replicator(replicatorConfig)) {
-                    var token = repl.AddChangeListener((sender, args) => 
+                    var token = repl.AddChangeListener((sender, args) =>
                     {
                         _waitAssert.RunConditionalAssert(() =>
                         {
-                            VerifyChange(args, (int)CouchbaseLiteError.UnknownHost, CouchbaseLiteErrorType.CouchbaseLite);
+                            VerifyChange(args, errorCode, errorType);
                             if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
                                 ((Replicator)sender).Stop();
                             }
