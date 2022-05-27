@@ -934,8 +934,17 @@ namespace Test
         }
 
         [Fact]
-        public void TestReplicatorValidAdapterNotConnectNetwork() => RunReplicationNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE,
-            errorCode:(int)CouchbaseLiteError.AddressNotAvailable, errorType:CouchbaseLiteErrorType.CouchbaseLite);
+        public void TestReplicatorValidAdapterNotConnectNetwork()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                RunReplicationNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE,
+                    errorCode: (int)CouchbaseLiteError.AddressNotAvailable, errorType: CouchbaseLiteErrorType.CouchbaseLite);
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                RunReplicationNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE,
+                    errorCode: (int)CouchbaseLiteError.UnknownHost, errorType: CouchbaseLiteErrorType.CouchbaseLite);
+            }
+        }
 
         [Fact]
         public void TestReplicatorValidNIUnreachableServer()
