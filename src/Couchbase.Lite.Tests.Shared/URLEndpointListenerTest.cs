@@ -146,8 +146,6 @@ namespace Test
             var config = CreateListenerConfig(false, false, stopListener: false);
             var listener1 = Listen(config, GetEADDRINUSECode(), CouchbaseLiteErrorType.POSIX, stopListener: false);
 
-            _listener.Stop();
-            listener1.Stop();
             listener1.Dispose();
         }
 
@@ -733,9 +731,7 @@ namespace Test
             repl2.Dispose();
             wait1.Dispose();
             wait2.Dispose();
-            urlepTestDb.Delete();
-
-            _listener.Stop();
+            urlepTestDb.Close();
 
             Thread.Sleep(500); // wait for everything to stop
         }
@@ -813,7 +809,7 @@ namespace Test
         [Fact] //uwp
         public void TestCloseWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(true);
 
-        [Fact] //uwp
+        [Fact]
         public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
 
         [Fact]
@@ -998,8 +994,8 @@ namespace Test
                 OtherDb.Delete();
             }
 
-            OtherDb.ActiveStoppables.Count.Should().Be(0);
-            urlepTestDb.ActiveStoppables.Count.Should().Be(0);
+            OtherDb.ActiveStoppables.Count.Should().Be(0, "because OtherDb's active items should all be stopped");
+            urlepTestDb.ActiveStoppables.Count.Should().Be(0, "because urlepTestDb's active items should all be stopped");
             OtherDb.IsClosedLocked.Should().Be(true);
             urlepTestDb.IsClosedLocked.Should().Be(true);
 
@@ -1107,9 +1103,7 @@ namespace Test
             repl2.Dispose();
             wait1.Dispose();
             wait2.Dispose();
-            urlepTestDb.Delete();
-
-            _listener.Stop();
+            urlepTestDb.Close();
 
             Thread.Sleep(500);
         }
@@ -1260,8 +1254,7 @@ namespace Test
 
         private URLEndpointListener CreateNewListener()
         {
-            var config = new URLEndpointListenerConfiguration(OtherDb)
-            {
+            var config = new URLEndpointListenerConfiguration(OtherDb) {
                 Port = 0,
                 DisableTLS = false
             };
@@ -1275,11 +1268,10 @@ namespace Test
 
         protected override void Dispose(bool disposing)
         {
-            _listener?.DeleteAnonymousTLSIdentity();
             base.Dispose(disposing);
-
+            _listener?.DeleteAnonymousTLSIdentity();
             _store.Dispose();
-            _listener.Dispose();
+            _listener?.Dispose();
         }
     }
 }

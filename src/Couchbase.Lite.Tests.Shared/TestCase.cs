@@ -440,18 +440,18 @@ namespace Test
 
         protected virtual void Dispose(bool disposing)
         {
-            Db?.Dispose();
-            var name = Db?.Name;
-            Db = null;
-            Database.Log.Custom = null;
             Exception ex = null;
+            var name = Db?.Name;
+            Db?.Close();
+            Db = null;
+
+            Database.Log.Custom = null;
 
             var success = Try.Condition(() =>
             {
                 try {
-                    if (name != null) {
+                    if(!string.IsNullOrEmpty(name))
                         Database.Delete(name, Directory);
-                    }
                 } catch (Exception e) {
                     ex = e;
                     return false;

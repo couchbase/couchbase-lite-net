@@ -142,7 +142,6 @@ namespace Test
                 Db.Delete();
                 ReopenDB();
                 OtherDb.Delete();
-                OtherDb.Dispose();
                 OtherDb = OpenDB(OtherDb.Name);
             }
         }
