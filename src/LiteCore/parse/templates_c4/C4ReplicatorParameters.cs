@@ -8,6 +8,8 @@
         public IntPtr onStatusChanged;
         public IntPtr onDocumentEnded;
         public IntPtr onBlobProgress;
+		public IntPtr onPropertyEncryption;
+		public IntPtr onPropertyDecryption;
         public void* callbackContext;
         public C4SocketFactory* socketFactory;
     }

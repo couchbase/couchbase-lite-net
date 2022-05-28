@@ -9,6 +9,8 @@ c4listener_unshareDB
 c4listener_getPort
 c4listener_getURLs
 c4listener_getConnectionStatus
+c4listener_shareCollection
+c4listener_unshareCollection
 
 c4cert_copyChainData
 c4cert_copyData
