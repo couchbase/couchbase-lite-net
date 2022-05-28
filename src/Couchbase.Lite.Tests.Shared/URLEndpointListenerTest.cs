@@ -731,7 +731,7 @@ namespace Test
             repl2.Dispose();
             wait1.Dispose();
             wait2.Dispose();
-            urlepTestDb.Delete();
+            urlepTestDb.Close();
 
             Thread.Sleep(500); // wait for everything to stop
         }
@@ -989,20 +989,18 @@ namespace Test
             if (isCloseNotDelete) {
                 urlepTestDb.Close();
                 OtherDb.Close();
-            } 
+            } else {
+                urlepTestDb.Delete();
+                OtherDb.Delete();
+            }
 
-            OtherDb.ActiveStoppables.Count.Should().Be(0);
-            urlepTestDb.ActiveStoppables.Count.Should().Be(0);
+            OtherDb.ActiveStoppables.Count.Should().Be(0, "because OtherDb's active items should all be stopped");
+            urlepTestDb.ActiveStoppables.Count.Should().Be(0, "because urlepTestDb's active items should all be stopped");
             OtherDb.IsClosedLocked.Should().Be(true);
             urlepTestDb.IsClosedLocked.Should().Be(true);
 
             WaitHandle.WaitAll(new[] { waitStoppedAssert1.WaitHandle, waitStoppedAssert2.WaitHandle }, TimeSpan.FromSeconds(20))
                 .Should().BeTrue();
-
-            if (!isCloseNotDelete) {// Delete db should wait until db usaged are all released. 
-                urlepTestDb.Delete();
-                OtherDb.Delete();
-            }
 
             waitIdleAssert1.Dispose();
             waitIdleAssert2.Dispose();
@@ -1256,8 +1254,7 @@ namespace Test
 
         private URLEndpointListener CreateNewListener()
         {
-            var config = new URLEndpointListenerConfiguration(OtherDb)
-            {
+            var config = new URLEndpointListenerConfiguration(OtherDb) {
                 Port = 0,
                 DisableTLS = false
             };
@@ -1271,11 +1268,10 @@ namespace Test
 
         protected override void Dispose(bool disposing)
         {
-            _listener?.DeleteAnonymousTLSIdentity();
             base.Dispose(disposing);
-
+            _listener?.DeleteAnonymousTLSIdentity();
             _store.Dispose();
-            _listener.Dispose();
+            _listener?.Dispose();
         }
     }
 }
