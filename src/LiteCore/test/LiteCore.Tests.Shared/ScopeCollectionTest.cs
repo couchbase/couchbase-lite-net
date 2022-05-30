@@ -65,8 +65,9 @@ namespace LiteCore.Tests
                 /** Returns true if the collection exists. */
                 var doesContainCollection = Native.c4db_hasCollection(Db, collectionSpec);
                 doesContainCollection.Should().BeTrue("Because old Db does contain default collection.");
-                var docCount = Native.c4coll_getDocumentCount(DefaultColl);
-                docCount.Should().Be(0);
+
+                Native.c4coll_getDocumentCount(DefaultColl).Should().Be(0, "because the default collection is empty");
+                Native.c4coll_getLastSequence(DefaultColl).Should().Be(0, "because the default collection is empty");
             });
         }
 
@@ -208,57 +209,11 @@ namespace LiteCore.Tests
             });
         }
 
-        [Fact]
-        public void TestDefaultCollectionInfo()
-        {
-            RunTestVariants(() => {
-                Native.c4coll_getDocumentCount(DefaultColl).Should().Be(0, "because the default collection is empty");
-                Native.c4coll_getLastSequence(DefaultColl).Should().Be(0, "because the default collection is empty");
-                var publicID = new C4UUID();
-                var privateID = new C4UUID();
-                C4Error err;
-                var uuidSuccess = Native.c4db_getUUIDs(Db, &publicID, &privateID, &err);
-                if (!uuidSuccess) {
-                    throw CouchbaseException.Create(err);
-                }
-
-                var p1 = publicID;
-                var p2 = privateID;
-                var match = true;
-                for (int i = 0; i < C4UUID.Size; i++) {
-                    if (publicID.bytes[i] != privateID.bytes[i]) {
-                        match = false;
-                        break;
-                    }
-                }
-
-                match.Should().BeFalse("because public UUID and private UUID should differ");
-                (p1.bytes[6] & 0xF0).Should().Be(0x40, "because otherwise the UUID is non-conformant");
-                (p1.bytes[8] & 0xC0).Should().Be(0x80, "because otherwise the UUID is non-conformant");
-                (p2.bytes[6] & 0xF0).Should().Be(0x40, "because otherwise the UUID is non-conformant");
-                (p2.bytes[8] & 0xC0).Should().Be(0x80, "because otherwise the UUID is non-conformant");
-
-                // Make sure the UUIDs are persistent
-                ReopenDB();
-                var publicID2 = new C4UUID();
-                var privateID2 = new C4UUID();
-                uuidSuccess = Native.c4db_getUUIDs(Db, &publicID2, &privateID2, &err);
-                if (!uuidSuccess) {
-                    throw CouchbaseException.Create(err);
-                }
-
-                for (int i = 0; i < C4UUID.Size; i++) {
-                    publicID2.bytes[i].Should().Be(publicID.bytes[i]);
-                    privateID2.bytes[i].Should().Be(privateID.bytes[i]);
-                }
-            });
-        }
-
         #endregion
 
         #region Document
 
-        [Fact]
+        [Fact] //TODO: Revisit when the implementation is done to see if c4coll_putDoc is used anywhere.
         public void TestCreateVersionedDoc()
         {
             RunTestVariants(() => {
