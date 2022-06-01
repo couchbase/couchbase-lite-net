@@ -92,7 +92,6 @@ namespace LiteCore.Interop
                 return ((FLSlice)retVal).CreateString();
             }
         }
-        //public static extern CBL_CORE_APIC4Cert* c4repl_getPeerTLSCertificate(C4Replicator* repl, C4Error* outErr);
 
 
     }
