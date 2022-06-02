@@ -85,8 +85,7 @@ namespace LiteCore.Interop
 
 	internal unsafe struct C4DocumentEnded
     {
-        public FLHeapSlice collectionName; // will be replaced by collectionSpec
-        //public C4CollectionSpec collectionSpec; // will enable
+        public C4CollectionSpec collectionSpec;
         public FLHeapSlice docID;
         public FLHeapSlice revID;
         public C4RevisionFlags flags;
@@ -111,6 +110,9 @@ namespace LiteCore.Interop
         public C4ReplicatorMode push;
         public C4ReplicatorMode pull;
         public FLSlice optionsDictFleece;
+        public IntPtr pushFilter;
+        public IntPtr pullFilter;
+        public void* callbackContext;
     }
 
     internal unsafe struct C4ReplicatorParameters

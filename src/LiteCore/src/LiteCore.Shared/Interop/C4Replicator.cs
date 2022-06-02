@@ -38,14 +38,24 @@ namespace LiteCore.Interop
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate void C4ReplicatorBlobProgressCallback(C4Replicator* replicator,
-        [MarshalAs(UnmanagedType.U1)]bool pushing, FLSlice docID, FLSlice docProperty, 
+        [MarshalAs(UnmanagedType.U1)]bool pushing, C4CollectionSpec collectionSpec, FLSlice docID, FLSlice docProperty, 
         C4BlobKey blobKey, ulong bytesComplete, ulong bytesTotal, C4Error error, 
         void* context);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     [return: MarshalAs(UnmanagedType.U1)]
-    internal unsafe delegate bool C4ReplicatorValidationFunction(FLSlice collectionName, FLSlice docID,
+    internal unsafe delegate bool C4ReplicatorValidationFunction(C4CollectionSpec collectionSpec, FLSlice docID,
         FLSlice revID, C4RevisionFlags revisionFlags, FLDict* body, void* context);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    internal unsafe delegate FLSliceResult C4ReplicatorPropertyEncryptionCallback(void* context, 
+        C4CollectionSpec collection, FLSlice documentID, FLDict properties, FLSlice keyPath, FLSlice input, 
+        FLSliceResult* outAlgorithm, FLSliceResult* outKeyID, C4Error error);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    internal unsafe delegate FLSliceResult C4ReplicatorPropertyDecryptionCallback(void* context,
+        C4CollectionSpec collection, FLSlice documentID, FLDict properties, FLSlice keyPath, FLSlice input,
+        FLSlice outAlgorithm, FLSlice outKeyID, C4Error error);
 }
 
 namespace LiteCore.Interop

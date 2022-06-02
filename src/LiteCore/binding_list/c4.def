@@ -1,5 +1,4 @@
 # Couchbase Lite (used for bindings generation)
-# New API should go below the 'C4Tests' comment line below first
 c4_getVersion
 c4_now
 c4_getObjectCount
@@ -33,6 +32,7 @@ c4db_getCollection
 c4db_createCollection
 c4db_deleteCollection
 c4db_collectionNames
+c4db_hasScope
 c4dbobs_createOnCollection
 c4docobs_createWithCollection
 c4coll_getSpec

@@ -421,13 +421,12 @@ namespace Couchbase.Lite.Sync
             var documentReplications = new List<ReplicatedDocument>();
             for (int i = 0; i < (int) numDocs; i++) {
                 var current = docs[i];
-                //var collection = replicator.Config.Database.GetCollection(current->collectionName.CreateString());
                 if (!pushing && current->error.domain == C4ErrorDomain.LiteCoreDomain &&
                     current->error.code == (int) C4ErrorCode.Conflict) {
-                    replicatedDocumentsContainConflict.Add(new ReplicatedDocument(current->docID.CreateString() ?? "",
+                    replicatedDocumentsContainConflict.Add(new ReplicatedDocument(current->docID.CreateString() ?? "", current->collectionSpec,
                         current->flags, current->error, current->errorIsTransient));
                 } else {
-                    documentReplications.Add(new ReplicatedDocument(current->docID.CreateString() ?? "",
+                    documentReplications.Add(new ReplicatedDocument(current->docID.CreateString() ?? "", current->collectionSpec,
                         current->flags, current->error, current->errorIsTransient));
                 }
             }
@@ -468,7 +467,7 @@ namespace Couchbase.Lite.Sync
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
         #endif
-        private static bool PullValidateCallback(FLSlice collectionName, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
+        private static bool PullValidateCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
             if (replicator == null) {
@@ -490,7 +489,7 @@ namespace Couchbase.Lite.Sync
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
         #endif
-        private static bool PushFilterCallback(FLSlice collectionName, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
+        private static bool PushFilterCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
             var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
             if (replicator == null) {
