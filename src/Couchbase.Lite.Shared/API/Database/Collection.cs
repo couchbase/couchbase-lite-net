@@ -16,29 +16,71 @@
 //  limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Doc;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
+using LiteCore;
+using LiteCore.Interop;
+using LiteCore.Util;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
-    public sealed class Collection : IIndexable, IChangeObservable<CollectionChangedEventArgs>,
+    public sealed unsafe class Collection : IIndexable, IChangeObservable<CollectionChangedEventArgs>,
         IDocumentChangeObservable, IDisposable
     {
         #region Constants
+
+        private const string Tag = nameof(Collection);
 
         public static readonly string DefaultScopeName = Database._defaultScopeName;
         public static readonly string DefaultCollectionName = Database._defaultCollectionName;
 
         #endregion
 
+        #region Variables
+
+        private C4Collection* _c4coll;
+
+        [NotNull]
+        internal readonly DisposalWatchdog _disposalWatchdog;
+
+        #endregion
+
         #region Properties
 
-        [NotNull] //TODO: expose Database.ThreadSafety and assign here
+        internal C4Database* c4Db
+        {
+            get {
+                Debug.Assert(Database != null && Database.c4db != null);
+                return Database.c4db;
+            }
+        }
+
+        internal C4Collection* c4coll
+        {
+            get {
+                C4Collection* retVal = null;
+                ThreadSafety.DoLocked(() => retVal = _c4coll);
+                return retVal;
+            }
+        }
+
+        /// <summary>
+        /// Gets the database that this document belongs to, if any
+        /// </summary>
+        [NotNull]
+        internal Database Database { get; set; }
+
+        [NotNull]
         internal ThreadSafety ThreadSafety { get; }
 
         /// <summary>
@@ -51,17 +93,32 @@ namespace Couchbase.Lite
         /// Cannot start with _ or %.
         /// Case sensitive.
         /// </remarks>
-        public string Name => throw new NotImplementedException();
+        public string Name { get; private set; }
 
         /// <summary>
         /// Gets the Scope of the Collection belongs to
         /// </summary>
-        public Scope Scope => throw new NotImplementedException();
+        public Scope Scope { get; private set; }
 
         /// <summary>
         /// Gets the total documents in the Collection
         /// </summary>
-        public ulong Count => throw new NotImplementedException();
+        public ulong Count => ThreadSafety.DoLocked(() => Native.c4coll_getDocumentCount(c4coll));
+
+        #endregion
+
+        #region Constructors
+
+        internal Collection([NotNull] Database database, string name, string scope)
+        {
+            Database = database;
+            ThreadSafety = database.ThreadSafety;
+
+            Name = name;
+            Scope = new Scope(Database, scope);
+
+            _disposalWatchdog = new DisposalWatchdog(GetType().Name);
+        }
 
         #endregion
 
@@ -269,11 +326,111 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region IDispose
+        #region Private Methods
 
+        internal void GetCollection()
+        {
+            using (var collName_ = new C4String(Name))
+            using (var scopeName_ = new C4String(Scope?.Name)) {
+                var collectionSpec = new C4CollectionSpec() {
+                    name = collName_.AsFLSlice(),
+                    scope = scopeName_.AsFLSlice()
+                };
+
+                ThreadSafety.DoLocked(() => {
+                    _c4coll = Native.c4db_getCollection(c4Db, collectionSpec);
+                 });
+            }
+        }
+
+        internal void GetDefaultCollection()
+        {
+            ThreadSafety.DoLocked(() => {
+                _c4coll = Native.c4db_getDefaultCollection(c4Db);
+            });
+        }
+
+        internal bool CreateCollection()
+        {
+            if (Name == Database._defaultCollectionName) {
+                GetDefaultCollection();
+                return false;
+            }
+
+            using (var collName_ = new C4String(Name))
+            using (var scopeName_ = new C4String(Scope?.Name)) {
+                var collectionSpec = new C4CollectionSpec() {
+                    name = collName_.AsFLSlice(),
+                    scope = scopeName_.AsFLSlice()
+                };
+
+                if(HasCollection()) {
+                    GetCollection();
+                    return false;
+                }
+
+                _c4coll = (C4Collection*)LiteCoreBridge.Check(err =>
+                {
+                    return Native.c4db_createCollection(c4Db, collectionSpec, err);
+                });
+
+                return _c4coll != null;
+            }
+        }
+
+        internal bool DeleteCollection()
+        {
+            bool deleteSuccessful;
+            using (var collName_ = new C4String(Name))
+            using (var scopeName_ = new C4String(Scope?.Name)) {
+                var collectionSpec = new C4CollectionSpec() {
+                    name = collName_.AsFLSlice(),
+                    scope = scopeName_.AsFLSlice()
+                };
+
+                deleteSuccessful = (bool)LiteCoreBridge.Check(err =>
+                {
+                    return Native.c4db_deleteCollection(c4Db, collectionSpec, err);
+                });
+            }
+
+            return deleteSuccessful;
+        }
+
+        internal bool HasCollection()
+        {
+            bool hasCollection;
+            using (var collName_ = new C4String(Name))
+            using (var scopeName_ = new C4String(Scope?.Name)) {
+                var collectionSpec = new C4CollectionSpec() {
+                    name = collName_.AsFLSlice(),
+                    scope = scopeName_.AsFLSlice()
+                };
+
+                hasCollection = ThreadSafety.DoLocked(() =>
+                {
+                    return Native.c4db_hasCollection(c4Db, collectionSpec);
+                });
+            }
+
+            return hasCollection;
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
         public void Dispose()
         {
-            throw new NotImplementedException();
+            ThreadSafety.DoLocked(() =>
+            {
+                _disposalWatchdog.Dispose();
+                Native.c4coll_release(_c4coll);
+                _c4coll = null;
+            });
         }
 
         #endregion

@@ -156,11 +156,22 @@ namespace Couchbase.Lite
         private IJsonSerializer _jsonSerializer;
 #endif
 
-        private C4CollectionObserver* _obs;
-        private GCHandle _obsContext;
         private C4Database* _c4db;
+        private C4CollectionObserver* _obs;
+
+        private GCHandle _obsContext;
         private bool _isClosing;
         private ManualResetEventSlim _closeCondition = new ManualResetEventSlim(true);
+
+        //Pre 3.1 Database's Collection
+        private Collection _defaultCollection;
+
+        //3.1+ Database
+        private Collection _selectedCollection;
+        private IList<Collection> _selectedCollections = null;
+        private Scope _selectedScope;
+        private ConcurrentDictionary<string, IList<Collection>> _collections = new ConcurrentDictionary<string, IList<Collection>>();
+        private List<Scope> _scopes = new List<Scope>();
 
         #endregion
 
@@ -213,8 +224,12 @@ namespace Couchbase.Lite
             }
         }
 
-        internal ConcurrentDictionary<IStoppable, int> ActiveStoppables { get; } = new ConcurrentDictionary<IStoppable, int>();
+        /// <summary>
+        /// Pre 3.1 Database's Scope of default collection
+        /// </summary>
+        public Scope Scope { get; private set; }
 
+        internal ConcurrentDictionary<IStoppable, int> ActiveStoppables { get; } = new ConcurrentDictionary<IStoppable, int>();
 
         internal FLSliceResult PublicUUID
         {
@@ -384,84 +399,192 @@ namespace Couchbase.Lite
         /// <summary>
         /// Get the default scope. 
         /// </summary>
-        /// <returns></returns>
+        /// <returns>default scope</returns>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         public Scope GetDefaultScope()
         {
-            throw new NotImplementedException();
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                if (Scope == null) {
+                    Scope = new Scope(this, _defaultScopeName);
+                }
+            });
+
+            return Scope;
         }
 
         /// <summary>
         /// Get the default collection.
         /// </summary>
-        /// <returns></returns>
+        /// <remarks>
+        /// None recoverable default collection can be deleted from the database. Once default collection is deleted from db, 
+        /// it will be gone for good.
+        /// </remarks>
+        /// <returns>default collection</returns>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         public Collection GetDefaultCollection()
         {
-            throw new NotImplementedException();
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                if (_defaultCollection == null) {
+                    var defaultCollection = new Collection(this, _defaultCollectionName, _defaultScopeName);
+                    defaultCollection.GetDefaultCollection();
+                    _defaultCollection = defaultCollection;
+                }
+            });
+
+            return _defaultCollection;
         }
 
         /// <summary>
         /// Get scope names that have at least one collection.
+        /// </summary>
+        /// <remarks>
         /// Note: the default scope is exceptional as it will always be listed even though there are no collections    
         /// under it.
-        /// </summary>
-        /// <returns></returns>
+        /// </remarks>
+        /// <returns>
+        /// scope names of all existing scopes, in the order in which they were created.
+        /// </returns>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         public IReadOnlyList<Scope> GetScopes()
         {
-            throw new NotImplementedException();
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                _scopes.Clear();
+                var arrScopes = Native.c4db_scopeNames(_c4db);
+                for (uint i = 0; i < Native.FLArray_Count((FLArray*)arrScopes); i++) {
+                    var scopeStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrScopes, i));
+                    var s = new Scope(this, scopeStr);
+                    _scopes.Add(s);
+                }
+
+                Native.FLValue_Release((FLValue*)arrScopes);
+            });
+            return _scopes as IReadOnlyList<Scope>;
         }
 
         /// <summary>
         /// Get a scope object by name. As the scope cannot exist by itself without having a collection, the nil 
         /// value will be returned if there are no collections under the given scope’s name.
-        /// Note: The default scope is exceptional, and it will always be returned.
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
+        /// <remarks>
+        /// Note: The default scope is exceptional, and it will always be returned.
+        /// </remarks>
+        /// <param name="name">The name of the scope</param>
+        /// <returns>scope object with the given scope name</returns>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         public Scope GetScope(string name)
         {
-            throw new NotImplementedException();
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+            });
+            
+            return _scopes.SingleOrDefault(x => x.Name == name);
         }
 
         /// <summary>
         /// Get all collections of given Scope name.
         /// </summary>
-        /// <returns></returns>
+        /// <param name="scope">The scope of the collections belong to</param>
+        /// <returns>All collections with the given scope name</returns>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         public IReadOnlyList<Collection> GetCollections(string scope = _defaultScopeName)
         {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Create a named collection in the specified scope.
-        /// If the collection already exists, the existing collection will be returned.
-        /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        public Collection CreateCollection(string name, string scope = _defaultScopeName)
-        {
-            throw new NotImplementedException();
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen(); 
+                var hasColl = _collections.TryGetValue(scope, out _selectedCollections);
+                if (!hasColl) {
+                    _selectedScope = new Scope(this, scope);
+                    _selectedScope.GetCollections();
+                    _selectedCollections = _selectedScope.Collections as IList<Collection>;
+                    _collections.TryAdd(scope, _selectedCollections);
+                }
+            });
+            
+            return _selectedCollections as IReadOnlyList<Collection>;
         }
 
         /// <summary>
         /// Get a collection in the specified scope by name. 
         /// If the collection doesn't exist, a nil value will be returned.
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
+        /// <param name="name">The name of the collection</param>
+        /// <param name="scope">The scope of the collection</param>
+        /// <returns>The collection with the given name and scope</returns>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         public Collection GetCollection(string name, string scope = _defaultScopeName)
         {
-            throw new NotImplementedException();
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                _selectedCollection = _collections.SingleOrDefault(x => x.Key == scope).Value.SingleOrDefault(y => y.Name == name);
+                if (_selectedCollection == null) {
+                    _selectedCollection = new Collection(this, name, scope);
+                    (_selectedCollection as Collection).GetCollection();
+                }
+            });
+
+            return _selectedCollection;
+        }
+
+        /// <summary>
+        /// Create a named collection in the specified scope.
+        /// If the collection already exists, the existing collection will be returned.
+        /// </summary>
+        /// <param name="name">The name of the new collection to be created</param>
+        /// <param name="scope">The scope of the new collection to be created</param>
+        /// <returns>New collection with the given name and scope</returns>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        public Collection CreateCollection(string name, string scope = _defaultScopeName)
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                var listColl = _collections.SingleOrDefault(x => x.Key == scope).Value;
+                _selectedCollection = listColl.SingleOrDefault(y => y.Name == name);
+                if (_selectedCollection == null) {
+                    _selectedCollection = new Collection(this, name, scope);
+                    var created = (_selectedCollection as Collection).CreateCollection();
+                    if (created) {
+                        listColl.Add(_selectedCollection);
+                        _collections.TryAdd(scope, listColl);
+                    }
+                }
+            });
+
+            return _selectedCollection;
         }
 
         /// <summary>
         /// Delete a collection by name  in the specified scope. If the collection doesn't exist, the operation
-        /// will be no-ops. Note: the default collection can be deleted but cannot be recreated.
+        /// will be no-ops. 
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="scope"></param>
+        /// <remarks>
+        /// Note: the default collection can be deleted but cannot be recreated.
+        /// </remarks>
+        /// <param name="name">The name of the collection to be deleted</param>
+        /// <param name="scope">The name of the collection to be deleted</param>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         public void DeleteCollection(string name, string scope = _defaultScopeName)
         {
-            throw new NotImplementedException();
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen(); 
+                var listColl = _collections.SingleOrDefault(x => x.Key == scope).Value;
+                _selectedCollection = listColl.SingleOrDefault(y => y.Name == name);
+                if (_selectedCollection != null) {
+                    var deleteSuccessful = (_selectedCollection as Collection).DeleteCollection();
+                    if (deleteSuccessful) {
+                        listColl.Remove(_selectedCollection);
+                    }
+                }
+            });
         }
 
         #endregion
@@ -1397,6 +1520,7 @@ namespace Couchbase.Lite
         private void CheckOpen()
         {
             if (IsClosed) {
+                ClearScopesCollections();
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
             }
         }
@@ -1749,10 +1873,6 @@ namespace Couchbase.Lite
             return body;
         }
 
-
-
-
-
         private void VerifyDB([@NotNull]Document document)
         {
             if (document.Database == null) {
@@ -1810,6 +1930,16 @@ namespace Couchbase.Lite
             if (IsClosed || _isClosing) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
             }
+        }
+
+        private void ClearScopesCollections()
+        {
+            (_defaultCollection as Collection)?.Dispose();
+            Scope?.Dispose();
+            (_selectedCollection as Collection)?.Dispose();
+            _selectedScope?.Dispose();
+            _collections.Clear();
+            _scopes.Clear();
         }
 
         #endregion
