@@ -1,4 +1,22 @@
-﻿using Couchbase.Lite.Query;
+﻿// 
+//  Scope.cs
+// 
+//  Copyright (c) 2022 Couchbase, Inc All rights reserved.
+// 
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+// 
+//  http://www.apache.org/licenses/LICENSE-2.0
+// 
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+// 
+
+using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 using JetBrains.Annotations;
 using LiteCore.Interop;
@@ -79,32 +97,62 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        internal void Add(Collection collection)
+        internal bool Add(ICollection collection)
         {
-            (Collections as List<Collection>).Add(collection);
+            var res = (collection as Collection).CreateCollection();
+            if(res)
+                (Collections as IList<ICollection>).Add(collection);
+
+            return res;
         }
 
-        internal void Delete(Collection collection)
+        internal bool Delete(ICollection collection)
         {
-            (Collections as List<Collection>).Remove(collection);
+            var res = (collection as Collection).DeleteCollection();
+            if (res)
+                (Collections as IList<ICollection>).Remove(collection);
+
+            return res;
         }
 
         internal void GetCollections()
         {
-            (Collections as List<Collection>).Clear();
+            (Collections as List<ICollection>).Clear();
             ThreadSafety.DoLocked(() =>
             {
                 var arrColl = Native.c4db_collectionNames(c4Db, Name);
                 for (uint i = 0; i < Native.FLArray_Count((FLArray*)arrColl); i++) {
                     var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
                     var col = new Collection(Database, collStr, Name);
-                    (Collections as List<Collection>).Add(col);
+                    col.CreateCollection();
+                    (Collections as IList<ICollection>).Add(col);
                 }
 
                 Native.FLValue_Release((FLValue*)arrColl);
             });
         }
 
+        #endregion
+
+        #region object
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            return Name?.GetHashCode() ?? 0;
+        }
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+        {
+            if (!(obj is Scope other)) {
+                return false;
+            }
+
+            return String.Equals(Name, other.Name, StringComparison.Ordinal);
+        }
+
+        /// <inheritdoc />
+        public override string ToString() => $"SCOPE[{Name}]";
         #endregion
 
         #region IDisposable

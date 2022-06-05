@@ -39,13 +39,50 @@ namespace Test
 #endif
 
         [Fact]
-        public void TestDefaultCollectionScope()
+        public void TestDefaultCollectionExists()
         {
-            var c = Db.GetDefaultCollection() as Collection;
-            c.Name.Should().Be(Database._defaultCollectionName);
-            var s = Db.GetDefaultScope();
-            s.Name.Should().Be(Database._defaultScopeName);
-            c.Count.Should().Be(0);
+            var defaultColl = Db.GetDefaultCollection();
+            defaultColl.Should().NotBeNull("default collection is not null");
+            defaultColl.Name.Should().Be(Database._defaultCollectionName, $"default collection name is {Database._defaultCollectionName}");
+            var collections = Db.GetCollections() as List<ICollection>;
+            collections.Contains(defaultColl).Should().BeTrue("the default collection is included in the collection list when calling Database.GetCollections()");
+            var scope = defaultColl.Scope;
+            scope.Should().NotBeNull("the scope of the default collection is not null");
+            scope.Name.Should().Be(Database._defaultScopeName, $"default collection name is {Database._defaultScopeName}");
+            Db.GetCollection(Database._defaultCollectionName).Should().Be(defaultColl);
+            defaultColl.Count.Should().Be(0, "default collection’s count is 0");
+        }
+
+        [Fact]
+        public void TestDefaultScopeExists()
+        {
+            var defaultScope = Db.GetDefaultScope();
+            defaultScope.Should().NotBeNull("default scope is not null");
+            defaultScope.Name.Should().Be(Database._defaultScopeName, $"default scope name is {Database._defaultScopeName}");
+            var scopes = Db.GetScopes() as List<Scope>;
+            scopes.Contains(defaultScope).Should().BeTrue("the default scope is included in the scope list when calling Database.GetScopes()");
+        }
+
+        [Fact]
+        public void TestDeleteDefaultCollection()
+        {
+            Db.DeleteCollection(Database._defaultCollectionName);
+            var defaultColl = Db.GetDefaultCollection();
+            defaultColl.Should().BeNull("default collection is deleted");
+            Db.CreateCollection(Database._defaultCollectionName);
+            defaultColl = Db.GetDefaultCollection();
+            defaultColl.Should().BeNull("default collection cannot be recreated, so the value is still null");
+        }
+
+        [Fact]
+        public void TestGetDefaultScopeAfterDeleteDefaultCollection()
+        {
+            Db.DeleteCollection(Database._defaultCollectionName);
+            var defaultScope = Db.GetDefaultScope();
+            defaultScope.Should().NotBeNull("scope still exists after the default collection is deleted");
+            var scopes = Db.GetScopes() as List<Scope>;
+            scopes.Contains(defaultScope).Should().BeTrue("the default scope is included in the scope list when calling Database.GetScopes()");
+            defaultScope.Name.Should().Be(Database._defaultScopeName, $"default scope name is {Database._defaultScopeName}");
         }
 
 

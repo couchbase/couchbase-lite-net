@@ -418,6 +418,28 @@ namespace Couchbase.Lite
 
         #endregion
 
+        #region object
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            return Name?.GetHashCode() ?? 0;
+        }
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+        {
+            if (!(obj is Collection other)) {
+                return false;
+            }
+
+            return String.Equals(Name, other.Name, StringComparison.Ordinal)
+                && String.Equals(Scope.Name, other.Scope.Name, StringComparison.Ordinal);
+        }
+
+        /// <inheritdoc />
+        public override string ToString() => $"COLLECTION[{Name}] of SCOPE[{Scope.Name}]";
+        #endregion
+
         #region IDisposable
 
         /// <summary>

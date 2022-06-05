@@ -164,14 +164,12 @@ namespace Couchbase.Lite
         private ManualResetEventSlim _closeCondition = new ManualResetEventSlim(true);
 
         //Pre 3.1 Database's Collection
-        private Collection _defaultCollection;
+        private Collection _defaultCollection = null;
 
         //3.1+ Database
-        private Collection _selectedCollection;
-        private IList<Collection> _selectedCollections = null;
-        private Scope _selectedScope;
-        private ConcurrentDictionary<string, IList<Collection>> _collections = new ConcurrentDictionary<string, IList<Collection>>();
-        private List<Scope> _scopes = new List<Scope>();
+        private Collection _selectedCollection = null;
+        private Scope _selectedScope = null;
+        private ConcurrentDictionary<string, Scope> _scopes = new ConcurrentDictionary<string, Scope>();
 
         #endregion
 
@@ -228,6 +226,13 @@ namespace Couchbase.Lite
         /// Pre 3.1 Database's Scope of default collection
         /// </summary>
         public Scope Scope { get; private set; }
+
+        internal IReadOnlyList<Scope> Scopes
+        {
+            get {
+                return _scopes.Values.ToList();
+            }
+        }
 
         internal ConcurrentDictionary<IStoppable, int> ActiveStoppables { get; } = new ConcurrentDictionary<IStoppable, int>();
 
@@ -401,13 +406,15 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>default scope</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
+        /// if <see cref="Database"/> is closed</exception>
         public Scope GetDefaultScope()
         {
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 if (Scope == null) {
-                    Scope = new Scope(this, _defaultScopeName);
+                    Scope = _scopes.Values.SingleOrDefault(x => x.Name == _defaultScopeName);
                 }
             });
 
@@ -423,15 +430,16 @@ namespace Couchbase.Lite
         /// </remarks>
         /// <returns>default collection</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
+        /// if <see cref="Database"/> is closed</exception>
         public Collection GetDefaultCollection()
         {
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 if (_defaultCollection == null) {
-                    var defaultCollection = new Collection(this, _defaultCollectionName, _defaultScopeName);
-                    defaultCollection.GetDefaultCollection();
-                    _defaultCollection = defaultCollection;
+                    var scope = GetDefaultScope();
+                    _defaultCollection = scope?.GetCollection(_defaultCollectionName);
                 }
             });
 
@@ -449,22 +457,40 @@ namespace Couchbase.Lite
         /// scope names of all existing scopes, in the order in which they were created.
         /// </returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
+        /// if <see cref="Database"/> is closed</exception>
         public IReadOnlyList<Scope> GetScopes()
         {
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                _scopes.Clear();
                 var arrScopes = Native.c4db_scopeNames(_c4db);
                 for (uint i = 0; i < Native.FLArray_Count((FLArray*)arrScopes); i++) {
                     var scopeStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrScopes, i));
-                    var s = new Scope(this, scopeStr);
-                    _scopes.Add(s);
+                    Scope s = null;
+                    if (!_scopes.ContainsKey(scopeStr)) {
+                        s = new Scope(this, scopeStr);
+                    } else {
+                        s = _scopes[scopeStr];
+                    }
+
+                    s.GetCollections();
+                    if (scopeStr == _defaultScopeName || s.Collections.Count > 0)
+                        _scopes.AddOrUpdate(scopeStr,
+                            (k) =>
+                            {
+                                return s;
+                            },
+                            (k, oldVal) =>
+                            {
+                                return oldVal;
+                            });
                 }
 
                 Native.FLValue_Release((FLValue*)arrScopes);
             });
-            return _scopes as IReadOnlyList<Scope>;
+
+            return Scopes;
         }
 
         /// <summary>
@@ -477,14 +503,11 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the scope</param>
         /// <returns>scope object with the given scope name</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
+        /// if <see cref="Database"/> is closed</exception>
         public Scope GetScope(string name)
         {
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-            });
-            
-            return _scopes.SingleOrDefault(x => x.Name == name);
+            return _scopes.Values.SingleOrDefault(x => x.Name == name);
         }
 
         /// <summary>
@@ -493,40 +516,43 @@ namespace Couchbase.Lite
         /// <param name="scope">The scope of the collections belong to</param>
         /// <returns>All collections with the given scope name</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
+        /// if <see cref="Database"/> is closed</exception>
         public IReadOnlyList<Collection> GetCollections(string scope = _defaultScopeName)
         {
             ThreadSafety.DoLocked(() =>
             {
-                CheckOpen(); 
-                var hasColl = _collections.TryGetValue(scope, out _selectedCollections);
-                if (!hasColl) {
-                    _selectedScope = new Scope(this, scope);
+                CheckOpen();
+                _selectedScope = null;
+                var hasScope = _scopes.TryGetValue(scope, out _selectedScope);
+                if (hasScope) {
                     _selectedScope.GetCollections();
-                    _selectedCollections = _selectedScope.Collections as IList<Collection>;
-                    _collections.TryAdd(scope, _selectedCollections);
                 }
             });
             
-            return _selectedCollections as IReadOnlyList<Collection>;
+            return _selectedScope?.Collections;
         }
 
         /// <summary>
         /// Get a collection in the specified scope by name. 
-        /// If the collection doesn't exist, a nil value will be returned.
+        /// If the collection doesn't exist, null will be returned.
         /// </summary>
         /// <param name="name">The name of the collection</param>
         /// <param name="scope">The scope of the collection</param>
         /// <returns>The collection with the given name and scope</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
+        /// if <see cref="Database"/> is closed</exception>
         public Collection GetCollection(string name, string scope = _defaultScopeName)
         {
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                _selectedCollection = _collections.SingleOrDefault(x => x.Key == scope).Value.SingleOrDefault(y => y.Name == name);
-                if (_selectedCollection == null) {
-                    _selectedCollection = new Collection(this, name, scope);
-                    (_selectedCollection as Collection).GetCollection();
+                _selectedScope = null;
+                _selectedCollection = null;
+                var hasScope = _scopes.TryGetValue(scope, out _selectedScope);
+                if (hasScope) {
+                    _selectedCollection = _selectedScope.GetCollection(name);
                 }
             });
 
@@ -541,19 +567,28 @@ namespace Couchbase.Lite
         /// <param name="scope">The scope of the new collection to be created</param>
         /// <returns>New collection with the given name and scope</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
+        /// if <see cref="Database"/> is closed</exception>
         public Collection CreateCollection(string name, string scope = _defaultScopeName)
         {
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                var listColl = _collections.SingleOrDefault(x => x.Key == scope).Value;
-                _selectedCollection = listColl.SingleOrDefault(y => y.Name == name);
+                _selectedScope = null;
+                _selectedCollection = null;
+                var hasScope = _scopes.TryGetValue(scope, out _selectedScope);
+                if (!hasScope) {
+                    _selectedScope = new Scope(this, scope);
+                } else {
+                    _selectedCollection = _selectedScope.GetCollection(name);
+                }
+
                 if (_selectedCollection == null) {
-                    _selectedCollection = new Collection(this, name, scope);
-                    var created = (_selectedCollection as Collection).CreateCollection();
+                    var col = new Collection(this, name, scope);
+                    var created = _selectedScope.Add(col);
                     if (created) {
-                        listColl.Add(_selectedCollection);
-                        _collections.TryAdd(scope, listColl);
+                        _scopes.TryAdd(scope, _selectedScope);
+                        _selectedCollection = col;
                     }
                 }
             });
@@ -569,19 +604,25 @@ namespace Couchbase.Lite
         /// Note: the default collection can be deleted but cannot be recreated.
         /// </remarks>
         /// <param name="name">The name of the collection to be deleted</param>
-        /// <param name="scope">The name of the collection to be deleted</param>
+        /// <param name="scope">The scope of the collection to be deleted</param>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
+        /// if <see cref="Database"/> is closed</exception>
         public void DeleteCollection(string name, string scope = _defaultScopeName)
         {
             ThreadSafety.DoLocked(() =>
             {
-                CheckOpen(); 
-                var listColl = _collections.SingleOrDefault(x => x.Key == scope).Value;
-                _selectedCollection = listColl.SingleOrDefault(y => y.Name == name);
-                if (_selectedCollection != null) {
-                    var deleteSuccessful = (_selectedCollection as Collection).DeleteCollection();
-                    if (deleteSuccessful) {
-                        listColl.Remove(_selectedCollection);
+                CheckOpen();
+                _selectedScope = null;
+                var hasScope = _scopes.TryGetValue(scope, out _selectedScope);
+                if (hasScope) {
+                    _selectedCollection = _selectedScope.GetCollection(name);
+                    if (_selectedCollection != null) {
+                        if (_selectedScope.Delete(_selectedCollection)
+                        && _selectedScope.Collections.Count <= 0
+                        && _selectedScope.Name != _defaultScopeName) {
+                            _scopes.Remove(scope, out var dummy);
+                        }
                     }
                 }
             });
@@ -1604,6 +1645,9 @@ namespace Couchbase.Lite
                     return Native.c4db_openNamed(Name, &localConfig2, err);
                 });
             });
+
+            // Load Scopes Collections
+            GetScopes();
         }
 
         private void PostDatabaseChanged()
@@ -1938,8 +1982,8 @@ namespace Couchbase.Lite
             Scope?.Dispose();
             (_selectedCollection as Collection)?.Dispose();
             _selectedScope?.Dispose();
-            _collections.Clear();
             _scopes.Clear();
+            (Scopes as List<Scope>).Clear();
         }
 
         #endregion
