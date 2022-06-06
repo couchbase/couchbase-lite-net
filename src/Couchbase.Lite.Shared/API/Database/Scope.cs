@@ -93,6 +93,37 @@ namespace Couchbase.Lite
             return colls.SingleOrDefault(x => x.Name == name);
         }
 
+        /// <summary>
+        /// Get all collections in this scope object.
+        /// </summary>
+        /// <returns>All collections in this scope object</returns>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        public IReadOnlyList<ICollection> GetCollections()
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                if (c4Db == null) {
+                    (Collections as IList<ICollection>).Clear();
+                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
+                }
+                    
+
+                var arrColl = Native.c4db_collectionNames(c4Db, Name);
+                for (uint i = 0; i < Native.FLArray_Count((FLArray*)arrColl); i++) {
+                    var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
+                    if (GetCollection(collStr) == null) {
+                        var col = new Collection(Database, collStr, Name);
+                        col.CreateCollection();
+                        (Collections as IList<ICollection>).Add(col);
+                    }
+                }
+
+                Native.FLValue_Release((FLValue*)arrColl);
+            });
+
+            return Collections;
+        }
+
         #endregion
 
         #region Internal Methods
@@ -113,23 +144,6 @@ namespace Couchbase.Lite
                 (Collections as IList<ICollection>).Remove(collection);
 
             return res;
-        }
-
-        internal void GetCollections()
-        {
-            (Collections as List<ICollection>).Clear();
-            ThreadSafety.DoLocked(() =>
-            {
-                var arrColl = Native.c4db_collectionNames(c4Db, Name);
-                for (uint i = 0; i < Native.FLArray_Count((FLArray*)arrColl); i++) {
-                    var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
-                    var col = new Collection(Database, collStr, Name);
-                    col.CreateCollection();
-                    (Collections as IList<ICollection>).Add(col);
-                }
-
-                Native.FLValue_Release((FLValue*)arrColl);
-            });
         }
 
         #endregion

@@ -563,6 +563,11 @@ namespace Couchbase.Lite
         /// Create a named collection in the specified scope.
         /// If the collection already exists, the existing collection will be returned.
         /// </summary>
+        /// <remarks>
+        /// None default Collection and Scope Names are allowed to contain the following characters 
+        /// A - Z, a - z, 0 - 9, and the symbols _, -, and % and to start with A-Z, a-z, 0-9, and -
+        /// None default Collection and Scope Names start with _ and % are prohibited
+        /// </remarks>
         /// <param name="name">The name of the new collection to be created</param>
         /// <param name="scope">The scope of the new collection to be created</param>
         /// <returns>New collection with the given name and scope</returns>

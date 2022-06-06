@@ -75,7 +75,7 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Gets the database that this document belongs to, if any
+        /// Gets the database that this collection belongs to, if any
         /// </summary>
         [NotNull]
         internal Database Database { get; set; }
