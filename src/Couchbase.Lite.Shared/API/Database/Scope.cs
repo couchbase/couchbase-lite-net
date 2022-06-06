@@ -106,7 +106,6 @@ namespace Couchbase.Lite
                     (Collections as IList<ICollection>).Clear();
                     throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
                 }
-                    
 
                 var arrColl = Native.c4db_collectionNames(c4Db, Name);
                 for (uint i = 0; i < Native.FLArray_Count((FLArray*)arrColl); i++) {

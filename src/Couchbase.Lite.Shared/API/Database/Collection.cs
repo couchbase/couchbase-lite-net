@@ -115,7 +115,7 @@ namespace Couchbase.Lite
             ThreadSafety = database.ThreadSafety;
 
             Name = name;
-            Scope = new Scope(Database, scope);
+            Scope = GetScope(scope);
 
             _disposalWatchdog = new DisposalWatchdog(GetType().Name);
         }
@@ -414,6 +414,19 @@ namespace Couchbase.Lite
             }
 
             return hasCollection;
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        internal Scope GetScope(string scope)
+        {
+            var s = Database.GetScope(scope);
+            if (s == null)
+                s = new Scope(Database, scope);
+
+            return s;
         }
 
         #endregion
