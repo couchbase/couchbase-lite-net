@@ -102,7 +102,7 @@ namespace Couchbase.Lite.Sync
         #region Properties
 
         [CanBeNull]
-        public IDictionary<ICollection, CollectionConfiguration> CollectionConfigs { get; set; }
+        public IDictionary<Collection, CollectionConfiguration> CollectionConfigs { get; set; }
 
         /// <summary>
         /// Gets or sets the class which will authenticate the replication
@@ -388,25 +388,25 @@ namespace Couchbase.Lite.Sync
 
         #region Public Methods - Scopes and Collections
 
-        public void AddCollections(IList<ICollection> collections, [CanBeNull]CollectionConfiguration config = null)
+        public void AddCollections(IList<Collection> collections, [CanBeNull]CollectionConfiguration config = null)
         {
             foreach(var col in collections) {
                 CollectionConfigs.Add(col, config);
             }
         }
 
-        public void AddCollection(ICollection collection, [CanBeNull] CollectionConfiguration config = null)
+        public void AddCollection(Collection collection, [CanBeNull] CollectionConfiguration config = null)
         {
             CollectionConfigs.Add(collection, config);
         }
 
-        public void RemoveCollection(ICollection collection)
+        public void RemoveCollection(Collection collection)
         {
             CollectionConfigs.Remove(collection);
         }
 
         [CanBeNull]
-        public CollectionConfiguration GetCollectionConfig(ICollection collection)
+        public CollectionConfiguration GetCollectionConfig(Collection collection)
         {
             CollectionConfiguration config = null;
             if (!CollectionConfigs.TryGetValue(collection, out config)) {

@@ -13,13 +13,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Conflict\DefaultConflictResolver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Conflict\IConflictResolver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Collection.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Database\CollectionChangedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Database.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DatabaseChangedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DatabaseConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\DocumentChangedEventArgs.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)API\Database\Interfaces\ICollection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Interfaces\IChangeObservable.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)API\Database\Interfaces\IScope.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\ListenerToken.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Database\Scope.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\DI\CouchbaseDependencyAttribute.cs" />
