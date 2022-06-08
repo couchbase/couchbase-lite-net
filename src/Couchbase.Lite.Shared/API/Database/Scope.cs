@@ -30,6 +30,12 @@ namespace Couchbase.Lite
 {
     public sealed unsafe class Scope : IDisposable
     {
+        #region Variales
+
+        #endregion
+
+        List<Collection> _collections = new List<Collection>();
+
         #region Properties
 
         /// <summary>
@@ -47,7 +53,12 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets all collections in the Scope
         /// </summary>
-        public IReadOnlyList<Collection> Collections { get; private set; } = new List<Collection>();
+        public IReadOnlyList<Collection> Collections
+        {
+            get {
+                return _collections;
+            }
+        }
 
         internal C4Database* c4Db
         {
@@ -98,12 +109,12 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>All collections in this scope object</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        public IReadOnlyList<ICollection> GetCollections()
+        public IReadOnlyList<Collection> GetCollections()
         {
             ThreadSafety.DoLocked(() =>
             {
                 if (c4Db == null) {
-                    (Collections as IList<ICollection>).Clear();
+                    (Collections as IList<Collection>).Clear();
                     throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
                 }
 
@@ -113,7 +124,7 @@ namespace Couchbase.Lite
                     if (GetCollection(collStr) == null) {
                         var col = new Collection(Database, collStr, Name);
                         col.CreateCollection();
-                        (Collections as IList<ICollection>).Add(col);
+                        (Collections as IList<Collection>).Add(col);
                     }
                 }
 
@@ -127,20 +138,20 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        internal bool Add(ICollection collection)
+        internal bool Add(Collection collection)
         {
-            var res = (collection as Collection).CreateCollection();
+            var res = collection.CreateCollection();
             if(res)
-                (Collections as IList<ICollection>).Add(collection);
+                _collections.Add(collection);
 
             return res;
         }
 
-        internal bool Delete(ICollection collection)
+        internal bool Delete(Collection collection)
         {
-            var res = (collection as Collection).DeleteCollection();
+            var res = collection.DeleteCollection();
             if (res)
-                (Collections as IList<ICollection>).Remove(collection);
+                _collections.Remove(collection);
 
             return res;
         }
@@ -175,7 +186,7 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 (Collections as List<Collection>).Clear();
-                Collections = null;
+                _collections = null;
             });
         }
 

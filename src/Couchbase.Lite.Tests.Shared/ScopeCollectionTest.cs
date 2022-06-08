@@ -44,7 +44,7 @@ namespace Test
             var defaultColl = Db.GetDefaultCollection();
             defaultColl.Should().NotBeNull("default collection is not null");
             defaultColl.Name.Should().Be(Database._defaultCollectionName, $"default collection name is {Database._defaultCollectionName}");
-            var collections = Db.GetCollections() as List<ICollection>;
+            var collections = Db.GetCollections() as List<Collection>;
             collections.Contains(defaultColl).Should().BeTrue("the default collection is included in the collection list when calling Database.GetCollections()");
             var scope = defaultColl.Scope;
             scope.Should().NotBeNull("the scope of the default collection is not null");

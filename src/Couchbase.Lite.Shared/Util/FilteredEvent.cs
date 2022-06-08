@@ -211,7 +211,7 @@ namespace Couchbase.Lite.Util
         #endregion
     }
 
-    internal sealed class FilteredEvent<TFilterType, TEventType> : Event<TEventType> where TEventType : EventArgs
+    internal sealed class FilteredEvent<TFilterType, TEventType> where TEventType : EventArgs
     {
         #region Variables
 

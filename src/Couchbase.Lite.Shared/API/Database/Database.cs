@@ -47,7 +47,6 @@ using ItemNotNull = JetBrains.Annotations.ItemNotNullAttribute;
 using CanBeNull = JetBrains.Annotations.CanBeNullAttribute;
 using System.Diagnostics.CodeAnalysis;
 using System.Collections.Concurrent;
-using JetBrains.Annotations;
 #if COUCHBASE_ENTERPRISE
 using Couchbase.Lite.P2P;
 #endif
@@ -165,6 +164,7 @@ namespace Couchbase.Lite
 
         //Pre 3.1 Database's Collection
         private Collection _defaultCollection = null;
+        private Scope _defaultScope = null;
 
         //3.1+ Database
         private Collection _selectedCollection = null;
@@ -221,11 +221,6 @@ namespace Couchbase.Lite
                 return ThreadSafety.DoLocked(() => _c4db != null ? Native.c4db_getPath(c4db) : null);
             }
         }
-
-        /// <summary>
-        /// Pre 3.1 Database's Scope of default collection
-        /// </summary>
-        public Scope Scope { get; private set; }
 
         internal IReadOnlyList<Scope> Scopes
         {
@@ -413,12 +408,12 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                if (Scope == null) {
-                    Scope = _scopes.Values.SingleOrDefault(x => x.Name == _defaultScopeName);
+                if (_defaultScope == null) {
+                    _defaultScope = _scopes.Values.SingleOrDefault(x => x.Name == _defaultScopeName);
                 }
             });
 
-            return Scope;
+            return _defaultScope;
         }
 
         /// <summary>
@@ -520,17 +515,17 @@ namespace Couchbase.Lite
         /// if <see cref="Database"/> is closed</exception>
         public IReadOnlyList<Collection> GetCollections(string scope = _defaultScopeName)
         {
+            Scope selectedScope = null;
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                _selectedScope = null;
-                var hasScope = _scopes.TryGetValue(scope, out _selectedScope);
+                var hasScope = _scopes.TryGetValue(scope, out selectedScope);
                 if (hasScope) {
-                    _selectedScope.GetCollections();
+                    selectedScope.GetCollections();
                 }
             });
             
-            return _selectedScope?.Collections;
+            return selectedScope?.Collections;
         }
 
         /// <summary>
@@ -545,18 +540,18 @@ namespace Couchbase.Lite
         /// if <see cref="Database"/> is closed</exception>
         public Collection GetCollection(string name, string scope = _defaultScopeName)
         {
+            Scope selectedScope = null;
+            Collection selectedCollection = null;
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                _selectedScope = null;
-                _selectedCollection = null;
-                var hasScope = _scopes.TryGetValue(scope, out _selectedScope);
+                var hasScope = _scopes.TryGetValue(scope, out selectedScope);
                 if (hasScope) {
-                    _selectedCollection = _selectedScope.GetCollection(name);
+                    selectedCollection = selectedScope.GetCollection(name);
                 }
             });
 
-            return _selectedCollection;
+            return selectedCollection;
         }
 
         /// <summary>
@@ -576,29 +571,29 @@ namespace Couchbase.Lite
         /// if <see cref="Database"/> is closed</exception>
         public Collection CreateCollection(string name, string scope = _defaultScopeName)
         {
+            Scope selectedScope = null;
+            Collection selectedCollection = null;
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                _selectedScope = null;
-                _selectedCollection = null;
-                var hasScope = _scopes.TryGetValue(scope, out _selectedScope);
+                var hasScope = _scopes.TryGetValue(scope, out selectedScope);
                 if (!hasScope) {
-                    _selectedScope = new Scope(this, scope);
+                    selectedScope = new Scope(this, scope);
                 } else {
-                    _selectedCollection = _selectedScope.GetCollection(name);
+                    selectedCollection = selectedScope.GetCollection(name);
                 }
 
-                if (_selectedCollection == null) {
+                if (selectedCollection == null) {
                     var col = new Collection(this, name, scope);
-                    var created = _selectedScope.Add(col);
+                    var created = selectedScope.Add(col);
                     if (created) {
-                        _scopes.TryAdd(scope, _selectedScope);
-                        _selectedCollection = col;
+                        _scopes.TryAdd(scope, selectedScope);
+                        selectedCollection = col;
                     }
                 }
             });
 
-            return _selectedCollection;
+            return selectedCollection;
         }
 
         /// <summary>
@@ -615,17 +610,18 @@ namespace Couchbase.Lite
         /// if <see cref="Database"/> is closed</exception>
         public void DeleteCollection(string name, string scope = _defaultScopeName)
         {
+            Scope selectedScope = null;
+            Collection selectedCollection = null;
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                _selectedScope = null;
-                var hasScope = _scopes.TryGetValue(scope, out _selectedScope);
+                var hasScope = _scopes.TryGetValue(scope, out selectedScope);
                 if (hasScope) {
-                    _selectedCollection = _selectedScope.GetCollection(name);
-                    if (_selectedCollection != null) {
-                        if (_selectedScope.Delete(_selectedCollection)
-                        && _selectedScope.Collections.Count <= 0
-                        && _selectedScope.Name != _defaultScopeName) {
+                    selectedCollection = selectedScope.GetCollection(name);
+                    if (selectedCollection != null) {
+                        if (selectedScope.Delete(selectedCollection)
+                        && selectedScope.Collections.Count <= 0
+                        && selectedScope.Name != _defaultScopeName) {
                             _scopes.Remove(scope, out var dummy);
                         }
                     }
@@ -1156,7 +1152,7 @@ namespace Couchbase.Lite
         /// </param>
         /// <exception cref="ArgumentException">Throw if the given blob dictionary is not valid.</exception>
         /// <returns>The contained value, or <c>null</c> if it's digest information doesn’t exist.</returns>
-        [@CanBeNull]
+        [CanBeNull]
         public Blob GetBlob(Dictionary<string, object> blobDict)
         {
             if (!blobDict.ContainsKey(Blob.DigestKey) || blobDict[Blob.DigestKey] == null)
@@ -1266,7 +1262,7 @@ namespace Couchbase.Lite
         /// is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [Obsolete("AddDocumentChangeListener is deprecated, please use GetDefaultCollection().AddDocumentChangeListener")]
-        public ListenerToken AddDocumentChangeListener([@NotNull] string id, [@CanBeNull] TaskScheduler scheduler,
+        public ListenerToken AddDocumentChangeListener([@NotNull] string id, [CanBeNull] TaskScheduler scheduler,
             [@NotNull] EventHandler<DocumentChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
@@ -1279,8 +1275,7 @@ namespace Couchbase.Lite
                 var cbHandler =
                     new CouchbaseEventHandler<string, DocumentChangedEventArgs>(handler, id, scheduler);
                 var count = _documentChanged.Add(cbHandler);
-                if (count == 0)
-                {
+                if (count == 0) {
                     var handle = GCHandle.Alloc(this);
                     var docObs = Native.c4docobs_create(_c4db, id, _DocumentObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     _docObs[id] = Tuple.Create((IntPtr)docObs, handle);
@@ -1566,7 +1561,6 @@ namespace Couchbase.Lite
         private void CheckOpen()
         {
             if (IsClosed) {
-                ClearScopesCollections();
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
             }
         }
@@ -1979,16 +1973,6 @@ namespace Couchbase.Lite
             if (IsClosed || _isClosing) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
             }
-        }
-
-        private void ClearScopesCollections()
-        {
-            (_defaultCollection as Collection)?.Dispose();
-            Scope?.Dispose();
-            (_selectedCollection as Collection)?.Dispose();
-            _selectedScope?.Dispose();
-            _scopes.Clear();
-            (Scopes as List<Scope>).Clear();
         }
 
         #endregion

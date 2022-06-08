@@ -415,8 +415,6 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
-            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
-
             var replicatedDocumentsContainConflict = new List<ReplicatedDocument>();
             var documentReplications = new List<ReplicatedDocument>();
             for (int i = 0; i < (int) numDocs; i++) {
@@ -431,6 +429,7 @@ namespace Couchbase.Lite.Sync
                 }
             }
 
+            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
             if (documentReplications.Count > 0) {
                 replicator?.DispatchQueue.DispatchAsync(() =>
                 {
