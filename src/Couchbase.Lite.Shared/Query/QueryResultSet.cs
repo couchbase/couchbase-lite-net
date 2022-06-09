@@ -56,6 +56,8 @@ namespace Couchbase.Lite.Internal.Query
 
         internal Database Database => _query?.Database;
 
+        internal Collection Collection => _query?.Collection;
+
         internal Result this[int index]
         {
             get {
@@ -83,7 +85,7 @@ namespace Couchbase.Lite.Internal.Query
             _c4Enum = e;
             ColumnNames = columnNames;
             _threadSafety = threadSafety;
-            _context = new QueryResultContext(query?.Database, e);
+            _context = new QueryResultContext(query?.Collection, e);
         }
 
         #endregion

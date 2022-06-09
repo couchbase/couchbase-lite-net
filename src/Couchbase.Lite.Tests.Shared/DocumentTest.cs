@@ -226,7 +226,7 @@ namespace Test
                 d.ToDictionary().Should().BeEmpty("because this document has no properties");
             });
 
-            using (var doc1 = new MutableDocument(Db, "doc1")) {
+            using (var doc1 = new MutableDocument(Collection, "doc1")) {
                 Db.Save(doc1);
                 var gene = doc1.Generation;
                 var encode1 = doc1.Encode();
