@@ -31,10 +31,10 @@ namespace Couchbase.Lite
     public sealed unsafe class Scope : IDisposable
     {
         #region Variales
+        
+        List<Collection> _collections = new List<Collection>();
 
         #endregion
-
-        List<Collection> _collections = new List<Collection>();
 
         #region Properties
 
@@ -188,34 +188,6 @@ namespace Couchbase.Lite
                 (Collections as List<Collection>).Clear();
                 _collections = null;
             });
-        }
-
-        #region object
-        /// <inheritdoc />
-        public override int GetHashCode()
-        {
-            return Name?.GetHashCode() ?? 0;
-        }
-
-        /// <inheritdoc />
-        public override bool Equals(object obj)
-        {
-            if (!(obj is Scope other)) {
-                return false;
-            }
-
-            return String.Equals(Name, other.Name, StringComparison.Ordinal);
-        }
-
-        /// <inheritdoc />
-        public override string ToString() => $"SCOPE[{Name}]";
-        #endregion
-
-        #region IDisposable
-
-        public void Dispose()
-        {
-
         }
 
         #endregion
