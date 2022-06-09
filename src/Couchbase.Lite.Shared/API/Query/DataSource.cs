@@ -45,7 +45,7 @@ namespace Couchbase.Lite.Query
         /// <param name="collection">The collection to operate on</param>
         /// <returns>The source of data for the <see cref="IQuery" /></returns>
         [NotNull]
-        public static IDataSourceAs Collection([NotNull] ICollection collection)
+        public static IDataSourceAs Collection([NotNull] Collection collection)
         {
             var c = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(collection), collection);
             return new DatabaseSource(c, ((Collection)c).ThreadSafety);

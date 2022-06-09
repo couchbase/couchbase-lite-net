@@ -6,11 +6,24 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
-    public sealed class Scope : IScope, IChangeObservable<DatabaseChangedEventArgs>
+    public sealed class Scope : IDisposable
     {
+        /// <summary>
+        /// Gets the Scope Name
+        /// </summary>
+        /// <remarks>
+        /// Naming rules:
+        /// Must be between 1 and 251 characters in length.
+        /// Can only contain the characters A-Z, a-z, 0-9, and the symbols _, -, and %. 
+        /// Cannot start with _ or %.
+        /// Case sensitive.
+        /// </remarks>
         public string Name => throw new NotImplementedException();
 
-        public IReadOnlyList<ICollection> Collections => throw new NotImplementedException();
+        /// <summary>
+        /// Gets all collections in the Scope
+        /// </summary>
+        public IReadOnlyList<Collection> Collections => throw new NotImplementedException();
 
         public ListenerToken AddChangeListener([CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<DatabaseChangedEventArgs> handler)
         {
@@ -32,9 +45,39 @@ namespace Couchbase.Lite
             throw new NotImplementedException();
         }
 
-        public ICollection GetCollection(string name)
+        public Collection GetCollection(string name)
         {
             throw new NotImplementedException();
         }
+
+        #region object
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            return Name?.GetHashCode() ?? 0;
+        }
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+        {
+            if (!(obj is Scope other)) {
+                return false;
+            }
+
+            return String.Equals(Name, other.Name, StringComparison.Ordinal);
+        }
+
+        /// <inheritdoc />
+        public override string ToString() => $"SCOPE[{Name}]";
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+
+        }
+
+        #endregion
     }
 }

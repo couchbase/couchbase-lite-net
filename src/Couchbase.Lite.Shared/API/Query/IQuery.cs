@@ -60,7 +60,7 @@ namespace Couchbase.Lite.Query
     /// <summary>
     /// An interface representing a runnable query over a data source
     /// </summary>
-    public interface IQuery : IDisposable, IChangeObservable<QueryChangedEventArgs>
+    public interface IQuery : IChangeObservable<QueryChangedEventArgs>, IDisposable
     {
         #region Properties
 

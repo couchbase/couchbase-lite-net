@@ -638,7 +638,7 @@ namespace Test
         public void TestMultipleListenersOnSameDatabase()
         {
             _listener = CreateListener();
-            var _listener2 = CreateNewListener();
+            var listener2 = CreateNewListener();
 
             using (var doc1 = new MutableDocument("doc1"))
             using (var doc2 = new MutableDocument("doc2")) {
@@ -659,9 +659,7 @@ namespace Test
                 0
             );
 
-            _listener.Stop();
-            _listener2.Stop();
-
+            listener2.Stop();
             OtherDb.Count.Should().Be(2);
         }
 
@@ -882,10 +880,10 @@ namespace Test
             WaitAssert waitStoppedAssert1 = new WaitAssert();
 
             _listener = CreateListener();
-            var _listener2 = CreateNewListener();
+            var listener2 = CreateNewListener();
 
             _listener.Config.Database.ActiveStoppables.Count.Should().Be(2);
-            _listener2.Config.Database.ActiveStoppables.Count.Should().Be(2);
+            listener2.Config.Database.ActiveStoppables.Count.Should().Be(2);
 
             using (var doc1 = new MutableDocument("doc1"))
             using (var doc2 = new MutableDocument("doc2")) {
@@ -1261,7 +1259,7 @@ namespace Test
 
             var listener = new URLEndpointListener(config);
             listener.Start();
-            return _listener;
+            return listener;
         }
 
         #endregion

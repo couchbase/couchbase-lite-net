@@ -112,8 +112,8 @@ namespace Couchbase.Lite
     /// <see cref="Document"/> instances.  It is portable between platforms if the file is retrieved,
     /// and can be seeded with pre-populated data if desired.
     /// </summary>
-    public sealed unsafe partial class Database : ICollection, IQueryFactory, IDisposable, IChangeObservable<DatabaseChangedEventArgs>,
-        IDocumentChangeObservable
+    public sealed unsafe partial class Database : IIndexable, IQueryFactory, IChangeObservable<DatabaseChangedEventArgs>,
+        IDocumentChangeObservable, IDisposable
     {
         #region Constants
 
@@ -307,8 +307,6 @@ namespace Couchbase.Lite
             }
         }
 
-        public IScope Scope => GetDefaultScope();
-
         #endregion
 
         #region Constructors
@@ -387,7 +385,7 @@ namespace Couchbase.Lite
         /// Get the default scope. 
         /// </summary>
         /// <returns></returns>
-        public IScope GetDefaultScope()
+        public Scope GetDefaultScope()
         {
             throw new NotImplementedException();
         }
@@ -396,7 +394,7 @@ namespace Couchbase.Lite
         /// Get the default collection.
         /// </summary>
         /// <returns></returns>
-        public ICollection GetDefaultCollection()
+        public Collection GetDefaultCollection()
         {
             throw new NotImplementedException();
         }
@@ -407,7 +405,7 @@ namespace Couchbase.Lite
         /// under it.
         /// </summary>
         /// <returns></returns>
-        public IReadOnlyList<IScope> GetScopes()
+        public IReadOnlyList<Scope> GetScopes()
         {
             throw new NotImplementedException();
         }
@@ -419,7 +417,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public IScope GetScope(string name)
+        public Scope GetScope(string name)
         {
             throw new NotImplementedException();
         }
@@ -428,7 +426,7 @@ namespace Couchbase.Lite
         /// Get all collections of given Scope name.
         /// </summary>
         /// <returns></returns>
-        public IReadOnlyList<ICollection> GetCollections(string scope = _defaultScopeName)
+        public IReadOnlyList<Collection> GetCollections(string scope = _defaultScopeName)
         {
             throw new NotImplementedException();
         }
@@ -439,7 +437,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public ICollection CreateCollection(string name, string scope = _defaultScopeName)
+        public Collection CreateCollection(string name, string scope = _defaultScopeName)
         {
             throw new NotImplementedException();
         }
@@ -450,7 +448,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public ICollection GetCollection(string name, string scope = _defaultScopeName)
+        public Collection GetCollection(string name, string scope = _defaultScopeName)
         {
             throw new NotImplementedException();
         }
@@ -1816,6 +1814,7 @@ namespace Couchbase.Lite
 
         #endregion
 
+        #region object
         /// <inheritdoc />
         public override int GetHashCode()
         {
@@ -1834,6 +1833,7 @@ namespace Couchbase.Lite
 
         /// <inheritdoc />
         public override string ToString() => $"DB[{Path}]";
+        #endregion
 
         #region IDisposable
 
