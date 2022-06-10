@@ -107,6 +107,7 @@ namespace LiteCore.Tests
             var scopeName = "newScope";
             RunTestVariants(() =>
             {
+                C4Error error;
                 using (var collName1_ = new C4String(collName + 1))
                 using (var scopeName1_ = new C4String(scopeName + 1))
                 using (var collName2_ = new C4String(collName + 2))
@@ -143,17 +144,17 @@ namespace LiteCore.Tests
                         return Native.c4db_createCollection(Db, collectionSpecC, err);
                     });
 
-                    var c1 = Native.c4db_getCollection(Db, collectionSpecA);
+                    var c1 = Native.c4db_getCollection(Db, collectionSpecA, &error);
                     var colSpec1 = Native.c4coll_getSpec(c1);
                     colSpec1.name.CreateString().Should().Be(collName + 1);
                     colSpec1.scope.CreateString().Should().Be(scopeName + 1);
 
-                    var c2 = Native.c4db_getCollection(Db, collectionSpecB);
+                    var c2 = Native.c4db_getCollection(Db, collectionSpecB, &error);
                     var colSpec2 = Native.c4coll_getSpec(c2);
                     colSpec2.name.CreateString().Should().Be(collName + 2);
                     colSpec2.scope.CreateString().Should().Be(scopeName + 1);
 
-                    var c3 = Native.c4db_getCollection(Db, collectionSpecC);
+                    var c3 = Native.c4db_getCollection(Db, collectionSpecC, &error);
                     var colSpec3 = Native.c4coll_getSpec(c3);
                     colSpec3.name.CreateString().Should().Be(collName + 3);
                     colSpec3.scope.CreateString().Should().Be(scopeName + 2);
@@ -162,7 +163,7 @@ namespace LiteCore.Tests
                     /** Returns the names of all existing collections in the given scope,
                      *  in the order in which they were created.
                       @note  You are responsible for releasing the returned Fleece array. */
-                    var arrColl = Native.c4db_collectionNames(Db, scopeName + 1);
+                    var arrColl = Native.c4db_collectionNames(Db, scopeName + 1, &error);
                     for (uint i = 1; i <= Native.FLArray_Count((FLArray*)arrColl); i++) {
                         var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i-1));
                         collStr.Should().Be(collName + i, "Because Scope contains all it's collections' name.");
@@ -172,12 +173,12 @@ namespace LiteCore.Tests
                     cnt.Should().Be(2);
                     Native.FLValue_Release((FLValue*)arrColl);
 
-                    var arrCol2 = Native.c4db_collectionNames(Db, scopeName + 2);
+                    var arrCol2 = Native.c4db_collectionNames(Db, scopeName + 2, &error);
                     var collStr2 = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrCol2, 0));
                     collStr2.Should().Be(collName + 3, "Because Scope contains it's collection's name.");
                     Native.FLValue_Release((FLValue*)arrCol2);
 
-                    var arrScope = Native.c4db_scopeNames(Db);
+                    var arrScope = Native.c4db_scopeNames(Db, &error);
                     for (uint i = 1; i <= Native.FLArray_Count((FLArray*)arrScope); i++) {
                         var scopeStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrScope, i-1));
                         if((i-1) == 0) 
@@ -195,9 +196,8 @@ namespace LiteCore.Tests
                     deleteSuccessful.Should().BeTrue("Deleting collection newColl successful.");
 
                     cnt = 0;
-                    arrColl = Native.c4db_collectionNames(Db, scopeName + 1);
-                    for (uint i = 1; i <= Native.FLArray_Count((FLArray*)arrColl); i++)
-                    {
+                    arrColl = Native.c4db_collectionNames(Db, scopeName + 1, &error);
+                    for (uint i = 1; i <= Native.FLArray_Count((FLArray*)arrColl); i++) {
                         var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i - 1));
                         collStr.Should().Be(collName + (i + 1), "Because the deleted collection is no longer found in scope.");
                         cnt++;

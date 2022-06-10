@@ -355,6 +355,18 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Constructs a new builder object with the required properties
         /// </summary>
+        /// <param name="target">The endpoint to replicate to, either local or remote</param>
+        /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
+        /// is provided as <paramref name="target"/></exception>
+        public ReplicatorConfiguration([NotNull] IEndpoint target)
+        {
+            Target = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(target), target);
+
+            var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
+            castTarget.Visit(this);
+
+        }
+
         /// <summary>
         /// [DEPRECATED] Constructs a new builder object with the required properties
         /// </summary>

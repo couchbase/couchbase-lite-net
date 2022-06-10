@@ -16,7 +16,6 @@
 //  limitations under the License.
 // 
 
-using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 using JetBrains.Annotations;
 using LiteCore.Interop;
@@ -24,7 +23,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
@@ -48,7 +46,7 @@ namespace Couchbase.Lite
         /// Cannot start with _ or %.
         /// Case sensitive.
         /// </remarks>
-        public string Name { get; }
+        public string Name { get; internal set; }
 
         /// <summary>
         /// Gets all collections in the Scope
@@ -113,12 +111,13 @@ namespace Couchbase.Lite
         {
             ThreadSafety.DoLocked(() =>
             {
+                C4Error err;
                 if (c4Db == null) {
                     (Collections as IList<Collection>).Clear();
                     throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
                 }
 
-                var arrColl = Native.c4db_collectionNames(c4Db, Name);
+                var arrColl = Native.c4db_collectionNames(c4Db, Name, &err);
                 for (uint i = 0; i < Native.FLArray_Count((FLArray*)arrColl); i++) {
                     var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
                     if (GetCollection(collStr) == null) {

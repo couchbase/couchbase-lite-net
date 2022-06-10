@@ -16,10 +16,7 @@
 //  limitations under the License.
 // 
 
-using Couchbase.Lite.Internal.Doc;
-using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
-using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
@@ -326,7 +323,7 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region Private Methods
+        #region Internal Methods
 
         internal void GetCollection()
         {
@@ -337,9 +334,12 @@ namespace Couchbase.Lite
                     scope = scopeName_.AsFLSlice()
                 };
 
-                ThreadSafety.DoLocked(() => {
-                    _c4coll = Native.c4db_getCollection(c4Db, collectionSpec);
-                 });
+                _c4coll = (C4Collection*)LiteCoreBridge.Check(err =>
+                { 
+                    return Native.c4db_getCollection(c4Db, collectionSpec, err);
+                });
+                
+                Native.c4coll_retain(_c4coll);
             }
         }
 
@@ -347,6 +347,7 @@ namespace Couchbase.Lite
         {
             ThreadSafety.DoLocked(() => {
                 _c4coll = Native.c4db_getDefaultCollection(c4Db);
+                Native.c4coll_retain(_c4coll);
             });
         }
 
@@ -374,6 +375,7 @@ namespace Couchbase.Lite
                     return Native.c4db_createCollection(c4Db, collectionSpec, err);
                 });
 
+                Native.c4coll_retain(_c4coll);
                 return _c4coll != null;
             }
         }
@@ -392,6 +394,10 @@ namespace Couchbase.Lite
                 {
                     return Native.c4db_deleteCollection(c4Db, collectionSpec, err);
                 });
+
+                if(deleteSuccessful)
+                    ReleaseCollection();
+
             }
 
             return deleteSuccessful;
@@ -416,17 +422,50 @@ namespace Couchbase.Lite
             return hasCollection;
         }
 
+        internal void GetSpec()
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                if (c4coll == null)
+                    return;
+
+                var spec = Native.c4coll_getSpec(c4coll);
+                Name = spec.name.CreateString();
+                Scope.Name = spec.scope.CreateString();
+            });
+        }
+
+        internal C4Database* GetC4Database()
+        {
+            C4Database* c4db = null;
+            ThreadSafety.DoLocked(() =>
+            {
+                if (c4coll == null)
+                    return;
+
+                c4db = Native.c4coll_getDatabase(c4coll);
+            });
+
+            return c4db;
+        }
+
         #endregion
 
         #region Private Methods
 
-        internal Scope GetScope(string scope)
+        private Scope GetScope(string scope)
         {
             var s = Database.GetScope(scope);
             if (s == null)
                 s = new Scope(Database, scope);
 
             return s;
+        }
+
+        private void ReleaseCollection()
+        {
+            Native.c4coll_release(_c4coll);
+            _c4coll = null;
         }
 
         #endregion
@@ -463,8 +502,7 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 _disposalWatchdog.Dispose();
-                Native.c4coll_release(_c4coll);
-                _c4coll = null;
+                ReleaseCollection();
             });
         }
 

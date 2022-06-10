@@ -167,8 +167,6 @@ namespace Couchbase.Lite
         private Scope _defaultScope = null;
 
         //3.1+ Database
-        private Collection _selectedCollection = null;
-        private Scope _selectedScope = null;
         private ConcurrentDictionary<string, Scope> _scopes = new ConcurrentDictionary<string, Scope>();
 
         #endregion
@@ -394,7 +392,7 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region Public Methods - Scopes and Collections
+        #region Public Methods - Scopes and Collections Management
 
         /// <summary>
         /// Get the default scope. 
@@ -458,8 +456,9 @@ namespace Couchbase.Lite
         {
             ThreadSafety.DoLocked(() =>
             {
+                C4Error error;
                 CheckOpen();
-                var arrScopes = Native.c4db_scopeNames(_c4db);
+                var arrScopes = Native.c4db_scopeNames(_c4db, &error);
                 for (uint i = 0; i < Native.FLArray_Count((FLArray*)arrScopes); i++) {
                     var scopeStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrScopes, i));
                     Scope s = null;
@@ -1973,6 +1972,16 @@ namespace Couchbase.Lite
             if (IsClosed || _isClosing) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
             }
+        }
+
+        private bool HasScope(string scope)
+        {
+            bool hasScope = ThreadSafety.DoLocked(() =>
+            {
+                return Native.c4db_hasScope(_c4db, scope);
+            });
+
+            return hasScope;
         }
 
         #endregion
