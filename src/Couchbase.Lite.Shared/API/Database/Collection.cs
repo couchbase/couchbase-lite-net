@@ -90,7 +90,7 @@ namespace Couchbase.Lite
         /// Cannot start with _ or %.
         /// Case sensitive.
         /// </remarks>
-        public string Name { get; private set; }
+        public string Name { get; private set; } = DefaultCollectionName;
 
         /// <summary>
         /// Gets the Scope of the Collection belongs to
@@ -106,15 +106,26 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal Collection([NotNull] Database database, string name, string scope)
+        internal Collection([NotNull] Database database)
         {
             Database = database;
             ThreadSafety = database.ThreadSafety;
 
-            Name = name;
-            Scope = GetScope(scope);
-
             _disposalWatchdog = new DisposalWatchdog(GetType().Name);
+        }
+
+        internal Collection([NotNull] Database database, string name, string scope)
+            :this(database)
+        {
+            Name = name;
+            Scope = database.GetScope(scope);
+        }
+
+        internal Collection([NotNull] Database database, string name, string scope, C4Collection* c4c)
+            : this(database, name, scope)
+        {
+            _c4coll = c4c;
+            Native.c4coll_retain(_c4coll);
         }
 
         #endregion
@@ -325,103 +336,6 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        internal void GetCollection()
-        {
-            using (var collName_ = new C4String(Name))
-            using (var scopeName_ = new C4String(Scope?.Name)) {
-                var collectionSpec = new C4CollectionSpec() {
-                    name = collName_.AsFLSlice(),
-                    scope = scopeName_.AsFLSlice()
-                };
-
-                _c4coll = (C4Collection*)LiteCoreBridge.Check(err =>
-                { 
-                    return Native.c4db_getCollection(c4Db, collectionSpec, err);
-                });
-                
-                Native.c4coll_retain(_c4coll);
-            }
-        }
-
-        internal void GetDefaultCollection()
-        {
-            ThreadSafety.DoLocked(() => {
-                _c4coll = Native.c4db_getDefaultCollection(c4Db);
-                Native.c4coll_retain(_c4coll);
-            });
-        }
-
-        internal bool CreateCollection()
-        {
-            if (Name == Database._defaultCollectionName) {
-                GetDefaultCollection();
-                return false;
-            }
-
-            using (var collName_ = new C4String(Name))
-            using (var scopeName_ = new C4String(Scope?.Name)) {
-                var collectionSpec = new C4CollectionSpec() {
-                    name = collName_.AsFLSlice(),
-                    scope = scopeName_.AsFLSlice()
-                };
-
-                if(HasCollection()) {
-                    GetCollection();
-                    return false;
-                }
-
-                _c4coll = (C4Collection*)LiteCoreBridge.Check(err =>
-                {
-                    return Native.c4db_createCollection(c4Db, collectionSpec, err);
-                });
-
-                Native.c4coll_retain(_c4coll);
-                return _c4coll != null;
-            }
-        }
-
-        internal bool DeleteCollection()
-        {
-            bool deleteSuccessful;
-            using (var collName_ = new C4String(Name))
-            using (var scopeName_ = new C4String(Scope?.Name)) {
-                var collectionSpec = new C4CollectionSpec() {
-                    name = collName_.AsFLSlice(),
-                    scope = scopeName_.AsFLSlice()
-                };
-
-                deleteSuccessful = (bool)LiteCoreBridge.Check(err =>
-                {
-                    return Native.c4db_deleteCollection(c4Db, collectionSpec, err);
-                });
-
-                if(deleteSuccessful)
-                    ReleaseCollection();
-
-            }
-
-            return deleteSuccessful;
-        }
-
-        internal bool HasCollection()
-        {
-            bool hasCollection;
-            using (var collName_ = new C4String(Name))
-            using (var scopeName_ = new C4String(Scope?.Name)) {
-                var collectionSpec = new C4CollectionSpec() {
-                    name = collName_.AsFLSlice(),
-                    scope = scopeName_.AsFLSlice()
-                };
-
-                hasCollection = ThreadSafety.DoLocked(() =>
-                {
-                    return Native.c4db_hasCollection(c4Db, collectionSpec);
-                });
-            }
-
-            return hasCollection;
-        }
-
         internal void GetSpec()
         {
             ThreadSafety.DoLocked(() =>
@@ -449,18 +363,26 @@ namespace Couchbase.Lite
             return c4db;
         }
 
+        /// <summary>
+        /// Returns false if this collection has been deleted, or its database closed.
+        /// </summary>
+        internal bool IsCollectionValid()
+        {
+            bool isValid = false;
+            ThreadSafety.DoLocked(() =>
+            {
+                isValid = Native.c4coll_isValid(_c4coll);
+                if (!isValid) {
+                    isValid = Native.c4coll_isValid(_c4coll);
+                }
+            });
+
+            return isValid;
+        }
+
         #endregion
 
         #region Private Methods
-
-        private Scope GetScope(string scope)
-        {
-            var s = Database.GetScope(scope);
-            if (s == null)
-                s = new Scope(Database, scope);
-
-            return s;
-        }
 
         private void ReleaseCollection()
         {

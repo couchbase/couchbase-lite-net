@@ -18,19 +18,23 @@
 
 using Couchbase.Lite.Support;
 using JetBrains.Annotations;
+using LiteCore;
 using LiteCore.Interop;
+using LiteCore.Util;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
     public sealed unsafe class Scope : IDisposable
     {
         #region Variales
-        
-        List<Collection> _collections = new List<Collection>();
+
+        private ConcurrentDictionary<string, Collection> _collections = new ConcurrentDictionary<string, Collection>();
 
         #endregion
 
@@ -46,17 +50,12 @@ namespace Couchbase.Lite
         /// Cannot start with _ or %.
         /// Case sensitive.
         /// </remarks>
-        public string Name { get; internal set; }
+        public string Name { get; internal set; } = Database._defaultScopeName;
 
         /// <summary>
         /// Gets all collections in the Scope
         /// </summary>
-        public IReadOnlyList<Collection> Collections
-        {
-            get {
-                return _collections;
-            }
-        }
+        public IReadOnlyList<Collection> Collections => _collections.Values as IReadOnlyList<Collection>;
 
         internal C4Database* c4Db
         {
@@ -79,11 +78,15 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal Scope([NotNull] Database database, string scope)
+        internal Scope([NotNull] Database database)
         {
             Database = database;
             ThreadSafety = database.ThreadSafety;
+        }
 
+        internal Scope([NotNull] Database database, string scope)
+            :this(database)
+        {
             Name = scope;
         }
 
@@ -98,8 +101,19 @@ namespace Couchbase.Lite
         /// <returns>null will be returned if the collection doesn't exist in the Scope</returns>
         public Collection GetCollection(string name)
         {
-            var colls = Collections as List<Collection>;
-            return colls.SingleOrDefault(x => x.Name == name);
+            Collection c = null;
+            ThreadSafety.DoLocked(() =>
+            {
+                if (c4Db == null) {
+                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
+                }
+
+                if (HasCollection(name)) {
+                    c = _collections[name];
+                }
+            });
+
+            return c;
         }
 
         /// <summary>
@@ -109,27 +123,7 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         public IReadOnlyList<Collection> GetCollections()
         {
-            ThreadSafety.DoLocked(() =>
-            {
-                C4Error err;
-                if (c4Db == null) {
-                    (Collections as IList<Collection>).Clear();
-                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
-                }
-
-                var arrColl = Native.c4db_collectionNames(c4Db, Name, &err);
-                for (uint i = 0; i < Native.FLArray_Count((FLArray*)arrColl); i++) {
-                    var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
-                    if (GetCollection(collStr) == null) {
-                        var col = new Collection(Database, collStr, Name);
-                        col.CreateCollection();
-                        (Collections as IList<Collection>).Add(col);
-                    }
-                }
-
-                Native.FLValue_Release((FLValue*)arrColl);
-            });
-
+            GetCollectionList();
             return Collections;
         }
 
@@ -137,22 +131,145 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        internal bool Add(Collection collection)
+        internal Collection GetCollectionNotInCache(string collectionName)
         {
-            var res = collection.CreateCollection();
-            if(res)
-                _collections.Add(collection);
+            Collection c = null;
+            using (var collName_ = new C4String(collectionName))
+            using (var scopeName_ = new C4String(Name)) {
+                var collectionSpec = new C4CollectionSpec() {
+                    name = collName_.AsFLSlice(),
+                    scope = scopeName_.AsFLSlice()
+                };
 
-            return res;
+                var c4c = (C4Collection*)LiteCoreBridge.Check(err =>
+                {
+                    return Native.c4db_getCollection(c4Db, collectionSpec, err);
+                });
+
+                if (c4c != null) {
+                    HasCollection(collectionName);
+                }
+            }
+
+            return c;
         }
 
-        internal bool Delete(Collection collection)
+        internal Collection CreateCollection(string collectionName)
         {
-            var res = collection.DeleteCollection();
-            if (res)
-                _collections.Remove(collection);
+            Collection c = null;
+            using (var collName_ = new C4String(collectionName))
+            using (var scopeName_ = new C4String(Name)) {
+                var collectionSpec = new C4CollectionSpec() {
+                    name = collName_.AsFLSlice(),
+                    scope = scopeName_.AsFLSlice()
+                };
 
-            return res;
+                var c4c = (C4Collection*)LiteCoreBridge.Check(err =>
+                {
+                    return Native.c4db_createCollection(c4Db, collectionSpec, err);
+                });
+
+                if (c4c != null) {
+                    if (HasCollection(collectionName)) {
+                        c = _collections[collectionName];
+                    }
+                }
+
+                return c;
+            }
+        }
+
+        internal bool DeleteCollection(Collection collection)
+        {
+            bool deleteSuccessful;
+            using (var collName_ = new C4String(collection.Name))
+            using (var scopeName_ = new C4String(collection.Scope?.Name)) {
+                var collectionSpec = new C4CollectionSpec() {
+                    name = collName_.AsFLSlice(),
+                    scope = scopeName_.AsFLSlice()
+                };
+
+                deleteSuccessful = LiteCoreBridge.Check(err =>
+                {
+                    return Native.c4db_deleteCollection(c4Db, collectionSpec, err);
+                });
+
+                if (deleteSuccessful) {
+                    if(_collections.TryRemove(collection.Name, out var dummy)) {
+                        collection.Dispose();
+                        collection = null;
+                    }
+                }
+            }
+
+            return deleteSuccessful;
+        }
+
+        internal bool HasCollection(string collectionName)
+        {
+            bool hasCollection;
+            using (var collName_ = new C4String(collectionName))
+            using (var scopeName_ = new C4String(Name)) {
+                var collectionSpec = new C4CollectionSpec() {
+                    name = collName_.AsFLSlice(),
+                    scope = scopeName_.AsFLSlice()
+                };
+
+                hasCollection = ThreadSafety.DoLocked(() =>
+                {
+                    // Returns true if the collection exists.
+                    return Native.c4db_hasCollection(c4Db, collectionSpec);
+                });
+            }
+
+            if (hasCollection) {
+                if (!_collections.ContainsKey(collectionName)) {
+                    var c = new Collection(Database, collectionName, Name);
+                    _collections.TryAdd(collectionName, c);
+                }
+            } else {
+                if (_collections.ContainsKey(collectionName)) {
+                    Collection c;
+                    _collections.TryRemove(collectionName, out c);
+                    c.Dispose();
+                    c = null;
+                }
+            }
+
+            return hasCollection;
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private void CheckOpen()
+        {
+            if (c4Db == null) {
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
+            }
+        }
+
+        private void GetCollectionList()
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                C4Error error;
+                var arrColl = Native.c4db_collectionNames(c4Db, Name, &error);
+                if (error.code == 0) {
+                    var collsCnt = Native.FLArray_Count((FLArray*)arrColl);
+                    if (_collections.Count > collsCnt)
+                        _collections.Clear();
+
+                    for (uint i = 0; i < collsCnt; i++) {
+                        Collection c;
+                        var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
+                        HasCollection(collStr);
+                    }
+                }
+
+                Native.FLValue_Release((FLValue*)arrColl);
+            });
         }
 
         #endregion
@@ -184,7 +301,14 @@ namespace Couchbase.Lite
         {
             ThreadSafety.DoLocked(() =>
             {
-                (Collections as List<Collection>).Clear();
+                if (_collections == null)
+                    return;
+
+                foreach (var c in _collections) {
+                    c.Value.Dispose();
+                }
+
+                _collections.Clear();
                 _collections = null;
             });
         }
