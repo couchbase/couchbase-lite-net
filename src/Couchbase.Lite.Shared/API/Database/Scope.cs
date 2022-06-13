@@ -74,6 +74,16 @@ namespace Couchbase.Lite
         [NotNull]
         internal ThreadSafety ThreadSafety { get; }
 
+        /// <summary>
+        /// Gets the total collections in the scope
+        /// </summary>
+        internal int Count
+        {
+            get {
+                return _collections.Count;
+            }
+        }
+
         #endregion
 
         #region Constructors
@@ -107,10 +117,9 @@ namespace Couchbase.Lite
                 CheckOpen();
                 if (HasCollectionNoneCache(name)) {
                     if (!_collections.ContainsKey(name)) {
-                        //coll = new Collection(Database, name, Name);
                         var c4c = GetCollectionNoneCache(name);
                         if (c4c != null) {
-                            coll = new Collection(Database, name, Name, c4c);
+                            coll = new Collection(Database, name, this, c4c);
                             _collections.TryAdd(name, coll);
                         }
                     } else {
@@ -156,8 +165,8 @@ namespace Couchbase.Lite
                     });
 
                     if (c4c != null) {
-                        co = new Collection(Database, collectionName, Name, c4c);
-                        _collections.TryAdd(collectionName, co);
+                        co = new Collection(Database, collectionName, this, c4c);
+                        _collections.TryAdd(collectionName, co); //Maybe need to consider c4collection is not the same on in the cache? 
                     }
                 }
             });
@@ -220,6 +229,32 @@ namespace Couchbase.Lite
             return hasCollection;
         }
 
+        internal IReadOnlyList<Collection> GetCollectionListNoneCache()
+        {
+            List<Collection> cos = new List<Collection>();
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                C4Error error;
+                var arrColl = Native.c4db_collectionNames(c4Db, Name, &error);
+                if (error.code == 0) {
+                    var collsCnt = Native.FLArray_Count((FLArray*)arrColl);
+                    for (uint i = 0; i < collsCnt; i++) {
+                        var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
+                        var c4c = GetCollectionNoneCache(collStr);
+                        if (c4c != null) {
+                            var coll = new Collection(Database, collStr, this, c4c);
+                            cos.Add(coll);
+                        }
+                    }
+                }
+
+                Native.FLValue_Release((FLValue*)arrColl);
+            });
+
+            return cos;
+        }
+
         #endregion
 
         #region Private Methods
@@ -248,7 +283,7 @@ namespace Couchbase.Lite
                         if (!_collections.ContainsKey(collStr)) {
                             var c4c = GetCollectionNoneCache(collStr);
                             if (c4c != null) {
-                                var coll = new Collection(Database, collStr, Name, c4c);
+                                var coll = new Collection(Database, collStr, this, c4c);
                                 _collections.TryAdd(collStr, coll);
                             }
                         }

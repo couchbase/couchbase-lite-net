@@ -403,7 +403,9 @@ namespace Couchbase.Lite
                 CheckOpen();
                 if (_defaultScope == null) {
                     _defaultScope = new Scope(this);
-                }
+                    if(!_scopes.ContainsKey(_defaultScopeName))
+                        _scopes.TryAdd(_defaultScopeName, _defaultScope);
+        }
             });
 
             return _defaultScope;
@@ -433,7 +435,7 @@ namespace Couchbase.Lite
                     });
 
                     if (c4coll != null) {
-                        _defaultCollection = new Collection(this, _defaultCollectionName, _defaultScopeName, c4coll);
+                        _defaultCollection = new Collection(this, _defaultCollectionName, GetDefaultScope(), c4coll);
                     }
                 }
             });
@@ -499,7 +501,7 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                s = GetScope(scope);
+                s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
                 if (s != null) {
                     s.GetCollections();
                 }
@@ -523,7 +525,7 @@ namespace Couchbase.Lite
             Collection c = null;
             ThreadSafety.DoLocked(() =>
             {
-                var s = GetScope(scope);
+                var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
                 if (s != null) {
                     c = s.GetCollection(name);
                 }
@@ -553,13 +555,13 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                var s = GetScope(scope);
+                var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
                 if (s == null) {
                     s = new Scope(this, scope);
                 }
 
                 co = s.CreateCollection(name);
-                if (co != null)
+                if (co != null && !_scopes.ContainsKey(scope))
                     _scopes.TryAdd(scope, s);
             });
 
@@ -583,14 +585,14 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                var selectedScope = GetScope(scope);
-                if (selectedScope != null) {
-                    var c = selectedScope.GetCollection(name);
-                    if (selectedScope.DeleteCollection(c) && selectedScope.Collections?.Count == 0) {
-                        Scope s = null;
-                        if (_scopes.TryRemove(scope, out s)) {
-                            s.Dispose();
-                            s = null;
+                var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
+                if (s != null) {
+                    var c = s.GetCollection(name);
+                    if (s.DeleteCollection(c) && s.Collections?.Count == 0) {
+                        Scope sc = null;
+                        if (_scopes.TryRemove(scope, out sc)) {
+                            sc.Dispose();
+                            sc = null;
                         }
                     }
                 }

@@ -103,13 +103,13 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal Collection([NotNull] Database database, string name, string scope, C4Collection* c4c)
+        internal Collection([NotNull] Database database, string name, Scope scope, C4Collection* c4c)
         {
             Database = database;
             ThreadSafety = database.ThreadSafety;
 
             Name = name;
-            Scope = database.GetScope(scope);
+            Scope = scope;
 
             _c4coll = c4c;
             Native.c4coll_retain(_c4coll);
