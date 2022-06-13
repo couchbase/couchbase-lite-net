@@ -31,8 +31,8 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
-    public sealed unsafe class Collection : IIndexable, IChangeObservable<CollectionChangedEventArgs>,
-        IDocumentChangeObservable, IDisposable
+    public sealed unsafe class Collection : IChangeObservable<CollectionChangedEventArgs>, IDocumentChangeObservable,
+        IDisposable
     {
         #region Constants
 
@@ -46,9 +46,6 @@ namespace Couchbase.Lite
         #region Variables
 
         private C4Collection* _c4coll;
-
-        [NotNull]
-        internal readonly DisposalWatchdog _disposalWatchdog;
 
         #endregion
 
@@ -106,24 +103,14 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal Collection([NotNull] Database database)
+        internal Collection([NotNull] Database database, string name, string scope, C4Collection* c4c)
         {
             Database = database;
             ThreadSafety = database.ThreadSafety;
 
-            _disposalWatchdog = new DisposalWatchdog(GetType().Name);
-        }
-
-        internal Collection([NotNull] Database database, string name, string scope)
-            :this(database)
-        {
             Name = name;
             Scope = database.GetScope(scope);
-        }
 
-        internal Collection([NotNull] Database database, string name, string scope, C4Collection* c4c)
-            : this(database, name, scope)
-        {
             _c4coll = c4c;
             Native.c4coll_retain(_c4coll);
         }
@@ -312,7 +299,7 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region IIndexable
+        # region Public Methods - Indexable
 
         /// <inheritdoc />
         public IList<string> GetIndexes()
@@ -334,6 +321,15 @@ namespace Couchbase.Lite
 
         #endregion
 
+        #region Public Methods - QueryFactory
+
+        public IQuery CreateQuery([NotNull] string queryExpression)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
         #region Internal Methods
 
         internal void GetSpec()
@@ -347,20 +343,6 @@ namespace Couchbase.Lite
                 Name = spec.name.CreateString();
                 Scope.Name = spec.scope.CreateString();
             });
-        }
-
-        internal C4Database* GetC4Database()
-        {
-            C4Database* c4db = null;
-            ThreadSafety.DoLocked(() =>
-            {
-                if (c4coll == null)
-                    return;
-
-                c4db = Native.c4coll_getDatabase(c4coll);
-            });
-
-            return c4db;
         }
 
         /// <summary>
@@ -383,6 +365,20 @@ namespace Couchbase.Lite
         #endregion
 
         #region Private Methods
+
+        private C4Database* GetC4Database()
+        {
+            C4Database* c4db = null;
+            ThreadSafety.DoLocked(() =>
+            {
+                if (c4coll == null)
+                    return;
+
+                c4db = Native.c4coll_getDatabase(c4coll);
+            });
+
+            return c4db;
+        }
 
         private void ReleaseCollection()
         {
@@ -423,7 +419,6 @@ namespace Couchbase.Lite
         {
             ThreadSafety.DoLocked(() =>
             {
-                _disposalWatchdog.Dispose();
                 ReleaseCollection();
             });
         }

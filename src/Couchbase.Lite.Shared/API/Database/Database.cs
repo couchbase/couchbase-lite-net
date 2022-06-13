@@ -111,8 +111,8 @@ namespace Couchbase.Lite
     /// <see cref="Document"/> instances.  It is portable between platforms if the file is retrieved,
     /// and can be seeded with pre-populated data if desired.
     /// </summary>
-    public sealed unsafe partial class Database : IIndexable, IQueryFactory, IChangeObservable<DatabaseChangedEventArgs>,
-        IDocumentChangeObservable, IDisposable
+    public sealed unsafe partial class Database : IChangeObservable<DatabaseChangedEventArgs>, IDocumentChangeObservable,
+         IDisposable
     {
         #region Constants
 
@@ -168,7 +168,6 @@ namespace Couchbase.Lite
 
         //3.1+ Database
         private ConcurrentDictionary<string, Scope> _scopes = new ConcurrentDictionary<string, Scope>();
-        //private Lazy<List<Scope>> _scopes;
 
         #endregion
 
@@ -221,7 +220,7 @@ namespace Couchbase.Lite
             }
         }
 
-        internal IReadOnlyList<Scope> Scopes => _scopes.Values as IReadOnlyList<Scope>;
+        internal IReadOnlyList<Scope> Scopes => _scopes?.Values as IReadOnlyList<Scope>;
 
         internal ConcurrentDictionary<IStoppable, int> ActiveStoppables { get; } = new ConcurrentDictionary<IStoppable, int>();
 
@@ -444,11 +443,8 @@ namespace Couchbase.Lite
 
         /// <summary>
         /// Get scope names that have at least one collection.
+        /// The default scope is an exception as it will always be listed even it doesn't contain any collection.    
         /// </summary>
-        /// <remarks>
-        /// Note: the default scope is exceptional as it will always be listed even though there is no collection    
-        /// under it.
-        /// </remarks>
         /// <returns>
         /// scope names of all existing scopes, in the order in which they were created.
         /// </returns>
@@ -463,11 +459,9 @@ namespace Couchbase.Lite
 
         /// <summary>
         /// Get a scope object by name. As the scope cannot exist by itself without having a collection, the null 
-        /// value will be returned if there are no collections under the given scope’s name.
+        /// value will be returned if there is no collection under the given scope’s name. 
+        /// The default scope is an exception, it will always be returned.
         /// </summary>
-        /// <remarks>
-        /// Note: The default scope is exceptional, and it will always be returned.
-        /// </remarks>
         /// <param name="name">The name of the scope</param>
         /// <returns>scope object with the given scope name</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
@@ -475,15 +469,20 @@ namespace Couchbase.Lite
         /// if <see cref="Database"/> is closed</exception>
         public Scope GetScope(string name)
         {
-            Scope s = null;
+            Scope scope = null;
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                if (HasScope(name))
-                    s = _scopes[name];
+                if (HasScopeNoneCache(name)) {
+                    if (!_scopes.ContainsKey(name)) {
+                        scope = new Scope(this, name);
+                    } else {
+                        scope = _scopes[name];
+                    }
+                }
             });
 
-            return s;
+            return scope;
         }
 
         /// <summary>
@@ -550,7 +549,7 @@ namespace Couchbase.Lite
         /// if <see cref="Database"/> is closed</exception>
         public Collection CreateCollection(string name, string scope = _defaultScopeName)
         {
-            Collection c = null;
+            Collection co = null;
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
@@ -559,10 +558,12 @@ namespace Couchbase.Lite
                     s = new Scope(this, scope);
                 }
 
-                c = s.CreateCollection(name);
+                co = s.CreateCollection(name);
+                if (co != null)
+                    _scopes.TryAdd(scope, s);
             });
 
-            return c;
+            return co;
         }
 
         /// <summary>
@@ -582,10 +583,16 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                var selectedCollection = GetCollection(scope);
-                if (selectedCollection != null) {
-                    var selectedScope = GetScope(scope);
-                    selectedScope?.DeleteCollection(selectedCollection);
+                var selectedScope = GetScope(scope);
+                if (selectedScope != null) {
+                    var c = selectedScope.GetCollection(name);
+                    if (selectedScope.DeleteCollection(c) && selectedScope.Collections?.Count == 0) {
+                        Scope s = null;
+                        if (_scopes.TryRemove(scope, out s)) {
+                            s.Dispose();
+                            s = null;
+                        }
+                    }
                 }
             });
         }
@@ -1458,27 +1465,13 @@ namespace Couchbase.Lite
             });
         }
 
-        internal bool HasScope(string scope)
+        internal bool HasScopeNoneCache(string scope)
         {
             bool hasScope = ThreadSafety.DoLocked(() =>
             {
                 //Returns true if the named scope exists.  Note that _default will always return true.
                 return Native.c4db_hasScope(_c4db, scope);
             });
-
-            if (hasScope) { 
-                if (!_scopes.ContainsKey(scope)) {
-                    var s = new Scope(this, scope);
-                    _scopes.TryAdd(scope, s);
-                }
-            } else {
-                if (_scopes.ContainsKey(scope)) { 
-                    Scope s = null;
-                    _scopes.TryRemove(scope, out s);
-                    s.Dispose();
-                    s = null;
-                }
-            }
 
             return hasScope;
         }
@@ -1990,7 +1983,12 @@ namespace Couchbase.Lite
 
                     for (uint i = 0; i < scopesCnt; i++) {
                         var scopeStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrScopes, i));
-                        HasScope(scopeStr);
+                        if (!_scopes.ContainsKey(scopeStr)) {
+                            var s = new Scope(this, scopeStr);
+                            var cnt = s.GetCollections().Count;
+                            if(scopeStr == _defaultCollectionName || cnt > 0)
+                                _scopes.TryAdd(scopeStr, s);
+                        }
                     }
                 }
 

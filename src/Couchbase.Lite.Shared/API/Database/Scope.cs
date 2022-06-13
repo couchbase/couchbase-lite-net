@@ -55,7 +55,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets all collections in the Scope
         /// </summary>
-        public IReadOnlyList<Collection> Collections => _collections.Values as IReadOnlyList<Collection>;
+        public IReadOnlyList<Collection> Collections => _collections?.Values as IReadOnlyList<Collection>;
 
         internal C4Database* c4Db
         {
@@ -101,19 +101,25 @@ namespace Couchbase.Lite
         /// <returns>null will be returned if the collection doesn't exist in the Scope</returns>
         public Collection GetCollection(string name)
         {
-            Collection c = null;
+            Collection coll = null;
             ThreadSafety.DoLocked(() =>
             {
-                if (c4Db == null) {
-                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
-                }
-
-                if (HasCollection(name)) {
-                    c = _collections[name];
+                CheckOpen();
+                if (HasCollectionNoneCache(name)) {
+                    if (!_collections.ContainsKey(name)) {
+                        //coll = new Collection(Database, name, Name);
+                        var c4c = GetCollectionNoneCache(name);
+                        if (c4c != null) {
+                            coll = new Collection(Database, name, Name, c4c);
+                            _collections.TryAdd(name, coll);
+                        }
+                    } else {
+                        coll = _collections[name];
+                    }
                 }
             });
 
-            return c;
+            return coll;
         }
 
         /// <summary>
@@ -131,110 +137,85 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        internal Collection GetCollectionNotInCache(string collectionName)
-        {
-            Collection c = null;
-            using (var collName_ = new C4String(collectionName))
-            using (var scopeName_ = new C4String(Name)) {
-                var collectionSpec = new C4CollectionSpec() {
-                    name = collName_.AsFLSlice(),
-                    scope = scopeName_.AsFLSlice()
-                };
-
-                var c4c = (C4Collection*)LiteCoreBridge.Check(err =>
-                {
-                    return Native.c4db_getCollection(c4Db, collectionSpec, err);
-                });
-
-                if (c4c != null) {
-                    HasCollection(collectionName);
-                }
-            }
-
-            return c;
-        }
-
         internal Collection CreateCollection(string collectionName)
         {
-            Collection c = null;
-            using (var collName_ = new C4String(collectionName))
-            using (var scopeName_ = new C4String(Name)) {
-                var collectionSpec = new C4CollectionSpec() {
-                    name = collName_.AsFLSlice(),
-                    scope = scopeName_.AsFLSlice()
-                };
+            Collection co = null;
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                using (var collName_ = new C4String(collectionName))
+                using (var scopeName_ = new C4String(Name)) {
+                    var collectionSpec = new C4CollectionSpec() {
+                        name = collName_.AsFLSlice(),
+                        scope = scopeName_.AsFLSlice()
+                    };
 
-                var c4c = (C4Collection*)LiteCoreBridge.Check(err =>
-                {
-                    return Native.c4db_createCollection(c4Db, collectionSpec, err);
-                });
+                    var c4c = (C4Collection*)LiteCoreBridge.Check(err =>
+                    {
+                        return Native.c4db_createCollection(c4Db, collectionSpec, err);
+                    });
 
-                if (c4c != null) {
-                    if (HasCollection(collectionName)) {
-                        c = _collections[collectionName];
+                    if (c4c != null) {
+                        co = new Collection(Database, collectionName, Name, c4c);
+                        _collections.TryAdd(collectionName, co);
                     }
                 }
+            });
 
-                return c;
-            }
+            return co;
         }
 
         internal bool DeleteCollection(Collection collection)
         {
-            bool deleteSuccessful;
-            using (var collName_ = new C4String(collection.Name))
-            using (var scopeName_ = new C4String(collection.Scope?.Name)) {
-                var collectionSpec = new C4CollectionSpec() {
-                    name = collName_.AsFLSlice(),
-                    scope = scopeName_.AsFLSlice()
-                };
+            bool deleteSuccessful = false;
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                using (var collName_ = new C4String(collection.Name))
+                using (var scopeName_ = new C4String(collection.Scope?.Name)) {
+                    var collectionSpec = new C4CollectionSpec() {
+                        name = collName_.AsFLSlice(),
+                        scope = scopeName_.AsFLSlice()
+                    };
 
-                deleteSuccessful = LiteCoreBridge.Check(err =>
-                {
-                    return Native.c4db_deleteCollection(c4Db, collectionSpec, err);
-                });
+                    deleteSuccessful = LiteCoreBridge.Check(err =>
+                    {
+                        return Native.c4db_deleteCollection(c4Db, collectionSpec, err);
+                    });
 
-                if (deleteSuccessful) {
-                    if(_collections.TryRemove(collection.Name, out var dummy)) {
-                        collection.Dispose();
-                        collection = null;
+                    if (deleteSuccessful) {
+                        Collection co = null;
+                        if (_collections.TryRemove(collection.Name, out co)) {
+                            co.Dispose();
+                            co = null;
+                        }
                     }
                 }
-            }
+            });
 
             return deleteSuccessful;
         }
 
-        internal bool HasCollection(string collectionName)
+        internal bool HasCollectionNoneCache(string collectionName)
         {
-            bool hasCollection;
-            using (var collName_ = new C4String(collectionName))
-            using (var scopeName_ = new C4String(Name)) {
-                var collectionSpec = new C4CollectionSpec() {
-                    name = collName_.AsFLSlice(),
-                    scope = scopeName_.AsFLSlice()
-                };
+            bool hasCollection = false;
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                using (var collName_ = new C4String(collectionName))
+                using (var scopeName_ = new C4String(Name)) {
+                    var collectionSpec = new C4CollectionSpec() {
+                        name = collName_.AsFLSlice(),
+                        scope = scopeName_.AsFLSlice()
+                    };
 
-                hasCollection = ThreadSafety.DoLocked(() =>
-                {
-                    // Returns true if the collection exists.
-                    return Native.c4db_hasCollection(c4Db, collectionSpec);
-                });
-            }
-
-            if (hasCollection) {
-                if (!_collections.ContainsKey(collectionName)) {
-                    var c = new Collection(Database, collectionName, Name);
-                    _collections.TryAdd(collectionName, c);
+                    hasCollection = ThreadSafety.DoLocked(() =>
+                    {
+                        // Returns true if the collection exists.
+                        return Native.c4db_hasCollection(c4Db, collectionSpec);
+                    });
                 }
-            } else {
-                if (_collections.ContainsKey(collectionName)) {
-                    Collection c;
-                    _collections.TryRemove(collectionName, out c);
-                    c.Dispose();
-                    c = null;
-                }
-            }
+            });
 
             return hasCollection;
         }
@@ -254,6 +235,7 @@ namespace Couchbase.Lite
         {
             ThreadSafety.DoLocked(() =>
             {
+                CheckOpen();
                 C4Error error;
                 var arrColl = Native.c4db_collectionNames(c4Db, Name, &error);
                 if (error.code == 0) {
@@ -262,14 +244,42 @@ namespace Couchbase.Lite
                         _collections.Clear();
 
                     for (uint i = 0; i < collsCnt; i++) {
-                        Collection c;
                         var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
-                        HasCollection(collStr);
+                        if (!_collections.ContainsKey(collStr)) {
+                            var c4c = GetCollectionNoneCache(collStr);
+                            if (c4c != null) {
+                                var coll = new Collection(Database, collStr, Name, c4c);
+                                _collections.TryAdd(collStr, coll);
+                            }
+                        }
                     }
                 }
 
                 Native.FLValue_Release((FLValue*)arrColl);
             });
+        }
+
+        private C4Collection* GetCollectionNoneCache(string collectionName)
+        {
+            C4Collection* co = null;
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckOpen();
+                using (var collName_ = new C4String(collectionName))
+                using (var scopeName_ = new C4String(Name)) {
+                    var collectionSpec = new C4CollectionSpec() {
+                        name = collName_.AsFLSlice(),
+                        scope = scopeName_.AsFLSlice()
+                    };
+
+                    co = (C4Collection*)LiteCoreBridge.Check(err =>
+                    {
+                        return Native.c4db_getCollection(c4Db, collectionSpec, err);
+                    });
+                }
+            });
+
+            return co;
         }
 
         #endregion
