@@ -188,7 +188,7 @@ namespace Test
                 Db.CreateCollection(letter + str).Should().NotBeNull($"Valid collection name '{letter + str}'.");
             }
 
-            Db.CreateCollection("-" + str).Should().NotBeNull($"Valid collection name '{letter + str}'.");
+            Db.CreateCollection("-" + str).Should().NotBeNull($"Valid collection name '{"-" + str}'.");
         }
 
         [Fact]
@@ -278,7 +278,7 @@ namespace Test
                 Db.CreateCollection("abc", letter + str).Should().NotBeNull($"Valid scope name '{letter + str}'.");
             }
 
-            Db.CreateCollection("abc", "-" + str).Should().NotBeNull($"Valid scope name '{letter + str}'.");
+            Db.CreateCollection("abc", "-" + str).Should().NotBeNull($"Valid scope name '{"-" + str}'.");
         }
 
         [Fact]
