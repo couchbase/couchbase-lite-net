@@ -176,19 +176,19 @@ namespace Test
             // A - Z, a - z, 0 - 9, and the symbols _, -, and % and to start with A-Z, a-z, 0-9, and -
             var str = "_%";
             for (char letter = 'A'; letter <= 'Z'; letter++) {
-                Db.CreateCollection(letter+str).Should().NotBeNull();
+                Db.CreateCollection(letter+str).Should().NotBeNull($"Valid collection name '{letter + str}'.");
             }
 
             // TODO : wait for CBL-3195 fix
             //for (char letter = 'a'; letter <= 'z'; letter++) {
-            //    Db.CreateCollection(letter + str).Should().NotBeNull();
+            //    Db.CreateCollection(letter + str).Should().NotBeNull($"Valid collection name '{letter + str}'.");
             //}
 
             for (char letter = '0'; letter <= '9'; letter++) {
-                Db.CreateCollection(letter + str).Should().NotBeNull();
+                Db.CreateCollection(letter + str).Should().NotBeNull($"Valid collection name '{letter + str}'.");
             }
 
-            Db.CreateCollection("-" + str).Should().NotBeNull();
+            Db.CreateCollection("-" + str).Should().NotBeNull($"Valid collection name '{letter + str}'.");
         }
 
         [Fact]
@@ -238,14 +238,12 @@ namespace Test
             for(int i=0; i<251; i++) {
                 collName += 'c';
                 collName.Length.Should().Be(i + 1);
-                Db.CreateCollection(collName).Should().NotBeNull();
+                Db.CreateCollection(collName).Should().NotBeNull($"Valid collection '{collName}' length {collName.Length}.");
             }
 
-            collName.Length.Should().Be(251);
             var str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_%-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
             str.Length.Should().Be(251);
-            
-            Db.CreateCollection(str).Should().NotBeNull($"because the collection name can be length at {collName.Length}");
+            Db.CreateCollection(str).Should().NotBeNull($"because the collection name can be length at {str.Length}");
             
             str += "e";
             str.Length.Should().Be(252);
@@ -261,13 +259,6 @@ namespace Test
             //Db.CreateCollection("collection1").Should().NotBeNull("Should be able to be created because collection name is case sensitive.");
         }
 
-        /*TestScopeNameWithValidChars : Test creating collections with the scope name containing valid characters based on the naming convention.
-        Create collections under the scope named by the following characters
-        A-Z, a-z, 0-9, and the symbols _, -, and %.
-        Start with A-Z
-        Start with 0-9
-        Start with -
-        Ensure that the collections can be created successfully.*/
         [Fact]
         public void TestScopeNameWithValidChars()
         {
@@ -275,41 +266,31 @@ namespace Test
             // A - Z, a - z, 0 - 9, and the symbols _, -, and % and to start with A-Z, a-z, 0-9, and -
             var str = "_%";
             for (char letter = 'A'; letter <= 'Z'; letter++) {
-                Db.CreateCollection("abc", letter + str).Should().NotBeNull();
+                Db.CreateCollection("abc", letter + str).Should().NotBeNull($"Valid scope name '{letter + str}'.");
             }
 
             // TODO : wait for CBL-3195 fix
             //for (char letter = 'a'; letter <= 'z'; letter++) {
-            //    Db.CreateCollection("abc", letter + str).Should().NotBeNull();
+            //    Db.CreateCollection("abc", letter + str).Should().NotBeNull($"Valid scope name '{letter + str}'.");
             //}
 
             for (char letter = '0'; letter <= '9'; letter++) {
-                Db.CreateCollection("abc", letter + str).Should().NotBeNull();
+                Db.CreateCollection("abc", letter + str).Should().NotBeNull($"Valid scope name '{letter + str}'.");
             }
 
-            Db.CreateCollection("abc", "-" + str).Should().NotBeNull();
+            Db.CreateCollection("abc", "-" + str).Should().NotBeNull($"Valid scope name '{letter + str}'.");
         }
 
-        /*TestScopeNameStartWithIllegalChars:  Test creating collections with the scope name started with the Illegal characters.
-        Create collections under the scope named by using the following characters
-        A-Z, a-z, 0-9, and the symbols _, -, and %.
-        Start with _
-        Start with %
-        Ensure that the collections cannot be created with an invalid naming error.*/
         [Fact]
         public void TestScopeNameStartWithIllegalChars()
         {
             // None default Collection and Scope Names start with _ and % are prohibited
             Action badAction = (() => Db.CreateCollection("abc", "_"));
-            badAction.Should().Throw<CouchbaseLiteException>("Invalid collection name '_' in scope '_default'.");
+            badAction.Should().Throw<CouchbaseLiteException>("Invalid scope name '_'.");
             badAction = (() => Db.CreateCollection("abc", "%"));
-            badAction.Should().Throw<CouchbaseLiteException>("Invalid collection name '%' in scope '_default'.");
+            badAction.Should().Throw<CouchbaseLiteException>("Invalid scope name '%'.");
         }
 
-        /*TestScopeNameContainingIllegalChars:  Test creating collections with the scope name containing illegal characters based on the naming convention.
-        Create collections under the scope whose name contains the following characters
-        !, @, #, $, ^, &, *, (, ), +, -, ., <, >, ?, [, ], {, }, =, “, ‘, |, \, /,`,~
-        Ensure that the collections cannot be created with an invalid naming error.*/
         [Fact]
         public void TestScopeNameContainingIllegalChars()
         {
@@ -320,32 +301,25 @@ namespace Test
                 if (letter == '%')
                     return;
                 Action badAction = (() => Db.CreateCollection("abc", str + letter));
-                badAction.Should().Throw<CouchbaseLiteException>($"Invalid collection name '{str + letter}' in scope '_default'.");
+                badAction.Should().Throw<CouchbaseLiteException>($"Invalid scope name '{str + letter}'.");
             }
 
             for (char letter = '<'; letter <= '@'; letter++) {
                 Action badAction = (() => Db.CreateCollection("abc", str + letter));
-                badAction.Should().Throw<CouchbaseLiteException>($"Invalid collection name '{str + letter}' in scope '_default'.");
+                badAction.Should().Throw<CouchbaseLiteException>($"Invalid scope name '{str + letter}'.");
             }
 
             for (char letter = '['; letter <= '`'; letter++) {
                 Action badAction = (() => Db.CreateCollection("abc", str + letter));
-                badAction.Should().Throw<CouchbaseLiteException>($"Invalid collection name '{str + letter}' in scope '_default'.");
+                badAction.Should().Throw<CouchbaseLiteException>($"Invalid scope name '{str + letter}'.");
             }
 
             for (char letter = '{'; letter <= '~'; letter++) {
                 Action badAction = (() => Db.CreateCollection("abc", str + letter));
-                badAction.Should().Throw<CouchbaseLiteException>($"Invalid collection name '{str + letter}' in scope '_default'.");
+                badAction.Should().Throw<CouchbaseLiteException>($"Invalid scope name '{str + letter}'.");
             }
         }
 
-        /*TestScopeNameLength : Test that creating collections with the scope name whose length is in between 1 - 251 characters is allowed.
-        Create collections under the scope named by using the following characters
-        A-Z, a-z, 0-9, and the symbols _, -, and %.
-        Length from 1 - 251
-        Length more than 251
-        Ensure that the collections can be created successfully if length is between 1 - 251
-        Ensure that the collections cannot be created with an invalid naming error if length is more than 251.*/
         [Fact]
         public void TestScopeNameLength()
         {
@@ -354,32 +328,25 @@ namespace Test
             for (int i = 0; i < 251; i++) {
                 collName += 'c';
                 collName.Length.Should().Be(i + 1);
-                Db.CreateCollection("abc", collName).Should().NotBeNull();
+                Db.CreateCollection("abc", collName).Should().NotBeNull($"Valid scope '{collName}' length {collName.Length}.");
             }
 
-            collName.Length.Should().Be(251);
             var str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_%-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
             str.Length.Should().Be(251);
-
-            Db.CreateCollection("abc", str).Should().NotBeNull($"because the collection name can be length at {collName.Length}");
+            Db.CreateCollection("abc", str).Should().NotBeNull($"because the scope name can be length at {str.Length}");
 
             str += "e";
             str.Length.Should().Be(252);
             Action badAction = (() => Db.CreateCollection("abc", str));
-            badAction.Should().Throw<CouchbaseLiteException>($"Invalid collection name '{str}' in scope because the collection name length {str.Length} is over naming length limit.");
+            badAction.Should().Throw<CouchbaseLiteException>($"Invalid scope name '{str}' because the scope name length {str.Length} is over naming length limit.");
         }
 
-        /*TestScopeNameCaseSensitive : Test that the scope name is case sensitive.
-        Create two collections under the scope with the following name:
-        SCOPE1
-        scope1
-        Ensure that both collections can be created independently. */
         [Fact] // I think this test case is dup of TestScopeNameWithValidChars
         public void TestScopeNameCaseSensitive()
         {
             Db.CreateCollection("abc", "SCOPE1").Should().NotBeNull();
             // TODO : wait for CBL-3195 fix
-            //Db.CreateCollection("abc", "scope1").Should().NotBeNull("Should be able to be created because collection name is case sensitive.");
+            //Db.CreateCollection("abc", "scope1").Should().NotBeNull("Should be able to be created because scope name is case sensitive.");
         }
 
         /* TODO CBL-3225 8.2 Part 2
