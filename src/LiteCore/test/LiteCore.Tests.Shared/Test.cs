@@ -65,7 +65,14 @@ namespace LiteCore.Tests
         private int _objectCount = 0;
 
         internal C4Database* Db { get; private set; }
-        internal C4Collection* DefaultColl => Native.c4db_getDefaultCollection(Db);
+        internal C4Collection* DefaultColl
+        {
+            get {
+                C4Error error;
+                return Native.c4db_getDefaultCollection(Db, &error);
+            }
+        }
+
         internal C4DatabaseConfig2 DBConfig2 { get; set; }
         protected string Storage { get; private set; }
 
@@ -186,9 +193,10 @@ namespace LiteCore.Tests
 
         internal void CreateRev(C4Database* db, string docID, FLSlice revID, FLSlice body, C4RevisionFlags flags = (C4RevisionFlags)0)
         {
+            C4Error error;
             LiteCoreBridge.Check(err => Native.c4db_beginTransaction(db, err));
             try {
-                var defaultColl = Native.c4db_getDefaultCollection(db); // Just simply get default collection from old db (pre version 3.1)
+                var defaultColl = Native.c4db_getDefaultCollection(db, &error); // Just simply get default collection from old db (pre version 3.1)
                 var curDoc = (C4Document*)LiteCoreBridge.Check(err => Native.c4coll_getDoc(defaultColl, docID,
                    false, C4DocContentLevel.DocGetAll, err));
                 curDoc->Should().NotBeNull();
@@ -209,6 +217,7 @@ namespace LiteCore.Tests
                                   FLSlice body,
                                   C4RevisionFlags flags)
         {
+            C4Error error;
             var history = new[] { newRevID, parentRevID };
             fixed (FLSlice* h = history)
             {
@@ -224,7 +233,7 @@ namespace LiteCore.Tests
                     save = true
                 };
 
-                var defaultColl = Native.c4db_getDefaultCollection(db); // default collection from old db
+                var defaultColl = Native.c4db_getDefaultCollection(db, &error); // default collection from old db
                 var doc = (C4Document*)LiteCoreBridge.Check(err => {
                     var localRq = rq;
                     return Native.c4coll_putDoc(defaultColl, &localRq, null, err);

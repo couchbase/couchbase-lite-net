@@ -85,15 +85,13 @@ namespace LiteCore.Tests
         {
             var database = OpenDB();
             var handle = GCHandle.Alloc(this);
-            var observer = NativeRaw.c4dbobs_create(database, ObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
+            var observer = Native.c4dbobs_create(database, ObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
             var lastSequence = 0UL;
 
             try {
                 do {
-                    lock (_observerMutex)
-                    {
-                        if (!_changesToObserve)
-                        {
+                    lock (_observerMutex) {
+                        if (!_changesToObserve) {
                             continue;
                         }
 
@@ -102,23 +100,17 @@ namespace LiteCore.Tests
                     }
 
                     var changes = new C4CollectionChange[10];
-                    uint nDocs;
-                    bool external;
-                    while (0 < (nDocs = NativeRaw.c4dbobs_getChanges(observer, changes, 10U, &external)))
-                    {
-                        try
-                        {
-                            external.Should().BeTrue("because all changes will be external in this test");
-                            for (int i = 0; i < nDocs; ++i)
-                            {
+                    C4CollectionObservation observation;
+                    while (0 < (observation = Native.c4dbobs_getChanges(observer, changes, 10)).numChanges) {
+                        try {
+                            observation.external.Should().BeTrue("because all changes will be external in this test");
+                            for (int i = 0; i < observation.numChanges; ++i) {
                                 changes[i].docID.CreateString().Should().StartWith("doc-",
                                     "because otherwise the document ID is not what we created");
                                 lastSequence = changes[i].sequence;
                             }
-                        }
-                        finally
-                        {
-                            NativeRaw.c4dbobs_releaseChanges(changes, nDocs);
+                        } finally {
+                            Native.c4dbobs_releaseChanges(changes, observation.numChanges);
                         }
                     }
                     

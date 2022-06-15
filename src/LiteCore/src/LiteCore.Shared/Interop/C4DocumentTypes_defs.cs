@@ -150,4 +150,20 @@ namespace LiteCore.Interop
         public uint bodySize;
         public C4RevisionFlags flags;
     }
+
+    internal unsafe struct C4CollectionObservation
+    {
+        public uint numChanges;
+        private byte _external;
+        public C4Collection* collection;
+
+        public bool external
+        {
+            get {
+                return Convert.ToBoolean(_external);
+            } set {
+                _external = Convert.ToByte(value);
+            }
+        }
+    }
 }

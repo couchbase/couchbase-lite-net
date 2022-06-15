@@ -60,7 +60,7 @@ namespace LiteCore.Tests
                 var handle = GCHandle.Alloc(this);
                 try
                 {
-                    _dbObserver = NativeRaw.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    _dbObserver = Native.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     CreateRev("A", FLSlice.Constant("1-aa"), FleeceBody);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
                     CreateRev("B", FLSlice.Constant("1-bb"), FleeceBody);
@@ -117,7 +117,7 @@ namespace LiteCore.Tests
                 var handle = GCHandle.Alloc(this);
                 try
                 {
-                    _dbObserver = NativeRaw.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    _dbObserver = Native.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     CreateRev("A", FLSlice.Constant("1-aa"), FleeceBody);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
                     CreateRev("B", FLSlice.Constant("1-bb"), FleeceBody);
@@ -160,7 +160,9 @@ namespace LiteCore.Tests
         {
             var changes = new C4CollectionChange[100];
             bool external;
-            var changeCount = NativeRaw.c4dbobs_getChanges(_dbObserver, changes, 100, &external);
+            var collectionObservation = Native.c4dbobs_getChanges(_dbObserver, changes, 100);
+            external = collectionObservation.external;
+            var changeCount = collectionObservation.numChanges;
             changeCount.Should().Be((uint)expectedDocIDs.Count, "because otherwise we didn't get the correct number of changes");
             for (int i = 0; i < changeCount; i++)
             {
@@ -168,7 +170,7 @@ namespace LiteCore.Tests
                 changes[i].revID.CreateString().Should().Be(expectedRevIDs[i], "because otherwise we have an invalid document revision ID");
             }
 
-            NativeRaw.c4dbobs_releaseChanges(changes, changeCount);
+            Native.c4dbobs_releaseChanges(changes, changeCount);
             external.Should().Be(expectedExternal, "because otherwise the external parameter was wrong");
         }
 
@@ -185,7 +187,7 @@ namespace LiteCore.Tests
 #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
 #endif
-        private static void DocObserverCallback(C4DocumentObserver* obs, FLSlice docId, ulong sequence, void* context)
+        private static void DocObserverCallback(C4DocumentObserver* obs, C4Collection* collection, FLSlice docId, ulong sequence, void* context)
         {
             var obj = GCHandle.FromIntPtr((IntPtr) context).Target as ObserverTest;
             obj.DocObserverCalled(obs, docId.CreateString(), sequence);

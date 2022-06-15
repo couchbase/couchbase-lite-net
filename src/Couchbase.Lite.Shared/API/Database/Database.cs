@@ -430,8 +430,7 @@ namespace Couchbase.Lite
                 if (_defaultCollection == null) {
                     var c4coll = (C4Collection*)LiteCoreBridge.Check(err =>
                     {
-                        //TODO: will add error param when LiteCore is ready
-                        return Native.c4db_getDefaultCollection(c4db);
+                        return Native.c4db_getDefaultCollection(c4db, err);
                     });
 
                     if (c4coll != null) {
@@ -1196,7 +1195,7 @@ namespace Couchbase.Lite
                 if (_databaseChanged.Add(cbHandler) == 0)
                 {
                     _obsContext = GCHandle.Alloc(this);
-                    _obs = NativeRaw.c4dbobs_create(_c4db, _DatabaseObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer());
+                    _obs = Native.c4dbobs_create(_c4db, _DatabaseObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer());
                 }
 
                 return new ListenerToken(cbHandler, ListenerTokenType.Database, this);
@@ -1525,7 +1524,7 @@ namespace Couchbase.Lite
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
         #endif
-        private static void DocObserverCallback(C4DocumentObserver* obs, FLSlice docId, ulong sequence, void* context)
+        private static void DocObserverCallback(C4DocumentObserver* obs, C4Collection* collection, FLSlice docId, ulong sequence, void* context)
         {
             if (docId.buf == null) {
                 return;
@@ -1645,7 +1644,9 @@ namespace Couchbase.Lite
                 do {
                     // Read changes in batches of MaxChanges:
                     bool newExternal;
-                    nChanges = NativeRaw.c4dbobs_getChanges(_obs, changes, maxChanges, &newExternal);
+                    var collectionObservation = Native.c4dbobs_getChanges(_obs, changes, maxChanges);
+                    newExternal = collectionObservation.external;
+                    nChanges = collectionObservation.numChanges;
                     if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
                         if (docIDs.Count > 0) {
                             // Only notify if there are actually changes to send
@@ -1659,7 +1660,7 @@ namespace Couchbase.Lite
                     for (var i = 0; i < nChanges; i++) {
                         docIDs.Add(changes[i].docID.CreateString());
                     }
-                    NativeRaw.c4dbobs_releaseChanges(changes, nChanges);
+                    Native.c4dbobs_releaseChanges(changes, nChanges);
                 } while (nChanges > 0);
             });
         }
