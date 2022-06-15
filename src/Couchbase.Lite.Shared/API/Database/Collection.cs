@@ -708,6 +708,13 @@ namespace Couchbase.Lite
             }
         }
 
+        private void CheckOpen()
+        {
+            if (c4Db == null) {
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
+            }
+        }
+
         #endregion
 
         #region object
