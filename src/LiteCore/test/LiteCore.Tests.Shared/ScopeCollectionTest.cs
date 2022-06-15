@@ -211,6 +211,58 @@ namespace LiteCore.Tests
 
         #endregion
 
+        #region Multiple Dbs
+
+        [Fact]
+        public void TestCreateThenGetCollectionFromDifferentDatabaseInstance()
+        {
+            RunTestVariants(() =>
+            {
+                var handle = GCHandle.Alloc(this);
+                C4Error error;
+                var collName = "newColl";
+                var scopeName = "newScope";
+                try {
+                    using (var collName_ = new C4String(collName))
+                    using (var scopeName_ = new C4String(scopeName)) {
+                        var collectionSpec = new C4CollectionSpec() {
+                            name = collName_.AsFLSlice(),
+                            scope = scopeName_.AsFLSlice()
+                        };
+
+                        C4Collection* coll = (C4Collection*)LiteCoreBridge.Check(err =>
+                        {
+                            return Native.c4db_createCollection(Db, collectionSpec, err);
+                        });
+                    }
+                        
+                    // Open another database on the same file
+                    var otherdb = (C4Database*)LiteCoreBridge.Check(err =>
+                    Native.c4db_openNamed(DBName, Native.c4db_getConfig2(Db), err));
+                    LiteCoreBridge.Check(err => Native.c4db_beginTransaction(otherdb, err));
+                    try {
+                        //check if scope exists in the otherdb instance
+                        bool hasScope = Native.c4db_hasScope(otherdb, scopeName);
+                        //TODO wait for CBL-3298 fix
+                        //hasScope.Should().BeTrue();
+
+                        var arrColl = Native.c4db_collectionNames(otherdb, scopeName, &error);
+                        var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, 0));
+                        collStr.Should().Be(collName, "Because Scope contains all it's collections' name.");
+                    } finally {
+                        LiteCoreBridge.Check(err => Native.c4db_endTransaction(otherdb, true, err));
+                    }
+
+                    LiteCoreBridge.Check(err => Native.c4db_close(otherdb, err));
+                    Native.c4db_release(otherdb);
+                } finally {
+                    handle.Free();
+                }
+            });
+        }
+
+        #endregion
+
         #region Document
 
         [Fact] //TODO: Revisit when the implementation is done to see if c4coll_putDoc is used anywhere.

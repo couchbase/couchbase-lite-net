@@ -161,7 +161,7 @@ namespace Couchbase.Lite
         #region Public Methods
 
         /// <summary>
-        /// Deletes a document from the database.  When write operations are executed
+        /// Deletes a document from the collection.  When write operations are executed
         /// concurrently, the last writer will overwrite all other written values.
         /// Calling this method is the same as calling <see cref="Delete(Document, ConcurrencyControl)"/>
         /// with <see cref="ConcurrencyControl.LastWriteWins"/>
@@ -169,24 +169,24 @@ namespace Couchbase.Lite
         /// <param name="document">The document</param>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
-        /// when trying to save a document into a database other than the one it was previously added to</exception>
+        /// when trying to save a document into a collection other than the one it was previously added to</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
-        /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        /// when trying to delete a document that hasn't been saved into a <see cref="Collection"/> yet</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the collection is closed</exception>
         public void Delete([NotNull] Document document) => Delete(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
-        /// Deletes the given <see cref="Document"/> from this database
+        /// Deletes the given <see cref="Document"/> from this collection
         /// </summary>
         /// <param name="document">The document to save</param>
-        /// <param name="concurrencyControl">The rule to use when encountering a conflict in the database</param>
+        /// <param name="concurrencyControl">The rule to use when encountering a conflict in the collection</param>
         /// <returns><c>true</c> if the delete succeeded, <c>false</c> if there was a conflict</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
-        /// when trying to save a document into a database other than the one it was previously added to</exception>
+        /// when trying to save a document into a collection other than the one it was previously added to</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
-        /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        /// when trying to delete a document that hasn't been saved into a <see cref="Collection"/> yet</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the collection is closed</exception>
         public bool Delete([NotNull] Document document, ConcurrencyControl concurrencyControl)
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
@@ -201,7 +201,7 @@ namespace Couchbase.Lite
         [CanBeNull]
         public Document GetDocument([NotNull] string id)
         {
-            Database.CheckOpen();
+            CheckOpen();
             var doc = new Document(this, id);
             if (!doc.Exists || doc.IsDeleted) {
                 doc.Dispose();
@@ -214,18 +214,18 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Purges the given <see cref="Document"/> from the database.  This leaves
+        /// Purges the given <see cref="Document"/> from the collection.  This leaves
         /// no trace behind and will not be replicated
         /// </summary>
         /// <param name="document">The document to purge</param>
-        /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a database
+        /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a collection
         /// other than the one it was previously added to</exception>
         public void Purge([NotNull] Document document)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             ThreadSafety.DoLocked(() =>
             {
-                Database.CheckOpen();
+                CheckOpen();
                 VerifyCollection(document);
 
                 if (!document.Exists) {
@@ -238,7 +238,7 @@ namespace Couchbase.Lite
 
         /// <summary>
         /// Purges the given document id of the <see cref="Document"/> 
-        /// from the database.  This leaves no trace behind and will 
+        /// from the collection.  This leaves no trace behind and will 
         /// not be replicated
         /// </summary>
         /// <param name="docId">The id of the document to purge</param>
@@ -251,21 +251,21 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Saves the given <see cref="MutableDocument"/> into this database.  This call is equivalent to calling
+        /// Saves the given <see cref="MutableDocument"/> into this collection.  This call is equivalent to calling
         /// <see cref="Save(MutableDocument, ConcurrencyControl)" /> with a second argument of
         /// <see cref="ConcurrencyControl.LastWriteWins"/>
         /// </summary>
         /// <param name="document">The document to save</param>
-        /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
+        /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a collection
         /// other than the one it was previously added to</exception>
         public void Save([NotNull] MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
-        /// Saves the given <see cref="MutableDocument"/> into this database
+        /// Saves the given <see cref="MutableDocument"/> into this collection
         /// </summary>
         /// <param name="document">The document to save</param>
-        /// <param name="concurrencyControl">The rule to use when encountering a conflict in the database</param>
-        /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
+        /// <param name="concurrencyControl">The rule to use when encountering a conflict in the collection</param>
+        /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a collection
         /// other than the one it was previously added to</exception>
         /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
         public bool Save([NotNull] MutableDocument document, ConcurrencyControl concurrencyControl)
@@ -275,7 +275,7 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Saves a document to the database. When write operations are executed concurrently, 
+        /// Saves a document to the collection. When write operations are executed concurrently, 
         /// and if conflicts occur, conflict handler will be called. Use the handler to directly
         /// edit the document.Returning true, will save the document. Returning false, will cancel
         /// the save operation.
@@ -337,7 +337,7 @@ namespace Couchbase.Lite
 
         /// <summary>
         /// Sets an expiration date on a document. After this time, the document
-        /// will be purged from the database.
+        /// will be purged from the collection.
         /// </summary>
         /// <param name="docId"> The ID of the <see cref="Document"/> </param> 
         /// <param name="expiration"> Nullable expiration timestamp as a 
@@ -367,13 +367,18 @@ namespace Couchbase.Lite
 
         # region Public Methods - Indexable
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets a list of index names that are present in the collection
+        /// </summary>
+        /// <returns>The list of created index names</returns>
+        [NotNull]
+        [ItemNotNull]
         public IList<string> GetIndexes()
         {
             List<string> retVal = new List<string>();
             ThreadSafety.DoLocked(() =>
             {
-                Database.CheckOpen();
+                CheckOpen();
                 var result = new FLSliceResult();
                 LiteCoreBridge.Check(err =>
                 {
@@ -399,7 +404,20 @@ namespace Couchbase.Lite
             return retVal as IList<string> ?? new List<string>();
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Creates an index which could be a value index from <see cref="IndexBuilder.ValueIndex"/> or a full-text search index
+        /// from <see cref="IndexBuilder.FullTextIndex"/> with the given name.
+        /// The name can be used for deleting the index. Creating a new different index with an existing
+        /// index name will replace the old index; creating the same index with the same name will be no-ops.
+        /// </summary>
+        /// <param name="name">The index name</param>
+        /// <param name="index">The index</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> or <paramref name="index"/>
+        /// is <c>null</c></exception>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the collection is closed</exception>
+        /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
+        /// provided ones is used</exception>
         public void CreateIndex([NotNull] string name, [NotNull] IndexConfiguration indexConfig)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
@@ -407,7 +425,7 @@ namespace Couchbase.Lite
 
             ThreadSafety.DoLocked(() =>
             {
-                Database.CheckOpen();
+                CheckOpen();
                 LiteCoreBridge.Check(err =>
                 {
                     var internalOpts = indexConfig.Options;
@@ -421,14 +439,17 @@ namespace Couchbase.Lite
             });
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Deletes the index with the given name
+        /// </summary>
+        /// <param name="name">The name of the index to delete</param>
         public void DeleteIndex([NotNull] string name)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
 
             ThreadSafety.DoLockedBridge(err =>
             {
-                Database.CheckOpen();
+                CheckOpen();
                 return Native.c4coll_deleteIndex(c4coll, name, err);
             });
         }
@@ -449,7 +470,7 @@ namespace Couchbase.Lite
             var success = true;
             ThreadSafety.DoLocked(() =>
             {
-                Database.CheckOpen();
+                CheckOpen();
                 VerifyCollection(document);
                 C4Document* curDoc = null;
                 C4Document* newDoc = null;
@@ -468,7 +489,7 @@ namespace Couchbase.Lite
                         }
 
                         C4Error err;
-                        curDoc = Native.c4db_getDoc(c4Db, document.Id, true, C4DocContentLevel.DocGetCurrentRev, &err);
+                        curDoc = Native.c4coll_getDoc(c4coll, document.Id, true, C4DocContentLevel.DocGetCurrentRev, &err);
 
                         // If deletion and the current doc has already been deleted
                         // or doesn't exist:
@@ -564,7 +585,7 @@ namespace Couchbase.Lite
                     {
                         *outDoc = (C4Document*)NativeHandler.Create()
                             .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                err => NativeRaw.c4doc_create(c4Db, docID_.AsFLSlice(), (FLSlice)body, revFlags, err));
+                                err => NativeRaw.c4coll_createDoc(c4coll, docID_.AsFLSlice(), (FLSlice)body, revFlags, err));
                     }
                 });
             }
@@ -607,7 +628,9 @@ namespace Couchbase.Lite
 
         public IQuery CreateQuery([NotNull] string queryExpression)
         {
-            throw new NotImplementedException();
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(queryExpression), queryExpression);
+            var query = new NQuery(queryExpression, this.Database);
+            return query;
         }
 
         #endregion
@@ -675,6 +698,13 @@ namespace Couchbase.Lite
             _c4coll = IntPtr.Zero;
         }
 
+        private void CheckOpen()
+        {
+            if (c4Db == null) {
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
+            }
+        }
+
         #endregion
 
         #region object
@@ -692,7 +722,8 @@ namespace Couchbase.Lite
             }
 
             return String.Equals(Name, other.Name, StringComparison.Ordinal)
-                && String.Equals(Scope.Name, other.Scope.Name, StringComparison.Ordinal);
+                && String.Equals(Scope.Name, other.Scope.Name, StringComparison.Ordinal)
+                && String.Equals(Database?.Path, other?.Database?.Path, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <inheritdoc />

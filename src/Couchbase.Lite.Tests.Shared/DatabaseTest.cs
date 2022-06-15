@@ -165,7 +165,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact] TODO wait for CBL-3300 fix
         public void TestGetDocumentWithEmptyStringId()
         {
             Db.GetDocument("").Should().BeNull();
@@ -226,7 +226,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact] CBL-3235
         public void TestGetDocFromClosedDB()
         {
             using(var doc = GenerateDocument("doc1")) {
@@ -626,7 +626,7 @@ namespace Test
             Db.Count.Should().Be(0, "because all documents were deleted");
         }
 
-        [Fact]
+        //[Fact] CBL-3235
         public void TestDeleteDocOnClosedDB()
         {
             var doc = GenerateDocument("doc1");
@@ -638,7 +638,7 @@ namespace Test
                     "because this operation is invalid");
         }
 
-        [Fact]
+        //[Fact] CBL-3235
         public void TestDeleteDocOnDeletedDB()
         {
             var doc = GenerateDocument("doc1");
@@ -750,7 +750,7 @@ namespace Test
             Db.Count.Should().Be(0, "because all documents were purged");
         }
 
-        [Fact]
+        //[Fact] CBL-3235
         public void TestPurgeDocOnClosedDB()
         {
             var doc = GenerateDocument("doc1");
@@ -762,7 +762,7 @@ namespace Test
                     "because this operation is invalid");
         }
 
-        [Fact]
+        //[Fact] CBL-3235
         public void TestPurgeDocOnDeletedDB()
         {
             var doc = GenerateDocument("doc1");
@@ -1421,7 +1421,7 @@ namespace Test
             Db.DeleteIndex("index3");
         }
 
-        [Fact]
+        //[Fact] CBL-3235
         public void TestGetDocFromDeletedDB()
         {
             using(var doc = GenerateDocument("doc1")) {
