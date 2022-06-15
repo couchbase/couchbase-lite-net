@@ -166,7 +166,7 @@ namespace Couchbase.Lite
 
                     if (c4c != null) {
                         co = new Collection(Database, collectionName, this, c4c);
-                        _collections.TryAdd(collectionName, co); //Maybe need to consider c4collection is not the same on in the cache? 
+                        _collections.TryAdd(collectionName, co); 
                     }
                 }
             });
