@@ -63,6 +63,7 @@ namespace Couchbase.Lite
                 if (_c4coll == IntPtr.Zero) 
                     throw new ObjectDisposedException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
                                 ToString())); 
+
                 return (C4Collection*)_c4coll; 
             }
         }
@@ -348,7 +349,7 @@ namespace Couchbase.Lite
         {
             ThreadSafety.DoLocked(() =>
             {
-                if (c4Db == null) {
+                if (_c4coll == IntPtr.Zero) {
                     throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
                                 ToString()));
                 }
@@ -359,7 +360,7 @@ namespace Couchbase.Lite
                     isValid = Native.c4coll_isValid((C4Collection*)_c4coll);
                 }
 
-                if (!isValid || c4Db == null) {
+                if (!isValid || _c4coll == IntPtr.Zero) {
                     throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
                                 ToString()));
                 }
