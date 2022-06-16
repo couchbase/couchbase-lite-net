@@ -349,17 +349,11 @@ namespace Couchbase.Lite
         {
             ThreadSafety.DoLocked(() =>
             {
-                if (_c4coll == IntPtr.Zero) {
-                    throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
-                                ToString()));
+                if (c4Db == null) {
+                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
                 }
 
                 var isValid = Native.c4coll_isValid((C4Collection*)_c4coll);
-                if (!isValid) {
-                    // A 2nd call to confirm collection availability in a multithreaded application. 
-                    isValid = Native.c4coll_isValid((C4Collection*)_c4coll);
-                }
-
                 if (!isValid || _c4coll == IntPtr.Zero) {
                     throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
                                 ToString()));
