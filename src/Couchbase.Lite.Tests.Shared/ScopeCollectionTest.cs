@@ -158,9 +158,10 @@ namespace Test
             var colA = Db.CreateCollection("colA", "scopeA");
             var colB = Db.CreateCollection("colB", "scopeA");
             var scopeA = Db.GetScope("scopeA");
-            scopeA.Collections.Count.Should().Be(2, "Because 2 collections were just added in the Database.");
-            scopeA.Collections.Contains(colA).Should().BeTrue("Because collecton colA is in scopeA");
-            scopeA.Collections.Contains(colB).Should().BeTrue("Because collecton colB is in scopeA");
+            var collectionsInScopeA = scopeA.GetCollections();
+            collectionsInScopeA.Count.Should().Be(2, "Because 2 collections were just added in the Database.");
+            collectionsInScopeA.Contains(colA).Should().BeTrue("Because collecton colA is in scopeA");
+            collectionsInScopeA.Contains(colB).Should().BeTrue("Because collecton colB is in scopeA");
             Db.DeleteCollection("colA", "scopeA");
             scopeA.GetCollections().Count.Should().Be(1, "Collections count should be 1 because colA is deleted from scopeA");
             Db.DeleteCollection("colB", "scopeA");
