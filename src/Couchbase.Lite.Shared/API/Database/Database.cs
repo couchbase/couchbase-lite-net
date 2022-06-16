@@ -221,8 +221,6 @@ namespace Couchbase.Lite
             }
         }
 
-        public IReadOnlyList<Scope> Scopes => _scopes?.Values as IReadOnlyList<Scope>;
-
         internal ConcurrentDictionary<IStoppable, int> ActiveStoppables { get; } = new ConcurrentDictionary<IStoppable, int>();
 
         internal FLSliceResult PublicUUID
@@ -440,6 +438,7 @@ namespace Couchbase.Lite
                 }
             });
 
+            _defaultCollection?.CheckCollectionValid();
             return _defaultCollection;
         }
 
@@ -456,7 +455,7 @@ namespace Couchbase.Lite
         public IReadOnlyList<Scope> GetScopes()
         {
             GetScopesList();
-            return Scopes;
+            return _scopes?.Values as IReadOnlyList<Scope>;
         }
 
         /// <summary>
@@ -475,7 +474,7 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                if (HasScopeNoneCache(name)) {
+                if (HasScopeFromLiteCore(name)) {
                     if (!_scopes.ContainsKey(name)) {
                         scope = new Scope(this, name);
                     } else {
@@ -531,6 +530,7 @@ namespace Couchbase.Lite
                 }
             });
 
+            c?.CheckCollectionValid();
             return c;
         }
 
@@ -1467,7 +1467,7 @@ namespace Couchbase.Lite
             });
         }
 
-        internal bool HasScopeNoneCache(string scope)
+        internal bool HasScopeFromLiteCore(string scope)
         {
             bool hasScope = ThreadSafety.DoLocked(() =>
             {

@@ -19,14 +19,12 @@
 using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
-using Couchbase.Lite.Util;
 using JetBrains.Annotations;
-using LiteCore;
 using LiteCore.Interop;
-using LiteCore.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Couchbase.Lite
@@ -45,7 +43,7 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        private C4Collection* _c4coll;
+        private IntPtr _c4coll;
 
         #endregion
 
@@ -61,10 +59,11 @@ namespace Couchbase.Lite
 
         internal C4Collection* c4coll
         {
-            get {
-                C4Collection* retVal = null;
-                ThreadSafety.DoLocked(() => retVal = _c4coll);
-                return retVal;
+            get { 
+                if (_c4coll == IntPtr.Zero) 
+                    throw new ObjectDisposedException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
+                                ToString())); 
+                return (C4Collection*)_c4coll.ToPointer(); 
             }
         }
 
@@ -111,8 +110,8 @@ namespace Couchbase.Lite
             Name = name;
             Scope = scope;
 
-            _c4coll = c4c;
-            Native.c4coll_retain(_c4coll);
+            _c4coll = (IntPtr)c4c;
+            Native.c4coll_retain((C4Collection*)_c4coll);
         }
 
         #endregion
@@ -336,9 +335,6 @@ namespace Couchbase.Lite
         {
             ThreadSafety.DoLocked(() =>
             {
-                if (c4coll == null)
-                    return;
-
                 var spec = Native.c4coll_getSpec(c4coll);
                 Name = spec.name.CreateString();
                 Scope.Name = spec.scope.CreateString();
@@ -348,18 +344,26 @@ namespace Couchbase.Lite
         /// <summary>
         /// Returns false if this collection has been deleted, or its database closed.
         /// </summary>
-        internal bool IsCollectionValid()
+        internal void CheckCollectionValid()
         {
-            bool isValid = false;
+            if(c4Db == null) {
+                throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
+                            ToString()));
+            }
+            
             ThreadSafety.DoLocked(() =>
             {
-                isValid = Native.c4coll_isValid(_c4coll);
+                var isValid = Native.c4coll_isValid((C4Collection*)_c4coll);
                 if (!isValid) {
-                    isValid = Native.c4coll_isValid(_c4coll);
+                    // A 2nd call to confirm collection availability in a multithreaded application. 
+                    isValid = Native.c4coll_isValid((C4Collection*)_c4coll);
+                }
+
+                if (!isValid || c4Db == null) {
+                    throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
+                                ToString()));
                 }
             });
-
-            return isValid;
         }
 
         #endregion
@@ -380,10 +384,12 @@ namespace Couchbase.Lite
             return c4db;
         }
 
-        private void ReleaseCollection()
+        private unsafe void ReleaseCollection()
         {
-            Native.c4coll_release(_c4coll);
-            _c4coll = null;
+            IntPtr temp = IntPtr.Zero;
+            Interlocked.Exchange(ref temp, _c4coll);
+            Native.c4coll_release((C4Collection*)temp);
+            _c4coll = IntPtr.Zero;
         }
 
         #endregion

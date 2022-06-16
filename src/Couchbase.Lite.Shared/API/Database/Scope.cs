@@ -25,8 +25,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -55,7 +53,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets all collections in the Scope
         /// </summary>
-        public IReadOnlyList<Collection> Collections => _collections?.Values as IReadOnlyList<Collection>;
+        internal IReadOnlyList<Collection> Collections => _collections?.Values as IReadOnlyList<Collection>;
 
         internal C4Database* c4Db
         {
@@ -108,16 +106,20 @@ namespace Couchbase.Lite
         /// Gets one collection of the given name
         /// </summary>
         /// <param name="name">The collection name</param>
-        /// <returns>null will be returned if the collection doesn't exist in the Scope</returns>
+        /// <returns>The collection of the given name. null if the collection doesn't exist in the Scope</returns>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
+        /// if <see cref="Database"/> is closed</exception>
+        /// <exception cref = "InvalidOperationException" > Thrown if <see cref="Collection"/> is not valid.</exception>
         public Collection GetCollection(string name)
         {
             Collection coll = null;
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                if (HasCollectionNoneCache(name)) {
+                if (HasCollectionFromLiteCore(name)) {
                     if (!_collections.ContainsKey(name)) {
-                        var c4c = GetCollectionNoneCache(name);
+                        var c4c = GetCollectionFromLiteCore(name);
                         if (c4c != null) {
                             coll = new Collection(Database, name, this, c4c);
                             _collections.TryAdd(name, coll);
@@ -128,13 +130,14 @@ namespace Couchbase.Lite
                 }
             });
 
+            coll?.CheckCollectionValid();
             return coll;
         }
 
         /// <summary>
         /// Get all collections in this scope object.
         /// </summary>
-        /// <returns>All collections in this scope object</returns>
+        /// <returns>All collections in this scope object. Empty list if these is no collection in the Scope.</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         public IReadOnlyList<Collection> GetCollections()
         {
@@ -205,7 +208,7 @@ namespace Couchbase.Lite
             return deleteSuccessful;
         }
 
-        internal bool HasCollectionNoneCache(string collectionName)
+        internal bool HasCollectionFromLiteCore(string collectionName)
         {
             bool hasCollection = false;
             ThreadSafety.DoLocked(() =>
@@ -229,7 +232,7 @@ namespace Couchbase.Lite
             return hasCollection;
         }
 
-        internal IReadOnlyList<Collection> GetCollectionListNoneCache()
+        internal IReadOnlyList<Collection> GetCollectionListFromLiteCore()
         {
             List<Collection> cos = new List<Collection>();
             ThreadSafety.DoLocked(() =>
@@ -241,7 +244,7 @@ namespace Couchbase.Lite
                     var collsCnt = Native.FLArray_Count((FLArray*)arrColl);
                     for (uint i = 0; i < collsCnt; i++) {
                         var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
-                        var c4c = GetCollectionNoneCache(collStr);
+                        var c4c = GetCollectionFromLiteCore(collStr);
                         if (c4c != null) {
                             var coll = new Collection(Database, collStr, this, c4c);
                             cos.Add(coll);
@@ -281,7 +284,7 @@ namespace Couchbase.Lite
                     for (uint i = 0; i < collsCnt; i++) {
                         var collStr = (string)FLSliceExtensions.ToObject(Native.FLArray_Get((FLArray*)arrColl, i));
                         if (!_collections.ContainsKey(collStr)) {
-                            var c4c = GetCollectionNoneCache(collStr);
+                            var c4c = GetCollectionFromLiteCore(collStr);
                             if (c4c != null) {
                                 var coll = new Collection(Database, collStr, this, c4c);
                                 _collections.TryAdd(collStr, coll);
@@ -294,7 +297,7 @@ namespace Couchbase.Lite
             });
         }
 
-        private C4Collection* GetCollectionNoneCache(string collectionName)
+        private C4Collection* GetCollectionFromLiteCore(string collectionName)
         {
             C4Collection* co = null;
             ThreadSafety.DoLocked(() =>
