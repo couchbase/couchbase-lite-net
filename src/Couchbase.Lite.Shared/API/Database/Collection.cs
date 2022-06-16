@@ -63,7 +63,7 @@ namespace Couchbase.Lite
                 if (_c4coll == IntPtr.Zero) 
                     throw new ObjectDisposedException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
                                 ToString())); 
-                return (C4Collection*)_c4coll.ToPointer(); 
+                return (C4Collection*)_c4coll; 
             }
         }
 
@@ -346,13 +346,13 @@ namespace Couchbase.Lite
         /// </summary>
         internal void CheckCollectionValid()
         {
-            if(c4Db == null) {
-                throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
-                            ToString()));
-            }
-            
             ThreadSafety.DoLocked(() =>
             {
+                if (c4Db == null) {
+                    throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
+                                ToString()));
+                }
+
                 var isValid = Native.c4coll_isValid((C4Collection*)_c4coll);
                 if (!isValid) {
                     // A 2nd call to confirm collection availability in a multithreaded application. 
