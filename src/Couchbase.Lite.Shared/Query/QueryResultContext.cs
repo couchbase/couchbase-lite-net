@@ -37,6 +37,12 @@ namespace Couchbase.Lite.Internal.Query
             _enumerator = enumerator;
         }
 
+        //public QueryResultContext(Database db, C4QueryEnumerator* enumerator)
+        //    : base(db, null)
+        //{
+        //    _enumerator = enumerator;
+        //}
+
         #endregion
 
         #region Overrides

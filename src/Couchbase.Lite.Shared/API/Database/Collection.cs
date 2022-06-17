@@ -228,6 +228,7 @@ namespace Couchbase.Lite
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             ThreadSafety.DoLocked(() =>
             {
+                CheckCollectionValid();
                 VerifyCollection(document);
 
                 if (!document.Exists) {

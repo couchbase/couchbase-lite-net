@@ -210,6 +210,7 @@ namespace Test
             for (char letter = '!'; letter <= '/'; letter++) {
                 if (letter == '%')
                     return;
+
                 Action badAction = (() => Db.CreateCollection(str + letter));
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid collection name '{str + letter}' in scope '_default'.");
             }
