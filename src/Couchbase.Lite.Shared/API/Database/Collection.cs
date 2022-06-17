@@ -87,12 +87,12 @@ namespace Couchbase.Lite
         /// Cannot start with _ or %.
         /// Case sensitive.
         /// </remarks>
-        public string Name { get; private set; } = DefaultCollectionName;
+        public string Name { get; } = DefaultCollectionName;
 
         /// <summary>
         /// Gets the Scope of the Collection belongs to
         /// </summary>
-        public Scope Scope { get; private set; }
+        public Scope Scope { get; }
 
         /// <summary>
         /// Gets the total documents in the Collection
@@ -332,16 +332,6 @@ namespace Couchbase.Lite
 
         #region Internal Methods
 
-        internal void GetSpec()
-        {
-            ThreadSafety.DoLocked(() =>
-            {
-                var spec = Native.c4coll_getSpec(c4coll);
-                Name = spec.name.CreateString();
-                Scope.Name = spec.scope.CreateString();
-            });
-        }
-
         /// <summary>
         /// Returns false if this collection has been deleted, or its database closed.
         /// </summary>
@@ -353,8 +343,12 @@ namespace Couchbase.Lite
                     throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
                 }
 
-                var isValid = Native.c4coll_isValid((C4Collection*)_c4coll);
-                if (!isValid || _c4coll == IntPtr.Zero) {
+                if (_c4coll == IntPtr.Zero) {
+                    throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
+                                ToString()));
+                }
+
+                if (!Native.c4coll_isValid((C4Collection*)_c4coll)) {
                     throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
                                 ToString()));
                 }
@@ -381,9 +375,8 @@ namespace Couchbase.Lite
 
         private unsafe void ReleaseCollection()
         {
-            IntPtr temp = IntPtr.Zero;
-            Interlocked.Exchange(ref temp, _c4coll);
-            Native.c4coll_release((C4Collection*)temp);
+            Interlocked.Exchange(ref _c4coll, IntPtr.Zero);
+            Native.c4coll_release((C4Collection*)_c4coll);
             _c4coll = IntPtr.Zero;
         }
 

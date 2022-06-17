@@ -402,9 +402,9 @@ namespace Couchbase.Lite
                 CheckOpen();
                 if (_defaultScope == null) {
                     _defaultScope = new Scope(this);
-                    if(!_scopes.ContainsKey(_defaultScopeName))
+                    if (!_scopes.ContainsKey(_defaultScopeName))
                         _scopes.TryAdd(_defaultScopeName, _defaultScope);
-        }
+                }
             });
 
             return _defaultScope;
@@ -496,17 +496,16 @@ namespace Couchbase.Lite
         /// if <see cref="Database"/> is closed</exception>
         public IReadOnlyList<Collection> GetCollections(string scope = _defaultScopeName)
         {
-            Scope s = null;
-            ThreadSafety.DoLocked(() =>
+            return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
+                var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
                 if (s != null) {
-                    s.GetCollections();
+                    return s.GetCollections();
                 }
-            });
 
-            return s?.Collections;
+                return new List<Collection>();
+            });
         }
 
         /// <summary>
@@ -1469,13 +1468,11 @@ namespace Couchbase.Lite
 
         internal bool HasScopeFromLiteCore(string scope)
         {
-            bool hasScope = ThreadSafety.DoLocked(() =>
+            return ThreadSafety.DoLocked(() =>
             {
                 //Returns true if the named scope exists.  Note that _default will always return true.
                 return Native.c4db_hasScope(_c4db, scope);
             });
-
-            return hasScope;
         }
 
         #endregion
