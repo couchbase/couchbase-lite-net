@@ -50,11 +50,6 @@ namespace Couchbase.Lite
         /// </remarks>
         public string Name { get; internal set; } = Database._defaultScopeName;
 
-        /// <summary>
-        /// Gets all collections in the Scope
-        /// </summary>
-        internal IReadOnlyList<Collection> Collections => _collections?.Values as IReadOnlyList<Collection>;
-
         internal C4Database* c4Db
         {
             get {
@@ -142,7 +137,7 @@ namespace Couchbase.Lite
         public IReadOnlyList<Collection> GetCollections()
         {
             GetCollectionList();
-            return Collections;
+            return _collections?.Values as IReadOnlyList<Collection>;
         }
 
         #endregion

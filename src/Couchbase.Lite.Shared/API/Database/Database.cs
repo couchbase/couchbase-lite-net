@@ -587,7 +587,7 @@ namespace Couchbase.Lite
                 var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
                 if (s != null) {
                     var c = s.GetCollection(name);
-                    if (s.DeleteCollection(c) && s.Collections?.Count == 0) {
+                    if (s.DeleteCollection(c) && s.Count == 0) {
                         Scope sc = null;
                         if (_scopes.TryRemove(scope, out sc)) {
                             sc.Dispose();
