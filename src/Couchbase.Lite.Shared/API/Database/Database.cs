@@ -591,7 +591,6 @@ namespace Couchbase.Lite
                         Scope sc = null;
                         if (_scopes.TryRemove(scope, out sc)) {
                             sc.Dispose();
-                            sc = null;
                         }
                     }
                 }
@@ -2009,6 +2008,9 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
+            if (obj == null)
+                return false;
+
             if (!(obj is Database other)) {
                 return false;
             }

@@ -343,12 +343,7 @@ namespace Couchbase.Lite
                     throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
                 }
 
-                if (_c4coll == IntPtr.Zero) {
-                    throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
-                                ToString()));
-                }
-
-                if (!Native.c4coll_isValid((C4Collection*)_c4coll)) {
+                if (_c4coll == IntPtr.Zero || !Native.c4coll_isValid((C4Collection*)_c4coll)) {
                     throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
                                 ToString()));
                 }
@@ -375,8 +370,8 @@ namespace Couchbase.Lite
 
         private unsafe void ReleaseCollection()
         {
-            Interlocked.Exchange(ref _c4coll, IntPtr.Zero);
-            Native.c4coll_release((C4Collection*)_c4coll);
+            var old = Interlocked.Exchange(ref _c4coll, IntPtr.Zero);
+            Native.c4coll_release((C4Collection*)old);
             _c4coll = IntPtr.Zero;
         }
 
@@ -392,6 +387,9 @@ namespace Couchbase.Lite
         /// <inheritdoc />
         public override bool Equals(object obj)
         {
+            if (obj == null)
+                return false;
+
             if (!(obj is Collection other)) {
                 return false;
             }
