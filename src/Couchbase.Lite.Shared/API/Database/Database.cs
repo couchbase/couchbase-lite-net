@@ -755,6 +755,7 @@ namespace Couchbase.Lite
         [Obsolete("CreateIndex is deprecated, please use GetDefaultCollection().CreateIndex")]
         public void CreateIndex([@NotNull] string name, [@NotNull] IndexConfiguration indexConfig)
         {
+            DefaultCollection.CheckCollectionValid();
             DefaultCollection.CreateIndex(name, indexConfig);
         }
 
@@ -821,6 +822,7 @@ namespace Couchbase.Lite
         [Obsolete("Delete is deprecated, please use GetDefaultCollection().Delete")]
         public bool Delete([@NotNull]Document document, ConcurrencyControl concurrencyControl)
         {
+            DefaultCollection.CheckCollectionValid();
             return DefaultCollection.Delete(document, concurrencyControl);
         }
 
@@ -831,6 +833,7 @@ namespace Couchbase.Lite
         [Obsolete("DeleteIndex is deprecated, please use GetDefaultCollection().DeleteIndex")]
         public void DeleteIndex([@NotNull]string name)
         {
+            DefaultCollection.CheckCollectionValid();
             DefaultCollection.DeleteIndex(name);
         }
 
@@ -843,6 +846,7 @@ namespace Couchbase.Lite
         [@CanBeNull]
         public Document GetDocument([@NotNull]string id)
         {
+            DefaultCollection.CheckCollectionValid();
             return DefaultCollection.GetDocument(id);
         }
 
@@ -855,6 +859,7 @@ namespace Couchbase.Lite
         [@ItemNotNull]
         public IList<string> GetIndexes()
         {
+            DefaultCollection.CheckCollectionValid();
             return DefaultCollection.GetIndexes();
         }
 
@@ -899,6 +904,7 @@ namespace Couchbase.Lite
         [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
         public void Purge([@NotNull]Document document)
         {
+            DefaultCollection.CheckCollectionValid();
             DefaultCollection.Purge(document);
         }
 
@@ -913,6 +919,7 @@ namespace Couchbase.Lite
         [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
         public void Purge([@NotNull]string docId)
         {
+            DefaultCollection.CheckCollectionValid();
             DefaultCollection.Purge(docId);
         }
 
@@ -930,6 +937,7 @@ namespace Couchbase.Lite
         [Obsolete("SetDocumentExpiration is deprecated, please use GetDefaultCollection().SetDocumentExpiration")]
         public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)
         {
+            DefaultCollection.CheckCollectionValid();
             return DefaultCollection.SetDocumentExpiration(docId, expiration);
         }
 
@@ -945,6 +953,7 @@ namespace Couchbase.Lite
         [Obsolete("GetDocumentExpiration is deprecated, please use GetDefaultCollection().GetDocumentExpiration")]
         public DateTimeOffset? GetDocumentExpiration(string docId)
         {
+            DefaultCollection.CheckCollectionValid();
             return DefaultCollection.GetDocumentExpiration(docId);
         }
 
@@ -970,6 +979,7 @@ namespace Couchbase.Lite
         [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
         public bool Save([@NotNull]MutableDocument document, ConcurrencyControl concurrencyControl)
         {
+            DefaultCollection.CheckCollectionValid();
             return DefaultCollection.Save(document, concurrencyControl);
         }
 
@@ -985,6 +995,7 @@ namespace Couchbase.Lite
         [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
         public bool Save([@NotNull]MutableDocument document, [@NotNull]Func<MutableDocument, Document, bool> conflictHandler)
         {
+            DefaultCollection.CheckCollectionValid();
             return DefaultCollection.Save(document, conflictHandler);
         }
 
