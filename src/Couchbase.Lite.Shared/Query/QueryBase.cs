@@ -153,11 +153,9 @@ namespace Couchbase.Lite.Internal.Query
         public abstract unsafe IResultSet Execute();
 
         public abstract unsafe string Explain();
-
         #endregion
 
         #region IChangeObservable
-
         public ListenerToken AddChangeListener(TaskScheduler scheduler, [NotNull] EventHandler<QueryChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(handler), handler);
@@ -173,10 +171,7 @@ namespace Couchbase.Lite.Internal.Query
             return listenerToken;
         }
 
-        public ListenerToken AddChangeListener([NotNull] EventHandler<QueryChangedEventArgs> handler)
-        {
-            return AddChangeListener(null, handler);
-        }
+        public ListenerToken AddChangeListener([NotNull] EventHandler<QueryChangedEventArgs> handler) => AddChangeListener(null, handler);
 
         #endregion
 

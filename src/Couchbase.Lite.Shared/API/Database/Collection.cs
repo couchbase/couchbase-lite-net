@@ -20,25 +20,61 @@ using Couchbase.Lite.Internal.Query;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
 using JetBrains.Annotations;
+using LiteCore.Interop;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
-    public sealed class Collection : IIndexable, IChangeObservable<CollectionChangedEventArgs>,
-        IDocumentChangeObservable, IDisposable
+    public sealed unsafe class Collection : IChangeObservable<CollectionChangedEventArgs>, IDocumentChangeObservable,
+        IDisposable
     {
         #region Constants
+
+        private const string Tag = nameof(Collection);
 
         public static readonly string DefaultScopeName = Database._defaultScopeName;
         public static readonly string DefaultCollectionName = Database._defaultCollectionName;
 
         #endregion
 
+        #region Variables
+
+        private IntPtr _c4coll;
+
+        #endregion
+
         #region Properties
 
-        [NotNull] //TODO: expose Database.ThreadSafety and assign here
+        internal C4Database* c4Db
+        {
+            get {
+                Debug.Assert(Database != null && Database.c4db != null);
+                return Database.c4db;
+            }
+        }
+
+        internal C4Collection* c4coll
+        {
+            get { 
+                if (_c4coll == IntPtr.Zero) 
+                    throw new ObjectDisposedException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
+                                ToString())); 
+
+                return (C4Collection*)_c4coll; 
+            }
+        }
+
+        /// <summary>
+        /// Gets the database that this collection belongs to, if any
+        /// </summary>
+        [NotNull]
+        internal Database Database { get; set; }
+
+        [NotNull]
         internal ThreadSafety ThreadSafety { get; }
 
         /// <summary>
@@ -51,17 +87,33 @@ namespace Couchbase.Lite
         /// Cannot start with _ or %.
         /// Case sensitive.
         /// </remarks>
-        public string Name => throw new NotImplementedException();
+        public string Name { get; } = DefaultCollectionName;
 
         /// <summary>
         /// Gets the Scope of the Collection belongs to
         /// </summary>
-        public Scope Scope => throw new NotImplementedException();
+        public Scope Scope { get; }
 
         /// <summary>
         /// Gets the total documents in the Collection
         /// </summary>
-        public ulong Count => throw new NotImplementedException();
+        public ulong Count => ThreadSafety.DoLocked(() => Native.c4coll_getDocumentCount(c4coll));
+
+        #endregion
+
+        #region Constructors
+
+        internal Collection([NotNull] Database database, string name, Scope scope, C4Collection* c4c)
+        {
+            Database = database;
+            ThreadSafety = database.ThreadSafety;
+
+            Name = name;
+            Scope = scope;
+
+            _c4coll = (IntPtr)c4c;
+            Native.c4coll_retain((C4Collection*)_c4coll);
+        }
 
         #endregion
 
@@ -247,7 +299,7 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region IIndexable
+        # region Public Methods - Indexable
 
         /// <inheritdoc />
         public IList<string> GetIndexes()
@@ -269,11 +321,97 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region IDispose
+        #region Public Methods - QueryFactory
 
-        public void Dispose()
+        public IQuery CreateQuery([NotNull] string queryExpression)
         {
             throw new NotImplementedException();
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        /// <summary>
+        /// Returns false if this collection has been deleted, or its database closed.
+        /// </summary>
+        internal void CheckCollectionValid()
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                if (c4Db == null) {
+                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
+                }
+
+                if (_c4coll == IntPtr.Zero || !Native.c4coll_isValid((C4Collection*)_c4coll)) {
+                    throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
+                                ToString()));
+                }
+            });
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private C4Database* GetC4Database()
+        {
+            C4Database* c4db = null;
+            ThreadSafety.DoLocked(() =>
+            {
+                if (c4coll == null)
+                    return;
+
+                c4db = Native.c4coll_getDatabase(c4coll);
+            });
+
+            return c4db;
+        }
+
+        private unsafe void ReleaseCollection()
+        {
+            var old = Interlocked.Exchange(ref _c4coll, IntPtr.Zero);
+            Native.c4coll_release((C4Collection*)old);
+        }
+
+        #endregion
+
+        #region object
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            return Name?.GetHashCode() ?? 0;
+        }
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+        {
+            if (obj == null)
+                return false;
+
+            if (!(obj is Collection other)) {
+                return false;
+            }
+
+            return String.Equals(Name, other.Name, StringComparison.Ordinal)
+                && String.Equals(Scope.Name, other.Scope.Name, StringComparison.Ordinal);
+        }
+
+        /// <inheritdoc />
+        public override string ToString() => $"COLLECTION[{Name}] of SCOPE[{Scope.Name}]";
+        #endregion
+
+        #region IDisposable
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                ReleaseCollection();
+            });
         }
 
         #endregion

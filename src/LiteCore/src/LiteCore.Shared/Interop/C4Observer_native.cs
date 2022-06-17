@@ -27,7 +27,18 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-       
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4CollectionObserver* c4dbobs_create(C4Database* database, C4CollectionObserverCallback callback, void* context);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4CollectionObserver* c4dbobs_createOnCollection(C4Collection* collection, C4CollectionObserverCallback callback, void* context);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern C4CollectionObservation c4dbobs_getChanges(C4CollectionObserver* observer, [Out]C4CollectionChange[] outChanges, uint maxChanges);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern void c4dbobs_releaseChanges(C4CollectionChange[] changes, uint numChanges);
+
         public static C4DocumentObserver* c4docobs_create(C4Database* database, string docID, C4DocumentObserverCallback callback, void* context)
         {
             using(var docID_ = new C4String(docID)) {
@@ -54,20 +65,8 @@ namespace LiteCore.Interop
         public static extern void c4queryobs_setEnabled(C4QueryObserver* obs, [MarshalAs(UnmanagedType.U1)] bool enabled);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4CollectionObserver* c4dbobs_create(C4Database* database, C4CollectionObserverCallback callback, void* context);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4QueryEnumerator* c4queryobs_getEnumerator(C4QueryObserver* obs, [MarshalAs(UnmanagedType.U1)] bool forget, C4Error* error);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4CollectionObserver* c4dbobs_createOnCollection(C4Collection* collection, C4CollectionObserverCallback callback, void* context);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint c4dbobs_getChanges(C4CollectionObserver* observer, [Out] C4CollectionChange[] outChanges, uint maxChanges, bool* outExternal);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void c4dbobs_releaseChanges(C4CollectionChange[] changes, uint numChanges);
-
+        
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4DocumentObserver* c4docobs_create(C4Database* database, FLSlice docID, C4DocumentObserverCallback callback, void* context);
 

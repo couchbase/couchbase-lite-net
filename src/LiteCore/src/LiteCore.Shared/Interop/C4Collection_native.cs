@@ -17,7 +17,6 @@
 //
 
 using System;
-using System.Linq;
 using System.Runtime.InteropServices;
 
 using LiteCore.Util;
@@ -28,31 +27,41 @@ namespace LiteCore.Interop
     internal unsafe static partial class Native
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Collection* c4db_getDefaultCollection(C4Database* db);
+        public static extern C4Collection* c4db_getDefaultCollection(C4Database* db, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_hasCollection(C4Database* db, C4CollectionSpec spec);
 
+        public static bool c4db_hasScope(C4Database* db, string name)
+        {
+            using(var name_ = new C4String(name)) {
+                return NativeRaw.c4db_hasScope(db, name_.AsFLSlice());
+            }
+        }
+
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Collection* c4db_getCollection(C4Database* db, C4CollectionSpec spec);
+        public static extern C4Collection* c4db_getCollection(C4Database* db, C4CollectionSpec spec, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Collection* c4db_createCollection(C4Database* db, C4CollectionSpec spec, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_deleteCollection(C4Database* db, C4CollectionSpec spec, C4Error* outError);
 
-        public static FLMutableArray* c4db_collectionNames(C4Database* db, string inScope)
+        public static FLMutableArray* c4db_collectionNames(C4Database* db, string inScope, C4Error* outError)
         {
             using(var inScope_ = new C4String(inScope)) {
-                return NativeRaw.c4db_collectionNames(db, inScope_.AsFLSlice());
+                return NativeRaw.c4db_collectionNames(db, inScope_.AsFLSlice(), outError);
             }
         }
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLMutableArray* c4db_scopeNames(C4Database* db);
+        public static extern FLMutableArray* c4db_scopeNames(C4Database* db, C4Error* outError);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4coll_isValid(C4Collection* x);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4CollectionSpec c4coll_getSpec(C4Collection* x);
@@ -152,7 +161,11 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLMutableArray* c4db_collectionNames(C4Database* db, FLSlice inScope);
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern bool c4db_hasScope(C4Database* db, FLSlice name);
+
+        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern FLMutableArray* c4db_collectionNames(C4Database* db, FLSlice inScope, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Document* c4coll_getDoc(C4Collection* collection, FLSlice docID, [MarshalAs(UnmanagedType.U1)]bool mustExist, C4DocContentLevel content, C4Error* outError);

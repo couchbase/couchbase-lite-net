@@ -36,6 +36,7 @@ namespace Couchbase.Lite
         internal const string ResolvedDocFailedLiteCore = "LiteCore failed resolving conflict.";
         internal const string ResolvedDocWrongDb = "Resolved document's database {0} is different from expected database {1}.";
         internal const string DBClosed = "Attempt to perform an operation on a closed database.";
+        internal const string CollectionNotAvailable = "Attempt to perform an operation on an unavailable collection {0}.";
         internal const string NoDocumentRevision = "No revision data on the document!";
         internal const string FragmentPathNotExist = "Specified fragment path does not exist in object; cannot set value.";
         internal const string InvalidCouchbaseObjType = "{0} is not a valid type. You may only pass {1}, Blob, a one-dimensional array or a dictionary whose members are one of the preceding types.";
