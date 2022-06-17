@@ -48,12 +48,12 @@ namespace Couchbase.Lite.Internal.Serialization
 
         #region Public Methods
 
-        public static object ToCouchbaseObject(FLValue* value, Database database, bool dotNetTypes, Type hintType1 = null)
+        public static object ToCouchbaseObject(FLValue* value, Collection collection, bool dotNetTypes, Type hintType1 = null)
         {
             switch (Native.FLValue_GetType(value)) {
                 case FLValueType.Array: {
                         if (dotNetTypes) {
-                            return ToObject(value, database, 0, hintType1);
+                            return ToObject(value, collection, 0, hintType1);
                         }
 
                         var array = new ArrayObject(new FleeceMutableArray(new MValue(value), null), false);
@@ -66,12 +66,12 @@ namespace Couchbase.Lite.Internal.Serialization
                             return new DictionaryObject(new MDict(new MValue(value), null), false);
                         }
 
-                        return ToObject(value, database, 0, hintType1);
+                        return ToObject(value, collection, 0, hintType1);
                     }
                 case FLValueType.Undefined:
                     return null;
                 default:
-                    return ToObject(value, database);
+                    return ToObject(value, collection);
             }
         }
 
@@ -124,7 +124,7 @@ namespace Couchbase.Lite.Internal.Serialization
             return dict;
         }
 
-        private static object ToObject(FLValue* value, Database db, int level = 0, Type hintType1 = null)
+        private static object ToObject(FLValue* value, Collection collection, int level = 0, Type hintType1 = null)
         {
             if (value == null) {
                 return null;
@@ -146,7 +146,7 @@ namespace Couchbase.Lite.Internal.Serialization
                     var i = default(FLArrayIterator);
                     Native.FLArrayIterator_Begin(arr, &i);
                     do {
-                        retVal.Add(ToObject(Native.FLArrayIterator_GetValue(&i), db, level + 1, hintType1));
+                        retVal.Add(ToObject(Native.FLArrayIterator_GetValue(&i), collection, level + 1, hintType1));
                     } while (Native.FLArrayIterator_Next(&i));
 
                     return retVal;
@@ -169,10 +169,10 @@ namespace Couchbase.Lite.Internal.Serialization
                     Native.FLDictIterator_Begin(dict, &i);
                     do {
                         var key = Native.FLDictIterator_GetKeyString(&i);
-                        retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), db, level + 1, hintType1);
+                        retVal[key] = ToObject(Native.FLDictIterator_GetValue(&i), collection, level + 1, hintType1);
                     } while (Native.FLDictIterator_Next(&i));
 
-                    return ConvertDictionary(retVal as IDictionary<string, object>, db) ?? retVal;
+                    return ConvertDictionary(retVal as IDictionary<string, object>, collection.Database) ?? retVal;
                 }
                 case FLValueType.Null:
                     return null;

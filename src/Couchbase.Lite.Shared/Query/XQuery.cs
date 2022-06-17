@@ -69,6 +69,7 @@ namespace Couchbase.Lite.Internal.Query
         protected void Copy(XQuery source)
         {
             Database = source.Database;
+            Collection = source.Collection;
             SelectImpl = source.SelectImpl;
             Distinct = source.Distinct;
             FromImpl = source.FromImpl;

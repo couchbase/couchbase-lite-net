@@ -476,13 +476,15 @@ namespace Couchbase.Lite.Sync
             }
 
             var docIDStr = docID.CreateString();
+            var collName = collectionSpec.name.CreateString();
+            var scope = collectionSpec.scope.CreateString();
             if (docIDStr == null) {
                 WriteLog.To.Database.E(Tag, "Null document ID received in pull filter, rejecting...");
                 return false;
             }
 
             var flags = revisionFlags.ToDocumentFlags();
-            return replicator.PullValidateCallback(docIDStr, revID.CreateString(), dict, flags);
+            return replicator.PullValidateCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
         }
 
         #if __IOS__
@@ -498,13 +500,15 @@ namespace Couchbase.Lite.Sync
             }
 
             var docIDStr = docID.CreateString();
+            var collName = collectionSpec.name.CreateString();
+            var scope = collectionSpec.scope.CreateString();
             if (docIDStr == null) {
                 WriteLog.To.Database.E(Tag, "Null document ID received in push filter, rejecting...");
                 return false;
             }
 
             var flags = revisionFlags.ToDocumentFlags();
-            return replicator.PushFilterCallback(docIDStr, revID.CreateString(), dict, flags);
+            return replicator.PushFilterCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
         }
 
         #if __IOS__
@@ -565,9 +569,10 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        private bool filterCallback(Func<Document, DocumentFlags, bool> filterFunction, string docID, string revID, FLDict* value, DocumentFlags flags)
+        private bool filterCallback(Func<Document, DocumentFlags, bool> filterFunction, string collectionName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
         {
-            var doc = new Document(Config.Database, docID, revID, value);
+            var coll = Config.Database.GetCollection(collectionName, scope);
+            var doc = new Document(coll, docID, revID, value);
             return filterFunction(doc, flags);
         }
 
@@ -627,14 +632,15 @@ namespace Couchbase.Lite.Sync
             _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(replications, pushing));
         }
 
-        private bool PullValidateCallback(string docID, string revID, FLDict* value, DocumentFlags flags)
+        private bool PullValidateCallback(string collNmae, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
         {
-            return filterCallback(Config.PullFilter, docID, revID, value, flags);
+            return filterCallback(Config.PullFilter, collNmae, scope, docID, revID, value, flags);
         }
 
-        private bool PushFilterCallback([NotNull]string docID, string revID, FLDict* value, DocumentFlags flags)
+        private bool PushFilterCallback(string collNmae, string scope, [NotNull]string docID, string revID, FLDict* value, DocumentFlags flags)
         {
-            return Config.PushFilter(new Document(Config.Database, docID, revID, value), flags);
+            var coll = Config.Database.GetCollection(collNmae, scope);
+            return Config.PushFilter(new Document(coll, docID, revID, value), flags);
         }
 
         private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)

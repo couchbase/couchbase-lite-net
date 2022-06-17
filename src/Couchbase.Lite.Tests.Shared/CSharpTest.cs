@@ -111,7 +111,7 @@ namespace Test
             });
 
             try {
-                var context = new DocContext(Db, null);
+                var context = new DocContext(Collection, null);
                 using (var mRoot = new MRoot(context)) {
                     mRoot.Context.Should().BeSameAs(context);
                     FLDoc* fleeceDoc = Native.FLDoc_FromResultData(flData,
@@ -205,7 +205,7 @@ namespace Test
             });
 
             try {
-                var context = new DocContext(Db, null);
+                var context = new DocContext(Collection, null);
                 using (var mRoot = new MRoot(context)) {
                     mRoot.Context.Should().BeSameAs(context);
                     FLDoc* fleeceDoc = Native.FLDoc_FromResultData(flData,
@@ -329,13 +329,11 @@ Transfer-Encoding: chunked";
             {
                 using (var flData = masterList.FLEncode()) {
                     retrieved =
-                        FLValueConverter.ToCouchbaseObject(NativeRaw.FLValue_FromData((FLSlice) flData, FLTrust.Trusted), Db,
+                        FLValueConverter.ToCouchbaseObject(NativeRaw.FLValue_FromData((FLSlice) flData, FLTrust.Trusted), Collection,
                                 true, typeof(Dictionary<,>).MakeGenericType(typeof(string), typeof(object))) as
                             List<Dictionary<string, object>>;
                 }
             });
-
-                
 
             var i = 0;
             foreach (var entry in retrieved) {

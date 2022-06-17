@@ -121,20 +121,20 @@ namespace Couchbase.Lite
             SetJSON(json);
         }
 
-        internal MutableDocument([NotNull]Database database, [NotNull]string id)
-            : base(database, id)
+        internal MutableDocument([NotNull]Collection collection, [NotNull]string id)
+            : base(collection, id)
         {
 
         }
 
         internal MutableDocument([NotNull]Document doc)
-            : this(doc.Database, doc.Id, doc.c4Doc?.Retain<C4DocumentWrapper>())
+            : this(doc.Collection, doc.Id, doc.c4Doc?.Retain<C4DocumentWrapper>())
         {
 
         }
 
-        private MutableDocument([CanBeNull]Database database, [NotNull]string id, [CanBeNull]C4DocumentWrapper c4Doc)
-            : base(database, id, c4Doc)
+        private MutableDocument([CanBeNull] Collection collection, [NotNull]string id, [CanBeNull]C4DocumentWrapper c4Doc)
+            : base(collection, id, c4Doc)
         {
             
         }
