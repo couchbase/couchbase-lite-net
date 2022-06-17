@@ -113,7 +113,6 @@ namespace Test
             colls.Contains(colC).Should().BeTrue();
         }
 
-        /* TODO 8.2 Part 1*/
         [Fact]
         public void TestCreateAndGetCollectionsInNamedScope()
         {
@@ -177,8 +176,7 @@ namespace Test
             // None default Collection and Scope Names are allowed to contain the following characters 
             // A - Z, a - z, 0 - 9, and the symbols _, -, and % and to start with A-Z, a-z, 0-9, and -
             var str = "_%";
-            for (char letter = 'A'; letter <= 'Z'; letter++)
-            {
+            for (char letter = 'A'; letter <= 'Z'; letter++) {
                 Db.CreateCollection(letter + str).Should().NotBeNull($"Valid collection name '{letter + str}'.");
             }
 
@@ -187,8 +185,7 @@ namespace Test
             //    Db.CreateCollection(letter + str).Should().NotBeNull($"Valid collection name '{letter + str}'.");
             //}
 
-            for (char letter = '0'; letter <= '9'; letter++)
-            {
+            for (char letter = '0'; letter <= '9'; letter++) {
                 Db.CreateCollection(letter + str).Should().NotBeNull($"Valid collection name '{letter + str}'.");
             }
 
@@ -211,28 +208,24 @@ namespace Test
             var str = "ab";
             /* Create collections with the collection name containing the following characters
                !, @, #, $, ^, &, *, (, ), +, -, ., <, >, ?, [, ], {, }, =, “, ‘, |, \, /,`,~ are prohibited. */
-            for (char letter = '!'; letter <= '/'; letter++)
-            {
+            for (char letter = '!'; letter <= '/'; letter++) {
                 if (letter == '%')
                     return;
                 Action badAction = (() => Db.CreateCollection(str + letter));
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid collection name '{str + letter}' in scope '_default'.");
             }
 
-            for (char letter = '<'; letter <= '@'; letter++)
-            {
+            for (char letter = '<'; letter <= '@'; letter++) {
                 Action badAction = (() => Db.CreateCollection(str + letter));
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid collection name '{str + letter}' in scope '_default'.");
             }
 
-            for (char letter = '['; letter <= '`'; letter++)
-            {
+            for (char letter = '['; letter <= '`'; letter++) {
                 Action badAction = (() => Db.CreateCollection(str + letter));
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid collection name '{str + letter}' in scope '_default'.");
             }
 
-            for (char letter = '{'; letter <= '~'; letter++)
-            {
+            for (char letter = '{'; letter <= '~'; letter++) {
                 Action badAction = (() => Db.CreateCollection(str + letter));
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid collection name '{str + letter}' in scope '_default'.");
             }
@@ -243,8 +236,7 @@ namespace Test
         {
             /* Collection name should contain valid char with length from 1 to 251 */
             var collName = "";
-            for (int i = 0; i < 251; i++)
-            {
+            for (int i = 0; i < 251; i++) {
                 collName += 'c';
                 collName.Length.Should().Be(i + 1);
                 Db.CreateCollection(collName).Should().NotBeNull($"Valid collection '{collName}' length {collName.Length}.");
@@ -274,8 +266,7 @@ namespace Test
             // None default Collection and Scope Names are allowed to contain the following characters 
             // A - Z, a - z, 0 - 9, and the symbols _, -, and % and to start with A-Z, a-z, 0-9, and -
             var str = "_%";
-            for (char letter = 'A'; letter <= 'Z'; letter++)
-            {
+            for (char letter = 'A'; letter <= 'Z'; letter++) {
                 Db.CreateCollection("abc", letter + str).Should().NotBeNull($"Valid scope name '{letter + str}'.");
             }
 
@@ -284,8 +275,7 @@ namespace Test
             //    Db.CreateCollection("abc", letter + str).Should().NotBeNull($"Valid scope name '{letter + str}'.");
             //}
 
-            for (char letter = '0'; letter <= '9'; letter++)
-            {
+            for (char letter = '0'; letter <= '9'; letter++) {
                 Db.CreateCollection("abc", letter + str).Should().NotBeNull($"Valid scope name '{letter + str}'.");
             }
 
@@ -308,28 +298,24 @@ namespace Test
             var str = "ab";
             /* Create collections with the collection name containing the following characters
                !, @, #, $, ^, &, *, (, ), +, -, ., <, >, ?, [, ], {, }, =, “, ‘, |, \, /,`,~ are prohibited. */
-            for (char letter = '!'; letter <= '/'; letter++)
-            {
+            for (char letter = '!'; letter <= '/'; letter++) {
                 if (letter == '%')
                     return;
                 Action badAction = (() => Db.CreateCollection("abc", str + letter));
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid scope name '{str + letter}'.");
             }
 
-            for (char letter = '<'; letter <= '@'; letter++)
-            {
+            for (char letter = '<'; letter <= '@'; letter++) {
                 Action badAction = (() => Db.CreateCollection("abc", str + letter));
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid scope name '{str + letter}'.");
             }
 
-            for (char letter = '['; letter <= '`'; letter++)
-            {
+            for (char letter = '['; letter <= '`'; letter++) {
                 Action badAction = (() => Db.CreateCollection("abc", str + letter));
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid scope name '{str + letter}'.");
             }
 
-            for (char letter = '{'; letter <= '~'; letter++)
-            {
+            for (char letter = '{'; letter <= '~'; letter++) {
                 Action badAction = (() => Db.CreateCollection("abc", str + letter));
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid scope name '{str + letter}'.");
             }
@@ -340,8 +326,7 @@ namespace Test
         {
             /* Collection name should contain valid char with length from 1 to 251 */
             var collName = "";
-            for (int i = 0; i < 251; i++)
-            {
+            for (int i = 0; i < 251; i++) {
                 collName += 'c';
                 collName.Length.Should().Be(i + 1);
                 Db.CreateCollection("abc", collName).Should().NotBeNull($"Valid scope '{collName}' length {collName.Length}.");
@@ -369,8 +354,7 @@ namespace Test
         public void TestCreateThenGetCollectionFromDifferentDatabaseInstance()
         {
             var colA = Db.CreateCollection("colA", "scopeA");
-            using (var otherDB = OpenDB(Db.Name))
-            {
+            using (var otherDB = OpenDB(Db.Name)) {
                 //TODO wait for CBL-3298 fix
                 //I am using hasScope to check existance of the scope obj in order to use scope obj to get the collections
                 var cols = otherDB.GetCollections(scope: "scopeA");
