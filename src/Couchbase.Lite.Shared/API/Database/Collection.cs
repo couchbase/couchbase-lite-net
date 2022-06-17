@@ -372,7 +372,6 @@ namespace Couchbase.Lite
         {
             var old = Interlocked.Exchange(ref _c4coll, IntPtr.Zero);
             Native.c4coll_release((C4Collection*)old);
-            _c4coll = IntPtr.Zero;
         }
 
         #endregion
