@@ -755,6 +755,8 @@ namespace Couchbase.Lite
         [Obsolete("CreateIndex is deprecated, please use GetDefaultCollection().CreateIndex")]
         public void CreateIndex([@NotNull] string name, [@NotNull] IndexConfiguration indexConfig)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+
             DefaultCollection.CheckCollectionValid();
             DefaultCollection.CreateIndex(name, indexConfig);
         }
@@ -822,6 +824,8 @@ namespace Couchbase.Lite
         [Obsolete("Delete is deprecated, please use GetDefaultCollection().Delete")]
         public bool Delete([@NotNull]Document document, ConcurrencyControl concurrencyControl)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+
             DefaultCollection.CheckCollectionValid();
             return DefaultCollection.Delete(document, concurrencyControl);
         }
@@ -833,6 +837,8 @@ namespace Couchbase.Lite
         [Obsolete("DeleteIndex is deprecated, please use GetDefaultCollection().DeleteIndex")]
         public void DeleteIndex([@NotNull]string name)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+
             DefaultCollection.CheckCollectionValid();
             DefaultCollection.DeleteIndex(name);
         }
@@ -846,6 +852,8 @@ namespace Couchbase.Lite
         [@CanBeNull]
         public Document GetDocument([@NotNull]string id)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+
             DefaultCollection.CheckCollectionValid();
             return DefaultCollection.GetDocument(id);
         }
@@ -859,6 +867,8 @@ namespace Couchbase.Lite
         [@ItemNotNull]
         public IList<string> GetIndexes()
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+
             DefaultCollection.CheckCollectionValid();
             return DefaultCollection.GetIndexes();
         }
@@ -904,6 +914,8 @@ namespace Couchbase.Lite
         [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
         public void Purge([@NotNull]Document document)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+
             DefaultCollection.CheckCollectionValid();
             DefaultCollection.Purge(document);
         }
@@ -919,6 +931,8 @@ namespace Couchbase.Lite
         [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
         public void Purge([@NotNull]string docId)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+
             DefaultCollection.CheckCollectionValid();
             DefaultCollection.Purge(docId);
         }
@@ -937,6 +951,8 @@ namespace Couchbase.Lite
         [Obsolete("SetDocumentExpiration is deprecated, please use GetDefaultCollection().SetDocumentExpiration")]
         public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+
             DefaultCollection.CheckCollectionValid();
             return DefaultCollection.SetDocumentExpiration(docId, expiration);
         }
@@ -953,6 +969,8 @@ namespace Couchbase.Lite
         [Obsolete("GetDocumentExpiration is deprecated, please use GetDefaultCollection().GetDocumentExpiration")]
         public DateTimeOffset? GetDocumentExpiration(string docId)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+
             DefaultCollection.CheckCollectionValid();
             return DefaultCollection.GetDocumentExpiration(docId);
         }
@@ -979,6 +997,8 @@ namespace Couchbase.Lite
         [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
         public bool Save([@NotNull]MutableDocument document, ConcurrencyControl concurrencyControl)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+
             DefaultCollection.CheckCollectionValid();
             return DefaultCollection.Save(document, concurrencyControl);
         }
@@ -995,6 +1015,8 @@ namespace Couchbase.Lite
         [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
         public bool Save([@NotNull]MutableDocument document, [@NotNull]Func<MutableDocument, Document, bool> conflictHandler)
         {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+
             DefaultCollection.CheckCollectionValid();
             return DefaultCollection.Save(document, conflictHandler);
         }
