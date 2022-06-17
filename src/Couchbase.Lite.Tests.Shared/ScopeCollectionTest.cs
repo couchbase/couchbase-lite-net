@@ -351,6 +351,12 @@ namespace Test
             //Db.CreateCollection("abc", "scope1").Should().NotBeNull("Should be able to be created because scope name is case sensitive.");
         }
 
+        /* TODO CBL-3227 8.3 Collections and Cross Database Instance
+TestCreateThenGetCollectionFromDifferentDatabaseInstance : Test that creating a collection from a database instance is visible to the other database instance.
+Create Database instance A and B.
+Create a collection in a scope from the database instance A.
+Ensure that the created collection is visible to the database instance B by using database.getCollection(name: "colA", scope: "scopeA") and database.getCollections(scope: "scopeA") API.
+        */
         [Fact]
         public void TestCreateAnExistingCollection()
         {

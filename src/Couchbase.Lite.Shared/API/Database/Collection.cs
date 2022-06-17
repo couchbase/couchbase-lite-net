@@ -228,6 +228,7 @@ namespace Couchbase.Lite
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             ThreadSafety.DoLocked(() =>
             {
+                CheckCollectionValid();
                 VerifyCollection(document);
 
                 if (!document.Exists) {
@@ -656,7 +657,7 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(queryExpression), queryExpression);
             CheckCollectionValid();
-            
+
             var query = new NQuery(queryExpression, this.Database);
             return query;
         }
