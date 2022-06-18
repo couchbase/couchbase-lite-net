@@ -250,6 +250,7 @@ namespace Couchbase.Lite
         public void Purge([NotNull] string docId)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(docId), docId);
+            CheckCollectionValid();
             Database.InBatch(() => PurgeDocById(docId));
         }
 
