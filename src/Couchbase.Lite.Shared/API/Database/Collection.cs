@@ -228,7 +228,6 @@ namespace Couchbase.Lite
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             ThreadSafety.DoLocked(() =>
             {
-                CheckCollectionValid();
                 VerifyCollection(document);
 
                 if (!document.Exists) {
@@ -252,7 +251,6 @@ namespace Couchbase.Lite
         public void Purge([NotNull] string docId)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(docId), docId);
-            CheckCollectionValid();
             Database.InBatch(() => PurgeDocById(docId));
         }
 
