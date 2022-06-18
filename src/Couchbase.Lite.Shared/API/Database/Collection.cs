@@ -228,7 +228,6 @@ namespace Couchbase.Lite
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
             ThreadSafety.DoLocked(() =>
             {
-                CheckCollectionValid();
                 VerifyCollection(document);
 
                 if (!document.Exists) {
@@ -250,7 +249,6 @@ namespace Couchbase.Lite
         public void Purge([NotNull] string docId)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(docId), docId);
-            CheckCollectionValid();
             Database.InBatch(() => PurgeDocById(docId));
         }
 
@@ -322,6 +320,7 @@ namespace Couchbase.Lite
         /// doesn't exist</exception>
         public DateTimeOffset? GetDocumentExpiration(string docId)
         {
+            CheckCollectionValid();
             var doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4coll_getDoc(c4coll, docId, true, C4DocContentLevel.DocGetCurrentRev, err));
             if ( doc == null) {
                 throw new CouchbaseLiteException(C4ErrorCode.NotFound);
@@ -355,6 +354,7 @@ namespace Couchbase.Lite
         /// doesn't exist</exception>
         public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)
         {
+            CheckCollectionValid();
             var succeed = false;
             ThreadSafety.DoLockedBridge(err =>
             {
@@ -625,6 +625,7 @@ namespace Couchbase.Lite
         {
             ThreadSafety.DoLockedBridge(err =>
             {
+                CheckCollectionValid();
                 return Native.c4coll_purgeDoc(c4coll, id, err);
             });
         }
