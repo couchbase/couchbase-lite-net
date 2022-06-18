@@ -757,7 +757,6 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
 
-            DefaultCollection.CheckCollectionValid();
             DefaultCollection.CreateIndex(name, indexConfig);
         }
 
@@ -826,7 +825,6 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
 
-            DefaultCollection.CheckCollectionValid();
             return DefaultCollection.Delete(document, concurrencyControl);
         }
 
@@ -839,7 +837,6 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
 
-            DefaultCollection.CheckCollectionValid();
             DefaultCollection.DeleteIndex(name);
         }
 
@@ -854,7 +851,6 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
 
-            DefaultCollection.CheckCollectionValid();
             return DefaultCollection.GetDocument(id);
         }
 
@@ -869,7 +865,6 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
 
-            DefaultCollection.CheckCollectionValid();
             return DefaultCollection.GetIndexes();
         }
 
@@ -916,7 +911,6 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
 
-            DefaultCollection.CheckCollectionValid();
             DefaultCollection.Purge(document);
         }
 
@@ -933,7 +927,6 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
 
-            DefaultCollection.CheckCollectionValid();
             DefaultCollection.Purge(docId);
         }
 
@@ -953,7 +946,6 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
 
-            DefaultCollection.CheckCollectionValid();
             return DefaultCollection.SetDocumentExpiration(docId, expiration);
         }
 
@@ -971,7 +963,6 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
 
-            DefaultCollection.CheckCollectionValid();
             return DefaultCollection.GetDocumentExpiration(docId);
         }
 
@@ -999,7 +990,6 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
 
-            DefaultCollection.CheckCollectionValid();
             return DefaultCollection.Save(document, concurrencyControl);
         }
 
@@ -1017,7 +1007,6 @@ namespace Couchbase.Lite
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
 
-            DefaultCollection.CheckCollectionValid();
             return DefaultCollection.Save(document, conflictHandler);
         }
 
@@ -1317,7 +1306,7 @@ namespace Couchbase.Lite
                     {
                         // Do this in a batch so that there are no changes to the document between
                         // localDoc read and remoteDoc read
-                        localDoc = new Document(_defaultCollection, docID);
+                        localDoc = new Document(DefaultCollection, docID);
                         if (!localDoc.Exists) {
                             throw new CouchbaseLiteException(C4ErrorCode.NotFound);
                         }
