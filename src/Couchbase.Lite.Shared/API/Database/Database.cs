@@ -1311,7 +1311,7 @@ namespace Couchbase.Lite
                             throw new CouchbaseLiteException(C4ErrorCode.NotFound);
                         }
 
-                        remoteDoc = new Document(_defaultCollection, docID, C4DocContentLevel.DocGetAll);
+                        remoteDoc = new Document(DefaultCollection, docID, C4DocContentLevel.DocGetAll);
                         if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
                             WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', the conflict may have been previously resolved...",
                                 new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
@@ -1346,7 +1346,7 @@ namespace Couchbase.Lite
                             Misc.SafeSwap(ref resolvedDoc, new MutableDocument(docID, resolvedDoc.ToDictionary()));
                         }
                         if (resolvedDoc.Collection == null) {
-                            resolvedDoc.Collection = _defaultCollection;
+                            resolvedDoc.Collection = DefaultCollection;
                         } else if (resolvedDoc.Database != this) {
                             throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.ResolvedDocWrongDb,
                                 resolvedDoc.Database.Name, this.Name));
@@ -1479,7 +1479,7 @@ namespace Couchbase.Lite
         private Document GetDocumentInternal([@NotNull]string docID)
         {
             CheckOpen();
-            var doc = new Document(_defaultCollection, docID);
+            var doc = new Document(DefaultCollection, docID);
 
             if (!doc.Exists || doc.IsDeleted) {
                 doc.Dispose();
@@ -1732,7 +1732,7 @@ namespace Couchbase.Lite
             }
 
             if (resolvedDoc != null && !ReferenceEquals(resolvedDoc, localDoc)) {
-                resolvedDoc.Collection = _defaultCollection;
+                resolvedDoc.Collection = DefaultCollection;
             }
 
             // The remote branch has to win, so that the doc revision history matches the server's.
@@ -1806,8 +1806,8 @@ namespace Couchbase.Lite
         private void VerifyDB([@NotNull]Document document)
         {
             if (document.Collection == null) {
-                document.Collection = _defaultCollection;
-            } else if (document.Collection != _defaultCollection) {
+                document.Collection = DefaultCollection;
+            } else if (document.Collection != DefaultCollection) {
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter,
                     CouchbaseLiteErrorMessage.DocumentAnotherDatabase);
             }
