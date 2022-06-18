@@ -324,9 +324,10 @@ namespace Couchbase.Lite
         {
             var doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4coll_getDoc(c4coll, docId, true, C4DocContentLevel.DocGetCurrentRev, err));
             if ( doc == null) {
-                Native.c4doc_release(doc);
                 throw new CouchbaseLiteException(C4ErrorCode.NotFound);
             }
+
+            Native.c4doc_release(doc);
 
             C4Error err2 = new C4Error();
             var res = (long)Native.c4coll_getDocExpiration(c4coll, docId, &err2);
