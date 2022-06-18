@@ -258,6 +258,7 @@ namespace Test
             Db.CreateCollection("COLLECTION1").Should().NotBeNull();
             // TODO : wait for CBL-3195 fix
             //Db.CreateCollection("collection1").Should().NotBeNull("Should be able to be created because collection name is case sensitive.");
+            //This will already return non-null, it will just be the same as COLLECTION1. The test should ensure they are different from each other (e.g. independent documents)
         }
 
         [Fact]
