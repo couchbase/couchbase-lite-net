@@ -836,7 +836,7 @@ Ensure that the created collection is visible to the database instance B by usin
 
         private void TestUseScope(Action dbDispose)
         {
-            using (var colA = Db.CreateCollection("colA", "scopeA")) { 
+            using (var colA = Db.CreateCollection("colA", "scopeA")) {
 
                 var scope = colA.Scope;
 
