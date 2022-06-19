@@ -59,7 +59,8 @@ namespace Couchbase.Lite
         internal C4Database* c4Db
         {
             get {
-                Debug.Assert(Database != null && Database.c4db != null);
+                if (Database.c4db == null)
+                    throw new CouchbaseLiteException(C4ErrorCode.NotOpen, String.Format(CouchbaseLiteErrorMessage.DBClosed));
                 return Database.c4db;
             }
         }
@@ -175,7 +176,8 @@ namespace Couchbase.Lite
         /// when trying to save a document into a collection other than the one it was previously added to</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
         /// when trying to delete a document that hasn't been saved into a <see cref="Collection"/> yet</exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the collection is closed</exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+        /// if this method is called after the collection is closed</exception>
         public void Delete([NotNull] Document document) => Delete(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
@@ -189,7 +191,8 @@ namespace Couchbase.Lite
         /// when trying to save a document into a collection other than the one it was previously added to</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
         /// when trying to delete a document that hasn't been saved into a <see cref="Collection"/> yet</exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the collection is closed</exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+        /// if this method is called after the collection is closed</exception>
         public bool Delete([NotNull] Document document, ConcurrencyControl concurrencyControl)
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
@@ -201,19 +204,18 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="id">The ID to use when creating or getting the document</param>
         /// <returns>The instantiated document, or <c>null</c> if it does not exist</returns>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+        /// if this method is called after the collection is closed</exception>
         [CanBeNull]
         public Document GetDocument([NotNull] string id)
         {
-            CheckCollectionValid();
-            var doc = new Document(this, id);
-            if (!doc.Exists || doc.IsDeleted) {
-                doc.Dispose();
-                WriteLog.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist",
-                    new SecureLogString(id, LogMessageSensitivity.PotentiallyInsecure));
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
+            if (id.Equals("")) {
+                WriteLog.To.Database.W(Tag, "The doc id should not be an empty string.");
                 return null;
             }
 
-            return doc;
+            return ThreadSafety.DoLocked(() => GetDocumentInternal(id));
         }
 
         /// <summary>
@@ -223,6 +225,8 @@ namespace Couchbase.Lite
         /// <param name="document">The document to purge</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a collection
         /// other than the one it was previously added to</exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+        /// if this method is called after the collection is closed</exception>
         public void Purge([NotNull] Document document)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
@@ -246,6 +250,8 @@ namespace Couchbase.Lite
         /// <param name="docId">The id of the document to purge</param>
         /// <exception cref="C4ErrorCode.NotFound">Throws NOT FOUND error if the document 
         /// of the docId doesn't exist.</exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+        /// if this method is called after the collection is closed</exception>
         public void Purge([NotNull] string docId)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(docId), docId);
@@ -260,6 +266,8 @@ namespace Couchbase.Lite
         /// <param name="document">The document to save</param>
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a collection
         /// other than the one it was previously added to</exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+        /// if this method is called after the collection is closed</exception>
         public void Save([NotNull] MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
@@ -270,6 +278,8 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a collection
         /// other than the one it was previously added to</exception>
         /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+        /// if this method is called after the collection is closed</exception>
         public bool Save([NotNull] MutableDocument document, ConcurrencyControl concurrencyControl)
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
@@ -285,6 +295,8 @@ namespace Couchbase.Lite
         /// <param name="document">The document to save</param>
         /// <param name="conflictHandler">The conflict handler block which can be used to resolve it.</param> 
         /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+        /// if this method is called after the collection is closed</exception>
         public bool Save(MutableDocument document, Func<MutableDocument, Document, bool> conflictHandler)
         {
             var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
@@ -318,6 +330,8 @@ namespace Couchbase.Lite
         /// of the document or <c>null</c> if time not set. </returns>
         /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
         /// doesn't exist</exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+        /// if this method is called after the collection is closed</exception>
         public DateTimeOffset? GetDocumentExpiration(string docId)
         {
             CheckCollectionValid();
@@ -352,6 +366,8 @@ namespace Couchbase.Lite
         /// <returns>Whether successfully sets an expiration date on the document</returns>
         /// <exception cref="CouchbaseLiteException">Throws NOT FOUND error if the document 
         /// doesn't exist</exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+        /// if this method is called after the collection is closed</exception>
         public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)
         {
             CheckCollectionValid();
@@ -378,6 +394,8 @@ namespace Couchbase.Lite
         /// Gets a list of index names that are present in the collection
         /// </summary>
         /// <returns>The list of created index names</returns>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+        /// if this method is called after the collection is closed</exception>
         [NotNull]
         [ItemNotNull]
         public IList<string> GetIndexes()
@@ -425,6 +443,8 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the collection is closed</exception>
         /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
         /// provided ones is used</exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+        /// if this method is called after the collection is closed</exception>
         public void CreateIndex([NotNull] string name, [NotNull] IndexConfiguration indexConfig)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
@@ -450,6 +470,8 @@ namespace Couchbase.Lite
         /// Deletes the index with the given name
         /// </summary>
         /// <param name="name">The name of the index to delete</param>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+        /// if this method is called after the collection is closed</exception>
         public void DeleteIndex([NotNull] string name)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
@@ -637,6 +659,8 @@ namespace Couchbase.Lite
         public IQuery CreateQuery([NotNull] string queryExpression)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(queryExpression), queryExpression);
+            CheckCollectionValid();
+            
             var query = new NQuery(queryExpression, this.Database);
             return query;
         }
@@ -653,11 +677,11 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 if (c4Db == null) {
-                    throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
+                    throw new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosed);
                 }
 
                 if (_c4coll == IntPtr.Zero || !Native.c4coll_isValid((C4Collection*)_c4coll)) {
-                    throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
+                    throw new CouchbaseLiteException(C4ErrorCode.NotOpen, String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
                                 ToString()));
                 }
             });
@@ -685,6 +709,22 @@ namespace Couchbase.Lite
         {
             var old = Interlocked.Exchange(ref _c4coll, IntPtr.Zero);
             Native.c4coll_release((C4Collection*)old);
+        }
+
+        [CanBeNull]
+        private Document GetDocumentInternal([NotNull] string docID)
+        {
+            CheckCollectionValid();
+            var doc = new Document(this, docID);
+
+            if (!doc.Exists || doc.IsDeleted) {
+                doc.Dispose();
+                WriteLog.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist",
+                    new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+                return null;
+            }
+
+            return doc;
         }
 
         #endregion

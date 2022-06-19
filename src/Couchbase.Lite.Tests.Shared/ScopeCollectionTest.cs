@@ -17,6 +17,7 @@
 //
 
 using Couchbase.Lite;
+using Couchbase.Lite.Query;
 using FluentAssertions;
 using System;
 using System.Collections.Generic;
@@ -83,8 +84,7 @@ namespace Test
             var defaultScope = Db.GetDefaultScope();
             defaultScope.Should().NotBeNull("scope still exists after the default collection is deleted");
             var scopes = Db.GetScopes();
-            //TODO wait for CBL-3257 fix
-            //scopes.Contains(defaultScope).Should().BeTrue("the default scope is included in the scope list when calling Database.GetScopes()");
+            scopes.Contains(defaultScope).Should().BeTrue("the default scope is included in the scope list when calling Database.GetScopes()");
             defaultScope.Name.Should().Be(Database._defaultScopeName, $"default scope name is {Database._defaultScopeName}");
         }
 
@@ -402,6 +402,34 @@ namespace Test
         }
 
         [Fact]
+        public void TestCreateDocGetCollectionFromDifferentDatabaseInstance()
+        {
+            using (var colA = Db.CreateCollection("colA")) {
+                using (var doc = new MutableDocument("doc"))
+                using (var doc1 = new MutableDocument("doc1"))
+                using (var doc2 = new MutableDocument("doc2")) {
+                    doc.SetString("str", "string");
+                    doc1.SetString("str1", "string1");
+                    doc2.SetString("str2", "string2");
+                    colA.Save(doc);
+                    colA.Save(doc1);
+                    colA.Save(doc2);
+                }
+
+                using (var otherDB = OpenDB(Db.Name)) {
+                    var colAInOtherDb = otherDB.GetCollection("colA");
+                    //colAInOtherDb.Count.Should().Be(3); // bug
+                    var docOfColAInOtherDb = colAInOtherDb.GetDocument("doc");
+                    colAInOtherDb.Count.Should().Be(3);
+                    docOfColAInOtherDb.GetString("str").Should().Be("string");
+                    colAInOtherDb.Delete(docOfColAInOtherDb);
+                }
+
+                colA.GetDocument("doc").Should().BeNull();
+            }
+        }
+
+        [Fact]
         public void TestCreateThenGetCollectionFromDifferentDatabaseInstance()
         {
             using (var colA = Db.CreateCollection("colA", "scopeA"))
@@ -491,6 +519,324 @@ namespace Test
             }
         }
 
-        //TODO: CBL-3235 Add tests to test database functions when database is closed deleted
+        /* 8.5 Use Collection APIs on Deleted Collection */
+        [Fact]
+        public void TestUseCollectionAPIsOnDeletedCollection()
+        {
+            var colA = Db.CreateCollection("colA", "scopeA");
+            using (var doc = new MutableDocument("doc")) {
+                doc.SetString("str", "string");
+                colA.Save(doc);
+            }
+
+            colA.GetDocument("doc").GetString("str").Should().Be("string");
+
+            Db.DeleteCollection("colA", "scopeA");
+
+            colA.Invoking(d => d.GetDocument("doc"))
+                .Should().Throw<CouchbaseLiteException>("Because GetDocument after collection colA is deleted.");
+
+            var dto30 = DateTimeOffset.UtcNow.AddSeconds(30);
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("str", "string");
+
+                colA.Invoking(d => d.Save(doc1))
+                    .Should().Throw<CouchbaseLiteException>("Because Save after collection colA is deleted.");
+
+                colA.Invoking(d => d.Delete(doc1))
+                    .Should().Throw<CouchbaseLiteException>("Because Delete after collection colA is deleted.");
+
+                colA.Invoking(d => d.Purge(doc1))
+                    .Should().Throw<CouchbaseLiteException>("Because Purge after collection colA is deleted.");
+
+                colA.Invoking(d => d.SetDocumentExpiration("doc1", dto30))
+                    .Should().Throw<CouchbaseLiteException>("Because SetDocumentExpiration after collection colA is deleted.");
+
+                colA.Invoking(d => d.GetDocumentExpiration("doc1"))
+                    .Should().Throw<CouchbaseLiteException>("Because GetDocumentExpiration after collection colA is deleted.");
+            }
+
+            colA.Invoking(d => d.CreateQuery($"SELECT firstName, lastName FROM *"))
+                    .Should().Throw<CouchbaseLiteException>("Because CreateQuery after collection colA is deleted.");
+
+            var index1 = new ValueIndexConfiguration(new string[] { "firstName", "lastName" });
+            colA.Invoking(d => d.CreateIndex("index1", index1))
+                .Should().Throw<CouchbaseLiteException>("Because CreateIndex after collection colA is deleted.");
+
+            colA.Invoking(d => d.GetIndexes())
+                .Should().Throw<CouchbaseLiteException>("Because GetIndexes after collection colA is deleted.");
+
+            colA.Invoking(d => d.DeleteIndex("index1"))
+                .Should().Throw<CouchbaseLiteException>("Because DeleteIndex after collection colA is deleted.");
+
+            //TODO: AddChange, AddDocumentChange, RemoveChange CBL-3307
+        }
+
+        // Test that using the Collection APIs on the deleted collection which is deleted from the different database instance
+        // returns the result as expected based on section 6.2.
+        //[Fact] TODO CBL-3198
+        public void TestUseCollectionAPIOnDeletedCollectionDeletedFromDifferentDBInstance()
+        {
+            var colA = Db.CreateCollection("colA", "scopeA");
+            using (var doc = new MutableDocument("doc")) {
+                doc.SetString("str", "string");
+                colA.Save(doc);
+            }
+
+            using (var otherDB = OpenDB(Db.Name)) {
+                // CBL-3298 hasScope() returns false
+                otherDB.GetCollection("colA", "scopeA").GetDocument("doc").GetString("str").Should().Be("string");
+
+                otherDB.DeleteCollection("colA", "scopeA");
+
+                var colA1 = otherDB.GetCollection("colA", "scopeA");
+
+                colA1.Invoking(d => d.GetDocument("doc"))
+                    .Should().Throw<CouchbaseLiteException>("Because GetDocument after collection colA is deleted from the other db.");
+
+                var dto30 = DateTimeOffset.UtcNow.AddSeconds(30);
+                using (var doc1 = new MutableDocument("doc1")) {
+                    doc1.SetString("str", "string");
+
+                    colA1.Invoking(d => d.Save(doc1))
+                        .Should().Throw<CouchbaseLiteException>("Because Save after collection colA is deleted from the other db.");
+
+                    colA1.Invoking(d => d.Delete(doc1))
+                        .Should().Throw<CouchbaseLiteException>("Because Delete after collection colA is deleted from the other db.");
+
+                    colA1.Invoking(d => d.Purge(doc1))
+                        .Should().Throw<CouchbaseLiteException>("Because Purge after collection colA is deleted from the other db.");
+
+                    colA1.Invoking(d => d.SetDocumentExpiration("doc1", dto30))
+                        .Should().Throw<CouchbaseLiteException>("Because SetDocumentExpiration after collection colA is deleted from the other db.");
+
+                    colA1.Invoking(d => d.GetDocumentExpiration("doc1"))
+                        .Should().Throw<CouchbaseLiteException>("Because GetDocumentExpiration after collection colA is deleted from the other db.");
+                }
+
+                colA1.Invoking(d => d.CreateQuery($"SELECT firstName, lastName FROM *"))
+                        .Should().Throw<CouchbaseLiteException>("Because CreateQuery after collection colA is deleted from the other db.");
+
+                var index1 = new ValueIndexConfiguration(new string[] { "firstName", "lastName" });
+                colA1.Invoking(d => d.CreateIndex("index1", index1))
+                    .Should().Throw<CouchbaseLiteException>("Because CreateIndex after collection colA is deleted from the other db.");
+
+                colA1.Invoking(d => d.GetIndexes())
+                    .Should().Throw<CouchbaseLiteException>("Because GetIndexes after collection colA is deleted from the other db.");
+
+                colA1.Invoking(d => d.DeleteIndex("index1"))
+                    .Should().Throw<CouchbaseLiteException>("Because DeleteIndex after collection colA is deleted from the other db.");
+
+                //TODO: AddChange, AddDocumentChange, RemoveChange CBL-3307 
+            }
+        }
+
+        [Fact]
+        public void TestUseCollectionAPIsWhenDatabaseIsClosed() => TestUseCollectionAPIs(() => Db.Close());
+
+        [Fact]
+        public void TestUseCollectionAPIsWhenDatabaseIsDeleted() => TestUseCollectionAPIs(() => Db.Delete());
+
+        [Fact]
+        public void TestUseScopeWhenDatabaseIsClosed() => TestUseScope(() => Db.Close());
+
+        [Fact]
+        public void TestUseScopeWhenDatabaseIsDeleted() => TestUseScope(() => Db.Delete());
+
+        [Fact]
+        public void TestGetScopesOrCollectionsWhenDatabaseIsClosed() => TestGetScopesOrCollections(() => Db.Close());
+
+        [Fact]
+        public void TestGetScopesOrCollectionsWhenDatabaseIsDeleted() => TestGetScopesOrCollections(() => Db.Delete());
+
+        [Fact]
+        public void TestUseDatabaseAPIsWhenDefaultCollectionIsDeleted()
+        {
+            var defaultCol = Db.GetDefaultCollection();
+            using (var doc = new MutableDocument("doc")) {
+                doc.SetString("str", "string");
+                defaultCol.Save(doc);
+            }
+
+            defaultCol.GetDocument("doc").GetString("str").Should().Be("string");
+
+            Db.DeleteCollection(Database._defaultCollectionName);
+
+            Db.Invoking(d => d.GetDocument("doc"))
+                .Should().Throw<CouchbaseLiteException>("Because GetDocument after default collection is deleted.");
+
+            var dto30 = DateTimeOffset.UtcNow.AddSeconds(30);
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("str", "string");
+
+                Db.Count.Should().Be(0);
+
+                Db.Invoking(d => d.Save(doc1))
+                    .Should().Throw<CouchbaseLiteException>("Because Save after default collection is deleted.");
+
+                Db.Invoking(d => d.Delete(doc1))
+                    .Should().Throw<CouchbaseLiteException>("Because Delete after default collection is deleted.");
+
+                Db.Invoking(d => d.Purge(doc1))
+                    .Should().Throw<CouchbaseLiteException>("Because Purge after default collection is deleted.");
+
+                Db.Invoking(d => d.SetDocumentExpiration("doc", dto30))
+                    .Should().Throw<CouchbaseLiteException>("Because SetDocumentExpiration after default collection is deleted.");
+
+                Db.Invoking(d => d.GetDocumentExpiration("doc"))
+                    .Should().Throw<CouchbaseLiteException>("Because GetDocumentExpiration after default collection is deleted.");
+            }
+
+            Db.Invoking(d => d.CreateQuery($"SELECT firstName, lastName FROM *"))
+                    .Should().Throw<CouchbaseLiteException>("Because CreateQuery after default collection is deleted.");
+
+            var index1 = new ValueIndexConfiguration(new string[] { "firstName", "lastName" });
+            Db.Invoking(d => d.CreateIndex("index1", index1))
+                .Should().Throw<CouchbaseLiteException>("Because CreateIndex after default collection is deleted.");
+
+            Db.Invoking(d => d.GetIndexes())
+                .Should().Throw<CouchbaseLiteException>("Because GetIndexes after default collection is deleted.");
+
+            Db.Invoking(d => d.DeleteIndex("index1"))
+                .Should().Throw<CouchbaseLiteException>("Because DeleteIndex after default collection is deleted.");
+
+            //TODO: AddChangeListener, AddDocumentChangeListener, RemoveChangeListener CBL-3307
+        }
+
+        /* 8.10 Use Scope API when No Collections in the Scope */
+        // Test that after all collections in the scope are deleted, calling the scope APIS returns the result as expected based on
+        // section 6.5. To test this, get and retain the scope object before deleting all collections.
+        [Fact]
+        public void TestUseScopeAPIsAfterDeletingAllCollections()
+        {
+            //6.5 Get Collections from The Scope Having No Collections
+            //GetCollection() NULL
+            //GetCollections() empty result
+            var colA = Db.CreateCollection("colA", "scopeA");
+            var scopeA = Db.GetScope("scopeA");//colA.Scope;
+
+            scopeA.DeleteCollection(colA);
+            //Db.DeleteCollection("colA", "scopeA"); scopeA.GetCollections() is null
+
+            scopeA.GetCollection("colA").Should().BeNull("Because GetCollection after all collections are deleted.");
+            scopeA.GetCollections().Count.Should().Be(0, "Because GetCollections after all collections are deleted.");
+        }
+
+        // Test that after all collections in the scope are deleted from a different database instance, calling the scope APIS
+        // returns the result as expected based on section 6.5. To test this, get and retain the scope object before deleting
+        // all collections.
+        //[Fact] CBL-3298
+        public void TestUseScopeAPIAfterDeletingAllCollectionsFromDifferentDBInstance()
+        {
+            //6.5 Get Collections from The Scope Having No Collections
+            //GetCollection() NULL
+            //GetCollections() empty result
+            var colA = Db.CreateCollection("colA", "scopeA");
+            var scopeA = Db.GetScope("scopeA");
+            using (var otherDB = OpenDB(Db.Name)) {
+                otherDB.DeleteCollection("colA", "scopeA");
+
+                scopeA.GetCollection("colA").Should().BeNull("Because GetCollection after collection colA is deleted from the other db.");
+                scopeA.GetCollections()?.Count.Should().Be(0, "Because GetCollections after collection colA is deleted from the other db.");
+            }
+        }
+
+        #region Private Methods
+
+        private void TestGetScopesOrCollections(Action dbDispose)
+        {
+            var colA = Db.CreateCollection("colA", "scopeA");
+
+            dbDispose();
+
+            Db.Invoking(d => d.GetDefaultCollection())
+                    .Should().Throw<InvalidOperationException>("Because GetDefaultCollection after db is disposed.");
+
+            Db.Invoking(d => d.GetDefaultScope())
+                    .Should().Throw<InvalidOperationException>("Because GetDefaultScope after db is disposed.");
+
+            Db.Invoking(d => d.GetCollection("colA", "scopeA"))
+                    .Should().Throw<InvalidOperationException>("Because GetCollection after db is disposed.");
+
+            Db.Invoking(d => d.GetCollections("scopeA"))
+                    .Should().Throw<InvalidOperationException>("Because GetCollections after db is disposed.");
+
+            Db.Invoking(d => d.GetScope("scopeA"))
+                    .Should().Throw<InvalidOperationException>("Because GetScope after db is disposed.");
+
+            Db.Invoking(d => d.GetScopes())
+                    .Should().Throw<InvalidOperationException>("Because GetScopes after db is disposed.");
+
+            Db.Invoking(d => d.CreateCollection("colA", "scopeA"))
+                    .Should().Throw<InvalidOperationException>("Because CreateCollection after db is disposed.");
+
+            Db.Invoking(d => d.DeleteCollection("colA", "scopeA"))
+                    .Should().Throw<InvalidOperationException>("Because DeleteCollection after db is disposed.");
+        }
+
+        private void TestUseCollectionAPIs(Action dbDispose)
+        {
+            var colA = Db.CreateCollection("colA", "scopeA");
+            using (var doc = new MutableDocument("doc")) {
+                doc.SetString("str", "string");
+                colA.Save(doc);
+            }
+
+            Db.Delete();
+
+            colA.Invoking(d => d.GetDocument("doc"))
+                .Should().Throw<CouchbaseLiteException>("Because GetDocument after db is disposed.");
+
+            var dto30 = DateTimeOffset.UtcNow.AddSeconds(30);
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("str", "string");
+
+                colA.Invoking(d => d.Save(doc1))
+                    .Should().Throw<CouchbaseLiteException>("Because Save after db is disposed.");
+
+                colA.Invoking(d => d.Delete(doc1))
+                    .Should().Throw<CouchbaseLiteException>("Because Delete after db is disposed.");
+
+                colA.Invoking(d => d.Purge(doc1))
+                    .Should().Throw<CouchbaseLiteException>("Because Purge after db is disposed.");
+
+                colA.Invoking(d => d.SetDocumentExpiration("doc1", dto30))
+                    .Should().Throw<CouchbaseLiteException>("Because SetDocumentExpiration after db is disposed.");
+
+                colA.Invoking(d => d.GetDocumentExpiration("doc1"))
+                    .Should().Throw<CouchbaseLiteException>("Because GetDocumentExpiration after db is disposed.");
+            }
+
+            colA.Invoking(d => d.CreateQuery($"SELECT firstName, lastName FROM *"))
+                    .Should().Throw<CouchbaseLiteException>("Because CreateQuery after db is disposed.");
+
+            var index1 = new ValueIndexConfiguration(new string[] { "firstName", "lastName" });
+            colA.Invoking(d => d.CreateIndex("index1", index1))
+                .Should().Throw<CouchbaseLiteException>("Because CreateIndex after db is disposed.");
+
+            colA.Invoking(d => d.GetIndexes())
+                .Should().Throw<CouchbaseLiteException>("Because GetIndexes after db is disposed.");
+
+            colA.Invoking(d => d.DeleteIndex("index1"))
+                .Should().Throw<CouchbaseLiteException>("Because DeleteIndex after db is disposed.");
+
+            //TODO: AddChange, AddDocumentChange, RemoveChange CBL-3307
+        }
+
+        private void TestUseScope(Action dbDispose)
+        {
+            var colA = Db.CreateCollection("colA", "scopeA");
+            var scope = colA.Scope;
+
+            dbDispose();
+
+            scope.Invoking(d => d.GetCollection("colA"))
+                .Should().Throw<CouchbaseLiteException>("Because GetCollection after db is disposed.");
+
+            scope.Invoking(d => d.GetCollections())
+                .Should().Throw<CouchbaseLiteException>("Because GetCollections after db is disposed.");
+        }
+
+        #endregion
     }
 }
