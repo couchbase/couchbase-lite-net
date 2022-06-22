@@ -77,7 +77,7 @@ namespace Test
             defaultColl.Should().BeNull("default collection cannot be recreated, so the value is still null");
         }
 
-        [Fact]
+        //[Fact] wait for LiteCore update with CBL-3257 fix
         public void TestGetDefaultScopeAfterDeleteDefaultCollection()
         {
             Db.DeleteCollection(Database._defaultCollectionName);
