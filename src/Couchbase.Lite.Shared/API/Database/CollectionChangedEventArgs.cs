@@ -44,17 +44,20 @@ namespace Couchbase.Lite
         [ItemNotNull]
         public IReadOnlyList<string> DocumentIDs { get; }
 
+        internal Database Database { get; }
+
         #endregion
 
         #region Constructors
 
-        internal CollectionChangedEventArgs([NotNull] Collection collection, [NotNull][ItemNotNull] IReadOnlyList<string> documentIDs)
+        internal CollectionChangedEventArgs([NotNull] Collection collection, [NotNull][ItemNotNull] IReadOnlyList<string> documentIDs, Database database)
         {
             Debug.Assert(collection != null);
             Debug.Assert(documentIDs != null);
             Debug.Assert(documentIDs.All(x => x != null));
             Collection = collection;
             DocumentIDs = documentIDs;
+            Database = database;
         }
 
         #endregion

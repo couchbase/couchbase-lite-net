@@ -574,7 +574,14 @@ Ensure that the created collection is visible to the database instance B by usin
                 colA.Invoking(d => d.DeleteIndex("index1"))
                     .Should().Throw<CouchbaseLiteException>("Because DeleteIndex after collection colA is deleted.");
 
-                //TODO: AddChange, AddDocumentChange, RemoveChange CBL-3307
+                colA.Invoking(d => d.AddChangeListener(null, (sender, args) => { }))
+                    .Should().Throw<CouchbaseLiteException>("Because AddChangeListener after collection colA is deleted.");
+
+                colA.Invoking(d => d.AddDocumentChangeListener("doc1", (sender, args) => { }))
+                    .Should().Throw<CouchbaseLiteException>("Because AddDocumentChangeListener after collection colA is deleted.");
+
+                colA.Invoking(d => d.RemoveChangeListener(d.AddDocumentChangeListener("doc1", (sender, args) => { })))
+                    .Should().Throw<CouchbaseLiteException>("Because RemoveChangeListener after collection colA is deleted.");
             }
         }
 
@@ -634,7 +641,14 @@ Ensure that the created collection is visible to the database instance B by usin
                 colA1.Invoking(d => d.DeleteIndex("index1"))
                     .Should().Throw<CouchbaseLiteException>("Because DeleteIndex after collection colA is deleted from the other db.");
 
-                //TODO: AddChange, AddDocumentChange, RemoveChange CBL-3307 
+                colA1.Invoking(d => d.AddChangeListener(null, (sender, args) => { }))
+                .Should().Throw<CouchbaseLiteException>("Because AddChangeListener after collection colA is deleted from the other db.");
+
+                colA1.Invoking(d => d.AddDocumentChangeListener("doc1", (sender, args) => { }))
+                    .Should().Throw<CouchbaseLiteException>("Because AddDocumentChangeListener after collection colA is deleted from the other db.");
+
+                colA1.Invoking(d => d.RemoveChangeListener(d.AddDocumentChangeListener("doc1", (sender, args) => { })))
+                    .Should().Throw<CouchbaseLiteException>("Because RemoveChangeListener after collection colA is deleted from the other db.");
             }
         }
 
@@ -707,7 +721,14 @@ Ensure that the created collection is visible to the database instance B by usin
                 Db.Invoking(d => d.DeleteIndex("index1"))
                     .Should().Throw<CouchbaseLiteException>("Because DeleteIndex after default collection is deleted.");
 
-                //TODO: AddChangeListener, AddDocumentChangeListener, RemoveChangeListener CBL-3307
+                Db.Invoking(d => d.AddChangeListener(null, (sender, args) => { } ))
+                    .Should().Throw<CouchbaseLiteException>("Because AddChangeListener after default collection is deleted.");
+
+                Db.Invoking(d => d.AddDocumentChangeListener("doc1", (sender, args) => { }))
+                    .Should().Throw<CouchbaseLiteException>("Because AddDocumentChangeListener after default collection is deleted.");
+
+                Db.Invoking(d => d.RemoveChangeListener(d.AddDocumentChangeListener("doc1", (sender, args) => { })))
+                    .Should().Throw<CouchbaseLiteException>("Because RemoveChangeListener after default collection is deleted.");
             }
         }
 
@@ -830,7 +851,14 @@ Ensure that the created collection is visible to the database instance B by usin
                 colA.Invoking(d => d.DeleteIndex("index1"))
                     .Should().Throw<CouchbaseLiteException>("Because DeleteIndex after db is disposed.");
 
-                //TODO: AddChange, AddDocumentChange, RemoveChange CBL-3307
+                colA.Invoking(d => d.AddChangeListener(null, (sender, args) => { }))
+                    .Should().Throw<CouchbaseLiteException>("Because AddChangeListener after db is disposed.");
+
+                colA.Invoking(d => d.AddDocumentChangeListener("doc1", (sender, args) => { }))
+                    .Should().Throw<CouchbaseLiteException>("Because AddDocumentChangeListener after db is disposed.");
+
+                colA.Invoking(d => d.RemoveChangeListener(d.AddDocumentChangeListener("doc1", (sender, args) => { })))
+                    .Should().Throw<CouchbaseLiteException>("Because RemoveChangeListener after db is disposed.");
             }
         }
 

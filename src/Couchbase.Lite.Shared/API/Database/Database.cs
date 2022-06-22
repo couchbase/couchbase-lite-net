@@ -112,7 +112,7 @@ namespace Couchbase.Lite
     /// <see cref="Document"/> instances.  It is portable between platforms if the file is retrieved,
     /// and can be seeded with pre-populated data if desired.
     /// </summary>
-    public sealed unsafe partial class Database : IChangeObservable<DatabaseChangedEventArgs>, IDocumentChangeObservable,
+    public sealed unsafe partial class Database : IChangeObservable<CollectionChangedEventArgs>, IDocumentChangeObservable,
          IDisposable
     {
         #region Constants
@@ -1097,23 +1097,9 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [Obsolete("AddChangeListener is deprecated, please use GetDefaultCollection().AddChangeListener")]
         public ListenerToken AddChangeListener([@CanBeNull] TaskScheduler scheduler,
-            [@NotNull] EventHandler<DatabaseChangedEventArgs> handler)
+            [@NotNull] EventHandler<CollectionChangedEventArgs> handler)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
-
-            return ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-
-                var cbHandler = new CouchbaseEventHandler<DatabaseChangedEventArgs>(handler, scheduler);
-                if (_databaseChanged.Add(cbHandler) == 0)
-                {
-                    _obsContext = GCHandle.Alloc(this);
-                    _obs = Native.c4dbobs_create(_c4db, _DatabaseObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer());
-                }
-
-                return new ListenerToken(cbHandler, ListenerTokenType.Database, this);
-            });
+            return DefaultCollection.AddChangeListener(scheduler, handler);
         }
 
         /// <summary>
@@ -1126,7 +1112,7 @@ namespace Couchbase.Lite
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [Obsolete("AddChangeListener is deprecated, please use GetDefaultCollection().AddChangeListener")]
-        public ListenerToken AddChangeListener([@NotNull] EventHandler<DatabaseChangedEventArgs> handler) => AddChangeListener(null, handler);
+        public ListenerToken AddChangeListener([@NotNull] EventHandler<CollectionChangedEventArgs> handler) => AddChangeListener(null, handler);
 
         #endregion
 
@@ -1148,24 +1134,7 @@ namespace Couchbase.Lite
         public ListenerToken AddDocumentChangeListener([@NotNull] string id, [@CanBeNull] TaskScheduler scheduler,
             [@NotNull] EventHandler<DocumentChangedEventArgs> handler)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
-
-            return ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-
-                var cbHandler =
-                    new CouchbaseEventHandler<string, DocumentChangedEventArgs>(handler, id, scheduler);
-                var count = _documentChanged.Add(cbHandler);
-                if (count == 0) {
-                    var handle = GCHandle.Alloc(this);
-                    var docObs = Native.c4docobs_create(_c4db, id, _DocumentObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
-                    _docObs[id] = Tuple.Create((IntPtr)docObs, handle);
-                }
-
-                return new ListenerToken(cbHandler, ListenerTokenType.Document, this);
-            });
+            return DefaultCollection.AddDocumentChangeListener(id, scheduler, handler);
         }
 
         /// <summary>
@@ -1600,7 +1569,7 @@ namespace Couchbase.Lite
                     return;
                 }
 
-                change = new DocumentChangedEventArgs(documentID, this);
+                change = new DocumentChangedEventArgs(documentID, DefaultCollection);
             });
 
             _documentChanged.Fire(documentID, this, change);
