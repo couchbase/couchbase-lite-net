@@ -1297,6 +1297,10 @@ namespace Couchbase.Lite
         internal void ResolveConflict([@NotNull]string docID, [@CanBeNull]IConflictResolver conflictResolver)
         {
             Debug.Assert(docID != null);
+            if(DefaultCollection == null) {
+                throw new InvalidOperationException($"Default Collection is deleted from the database {ToString()}.");
+            }
+
             var writeSuccess = false;
             while (!writeSuccess) {
                 var readSuccess = false;
