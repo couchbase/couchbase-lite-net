@@ -27,7 +27,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// The parameters of a collection changed event
     /// </summary>
-    public sealed class CollectionChangedEventArgs : EventArgs
+    public sealed class CollectionChangedEventArgs : DatabaseChangedEventArgs
     {
         #region Properties
 
@@ -37,27 +37,16 @@ namespace Couchbase.Lite
         [NotNull]
         public Collection Collection { get; }
 
-        /// <summary>
-        /// Gets the document that was changed
-        /// </summary>
-        [NotNull]
-        [ItemNotNull]
-        public IReadOnlyList<string> DocumentIDs { get; }
-
-        internal Database Database { get; }
-
         #endregion
 
         #region Constructors
 
-        internal CollectionChangedEventArgs([NotNull] Collection collection, [NotNull][ItemNotNull] IReadOnlyList<string> documentIDs, Database database)
+        internal CollectionChangedEventArgs([NotNull] Collection collection, [NotNull][ItemNotNull] IReadOnlyList<string> documentIDs,
+            Database database)
+            :base(database, documentIDs)
         {
             Debug.Assert(collection != null);
-            Debug.Assert(documentIDs != null);
-            Debug.Assert(documentIDs.All(x => x != null));
             Collection = collection;
-            DocumentIDs = documentIDs;
-            Database = database;
         }
 
         #endregion

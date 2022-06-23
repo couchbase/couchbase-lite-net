@@ -27,7 +27,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// The parameters of a database changed event
     /// </summary>
-    public sealed class DatabaseChangedEventArgs : EventArgs
+    public class DatabaseChangedEventArgs : EventArgs
     {
         #region Properties
 
