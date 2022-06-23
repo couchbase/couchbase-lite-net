@@ -187,7 +187,7 @@ namespace Couchbase.Lite
         /// [DEPRECATED] Gets the number of documents in the database
         /// </summary>
         [Obsolete("Count is deprecated, please use GetDefaultCollection().Count")]
-        public ulong Count => ThreadSafety.DoLocked(() => Native.c4db_getDocumentCount(_c4db));
+        public ulong Count => DefaultCollection == null ? 0 :  ThreadSafety.DoLocked(() => Native.c4coll_getDocumentCount(DefaultCollection.c4coll));
 
         /// <summary>
         /// Gets a <see cref="DocumentFragment"/> with the given document ID
@@ -760,7 +760,7 @@ namespace Couchbase.Lite
         [Obsolete("CreateIndex is deprecated, please use GetDefaultCollection().CreateIndex")]
         public void CreateIndex([@NotNull] string name, [@NotNull] IndexConfiguration indexConfig)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+            CheckExistenceOfDefaultCollection();
 
             DefaultCollection.CreateIndex(name, indexConfig);
         }
@@ -828,7 +828,7 @@ namespace Couchbase.Lite
         [Obsolete("Delete is deprecated, please use GetDefaultCollection().Delete")]
         public bool Delete([@NotNull]Document document, ConcurrencyControl concurrencyControl)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+            CheckExistenceOfDefaultCollection();
 
             return DefaultCollection.Delete(document, concurrencyControl);
         }
@@ -840,7 +840,7 @@ namespace Couchbase.Lite
         [Obsolete("DeleteIndex is deprecated, please use GetDefaultCollection().DeleteIndex")]
         public void DeleteIndex([@NotNull]string name)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+            CheckExistenceOfDefaultCollection();
 
             DefaultCollection.DeleteIndex(name);
         }
@@ -854,7 +854,7 @@ namespace Couchbase.Lite
         [@CanBeNull]
         public Document GetDocument([@NotNull]string id)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+            CheckExistenceOfDefaultCollection();
 
             return DefaultCollection.GetDocument(id);
         }
@@ -868,7 +868,7 @@ namespace Couchbase.Lite
         [@ItemNotNull]
         public IList<string> GetIndexes()
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+            CheckExistenceOfDefaultCollection();
 
             return DefaultCollection.GetIndexes();
         }
@@ -914,7 +914,7 @@ namespace Couchbase.Lite
         [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
         public void Purge([@NotNull]Document document)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+            CheckExistenceOfDefaultCollection();
 
             DefaultCollection.Purge(document);
         }
@@ -930,7 +930,7 @@ namespace Couchbase.Lite
         [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
         public void Purge([@NotNull]string docId)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+            CheckExistenceOfDefaultCollection();
 
             DefaultCollection.Purge(docId);
         }
@@ -949,7 +949,7 @@ namespace Couchbase.Lite
         [Obsolete("SetDocumentExpiration is deprecated, please use GetDefaultCollection().SetDocumentExpiration")]
         public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+            CheckExistenceOfDefaultCollection();
 
             return DefaultCollection.SetDocumentExpiration(docId, expiration);
         }
@@ -966,7 +966,7 @@ namespace Couchbase.Lite
         [Obsolete("GetDocumentExpiration is deprecated, please use GetDefaultCollection().GetDocumentExpiration")]
         public DateTimeOffset? GetDocumentExpiration(string docId)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+            CheckExistenceOfDefaultCollection();
 
             return DefaultCollection.GetDocumentExpiration(docId);
         }
@@ -993,7 +993,7 @@ namespace Couchbase.Lite
         [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
         public bool Save([@NotNull]MutableDocument document, ConcurrencyControl concurrencyControl)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+            CheckExistenceOfDefaultCollection();
 
             return DefaultCollection.Save(document, concurrencyControl);
         }
@@ -1010,7 +1010,7 @@ namespace Couchbase.Lite
         [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
         public bool Save([@NotNull]MutableDocument document, [@NotNull]Func<MutableDocument, Document, bool> conflictHandler)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+            CheckExistenceOfDefaultCollection();
 
             return DefaultCollection.Save(document, conflictHandler);
         }
@@ -1185,6 +1185,12 @@ namespace Couchbase.Lite
 
         #region IChangeObservableRemovable
 
+        /// <summary>
+        /// [DEPRECATED] Removes a database changed listener by token
+        /// </summary>
+        /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{DatabaseChangedEventArgs})"/>
+        /// and family</param>
+        [Obsolete("RemoveChangeListener is deprecated, please use GetDefaultCollection().RemoveChangeListener")]
         public void RemoveChangeListener(ListenerToken token)
         {
             ThreadSafety.DoLocked(() =>
@@ -1301,8 +1307,8 @@ namespace Couchbase.Lite
 
         internal void ResolveConflict([@NotNull]string docID, [@CanBeNull]IConflictResolver conflictResolver)
         {
+            CheckExistenceOfDefaultCollection();
             Debug.Assert(docID != null);
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
 
             var writeSuccess = false;
             while (!writeSuccess) {
@@ -1455,6 +1461,13 @@ namespace Couchbase.Lite
         {
             if (IsClosed) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
+            }
+        }
+
+        private void CheckExistenceOfDefaultCollection()
+        {
+            if (DefaultCollection == null) {
+                throw new InvalidOperationException($"Default Collection is deleted from the database { ToString() }.");
             }
         }
 
