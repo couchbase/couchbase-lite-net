@@ -164,8 +164,9 @@ namespace Couchbase.Lite
         private ManualResetEventSlim _closeCondition = new ManualResetEventSlim(true);
 
         //Pre 3.1 Database's Collection
-        internal Collection _defaultCollection = null;
-        internal Scope _defaultScope = null;
+        private bool _defaultCollectionIsDeleted = false;
+        private Collection _defaultCollection = null;
+        private Scope _defaultScope = null;
 
         //3.1+ Database
         private ConcurrentDictionary<string, Scope> _scopes = new ConcurrentDictionary<string, Scope>();
@@ -423,12 +424,13 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
         /// if <see cref="Database"/> is closed</exception>
+        [@CanBeNull]
         public Collection GetDefaultCollection()
         {
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                if (_defaultCollection == null) {
+                if (_defaultCollection == null && !_defaultCollectionIsDeleted) {
                     var c4coll = (C4Collection*)LiteCoreBridge.Check(err =>
                     {
                         return Native.c4db_getDefaultCollection(c4db, err);
@@ -436,6 +438,9 @@ namespace Couchbase.Lite
 
                     if (c4coll != null) {
                         _defaultCollection = new Collection(this, _defaultCollectionName, GetDefaultScope(), c4coll);
+                    } else {
+                        _defaultCollectionIsDeleted = true;
+                        WriteLog.To.Database.W(Tag, $"The none-recoverable default collection is now deleted from database {ToString()}.");
                     }
                 }
             });
@@ -1297,9 +1302,7 @@ namespace Couchbase.Lite
         internal void ResolveConflict([@NotNull]string docID, [@CanBeNull]IConflictResolver conflictResolver)
         {
             Debug.Assert(docID != null);
-            if(DefaultCollection == null) {
-                throw new InvalidOperationException($"Default Collection is deleted from the database {ToString()}.");
-            }
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
 
             var writeSuccess = false;
             while (!writeSuccess) {
