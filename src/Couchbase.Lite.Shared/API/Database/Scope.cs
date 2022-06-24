@@ -53,7 +53,8 @@ namespace Couchbase.Lite
         internal C4Database* c4Db
         {
             get {
-                Debug.Assert(Database != null && Database.c4db != null);
+                if (Database.c4db == null)
+                    throw new CouchbaseLiteException(C4ErrorCode.NotOpen, String.Format(CouchbaseLiteErrorMessage.DBClosed));
                 return Database.c4db;
             }
         }
@@ -273,7 +274,7 @@ namespace Couchbase.Lite
                 var arrColl = Native.c4db_collectionNames(c4Db, Name, &error);
                 if (error.code == 0) {
                     var collsCnt = Native.FLArray_Count((FLArray*)arrColl);
-                    if (_collections.Count > collsCnt)
+                    if (_collections?.Count > collsCnt)
                         _collections.Clear();
 
                     for (uint i = 0; i < collsCnt; i++) {

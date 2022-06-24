@@ -187,7 +187,7 @@ namespace Couchbase.Lite
         /// [DEPRECATED] Gets the number of documents in the database
         /// </summary>
         [Obsolete("Count is deprecated, please use GetDefaultCollection().Count")]
-        public ulong Count => DefaultCollection == null ? 0 :  ThreadSafety.DoLocked(() => Native.c4coll_getDocumentCount(DefaultCollection.c4coll));
+        public ulong Count => DefaultCollection == null ? 0 : DefaultCollection.Count;
 
         /// <summary>
         /// Gets a <see cref="DocumentFragment"/> with the given document ID
