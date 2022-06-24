@@ -125,9 +125,6 @@ namespace Couchbase.Lite
 
         private const string Tag = nameof(Database);
 
-        private static readonly C4DocumentObserverCallback _DocumentObserverCallback = DocObserverCallback;
-        private static readonly C4CollectionObserverCallback _DatabaseObserverCallback = DbObserverCallback;
-
         internal const string _defaultScopeName = "_default";
         internal const string _defaultCollectionName = "_default";
 
@@ -135,31 +132,12 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        [@NotNull]
-        private readonly Dictionary<string, Tuple<IntPtr, GCHandle>> _docObs = new Dictionary<string, Tuple<IntPtr, GCHandle>>();
-
-        [@NotNull]
-        private readonly FilteredEvent<string, DocumentChangedEventArgs> _documentChanged =
-            new FilteredEvent<string, DocumentChangedEventArgs>();
-
-        [@NotNull]
-        private readonly Event<DatabaseChangedEventArgs> _databaseChanged = 
-            new Event<DatabaseChangedEventArgs>();
-
-        [@NotNull]
-        private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
-
-        [@NotNull]
-        private readonly TaskFactory _callbackFactory = new TaskFactory(new QueueTaskScheduler());
-
 #if false
         private IJsonSerializer _jsonSerializer;
 #endif
 
         private C4Database* _c4db;
-        private C4CollectionObserver* _obs;
 
-        private GCHandle _obsContext;
         private bool _isClosing;
         private ManualResetEventSlim _closeCondition = new ManualResetEventSlim(true);
 
@@ -215,12 +193,7 @@ namespace Couchbase.Lite
         /// value will be returned.
         /// </summary>
         [@CanBeNull]
-        public string Path
-        {
-            get {
-                return ThreadSafety.DoLocked(() => _c4db != null ? Native.c4db_getPath(c4db) : null);
-            }
-        }
+        public string Path => ThreadSafety.DoLocked(() => _c4db != null ? Native.c4db_getPath(c4db) : null);
 
         internal ConcurrentDictionary<IStoppable, int> ActiveStoppables { get; } = new ConcurrentDictionary<IStoppable, int>();
 
@@ -901,7 +874,7 @@ namespace Couchbase.Lite
                 }
             });
 
-            PostDatabaseChanged();
+            DefaultCollection.PostDatabaseChanged();
         }
 
         /// <summary>
@@ -1332,7 +1305,6 @@ namespace Couchbase.Lite
             }
         }
 
-
         internal void CheckOpenLocked()
         {
             ThreadSafety.DoLocked(() =>
@@ -1381,34 +1353,6 @@ namespace Couchbase.Lite
                 throw new RuntimeException("Path.Combine failed to return a non-null value!");
         }
 
-        #if __IOS__
-        [ObjCRuntime.MonoPInvokeCallback(typeof(C4CollectionObserverCallback))]
-        #endif
-        private static void DbObserverCallback(C4CollectionObserver* db, void* context)
-        {
-            var dbObj = GCHandle.FromIntPtr((IntPtr) context).Target as Database;
-            dbObj?._callbackFactory.StartNew(() =>
-            {
-                dbObj.PostDatabaseChanged();
-            });
-        }
-
-        #if __IOS__
-        [ObjCRuntime.MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
-        #endif
-        private static void DocObserverCallback(C4DocumentObserver* obs, C4Collection* collection, FLSlice docId, ulong sequence, void* context)
-        {
-            if (docId.buf == null) {
-                return;
-            }
-
-            var dbObj = GCHandle.FromIntPtr((IntPtr) context).Target as Database;
-            dbObj?._callbackFactory.StartNew(() =>
-            {
-                dbObj.PostDocChanged(docId.CreateString());
-            });
-        }
-
         // Must be called inside self lock
         private void CheckOpen()
         {
@@ -1430,12 +1374,6 @@ namespace Couchbase.Lite
                 return;
             }
 
-            if (disposing) {
-                ClearUnsavedDocsAndFreeDocObservers();
-            }
-
-            FreeC4DbObserver();
-
             WriteLog.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(_c4db)}");
             if (!IsShell) {
                 LiteCoreBridge.Check(err => Native.c4db_close(_c4db, err));
@@ -1446,22 +1384,6 @@ namespace Couchbase.Lite
             ReleaseC4Db();
 
             _closeCondition.Dispose();
-        }
-
-        [@CanBeNull]
-        private Document GetDocumentInternal([@NotNull]string docID)
-        {
-            CheckOpen();
-            var doc = new Document(DefaultCollection, docID);
-
-            if (!doc.Exists || doc.IsDeleted) {
-                doc.Dispose();
-                WriteLog.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist", 
-                    new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
-                return null;
-            }
-
-            return doc;
         }
 
         private void Open()
@@ -1505,58 +1427,6 @@ namespace Couchbase.Lite
                     return Native.c4db_openNamed(Name, &localConfig2, err);
                 });
             });
-        }
-
-        private void PostDatabaseChanged()
-        {
-            ThreadSafety.DoLocked(() =>
-            {
-                if (_obs == null || IsClosed) {
-                    return;
-                }
-
-                const uint maxChanges = 100u;
-                var external = false;
-                uint nChanges;
-                var changes = new C4CollectionChange[maxChanges];
-                var docIDs = new List<string>();
-                do {
-                    // Read changes in batches of MaxChanges:
-                    bool newExternal;
-                    var collectionObservation = Native.c4dbobs_getChanges(_obs, changes, maxChanges);
-                    newExternal = collectionObservation.external;
-                    nChanges = collectionObservation.numChanges;
-                    if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
-                        if (docIDs.Count > 0) {
-                            // Only notify if there are actually changes to send
-                            var args = new DatabaseChangedEventArgs(this, docIDs);
-                            _databaseChanged.Fire(this, args);
-                            docIDs = new List<string>();
-                        }
-                    }
-
-                    external = newExternal;
-                    for (var i = 0; i < nChanges; i++) {
-                        docIDs.Add(changes[i].docID.CreateString());
-                    }
-                    Native.c4dbobs_releaseChanges(changes, nChanges);
-                } while (nChanges > 0);
-            });
-        }
-
-        private void PostDocChanged([@NotNull]string documentID)
-        {
-            DocumentChangedEventArgs change = null;
-            ThreadSafety.DoLocked(() =>
-            {
-                if (IsClosed || !_docObs.ContainsKey(documentID)) {
-                    return;
-                }
-
-                change = new DocumentChangedEventArgs(documentID, DefaultCollection);
-            });
-
-            _documentChanged.Fire(documentID, this, change);
         }
 
         // Must be called in transaction
@@ -1665,34 +1535,6 @@ namespace Couchbase.Lite
             Native.c4db_release(_c4db);
             _c4db = null;
         }
-
-        private void FreeC4DbObserver()
-        {
-            if (_obs != null) {
-                Native.c4dbobs_free(_obs);
-                _obsContext.Free();
-            }
-        }
-
-        private void ClearUnsavedDocsAndFreeDocObservers()
-        {
-            //TODO _docObs might need to be refactored into an IDisposable class
-            foreach (var obs in _docObs) {
-                Native.c4docobs_free((C4DocumentObserver*) obs.Value.Item1);
-                obs.Value.Item2.Free();
-            }
-
-            _docObs.Clear();
-            //end of TODO comments
-
-            if (_unsavedDocuments.Count > 0) {
-                WriteLog.To.Database.W(Tag,
-                    $"Closing database with {_unsavedDocuments.Count} such as {_unsavedDocuments.Any()}");
-            }
-
-            _unsavedDocuments.Clear();
-        }
-
 
         private void CheckOpenAndNotClosing()
         {

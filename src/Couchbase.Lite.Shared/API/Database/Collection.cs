@@ -31,6 +31,7 @@ using LiteCore.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -72,6 +73,9 @@ namespace Couchbase.Lite
             new Event<CollectionChangedEventArgs>();
 
         [NotNull]
+        private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
+
+        [NotNull]
         private readonly TaskFactory _callbackFactory = new TaskFactory(new QueueTaskScheduler());
 
         #endregion
@@ -81,14 +85,7 @@ namespace Couchbase.Lite
         // Must be called inside self lock
         private bool IsClosed => c4Db == null || _c4coll == IntPtr.Zero || !Native.c4coll_isValid((C4Collection*)_c4coll);
 
-        internal C4Database* c4Db
-        {
-            get {
-                if (Database.c4db == null)
-                    throw new CouchbaseLiteException(C4ErrorCode.NotOpen, String.Format(CouchbaseLiteErrorMessage.DBClosed));
-                return Database.c4db;
-            }
-        }
+        internal C4Database* c4Db => Database.c4db;
 
         internal C4Collection* c4coll
         {
@@ -146,6 +143,18 @@ namespace Couchbase.Lite
 
             _c4coll = (IntPtr)c4c;
             Native.c4coll_retain((C4Collection*)_c4coll);
+        }
+
+        /// <summary>
+        /// Finalizer
+        /// </summary>
+        ~Collection()
+        {
+            try {
+                Dispose(false);
+            } catch (Exception e) {
+                WriteLog.To.Database.E(Tag, "Error during finalizer, swallowing!", e);
+            }
         }
 
         #endregion
@@ -208,8 +217,7 @@ namespace Couchbase.Lite
                 var cbHandler =
                     new CouchbaseEventHandler<string, DocumentChangedEventArgs>(handler, id, scheduler);
                 var count = _documentChanged.Add(cbHandler);
-                if (count == 0)
-                {
+                if (count == 0) {
                     var handle = GCHandle.Alloc(this);
                     var docObs = Native.c4docobs_createWithCollection(c4coll, id, _documentObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
                     _docObs[id] = Tuple.Create((IntPtr)docObs, handle);
@@ -577,6 +585,19 @@ namespace Couchbase.Lite
 
         #endregion
 
+        #region Public Methods - QueryFactory
+
+        public IQuery CreateQuery([NotNull] string queryExpression)
+        {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(queryExpression), queryExpression);
+            CheckCollectionValid();
+
+            var query = new NQuery(queryExpression, this.Database);
+            return query;
+        }
+
+        #endregion
+
         #region Private Methods - Observers
 
         #if __IOS__
@@ -588,44 +609,6 @@ namespace Couchbase.Lite
             dbObj?._callbackFactory.StartNew(() =>
             {
                 dbObj.PostDatabaseChanged();
-            });
-        }
-
-        private void PostDatabaseChanged()
-        {
-            ThreadSafety.DoLocked(() =>
-            {
-                if (_obs == null || IsClosed) {
-                    return;
-                }
-
-                const uint maxChanges = 100u;
-                var external = false;
-                uint nChanges;
-                var changes = new C4CollectionChange[maxChanges];
-                var docIDs = new List<string>();
-                do {
-                    // Read changes in batches of MaxChanges:
-                    bool newExternal;
-                    var collectionObservation = Native.c4dbobs_getChanges(_obs, changes, maxChanges);
-                    newExternal = collectionObservation.external;
-                    nChanges = collectionObservation.numChanges;
-                    if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
-                        if (docIDs.Count > 0) {
-                            // Only notify if there are actually changes to send
-                            var args = new CollectionChangedEventArgs(this, docIDs, Database);
-                            _databaseChanged.Fire(this, args);
-                            docIDs = new List<string>();
-                        }
-                    }
-
-                    external = newExternal;
-                    for (var i = 0; i < nChanges; i++) {
-                        docIDs.Add(changes[i].docID.CreateString());
-                    }
-
-                    Native.c4dbobs_releaseChanges(changes, nChanges);
-                } while (nChanges > 0);
             });
         }
 
@@ -658,6 +641,31 @@ namespace Couchbase.Lite
             });
 
             _documentChanged.Fire(documentID, this, change);
+        }
+
+        private void FreeC4DbObserver()
+        {
+            if (_obs != null) {
+                Native.c4dbobs_free(_obs);
+                _obsContext.Free();
+            }
+        }
+
+        private void ClearUnsavedDocsAndFreeDocObservers()
+        {
+            foreach (var obs in _docObs) {
+                Native.c4docobs_free((C4DocumentObserver*)obs.Value.Item1);
+                obs.Value.Item2.Free();
+            }
+
+            _docObs.Clear();
+
+            if (_unsavedDocuments.Count > 0) {
+                WriteLog.To.Database.W(Tag,
+                    $"Closing database with {_unsavedDocuments.Count} such as {_unsavedDocuments.Any()}");
+            }
+
+            _unsavedDocuments.Clear();
         }
 
         #endregion
@@ -835,19 +843,6 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region Public Methods - QueryFactory
-
-        public IQuery CreateQuery([NotNull] string queryExpression)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(queryExpression), queryExpression);
-            CheckCollectionValid();
-
-            var query = new NQuery(queryExpression, this.Database);
-            return query;
-        }
-
-        #endregion
-
         #region Internal Methods
 
         /// <summary>
@@ -865,6 +860,44 @@ namespace Couchbase.Lite
                     throw new CouchbaseLiteException(C4ErrorCode.NotOpen, String.Format(CouchbaseLiteErrorMessage.CollectionNotAvailable,
                                 ToString()));
                 }
+            });
+        }
+
+        internal void PostDatabaseChanged()
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                if (_obs == null || IsClosed) {
+                    return;
+                }
+
+                const uint maxChanges = 100u;
+                var external = false;
+                uint nChanges;
+                var changes = new C4CollectionChange[maxChanges];
+                var docIDs = new List<string>();
+                do {
+                    // Read changes in batches of MaxChanges:
+                    bool newExternal;
+                    var collectionObservation = Native.c4dbobs_getChanges(_obs, changes, maxChanges);
+                    newExternal = collectionObservation.external;
+                    nChanges = collectionObservation.numChanges;
+                    if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
+                        if (docIDs.Count > 0) {
+                            // Only notify if there are actually changes to send
+                            var args = new CollectionChangedEventArgs(this, docIDs, Database);
+                            _databaseChanged.Fire(this, args);
+                            docIDs = new List<string>();
+                        }
+                    }
+
+                    external = newExternal;
+                    for (var i = 0; i < nChanges; i++) {
+                        docIDs.Add(changes[i].docID.CreateString());
+                    }
+
+                    Native.c4dbobs_releaseChanges(changes, nChanges);
+                } while (nChanges > 0);
             });
         }
 
@@ -903,6 +936,20 @@ namespace Couchbase.Lite
             Native.c4coll_release((C4Collection*)old);
         }
 
+        private void Dispose(bool disposing)
+        {
+            if (IsClosed) {
+                return;
+            }
+
+            if (disposing) {
+                ClearUnsavedDocsAndFreeDocObservers();
+            }
+
+            FreeC4DbObserver();
+            ReleaseCollection();
+        }
+
         #endregion
 
         #region object
@@ -938,9 +985,23 @@ namespace Couchbase.Lite
         /// </summary>
         public void Dispose()
         {
+            GC.SuppressFinalize(this);
+            var isClosed = ThreadSafety.DoLocked(() =>
+            {
+                if (IsClosed) {
+                    return true;
+                }
+
+                return false;
+            });
+
+            if (isClosed) {
+                return;
+            }
+
             ThreadSafety.DoLocked(() =>
             {
-                ReleaseCollection();
+                Dispose(true);
             });
         }
 
