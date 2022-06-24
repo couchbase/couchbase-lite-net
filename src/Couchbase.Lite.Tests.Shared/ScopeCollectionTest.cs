@@ -88,7 +88,6 @@ namespace Test
             defaultScope.Name.Should().Be(Database._defaultScopeName, $"default scope name is {Database._defaultScopeName}");
         }
 
-
         [Fact]
         public void TestCreateAndGetCollectionsInDefaultScope()
         {
@@ -351,6 +350,39 @@ namespace Test
             //Db.CreateCollection("abc", "scope1").Should().NotBeNull("Should be able to be created because scope name is case sensitive.");
         }
 
+        /* TODO CBL-3225 8.2 Part 2
+         TestCreateAnExistingCollection : Test that creating an existing collection returns an existing collection.
+Create a new collection by using database.createCollection(name: "colA", scope: "scopeA").
+Add some documents to the collection.
+Create the same collection again. 
+Ensure that the existing collection is returned, and all the existing documents still exist.*/
+        [Fact]
+        public void TestCreateAnExistingCollection()
+        {
+
+        }
+
+        /*TestDeleteCollection : Test that deleting a collection is successful.
+        Create a new collection by using database.createCollection(name: "colA", scope: "scopeA").
+        Add some documents to the collection.
+        Delete the collection.
+        Ensure that the collection is deleted successfully.
+        Ensure that getting the collection using database.getCollection(name: "colA", scope: "scopeA") returns null.
+        Ensure that the collections from database.getCollections(scope: "scopeA") doesn’t include the deleted collection.
+        Try to recreate the same collection.
+        Ensure that the collection can be recreated. */
+        [Fact]
+        public void TestDeleteCollection()
+        {
+
+        }
+
+        /* TODO CBL-3227 8.3 Collections and Cross Database Instance
+TestCreateThenGetCollectionFromDifferentDatabaseInstance : Test that creating a collection from a database instance is visible to the other database instance.
+Create Database instance A and B.
+Create a collection in a scope from the database instance A.
+Ensure that the created collection is visible to the database instance B by using database.getCollection(name: "colA", scope: "scopeA") and database.getCollections(scope: "scopeA") API.
+        */
         [Fact]
         public void TestCreateThenGetCollectionFromDifferentDatabaseInstance()
         {
@@ -362,5 +394,41 @@ namespace Test
                 //cols.Contains(colA).Should().BeTrue();
             }
         }
+
+        /*TestDeleteThenGetCollectionFromDifferentDatabaseInstance : Test that deleting a collection from a database instance is visible to the other database instance.
+        Create Database instance A and B.
+        Create a collection in a scope from the database instance A.
+        Add some documents to the created collection.
+        Ensure that the created collection is visible to the database instance B by using database.getCollection(name: "colA", scope: "scopeA") and database.getCollections(scope: "scopeA") API.
+        Ensure that the collection from the database instance B has the correct number of document counts.
+        Delete the collection from the database instance A.
+        Get the document count from the collection getting from the database instance B. Ensure that the document count is 0.
+        Ensure that the collection is null when getting the collection from the database instance B again by using database.getCollection(name: "colA", scope: "scopeA").
+        Ensure that the collection is not included when getting all collections from the database instance B again by using database.getCollections(scope: "scopeA").
+        */
+        [Fact]
+        public void TestDeleteThenGetCollectionFromDifferentDatabaseInstance()
+        {
+
+        }
+
+        /*TestDeleteAndRecreateThenGetCollectionFromDifferentDatabaseInstance : Test that deleting a collection then recreating the collection from a database instance is visible to the other database instance.
+        Create Database instance A and B.
+        Create a collection in a scope from the database instance A.
+        Add some documents to the created collection.
+        Ensure that the created collection is visible to the database instance B by using database.getCollection(name: "colA", scope: "scopeA") and database.getCollections(scope: "scopeA") API.
+        Ensure that the collection from the database instance B has the correct number of document counts.
+        Delete the collection from the database instance A and recreate the collection using the database instance A.
+        Get the document count from the collection getting from the database instance B. Ensure that the document count is 0.
+        Ensure that the collection is not null and is different from the instance gotten before from the instanceB when getting the collection from the database instance B by using database.getCollection(name: "colA", scope: "scopeA").
+        Ensure that the collection is included when getting all collections from the database instance B by using database.getCollections(scope: "scopeA").
+                 */
+        [Fact]
+        public void TestDeleteAndRecreateThenGetCollectionFromDifferentDatabaseInstance()
+        {
+
+        }
+
+        //TODO: CBL-3235 Add tests to test database functions when database is closed deleted
     }
 }

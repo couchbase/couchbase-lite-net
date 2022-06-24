@@ -56,6 +56,8 @@ namespace Couchbase.Lite.Internal.Query
 
         internal Database Database => Source as Database;
 
+        internal Collection Collection => Source as Collection;
+
         #endregion
 
         #region Constructors

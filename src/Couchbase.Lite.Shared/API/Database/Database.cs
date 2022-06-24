@@ -164,8 +164,9 @@ namespace Couchbase.Lite
         private ManualResetEventSlim _closeCondition = new ManualResetEventSlim(true);
 
         //Pre 3.1 Database's Collection
-        internal Collection _defaultCollection = null;
-        internal Scope _defaultScope = null;
+        private bool _defaultCollectionIsDeleted = false;
+        private Collection _defaultCollection = null;
+        private Scope _defaultScope = null;
 
         //3.1+ Database
         private ConcurrentDictionary<string, Scope> _scopes = new ConcurrentDictionary<string, Scope>();
@@ -186,7 +187,7 @@ namespace Couchbase.Lite
         /// [DEPRECATED] Gets the number of documents in the database
         /// </summary>
         [Obsolete("Count is deprecated, please use GetDefaultCollection().Count")]
-        public ulong Count => ThreadSafety.DoLocked(() => Native.c4db_getDocumentCount(_c4db));
+        public ulong Count => DefaultCollection == null ? 0 :  ThreadSafety.DoLocked(() => Native.c4coll_getDocumentCount(DefaultCollection.c4coll));
 
         /// <summary>
         /// Gets a <see cref="DocumentFragment"/> with the given document ID
@@ -293,6 +294,8 @@ namespace Couchbase.Lite
                 });
             }
         }
+
+        internal Collection DefaultCollection => _defaultCollection == null ? GetDefaultCollection() : _defaultCollection;
 
         private bool IsShell { get; } //this object is borrowing the C4Database from somewhere else, so don't free C4Database at the end if isshell
 
@@ -421,12 +424,13 @@ namespace Couchbase.Lite
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
         /// if <see cref="Database"/> is closed</exception>
+        [@CanBeNull]
         public Collection GetDefaultCollection()
         {
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                if (_defaultCollection == null) {
+                if (_defaultCollection == null && !_defaultCollectionIsDeleted) {
                     var c4coll = (C4Collection*)LiteCoreBridge.Check(err =>
                     {
                         return Native.c4db_getDefaultCollection(c4db, err);
@@ -434,6 +438,9 @@ namespace Couchbase.Lite
 
                     if (c4coll != null) {
                         _defaultCollection = new Collection(this, _defaultCollectionName, GetDefaultScope(), c4coll);
+                    } else {
+                        _defaultCollectionIsDeleted = true;
+                        WriteLog.To.Database.W(Tag, $"The none-recoverable default collection is now deleted from database {ToString()}.");
                     }
                 }
             });
@@ -753,23 +760,9 @@ namespace Couchbase.Lite
         [Obsolete("CreateIndex is deprecated, please use GetDefaultCollection().CreateIndex")]
         public void CreateIndex([@NotNull] string name, [@NotNull] IndexConfiguration indexConfig)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(indexConfig), indexConfig);
+            CheckExistenceOfDefaultCollection();
 
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                LiteCoreBridge.Check(err =>
-                {
-                    var internalOpts = indexConfig.Options;
-                    // For some reason a "using" statement here causes a compiler error
-                    try {
-                        return Native.c4db_createIndex2(c4db, name, indexConfig.ToN1QL(), indexConfig.QueryLanguage, indexConfig.IndexType, &internalOpts, err);
-                    } finally  {
-                        internalOpts.Dispose();
-                    }
-                });
-            });
+            DefaultCollection.CreateIndex(name, indexConfig);
         }
 
         /// Creates a Query object from the given SQL++ string.
@@ -835,8 +828,9 @@ namespace Couchbase.Lite
         [Obsolete("Delete is deprecated, please use GetDefaultCollection().Delete")]
         public bool Delete([@NotNull]Document document, ConcurrencyControl concurrencyControl)
         {
-            var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
-            return Save(doc, null, concurrencyControl, true);
+            CheckExistenceOfDefaultCollection();
+
+            return DefaultCollection.Delete(document, concurrencyControl);
         }
 
         /// <summary>
@@ -846,13 +840,9 @@ namespace Couchbase.Lite
         [Obsolete("DeleteIndex is deprecated, please use GetDefaultCollection().DeleteIndex")]
         public void DeleteIndex([@NotNull]string name)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
+            CheckExistenceOfDefaultCollection();
 
-            ThreadSafety.DoLockedBridge(err =>
-            {
-                CheckOpen();
-                return Native.c4db_deleteIndex(c4db, name, err);
-            });
+            DefaultCollection.DeleteIndex(name);
         }
 
         /// <summary>
@@ -864,13 +854,9 @@ namespace Couchbase.Lite
         [@CanBeNull]
         public Document GetDocument([@NotNull]string id)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
-            if (id.Equals("")) {
-                WriteLog.To.Database.W(Tag, "The doc id should not be an empty string.");
-                return null;
-            }
+            CheckExistenceOfDefaultCollection();
 
-            return ThreadSafety.DoLocked(() => GetDocumentInternal(id));
+            return DefaultCollection.GetDocument(id);
         }
 
         /// <summary>
@@ -882,33 +868,9 @@ namespace Couchbase.Lite
         [@ItemNotNull]
         public IList<string> GetIndexes()
         {
-            List<string> retVal = new List<string>();
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                var result = new FLSliceResult();
-                LiteCoreBridge.Check(err =>
-                {
-                    result = NativeRaw.c4db_getIndexesInfo(c4db, err);
-                    return result.buf != null;
-                });
+            CheckExistenceOfDefaultCollection();
 
-                var val = NativeRaw.FLValue_FromData(new FLSlice(result.buf, result.size), FLTrust.Trusted);
-                if (val == null) {
-                    Native.FLSliceResult_Release(result);
-                    throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError);
-                }
-
-                var indexesInfo = FLValueConverter.ToCouchbaseObject(val, this, true) as IList<object>;
-                foreach (var a in indexesInfo) {
-                    var indexInfo = a as Dictionary<string, object>;
-                    retVal.Add((string)indexInfo["name"]);
-                }
-
-                Native.FLSliceResult_Release(result);
-            });
-
-            return retVal as IList<string> ?? new List<string>();
+            return DefaultCollection.GetIndexes();
         }
 
         /// <summary>
@@ -952,18 +914,9 @@ namespace Couchbase.Lite
         [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
         public void Purge([@NotNull]Document document)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                VerifyDB(document);
+            CheckExistenceOfDefaultCollection();
 
-                if (!document.Exists) {
-                    throw new CouchbaseLiteException(C4ErrorCode.NotFound);
-                }
-
-                InBatch(() => PurgeDocById(document.Id));
-            });
+            DefaultCollection.Purge(document);
         }
 
         /// <summary>
@@ -977,8 +930,9 @@ namespace Couchbase.Lite
         [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
         public void Purge([@NotNull]string docId)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(docId), docId);
-            InBatch(() => PurgeDocById(docId));
+            CheckExistenceOfDefaultCollection();
+
+            DefaultCollection.Purge(docId);
         }
 
         /// <summary>
@@ -995,19 +949,9 @@ namespace Couchbase.Lite
         [Obsolete("SetDocumentExpiration is deprecated, please use GetDefaultCollection().SetDocumentExpiration")]
         public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)
         {
-            var succeed = false;
-            ThreadSafety.DoLockedBridge(err =>
-            {
-                if (expiration == null) {
-                    succeed = Native.c4doc_setExpiration(_c4db, docId, 0, err);
-                } else {
-                    var millisSinceEpoch = expiration.Value.ToUnixTimeMilliseconds();
-                    succeed = Native.c4doc_setExpiration(_c4db, docId, millisSinceEpoch, err);
-                }
+            CheckExistenceOfDefaultCollection();
 
-                return succeed;
-            });
-            return succeed;
+            return DefaultCollection.SetDocumentExpiration(docId, expiration);
         }
 
         /// <summary>
@@ -1022,21 +966,9 @@ namespace Couchbase.Lite
         [Obsolete("GetDocumentExpiration is deprecated, please use GetDefaultCollection().GetDocumentExpiration")]
         public DateTimeOffset? GetDocumentExpiration(string docId)
         {
-            if (LiteCoreBridge.Check(err => Native.c4db_getDoc(_c4db, docId, true, C4DocContentLevel.DocGetCurrentRev, err)) == null) {
-                throw new CouchbaseLiteException(C4ErrorCode.NotFound);
-            }
+            CheckExistenceOfDefaultCollection();
 
-            C4Error err2 = new C4Error();
-            var res = (long) Native.c4doc_getExpiration(_c4db, docId, &err2);
-            if (res == 0) {
-                if (err2.code == 0) {
-                    return null;
-                }
-
-                throw CouchbaseException.Create(err2);
-            }
-
-            return DateTimeOffset.FromUnixTimeMilliseconds(res);
+            return DefaultCollection.GetDocumentExpiration(docId);
         }
 
         /// <summary>
@@ -1061,8 +993,9 @@ namespace Couchbase.Lite
         [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
         public bool Save([@NotNull]MutableDocument document, ConcurrencyControl concurrencyControl)
         {
-            var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
-            return Save(doc, null, concurrencyControl, false);
+            CheckExistenceOfDefaultCollection();
+
+            return DefaultCollection.Save(document, concurrencyControl);
         }
 
         /// <summary>
@@ -1077,27 +1010,9 @@ namespace Couchbase.Lite
         [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
         public bool Save([@NotNull]MutableDocument document, [@NotNull]Func<MutableDocument, Document, bool> conflictHandler)
         {
-            var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(conflictHandler), conflictHandler);
-            Document baseDoc = null;
-            var saved = false;
-            do {
-                saved = Save(doc, baseDoc, ConcurrencyControl.FailOnConflict, false);
-                baseDoc = new Document(this, doc.Id);
-                if (!baseDoc.Exists) {
-                    throw new CouchbaseLiteException(C4ErrorCode.NotFound);
-                }
-                if (!saved) {
-                    try {
-                        if (!conflictHandler(doc, baseDoc.IsDeleted ? null : baseDoc)) { // resolve conflict with conflictHandler
-                            return false;
-                        }
-                    } catch {
-                        return false;
-                    }
-                }
-            } while (!saved);// has conflict, save failed
-            return saved;
+            CheckExistenceOfDefaultCollection();
+
+            return DefaultCollection.Save(document, conflictHandler);
         }
 
         /// <summary>
@@ -1270,6 +1185,12 @@ namespace Couchbase.Lite
 
         #region IChangeObservableRemovable
 
+        /// <summary>
+        /// [DEPRECATED] Removes a database changed listener by token
+        /// </summary>
+        /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{DatabaseChangedEventArgs})"/>
+        /// and family</param>
+        [Obsolete("RemoveChangeListener is deprecated, please use GetDefaultCollection().RemoveChangeListener")]
         public void RemoveChangeListener(ListenerToken token)
         {
             ThreadSafety.DoLocked(() =>
@@ -1386,7 +1307,9 @@ namespace Couchbase.Lite
 
         internal void ResolveConflict([@NotNull]string docID, [@CanBeNull]IConflictResolver conflictResolver)
         {
+            CheckExistenceOfDefaultCollection();
             Debug.Assert(docID != null);
+
             var writeSuccess = false;
             while (!writeSuccess) {
                 var readSuccess = false;
@@ -1396,12 +1319,12 @@ namespace Couchbase.Lite
                     {
                         // Do this in a batch so that there are no changes to the document between
                         // localDoc read and remoteDoc read
-                        localDoc = new Document(this, docID);
+                        localDoc = new Document(DefaultCollection, docID);
                         if (!localDoc.Exists) {
                             throw new CouchbaseLiteException(C4ErrorCode.NotFound);
                         }
 
-                        remoteDoc = new Document(this, docID, C4DocContentLevel.DocGetAll);
+                        remoteDoc = new Document(DefaultCollection, docID, C4DocContentLevel.DocGetAll);
                         if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
                             WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', the conflict may have been previously resolved...",
                                 new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
@@ -1435,8 +1358,8 @@ namespace Couchbase.Lite
                                 new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
                             Misc.SafeSwap(ref resolvedDoc, new MutableDocument(docID, resolvedDoc.ToDictionary()));
                         }
-                        if (resolvedDoc.Database == null) {
-                            resolvedDoc.Database = this;
+                        if (resolvedDoc.Collection == null) {
+                            resolvedDoc.Collection = DefaultCollection;
                         } else if (resolvedDoc.Database != this) {
                             throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.ResolvedDocWrongDb,
                                 resolvedDoc.Database.Name, this.Name));
@@ -1497,8 +1420,7 @@ namespace Couchbase.Lite
         {
             var directoryToUse = DatabasePath(directory);
 
-            if (String.IsNullOrWhiteSpace(name))
-            {
+            if (String.IsNullOrWhiteSpace(name)) {
                 return directoryToUse;
             }
 
@@ -1542,6 +1464,13 @@ namespace Couchbase.Lite
             }
         }
 
+        private void CheckExistenceOfDefaultCollection()
+        {
+            if (DefaultCollection == null) {
+                throw new InvalidOperationException($"Default Collection is deleted from the database { ToString() }.");
+            }
+        }
+
         private void Dispose(bool disposing)
         {
             if (IsClosed) {
@@ -1570,7 +1499,7 @@ namespace Couchbase.Lite
         private Document GetDocumentInternal([@NotNull]string docID)
         {
             CheckOpen();
-            var doc = new Document(this, docID);
+            var doc = new Document(DefaultCollection, docID);
 
             if (!doc.Exists || doc.IsDeleted) {
                 doc.Dispose();
@@ -1823,7 +1752,7 @@ namespace Couchbase.Lite
             }
 
             if (resolvedDoc != null && !ReferenceEquals(resolvedDoc, localDoc)) {
-                resolvedDoc.Database = this;
+                resolvedDoc.Collection = DefaultCollection;
             }
 
             // The remote branch has to win, so that the doc revision history matches the server's.
@@ -1896,9 +1825,9 @@ namespace Couchbase.Lite
 
         private void VerifyDB([@NotNull]Document document)
         {
-            if (document.Database == null) {
-                document.Database = this;
-            } else if (document.Database != this) {
+            if (document.Collection == null) {
+                document.Collection = DefaultCollection;
+            } else if (document.Collection != DefaultCollection) {
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter,
                     CouchbaseLiteErrorMessage.DocumentAnotherDatabase);
             }

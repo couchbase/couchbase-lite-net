@@ -68,6 +68,14 @@ namespace Couchbase.Lite
             }
         }
 
+        internal C4Collection* c4Coll
+        {
+            get {
+                Debug.Assert(Collection != null && Collection.c4coll != null);
+                return Collection.c4coll;
+            }
+        }
+
         internal C4DocumentWrapper c4Doc
         {
             get => _c4Doc;
@@ -94,13 +102,18 @@ namespace Couchbase.Lite
         /// Gets the database that this document belongs to, if any
         /// </summary>
         [CanBeNull]
-        internal Database Database { get; set; }
+        internal Database Database
+        {
+            get {
+                return Collection?.Database;
+            }
+        }
 
         /// <summary>
         /// Gets the Collection that this document belongs to, if any
         /// </summary>
         [CanBeNull]
-        public ICollection Collection { get; set; }
+        public Collection Collection { get; set; }
 
         internal bool Exists => ThreadSafety.DoLocked(() => c4Doc?.HasValue == true && c4Doc.RawDoc->flags.HasFlag(C4DocumentFlags.DocExists));
 
@@ -147,30 +160,30 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        internal Document([CanBeNull]Database database, [NotNull]string id, C4DocumentWrapper c4Doc)
+        internal Document([CanBeNull] Collection collection, [NotNull]string id, C4DocumentWrapper c4Doc)
         {
             Debug.Assert(id != null);
 
-            Database = database;
+            Collection = collection;
             Id = id;
             this.c4Doc = c4Doc;
             _disposalWatchdog = new DisposalWatchdog(GetType().Name);
         }
 
-        internal Document([CanBeNull]Database database, [NotNull]string id, C4DocContentLevel contentLevel = C4DocContentLevel.DocGetCurrentRev)
-            : this(database, id, default(C4DocumentWrapper))
+        internal Document([CanBeNull] Collection collection, [NotNull]string id, C4DocContentLevel contentLevel = C4DocContentLevel.DocGetCurrentRev)
+            : this(collection, id, default(C4DocumentWrapper))
         {
-            database.ThreadSafety.DoLocked(() =>
+            collection.ThreadSafety.DoLocked(() =>
             {
                 var doc = (C4Document*) NativeHandler.Create().AllowError(new C4Error(C4ErrorCode.NotFound)).Execute(
-                    err => Native.c4db_getDoc(database.c4db, id, true, contentLevel, err));
+                    err => Native.c4coll_getDoc(c4Coll, id, true, contentLevel, err));
 
                 c4Doc = new C4DocumentWrapper(doc);
             });
         }
 
-        internal Document([CanBeNull] Database database, [NotNull] string id, string revId, FLDict* body)
-            : this(database, id, default(C4DocumentWrapper))
+        internal Document([CanBeNull] Collection collection, [NotNull] string id, string revId, FLDict* body)
+            : this(collection, id, default(C4DocumentWrapper))
         {
             Data = body;
             UpdateDictionary();
@@ -178,7 +191,7 @@ namespace Couchbase.Lite
         }
 
         internal Document([NotNull]Document other)
-            : this(other.Database, other.Id, other.c4Doc.Retain<C4DocumentWrapper>())
+            : this(other.Collection, other.Id, other.c4Doc.Retain<C4DocumentWrapper>())
         {
             Debug.Assert(other != null);
 
@@ -271,8 +284,8 @@ namespace Couchbase.Lite
         {
             if (Data != null) {
                 Misc.SafeSwap(ref _root,
-                    new MRoot(new DocContext(Database, _c4Doc), (FLValue*) Data, IsMutable));
-                Database.ThreadSafety.DoLocked(() => _dict = (DictionaryObject) _root.AsObject());
+                    new MRoot(new DocContext(Collection, _c4Doc), (FLValue*) Data, IsMutable));
+                Collection.ThreadSafety.DoLocked(() => _dict = (DictionaryObject) _root.AsObject());
             } else {
                 Misc.SafeSwap(ref _root, null);
                 _dict = IsMutable ? (IDictionaryObject)new InMemoryDictionary() : new DictionaryObject();
@@ -310,7 +323,7 @@ namespace Couchbase.Lite
                 return false;
             }
             
-            if (Id != d.Id || !Equals(Database, d.Database)) {
+            if (Id != d.Id || !Equals(Collection, d.Collection)) {
                 return false;
             }
 

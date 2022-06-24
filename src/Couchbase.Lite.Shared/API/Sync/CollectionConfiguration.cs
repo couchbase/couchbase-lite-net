@@ -14,10 +14,16 @@ namespace Couchbase.Lite.Sync
 
         #endregion
 
+        #region Variables
+
         [NotNull] private readonly Freezer _freezer = new Freezer();
         private IConflictResolver _resolver;
         private Func<Document, DocumentFlags, bool> _pushFilter;
         private Func<Document, DocumentFlags, bool> _pullValidator;
+
+        #endregion
+
+        #region Properties
 
         /// <summary>
         /// The implemented custom conflict resolver object can be registered to the replicator 
@@ -80,5 +86,26 @@ namespace Couchbase.Lite.Sync
 
         [NotNull]
         internal ReplicatorOptionsDictionary Options { get; set; } = new ReplicatorOptionsDictionary();
+
+        #endregion
+
+        #region Internal Methods
+
+        [NotNull]
+        internal CollectionConfiguration Freeze()
+        {
+            var retVal = new CollectionConfiguration()
+            {
+                PushFilter = PushFilter,
+                PullFilter = PullFilter,
+                ConflictResolver = ConflictResolver,
+                Options = Options
+            };
+
+            retVal._freezer.Freeze("Cannot modify a CollectionConfiguration that is in use");
+            return retVal;
+        }
+
+        #endregion
     }
 }

@@ -54,6 +54,8 @@ namespace Couchbase.Lite.Internal.Query
 
         public Database Database { get; set; }
 
+        public Collection Collection { get; set; }
+
         public Parameters Parameters
         {
             get => _queryParameters;

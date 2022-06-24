@@ -44,6 +44,7 @@ namespace Couchbase.Lite.Internal.Query
 
             FromImpl = impl as QueryDataSource;
             Database = (impl as DatabaseSource)?.Database;
+            Collection = (impl as DatabaseSource)?.Collection;
         }
 
         #endregion

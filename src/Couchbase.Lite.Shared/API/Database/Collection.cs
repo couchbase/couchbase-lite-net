@@ -16,11 +16,18 @@
 //  limitations under the License.
 // 
 
+using Couchbase.Lite.Internal.Doc;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Internal.Query;
+using Couchbase.Lite.Internal.Serialization;
+using Couchbase.Lite.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Support;
+using Couchbase.Lite.Util;
 using JetBrains.Annotations;
+using LiteCore;
 using LiteCore.Interop;
+using LiteCore.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -157,7 +164,7 @@ namespace Couchbase.Lite
         #region Public Methods
 
         /// <summary>
-        /// Deletes a document from the database.  When write operations are executed
+        /// Deletes a document from the collection.  When write operations are executed
         /// concurrently, the last writer will overwrite all other written values.
         /// Calling this method is the same as calling <see cref="Delete(Document, ConcurrencyControl)"/>
         /// with <see cref="ConcurrencyControl.LastWriteWins"/>
@@ -165,30 +172,28 @@ namespace Couchbase.Lite
         /// <param name="document">The document</param>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
-        /// when trying to save a document into a database other than the one it was previously added to</exception>
+        /// when trying to save a document into a collection other than the one it was previously added to</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
-        /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        public void Delete([NotNull] Document document)
-        {
-            throw new NotImplementedException();
-        }
+        /// when trying to delete a document that hasn't been saved into a <see cref="Collection"/> yet</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the collection is closed</exception>
+        public void Delete([NotNull] Document document) => Delete(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
-        /// Deletes the given <see cref="Document"/> from this database
+        /// Deletes the given <see cref="Document"/> from this collection
         /// </summary>
         /// <param name="document">The document to save</param>
-        /// <param name="concurrencyControl">The rule to use when encountering a conflict in the database</param>
+        /// <param name="concurrencyControl">The rule to use when encountering a conflict in the collection</param>
         /// <returns><c>true</c> if the delete succeeded, <c>false</c> if there was a conflict</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.InvalidParameter"/>
-        /// when trying to save a document into a database other than the one it was previously added to</exception>
+        /// when trying to save a document into a collection other than the one it was previously added to</exception>
         /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotFound"/>
-        /// when trying to delete a document that hasn't been saved into a <see cref="Database"/> yet</exception>
-        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        /// when trying to delete a document that hasn't been saved into a <see cref="Collection"/> yet</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the collection is closed</exception>
         public bool Delete([NotNull] Document document, ConcurrencyControl concurrencyControl)
         {
-            throw new NotImplementedException();
+            var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
+            return Save(doc, null, concurrencyControl, true);
         }
 
         /// <summary>
@@ -199,24 +204,43 @@ namespace Couchbase.Lite
         [CanBeNull]
         public Document GetDocument([NotNull] string id)
         {
-            throw new NotImplementedException();
+            CheckCollectionValid();
+            var doc = new Document(this, id);
+            if (!doc.Exists || doc.IsDeleted) {
+                doc.Dispose();
+                WriteLog.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist",
+                    new SecureLogString(id, LogMessageSensitivity.PotentiallyInsecure));
+                return null;
+            }
+
+            return doc;
         }
 
         /// <summary>
-        /// Purges the given <see cref="Document"/> from the database.  This leaves
+        /// Purges the given <see cref="Document"/> from the collection.  This leaves
         /// no trace behind and will not be replicated
         /// </summary>
         /// <param name="document">The document to purge</param>
-        /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a database
+        /// <exception cref="InvalidOperationException">Thrown when trying to purge a document from a collection
         /// other than the one it was previously added to</exception>
         public void Purge([NotNull] Document document)
         {
-            throw new NotImplementedException();
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
+            ThreadSafety.DoLocked(() =>
+            {
+                VerifyCollection(document);
+
+                if (!document.Exists) {
+                    throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+                }
+
+                Database.InBatch(() => PurgeDocById(document.Id));
+            });
         }
 
         /// <summary>
         /// Purges the given document id of the <see cref="Document"/> 
-        /// from the database.  This leaves no trace behind and will 
+        /// from the collection.  This leaves no trace behind and will 
         /// not be replicated
         /// </summary>
         /// <param name="docId">The id of the document to purge</param>
@@ -224,37 +248,36 @@ namespace Couchbase.Lite
         /// of the docId doesn't exist.</exception>
         public void Purge([NotNull] string docId)
         {
-            throw new NotImplementedException();
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(docId), docId);
+            Database.InBatch(() => PurgeDocById(docId));
         }
 
         /// <summary>
-        /// Saves the given <see cref="MutableDocument"/> into this database.  This call is equivalent to calling
+        /// Saves the given <see cref="MutableDocument"/> into this collection.  This call is equivalent to calling
         /// <see cref="Save(MutableDocument, ConcurrencyControl)" /> with a second argument of
         /// <see cref="ConcurrencyControl.LastWriteWins"/>
         /// </summary>
         /// <param name="document">The document to save</param>
-        /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
+        /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a collection
         /// other than the one it was previously added to</exception>
-        public void Save([NotNull] MutableDocument document)
-        {
-            throw new NotImplementedException();
-        }
+        public void Save([NotNull] MutableDocument document) => Save(document, ConcurrencyControl.LastWriteWins);
 
         /// <summary>
-        /// Saves the given <see cref="MutableDocument"/> into this database
+        /// Saves the given <see cref="MutableDocument"/> into this collection
         /// </summary>
         /// <param name="document">The document to save</param>
-        /// <param name="concurrencyControl">The rule to use when encountering a conflict in the database</param>
-        /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a database
+        /// <param name="concurrencyControl">The rule to use when encountering a conflict in the collection</param>
+        /// <exception cref="InvalidOperationException">Thrown when trying to save a document into a collection
         /// other than the one it was previously added to</exception>
         /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
         public bool Save([NotNull] MutableDocument document, ConcurrencyControl concurrencyControl)
         {
-            throw new NotImplementedException();
+            var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
+            return Save(doc, null, concurrencyControl, false);
         }
 
         /// <summary>
-        /// Saves a document to the database. When write operations are executed concurrently, 
+        /// Saves a document to the collection. When write operations are executed concurrently, 
         /// and if conflicts occur, conflict handler will be called. Use the handler to directly
         /// edit the document.Returning true, will save the document. Returning false, will cancel
         /// the save operation.
@@ -264,7 +287,26 @@ namespace Couchbase.Lite
         /// <returns><c>true</c> if the save succeeded, <c>false</c> if there was a conflict</returns>
         public bool Save(MutableDocument document, Func<MutableDocument, Document, bool> conflictHandler)
         {
-            throw new NotImplementedException();
+            var doc = CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(document), document);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(conflictHandler), conflictHandler);
+            Document baseDoc = null;
+            var saved = false;
+            do {
+                saved = Save(doc, baseDoc, ConcurrencyControl.FailOnConflict, false);
+                baseDoc = new Document(this, doc.Id);
+                if (!baseDoc.Exists) {
+                    throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+                } if (!saved) {
+                    try {
+                        if (!conflictHandler(doc, baseDoc.IsDeleted ? null : baseDoc)) { // resolve conflict with conflictHandler
+                            return false;
+                        }
+                    } catch {
+                        return false;
+                    }
+                }
+            } while (!saved);// has conflict, save failed
+            return saved;
         }
 
         /// <summary>
@@ -278,12 +320,30 @@ namespace Couchbase.Lite
         /// doesn't exist</exception>
         public DateTimeOffset? GetDocumentExpiration(string docId)
         {
-            throw new NotImplementedException();
+            CheckCollectionValid();
+            var doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4coll_getDoc(c4coll, docId, true, C4DocContentLevel.DocGetCurrentRev, err));
+            if ( doc == null) {
+                throw new CouchbaseLiteException(C4ErrorCode.NotFound);
+            }
+
+            Native.c4doc_release(doc);
+
+            C4Error err2 = new C4Error();
+            var res = (long)Native.c4coll_getDocExpiration(c4coll, docId, &err2);
+            if (res == 0) {
+                if (err2.code == 0) {
+                    return null;
+                }
+
+                throw CouchbaseException.Create(err2);
+            }
+
+            return DateTimeOffset.FromUnixTimeMilliseconds(res);
         }
 
         /// <summary>
         /// Sets an expiration date on a document. After this time, the document
-        /// will be purged from the database.
+        /// will be purged from the collection.
         /// </summary>
         /// <param name="docId"> The ID of the <see cref="Document"/> </param> 
         /// <param name="expiration"> Nullable expiration timestamp as a 
@@ -294,29 +354,280 @@ namespace Couchbase.Lite
         /// doesn't exist</exception>
         public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)
         {
-            throw new NotImplementedException();
+            CheckCollectionValid();
+            var succeed = false;
+            ThreadSafety.DoLockedBridge(err =>
+            {
+                if (expiration == null) {
+                    succeed = Native.c4coll_setDocExpiration(c4coll, docId, 0, err);
+                } else {
+                    var millisSinceEpoch = expiration.Value.ToUnixTimeMilliseconds();
+                    succeed = Native.c4coll_setDocExpiration(c4coll, docId, millisSinceEpoch, err);
+                }
+
+                return succeed;
+            });
+            return succeed;
         }
 
         #endregion
 
         # region Public Methods - Indexable
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Gets a list of index names that are present in the collection
+        /// </summary>
+        /// <returns>The list of created index names</returns>
+        [NotNull]
+        [ItemNotNull]
         public IList<string> GetIndexes()
         {
-            throw new NotImplementedException();
+            List<string> retVal = new List<string>();
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckCollectionValid();
+                var result = new FLSliceResult();
+                LiteCoreBridge.Check(err =>
+                {
+                    result = NativeRaw.c4coll_getIndexesInfo(c4coll, err);
+                    return result.buf != null;
+                });
+
+                var val = NativeRaw.FLValue_FromData(new FLSlice(result.buf, result.size), FLTrust.Trusted);
+                if (val == null) {
+                    Native.FLSliceResult_Release(result);
+                    throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError);
+                }
+
+                var indexesInfo = FLValueConverter.ToCouchbaseObject(val, this, true) as IList<object>;
+                foreach (var a in indexesInfo) {
+                    var indexInfo = a as Dictionary<string, object>;
+                    retVal.Add((string)indexInfo["name"]);
+                }
+
+                Native.FLSliceResult_Release(result);
+            });
+
+            return retVal as IList<string> ?? new List<string>();
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Creates an index which could be a value index from <see cref="IndexBuilder.ValueIndex"/> or a full-text search index
+        /// from <see cref="IndexBuilder.FullTextIndex"/> with the given name.
+        /// The name can be used for deleting the index. Creating a new different index with an existing
+        /// index name will replace the old index; creating the same index with the same name will be no-ops.
+        /// </summary>
+        /// <param name="name">The index name</param>
+        /// <param name="index">The index</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> or <paramref name="index"/>
+        /// is <c>null</c></exception>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the collection is closed</exception>
+        /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
+        /// provided ones is used</exception>
         public void CreateIndex([NotNull] string name, [NotNull] IndexConfiguration indexConfig)
         {
-            throw new NotImplementedException();
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(indexConfig), indexConfig);
+
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckCollectionValid();
+                LiteCoreBridge.Check(err =>
+                {
+                    var internalOpts = indexConfig.Options;
+                    // For some reason a "using" statement here causes a compiler error
+                    try {
+                        return Native.c4coll_createIndex(c4coll, name, indexConfig.ToN1QL(), indexConfig.QueryLanguage, indexConfig.IndexType, &internalOpts, err);
+                    } finally {
+                        internalOpts.Dispose();
+                    }
+                });
+            });
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Deletes the index with the given name
+        /// </summary>
+        /// <param name="name">The name of the index to delete</param>
         public void DeleteIndex([NotNull] string name)
         {
-            throw new NotImplementedException();
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
+
+            ThreadSafety.DoLockedBridge(err =>
+            {
+                CheckCollectionValid();
+                return Native.c4coll_deleteIndex(c4coll, name, err);
+            });
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private bool Save([NotNull] Document document, [CanBeNull] Document baseDocument,
+            ConcurrencyControl concurrencyControl, bool deletion)
+        {
+            Debug.Assert(document != null);
+            if (deletion && document.RevisionID == null) {
+                throw new CouchbaseLiteException(C4ErrorCode.NotFound,
+                    CouchbaseLiteErrorMessage.DeleteDocFailedNotSaved);
+            }
+
+            var success = true;
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckCollectionValid();
+                VerifyCollection(document);
+                C4Document* curDoc = null;
+                C4Document* newDoc = null;
+                var committed = false;
+                try {
+                    LiteCoreBridge.Check(err => Native.c4db_beginTransaction(c4Db, err));
+                    var baseDoc = baseDocument == null ? null : baseDocument.c4Doc.RawDoc;
+                    Save(document, &newDoc, baseDoc, deletion);
+                    if (newDoc == null) {
+                        // Handle conflict:
+                        if (concurrencyControl == ConcurrencyControl.FailOnConflict) {
+                            success = false;
+                            committed = true; // Weird, but if the next call fails I don't want to call it again in the catch block
+                            LiteCoreBridge.Check(e => Native.c4db_endTransaction(c4Db, true, e));
+                            return;
+                        }
+
+                        C4Error err;
+                        curDoc = Native.c4coll_getDoc(c4coll, document.Id, true, C4DocContentLevel.DocGetCurrentRev, &err);
+
+                        // If deletion and the current doc has already been deleted
+                        // or doesn't exist:
+                        if (deletion) {
+                            if (curDoc == null) {
+                                if (err.code == (int)C4ErrorCode.NotFound) {
+                                    return;
+                                }
+
+                                throw CouchbaseException.Create(err);
+                            } else if (curDoc->flags.HasFlag(C4DocumentFlags.DocDeleted)) {
+                                document.ReplaceC4Doc(new C4DocumentWrapper(curDoc));
+                                curDoc = null;
+                                return;
+
+                            }
+                        }
+
+                        // Save changes on the current branch:
+                        if (curDoc == null) {
+                            throw CouchbaseException.Create(err);
+                        }
+
+                        Save(document, &newDoc, curDoc, deletion);
+                    }
+
+                    committed = true; // Weird, but if the next call fails I don't want to call it again in the catch block
+                    LiteCoreBridge.Check(e => Native.c4db_endTransaction(c4Db, true, e));
+                    document.ReplaceC4Doc(new C4DocumentWrapper(newDoc));
+                    newDoc = null;
+                } catch (Exception) {
+                    if (!committed) {
+                        LiteCoreBridge.Check(e => Native.c4db_endTransaction(c4Db, false, e));
+                    }
+
+                    throw;
+                } finally {
+                    Native.c4doc_release(curDoc);
+                    Native.c4doc_release(newDoc);
+                }
+            });
+
+            return success;
+        }
+
+        private void Save([NotNull] Document doc, C4Document** outDoc, C4Document* baseDoc, bool deletion)
+        {
+            var revFlags = (C4RevisionFlags)0;
+            if (deletion) {
+                revFlags = C4RevisionFlags.Deleted;
+            }
+
+            var body = (FLSliceResult)FLSlice.Null;
+            if (!deletion && !doc.IsEmpty) {
+                try {
+                    body = doc.Encode();
+                } catch (ObjectDisposedException) {
+                    WriteLog.To.Database.E(Tag, "Save of disposed document {0} attempted, skipping...", new SecureLogString(doc.Id, LogMessageSensitivity.PotentiallyInsecure));
+                    return;
+                }
+
+                ThreadSafety.DoLocked(() =>
+                {
+                    FLDoc* fleeceDoc = Native.FLDoc_FromResultData(body,
+                    FLTrust.Trusted,
+                    Native.c4db_getFLSharedKeys(c4Db), FLSlice.Null);
+                    if (Native.c4doc_dictContainsBlobs((FLDict*)Native.FLDoc_GetRoot(fleeceDoc))) {
+                        revFlags |= C4RevisionFlags.HasAttachments;
+                    }
+
+                    Native.FLDoc_Release(fleeceDoc);
+                });
+            } else if (doc.IsEmpty) {
+                body = EmptyFLSliceResult();
+            }
+
+            var rawDoc = baseDoc != null ? baseDoc :
+                doc.c4Doc?.HasValue == true ? doc.c4Doc.RawDoc : null;
+            if (rawDoc != null) {
+                doc.ThreadSafety.DoLocked(() =>
+                {
+                    ThreadSafety.DoLocked(() =>
+                    {
+                        *outDoc = (C4Document*)NativeHandler.Create()
+                            .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
+                                err => NativeRaw.c4doc_update(rawDoc, (FLSlice)body, revFlags, err));
+                    });
+                });
+            } else {
+                ThreadSafety.DoLocked(() =>
+                {
+                    using (var docID_ = new C4String(doc.Id))
+                    {
+                        *outDoc = (C4Document*)NativeHandler.Create()
+                            .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
+                                err => NativeRaw.c4coll_createDoc(c4coll, docID_.AsFLSlice(), (FLSlice)body, revFlags, err));
+                    }
+                });
+            }
+
+            Native.FLSliceResult_Release(body);
+        }
+
+        private FLSliceResult EmptyFLSliceResult()
+        {
+            FLEncoder* encoder = Database.SharedEncoder;
+            Native.FLEncoder_BeginDict(encoder, 0);
+            Native.FLEncoder_EndDict(encoder);
+            var body = NativeRaw.FLEncoder_Finish(encoder, null);
+            Native.FLEncoder_Reset(encoder);
+
+            return body;
+        }
+
+        private void VerifyCollection([NotNull] Document document)
+        {
+            if (document.Collection == null) {
+                document.Collection = this;
+            } else if (document.Collection != this) {
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter,
+                    "Cannot operate on a document from another collection.");
+            }
+        }
+
+        private void PurgeDocById(string id)
+        {
+            ThreadSafety.DoLockedBridge(err =>
+            {
+                CheckCollectionValid();
+                return Native.c4coll_purgeDoc(c4coll, id, err);
+            });
         }
 
         #endregion
@@ -325,7 +636,9 @@ namespace Couchbase.Lite
 
         public IQuery CreateQuery([NotNull] string queryExpression)
         {
-            throw new NotImplementedException();
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(queryExpression), queryExpression);
+            var query = new NQuery(queryExpression, this.Database);
+            return query;
         }
 
         #endregion
@@ -394,7 +707,8 @@ namespace Couchbase.Lite
             }
 
             return String.Equals(Name, other.Name, StringComparison.Ordinal)
-                && String.Equals(Scope.Name, other.Scope.Name, StringComparison.Ordinal);
+                && String.Equals(Scope.Name, other.Scope.Name, StringComparison.Ordinal)
+                && String.Equals(Database?.Path, other?.Database?.Path, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <inheritdoc />

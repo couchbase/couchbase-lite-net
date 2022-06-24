@@ -78,6 +78,8 @@ namespace Test
 
         protected Database Db { get; private set; }
 
+        protected Collection Collection => Db.GetDefaultCollection();
+
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
 
