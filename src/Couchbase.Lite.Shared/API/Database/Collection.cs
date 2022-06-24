@@ -225,6 +225,11 @@ namespace Couchbase.Lite
 
         #region IChangeObservableRemovable
 
+        /// <summary>
+        /// Removes a collection changed listener by token
+        /// </summary>
+        /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{CollectionChangedEventArgs})"/>
+        /// and family</param>
         public void RemoveChangeListener(ListenerToken token)
         {
             ThreadSafety.DoLocked(() =>
@@ -828,36 +833,6 @@ namespace Couchbase.Lite
             Native.FLSliceResult_Release(body);
         }
 
-        private FLSliceResult EmptyFLSliceResult()
-        {
-            FLEncoder* encoder = Database.SharedEncoder;
-            Native.FLEncoder_BeginDict(encoder, 0);
-            Native.FLEncoder_EndDict(encoder);
-            var body = NativeRaw.FLEncoder_Finish(encoder, null);
-            Native.FLEncoder_Reset(encoder);
-
-            return body;
-        }
-
-        private void VerifyCollection([NotNull] Document document)
-        {
-            if (document.Collection == null) {
-                document.Collection = this;
-            } else if (document.Collection != this) {
-                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter,
-                    "Cannot operate on a document from another collection.");
-            }
-        }
-
-        private void PurgeDocById(string id)
-        {
-            ThreadSafety.DoLockedBridge(err =>
-            {
-                CheckCollectionValid();
-                return Native.c4coll_purgeDoc(c4coll, id, err);
-            });
-        }
-
         #endregion
 
         #region Public Methods - QueryFactory
@@ -926,22 +901,6 @@ namespace Couchbase.Lite
         {
             var old = Interlocked.Exchange(ref _c4coll, IntPtr.Zero);
             Native.c4coll_release((C4Collection*)old);
-        }
-
-        [CanBeNull]
-        private Document GetDocumentInternal([NotNull] string docID)
-        {
-            CheckCollectionValid();
-            var doc = new Document(this, docID);
-
-            if (!doc.Exists || doc.IsDeleted) {
-                doc.Dispose();
-                WriteLog.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist",
-                    new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
-                return null;
-            }
-
-            return doc;
         }
 
         #endregion

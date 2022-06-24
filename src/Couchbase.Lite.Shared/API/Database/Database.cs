@@ -1099,7 +1099,7 @@ namespace Couchbase.Lite
         public ListenerToken AddChangeListener([@CanBeNull] TaskScheduler scheduler,
             [@NotNull] EventHandler<CollectionChangedEventArgs> handler)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+            CheckExistenceOfDefaultCollection();
             return DefaultCollection.AddChangeListener(scheduler, handler);
         }
 
@@ -1135,7 +1135,7 @@ namespace Couchbase.Lite
         public ListenerToken AddDocumentChangeListener([@NotNull] string id, [@CanBeNull] TaskScheduler scheduler,
             [@NotNull] EventHandler<DocumentChangedEventArgs> handler)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+            CheckExistenceOfDefaultCollection();
             return DefaultCollection.AddDocumentChangeListener(id, scheduler, handler);
         }
 
@@ -1164,7 +1164,7 @@ namespace Couchbase.Lite
         [Obsolete("RemoveChangeListener is deprecated, please use GetDefaultCollection().RemoveChangeListener")]
         public void RemoveChangeListener(ListenerToken token)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(DefaultCollection), DefaultCollection);
+            CheckExistenceOfDefaultCollection();
             DefaultCollection.RemoveChangeListener(token);
         }
 
