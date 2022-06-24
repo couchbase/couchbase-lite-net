@@ -351,60 +351,60 @@ namespace Test
             //Db.CreateCollection("abc", "scope1").Should().NotBeNull("Should be able to be created because scope name is case sensitive.");
         }
 
-        /* TODO CBL-3225 8.2 Part 2 */
         [Fact]
         public void TestCreateAnExistingCollection()
         {
-            var colA = Db.CreateCollection("colA", "scopeA");
-            using(var doc = new MutableDocument("doc"))
-            using (var doc1 = new MutableDocument("doc1"))
-            using (var doc2 = new MutableDocument("doc2")) {
-                doc.SetString("str", "string");
-                doc1.SetString("str1", "string1");
-                doc2.SetString("str2", "string2");
-                colA.Save(doc);
-                colA.Save(doc1);
-                colA.Save(doc2);
+            using (var colA = Db.CreateCollection("colA", "scopeA")) {
+                using (var doc = new MutableDocument("doc"))
+                using (var doc1 = new MutableDocument("doc1"))
+                using (var doc2 = new MutableDocument("doc2")) {
+                    doc.SetString("str", "string");
+                    doc1.SetString("str1", "string1");
+                    doc2.SetString("str2", "string2");
+                    colA.Save(doc);
+                    colA.Save(doc1);
+                    colA.Save(doc2);
+                }
             }
 
-            var colASame = Db.CreateCollection("colA", "scopeA");
-            colASame.GetDocument("doc").GetString("str").Should().Be("string");
-            colASame.GetDocument("doc1").GetString("str1").Should().Be("string1");
-            colASame.GetDocument("doc2").GetString("str2").Should().Be("string2");
+            using (var colASame = Db.CreateCollection("colA", "scopeA")) {
+                colASame.GetDocument("doc").GetString("str").Should().Be("string");
+                colASame.GetDocument("doc1").GetString("str1").Should().Be("string1");
+                colASame.GetDocument("doc2").GetString("str2").Should().Be("string2");
+            }
         }
 
         [Fact]
         public void TestDeleteCollection()
         {
-            var colA = Db.CreateCollection("colA", "scopeA");
-            var colB = Db.CreateCollection("colB", "scopeA");
+            using (var colA = Db.CreateCollection("colA", "scopeA"))
+            using (var colB = Db.CreateCollection("colB", "scopeA")) {
+                using (var doc = new MutableDocument("doc"))
+                using (var doc1 = new MutableDocument("doc1"))
+                using (var doc2 = new MutableDocument("doc2")) {
+                    doc.SetString("str", "string");
+                    doc1.SetString("str1", "string1");
+                    doc2.SetString("str2", "string2");
+                    colA.Save(doc);
+                    colA.Save(doc1);
+                    colA.Save(doc2);
+                }
 
-            using (var doc = new MutableDocument("doc"))
-            using (var doc1 = new MutableDocument("doc1"))
-            using (var doc2 = new MutableDocument("doc2")) {
-                doc.SetString("str", "string");
-                doc1.SetString("str1", "string1");
-                doc2.SetString("str2", "string2");
-                colA.Save(doc);
-                colA.Save(doc1);
-                colA.Save(doc2);
+                colA.Count.Should().Be(3, "3 docs were added into colA");
+                Db.DeleteCollection("colA", "scopeA");
+                Db.GetCollection("colA", "scopeA").Should().BeNull("colA is deleted.");
+                var colls = Db.GetCollections("scopeA");
+                colls.Contains(colA).Should().BeFalse("the collection colA is already deleted.");
+                var colANew = Db.CreateCollection("colA", "scopeA");
+                colANew.Should().NotBeNull("collection colA should create successfully");
+                colANew.Count.Should().Be(0, "no doc were added in the newly created collection");
             }
-
-            colA.Count.Should().Be(3, "3 docs were added into colA");
-            Db.DeleteCollection("colA", "scopeA");
-            Db.GetCollection("colA", "scopeA").Should().BeNull("colA is deleted.");
-            var colls = Db.GetCollections("scopeA");
-            colls.Contains(colA).Should().BeFalse("the collection colA is already deleted.");
-            colA = Db.CreateCollection("colA", "scopeA");
-            colA.Should().NotBeNull("collection colA should create successfully");
-            colA.Count.Should().Be(0, "no doc were added in the newly created collection");
         }
 
-        /* TODO CBL-3227 8.3 Collections and Cross Database Instance */
         [Fact]
         public void TestCreateThenGetCollectionFromDifferentDatabaseInstance()
         {
-            var colA = Db.CreateCollection("colA", "scopeA");
+            using (var colA = Db.CreateCollection("colA", "scopeA"))
             using (var otherDB = OpenDB(Db.Name)) {
                 //TODO wait for CBL-3298 fix
                 //I am using hasScope to check existance of the scope obj in order to use scope obj to get the collections
@@ -427,30 +427,31 @@ namespace Test
         [Fact]
         public void TestDeleteThenGetCollectionFromDifferentDatabaseInstance()
         {
-            var colA = Db.CreateCollection("colA", "scopeA");
-            var colB = Db.CreateCollection("colB", "scopeA");
-            using (var doc = new MutableDocument("doc"))
-            using (var doc1 = new MutableDocument("doc1"))
-            using (var doc2 = new MutableDocument("doc2")) {
-                doc.SetString("str", "string");
-                doc1.SetString("str1", "string1");
-                doc2.SetString("str2", "string2");
-                colA.Save(doc);
-                colA.Save(doc1);
-                colA.Save(doc2);
-            }
+            using (var colA = Db.CreateCollection("colA", "scopeA"))
+            using (var colB = Db.CreateCollection("colB", "scopeA")) { 
+                using (var doc = new MutableDocument("doc"))
+                using (var doc1 = new MutableDocument("doc1"))
+                using (var doc2 = new MutableDocument("doc2")) {
+                    doc.SetString("str", "string");
+                    doc1.SetString("str1", "string1");
+                    doc2.SetString("str2", "string2");
+                    colA.Save(doc);
+                    colA.Save(doc1);
+                    colA.Save(doc2);
+                }
 
-            using (var otherDB = OpenDB(Db.Name)) {
-                //TODO wait for CBL-3298 fix
-                //I am using hasScope to check existance of the scope obj in order to use scope obj to get the collection
-                var colAinOtherDb =  otherDB.GetCollection("colA", "scopeA");
-                //colAinOtherDb.Count.Should().Be(3);
-                Db.DeleteCollection("colA", "scopeA");
-                //colAinOtherDb.Count.Should().Be(0);
-                colAinOtherDb = otherDB.GetCollection("colA", "scopeA");
-                colAinOtherDb.Should().BeNull();
-                var collsInOtherDb = otherDB.GetCollections("scopeA");
-                //collsInOtherDb.Contains(colA).Should().BeFalse();
+                using (var otherDB = OpenDB(Db.Name)) {
+                    //TODO wait for CBL-3298 fix
+                    //I am using hasScope to check existance of the scope obj in order to use scope obj to get the collection
+                    var colAinOtherDb = otherDB.GetCollection("colA", "scopeA");
+                    //colAinOtherDb.Count.Should().Be(3);
+                    Db.DeleteCollection("colA", "scopeA");
+                    //colAinOtherDb.Count.Should().Be(0);
+                    colAinOtherDb = otherDB.GetCollection("colA", "scopeA");
+                    colAinOtherDb.Should().BeNull();
+                    var collsInOtherDb = otherDB.GetCollections("scopeA");
+                    //collsInOtherDb.Contains(colA).Should().BeFalse();
+                }
             }
         }
 
@@ -468,23 +469,25 @@ namespace Test
         [Fact]
         public void TestDeleteAndRecreateThenGetCollectionFromDifferentDatabaseInstance()
         {
-            var colA = Db.CreateCollection("colA", "scopeA");
-            var colB = Db.CreateCollection("colB", "scopeA");
-            using (var doc = new MutableDocument("doc"))
-            using (var doc1 = new MutableDocument("doc1"))
-            using (var doc2 = new MutableDocument("doc2")) {
-                doc.SetString("str", "string");
-                doc1.SetString("str1", "string1");
-                doc2.SetString("str2", "string2");
-                colA.Save(doc);
-                colA.Save(doc1);
-                colA.Save(doc2);
-            }
+            using (var colA = Db.CreateCollection("colA", "scopeA"))
+            using (var colB = Db.CreateCollection("colB", "scopeA")) {
+                using (var doc = new MutableDocument("doc"))
+                using (var doc1 = new MutableDocument("doc1"))
+                using (var doc2 = new MutableDocument("doc2")) {
+                    doc.SetString("str", "string");
+                    doc1.SetString("str1", "string1");
+                    doc2.SetString("str2", "string2");
+                    colA.Save(doc);
+                    colA.Save(doc1);
+                    colA.Save(doc2);
+                }
+          
 
-            using (var otherDB = OpenDB(Db.Name)) {
+                using (var otherDB = OpenDB(Db.Name)) {
                 //TODO wait for CBL-3298 fix
                 //I am using hasScope to check existance of the scope obj in order to use scope obj to get the collection
                 //Add test case after CBL-3298 is fixed..
+                }  
             }
         }
 
