@@ -112,7 +112,7 @@ namespace Couchbase.Lite
     /// <see cref="Document"/> instances.  It is portable between platforms if the file is retrieved,
     /// and can be seeded with pre-populated data if desired.
     /// </summary>
-    public sealed unsafe partial class Database : IChangeObservable<CollectionChangedEventArgs>, IDocumentChangeObservable,
+    public sealed unsafe partial class Database : IChangeObservable<DatabaseChangedEventArgs>, IDocumentChangeObservable,
          IDisposable
     {
         #region Constants
@@ -1058,10 +1058,10 @@ namespace Couchbase.Lite
         #region IChangeObservable
 
         /// <summary>
-        /// [DEPRECATED] Adds a change listener for the changes that occur in this database.  Signatures
-        /// are the same as += style event handlers, but the callbacks will be called using the
-        /// specified <see cref="TaskScheduler"/>.  If the scheduler is null, the default task
-        /// scheduler will be used (scheduled via thread pool).
+        /// [DEPRECATED] Adds a change listener for the changes that occur in the default collection
+        /// of this database. Signatures are the same as += style event handlers, but the callbacks 
+        /// will be called using the specified <see cref="TaskScheduler"/>.  If the scheduler is null, 
+        /// the default task scheduler will be used (scheduled via thread pool).
         /// </summary>
         /// <param name="scheduler">The scheduler to use when firing the change handler</param>
         /// <param name="handler">The handler to invoke</param>
@@ -1070,23 +1070,28 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [Obsolete("AddChangeListener is deprecated, please use GetDefaultCollection().AddChangeListener")]
         public ListenerToken AddChangeListener([@CanBeNull] TaskScheduler scheduler,
-            [@NotNull] EventHandler<CollectionChangedEventArgs> handler)
+            [@NotNull] EventHandler<DatabaseChangedEventArgs> handler)
         {
             CheckExistenceOfDefaultCollection();
-            return DefaultCollection.AddChangeListener(scheduler, handler);
+            EventHandler<CollectionChangedEventArgs> collectionChangeEventHandler =
+                new EventHandler<CollectionChangedEventArgs>((sender, args) =>
+                {
+                    handler(sender, args);
+                });
+            return DefaultCollection.AddChangeListener(scheduler, collectionChangeEventHandler);
         }
 
         /// <summary>
-        /// [DEPRECATED] Adds a change listener for the changes that occur in this database.  Signatures
-        /// are the same as += style event handlers.  The callback will be invoked on a thread pool
-        /// thread.
+        /// [DEPRECATED] Adds a change listener for the changes that occur in the default collection
+        /// of this database. Signatures are the same as += style event handlers. The callback will 
+        /// be invoked on a thread pool thread.
         /// </summary>
         /// <param name="handler">The handler to invoke</param>
         /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [Obsolete("AddChangeListener is deprecated, please use GetDefaultCollection().AddChangeListener")]
-        public ListenerToken AddChangeListener([@NotNull] EventHandler<CollectionChangedEventArgs> handler) => AddChangeListener(null, handler);
+        public ListenerToken AddChangeListener([@NotNull] EventHandler<DatabaseChangedEventArgs> handler) => AddChangeListener(null, handler);
 
         #endregion
 
