@@ -205,6 +205,19 @@ namespace Couchbase.Lite
 
         #region IDocumentChangeObservable
 
+        /// <summary>
+        /// Adds a document change listener for the document with the given ID and the <see cref="TaskScheduler"/>
+        /// that will be used to invoke the callback.  If the scheduler is not specified, then the default scheduler
+        /// will be used (scheduled via thread pool)
+        /// </summary>
+        /// <param name="id">The document ID</param>
+        /// <param name="scheduler">The scheduler to use when firing the event handler</param>
+        /// <param name="handler">The logic to handle the event</param>
+        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the listener later</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
+        /// is <c>null</c></exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/> if this method 
+        /// is called after the collection is closed</exception>
         public ListenerToken AddDocumentChangeListener([NotNull] string id, [CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<DocumentChangedEventArgs> handler)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
@@ -227,6 +240,16 @@ namespace Couchbase.Lite
             });
         }
 
+        /// <summary>
+        /// Adds a document change listener for the document with the given ID. The callback will be invoked on a thread pool thread.
+        /// </summary>
+        /// <param name="id">The document ID</param>
+        /// <param name="handler">The logic to handle the event</param>
+        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the listener later</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
+        /// is <c>null</c></exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/> if this method 
+        /// is called after the collection is closed</exception>
         public ListenerToken AddDocumentChangeListener([NotNull] string id, [NotNull] EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
 
         #endregion
@@ -238,6 +261,8 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{CollectionChangedEventArgs})"/>
         /// and family</param>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/> if this method 
+        /// is called after the collection is closed</exception>
         public void RemoveChangeListener(ListenerToken token)
         {
             ThreadSafety.DoLocked(() =>
