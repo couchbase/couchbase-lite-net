@@ -39,6 +39,7 @@ namespace Test
     public class NotificationTest : TestCase
     {
         private HashSet<string> _expectedDocumentChanges;
+        private HashSet<string> _unexpectedDocumentChanges;
         private WaitAssert _wa;
         private bool _docCallbackShouldThrow;
 
@@ -69,6 +70,34 @@ namespace Test
                     var doc = new MutableDocument($"doc-{i}");
                     doc.SetString("type", "demo");
                     Db.Save(doc);
+                }
+            });
+
+            wa.WaitForResult(TimeSpan.FromSeconds(5));
+        }
+
+        [Fact]
+        public void TestCollectionChange()
+        {
+            var wa = new WaitAssert();
+            var colA = Db.CreateCollection("colA", "scopeA");
+
+            colA.AddChangeListener(null, (sender, args) =>
+            {
+                var docIDs = args.DocumentIDs;
+                wa.RunAssert(() =>
+                {
+                    args.Collection.Should().Be(colA);
+                    docIDs.Should().HaveCount(10, "because that is the number of expected rows");
+                });
+            });
+
+            Db.InBatch(() =>
+            {
+                for (uint i = 0; i < 10; i++) {
+                    var doc = new MutableDocument($"doc-{i}");
+                    doc.SetString("type", "demo");
+                    colA.Save(doc);
                 }
             });
 
@@ -110,6 +139,42 @@ namespace Test
         }
 
         [Fact]
+        public void TestCollectionDocumentChange()
+        {
+            var colA = Db.CreateCollection("colA", "scopeA");
+
+            var doc1 = new MutableDocument("doc1");
+            doc1.SetString("name", "Scott");
+            colA.Save(doc1);
+
+            var doc2 = new MutableDocument("doc2");
+            doc2.SetString("name", "Daniel");
+            colA.Save(doc2);
+
+            colA.AddDocumentChangeListener("doc1", DocumentChanged);
+            colA.AddDocumentChangeListener("doc2", DocumentChanged);
+            colA.AddDocumentChangeListener("doc3", DocumentChanged);
+
+            _expectedDocumentChanges = new HashSet<string> {
+                "doc1",
+                "doc2",
+                "doc3"
+            };
+            _wa = new WaitAssert();
+
+            doc1.SetString("name", "Scott Tiger");
+            colA.Save(doc1);
+
+            colA.Delete(doc2);
+
+            var doc3 = new MutableDocument("doc3");
+            doc3.SetString("name", "Jack");
+            colA.Save(doc3);
+
+            _wa.WaitForResult(TimeSpan.FromSeconds(5));
+        }
+
+        [Fact]
         public async Task TestAddSameChangeListeners()
         {
             var doc1 = new MutableDocument("doc1");
@@ -134,6 +199,32 @@ namespace Test
         }
 
         [Fact]
+        public async Task TestCollectionAddSameChangeListeners()
+        {
+            var colA = Db.CreateCollection("colA", "scopeA");
+
+            var doc1 = new MutableDocument("doc1");
+            doc1.SetString("name", "Scott");
+            colA.Save(doc1);
+
+            colA.AddDocumentChangeListener("doc1", DocumentChanged);
+            colA.AddDocumentChangeListener("doc1", DocumentChanged);
+            colA.AddDocumentChangeListener("doc1", DocumentChanged);
+            colA.AddDocumentChangeListener("doc1", DocumentChanged);
+            colA.AddDocumentChangeListener("doc1", DocumentChanged);
+
+            _wa = new WaitAssert();
+            _expectedDocumentChanges = new HashSet<string> {
+                "doc1"
+            };
+            doc1.SetString("name", "Scott Tiger");
+            colA.Save(doc1);
+
+            await Task.Delay(500);
+            _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
+        }
+
+        [Fact]
         public async Task TestRemoveDocumentChangeListener()
         {
             var doc1 = new MutableDocument("doc1");
@@ -150,12 +241,44 @@ namespace Test
             doc1.SetString("name", "Scott Tiger");
             Db.Save(doc1);
             _wa.WaitForResult(TimeSpan.FromSeconds(5));
-            token.Remove();
+            Db.RemoveChangeListener(token);
 
             _wa = new WaitAssert();
             _docCallbackShouldThrow = true;
             doc1.SetString("name", "Scott Pilgrim");
             Db.Save(doc1);
+
+            await Task.Delay(500);
+            _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
+
+            // Remove again
+            Db.RemoveChangeListener(token);
+        }
+
+        [Fact]
+        public async Task TestCollectionRemoveDocumentChangeListener()
+        {
+            var colA = Db.CreateCollection("colA", "scopeA");
+            var doc1 = new MutableDocument("doc1");
+            doc1.SetString("name", "Scott");
+            colA.Save(doc1);
+
+            var token = colA.AddDocumentChangeListener("doc1", DocumentChanged);
+
+            _wa = new WaitAssert();
+            _expectedDocumentChanges = new HashSet<string> {
+                "doc1"
+            };
+
+            doc1.SetString("name", "Scott Tiger");
+            colA.Save(doc1);
+            _wa.WaitForResult(TimeSpan.FromSeconds(5));
+            token.Remove();
+
+            _wa = new WaitAssert();
+            _docCallbackShouldThrow = true;
+            doc1.SetString("name", "Scott Pilgrim");
+            colA.Save(doc1);
 
             await Task.Delay(500);
             _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
@@ -177,7 +300,6 @@ namespace Test
                     countdownDB.Signal();
                 });
 
-                
                 var countdownDoc = new CountdownEvent(1);
                 db2.AddDocumentChangeListener("doc-6", (sender, args) =>
                 {
@@ -202,6 +324,152 @@ namespace Test
 
                 countdownDB.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
                 countdownDoc.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
+            }
+        }
+
+        [Fact]
+        public void TestCollectionExternalChanges()
+        {
+            using (var db2 = new Database(Db)) {
+                var colB = db2.CreateCollection("colB", "scopeA");
+                var countdownDB = new CountdownEvent(1);
+                colB.AddChangeListener((sender, args) =>
+                {
+                    args.Should().NotBeNull();
+                    args.DocumentIDs.Count.Should().Be(10);
+                    countdownDB.CurrentCount.Should().Be(1);
+                    countdownDB.Signal();
+                });
+
+                var countdownDoc = new CountdownEvent(1);
+                colB.AddDocumentChangeListener("doc-6", (sender, args) =>
+                {
+                    args.Should().NotBeNull();
+                    args.DocumentID.Should().Be("doc-6");
+                    using (var doc = colB.GetDocument(args.DocumentID)) {
+                        doc.GetString("type").Should().Be("demo");
+                        countdownDoc.CurrentCount.Should().Be(1);
+                        countdownDoc.Signal();
+                    }
+                });
+
+                db2.InBatch(() =>
+                {
+                    for (var i = 0; i < 10; i++) {
+                        using (var doc = new MutableDocument($"doc-{i}")) {
+                            doc.SetString("type", "demo");
+                            colB.Save(doc);
+                        }
+                    }
+                });
+
+                countdownDB.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
+                countdownDoc.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue();
+            }
+        }
+
+        [Fact]
+        public async Task TestCollectionChangeListener()
+        {
+            var colA = Db.CreateCollection("colA", "scopeA");
+            var colB = Db.CreateCollection("colB", "scopeA");
+
+            using (var doc1 = new MutableDocument("doc1"))
+            using (var doc2 = new MutableDocument("doc2"))
+            using (var doc1b = new MutableDocument("doc1b"))
+            using (var doc2b = new MutableDocument("doc2b")) {
+                doc1.SetString("str1", "string1");
+                doc2.SetString("str2", "string2");
+                colA.Save(doc1);
+                colA.Save(doc2);
+                colB.Save(doc1b);
+                colB.Save(doc2b);
+
+                var t1 = colA.AddChangeListener(CollectionChanged);
+                var t2 = colA.AddChangeListener(CollectionChanged);
+
+                _expectedDocumentChanges = new HashSet<string> { "doc1", "doc2", "doc3", "doc1", "doc2", "doc3" };
+                _unexpectedDocumentChanges = new HashSet<string> { "doc1b", "doc2b", "doc3b" };
+                _wa = new WaitAssert();
+
+                doc1.SetString("name", "Scott Tiger");
+                colA.Save(doc1);
+
+                colA.Delete(doc2);
+
+                var doc3 = new MutableDocument("doc3");
+                doc3.SetString("name", "Jack");
+                colA.Save(doc3);
+
+                doc1b.SetString("name", "Scott Tiger");
+                colB.Save(doc1b);
+
+                colB.Delete(doc2b);
+
+                var doc3b = new MutableDocument("doc3b");
+                doc3b.SetString("name", "Jack");
+                colB.Save(doc3b);
+
+                await Task.Delay(800);
+                _expectedDocumentChanges.Count.Should().Be(0);
+                _unexpectedDocumentChanges.Count.Should().Be(3);
+
+                //will notify 2 times since there are 2 observers
+                _expectedDocumentChanges.Add("doc6"); 
+                _expectedDocumentChanges.Add("doc6");
+                var doc6 = new MutableDocument("doc6");
+                doc6.SetString("name", "Jack");
+                colA.Save(doc6);
+                await Task.Delay(500);
+                _expectedDocumentChanges.Count.Should().Be(0);
+
+                t1.Remove();
+
+                //will only notify 1 time since one of the two observers is removed
+                _expectedDocumentChanges.Add("doc4");
+                var doc4 = new MutableDocument("doc4");
+                doc4.SetString("name", "Jack");
+                colA.Save(doc4);
+                await Task.Delay(500);
+                _expectedDocumentChanges.Count.Should().Be(0);
+
+                t2.Remove();
+
+                //will not notify since all observers are removed
+                _expectedDocumentChanges.Add("doc5");
+                var doc5 = new MutableDocument("doc5");
+                doc5.SetString("name", "Jack");
+                colA.Save(doc5);
+                await Task.Delay(500);
+
+                _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
+                _expectedDocumentChanges.Count.Should().Be(1);
+                _unexpectedDocumentChanges.Count.Should().Be(3);
+            }
+        }
+
+        private void CollectionChanged(object sender, CollectionChangedEventArgs args)
+        {
+            if (_docCallbackShouldThrow) {
+                _wa.RunAssert(() => throw new InvalidOperationException("Unexpected doc change notification"));
+            } else {
+                WriteLine($"Received {args.Collection}");
+                _wa.RunConditionalAssert(() =>
+                {
+                    lock (_expectedDocumentChanges) {
+                        foreach (var docId in args.DocumentIDs) {
+                            _expectedDocumentChanges.Should()
+                                .Contain(docId, "because otherwise a rogue notification came");
+                            _unexpectedDocumentChanges.Should()
+                                .NotContain(docId, "because otherwise a rogue notification came");
+                            _expectedDocumentChanges.Remove(docId);
+                        }
+
+                        WriteLine(
+                            $"Expecting {_expectedDocumentChanges.Count} more changes ({JsonConvert.SerializeObject(_expectedDocumentChanges)})");
+                        return _expectedDocumentChanges.Count == 0;
+                    }
+                });
             }
         }
 

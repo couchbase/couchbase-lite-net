@@ -125,9 +125,6 @@ namespace Couchbase.Lite
 
         private const string Tag = nameof(Database);
 
-        private static readonly C4DocumentObserverCallback _DocumentObserverCallback = DocObserverCallback;
-        private static readonly C4CollectionObserverCallback _DatabaseObserverCallback = DbObserverCallback;
-
         internal const string _defaultScopeName = "_default";
         internal const string _defaultCollectionName = "_default";
 
@@ -135,31 +132,12 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        [@NotNull]
-        private readonly Dictionary<string, Tuple<IntPtr, GCHandle>> _docObs = new Dictionary<string, Tuple<IntPtr, GCHandle>>();
-
-        [@NotNull]
-        private readonly FilteredEvent<string, DocumentChangedEventArgs> _documentChanged =
-            new FilteredEvent<string, DocumentChangedEventArgs>();
-
-        [@NotNull]
-        private readonly Event<DatabaseChangedEventArgs> _databaseChanged = 
-            new Event<DatabaseChangedEventArgs>();
-
-        [@NotNull]
-        private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
-
-        [@NotNull]
-        private readonly TaskFactory _callbackFactory = new TaskFactory(new QueueTaskScheduler());
-
 #if false
         private IJsonSerializer _jsonSerializer;
 #endif
 
         private C4Database* _c4db;
-        private C4CollectionObserver* _obs;
 
-        private GCHandle _obsContext;
         private bool _isClosing;
         private ManualResetEventSlim _closeCondition = new ManualResetEventSlim(true);
 
@@ -215,12 +193,7 @@ namespace Couchbase.Lite
         /// value will be returned.
         /// </summary>
         [@CanBeNull]
-        public string Path
-        {
-            get {
-                return ThreadSafety.DoLocked(() => _c4db != null ? Native.c4db_getPath(c4db) : null);
-            }
-        }
+        public string Path => ThreadSafety.DoLocked(() => _c4db != null ? Native.c4db_getPath(c4db) : null);
 
         internal ConcurrentDictionary<IStoppable, int> ActiveStoppables { get; } = new ConcurrentDictionary<IStoppable, int>();
 
@@ -901,7 +874,7 @@ namespace Couchbase.Lite
                 }
             });
 
-            PostDatabaseChanged();
+            DefaultCollection.PostDatabaseChanged();
         }
 
         /// <summary>
@@ -1085,10 +1058,10 @@ namespace Couchbase.Lite
         #region IChangeObservable
 
         /// <summary>
-        /// [DEPRECATED] Adds a change listener for the changes that occur in this database.  Signatures
-        /// are the same as += style event handlers, but the callbacks will be called using the
-        /// specified <see cref="TaskScheduler"/>.  If the scheduler is null, the default task
-        /// scheduler will be used (scheduled via thread pool).
+        /// [DEPRECATED] Adds a change listener for the changes that occur in the default collection
+        /// of this database. Signatures are the same as += style event handlers, but the callbacks 
+        /// will be called using the specified <see cref="TaskScheduler"/>.  If the scheduler is null, 
+        /// the default task scheduler will be used (scheduled via thread pool).
         /// </summary>
         /// <param name="scheduler">The scheduler to use when firing the change handler</param>
         /// <param name="handler">The handler to invoke</param>
@@ -1099,27 +1072,19 @@ namespace Couchbase.Lite
         public ListenerToken AddChangeListener([@CanBeNull] TaskScheduler scheduler,
             [@NotNull] EventHandler<DatabaseChangedEventArgs> handler)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
-
-            return ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-
-                var cbHandler = new CouchbaseEventHandler<DatabaseChangedEventArgs>(handler, scheduler);
-                if (_databaseChanged.Add(cbHandler) == 0)
+            CheckExistenceOfDefaultCollection();
+            EventHandler<CollectionChangedEventArgs> collectionChangeEventHandler =
+                new EventHandler<CollectionChangedEventArgs>((sender, args) =>
                 {
-                    _obsContext = GCHandle.Alloc(this);
-                    _obs = Native.c4dbobs_create(_c4db, _DatabaseObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer());
-                }
-
-                return new ListenerToken(cbHandler, ListenerTokenType.Database, this);
-            });
+                    handler(sender, args);
+                });
+            return DefaultCollection.AddChangeListener(scheduler, collectionChangeEventHandler);
         }
 
         /// <summary>
-        /// [DEPRECATED] Adds a change listener for the changes that occur in this database.  Signatures
-        /// are the same as += style event handlers.  The callback will be invoked on a thread pool
-        /// thread.
+        /// [DEPRECATED] Adds a change listener for the changes that occur in the default collection
+        /// of this database. Signatures are the same as += style event handlers. The callback will 
+        /// be invoked on a thread pool thread.
         /// </summary>
         /// <param name="handler">The handler to invoke</param>
         /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
@@ -1148,24 +1113,8 @@ namespace Couchbase.Lite
         public ListenerToken AddDocumentChangeListener([@NotNull] string id, [@CanBeNull] TaskScheduler scheduler,
             [@NotNull] EventHandler<DocumentChangedEventArgs> handler)
         {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
-
-            return ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-
-                var cbHandler =
-                    new CouchbaseEventHandler<string, DocumentChangedEventArgs>(handler, id, scheduler);
-                var count = _documentChanged.Add(cbHandler);
-                if (count == 0) {
-                    var handle = GCHandle.Alloc(this);
-                    var docObs = Native.c4docobs_create(_c4db, id, _DocumentObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
-                    _docObs[id] = Tuple.Create((IntPtr)docObs, handle);
-                }
-
-                return new ListenerToken(cbHandler, ListenerTokenType.Document, this);
-            });
+            CheckExistenceOfDefaultCollection();
+            return DefaultCollection.AddDocumentChangeListener(id, scheduler, handler);
         }
 
         /// <summary>
@@ -1193,26 +1142,8 @@ namespace Couchbase.Lite
         [Obsolete("RemoveChangeListener is deprecated, please use GetDefaultCollection().RemoveChangeListener")]
         public void RemoveChangeListener(ListenerToken token)
         {
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-
-                if (token.Type == ListenerTokenType.Database) {
-                    if (_databaseChanged.Remove(token) == 0) {
-                        Native.c4dbobs_free(_obs);
-                        _obs = null;
-                        if (_obsContext.IsAllocated) {
-                            _obsContext.Free();
-                        }
-                    }
-                } else if (_documentChanged.Remove(token, out var docID) == 0) {
-                    if (_docObs.TryGetValue(docID, out var observer)) {
-                        _docObs.Remove(docID);
-                        Native.c4docobs_free((C4DocumentObserver*)observer.Item1);
-                        observer.Item2.Free();
-                    }
-                }
-            });
+            CheckExistenceOfDefaultCollection();
+            DefaultCollection.RemoveChangeListener(token);
         }
 
         #endregion
@@ -1379,7 +1310,6 @@ namespace Couchbase.Lite
             }
         }
 
-
         internal void CheckOpenLocked()
         {
             ThreadSafety.DoLocked(() =>
@@ -1428,34 +1358,6 @@ namespace Couchbase.Lite
                 throw new RuntimeException("Path.Combine failed to return a non-null value!");
         }
 
-        #if __IOS__
-        [ObjCRuntime.MonoPInvokeCallback(typeof(C4CollectionObserverCallback))]
-        #endif
-        private static void DbObserverCallback(C4CollectionObserver* db, void* context)
-        {
-            var dbObj = GCHandle.FromIntPtr((IntPtr) context).Target as Database;
-            dbObj?._callbackFactory.StartNew(() =>
-            {
-                dbObj.PostDatabaseChanged();
-            });
-        }
-
-        #if __IOS__
-        [ObjCRuntime.MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
-        #endif
-        private static void DocObserverCallback(C4DocumentObserver* obs, C4Collection* collection, FLSlice docId, ulong sequence, void* context)
-        {
-            if (docId.buf == null) {
-                return;
-            }
-
-            var dbObj = GCHandle.FromIntPtr((IntPtr) context).Target as Database;
-            dbObj?._callbackFactory.StartNew(() =>
-            {
-                dbObj.PostDocChanged(docId.CreateString());
-            });
-        }
-
         // Must be called inside self lock
         private void CheckOpen()
         {
@@ -1477,12 +1379,6 @@ namespace Couchbase.Lite
                 return;
             }
 
-            if (disposing) {
-                ClearUnsavedDocsAndFreeDocObservers();
-            }
-
-            FreeC4DbObserver();
-
             WriteLog.To.Database.I(Tag, $"Closing database at path {Native.c4db_getPath(_c4db)}");
             if (!IsShell) {
                 LiteCoreBridge.Check(err => Native.c4db_close(_c4db, err));
@@ -1493,22 +1389,6 @@ namespace Couchbase.Lite
             ReleaseC4Db();
 
             _closeCondition.Dispose();
-        }
-
-        [@CanBeNull]
-        private Document GetDocumentInternal([@NotNull]string docID)
-        {
-            CheckOpen();
-            var doc = new Document(DefaultCollection, docID);
-
-            if (!doc.Exists || doc.IsDeleted) {
-                doc.Dispose();
-                WriteLog.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist", 
-                    new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
-                return null;
-            }
-
-            return doc;
         }
 
         private void Open()
@@ -1552,192 +1432,6 @@ namespace Couchbase.Lite
                     return Native.c4db_openNamed(Name, &localConfig2, err);
                 });
             });
-        }
-
-        private void PostDatabaseChanged()
-        {
-            ThreadSafety.DoLocked(() =>
-            {
-                if (_obs == null || IsClosed) {
-                    return;
-                }
-
-                const uint maxChanges = 100u;
-                var external = false;
-                uint nChanges;
-                var changes = new C4CollectionChange[maxChanges];
-                var docIDs = new List<string>();
-                do {
-                    // Read changes in batches of MaxChanges:
-                    bool newExternal;
-                    var collectionObservation = Native.c4dbobs_getChanges(_obs, changes, maxChanges);
-                    newExternal = collectionObservation.external;
-                    nChanges = collectionObservation.numChanges;
-                    if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
-                        if (docIDs.Count > 0) {
-                            // Only notify if there are actually changes to send
-                            var args = new DatabaseChangedEventArgs(this, docIDs);
-                            _databaseChanged.Fire(this, args);
-                            docIDs = new List<string>();
-                        }
-                    }
-
-                    external = newExternal;
-                    for (var i = 0; i < nChanges; i++) {
-                        docIDs.Add(changes[i].docID.CreateString());
-                    }
-                    Native.c4dbobs_releaseChanges(changes, nChanges);
-                } while (nChanges > 0);
-            });
-        }
-
-        private void PostDocChanged([@NotNull]string documentID)
-        {
-            DocumentChangedEventArgs change = null;
-            ThreadSafety.DoLocked(() =>
-            {
-                if (IsClosed || !_docObs.ContainsKey(documentID)) {
-                    return;
-                }
-
-                change = new DocumentChangedEventArgs(documentID, this);
-            });
-
-            _documentChanged.Fire(documentID, this, change);
-        }
-
-        private bool Save([@NotNull]Document document, [@CanBeNull]Document baseDocument,
-            ConcurrencyControl concurrencyControl, bool deletion)
-        {
-            Debug.Assert(document != null);
-            if (deletion && document.RevisionID == null) {
-                throw new CouchbaseLiteException(C4ErrorCode.NotFound,
-                    CouchbaseLiteErrorMessage.DeleteDocFailedNotSaved);
-            }
-
-            var success = true;
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                VerifyDB(document);
-                C4Document* curDoc = null;
-                C4Document* newDoc = null;
-                var committed = false;
-                try {
-                    LiteCoreBridge.Check(err => Native.c4db_beginTransaction(_c4db, err));
-                    var baseDoc = baseDocument == null ? null : baseDocument.c4Doc.RawDoc;
-                    Save(document, &newDoc, baseDoc, deletion);
-                    if (newDoc == null) {
-                        // Handle conflict:
-                        if (concurrencyControl == ConcurrencyControl.FailOnConflict) {
-                            success = false;
-                            committed = true; // Weird, but if the next call fails I don't want to call it again in the catch block
-                            LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, true, e));
-                            return;
-                        }
-
-                        C4Error err;
-                        curDoc = Native.c4db_getDoc(_c4db, document.Id, true, C4DocContentLevel.DocGetCurrentRev, &err);
-
-                        // If deletion and the current doc has already been deleted
-                        // or doesn't exist:
-                        if (deletion) {
-                            if (curDoc == null) {
-                                if (err.code == (int) C4ErrorCode.NotFound) {
-                                    return;
-                                }
-
-                                throw CouchbaseException.Create(err);
-                            } else if (curDoc->flags.HasFlag(C4DocumentFlags.DocDeleted)) {
-                                document.ReplaceC4Doc(new C4DocumentWrapper(curDoc));
-                                curDoc = null;
-                                return;
-
-                            }
-                        }
-
-                        // Save changes on the current branch:
-                        if (curDoc == null) {
-                            throw CouchbaseException.Create(err);
-                        }
-
-                        Save(document, &newDoc, curDoc, deletion);
-                    }
-
-                    committed = true; // Weird, but if the next call fails I don't want to call it again in the catch block
-                    LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, true, e));
-                    document.ReplaceC4Doc(new C4DocumentWrapper(newDoc));
-                    newDoc = null;
-                } catch (Exception) {
-                    if (!committed) {
-                        LiteCoreBridge.Check(e => Native.c4db_endTransaction(_c4db, false, e));
-                    }
-
-                    throw;
-                } finally {
-                    Native.c4doc_release(curDoc);
-                    Native.c4doc_release(newDoc);
-                }
-            });
-
-            return success;
-        }
-
-        private void Save([@NotNull]Document doc, C4Document** outDoc, C4Document* baseDoc, bool deletion)
-        {
-            var revFlags = (C4RevisionFlags) 0;
-            if (deletion) {
-                revFlags = C4RevisionFlags.Deleted;
-            }
-
-            var body = (FLSliceResult) FLSlice.Null;
-            if (!deletion && !doc.IsEmpty) {
-                try {
-                    body = doc.Encode();
-                } catch (ObjectDisposedException) {
-                    WriteLog.To.Database.E(Tag, "Save of disposed document {0} attempted, skipping...", new SecureLogString(doc.Id, LogMessageSensitivity.PotentiallyInsecure));
-                    return;
-                }
-                
-                ThreadSafety.DoLocked(() =>
-                {
-                    FLDoc* fleeceDoc = Native.FLDoc_FromResultData(body,
-                    FLTrust.Trusted,
-                    Native.c4db_getFLSharedKeys(_c4db), FLSlice.Null);
-                    if (Native.c4doc_dictContainsBlobs((FLDict*) Native.FLDoc_GetRoot(fleeceDoc))) {
-                        revFlags |= C4RevisionFlags.HasAttachments;
-                    }
-
-                    Native.FLDoc_Release(fleeceDoc);
-                });
-            } else if (doc.IsEmpty) {
-                body = EmptyFLSliceResult();
-            }
-
-            var rawDoc = baseDoc != null ? baseDoc :
-                doc.c4Doc?.HasValue == true ? doc.c4Doc.RawDoc : null;
-            if (rawDoc != null) {
-                doc.ThreadSafety.DoLocked(() =>
-                {
-                    ThreadSafety.DoLocked(() =>
-                    {
-                        *outDoc = (C4Document*) NativeHandler.Create()
-                            .AllowError((int) C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                err => NativeRaw.c4doc_update(rawDoc, (FLSlice) body, revFlags, err));
-                    });
-                });
-            } else {
-                ThreadSafety.DoLocked(() =>
-                {
-                    using (var docID_ = new C4String(doc.Id)) {
-                        *outDoc = (C4Document*) NativeHandler.Create()
-                            .AllowError((int) C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
-                                err => NativeRaw.c4doc_create(_c4db, docID_.AsFLSlice(), (FLSlice) body, revFlags, err));
-                    }
-                });
-            }
-
-            Native.FLSliceResult_Release(body);
         }
 
         // Must be called in transaction
@@ -1846,34 +1540,6 @@ namespace Couchbase.Lite
             Native.c4db_release(_c4db);
             _c4db = null;
         }
-
-        private void FreeC4DbObserver()
-        {
-            if (_obs != null) {
-                Native.c4dbobs_free(_obs);
-                _obsContext.Free();
-            }
-        }
-
-        private void ClearUnsavedDocsAndFreeDocObservers()
-        {
-            //TODO _docObs might need to be refactored into an IDisposable class
-            foreach (var obs in _docObs) {
-                Native.c4docobs_free((C4DocumentObserver*) obs.Value.Item1);
-                obs.Value.Item2.Free();
-            }
-
-            _docObs.Clear();
-            //end of TODO comments
-
-            if (_unsavedDocuments.Count > 0) {
-                WriteLog.To.Database.W(Tag,
-                    $"Closing database with {_unsavedDocuments.Count} such as {_unsavedDocuments.Any()}");
-            }
-
-            _unsavedDocuments.Clear();
-        }
-
 
         private void CheckOpenAndNotClosing()
         {

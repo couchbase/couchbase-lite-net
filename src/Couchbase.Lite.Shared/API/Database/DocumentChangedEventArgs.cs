@@ -42,14 +42,21 @@ namespace Couchbase.Lite
         [NotNull]
         public Database Database { get; }
 
+        /// <summary>
+        /// The source of the document that changed
+        /// </summary>
+        [NotNull]
+        public Collection Collection { get; }
+
         #endregion
 
         #region Constructors
 
-        internal DocumentChangedEventArgs([NotNull]string documentID, [NotNull]Database database)
+        internal DocumentChangedEventArgs([NotNull] string documentID, [NotNull] Collection collection)
         {
             DocumentID = documentID;
-            Database = database;
+            Collection = collection;
+            Database = collection.Database;
         }
 
         #endregion

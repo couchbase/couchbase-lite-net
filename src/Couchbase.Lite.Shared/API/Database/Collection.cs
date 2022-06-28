@@ -31,6 +31,8 @@ using LiteCore.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -46,24 +48,44 @@ namespace Couchbase.Lite
         public static readonly string DefaultScopeName = Database._defaultScopeName;
         public static readonly string DefaultCollectionName = Database._defaultCollectionName;
 
+        private static readonly C4DocumentObserverCallback _documentObserverCallback = DocObserverCallback;
+        private static readonly C4CollectionObserverCallback _databaseObserverCallback = DbObserverCallback;
+
         #endregion
 
         #region Variables
 
         private IntPtr _c4coll;
 
+        private GCHandle _obsContext;
+
+        private C4CollectionObserver* _obs;
+
+        [NotNull]
+        private readonly FilteredEvent<string, DocumentChangedEventArgs> _documentChanged =
+            new FilteredEvent<string, DocumentChangedEventArgs>();
+
+        [NotNull]
+        private readonly Dictionary<string, Tuple<IntPtr, GCHandle>> _docObs = new Dictionary<string, Tuple<IntPtr, GCHandle>>();
+
+        [NotNull]
+        private readonly Event<CollectionChangedEventArgs> _databaseChanged =
+            new Event<CollectionChangedEventArgs>();
+
+        [NotNull]
+        private readonly HashSet<Document> _unsavedDocuments = new HashSet<Document>();
+
+        [NotNull]
+        private readonly TaskFactory _callbackFactory = new TaskFactory(new QueueTaskScheduler());
+
         #endregion
 
         #region Properties
 
-        internal C4Database* c4Db
-        {
-            get {
-                if (Database.c4db == null)
-                    throw new CouchbaseLiteException(C4ErrorCode.NotOpen, String.Format(CouchbaseLiteErrorMessage.DBClosed));
-                return Database.c4db;
-            }
-        }
+        // Must be called inside self lock
+        private bool IsClosed => c4Db == null || _c4coll == IntPtr.Zero || !Native.c4coll_isValid((C4Collection*)_c4coll);
+
+        internal C4Database* c4Db => Database.c4db;
 
         internal C4Collection* c4coll
         {
@@ -123,41 +145,148 @@ namespace Couchbase.Lite
             Native.c4coll_retain((C4Collection*)_c4coll);
         }
 
+        /// <summary>
+        /// Finalizer
+        /// </summary>
+        ~Collection()
+        {
+            try {
+                Dispose(false);
+            } catch (Exception e) {
+                WriteLog.To.Database.E(Tag, "Error during finalizer, swallowing!", e);
+            }
+        }
+
         #endregion
 
         #region IChangeObservable
 
+        /// <summary>
+        /// Adds a change listener for the changes that occur in this collection.  Signatures
+        /// are the same as += style event handlers, but the callbacks will be called using the
+        /// specified <see cref="TaskScheduler"/>.  If the scheduler is null, the default task
+        /// scheduler will be used (scheduled via thread pool).
+        /// </summary>
+        /// <param name="scheduler">The scheduler to use when firing the change handler</param>
+        /// <param name="handler">The handler to invoke</param>
+        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         public ListenerToken AddChangeListener([CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<CollectionChangedEventArgs> handler)
         {
-            throw new NotImplementedException();
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
+
+            return ThreadSafety.DoLocked(() =>
+            {
+                CheckCollectionValid();
+
+                var cbHandler = new CouchbaseEventHandler<CollectionChangedEventArgs>(handler, scheduler);
+                if (_databaseChanged.Add(cbHandler) == 0) {
+                    _obsContext = GCHandle.Alloc(this);
+                    _obs = Native.c4dbobs_createOnCollection(c4coll, _databaseObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer());
+                }
+
+                return new ListenerToken(cbHandler, ListenerTokenType.Database, this);
+            });
         }
 
-        public ListenerToken AddChangeListener([NotNull] EventHandler<CollectionChangedEventArgs> handler)
-        {
-            throw new NotImplementedException();
-        }
+        /// <summary>
+        /// Adds a change listener for the changes that occur in this collection.  Signatures
+        /// are the same as += style event handlers.  The callback will be invoked on a thread pool
+        /// thread.
+        /// </summary>
+        /// <param name="handler">The handler to invoke</param>
+        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the handler later</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> is <c>null</c></exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        public ListenerToken AddChangeListener([NotNull] EventHandler<CollectionChangedEventArgs> handler) => AddChangeListener(null, handler);
 
         #endregion
 
         #region IDocumentChangeObservable
 
+        /// <summary>
+        /// Adds a document change listener for the document with the given ID and the <see cref="TaskScheduler"/>
+        /// that will be used to invoke the callback.  If the scheduler is not specified, then the default scheduler
+        /// will be used (scheduled via thread pool)
+        /// </summary>
+        /// <param name="id">The document ID</param>
+        /// <param name="scheduler">The scheduler to use when firing the event handler</param>
+        /// <param name="handler">The logic to handle the event</param>
+        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the listener later</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
+        /// is <c>null</c></exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/> if this method 
+        /// is called after the collection is closed</exception>
         public ListenerToken AddDocumentChangeListener([NotNull] string id, [CanBeNull] TaskScheduler scheduler, [NotNull] EventHandler<DocumentChangedEventArgs> handler)
         {
-            throw new NotImplementedException();
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(id), id);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(handler), handler);
+
+            return ThreadSafety.DoLocked(() =>
+            {
+                CheckCollectionValid();
+
+                var cbHandler =
+                    new CouchbaseEventHandler<string, DocumentChangedEventArgs>(handler, id, scheduler);
+                var count = _documentChanged.Add(cbHandler);
+                if (count == 0) {
+                    var handle = GCHandle.Alloc(this);
+                    var docObs = Native.c4docobs_createWithCollection(c4coll, id, _documentObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    _docObs[id] = Tuple.Create((IntPtr)docObs, handle);
+                }
+
+                return new ListenerToken(cbHandler, ListenerTokenType.Document, this);
+            });
         }
 
-        public ListenerToken AddDocumentChangeListener([NotNull] string id, [NotNull] EventHandler<DocumentChangedEventArgs> handler)
-        {
-            throw new NotImplementedException();
-        }
+        /// <summary>
+        /// Adds a document change listener for the document with the given ID. The callback will be invoked on a thread pool thread.
+        /// </summary>
+        /// <param name="id">The document ID</param>
+        /// <param name="handler">The logic to handle the event</param>
+        /// <returns>A <see cref="ListenerToken"/> that can be used to remove the listener later</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="handler"/> or <paramref name="id"/>
+        /// is <c>null</c></exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/> if this method 
+        /// is called after the collection is closed</exception>
+        public ListenerToken AddDocumentChangeListener([NotNull] string id, [NotNull] EventHandler<DocumentChangedEventArgs> handler) => AddDocumentChangeListener(id, null, handler);
 
         #endregion
 
         #region IChangeObservableRemovable
 
+        /// <summary>
+        /// Removes a collection changed listener by token
+        /// </summary>
+        /// <param name="token">The token received from <see cref="AddChangeListener(TaskScheduler, EventHandler{CollectionChangedEventArgs})"/>
+        /// and family</param>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/> if this method 
+        /// is called after the collection is closed</exception>
         public void RemoveChangeListener(ListenerToken token)
         {
-            throw new NotImplementedException();
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckCollectionValid();
+
+                if (token.Type == ListenerTokenType.Database) {
+                    if (_databaseChanged.Remove(token) == 0) {
+                        Native.c4dbobs_free(_obs);
+                        _obs = null;
+                        if (_obsContext.IsAllocated) {
+                            _obsContext.Free();
+                        }
+                    }
+                } else {
+                    if (_documentChanged.Remove(token, out var docID) == 0) {
+                        if (_docObs.TryGetValue(docID, out var observer)) {
+                            _docObs.Remove(docID);
+                            Native.c4docobs_free((C4DocumentObserver*)observer.Item1);
+                            observer.Item2.Free();
+                        }
+                    }
+                }
+            });
         }
 
         #endregion
@@ -481,7 +610,127 @@ namespace Couchbase.Lite
 
         #endregion
 
-        #region Private Methods
+        #region Public Methods - QueryFactory
+
+        public IQuery CreateQuery([NotNull] string queryExpression)
+        {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(queryExpression), queryExpression);
+            CheckCollectionValid();
+
+            var query = new NQuery(queryExpression, this.Database);
+            return query;
+        }
+
+        #endregion
+
+        #region Private Methods - Observers
+
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4CollectionObserverCallback))]
+        #endif
+        private static void DbObserverCallback(C4CollectionObserver* db, void* context)
+        {
+            var dbObj = GCHandle.FromIntPtr((IntPtr)context).Target as Collection;
+            dbObj?._callbackFactory.StartNew(() =>
+            {
+                dbObj.PostDatabaseChanged();
+            });
+        }
+
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
+        #endif
+        private static void DocObserverCallback(C4DocumentObserver* obs, C4Collection* collection, FLSlice docId, ulong sequence, void* context)
+        {
+            if (docId.buf == null) {
+                return;
+            }
+
+            var dbObj = GCHandle.FromIntPtr((IntPtr)context).Target as Collection;
+            dbObj?._callbackFactory.StartNew(() =>
+            {
+                dbObj.PostDocChanged(docId.CreateString());
+            });
+        }
+
+        private void PostDocChanged([NotNull] string documentID)
+        {
+            DocumentChangedEventArgs change = null;
+            ThreadSafety.DoLocked(() =>
+            {
+                if (IsClosed || !_docObs.ContainsKey(documentID)) {
+                    return;
+                }
+
+                change = new DocumentChangedEventArgs(documentID, this);
+            });
+
+            _documentChanged.Fire(documentID, this, change);
+        }
+
+        private void FreeC4DbObserver()
+        {
+            if (_obs != null) {
+                Native.c4dbobs_free(_obs);
+                _obsContext.Free();
+            }
+        }
+
+        private void ClearUnsavedDocsAndFreeDocObservers()
+        {
+            foreach (var obs in _docObs) {
+                Native.c4docobs_free((C4DocumentObserver*)obs.Value.Item1);
+                obs.Value.Item2.Free();
+            }
+
+            _docObs.Clear();
+
+            if (_unsavedDocuments.Count > 0) {
+                WriteLog.To.Database.W(Tag,
+                    $"Closing database with {_unsavedDocuments.Count} such as {_unsavedDocuments.Any()}");
+            }
+
+            _unsavedDocuments.Clear();
+        }
+
+        #endregion
+
+        #region Private Methods - Documents
+
+        [CanBeNull]
+        private Document GetDocumentInternal([NotNull] string docID)
+        {
+            CheckCollectionValid();
+            var doc = new Document(this, docID);
+
+            if (!doc.Exists || doc.IsDeleted) {
+                doc.Dispose();
+                WriteLog.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist",
+                    new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
+                return null;
+            }
+
+            return doc;
+        }
+
+        private void VerifyCollection([NotNull] Document document)
+        {
+            if (document.Collection == null) {
+                document.Collection = this;
+            } else if (document.Collection != this) {
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter,
+                    "Cannot operate on a document from another collection.");
+            }
+        }
+
+        private void PurgeDocById(string id)
+        {
+            ThreadSafety.DoLockedBridge(err =>
+            {
+                CheckCollectionValid();
+                return Native.c4coll_purgeDoc(c4coll, id, err);
+            });
+        }
 
         private bool Save([NotNull] Document document, [CanBeNull] Document baseDocument,
             ConcurrencyControl concurrencyControl, bool deletion)
@@ -606,8 +855,7 @@ namespace Couchbase.Lite
             } else {
                 ThreadSafety.DoLocked(() =>
                 {
-                    using (var docID_ = new C4String(doc.Id))
-                    {
+                    using (var docID_ = new C4String(doc.Id)) {
                         *outDoc = (C4Document*)NativeHandler.Create()
                             .AllowError((int)C4ErrorCode.Conflict, C4ErrorDomain.LiteCoreDomain).Execute(
                                 err => NativeRaw.c4coll_createDoc(c4coll, docID_.AsFLSlice(), (FLSlice)body, revFlags, err));
@@ -616,49 +864,6 @@ namespace Couchbase.Lite
             }
 
             Native.FLSliceResult_Release(body);
-        }
-
-        private FLSliceResult EmptyFLSliceResult()
-        {
-            FLEncoder* encoder = Database.SharedEncoder;
-            Native.FLEncoder_BeginDict(encoder, 0);
-            Native.FLEncoder_EndDict(encoder);
-            var body = NativeRaw.FLEncoder_Finish(encoder, null);
-            Native.FLEncoder_Reset(encoder);
-
-            return body;
-        }
-
-        private void VerifyCollection([NotNull] Document document)
-        {
-            if (document.Collection == null) {
-                document.Collection = this;
-            } else if (document.Collection != this) {
-                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter,
-                    "Cannot operate on a document from another collection.");
-            }
-        }
-
-        private void PurgeDocById(string id)
-        {
-            ThreadSafety.DoLockedBridge(err =>
-            {
-                CheckCollectionValid();
-                return Native.c4coll_purgeDoc(c4coll, id, err);
-            });
-        }
-
-        #endregion
-
-        #region Public Methods - QueryFactory
-
-        public IQuery CreateQuery([NotNull] string queryExpression)
-        {
-            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(queryExpression), queryExpression);
-            CheckCollectionValid();
-            
-            var query = new NQuery(queryExpression, this.Database);
-            return query;
         }
 
         #endregion
@@ -683,9 +888,58 @@ namespace Couchbase.Lite
             });
         }
 
+        internal void PostDatabaseChanged()
+        {
+            ThreadSafety.DoLocked(() =>
+            {
+                if (_obs == null || IsClosed) {
+                    return;
+                }
+
+                const uint maxChanges = 100u;
+                var external = false;
+                uint nChanges;
+                var changes = new C4CollectionChange[maxChanges];
+                var docIDs = new List<string>();
+                do {
+                    // Read changes in batches of MaxChanges:
+                    bool newExternal;
+                    var collectionObservation = Native.c4dbobs_getChanges(_obs, changes, maxChanges);
+                    newExternal = collectionObservation.external;
+                    nChanges = collectionObservation.numChanges;
+                    if (nChanges == 0 || external != newExternal || docIDs.Count > 1000) {
+                        if (docIDs.Count > 0) {
+                            // Only notify if there are actually changes to send
+                            var args = new CollectionChangedEventArgs(this, docIDs, Database);
+                            _databaseChanged.Fire(this, args);
+                            docIDs = new List<string>();
+                        }
+                    }
+
+                    external = newExternal;
+                    for (var i = 0; i < nChanges; i++) {
+                        docIDs.Add(changes[i].docID.CreateString());
+                    }
+
+                    Native.c4dbobs_releaseChanges(changes, nChanges);
+                } while (nChanges > 0);
+            });
+        }
+
         #endregion
 
         #region Private Methods
+
+        private FLSliceResult EmptyFLSliceResult()
+        {
+            FLEncoder* encoder = Database.SharedEncoder;
+            Native.FLEncoder_BeginDict(encoder, 0);
+            Native.FLEncoder_EndDict(encoder);
+            var body = NativeRaw.FLEncoder_Finish(encoder, null);
+            Native.FLEncoder_Reset(encoder);
+
+            return body;
+        }
 
         private C4Database* GetC4Database()
         {
@@ -707,20 +961,18 @@ namespace Couchbase.Lite
             Native.c4coll_release((C4Collection*)old);
         }
 
-        [CanBeNull]
-        private Document GetDocumentInternal([NotNull] string docID)
+        private void Dispose(bool disposing)
         {
-            CheckCollectionValid();
-            var doc = new Document(this, docID);
-
-            if (!doc.Exists || doc.IsDeleted) {
-                doc.Dispose();
-                WriteLog.To.Database.V(Tag, "Requested existing document {0}, but it doesn't exist",
-                    new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
-                return null;
+            if (IsClosed) {
+                return;
             }
 
-            return doc;
+            if (disposing) {
+                ClearUnsavedDocsAndFreeDocObservers();
+            }
+
+            FreeC4DbObserver();
+            ReleaseCollection();
         }
 
         #endregion
@@ -758,9 +1010,23 @@ namespace Couchbase.Lite
         /// </summary>
         public void Dispose()
         {
+            GC.SuppressFinalize(this);
+            var isClosed = ThreadSafety.DoLocked(() =>
+            {
+                if (IsClosed) {
+                    return true;
+                }
+
+                return false;
+            });
+
+            if (isClosed) {
+                return;
+            }
+
             ThreadSafety.DoLocked(() =>
             {
-                ReleaseCollection();
+                Dispose(true);
             });
         }
 

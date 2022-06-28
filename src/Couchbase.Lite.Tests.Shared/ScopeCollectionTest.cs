@@ -351,6 +351,12 @@ namespace Test
             //Db.CreateCollection("abc", "scope1").Should().NotBeNull("Should be able to be created because scope name is case sensitive.");
         }
 
+        /* TODO CBL-3227 8.3 Collections and Cross Database Instance
+TestCreateThenGetCollectionFromDifferentDatabaseInstance : Test that creating a collection from a database instance is visible to the other database instance.
+Create Database instance A and B.
+Create a collection in a scope from the database instance A.
+Ensure that the created collection is visible to the database instance B by using database.getCollection(name: "colA", scope: "scopeA") and database.getCollections(scope: "scopeA") API.
+        */
         [Fact]
         public void TestCreateAnExistingCollection()
         {
@@ -568,7 +574,14 @@ namespace Test
                 colA.Invoking(d => d.DeleteIndex("index1"))
                     .Should().Throw<CouchbaseLiteException>("Because DeleteIndex after collection colA is deleted.");
 
-                //TODO: AddChange, AddDocumentChange, RemoveChange CBL-3307
+                colA.Invoking(d => d.AddChangeListener(null, (sender, args) => { }))
+                    .Should().Throw<CouchbaseLiteException>("Because AddChangeListener after collection colA is deleted.");
+
+                colA.Invoking(d => d.AddDocumentChangeListener("doc1", (sender, args) => { }))
+                    .Should().Throw<CouchbaseLiteException>("Because AddDocumentChangeListener after collection colA is deleted.");
+
+                colA.Invoking(d => d.RemoveChangeListener(d.AddDocumentChangeListener("doc1", (sender, args) => { })))
+                    .Should().Throw<CouchbaseLiteException>("Because RemoveChangeListener after collection colA is deleted.");
             }
         }
 
@@ -628,7 +641,14 @@ namespace Test
                 colA1.Invoking(d => d.DeleteIndex("index1"))
                     .Should().Throw<CouchbaseLiteException>("Because DeleteIndex after collection colA is deleted from the other db.");
 
-                //TODO: AddChange, AddDocumentChange, RemoveChange CBL-3307 
+                colA1.Invoking(d => d.AddChangeListener(null, (sender, args) => { }))
+                .Should().Throw<CouchbaseLiteException>("Because AddChangeListener after collection colA is deleted from the other db.");
+
+                colA1.Invoking(d => d.AddDocumentChangeListener("doc1", (sender, args) => { }))
+                    .Should().Throw<CouchbaseLiteException>("Because AddDocumentChangeListener after collection colA is deleted from the other db.");
+
+                colA1.Invoking(d => d.RemoveChangeListener(d.AddDocumentChangeListener("doc1", (sender, args) => { })))
+                    .Should().Throw<CouchbaseLiteException>("Because RemoveChangeListener after collection colA is deleted from the other db.");
             }
         }
 
@@ -701,7 +721,14 @@ namespace Test
                 Db.Invoking(d => d.DeleteIndex("index1"))
                     .Should().Throw<CouchbaseLiteException>("Because DeleteIndex after default collection is deleted.");
 
-                //TODO: AddChangeListener, AddDocumentChangeListener, RemoveChangeListener CBL-3307
+                Db.Invoking(d => d.AddChangeListener(null, (sender, args) => { } ))
+                    .Should().Throw<CouchbaseLiteException>("Because AddChangeListener after default collection is deleted.");
+
+                Db.Invoking(d => d.AddDocumentChangeListener("doc1", (sender, args) => { }))
+                    .Should().Throw<CouchbaseLiteException>("Because AddDocumentChangeListener after default collection is deleted.");
+
+                Db.Invoking(d => d.RemoveChangeListener(d.AddDocumentChangeListener("doc1", (sender, args) => { })))
+                    .Should().Throw<CouchbaseLiteException>("Because RemoveChangeListener after default collection is deleted.");
             }
         }
 
@@ -824,13 +851,20 @@ namespace Test
                 colA.Invoking(d => d.DeleteIndex("index1"))
                     .Should().Throw<CouchbaseLiteException>("Because DeleteIndex after db is disposed.");
 
-                //TODO: AddChange, AddDocumentChange, RemoveChange CBL-3307
+                colA.Invoking(d => d.AddChangeListener(null, (sender, args) => { }))
+                    .Should().Throw<CouchbaseLiteException>("Because AddChangeListener after db is disposed.");
+
+                colA.Invoking(d => d.AddDocumentChangeListener("doc1", (sender, args) => { }))
+                    .Should().Throw<CouchbaseLiteException>("Because AddDocumentChangeListener after db is disposed.");
+
+                colA.Invoking(d => d.RemoveChangeListener(d.AddDocumentChangeListener("doc1", (sender, args) => { })))
+                    .Should().Throw<CouchbaseLiteException>("Because RemoveChangeListener after db is disposed.");
             }
         }
 
         private void TestUseScope(Action dbDispose)
         {
-            using (var colA = Db.CreateCollection("colA", "scopeA")) { 
+            using (var colA = Db.CreateCollection("colA", "scopeA")) {
 
                 var scope = colA.Scope;
 
