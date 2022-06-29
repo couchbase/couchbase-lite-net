@@ -51,6 +51,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// [DEPRECATED]
         /// </summary>
+        [Obsolete("DatabaseChangedEventArgs is deprecated, please use CollectionChangedEventArgs")]
         internal DatabaseChangedEventArgs([NotNull] Database database, [NotNull][ItemNotNull] IReadOnlyList<string> documentIDs)
         {
             Debug.Assert(database != null);
