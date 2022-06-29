@@ -25,8 +25,9 @@ using JetBrains.Annotations;
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// The parameters of a database changed event
+    /// [DEPRECATED] The parameters of a database changed event
     /// </summary>
+    [Obsolete("DatabaseChangedEventArgs is deprecated, please use CollectionChangedEventArgs")]
     public class DatabaseChangedEventArgs : EventArgs
     {
         #region Properties
@@ -48,9 +49,6 @@ namespace Couchbase.Lite
 
         #region Constructors
 
-        /// <summary>
-        /// [DEPRECATED]
-        /// </summary>
         internal DatabaseChangedEventArgs([NotNull] Database database, [NotNull][ItemNotNull] IReadOnlyList<string> documentIDs)
         {
             Debug.Assert(database != null);

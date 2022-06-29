@@ -37,8 +37,9 @@ namespace Couchbase.Lite
         public string DocumentID { get; }
 
         /// <summary>
-        /// The source of the document that changed
+        /// [DEPRECATED] The source of the document that changed
         /// </summary>
+        [Obsolete("Database is deprecated, please use Collection property instead")]
         [NotNull]
         public Database Database { get; }
 

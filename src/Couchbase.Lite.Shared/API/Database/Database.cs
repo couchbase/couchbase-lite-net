@@ -369,8 +369,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>default scope</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
-        /// if <see cref="Database"/> is closed</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         public Scope GetDefaultScope()
         {
             ThreadSafety.DoLocked(() =>
@@ -395,8 +394,7 @@ namespace Couchbase.Lite
         /// </remarks>
         /// <returns>default collection</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
-        /// if <see cref="Database"/> is closed</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         [@CanBeNull]
         public Collection GetDefaultCollection()
         {
@@ -430,8 +428,7 @@ namespace Couchbase.Lite
         /// scope names of all existing scopes, in the order in which they were created.
         /// </returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
-        /// if <see cref="Database"/> is closed</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         public IReadOnlyList<Scope> GetScopes()
         {
             GetScopesList();
@@ -446,9 +443,9 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the scope</param>
         /// <returns>scope object with the given scope name</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
-        /// if <see cref="Database"/> is closed</exception>
-        public Scope GetScope(string name)
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        [@CanBeNull]
+        public Scope GetScope([@CanBeNull] string name = _defaultScopeName)
         {
             Scope scope = null;
             ThreadSafety.DoLocked(() =>
@@ -472,9 +469,8 @@ namespace Couchbase.Lite
         /// <param name="scope">The scope of the collections belong to</param>
         /// <returns>All collections with the given scope name</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
-        /// if <see cref="Database"/> is closed</exception>
-        public IReadOnlyList<Collection> GetCollections(string scope = _defaultScopeName)
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        public IReadOnlyList<Collection> GetCollections([@CanBeNull] string scope = _defaultScopeName)
         {
             return ThreadSafety.DoLocked(() =>
             {
@@ -496,9 +492,9 @@ namespace Couchbase.Lite
         /// <param name="scope">The scope of the collection</param>
         /// <returns>The collection with the given name and scope</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
-        /// if <see cref="Database"/> is closed</exception>
-        public Collection GetCollection(string name, string scope = _defaultScopeName)
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        [@CanBeNull]
+        public Collection GetCollection([@NotNull] string name, [@CanBeNull] string scope = _defaultScopeName)
         {
             Collection c = null;
             ThreadSafety.DoLocked(() =>
@@ -526,9 +522,8 @@ namespace Couchbase.Lite
         /// <param name="scope">The scope of the new collection to be created</param>
         /// <returns>New collection with the given name and scope</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
-        /// if <see cref="Database"/> is closed</exception>
-        public Collection CreateCollection(string name, string scope = _defaultScopeName)
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        public Collection CreateCollection([@NotNull] string name, [@CanBeNull] string scope = _defaultScopeName)
         {
             Collection co = null;
             ThreadSafety.DoLocked(() =>
@@ -557,9 +552,8 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the collection to be deleted</param>
         /// <param name="scope">The scope of the collection to be deleted</param>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
-        /// <exception cref = "CouchbaseLiteException" > Thrown with <see cref="C4ErrorCode.NotFound"/>
-        /// if <see cref="Database"/> is closed</exception>
-        public void DeleteCollection(string name, string scope = _defaultScopeName)
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        public void DeleteCollection([@NotNull] string name, [@CanBeNull] string scope = _defaultScopeName)
         {
             ThreadSafety.DoLocked(() =>
             {
@@ -873,8 +867,6 @@ namespace Couchbase.Lite
                     PerfTimer.StopEvent("InBatch_EndTransaction");
                 }
             });
-
-            DefaultCollection.PostDatabaseChanged();
         }
 
         /// <summary>

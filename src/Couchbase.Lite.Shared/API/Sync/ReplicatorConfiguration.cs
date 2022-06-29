@@ -101,8 +101,7 @@ namespace Couchbase.Lite.Sync
 
         #region Properties
 
-        [CanBeNull]
-        public IDictionary<Collection, CollectionConfiguration> CollectionConfigs { get; set; }
+        internal IDictionary<Collection, CollectionConfiguration> CollectionConfigs { get; set; }
 
         /// <summary>
         /// Gets or sets the class which will authenticate the replication
@@ -405,7 +404,7 @@ namespace Couchbase.Lite.Sync
             CollectionConfigs.Remove(collection);
         }
 
-        [CanBeNull]
+        [NotNull]
         public CollectionConfiguration GetCollectionConfig(Collection collection)
         {
             CollectionConfiguration config = null;
