@@ -61,6 +61,12 @@ namespace Test
     {
         public const string DatabaseName = "testdb";
 
+        internal static readonly ISelectResult DocID = SelectResult.Expression(Meta.ID);
+        internal static readonly ISelectResult Sequence = SelectResult.Expression(Meta.Sequence);
+        internal static readonly ISelectResult IsDeleted = SelectResult.Expression(Meta.IsDeleted);
+        internal static readonly ISelectResult Expiration = SelectResult.Expression(Meta.Expiration);
+        internal static readonly ISelectResult RevID = SelectResult.Expression(Meta.RevisionID);
+
         protected static int _counter;
 #if !WINDOWS_UWP
         protected readonly ITestOutputHelper _output;
@@ -77,6 +83,8 @@ namespace Test
 #endif
 
         protected Database Db { get; private set; }
+
+        protected Collection CollA { get; set; }
 
         protected Collection Collection => Db.GetDefaultCollection();
 
@@ -467,8 +475,150 @@ namespace Test
             }
         }
 
-#if !CBL_NO_EXTERN_FILES
-        protected void LoadJSONResource(string resourceName, Database db = null)
+        private void AddPersonInState(string docID, string state, string firstName = null,
+            bool isDefaultCollection = true)
+        {
+            using (var doc = new MutableDocument(docID)) {
+                doc.SetBoolean("custom", true);
+                if (!string.IsNullOrEmpty(firstName)) {
+                    var nameDict = new MutableDictionaryObject();
+                    nameDict.SetString("first", firstName).SetString("last", "lastname");
+                    doc.SetDictionary("name", nameDict);
+                }
+
+                var addressDoc = new MutableDictionaryObject();
+                addressDoc.SetString("state", state);
+                var contactDoc = new MutableDictionaryObject();
+                contactDoc.SetDictionary("address", addressDoc);
+                doc.SetDictionary("contact", contactDoc);
+
+                // Save document:
+                if (isDefaultCollection)
+                    Db.Save(doc);
+                else
+                    CollA.Save(doc);
+            }
+        }
+
+        #if !CBL_NO_EXTERN_FILES
+        protected void TestQueryObserverWithQuery(IQuery query, bool isDefaultCollection = true)
+        {
+            LoadJSONResource("names_100", isDefaultCollection: isDefaultCollection);
+            using (var q = query) {
+                var wa = new WaitAssert();
+                var wa2 = new WaitAssert();
+                var wa3 = new WaitAssert();
+                var count = 0;
+                q.AddChangeListener(null, (sender, args) =>
+                {
+                    count++;
+                    var list = args.Results.ToList();
+                    if (count == 1) { //get init query result
+                        wa.RunConditionalAssert(() => list.Count() == 8);
+                    } else if (count == 2) { // 1 doc addition
+                        wa2.RunConditionalAssert(() => list.Count() == 9);
+                    } else { // 1 doc purged
+                        wa3.RunConditionalAssert(() => list.Count() == 8);
+                    }
+                });
+
+                wa.WaitForResult(TimeSpan.FromSeconds(2));
+                count.Should().Be(1, "because we should have received a callback");
+                AddPersonInState("after1", "AL", isDefaultCollection: isDefaultCollection);
+                Thread.Sleep(2000);
+                count.Should().Be(1, "because we should not receive a callback since AL is not part of query result");
+                AddPersonInState("after2", "CA", isDefaultCollection: isDefaultCollection);
+                wa2.WaitForResult(TimeSpan.FromSeconds(2));
+                count.Should().Be(2, "because we should have received a callback, query result has updated");
+                if(isDefaultCollection)
+                    Db.Purge("after2");
+                else
+                    CollA.Purge("after2");
+
+                wa3.WaitForResult(TimeSpan.FromSeconds(2));
+                count.Should().Be(3, "because we should have received a callback, query result has updated");
+            }
+        }
+
+        protected void TestMultipleQueryObserversWithQuery(IQuery query, bool isDefaultCollection = true)
+        {
+            LoadJSONResource("names_100", isDefaultCollection: isDefaultCollection);
+            using (var q = query)
+            using (var q1 = query)
+            using (var q2 = query) {
+                var wait1 = new ManualResetEventSlim();
+                var wait2 = new ManualResetEventSlim();
+                var wa2 = new WaitAssert();
+                var qCount = 0;
+                var q1Count = 0;
+                var q2Count = 0;
+                int qResultCnt = 0;
+                int q1ResultCnt = 0;
+                q.AddChangeListener(null, (sender, args) =>
+                {
+                    qCount++;
+                    var list = args.Results.ToList();
+                    qResultCnt = list.Count;
+                    wait1.Set();
+                });
+
+                q1.AddChangeListener(null, (sender, args) =>
+                {
+                    q1Count++;
+                    var list = args.Results.ToList();
+                    q1ResultCnt = list.Count;
+                    wait2.Set();
+                });
+
+                WaitHandle.WaitAll(new[] { wait1.WaitHandle, wait2.WaitHandle }, TimeSpan.FromSeconds(2)).Should().BeTrue();
+                qCount.Should().Be(1, "because we should have received a callback");
+                qResultCnt.Should().Be(8);
+                q1Count.Should().Be(1, "because we should have received a callback");
+                q1ResultCnt.Should().Be(8);
+                q2.AddChangeListener(null, (sender, args) =>
+                {
+                    q2Count++;
+                    var list = args.Results.ToList();
+                    if (q2Count == 1) { //get init query result
+                        wa2.RunConditionalAssert(() => list.Count() == 8);
+                    }
+                });
+
+                wa2.WaitForResult(TimeSpan.FromSeconds(2));
+                q2Count.Should().Be(1, "because we should have received a callback");
+            }
+        }
+
+        protected void TestQueryObserverWithChangingQueryParametersWithQuery(IQuery query, bool isDefaultCollection = true)
+        {
+            LoadJSONResource("names_100", isDefaultCollection: isDefaultCollection);
+            var qParameters = new Parameters().SetString("state", "CA");
+            query.Parameters = qParameters;
+            //query.Parameters.SetString("state", "CA"); //This works as well
+            var wa = new WaitAssert();
+            var wa2 = new WaitAssert();
+            var count = 0;
+            query.AddChangeListener(null, (sender, args) =>
+            {
+                count++;
+                var list = args.Results.ToList();
+                if (count == 1) { // get init query result where sate == CA
+                    wa.RunConditionalAssert(() => list.Count() == 8);
+                } else if (count == 2) { // get query result where sate == NY
+                    wa2.RunConditionalAssert(() => list.Count() == 9);
+                }
+            });
+
+            wa.WaitForResult(TimeSpan.FromSeconds(2));
+            count.Should().Be(1, "because we should have received a callback");
+            qParameters.SetString("state", "NY");
+            query.Parameters = qParameters;
+            //query.Parameters.SetString("state", "NY"); //This works as well
+            wa2.WaitForResult(TimeSpan.FromSeconds(2));
+            count.Should().Be(2, "because we should have received a callback, query result has updated");
+        }
+
+        protected void LoadJSONResource(string resourceName, Database db = null, bool isDefaultCollection = true)
         {
             if (db == null)
                 db = Db;
@@ -483,7 +633,12 @@ namespace Test
                     json.Should().NotBeNull("because otherwise the line failed to parse");
                     var doc = new MutableDocument(docID);
                     doc.SetData(json);
-                    db.Save(doc);
+                    if (isDefaultCollection) {
+                        db.Save(doc);
+                    } else {
+                        CollA = db.CreateCollection("collA", "scopeA");
+                        CollA.Save(doc);
+                    }
 
                     return true;
                 });
@@ -509,18 +664,15 @@ namespace Test
                 while ((line = tr.ReadLine()) != null) {
 #elif __IOS__
 			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
-			using (var tr = new StreamReader(File.Open(bundlePath, FileMode.Open, FileAccess.Read)))
-			{
+			using (var tr = new StreamReader(File.Open(bundlePath, FileMode.Open, FileAccess.Read))) {
 				string line;
-				while ((line = tr.ReadLine()) != null)
-				{
+				while ((line = tr.ReadLine()) != null) {
 #else
                     using (var tr = new StreamReader(typeof(TestCase).GetTypeInfo().Assembly.GetManifestResourceStream(path.Replace("C/tests/data/", "")))) {
                         string line;
                         while ((line = tr.ReadLine()) != null) {
 #endif
-					if (!callback(line))
-					{
+					if (!callback(line)) {
 						return false;
 					}
 				}

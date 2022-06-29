@@ -880,6 +880,230 @@ namespace LiteCore.Tests
             });
         }
 
+        #region Scopes Collections
+
+        /* TODO: query
+         * c4coll_getIndexesInfo *
+         */
+
+        [Fact]
+        public void TestDBQueryExpressionIndexScopesCollections()
+        {
+            RunTestVariants(() => {
+                LiteCoreBridge.Check(err => Native.c4coll_createIndex(DefaultColl, "test", Json5("[['length()', ['.name.first']]]"), C4QueryLanguage.JSONQuery,
+                    C4IndexType.ValueIndex, null, err));
+                Compile(Json5("['=', ['length()', ['.name.first']], 9]"));
+                Run().Should().Equal(new[] { "0000015", "0000099" }, "because otherwise the query returned incorrect results");
+            });
+        }
+
+        [Fact]
+        public void TestDeleteIndexedDocScopesCollections()
+        {
+            RunTestVariants(() => {
+                LiteCoreBridge.Check(err => Native.c4coll_createIndex(DefaultColl, "test", Json5("[['length()', ['.name.first']]]"), C4QueryLanguage.JSONQuery,
+                    C4IndexType.ValueIndex, null, err));
+
+                // Delete doc "0000015":
+                LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
+                try {
+                    var doc = (C4Document*)LiteCoreBridge.Check(err => Native.c4coll_getDoc(DefaultColl, "0000015", true, C4DocContentLevel.DocGetCurrentRev, err));
+                    var rq = new C4DocPutRequest
+                    {
+                        docID = FLSlice.Constant("0000015"),
+                        history = (FLSlice*)&doc->revID,
+                        historyCount = 1,
+                        revFlags = C4RevisionFlags.Deleted,
+                        save = true
+                    };
+                    var updatedDoc = (C4Document*)LiteCoreBridge.Check(err => {
+                        var localRq = rq;
+                        return Native.c4coll_putDoc(DefaultColl, &localRq, null, err);
+                    });
+
+                    Native.c4doc_release(doc);
+                    Native.c4doc_release(updatedDoc);
+                } finally {
+                    LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
+                }
+
+                // Now run a query that would have returned the deleted doc, if it weren't deleted:
+                Compile(Json5("['=', ['length()', ['.name.first']], 9]"));
+                Run().Should().Equal(new[] { "0000099" }, "because otherwise the query returned incorrect results");
+            });
+        }
+
+        [Fact]
+        public void TestFullTextQueryScopesCollections()
+        {
+            RunTestVariants(() =>
+            {
+                LiteCoreBridge.Check(err => Native.c4coll_createIndex(DefaultColl, "byStreet", "[[\".contact.address.street\"]]", C4QueryLanguage.JSONQuery,
+                    C4IndexType.FullTextIndex, null, err));
+                Compile(Json5("['MATCH()', 'byStreet', 'Hwy']"));
+
+                var expected = new[]
+                {
+                    new C4FullTextMatch(13, 0, 0, 10, 3),
+                    new C4FullTextMatch(15, 0, 0, 11, 3),
+                    new C4FullTextMatch(43, 0, 0, 12, 3),
+                    new C4FullTextMatch(44, 0, 0, 12, 3),
+                    new C4FullTextMatch(52, 0, 0, 11, 3)
+                };
+
+                int index = 0;
+                foreach (var result in RunFTS()) {
+                    foreach (var match in result) {
+                        match.Should().Be(expected[index++]);
+                    }
+                }
+            });
+        }
+
+        [Fact]
+        public void TestFullTextMultiplePropertiesScopesCollections()
+        {
+            RunTestVariants(() =>
+            {
+                LiteCoreBridge.Check(err => Native.c4coll_createIndex(DefaultColl, "byAddress", "[[\".contact.address.street\"],[\".contact.address.city\"],[\".contact.address.state\"]]", C4QueryLanguage.JSONQuery,
+                    C4IndexType.FullTextIndex, null, err));
+                Compile(Json5("['MATCH()', 'byAddress', 'Santa']"));
+                var expected = new[]
+                {
+                    new C4FullTextMatch(15, 1, 0, 0, 5),
+                    new C4FullTextMatch(44, 0, 0, 3, 5),
+                    new C4FullTextMatch(68, 0, 0, 3, 5),
+                    new C4FullTextMatch(72, 1, 0, 0, 5)
+                };
+
+                int index = 0;
+                foreach (var result in RunFTS()) {
+                    foreach (var match in result) {
+                        match.Should().Be(expected[index++]);
+                    }
+                }
+
+                Compile(Json5("['MATCH()', 'byAddress', 'contact.address.street:Santa']"));
+                expected = new[]
+                {
+                    new C4FullTextMatch(44, 0, 0, 3, 5),
+                    new C4FullTextMatch(68, 0, 0, 3, 5)
+                };
+
+                index = 0;
+                foreach (var result in RunFTS()) {
+                    foreach (var match in result) {
+                        match.Should().Be(expected[index++]);
+                    }
+                }
+
+                Compile(Json5("['MATCH()', 'byAddress', 'contact.address.street:Santa Saint']"));
+                expected = new[]
+                {
+                    new C4FullTextMatch(68, 0, 0, 3, 5),
+                    new C4FullTextMatch(68, 1, 1, 0, 5)
+                };
+
+                index = 0;
+                foreach (var result in RunFTS()) {
+                    foreach (var match in result) {
+                        match.Should().Be(expected[index++]);
+                    }
+                }
+
+                Compile(Json5("['MATCH()', 'byAddress', 'contact.address.street:Santa OR Saint']"));
+                expected = new[]
+                {
+                    new C4FullTextMatch(20, 1, 1, 0, 5),
+                    new C4FullTextMatch(44, 0, 0, 3, 5),
+                    new C4FullTextMatch(68, 0, 0, 3, 5),
+                    new C4FullTextMatch(68, 1, 1, 0, 5),
+                    new C4FullTextMatch(77, 1, 1, 0, 5)
+                };
+
+                index = 0;
+                foreach (var result in RunFTS()) {
+                    foreach (var match in result) {
+                        match.Should().Be(expected[index++]);
+                    }
+                }
+            });
+        }
+
+        [Fact]
+        public void TestMultipleFullTextIndexesScopesCollections()
+        {
+            RunTestVariants(() =>
+            {
+                LiteCoreBridge.Check(err => Native.c4coll_createIndex(DefaultColl, "byStreet", "[[\".contact.address.street\"]]", C4QueryLanguage.JSONQuery,
+                    C4IndexType.FullTextIndex, null, err));
+                LiteCoreBridge.Check(err => Native.c4coll_createIndex(DefaultColl, "byCity", "[[\".contact.address.city\"]]", C4QueryLanguage.JSONQuery,
+                    C4IndexType.FullTextIndex, null, err));
+                Compile(Json5("['AND', ['MATCH()', 'byStreet', 'Hwy'],['MATCH()', 'byCity', 'Santa']]"));
+                var results = RunFTS();
+                results.Count.Should().Be(1);
+                results[0].Should().Equal(new C4FullTextMatch(15, 0, 0, 11, 3));
+            });
+        }
+
+        [Fact]
+        public void TestFullTextQueryInMultipleAndsScopesCollections()
+        {
+            RunTestVariants(() =>
+            {
+                LiteCoreBridge.Check(err => Native.c4coll_createIndex(DefaultColl, "byStreet", "[[\".contact.address.street\"]]", C4QueryLanguage.JSONQuery,
+                    C4IndexType.FullTextIndex, null, err));
+                LiteCoreBridge.Check(err => Native.c4coll_createIndex(DefaultColl, "byCity", "[[\".contact.address.city\"]]", C4QueryLanguage.JSONQuery,
+                    C4IndexType.FullTextIndex, null, err));
+                Compile(Json5(
+                    "['AND', ['AND', ['=', ['.gender'], 'male'],['MATCH()', 'byCity', 'Santa']],['=',['.name.first'], 'Cleveland']]"));
+                Run().Should().Equal("0000015");
+                var results = RunFTS();
+                results.Count.Should().Be(1);
+                results[0].Should().Equal(new C4FullTextMatch(15, 0, 0, 0, 5));
+            });
+        }
+
+        [Fact]
+        public void TestMultipleFullTextQueriesScopesCollections()
+        {
+            // You can't query the same FTS index multiple times in a query (says SQLite)
+            RunTestVariants(() =>
+            {
+                LiteCoreBridge.Check(err => Native.c4coll_createIndex(DefaultColl, "byStreet", "[[\".contact.address.street\"]]", C4QueryLanguage.JSONQuery,
+                    C4IndexType.FullTextIndex, null, err));
+                C4Error error;
+                _query = Native.c4query_new2(Db, C4QueryLanguage.JSONQuery,
+                    Json5("['AND', ['MATCH()', 'byStreet', 'Hwy'], ['MATCH()', 'byStreet', 'Blvd']]"), null, &error);
+                ((long)_query).Should().Be(0, "because this type of query is not allowed");
+                error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
+                error.code.Should().Be((int)C4ErrorCode.InvalidQuery);
+                Native.c4error_getMessage(error).Should()
+                    .Be("Sorry, multiple MATCHes of the same property are not allowed");
+            });
+        }
+
+        [Fact]
+        public void TestBuriedFullTextQueriesScopesCollections()
+        {
+            // You can't put an FTS match inside an expression other than a top-level AND (says SQLite)
+            RunTestVariants(() =>
+            {
+                LiteCoreBridge.Check(err => Native.c4coll_createIndex(DefaultColl, "byStreet", "[[\".contact.address.street\"]]", C4QueryLanguage.JSONQuery,
+                    C4IndexType.FullTextIndex, null, err));
+                C4Error error;
+                _query = Native.c4query_new2(Db, C4QueryLanguage.JSONQuery,
+                    Json5("['OR', ['MATCH()', 'byStreet', 'Hwy'],['=', ['.', 'contact', 'address', 'state'], 'CA']]"), null, &error);
+                ((long)_query).Should().Be(0, "because this type of query is not allowed");
+                error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
+                error.code.Should().Be((int)C4ErrorCode.InvalidQuery);
+                Native.c4error_getMessage(error).Should()
+                    .Be("MATCH can only appear at top-level, or in a top-level AND");
+            });
+        }
+
+        #endregion
+
         /** Callback invoked by a query observer, notifying that the query results have changed.
          *  The actual enumerator is not passed to the callback, but can be retrieved by calling
          *  \ref c4queryobs_getEnumerator.
