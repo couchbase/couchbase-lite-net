@@ -38,6 +38,8 @@ namespace Couchbase.Lite.Internal.Query
         #region Variables
 
         private string _as;
+        private string _collection;
+        private string _scope;
 
         #endregion
 
@@ -65,6 +67,8 @@ namespace Couchbase.Lite.Internal.Query
         internal DatabaseSource([NotNull] Collection collection, [NotNull] ThreadSafety threadSafety) : base(collection, threadSafety)
         {
             Debug.Assert(collection != null);
+            _collection = collection.Name;
+            _scope = collection.Scope.Name;
         }
 
         internal DatabaseSource([NotNull]Database database, [NotNull]ThreadSafety threadSafety) : base(database, threadSafety)
@@ -78,13 +82,23 @@ namespace Couchbase.Lite.Internal.Query
 
         public override object ToJSON()
         {
-            if (ColumnName == null) {
-                return null;
+            Dictionary<string, object> dict = null;
+            if (Collection != null) {
+                dict = new Dictionary<string, object>
+                {
+                    ["SCOPE"] = _scope,
+                    ["COLLECTION"] = _collection
+                };
             }
 
-            return new Dictionary<string, object> {
-                ["AS"] = ColumnName
-            };
+            if (ColumnName != null) {
+                if (dict == null)
+                    dict = new Dictionary<string, object>();
+
+                dict.Add("AS", ColumnName);
+            }
+
+            return dict;
         }
 
         #endregion

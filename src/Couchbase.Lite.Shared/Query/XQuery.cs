@@ -96,9 +96,12 @@ namespace Couchbase.Lite.Internal.Query
 
         public override unsafe IResultSet Execute()
         {
-            if (Database == null) {
+            if (Database == null && Collection == null) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.InvalidQueryDBNull);
             }
+
+            if (Database == null)
+                Database = Collection.Database;
 
             var fromImpl = FromImpl;
             if (SelectImpl == null || fromImpl == null) {
@@ -149,6 +152,9 @@ namespace Couchbase.Lite.Internal.Query
         {
             if (_c4Query == null)
             {
+                if (Database == null)
+                    Database = Collection.Database;
+
                 C4Query* query = (C4Query*)ThreadSafety.DoLockedBridge(err =>
                 {
                     _queryExpression = EncodeAsJSON();

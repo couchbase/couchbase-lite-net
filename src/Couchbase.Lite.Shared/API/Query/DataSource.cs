@@ -48,7 +48,7 @@ namespace Couchbase.Lite.Query
         public static IDataSourceAs Collection([NotNull] Collection collection)
         {
             var c = CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(collection), collection);
-            return new DatabaseSource(c, ((Collection)c).ThreadSafety);
+            return new DatabaseSource(c, c.ThreadSafety);
         }
 
         /// <summary>
