@@ -500,8 +500,8 @@ namespace Test
             }
         }
 
-#if !CBL_NO_EXTERN_FILES
-        internal void TestQueryObserverWithQuery(IQuery query, bool isDefaultCollection = true)
+        #if !CBL_NO_EXTERN_FILES
+        protected void TestQueryObserverWithQuery(IQuery query, bool isDefaultCollection = true)
         {
             LoadJSONResource("names_100", isDefaultCollection: isDefaultCollection);
             using (var q = query) {
@@ -540,7 +540,7 @@ namespace Test
             }
         }
 
-        internal void TestMultipleQueryObserversWithQuery(IQuery query, bool isDefaultCollection = true)
+        protected void TestMultipleQueryObserversWithQuery(IQuery query, bool isDefaultCollection = true)
         {
             LoadJSONResource("names_100", isDefaultCollection: isDefaultCollection);
             using (var q = query)
@@ -589,7 +589,7 @@ namespace Test
             }
         }
 
-        internal void TestQueryObserverWithChangingQueryParametersWithQuery(IQuery query, bool isDefaultCollection = true)
+        protected void TestQueryObserverWithChangingQueryParametersWithQuery(IQuery query, bool isDefaultCollection = true)
         {
             LoadJSONResource("names_100", isDefaultCollection: isDefaultCollection);
             var qParameters = new Parameters().SetString("state", "CA");

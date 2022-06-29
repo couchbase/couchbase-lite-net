@@ -57,8 +57,9 @@ namespace Test
         }
 #endif
 
+#if !CBL_NO_EXTERN_FILES
         [Fact]
-        public void TestQueryObserverScopesCollections()
+        public void TestQueryObserver()
         {
             CollA = Db.CreateCollection("collA", "scopeA");
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM scopeA.collA WHERE contact.address.state = 'CA'");
@@ -72,7 +73,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestMultipleQueryObserversScopesCollections()
+        public void TestMultipleQueryObservers()
         {
             CollA = Db.CreateCollection("collA", "scopeA");
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM scopeA.collA WHERE contact.address.state = 'CA'");
@@ -88,7 +89,7 @@ namespace Test
         // How to use N1QL Query Parameter
         // https://docs.couchbase.com/couchbase-lite/3.0/csharp/query-n1ql-mobile.html#lbl-query-params
         [Fact]
-        public void TestQueryObserverWithChangingQueryParametersScopesCollections()
+        public void TestQueryObserverWithChangingQueryParameters()
         {
             CollA = Db.CreateCollection("collA", "scopeA");
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM scopeA.collA WHERE contact.address.state = $state");
@@ -101,9 +102,8 @@ namespace Test
             query.Dispose();
         }
 
-#if !CBL_NO_EXTERN_FILES
         [Fact]
-        public void TestGroupByScopesCollections()
+        public void TestGroupBy()
         {
             var expectedStates = new[] { "AL", "CA", "CO", "FL", "IA" };
             var expectedCounts = new[] { 1, 6, 1, 1, 3 };
@@ -162,7 +162,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestNoWhereQueryScopesCollections()
+        public void TestNoWhereQuery()
         {
             LoadJSONResource("names_100", isDefaultCollection: false);
             using (var q = QueryBuilder.Select(DocID, Sequence).From(DataSource.Collection(CollA))) {
@@ -183,7 +183,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestOrderByScopesCollections()
+        public void TestOrderBy()
         {
             LoadJSONResource("names_100", isDefaultCollection: false);
             foreach (var ascending in new[] { true, false })
@@ -220,7 +220,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestQuantifiedOperatorsScopesCollections()
+        public void TestQuantifiedOperators()
         {
             LoadJSONResource("names_100", isDefaultCollection: false);
 
@@ -255,7 +255,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestQueryResultScopesCollections()
+        public void TestQueryResult()
         {
             LoadJSONResource("names_100", isDefaultCollection: false);
 
@@ -284,7 +284,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestWhereInScopesCollections()
+        public void TestWhereIn()
         {
             LoadJSONResource("names_100", isDefaultCollection: false);
 
@@ -307,7 +307,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestWhereLikeScopesCollections()
+        public void TestWhereLike()
         {
             LoadJSONResource("names_100", isDefaultCollection: false);
 
@@ -332,7 +332,7 @@ namespace Test
         }
 
         [Fact]
-        public void TestWhereRegexScopesCollections()
+        public void TestWhereRegex()
         {
             LoadJSONResource("names_100", isDefaultCollection: false);
 
