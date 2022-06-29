@@ -739,12 +739,12 @@ namespace Test
         public void TestQueryObserver()
         {
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM _ WHERE contact.address.state = 'CA'");
-            TestQueryObserverWithQuery(n1qlQ);
+            TestQueryObserverWithQuery(n1qlQ, true);
             n1qlQ.Dispose();
             var query = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
                 .From(DataSource.Database(Db))
                 .Where(Expression.Property("contact.address.state").EqualTo(Expression.String("CA")));
-            TestQueryObserverWithQuery(query);
+            TestQueryObserverWithQuery(query, true);
             query.Dispose();
         }
 
@@ -752,12 +752,12 @@ namespace Test
         public void TestMultipleQueryObservers()
         {
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM _ WHERE contact.address.state = 'CA'");
-            TestMultipleQueryObserversWithQuery(n1qlQ);
+            TestMultipleQueryObserversWithQuery(n1qlQ, true);
             n1qlQ.Dispose();
             var query = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
                 .From(DataSource.Database(Db))
                 .Where(Expression.Property("contact.address.state").EqualTo(Expression.String("CA")));
-            TestMultipleQueryObserversWithQuery(query);
+            TestMultipleQueryObserversWithQuery(query, true);
             query.Dispose();
         }
 
@@ -767,12 +767,12 @@ namespace Test
         public void TestQueryObserverWithChangingQueryParameters()
         {
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM _ WHERE contact.address.state = $state");
-            TestQueryObserverWithChangingQueryParametersWithQuery(n1qlQ);
+            TestQueryObserverWithChangingQueryParametersWithQuery(n1qlQ, true);
             n1qlQ.Dispose();
             var query = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
                 .From(DataSource.Database(Db))
                 .Where(Expression.Property("contact.address.state").EqualTo(Expression.Parameter("state")));
-            TestQueryObserverWithChangingQueryParametersWithQuery(query);
+            TestQueryObserverWithChangingQueryParametersWithQuery(query, true);
             query.Dispose();
         }
 

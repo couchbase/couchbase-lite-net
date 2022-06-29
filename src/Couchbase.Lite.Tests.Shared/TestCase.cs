@@ -534,6 +534,7 @@ namespace Test
                     Db.Purge("after2");
                 else
                     CollA.Purge("after2");
+
                 wa3.WaitForResult(TimeSpan.FromSeconds(2));
                 count.Should().Be(3, "because we should have received a callback, query result has updated");
             }
@@ -622,7 +623,6 @@ namespace Test
             if (db == null)
                 db = Db;
 
-            CollA = db.CreateCollection("collA", "scopeA");
             db.InBatch(() =>
             {
                 var n = 0ul;
@@ -633,10 +633,12 @@ namespace Test
                     json.Should().NotBeNull("because otherwise the line failed to parse");
                     var doc = new MutableDocument(docID);
                     doc.SetData(json);
-                    if(isDefaultCollection)
+                    if (isDefaultCollection) {
                         db.Save(doc);
-                    else
+                    } else {
+                        CollA = db.CreateCollection("collA", "scopeA");
                         CollA.Save(doc);
+                    }
 
                     return true;
                 });
@@ -662,18 +664,15 @@ namespace Test
                 while ((line = tr.ReadLine()) != null) {
 #elif __IOS__
 			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
-			using (var tr = new StreamReader(File.Open(bundlePath, FileMode.Open, FileAccess.Read)))
-			{
+			using (var tr = new StreamReader(File.Open(bundlePath, FileMode.Open, FileAccess.Read))) {
 				string line;
-				while ((line = tr.ReadLine()) != null)
-				{
+				while ((line = tr.ReadLine()) != null) {
 #else
                     using (var tr = new StreamReader(typeof(TestCase).GetTypeInfo().Assembly.GetManifestResourceStream(path.Replace("C/tests/data/", "")))) {
                         string line;
                         while ((line = tr.ReadLine()) != null) {
 #endif
-					if (!callback(line))
-					{
+					if (!callback(line)) {
 						return false;
 					}
 				}

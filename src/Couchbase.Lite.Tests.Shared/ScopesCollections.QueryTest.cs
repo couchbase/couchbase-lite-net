@@ -1,12 +1,47 @@
-﻿using Couchbase.Lite.Query;
-using FluentAssertions;
+﻿//
+//  ScopesCollectionsQueryTest.cs
+//
+//  Copyright (c) 2022 Couchbase, Inc All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Couchbase.Lite;
+using Couchbase.Lite.Internal.Query;
+using Couchbase.Lite.Query;
+
+using FluentAssertions;
+using FluentAssertions.Execution;
+
+using Newtonsoft.Json;
+
+using Test.Util;
+#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
+#else
+using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
+#endif
 
 namespace Test
 {
@@ -27,12 +62,12 @@ namespace Test
         {
             CollA = Db.CreateCollection("collA", "scopeA");
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM scopeA.collA WHERE contact.address.state = 'CA'");
-            TestQueryObserverWithQuery(n1qlQ, isDefaultCollection: false);
+            TestQueryObserverWithQuery(n1qlQ, false);
             n1qlQ.Dispose();
             var query = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
                 .From(DataSource.Collection(CollA))
                 .Where(Expression.Property("contact.address.state").EqualTo(Expression.String("CA")));
-            TestQueryObserverWithQuery(query, isDefaultCollection: false);
+            TestQueryObserverWithQuery(query, false);
             query.Dispose();
         }
 
@@ -41,12 +76,12 @@ namespace Test
         {
             CollA = Db.CreateCollection("collA", "scopeA");
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM scopeA.collA WHERE contact.address.state = 'CA'");
-            TestMultipleQueryObserversWithQuery(n1qlQ, isDefaultCollection: false);
+            TestMultipleQueryObserversWithQuery(n1qlQ, false);
             n1qlQ.Dispose();
             var query = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
                 .From(DataSource.Collection(CollA))
                 .Where(Expression.Property("contact.address.state").EqualTo(Expression.String("CA")));
-            TestMultipleQueryObserversWithQuery(query, isDefaultCollection: false);
+            TestMultipleQueryObserversWithQuery(query, false);
             query.Dispose();
         }
 
@@ -57,12 +92,12 @@ namespace Test
         {
             CollA = Db.CreateCollection("collA", "scopeA");
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM scopeA.collA WHERE contact.address.state = $state");
-            TestQueryObserverWithChangingQueryParametersWithQuery(n1qlQ, isDefaultCollection: false);
+            TestQueryObserverWithChangingQueryParametersWithQuery(n1qlQ, false);
             n1qlQ.Dispose();
             var query = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
                 .From(DataSource.Collection(CollA))
                 .Where(Expression.Property("contact.address.state").EqualTo(Expression.Parameter("state")));
-            TestQueryObserverWithChangingQueryParametersWithQuery(query, isDefaultCollection: false);
+            TestQueryObserverWithChangingQueryParametersWithQuery(query, false);
             query.Dispose();
         }
 
