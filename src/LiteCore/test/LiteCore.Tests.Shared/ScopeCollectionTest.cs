@@ -571,11 +571,5 @@ namespace LiteCore.Tests
             });
         }
         #endregion
-
-        /* TODO: query
-         * c4coll_createIndex 
-         * c4coll_deleteIndex *
-         * c4coll_getIndexesInfo *
-         */
     }
 }
