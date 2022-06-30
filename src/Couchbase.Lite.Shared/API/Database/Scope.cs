@@ -109,25 +109,29 @@ namespace Couchbase.Lite
         /// <exception cref = "InvalidOperationException" > Thrown if <see cref="Collection"/> is not valid.</exception>
         public Collection GetCollection(string name)
         {
-            Collection coll = null;
-            ThreadSafety.DoLocked(() =>
+            return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                if (HasCollectionFromLiteCore(name)) {
-                    if (!_collections.ContainsKey(name)) {
-                        var c4c = GetCollectionFromLiteCore(name);
-                        if (c4c != null) {
-                            coll = new Collection(Database, name, this, c4c);
-                            _collections.TryAdd(name, coll);
-                        }
+                if (_collections.ContainsKey(name)) {
+                    var c = _collections[name];
+                    if (c.IsValid) {
+                        return c;
                     } else {
-                        coll = _collections[name];
+                        // Remove invalid collection from cache
+                        _collections.TryRemove(name, out var co);
+                        co?.Dispose();
                     }
                 }
-            });
 
-            coll?.CheckCollectionValid();
-            return coll;
+                Collection coll = null;
+                var c4c = GetCollectionFromLiteCore(name);
+                if (c4c != null) {
+                    coll = new Collection(Database, name, this, c4c);
+                    _collections.TryAdd(name, coll);
+                }
+
+                return coll == null || !coll.IsValid ? null : coll;
+            });
         }
 
         /// <summary>
@@ -147,13 +151,25 @@ namespace Couchbase.Lite
 
         internal Collection CreateCollection(string collectionName)
         {
-            Collection co = null;
-            ThreadSafety.DoLocked(() =>
+            return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
+                if (_collections.ContainsKey(collectionName)) {
+                    var coll = _collections[collectionName];
+                    if (coll.IsValid) {
+                        return coll;
+                    } else {
+                        // Remove invalid collection from cache
+                        _collections.TryRemove(collectionName, out var c);
+                        c?.Dispose();
+                    }
+                }
+
+                Collection co = null;
                 using (var collName_ = new C4String(collectionName))
                 using (var scopeName_ = new C4String(Name)) {
-                    var collectionSpec = new C4CollectionSpec() {
+                    var collectionSpec = new C4CollectionSpec() 
+                    {
                         name = collName_.AsFLSlice(),
                         scope = scopeName_.AsFLSlice()
                     };
@@ -168,9 +184,9 @@ namespace Couchbase.Lite
                         _collections.TryAdd(collectionName, co); 
                     }
                 }
+                
+                return co;
             });
-
-            return co;
         }
 
         internal bool DeleteCollection(Collection collection)
@@ -181,7 +197,8 @@ namespace Couchbase.Lite
                 CheckOpen();
                 using (var collName_ = new C4String(collection.Name))
                 using (var scopeName_ = new C4String(collection.Scope?.Name)) {
-                    var collectionSpec = new C4CollectionSpec() {
+                    var collectionSpec = new C4CollectionSpec() 
+                    {
                         name = collName_.AsFLSlice(),
                         scope = scopeName_.AsFLSlice()
                     };
@@ -192,40 +209,14 @@ namespace Couchbase.Lite
                     });
 
                     if (deleteSuccessful) {
-                        Collection co = null;
-                        if (_collections.TryRemove(collection.Name, out co)) {
-                            co.Dispose();
-                            co = null;
+                        if (_collections.TryRemove(collection.Name, out var co)) {
+                            co?.Dispose();
                         }
                     }
                 }
             });
 
             return deleteSuccessful;
-        }
-
-        internal bool HasCollectionFromLiteCore(string collectionName)
-        {
-            bool hasCollection = false;
-            ThreadSafety.DoLocked(() =>
-            {
-                CheckOpen();
-                using (var collName_ = new C4String(collectionName))
-                using (var scopeName_ = new C4String(Name)) {
-                    var collectionSpec = new C4CollectionSpec() {
-                        name = collName_.AsFLSlice(),
-                        scope = scopeName_.AsFLSlice()
-                    };
-
-                    hasCollection = ThreadSafety.DoLocked(() =>
-                    {
-                        // Returns true if the collection exists.
-                        return Native.c4db_hasCollection(c4Db, collectionSpec);
-                    });
-                }
-            });
-
-            return hasCollection;
         }
 
         internal IReadOnlyList<Collection> GetCollectionListFromLiteCore()
@@ -301,7 +292,8 @@ namespace Couchbase.Lite
                 CheckOpen();
                 using (var collName_ = new C4String(collectionName))
                 using (var scopeName_ = new C4String(Name)) {
-                    var collectionSpec = new C4CollectionSpec() {
+                    var collectionSpec = new C4CollectionSpec() 
+                    {
                         name = collName_.AsFLSlice(),
                         scope = scopeName_.AsFLSlice()
                     };

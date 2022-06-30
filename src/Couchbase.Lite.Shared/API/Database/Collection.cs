@@ -85,6 +85,9 @@ namespace Couchbase.Lite
         // Must be called inside self lock
         private bool IsClosed => c4Db == null || _c4coll == IntPtr.Zero || !Native.c4coll_isValid((C4Collection*)_c4coll);
 
+        // Must be called inside self lock
+        internal bool IsValid => _c4coll != IntPtr.Zero && Native.c4coll_isValid((C4Collection*)_c4coll);
+
         internal C4Database* c4Db => Database.c4db;
 
         internal C4Collection* c4coll
