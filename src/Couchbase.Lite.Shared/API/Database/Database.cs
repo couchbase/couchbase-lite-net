@@ -274,7 +274,7 @@ namespace Couchbase.Lite
                 if(_defaultCollection == null && !_defaultCollectionIsDeleted)
                     _defaultCollection = GetDefaultCollection();
 
-                if (_defaultCollectionIsDeleted || _defaultCollection.IsClosed == true)
+                if (_defaultCollectionIsDeleted || ThreadSafety.DoLocked(() => _defaultCollection.IsClosed) == true)
                     throw new InvalidOperationException($"Default Collection is deleted from the database {ToString()}.");
 
                 return _defaultCollection;
