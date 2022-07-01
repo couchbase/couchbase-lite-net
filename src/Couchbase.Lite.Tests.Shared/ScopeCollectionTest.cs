@@ -690,7 +690,8 @@ Ensure that the created collection is visible to the database instance B by usin
                 using (var doc1 = new MutableDocument("doc1")) {
                     doc1.SetString("str", "string");
 
-                    Db.Count.Should().Be(0);
+                    Db.Invoking(d => Db.Count)
+                        .Should().Throw<InvalidOperationException>("Because Save after default collection is deleted.");
 
                     Db.Invoking(d => d.Save(doc1))
                         .Should().Throw<InvalidOperationException>("Because Save after default collection is deleted.");
