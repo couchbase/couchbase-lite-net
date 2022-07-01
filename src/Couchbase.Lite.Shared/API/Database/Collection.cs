@@ -83,7 +83,7 @@ namespace Couchbase.Lite
         #region Properties
 
         // Must be called inside self lock
-        private bool IsClosed => c4Db == null || _c4coll == IntPtr.Zero || !Native.c4coll_isValid((C4Collection*)_c4coll);
+        internal bool IsClosed => c4Db == null || _c4coll == IntPtr.Zero || !Native.c4coll_isValid((C4Collection*)_c4coll);
 
         // Must be called inside self lock
         internal bool IsValid => _c4coll != IntPtr.Zero && Native.c4coll_isValid((C4Collection*)_c4coll);
@@ -545,7 +545,7 @@ namespace Couchbase.Lite
                     throw new CouchbaseLiteException(C4ErrorCode.UnexpectedError);
                 }
 
-                var indexesInfo = FLValueConverter.ToCouchbaseObject(val, this, true) as IList<object>;
+                var indexesInfo = FLValueConverter.ToCouchbaseObject(val, Database, true) as IList<object>;
                 foreach (var a in indexesInfo) {
                     var indexInfo = a as Dictionary<string, object>;
                     retVal.Add((string)indexInfo["name"]);

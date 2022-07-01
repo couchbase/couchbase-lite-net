@@ -195,12 +195,12 @@ namespace Couchbase.Lite
         [NotNull]
         private ThreadSafety SetupThreadSafety()
         {
-            Collection coll = null;
+            Database db = null;
             if (_dict.Context != null && _dict.Context != MContext.Null) {
-                coll = (_dict.Context as DocContext)?.Collection;
+                db = (_dict.Context as DocContext)?.Db;
             }
 
-            return coll?.ThreadSafety ?? new ThreadSafety();
+            return db?.ThreadSafety ?? new ThreadSafety();
         }
 
         #endregion

@@ -189,15 +189,15 @@ namespace Couchbase.Lite
             });
         }
 
-        internal bool DeleteCollection(Collection collection)
+        internal bool DeleteCollection(string name, string scope)
         {
             bool deleteSuccessful = false;
             ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                using (var collName_ = new C4String(collection.Name))
-                using (var scopeName_ = new C4String(collection.Scope?.Name)) {
-                    var collectionSpec = new C4CollectionSpec() 
+                using (var collName_ = new C4String(name))
+                using (var scopeName_ = new C4String(scope)) {
+                    var collectionSpec = new C4CollectionSpec()
                     {
                         name = collName_.AsFLSlice(),
                         scope = scopeName_.AsFLSlice()
@@ -209,7 +209,7 @@ namespace Couchbase.Lite
                     });
 
                     if (deleteSuccessful) {
-                        if (_collections.TryRemove(collection.Name, out var co)) {
+                        if (_collections.TryRemove(name, out var co)) {
                             co?.Dispose();
                         }
                     }
@@ -345,7 +345,6 @@ namespace Couchbase.Lite
                 }
 
                 _collections.Clear();
-                _collections = null;
             });
         }
 

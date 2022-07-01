@@ -226,7 +226,7 @@ namespace Test
             }
         }
 
-        //[Fact] CBL-3235
+        [Fact]
         public void TestGetDocFromClosedDB()
         {
             using(var doc = GenerateDocument("doc1")) {
@@ -234,9 +234,7 @@ namespace Test
                 Db.Close();
 
                 Db.Invoking(d => d.GetDocument("doc1"))
-                    .Should().Throw<InvalidOperationException>()
-                    .WithMessage("Attempt to perform an operation on a closed database.",
-                        "because this operation is invalid");
+                    .Should().Throw<InvalidOperationException>();
             }
         }
 
@@ -626,28 +624,24 @@ namespace Test
             Db.Count.Should().Be(0, "because all documents were deleted");
         }
 
-        //[Fact] CBL-3235
+        [Fact]
         public void TestDeleteDocOnClosedDB()
         {
             var doc = GenerateDocument("doc1");
 
             Db.Close();
             Db.Invoking(d => d.Delete(doc))
-                .Should().Throw<InvalidOperationException>()
-                .WithMessage("Attempt to perform an operation on a closed database.",
-                    "because this operation is invalid");
+                .Should().Throw<InvalidOperationException>();
         }
 
-        //[Fact] CBL-3235
+        [Fact]
         public void TestDeleteDocOnDeletedDB()
         {
             var doc = GenerateDocument("doc1");
 
             DeleteDB(Db);
             Db.Invoking(d => d.Delete(doc))
-                .Should().Throw<InvalidOperationException>()
-                .WithMessage("Attempt to perform an operation on a closed database.",
-                    "because this operation is invalid");
+                .Should().Throw<InvalidOperationException>();
         }
 
         [Fact]
@@ -750,28 +744,24 @@ namespace Test
             Db.Count.Should().Be(0, "because all documents were purged");
         }
 
-        //[Fact] CBL-3235
+        [Fact]
         public void TestPurgeDocOnClosedDB()
         {
             var doc = GenerateDocument("doc1");
 
             Db.Close();
             Db.Invoking(d => d.Purge(doc))
-                .Should().Throw<InvalidOperationException>()
-                .WithMessage("Attempt to perform an operation on a closed database.",
-                    "because this operation is invalid");
+                .Should().Throw<InvalidOperationException>();
         }
 
-        //[Fact] CBL-3235
+        [Fact]
         public void TestPurgeDocOnDeletedDB()
         {
             var doc = GenerateDocument("doc1");
 
             DeleteDB(Db);
             Db.Invoking(d => d.Purge(doc))
-                .Should().Throw<InvalidOperationException>()
-                .WithMessage("Attempt to perform an operation on a closed database.",
-                    "because this operation is invalid");
+                .Should().Throw<InvalidOperationException>();
         }
 
         [Fact]
@@ -1421,7 +1411,7 @@ namespace Test
             Db.DeleteIndex("index3");
         }
 
-        //[Fact] CBL-3235
+        [Fact]
         public void TestGetDocFromDeletedDB()
         {
             using(var doc = GenerateDocument("doc1")) {
@@ -1429,9 +1419,7 @@ namespace Test
                 Db.Delete();
 
                 Db.Invoking(d => d.GetDocument("doc1"))
-                    .Should().Throw<InvalidOperationException>()
-                    .WithMessage("Attempt to perform an operation on a closed database.",
-                        "because this operation is invalid");
+                    .Should().Throw<InvalidOperationException>();
             }
         }
 

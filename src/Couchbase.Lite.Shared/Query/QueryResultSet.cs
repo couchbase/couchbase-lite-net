@@ -85,7 +85,7 @@ namespace Couchbase.Lite.Internal.Query
             _c4Enum = e;
             ColumnNames = columnNames;
             _threadSafety = threadSafety;
-            _context = new QueryResultContext(query?.Collection, e);
+            _context = new QueryResultContext(query?.Database, e);
         }
 
         #endregion
