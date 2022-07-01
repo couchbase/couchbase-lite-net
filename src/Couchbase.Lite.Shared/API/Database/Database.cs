@@ -268,18 +268,10 @@ namespace Couchbase.Lite
             }
         }
 
-        internal Collection DefaultCollection
-        {
-            get {
-                if(_defaultCollection == null && !_defaultCollectionIsDeleted)
-                    _defaultCollection = GetDefaultCollection();
-
-                if (_defaultCollectionIsDeleted || ThreadSafety.DoLocked(() => _defaultCollection.IsClosed) == true)
-                    throw new InvalidOperationException($"Default Collection is deleted from the database {ToString()}.");
-
-                return _defaultCollection;
-            }
-        }
+        internal Collection DefaultCollection => _defaultCollectionIsDeleted || 
+                ThreadSafety.DoLocked(() => _defaultCollection?.IsClosed) == true ?
+            throw new InvalidOperationException($"Default Collection is deleted from the database {ToString()}.") :
+            GetDefaultCollection();
 
         private bool IsShell { get; } //this object is borrowing the C4Database from somewhere else, so don't free C4Database at the end if isshell
 
