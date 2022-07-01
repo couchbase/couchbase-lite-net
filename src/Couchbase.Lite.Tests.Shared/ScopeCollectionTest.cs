@@ -587,7 +587,7 @@ Ensure that the created collection is visible to the database instance B by usin
 
         // Test that using the Collection APIs on the deleted collection which is deleted from the different database instance
         // returns the result as expected based on section 6.2.
-        //[Fact] wait CBL-3298
+        [Fact]
         public void TestUseCollectionAPIOnDeletedCollectionDeletedFromDifferentDBInstance()
         {
             using (var colA = Db.CreateCollection("colA", "scopeA")) {
@@ -598,12 +598,10 @@ Ensure that the created collection is visible to the database instance B by usin
             }
 
             using (var otherDB = OpenDB(Db.Name)) {
-                // CBL-3298 hasScope() returns false
-                otherDB.GetCollection("colA", "scopeA").GetDocument("doc").GetString("str").Should().Be("string");
+                var colA1 = otherDB.GetCollection("colA", "scopeA");
+                colA1.GetDocument("doc").GetString("str").Should().Be("string");
 
                 otherDB.DeleteCollection("colA", "scopeA");
-
-                var colA1 = otherDB.GetCollection("colA", "scopeA");
 
                 colA1.Invoking(d => d.GetDocument("doc"))
                     .Should().Throw<CouchbaseLiteException>("Because GetDocument after collection colA is deleted from the other db.");
@@ -755,7 +753,7 @@ Ensure that the created collection is visible to the database instance B by usin
         // Test that after all collections in the scope are deleted from a different database instance, calling the scope APIS
         // returns the result as expected based on section 6.5. To test this, get and retain the scope object before deleting
         // all collections.
-        //[Fact] CBL-3298
+        [Fact]
         public void TestUseScopeAPIAfterDeletingAllCollectionsFromDifferentDBInstance()
         {
             //6.5 Get Collections from The Scope Having No Collections
