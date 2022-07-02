@@ -23,8 +23,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+#if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
+#else
+using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
+#endif
 
 namespace Test
 {
