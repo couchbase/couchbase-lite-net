@@ -2100,7 +2100,7 @@ namespace Test
             parameters.GetValue("name").As<string>().Should().Be("Jim");
         }
 
-        //[Fact] CBL-3079
+        [Fact]
         public void TestQueryResultTypes()
         {
             var blobContent = Encoding.ASCII.GetBytes("The keys to the kingdom");
@@ -2592,7 +2592,7 @@ namespace Test
             }
         }
 
-        //[Fact] CBL-3079
+        [Fact]
         public void TestQueryResultTypesInDictionaryToJSON()
         {
             var dic = PopulateDictData();

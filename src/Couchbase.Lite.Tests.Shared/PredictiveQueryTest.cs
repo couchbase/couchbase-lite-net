@@ -308,7 +308,7 @@ namespace Test
             }
         }
 
-        //[Fact] CBL-3079
+        [Fact]
         public void TestQueryWithBlobProperty()
         {
             var texts = new[]

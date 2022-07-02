@@ -77,7 +77,7 @@ namespace Test
             defaultColl.Should().BeNull("default collection cannot be recreated, so the value is still null");
         }
 
-        //[Fact] wait for LiteCore update with CBL-3257 fix
+        [Fact]
         public void TestGetDefaultScopeAfterDeleteDefaultCollection()
         {
             Db.DeleteCollection(Database._defaultCollectionName);
@@ -587,7 +587,7 @@ Ensure that the created collection is visible to the database instance B by usin
 
         // Test that using the Collection APIs on the deleted collection which is deleted from the different database instance
         // returns the result as expected based on section 6.2.
-        //[Fact] TODO CBL-3198
+        //[Fact] wait CBL-3298
         public void TestUseCollectionAPIOnDeletedCollectionDeletedFromDifferentDBInstance()
         {
             using (var colA = Db.CreateCollection("colA", "scopeA")) {
@@ -684,28 +684,29 @@ Ensure that the created collection is visible to the database instance B by usin
                 Db.DeleteCollection(Database._defaultCollectionName);
 
                 Db.Invoking(d => d.GetDocument("doc"))
-                    .Should().Throw<CouchbaseLiteException>("Because GetDocument after default collection is deleted.");
+                    .Should().Throw<InvalidOperationException>("Because GetDocument after default collection is deleted.");
 
                 var dto30 = DateTimeOffset.UtcNow.AddSeconds(30);
                 using (var doc1 = new MutableDocument("doc1")) {
                     doc1.SetString("str", "string");
 
-                    Db.Count.Should().Be(0);
+                    Db.Invoking(d => Db.Count)
+                        .Should().Throw<InvalidOperationException>("Because Save after default collection is deleted.");
 
                     Db.Invoking(d => d.Save(doc1))
-                        .Should().Throw<CouchbaseLiteException>("Because Save after default collection is deleted.");
+                        .Should().Throw<InvalidOperationException>("Because Save after default collection is deleted.");
 
                     Db.Invoking(d => d.Delete(doc1))
-                        .Should().Throw<CouchbaseLiteException>("Because Delete after default collection is deleted.");
+                        .Should().Throw<InvalidOperationException>("Because Delete after default collection is deleted.");
 
                     Db.Invoking(d => d.Purge(doc1))
-                        .Should().Throw<CouchbaseLiteException>("Because Purge after default collection is deleted.");
+                        .Should().Throw<InvalidOperationException>("Because Purge after default collection is deleted.");
 
                     Db.Invoking(d => d.SetDocumentExpiration("doc", dto30))
-                        .Should().Throw<CouchbaseLiteException>("Because SetDocumentExpiration after default collection is deleted.");
+                        .Should().Throw<InvalidOperationException>("Because SetDocumentExpiration after default collection is deleted.");
 
                     Db.Invoking(d => d.GetDocumentExpiration("doc"))
-                        .Should().Throw<CouchbaseLiteException>("Because GetDocumentExpiration after default collection is deleted.");
+                        .Should().Throw<InvalidOperationException>("Because GetDocumentExpiration after default collection is deleted.");
                 }
 
                 Db.Invoking(d => d.CreateQuery($"SELECT firstName, lastName FROM *"))
@@ -713,22 +714,22 @@ Ensure that the created collection is visible to the database instance B by usin
 
                 var index1 = new ValueIndexConfiguration(new string[] { "firstName", "lastName" });
                 Db.Invoking(d => d.CreateIndex("index1", index1))
-                    .Should().Throw<CouchbaseLiteException>("Because CreateIndex after default collection is deleted.");
+                    .Should().Throw<InvalidOperationException>("Because CreateIndex after default collection is deleted.");
 
                 Db.Invoking(d => d.GetIndexes())
-                    .Should().Throw<CouchbaseLiteException>("Because GetIndexes after default collection is deleted.");
+                    .Should().Throw<InvalidOperationException>("Because GetIndexes after default collection is deleted.");
 
                 Db.Invoking(d => d.DeleteIndex("index1"))
-                    .Should().Throw<CouchbaseLiteException>("Because DeleteIndex after default collection is deleted.");
+                    .Should().Throw<InvalidOperationException>("Because DeleteIndex after default collection is deleted.");
 
                 Db.Invoking(d => d.AddChangeListener(null, (sender, args) => { } ))
-                    .Should().Throw<CouchbaseLiteException>("Because AddChangeListener after default collection is deleted.");
+                    .Should().Throw<InvalidOperationException>("Because AddChangeListener after default collection is deleted.");
 
                 Db.Invoking(d => d.AddDocumentChangeListener("doc1", (sender, args) => { }))
-                    .Should().Throw<CouchbaseLiteException>("Because AddDocumentChangeListener after default collection is deleted.");
+                    .Should().Throw<InvalidOperationException>("Because AddDocumentChangeListener after default collection is deleted.");
 
                 Db.Invoking(d => d.RemoveChangeListener(d.AddDocumentChangeListener("doc1", (sender, args) => { })))
-                    .Should().Throw<CouchbaseLiteException>("Because RemoveChangeListener after default collection is deleted.");
+                    .Should().Throw<InvalidOperationException>("Because RemoveChangeListener after default collection is deleted.");
             }
         }
 
@@ -744,8 +745,7 @@ Ensure that the created collection is visible to the database instance B by usin
             using (var colA = Db.CreateCollection("colA", "scopeA")) {
                 var scopeA = Db.GetScope("scopeA");//colA.Scope;
 
-                scopeA.DeleteCollection(colA);
-                //Db.DeleteCollection("colA", "scopeA"); scopeA.GetCollections() is null
+                Db.DeleteCollection("colA", "scopeA");
 
                 scopeA.GetCollection("colA").Should().BeNull("Because GetCollection after all collections are deleted.");
                 scopeA.GetCollections().Count.Should().Be(0, "Because GetCollections after all collections are deleted.");
@@ -767,7 +767,7 @@ Ensure that the created collection is visible to the database instance B by usin
                     otherDB.DeleteCollection("colA", "scopeA");
 
                     scopeA.GetCollection("colA").Should().BeNull("Because GetCollection after collection colA is deleted from the other db.");
-                    scopeA.GetCollections()?.Count.Should().Be(0, "Because GetCollections after collection colA is deleted from the other db.");
+                    scopeA.GetCollections().Count.Should().Be(0, "Because GetCollections after collection colA is deleted from the other db.");
                 }
             }
         }

@@ -31,8 +31,8 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Constructors
 
-        public QueryResultContext(Collection coll, C4QueryEnumerator* enumerator)
-            : base(coll, null)
+        public QueryResultContext(Database db, C4QueryEnumerator* enumerator)
+            : base(db, null)
         {
             _enumerator = enumerator;
         }

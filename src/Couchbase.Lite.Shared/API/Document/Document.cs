@@ -284,7 +284,7 @@ namespace Couchbase.Lite
         {
             if (Data != null) {
                 Misc.SafeSwap(ref _root,
-                    new MRoot(new DocContext(Collection, _c4Doc), (FLValue*) Data, IsMutable));
+                    new MRoot(new DocContext(Database, _c4Doc), (FLValue*) Data, IsMutable));
                 Collection.ThreadSafety.DoLocked(() => _dict = (DictionaryObject) _root.AsObject());
             } else {
                 Misc.SafeSwap(ref _root, null);

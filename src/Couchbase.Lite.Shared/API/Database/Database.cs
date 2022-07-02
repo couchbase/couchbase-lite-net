@@ -268,7 +268,16 @@ namespace Couchbase.Lite
             }
         }
 
-        internal Collection DefaultCollection => _defaultCollection == null ? GetDefaultCollection() : _defaultCollection;
+        internal Collection DefaultCollection
+        {
+            get {
+                GetDefaultCollection();
+                if (_defaultCollectionIsDeleted || ThreadSafety.DoLocked(() => _defaultCollection?.IsClosed) == true)
+                    throw new InvalidOperationException($"Default Collection is deleted from the database {ToString()}.");
+
+                return _defaultCollection;
+            }
+        }
 
         private bool IsShell { get; } //this object is borrowing the C4Database from somewhere else, so don't free C4Database at the end if isshell
 
@@ -398,7 +407,7 @@ namespace Couchbase.Lite
         [@CanBeNull]
         public Collection GetDefaultCollection()
         {
-            ThreadSafety.DoLocked(() =>
+            return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 if (_defaultCollection == null && !_defaultCollectionIsDeleted) {
@@ -414,10 +423,9 @@ namespace Couchbase.Lite
                         WriteLog.To.Database.W(Tag, $"The none-recoverable default collection is now deleted from database {ToString()}.");
                     }
                 }
+                
+                return _defaultCollection?.IsValid == true ? _defaultCollection : null;
             });
-
-            _defaultCollection?.CheckCollectionValid();
-            return _defaultCollection;
         }
 
         /// <summary>
@@ -496,17 +504,17 @@ namespace Couchbase.Lite
         [@CanBeNull]
         public Collection GetCollection([@NotNull] string name, [@CanBeNull] string scope = _defaultScopeName)
         {
-            Collection c = null;
-            ThreadSafety.DoLocked(() =>
+            return ThreadSafety.DoLocked(() =>
             {
+                CheckOpen();
+                Collection coll = null;
                 var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
                 if (s != null) {
-                    c = s.GetCollection(name);
+                    coll = s.GetCollection(name);
                 }
-            });
 
-            c?.CheckCollectionValid();
-            return c;
+                return coll?.IsValid == true ? coll : null;
+            });
         }
 
         /// <summary>
@@ -525,8 +533,7 @@ namespace Couchbase.Lite
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
         public Collection CreateCollection([@NotNull] string name, [@CanBeNull] string scope = _defaultScopeName)
         {
-            Collection co = null;
-            ThreadSafety.DoLocked(() =>
+            return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
                 var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
@@ -534,12 +541,12 @@ namespace Couchbase.Lite
                     s = new Scope(this, scope);
                 }
 
-                co = s.CreateCollection(name);
+                var co = s.CreateCollection(name);
                 if (co != null && !_scopes.ContainsKey(scope))
                     _scopes.TryAdd(scope, s);
+                
+                return co;
             });
-
-            return co;
         }
 
         /// <summary>
@@ -560,11 +567,9 @@ namespace Couchbase.Lite
                 CheckOpen();
                 var s = scope == _defaultScopeName ? GetDefaultScope() : GetScope(scope);
                 if (s != null) {
-                    var c = s.GetCollection(name);
-                    if (s.DeleteCollection(c) && s.Count == 0) {
-                        Scope sc = null;
-                        if (_scopes.TryRemove(scope, out sc)) {
-                            sc.Dispose();
+                    if (s.DeleteCollection(name, scope) && s.Count == 0 && s.Name != _defaultScopeName) {
+                        if (_scopes.TryRemove(scope, out var sc)) {
+                            sc?.Dispose();
                         }
                     }
                 }
@@ -727,8 +732,6 @@ namespace Couchbase.Lite
         [Obsolete("CreateIndex is deprecated, please use GetDefaultCollection().CreateIndex")]
         public void CreateIndex([@NotNull] string name, [@NotNull] IndexConfiguration indexConfig)
         {
-            CheckExistenceOfDefaultCollection();
-
             DefaultCollection.CreateIndex(name, indexConfig);
         }
 
@@ -795,8 +798,6 @@ namespace Couchbase.Lite
         [Obsolete("Delete is deprecated, please use GetDefaultCollection().Delete")]
         public bool Delete([@NotNull]Document document, ConcurrencyControl concurrencyControl)
         {
-            CheckExistenceOfDefaultCollection();
-
             return DefaultCollection.Delete(document, concurrencyControl);
         }
 
@@ -807,8 +808,6 @@ namespace Couchbase.Lite
         [Obsolete("DeleteIndex is deprecated, please use GetDefaultCollection().DeleteIndex")]
         public void DeleteIndex([@NotNull]string name)
         {
-            CheckExistenceOfDefaultCollection();
-
             DefaultCollection.DeleteIndex(name);
         }
 
@@ -821,8 +820,6 @@ namespace Couchbase.Lite
         [@CanBeNull]
         public Document GetDocument([@NotNull]string id)
         {
-            CheckExistenceOfDefaultCollection();
-
             return DefaultCollection.GetDocument(id);
         }
 
@@ -835,8 +832,6 @@ namespace Couchbase.Lite
         [@ItemNotNull]
         public IList<string> GetIndexes()
         {
-            CheckExistenceOfDefaultCollection();
-
             return DefaultCollection.GetIndexes();
         }
 
@@ -879,8 +874,6 @@ namespace Couchbase.Lite
         [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
         public void Purge([@NotNull]Document document)
         {
-            CheckExistenceOfDefaultCollection();
-
             DefaultCollection.Purge(document);
         }
 
@@ -895,8 +888,6 @@ namespace Couchbase.Lite
         [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
         public void Purge([@NotNull]string docId)
         {
-            CheckExistenceOfDefaultCollection();
-
             DefaultCollection.Purge(docId);
         }
 
@@ -914,8 +905,6 @@ namespace Couchbase.Lite
         [Obsolete("SetDocumentExpiration is deprecated, please use GetDefaultCollection().SetDocumentExpiration")]
         public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)
         {
-            CheckExistenceOfDefaultCollection();
-
             return DefaultCollection.SetDocumentExpiration(docId, expiration);
         }
 
@@ -931,8 +920,6 @@ namespace Couchbase.Lite
         [Obsolete("GetDocumentExpiration is deprecated, please use GetDefaultCollection().GetDocumentExpiration")]
         public DateTimeOffset? GetDocumentExpiration(string docId)
         {
-            CheckExistenceOfDefaultCollection();
-
             return DefaultCollection.GetDocumentExpiration(docId);
         }
 
@@ -958,8 +945,6 @@ namespace Couchbase.Lite
         [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
         public bool Save([@NotNull]MutableDocument document, ConcurrencyControl concurrencyControl)
         {
-            CheckExistenceOfDefaultCollection();
-
             return DefaultCollection.Save(document, concurrencyControl);
         }
 
@@ -975,8 +960,6 @@ namespace Couchbase.Lite
         [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
         public bool Save([@NotNull]MutableDocument document, [@NotNull]Func<MutableDocument, Document, bool> conflictHandler)
         {
-            CheckExistenceOfDefaultCollection();
-
             return DefaultCollection.Save(document, conflictHandler);
         }
 
@@ -1064,7 +1047,6 @@ namespace Couchbase.Lite
         public ListenerToken AddChangeListener([@CanBeNull] TaskScheduler scheduler,
             [@NotNull] EventHandler<DatabaseChangedEventArgs> handler)
         {
-            CheckExistenceOfDefaultCollection();
             EventHandler<CollectionChangedEventArgs> collectionChangeEventHandler =
                 new EventHandler<CollectionChangedEventArgs>((sender, args) =>
                 {
@@ -1105,7 +1087,6 @@ namespace Couchbase.Lite
         public ListenerToken AddDocumentChangeListener([@NotNull] string id, [@CanBeNull] TaskScheduler scheduler,
             [@NotNull] EventHandler<DocumentChangedEventArgs> handler)
         {
-            CheckExistenceOfDefaultCollection();
             return DefaultCollection.AddDocumentChangeListener(id, scheduler, handler);
         }
 
@@ -1134,7 +1115,6 @@ namespace Couchbase.Lite
         [Obsolete("RemoveChangeListener is deprecated, please use GetDefaultCollection().RemoveChangeListener")]
         public void RemoveChangeListener(ListenerToken token)
         {
-            CheckExistenceOfDefaultCollection();
             DefaultCollection.RemoveChangeListener(token);
         }
 
@@ -1230,7 +1210,6 @@ namespace Couchbase.Lite
 
         internal void ResolveConflict([@NotNull]string docID, [@CanBeNull]IConflictResolver conflictResolver)
         {
-            CheckExistenceOfDefaultCollection();
             Debug.Assert(docID != null);
 
             var writeSuccess = false;
@@ -1355,13 +1334,6 @@ namespace Couchbase.Lite
         {
             if (IsClosed) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
-            }
-        }
-
-        private void CheckExistenceOfDefaultCollection()
-        {
-            if (DefaultCollection == null) {
-                throw new InvalidOperationException($"Default Collection is deleted from the database { ToString() }.");
             }
         }
 
