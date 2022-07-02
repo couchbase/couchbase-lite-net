@@ -486,7 +486,7 @@ namespace Couchbase.Lite.Sync
             }
 
             var flags = revisionFlags.ToDocumentFlags();//TODO Getting empty slice for both collection and scope names, alter to use default for now...
-            return replicator.PullValidateCallback(collName ??= Database._defaultCollectionName, scope ??= Database._defaultScopeName, docIDStr, revID.CreateString(), dict, flags);
+            return replicator.PullValidateCallback(collName ?? Database._defaultCollectionName, scope ?? Database._defaultScopeName, docIDStr, revID.CreateString(), dict, flags);
         }
 
         #if __IOS__
@@ -511,7 +511,7 @@ namespace Couchbase.Lite.Sync
             }
 
             var flags = revisionFlags.ToDocumentFlags(); //TODO Getting empty slice for both collection and scope names, alter to use default for now...
-            return replicator.PushFilterCallback(collName??= Database._defaultCollectionName, scope ??= Database._defaultScopeName, docIDStr, revID.CreateString(), dict, flags);
+            return replicator.PushFilterCallback(collName ?? Database._defaultCollectionName, scope ?? Database._defaultScopeName, docIDStr, revID.CreateString(), dict, flags);
         }
 
         #if __IOS__
