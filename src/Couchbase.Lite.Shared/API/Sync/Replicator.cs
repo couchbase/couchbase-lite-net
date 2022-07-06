@@ -78,6 +78,7 @@ namespace Couchbase.Lite.Sync
         private C4ReplicatorStatus _rawStatus;
         private IReachability _reachability;
         private C4Replicator* _repl;
+        private C4CollectionSpec _c4collSpec; //TODO New param for c4repl_getPendingDocIDs & c4repl_isDocumentPending
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
         private IImmutableSet<string> _pendingDocIds;
 
@@ -320,7 +321,7 @@ namespace Couchbase.Lite.Sync
 
             byte[] pendingDocIds = LiteCoreBridge.Check(err =>
             {
-                return Native.c4repl_getPendingDocIDs(_repl, err);
+                return Native.c4repl_getPendingDocIDs(_repl, _c4collSpec, err);
             });
             
             if (pendingDocIds != null) {
@@ -371,7 +372,7 @@ namespace Couchbase.Lite.Sync
 
             LiteCoreBridge.Check(err => 
             {
-                isDocPending = Native.c4repl_isDocumentPending(_repl, documentID, err);
+                isDocPending = Native.c4repl_isDocumentPending(_repl, documentID, _c4collSpec, err);
                 return isDocPending;
             });
 
@@ -476,6 +477,7 @@ namespace Couchbase.Lite.Sync
             }
 
             var docIDStr = docID.CreateString();
+            //TODO Getting empty slice for both collection and scope names, alter to use default for now...
             var collName = collectionSpec.name.CreateString();
             var scope = collectionSpec.scope.CreateString();
             if (docIDStr == null) {
@@ -483,8 +485,8 @@ namespace Couchbase.Lite.Sync
                 return false;
             }
 
-            var flags = revisionFlags.ToDocumentFlags();
-            return replicator.PullValidateCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
+            var flags = revisionFlags.ToDocumentFlags();//TODO Getting empty slice for both collection and scope names, alter to use default for now...
+            return replicator.PullValidateCallback(collName ?? Database._defaultCollectionName, scope ?? Database._defaultScopeName, docIDStr, revID.CreateString(), dict, flags);
         }
 
         #if __IOS__
@@ -500,15 +502,16 @@ namespace Couchbase.Lite.Sync
             }
 
             var docIDStr = docID.CreateString();
-            var collName = collectionSpec.name.CreateString();
+            //TODO Getting empty slice for both collection and scope names, alter to use default for now...
+            var collName = collectionSpec.name.CreateString() ;
             var scope = collectionSpec.scope.CreateString();
             if (docIDStr == null) {
                 WriteLog.To.Database.E(Tag, "Null document ID received in push filter, rejecting...");
                 return false;
             }
 
-            var flags = revisionFlags.ToDocumentFlags();
-            return replicator.PushFilterCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
+            var flags = revisionFlags.ToDocumentFlags(); //TODO Getting empty slice for both collection and scope names, alter to use default for now...
+            return replicator.PushFilterCallback(collName ?? Database._defaultCollectionName, scope ?? Database._defaultScopeName, docIDStr, revID.CreateString(), dict, flags);
         }
 
         #if __IOS__
