@@ -44,6 +44,8 @@ namespace Test
         }
 #endif
 
+        #region 8.1 Default Scope and Default Collection
+
         [Fact]
         public void TestDefaultCollectionExists()
         {
@@ -91,6 +93,10 @@ namespace Test
             scopes.Contains(defaultScope).Should().BeTrue("the default scope is included in the scope list when calling Database.GetScopes()");
             defaultScope.Name.Should().Be(Database._defaultScopeName, $"default scope name is {Database._defaultScopeName}");
         }
+
+        #endregion
+
+        #region 8.2 Collections
 
         [Fact]
         public void TestCreateAndGetCollectionsInDefaultScope()
@@ -411,6 +417,10 @@ Ensure that the created collection is visible to the database instance B by usin
             }
         }
 
+        #endregion
+
+        #region 8.3 Collections and Cross Database Instance
+
         [Fact]
         public void TestCreateDocGetCollectionFromDifferentDatabaseInstance()
         {
@@ -528,6 +538,10 @@ Ensure that the created collection is visible to the database instance B by usin
                 }  
             }
         }
+
+        #endregion
+
+        #region 8.5 Use Collection APIs on Deleted Collection
 
         [Fact]
         public void TestUseCollectionAPIsOnDeletedCollection()
@@ -654,11 +668,19 @@ Ensure that the created collection is visible to the database instance B by usin
             }
         }
 
+        #endregion
+
+        #region 8.6 Use Collection API on Closed or Deleted Database
+
         [Fact]
         public void TestUseCollectionAPIsWhenDatabaseIsClosed() => TestUseCollectionAPIs(() => Db.Close());
 
         [Fact]
         public void TestUseCollectionAPIsWhenDatabaseIsDeleted() => TestUseCollectionAPIs(() => Db.Delete());
+
+        #endregion
+
+        #region 8.7 Use Scope API on Closed or Deleted Database
 
         [Fact]
         public void TestUseScopeWhenDatabaseIsClosed() => TestUseScope(() => Db.Close());
@@ -666,11 +688,19 @@ Ensure that the created collection is visible to the database instance B by usin
         [Fact]
         public void TestUseScopeWhenDatabaseIsDeleted() => TestUseScope(() => Db.Delete());
 
+        #endregion
+
+        #region 8.8 Get Scopes or Collections on Closed or Deleted Database
+
         [Fact]
         public void TestGetScopesOrCollectionsWhenDatabaseIsClosed() => TestGetScopesOrCollections(() => Db.Close());
 
         [Fact]
         public void TestGetScopesOrCollectionsWhenDatabaseIsDeleted() => TestGetScopesOrCollections(() => Db.Delete());
+
+        #endregion
+
+        #region 8.9 Use Database API when the Default Collection is Deleted
 
         [Fact]
         public void TestUseDatabaseAPIsWhenDefaultCollectionIsDeleted()
@@ -735,7 +765,9 @@ Ensure that the created collection is visible to the database instance B by usin
             }
         }
 
-        /* 8.10 Use Scope API when No Collections in the Scope */
+        #endregion
+
+        #region 8.10 Use Scope API when No Collections in the Scope
         // Test that after all collections in the scope are deleted, calling the scope APIS returns the result as expected based on
         // section 6.5. To test this, get and retain the scope object before deleting all collections.
         [Fact]
@@ -773,6 +805,8 @@ Ensure that the created collection is visible to the database instance B by usin
                 }
             }
         }
+
+        #endregion
 
         #region Private Methods
 
