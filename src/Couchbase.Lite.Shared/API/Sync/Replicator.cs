@@ -81,6 +81,7 @@ namespace Couchbase.Lite.Sync
         private C4CollectionSpec _c4collSpec; //TODO New param for c4repl_getPendingDocIDs & c4repl_isDocumentPending
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
         private IImmutableSet<string> _pendingDocIds;
+        private ReplicatorConfiguration _config;
 
         #endregion
 
@@ -90,7 +91,8 @@ namespace Couchbase.Lite.Sync
         /// Gets the configuration that was used to create this Replicator
         /// </summary>
         [NotNull]
-        public ReplicatorConfiguration Config { get; }
+        public ReplicatorConfiguration Config => _config.Collections.Count > 0 ? _config 
+            : throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "There is no collection in the configuration.");
 
         /// <summary>
         /// Gets the current status of the <see cref="Replicator"/>
@@ -121,7 +123,14 @@ namespace Couchbase.Lite.Sync
         /// <param name="config">The configuration to use to create the replicator</param>
         public Replicator([NotNull]ReplicatorConfiguration config)
         {
-            Config = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(config), config).Freeze();
+            if (config?.Collections.Count <= 0)
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Missing replicator config.");
+
+            foreach(var cc in config.CollectionConfigs) {
+                cc.Value.Freeze();
+            }
+
+            _config = config.Freeze();
             _databaseThreadSafety = Config.Database.ThreadSafety;
         }
 

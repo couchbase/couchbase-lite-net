@@ -1,8 +1,25 @@
-﻿using Couchbase.Lite.Support;
+﻿// 
+//  CollectionConfiguration.cs
+// 
+//  Copyright (c) 2022 Couchbase, Inc All rights reserved.
+// 
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+// 
+//  http://www.apache.org/licenses/LICENSE-2.0
+// 
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+// 
+
+using Couchbase.Lite.Support;
 using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Couchbase.Lite.Sync
 {
@@ -86,6 +103,20 @@ namespace Couchbase.Lite.Sync
 
         [NotNull]
         internal ReplicatorOptionsDictionary Options { get; set; } = new ReplicatorOptionsDictionary();
+
+        #endregion
+
+        #region Constructor
+
+        internal CollectionConfiguration() {}
+
+        internal CollectionConfiguration(CollectionConfiguration copy)
+        {
+            PushFilter = copy?.PushFilter;
+            PullFilter = copy?.PullFilter;
+            ConflictResolver = copy?.ConflictResolver;
+            Options = copy?.Options;
+        }
 
         #endregion
 
