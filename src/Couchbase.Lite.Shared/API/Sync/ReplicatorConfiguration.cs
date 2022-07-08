@@ -154,8 +154,8 @@ namespace Couchbase.Lite.Sync
         [CanBeNull]
         public IList<string> DocumentIDs
         {
-            get => DefaultCollectionConfig.Options.DocIDs;
-            set {
+            get => DefaultCollectionConfig.Options.DocIDs; 
+            set { 
                 _freezer.PerformAction(() =>
                 {
                     DefaultCollectionConfig.Options.DocIDs = value;
@@ -479,6 +479,7 @@ namespace Couchbase.Lite.Sync
         {
             if (!CollectionConfigs.TryGetValue(collection, out var config)) {
                 WriteLog.To.Sync.W(Tag, $"Failed getting the collection {collection}'s config.");
+
                 return null;
             }
 
