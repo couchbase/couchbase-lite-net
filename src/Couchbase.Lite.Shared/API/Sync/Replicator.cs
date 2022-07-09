@@ -126,10 +126,6 @@ namespace Couchbase.Lite.Sync
             if (config?.Collections.Count <= 0)
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Missing replicator config.");
 
-            foreach(var cc in config.CollectionConfigs) {
-                cc.Value.Freeze();
-            }
-
             _config = config.Freeze();
             _databaseThreadSafety = Config.Database.ThreadSafety;
         }

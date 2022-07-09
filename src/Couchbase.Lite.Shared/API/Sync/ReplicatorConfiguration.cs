@@ -142,8 +142,7 @@ namespace Couchbase.Lite.Sync
         /// Gets the local database participating in the replication. 
         /// </summary>
         [NotNull]
-        public Database Database => Collections.Count > 0 ? Collections[0].Database 
-            ?? throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Database is missing in Replication Configuration.")
+        public Database Database => Collections.Count > 0 && Collections[0].Database != null ? Collections[0].Database
             : throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Database is missing in Replication Configuration.");
 
         /// <summary>
@@ -441,7 +440,8 @@ namespace Couchbase.Lite.Sync
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
 
             if (Collections.Count > 0 && collection.Database != Database)
-                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, $"The database {collection.Database} of the collection you are trying to add doesn't match with the {Database}.");
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, 
+                    $"All collections in the configuration must operate on the same database {Database}, but the provided collection database {collection.Database} doesn't match.");
 
             config = config == null ? new CollectionConfiguration() : new CollectionConfiguration(config);
 
@@ -488,32 +488,21 @@ namespace Couchbase.Lite.Sync
         [NotNull]
         internal ReplicatorConfiguration Freeze()
         {
-            ReplicatorConfiguration retVal;
-//            if (Collections.Count > 0) {
-//                retVal = new ReplicatorConfiguration(Database, Target)
-//                {
-//                    Authenticator = Authenticator,
-//#if COUCHBASE_ENTERPRISE
-//                    AcceptOnlySelfSignedServerCertificate = AcceptOnlySelfSignedServerCertificate,
-//#endif
-//                    Continuous = Continuous,
-//                    ReplicatorType = ReplicatorType,
-//                    Options = Options,
-//                    CollectionConfigs = CollectionConfigs
-//                };
-//            } else {
-                retVal = new ReplicatorConfiguration(Target)
-                {
-                    Authenticator = Authenticator,
+            foreach (var cc in CollectionConfigs) {
+                cc.Value.Freeze();
+            }
+
+            var retVal = new ReplicatorConfiguration(Target)
+            {
+                Authenticator = Authenticator,
 #if COUCHBASE_ENTERPRISE
-                    AcceptOnlySelfSignedServerCertificate = AcceptOnlySelfSignedServerCertificate,
+                AcceptOnlySelfSignedServerCertificate = AcceptOnlySelfSignedServerCertificate,
 #endif
-                    Continuous = Continuous,
-                    ReplicatorType = ReplicatorType,
-                    Options = Options,
-                    CollectionConfigs = CollectionConfigs
-                };
-            //}
+                Continuous = Continuous,
+                ReplicatorType = ReplicatorType,
+                Options = Options,
+                CollectionConfigs = CollectionConfigs
+            };
 
             retVal._freezer.Freeze("Cannot modify a ReplicatorConfiguration that is in use");
             return retVal;
