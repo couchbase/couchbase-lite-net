@@ -2630,6 +2630,19 @@ namespace Test
             }
         }
 
+        [ForIssue("issues.couchbase.com/browse/CBL-3356")]
+        [Fact]
+        public void TestSelectGreatOrEqualThan32Items()
+        {
+            using (var q = Db.CreateQuery(@"select
+                `1`,`2`,`3`,`4`,`5`,`6`,`7`,`8`,`9`,`10`,`11`,`12`,
+                `13`,`14`,`15`,`16`,`17`,`18`,`19`,`20`,`21`,`22`,`23`,`24`,
+                `25`,`26`,`27`,`28`,`29`,`30`,`31`,`32`, `key` from _ limit 1")) {
+                //ColumnNames is an internal property.
+                ((QueryBase)q).ColumnNames.Count.Should().BeGreaterOrEqualTo(32);
+            }
+        }
+
         private void CreateDateDocs()
         {
             using (var doc = new MutableDocument()) {

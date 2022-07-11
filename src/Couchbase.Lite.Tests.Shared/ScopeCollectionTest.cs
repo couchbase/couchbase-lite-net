@@ -44,6 +44,8 @@ namespace Test
         }
 #endif
 
+        #region 8.1 Default Scope and Default Collection
+
         [Fact]
         public void TestDefaultCollectionExists()
         {
@@ -91,6 +93,10 @@ namespace Test
             scopes.Contains(defaultScope).Should().BeTrue("the default scope is included in the scope list when calling Database.GetScopes()");
             defaultScope.Name.Should().Be(Database._defaultScopeName, $"default scope name is {Database._defaultScopeName}");
         }
+
+        #endregion
+
+        #region 8.2 Collections
 
         [Fact]
         public void TestCreateAndGetCollectionsInDefaultScope()
@@ -355,12 +361,6 @@ namespace Test
             //Db.CreateCollection("abc", "scope1").Should().NotBeNull("Should be able to be created because scope name is case sensitive.");
         }
 
-        /* TODO CBL-3227 8.3 Collections and Cross Database Instance
-TestCreateThenGetCollectionFromDifferentDatabaseInstance : Test that creating a collection from a database instance is visible to the other database instance.
-Create Database instance A and B.
-Create a collection in a scope from the database instance A.
-Ensure that the created collection is visible to the database instance B by using database.getCollection(name: "colA", scope: "scopeA") and database.getCollections(scope: "scopeA") API.
-        */
         [Fact]
         public void TestCreateAnExistingCollection()
         {
@@ -411,6 +411,10 @@ Ensure that the created collection is visible to the database instance B by usin
             }
         }
 
+        #endregion
+
+        #region 8.3 Collections and Cross Database Instance
+
         [Fact]
         public void TestCreateDocGetCollectionFromDifferentDatabaseInstance()
         {
@@ -428,7 +432,7 @@ Ensure that the created collection is visible to the database instance B by usin
 
                 using (var otherDB = OpenDB(Db.Name)) {
                     var colAInOtherDb = otherDB.GetCollection("colA");
-                    //colAInOtherDb.Count.Should().Be(3); // bug
+                    colAInOtherDb.Count.Should().Be(3);
                     var docOfColAInOtherDb = colAInOtherDb.GetDocument("doc");
                     colAInOtherDb.Count.Should().Be(3);
                     docOfColAInOtherDb.GetString("str").Should().Be("string");
@@ -444,29 +448,16 @@ Ensure that the created collection is visible to the database instance B by usin
         {
             using (var colA = Db.CreateCollection("colA", "scopeA"))
             using (var otherDB = OpenDB(Db.Name)) {
-                //TODO wait for CBL-3298 fix
-                //I am using hasScope to check existance of the scope obj in order to use scope obj to get the collections
                 var cols = otherDB.GetCollections(scope: "scopeA");
-                //cols.Contains(colA).Should().BeTrue();
+                cols.Contains(colA).Should().BeTrue();
+                otherDB.GetCollection("colA", "scopeA").Should().NotBeNull();
             }
         }
 
-        /*TestDeleteThenGetCollectionFromDifferentDatabaseInstance : Test that deleting a collection from a database instance is visible to the other database instance.
-        Create Database instance A and B.
-        Create a collection in a scope from the database instance A.
-        Add some documents to the created collection.
-        Ensure that the created collection is visible to the database instance B by using database.getCollection(name: "colA", scope: "scopeA") and database.getCollections(scope: "scopeA") API.
-        Ensure that the collection from the database instance B has the correct number of document counts.
-        Delete the collection from the database instance A.
-        Get the document count from the collection getting from the database instance B. Ensure that the document count is 0.
-        Ensure that the collection is null when getting the collection from the database instance B again by using database.getCollection(name: "colA", scope: "scopeA").
-        Ensure that the collection is not included when getting all collections from the database instance B again by using database.getCollections(scope: "scopeA").
-        */
         [Fact]
         public void TestDeleteThenGetCollectionFromDifferentDatabaseInstance()
         {
-            using (var colA = Db.CreateCollection("colA", "scopeA"))
-            using (var colB = Db.CreateCollection("colB", "scopeA")) { 
+            using (var colA = Db.CreateCollection("colA", "scopeA")){ 
                 using (var doc = new MutableDocument("doc"))
                 using (var doc1 = new MutableDocument("doc1"))
                 using (var doc2 = new MutableDocument("doc2")) {
@@ -479,36 +470,22 @@ Ensure that the created collection is visible to the database instance B by usin
                 }
 
                 using (var otherDB = OpenDB(Db.Name)) {
-                    //TODO wait for CBL-3298 fix
-                    //I am using hasScope to check existance of the scope obj in order to use scope obj to get the collection
                     var colAinOtherDb = otherDB.GetCollection("colA", "scopeA");
-                    //colAinOtherDb.Count.Should().Be(3);
+                    colAinOtherDb.Count.Should().Be(3);
                     Db.DeleteCollection("colA", "scopeA");
-                    //colAinOtherDb.Count.Should().Be(0);
+                    colAinOtherDb.Count.Should().Be(0);
                     colAinOtherDb = otherDB.GetCollection("colA", "scopeA");
                     colAinOtherDb.Should().BeNull();
                     var collsInOtherDb = otherDB.GetCollections("scopeA");
-                    //collsInOtherDb.Contains(colA).Should().BeFalse();
+                    collsInOtherDb.Contains(colA).Should().BeFalse();
                 }
             }
         }
 
-        /*TestDeleteAndRecreateThenGetCollectionFromDifferentDatabaseInstance : Test that deleting a collection then recreating the collection from a database instance is visible to the other database instance.
-        Create Database instance A and B.
-        Create a collection in a scope from the database instance A.
-        Add some documents to the created collection.
-        Ensure that the created collection is visible to the database instance B by using database.getCollection(name: "colA", scope: "scopeA") and database.getCollections(scope: "scopeA") API.
-        Ensure that the collection from the database instance B has the correct number of document counts.
-        Delete the collection from the database instance A and recreate the collection using the database instance A.
-        Get the document count from the collection getting from the database instance B. Ensure that the document count is 0.
-        Ensure that the collection is not null and is different from the instance gotten before from the instanceB when getting the collection from the database instance B by using database.getCollection(name: "colA", scope: "scopeA").
-        Ensure that the collection is included when getting all collections from the database instance B by using database.getCollections(scope: "scopeA").
-                 */
         [Fact]
         public void TestDeleteAndRecreateThenGetCollectionFromDifferentDatabaseInstance()
         {
-            using (var colA = Db.CreateCollection("colA", "scopeA"))
-            using (var colB = Db.CreateCollection("colB", "scopeA")) {
+            using (var colA = Db.CreateCollection("colA", "scopeA")){
                 using (var doc = new MutableDocument("doc"))
                 using (var doc1 = new MutableDocument("doc1"))
                 using (var doc2 = new MutableDocument("doc2")) {
@@ -519,15 +496,29 @@ Ensure that the created collection is visible to the database instance B by usin
                     colA.Save(doc1);
                     colA.Save(doc2);
                 }
-          
 
                 using (var otherDB = OpenDB(Db.Name)) {
-                //TODO wait for CBL-3298 fix
-                //I am using hasScope to check existance of the scope obj in order to use scope obj to get the collection
-                //Add test case after CBL-3298 is fixed..
+                    var colAinOtherDb = otherDB.GetCollection("colA", "scopeA");
+                    colAinOtherDb.Count.Should().Be(3);
+                    Db.DeleteCollection("colA", "scopeA");
+                    colAinOtherDb.Count.Should().Be(0);
+                    colAinOtherDb = otherDB.GetCollection("colA", "scopeA");
+                    colAinOtherDb.Should().BeNull();
+                    // Re-create Collection
+                    var colATheSecond = Db.CreateCollection("colA", "scopeA");
+                    var colATheSecondinOtherDb = otherDB.GetCollection("colA", "scopeA");
+                    //Ensure that the collection is not null and is different from the instance gotten before from the instanceB when getting the collection from the database instance B by using database.getCollection(name: "colA", scope: "scopeA").
+                    colATheSecondinOtherDb.Should().NotBeNull();
+                    colATheSecondinOtherDb.Equals(colAinOtherDb).Should().BeFalse();
+                    //Ensure that the collection is included when getting all collections from the database instance B by using database.getCollections(scope: "scopeA").
+                    otherDB.GetCollections("scopeA").Contains(colATheSecond).Should().BeTrue();
                 }  
             }
         }
+
+        #endregion
+
+        #region 8.5 Use Collection APIs on Deleted Collection
 
         [Fact]
         public void TestUseCollectionAPIsOnDeletedCollection()
@@ -654,11 +645,19 @@ Ensure that the created collection is visible to the database instance B by usin
             }
         }
 
+        #endregion
+
+        #region 8.6 Use Collection API on Closed or Deleted Database
+
         [Fact]
         public void TestUseCollectionAPIsWhenDatabaseIsClosed() => TestUseCollectionAPIs(() => Db.Close());
 
         [Fact]
         public void TestUseCollectionAPIsWhenDatabaseIsDeleted() => TestUseCollectionAPIs(() => Db.Delete());
+
+        #endregion
+
+        #region 8.7 Use Scope API on Closed or Deleted Database
 
         [Fact]
         public void TestUseScopeWhenDatabaseIsClosed() => TestUseScope(() => Db.Close());
@@ -666,11 +665,19 @@ Ensure that the created collection is visible to the database instance B by usin
         [Fact]
         public void TestUseScopeWhenDatabaseIsDeleted() => TestUseScope(() => Db.Delete());
 
+        #endregion
+
+        #region 8.8 Get Scopes or Collections on Closed or Deleted Database
+
         [Fact]
         public void TestGetScopesOrCollectionsWhenDatabaseIsClosed() => TestGetScopesOrCollections(() => Db.Close());
 
         [Fact]
         public void TestGetScopesOrCollectionsWhenDatabaseIsDeleted() => TestGetScopesOrCollections(() => Db.Delete());
+
+        #endregion
+
+        #region 8.9 Use Database API when the Default Collection is Deleted
 
         [Fact]
         public void TestUseDatabaseAPIsWhenDefaultCollectionIsDeleted()
@@ -735,7 +742,9 @@ Ensure that the created collection is visible to the database instance B by usin
             }
         }
 
-        /* 8.10 Use Scope API when No Collections in the Scope */
+        #endregion
+
+        #region 8.10 Use Scope API when No Collections in the Scope
         // Test that after all collections in the scope are deleted, calling the scope APIS returns the result as expected based on
         // section 6.5. To test this, get and retain the scope object before deleting all collections.
         [Fact]
@@ -773,6 +782,8 @@ Ensure that the created collection is visible to the database instance B by usin
                 }
             }
         }
+
+        #endregion
 
         #region Private Methods
 

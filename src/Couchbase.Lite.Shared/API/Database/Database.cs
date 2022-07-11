@@ -590,7 +590,7 @@ namespace Couchbase.Lite
         /// Note: This method will copy the database without changing the encryption key of
         /// the original database:  the encryption key specified in the given config is the
         /// encryption key used for both the original and copied database.To change or add
-        /// the encryption key for the copied database, call Database.changeEncryptionKey(key) for the copy.
+        /// the encryption key for the copied database, call <see cref="Database.ChangeEncryptionKey(EncryptionKey)"/> for the copy.
         ///</remarks>
         /// <param name="path">The source database path (i.e. path to the cblite2 folder)</param>
         /// <param name="name">The name of the new database to be created</param>

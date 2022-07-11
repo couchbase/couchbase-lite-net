@@ -53,15 +53,15 @@ namespace Test
 #if !WINDOWS_UWP
         public ScopesCollectionsQueryTest(ITestOutputHelper output) : base(output)
         {
-
+            CollA = Db.CreateCollection("collA", "scopeA");
         }
 #endif
 
 #if !CBL_NO_EXTERN_FILES
+        
         [Fact]
         public void TestQueryObserver()
         {
-            CollA = Db.CreateCollection("collA", "scopeA");
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM scopeA.collA WHERE contact.address.state = 'CA'");
             TestQueryObserverWithQuery(n1qlQ, isDefaultCollection: false);
             n1qlQ.Dispose();
@@ -75,7 +75,6 @@ namespace Test
         [Fact]
         public void TestMultipleQueryObservers()
         {
-            CollA = Db.CreateCollection("collA", "scopeA");
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM scopeA.collA WHERE contact.address.state = 'CA'");
             TestMultipleQueryObserversWithQuery(n1qlQ, isDefaultCollection: false);
             n1qlQ.Dispose();
@@ -91,7 +90,6 @@ namespace Test
         [Fact]
         public void TestQueryObserverWithChangingQueryParameters()
         {
-            CollA = Db.CreateCollection("collA", "scopeA");
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM scopeA.collA WHERE contact.address.state = $state");
             TestQueryObserverWithChangingQueryParametersWithQuery(n1qlQ, isDefaultCollection: false);
             n1qlQ.Dispose();

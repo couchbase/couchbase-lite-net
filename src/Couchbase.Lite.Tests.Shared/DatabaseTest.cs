@@ -165,10 +165,10 @@ namespace Test
             }
         }
 
-        //[Fact] TODO wait for CBL-3300 fix
+        [Fact]
         public void TestGetDocumentWithEmptyStringId()
         {
-            Db.GetDocument("").Should().BeNull();
+            Db.Invoking(o => o.GetDocument("")).Should().Throw<CouchbaseLiteException>(@"CouchbaseLiteException (LiteCoreDomain / 29): Invalid docID "".");
         }
 
         [Fact]
