@@ -90,9 +90,10 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets the configuration that was used to create this Replicator
         /// </summary>
+        /// <exception cref="CouchbaseLiteException">Thrown if the replicator configuration doesn't contain any collection.</exception>
         [NotNull]
         public ReplicatorConfiguration Config => _config.Collections.Count > 0 ? _config 
-            : throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "There is no collection in the configuration.");
+            : throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Cannot operate on the replicator configuration without any collection.");
 
         /// <summary>
         /// Gets the current status of the <see cref="Replicator"/>
@@ -124,7 +125,7 @@ namespace Couchbase.Lite.Sync
         public Replicator([NotNull]ReplicatorConfiguration config)
         {
             if (config?.Collections.Count <= 0)
-                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Missing replicator config.");
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Replicator configuration cannot be null.");
 
             _config = config.Freeze();
             _databaseThreadSafety = Config.Database.ThreadSafety;

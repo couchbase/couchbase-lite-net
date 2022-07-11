@@ -141,9 +141,10 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets the local database participating in the replication. 
         /// </summary>
+        /// <exception cref="CouchbaseLiteException">Thrown if Database doesn't exist in the replicator configuration.</exception>
         [NotNull]
         public Database Database => Collections.Count > 0 && Collections[0].Database != null ? Collections[0].Database
-            : throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Database is missing in Replication Configuration.");
+            : throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Cannot operate on a missing Database in the Replication Configuration.");
 
         /// <summary>
         /// [DEPRECATED] A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
@@ -153,13 +154,13 @@ namespace Couchbase.Lite.Sync
         [CanBeNull]
         public IList<string> DocumentIDs
         {
-            get => DefaultCollectionConfig.Options.DocIDs; 
-            set { 
+            get => DefaultCollectionConfig.Options.DocIDs;
+            set {
                 _freezer.PerformAction(() =>
                 {
                     DefaultCollectionConfig.Options.DocIDs = value;
                     Options.DocIDs = value;
-                }); 
+                });
             }
         }
 
@@ -332,7 +333,8 @@ namespace Couchbase.Lite.Sync
         public IReadOnlyList<Collection> Collections => CollectionConfigs.Keys.ToList();
 
         //Pre 3.1 Default Collection Config
-        internal CollectionConfiguration DefaultCollectionConfig => CollectionConfigs[Database.DefaultCollection] ?? throw new InvalidOperationException($"Default Collection Configuration does not exist.");
+        internal CollectionConfiguration DefaultCollectionConfig => CollectionConfigs.ContainsKey(Database?.DefaultCollection) ? CollectionConfigs[Database.DefaultCollection] 
+            : throw new InvalidOperationException("Cannot operate on a missing Default Collection Configuration. Please AddCollection(Database.DefaultCollection, CollectionConfiguration).");
 
         internal IDictionary<Collection, CollectionConfiguration> CollectionConfigs { get; set; } = new Dictionary<Collection, CollectionConfiguration>();
 
@@ -428,20 +430,22 @@ namespace Couchbase.Lite.Sync
         /// Add a collection in the replication with an optional collection configuration. 
         /// </summary>
         /// <remarks>
-        /// The given configuration will replace the existing configuration of the given collection.
-        /// Default configuration will apply in the replication if the given configuration is null.
+        /// The given configuration will replace the existing configuration of the given collection in replication.
+        /// Default configuration will apply in the replication of the given collection if the given configuration is null.
         /// Configuration will be read only once applied to the collection in the replication.
         /// </remarks>
         /// <param name="collection"> to be added in the collections' configuration list</param>
         /// <param name="config"> to be added in the collections' configuration list</param>
-        /// <exception cref="ArgumentNullException">will be thrown if collection is null.</exception>
+        /// <exception cref="CouchbaseLiteException">Thrown if database of the given collection doesn't match 
+        /// with the database <see cref="Database"/> of the replicator configuration.</exception>
+        /// <exception cref="ArgumentNullException">Thrown if collection is null.</exception>
         public void AddCollection(Collection collection, [CanBeNull] CollectionConfiguration config = null)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
 
             if (Collections.Count > 0 && collection.Database != Database)
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, 
-                    $"All collections in the configuration must operate on the same database {Database}, but the provided collection database {collection.Database} doesn't match.");
+                    $"The given collection database {collection.Database} doesn't match the database {Database} participating in the replication. All collections in the replication configuration must operate on the same database.");
 
             config = config == null ? new CollectionConfiguration() : new CollectionConfiguration(config);
 
@@ -466,7 +470,7 @@ namespace Couchbase.Lite.Sync
         /// Get a copy of the given collection’s config. 
         /// </summary>
         /// <remarks>
-        /// Use <see cref="AddCollection(Collection, CollectionConfiguration)"/> for any desired collection config update in a replication
+        /// Use <see cref="AddCollection(Collection, CollectionConfiguration)"/> to add or update collection configuration in a replication.
         /// </remarks>
         /// <param name="collection">The collection config belongs to</param>
         /// <returns>The collection config of the given collection</returns>
@@ -474,7 +478,7 @@ namespace Couchbase.Lite.Sync
         public CollectionConfiguration GetCollectionConfig(Collection collection)
         {
             if (!CollectionConfigs.TryGetValue(collection, out var config)) {
-                WriteLog.To.Sync.W(Tag, $"Failed getting collection {collection}'s config.");
+                WriteLog.To.Sync.W(Tag, $"Failed getting the collection {collection}'s config.");
                 return null;
             }
 
