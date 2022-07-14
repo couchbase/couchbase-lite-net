@@ -881,7 +881,7 @@ namespace Couchbase.Lite
             ThreadSafety.DoLocked(() =>
             {
                 if (c4Db == null) {
-                    throw new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted);
+                    throw new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosed);
                 }
 
                 if (_c4coll == IntPtr.Zero || !Native.c4coll_isValid((C4Collection*)_c4coll)) {

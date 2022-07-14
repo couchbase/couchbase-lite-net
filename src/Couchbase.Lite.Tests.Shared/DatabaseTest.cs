@@ -514,7 +514,7 @@ namespace Test
 
             Db.Invoking(d => d.Save(doc))
                 .Should().Throw<InvalidOperationException>()
-                .WithMessage(CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted,
+                .WithMessage(CouchbaseLiteErrorMessage.DBClosed,
                     "because this operation is invalid");
         }
 
@@ -527,7 +527,7 @@ namespace Test
 
             Db.Invoking(d => d.Save(doc))
                 .Should().Throw<InvalidOperationException>()
-                .WithMessage(CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted,
+                .WithMessage(CouchbaseLiteErrorMessage.DBClosed,
                     "because this operation is invalid");
         }
 
