@@ -129,7 +129,7 @@ namespace LiteCore.Interop
         public IntPtr onPropertyDecryption;
         public void* callbackContext;
         public C4SocketFactory* socketFactory;
-        public C4ReplicationCollection collections;
+        public C4ReplicationCollection* collections;
         public IntPtr collectionCount;
     }
 

@@ -644,71 +644,76 @@ namespace Couchbase.Lite.Sync
             return filterFunction(doc, flags);
         }
 
-        private void OnDocEndedWithConflict(List<ReplicatedDocument> replications)
+        private void OnDocEndedWithConflict(List<ReplicatedDocument> replicatedDocs)
         {
             if (_disposed) {
                 return;
             }
 
-            for (int i = 0; i < replications.Count; i++) {
-                var replication = replications[i];
+            for (int i = 0; i < replicatedDocs.Count; i++) {
+                var replicatedDoc = replicatedDocs[i];
                 // Conflict pulling a document -- the revision was added but app needs to resolve it:
-                var safeDocID = new SecureLogString(replication.Id, LogMessageSensitivity.PotentiallyInsecure);
+                var safeDocID = new SecureLogString(replicatedDoc.Id, LogMessageSensitivity.PotentiallyInsecure);
                 WriteLog.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
                 Task t = Task.Run(() =>
                 {
-                    try {
-                        Config.Database.ResolveConflict(replication.Id, Config.ConflictResolver);
-                        replication = replication.ClearError();
+                    try {//TODO
+                        //var coll = Config.Database.GetCollection(replicatedDoc.CollectionName, replicatedDoc.ScopeName);
+                        //var config = Config.CollectionConfigs[coll];
+                        Config.Database.ResolveConflict(replicatedDoc.Id, Config.ConflictResolver);
+                        replicatedDoc = replicatedDoc.ClearError();
                     } catch (CouchbaseException e) {
-                        replication.Error = e;
+                        replicatedDoc.Error = e;
                     } catch (Exception e) {
-                        replication.Error = new CouchbaseLiteException(C4ErrorCode.UnexpectedError, e.Message, e);
+                        replicatedDoc.Error = new CouchbaseLiteException(C4ErrorCode.UnexpectedError, e.Message, e);
                     }
 
-                    if (replication.Error != null) {
-                        WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{replication.Id}' failed", replication.Error);
+                    if (replicatedDoc.Error != null) {
+                        WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{replicatedDoc.Id}' failed", replicatedDoc.Error);
                     }
 
-                    _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, false));
+                    _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replicatedDoc }, false));
                 });
 
                 _conflictTasks.TryAdd(t.ContinueWith(task => _conflictTasks.TryRemove(t, out var dummy)), 0);
             }
         }
 
-        private void OnDocEnded(List<ReplicatedDocument> replications, bool pushing)
+        private void OnDocEnded(List<ReplicatedDocument> replicatedDocs, bool pushing)
         {
             if (_disposed) {
                 return;
             }
             
-            for (int i = 0; i < replications.Count; i++) {
-                var replication = replications[i];
-                var docID = replication.Id;
+            for (int i = 0; i < replicatedDocs.Count; i++) {
+                var replication = replicatedDocs[i];
                 var error = replication.NativeError;
-                var transient = replication.IsTransient;
-                var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
-                var transientStr = transient ? "transient " : String.Empty;
-                var dirStr = pushing ? "pushing" : "pulling";
                 if (error.code > 0) {
+                    var docID = replication.Id;
+                    var transient = replication.IsTransient;
+                    var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
+                    var transientStr = transient ? "transient " : String.Empty;
+                    var dirStr = pushing ? "pushing" : "pulling";
                     WriteLog.To.Sync.I(Tag,
-                        $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
+                        $"{this}: {transientStr} error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
                 }
             }
 
-            _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(replications, pushing));
+            _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(replicatedDocs, pushing));
         }
 
         private bool PullValidateCallback(string collNmae, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
         {
-            return filterCallback(Config.PullFilter, collNmae, scope, docID, revID, value, flags);
+            var coll = Config.Database.GetCollection(collNmae, scope);
+            var config = Config.GetCollectionConfig(coll);
+            return filterCallback(config.PullFilter, collNmae, scope, docID, revID, value, flags);
         }
 
         private bool PushFilterCallback(string collNmae, string scope, [NotNull]string docID, string revID, FLDict* value, DocumentFlags flags)
         {
             var coll = Config.Database.GetCollection(collNmae, scope);
-            return Config.PushFilter(new Document(coll, docID, revID, value), flags);
+            var config = Config.GetCollectionConfig(coll);
+            return config.PushFilter(new Document(coll, docID, revID, value), flags);
         }
 
         private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)
@@ -790,11 +795,49 @@ namespace Couchbase.Lite.Sync
 
                 // Clear the reset flag, it is a one-time thing
                 options.Reset = false;
-
+                //TODO
                 if (Config.PushFilter != null)
                     _nativeParams.PushFilter = PushFilterCallback;
                 if (Config.PullFilter != null)
                     _nativeParams.PullFilter = PullValidateCallback;
+
+                _nativeParams.CollectionCount = (long)Config.Collections.Count;
+                var c4ReplCols = new C4ReplicationCollection[Config.Collections.Count];
+                for (int i = 0; i < Config.Collections.Count; i++) {
+                    var collectionConfig = Config.CollectionConfigs.ElementAt(i);
+                    var col = collectionConfig.Key;
+                    var config = collectionConfig.Value;
+
+                    var colConfigOptions = config.Options;
+
+                    colConfigOptions.Build();
+
+                    using (var collName_ = new C4String(col.Name))
+                    using (var scopeName_ = new C4String(col.Scope.Name)) {
+                        var replicationCollection = new ReplicationCollection(colConfigOptions)
+                        {
+                            CollectionSpec = new C4CollectionSpec()
+                            {
+                                name = collName_.AsFLSlice(),
+                                scope = scopeName_.AsFLSlice()
+                            },
+                            Push = Mkmode(push, continuous),
+                            Pull = Mkmode(pull, continuous),
+                            Context = this
+                        };
+
+                        if (config.PushFilter != null)
+                            replicationCollection.PushFilter = PushFilterCallback;
+                        if (config.PullFilter != null)
+                            replicationCollection.PullFilter = PullValidateCallback;
+
+                        c4ReplCols[i] = replicationCollection.C4ReplicationCol;
+                    }
+                }
+
+                fixed (C4ReplicationCollection* c4ReplCols_ = c4ReplCols) {
+                    _nativeParams.CollectionConfigs = c4ReplCols_;
+                }
 
                 DispatchQueue.DispatchSync(() =>
                 {

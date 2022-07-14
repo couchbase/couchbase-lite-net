@@ -162,6 +162,18 @@ namespace LiteCore.Interop
             }
         }
 
+        public unsafe C4ReplicationCollection* CollectionConfigs
+        {
+            get => _c4Params.collections; 
+            set => _c4Params.collections = value;
+        }
+
+        public long CollectionCount
+        {
+            get => _c4Params.collectionCount.ToInt64();
+            set => _c4Params.collectionCount = (IntPtr)value;
+        }
+
         #endregion
 
         #region Constructors
@@ -189,6 +201,109 @@ namespace LiteCore.Interop
             if (_hasFactory) {
                 GCHandle.FromIntPtr((IntPtr)_factoryKeepAlive.context).Free();
             }
+        }
+
+        #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion
+    }
+
+    internal sealed class ReplicationCollection : IDisposable
+    {
+        #region Variables
+
+        private C4ReplicationCollection _c4ReplicationCol;
+        private C4ReplicatorValidationFunction _pushFilter;
+        private C4ReplicatorValidationFunction _validation;
+
+        #endregion
+
+        #region Properties
+
+        public C4ReplicationCollection C4ReplicationCol => _c4ReplicationCol;
+
+        public unsafe object Context
+        {
+            get => GCHandle.FromIntPtr((IntPtr)_c4ReplicationCol.callbackContext).Target;
+            set {
+                if (_c4ReplicationCol.callbackContext != null) {
+                    GCHandle.FromIntPtr((IntPtr)_c4ReplicationCol.callbackContext).Free();
+                }
+
+                if (value != null) {
+                    _c4ReplicationCol.callbackContext = GCHandle.ToIntPtr(GCHandle.Alloc(value)).ToPointer();
+                }
+            }
+        }
+
+        public C4CollectionSpec CollectionSpec
+        {
+            get => _c4ReplicationCol.collection;
+            set => _c4ReplicationCol.collection = value;
+        }
+
+        public C4ReplicatorMode Pull
+        {
+            get => _c4ReplicationCol.pull;
+            set => _c4ReplicationCol.pull = value;
+        }
+
+        public C4ReplicatorValidationFunction PullFilter
+        {
+            get => _validation;
+            set {
+                _validation = value;
+                _c4ReplicationCol.pullFilter = Marshal.GetFunctionPointerForDelegate(value);
+            }
+        }
+
+        public C4ReplicatorMode Push
+        {
+            get => _c4ReplicationCol.push;
+            set => _c4ReplicationCol.push = value;
+        }
+
+        public C4ReplicatorValidationFunction PushFilter
+        {
+            get => _pushFilter;
+            set {
+                _pushFilter = value;
+                _c4ReplicationCol.pushFilter = Marshal.GetFunctionPointerForDelegate(value);
+            }
+        }
+
+        #endregion
+
+        #region Constructors
+
+        public ReplicationCollection(IDictionary<string, object> options)
+        {
+            if (options != null) {
+                _c4ReplicationCol.optionsDictFleece = (FLSlice)options.FLEncode();
+            }
+        }
+
+        ~ReplicationCollection()
+        {
+            Dispose(true);
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private unsafe void Dispose(bool finalizing)
+        {
+            Native.FLSliceResult_Release((FLSliceResult)_c4ReplicationCol.optionsDictFleece);
+            Context = null;
         }
 
         #endregion
