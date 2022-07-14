@@ -1333,7 +1333,7 @@ namespace Couchbase.Lite
         private void CheckOpen()
         {
             if (IsClosed) {
-                throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted);
             }
         }
 
@@ -1508,7 +1508,7 @@ namespace Couchbase.Lite
         private void CheckOpenAndNotClosing()
         {
             if (IsClosed || _isClosing) {
-                throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosed);
+                throw new InvalidOperationException(CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted);
             }
         }
 

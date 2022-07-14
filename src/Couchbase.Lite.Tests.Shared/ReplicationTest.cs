@@ -1905,14 +1905,14 @@ namespace Test
             using (var replicator = new Replicator(config)) {
                 Db.Close();
                 Action badAct = () => replicator.GetPendingDocumentIDs();
-                badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
+                badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted);
             }
 
             ReopenDB();
             using (var replicator = new Replicator(config)) {
                 OtherDb.Close();
                 Action badAct = () => replicator.GetPendingDocumentIDs();
-                badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
+                badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted);
             }
         }
 
@@ -1923,14 +1923,14 @@ namespace Test
             using (var replicator = new Replicator(config)) {
                 Db.Close();
                 Action badAct = () => replicator.IsDocumentPending("doc1");
-                badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
+                badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted);
             }
 
             ReopenDB();
             using (var replicator = new Replicator(config)) {
                 OtherDb.Close();
                 Action badAct = () => replicator.IsDocumentPending("doc1");
-                badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
+                badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted);
             }
         }
 

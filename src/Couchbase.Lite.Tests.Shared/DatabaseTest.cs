@@ -514,7 +514,7 @@ namespace Test
 
             Db.Invoking(d => d.Save(doc))
                 .Should().Throw<InvalidOperationException>()
-                .WithMessage("Attempt to perform an operation on a closed database.",
+                .WithMessage(CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted,
                     "because this operation is invalid");
         }
 
@@ -527,7 +527,7 @@ namespace Test
 
             Db.Invoking(d => d.Save(doc))
                 .Should().Throw<InvalidOperationException>()
-                .WithMessage("Attempt to perform an operation on a closed database.",
+                .WithMessage(CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted,
                     "because this operation is invalid");
         }
 
