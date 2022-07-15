@@ -81,6 +81,7 @@ namespace Couchbase.Lite.Sync
         private C4CollectionSpec _c4collSpec; //TODO New param for c4repl_getPendingDocIDs & c4repl_isDocumentPending
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
         private IImmutableSet<string> _pendingDocIds;
+        private ReplicatorConfiguration _config;
 
         #endregion
 
@@ -89,8 +90,10 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets the configuration that was used to create this Replicator
         /// </summary>
+        /// <exception cref="CouchbaseLiteException">Thrown if the replicator configuration doesn't contain any collection.</exception>
         [NotNull]
-        public ReplicatorConfiguration Config { get; }
+        public ReplicatorConfiguration Config => _config.Collections.Count > 0 ? _config 
+            : throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Cannot operate on the replicator configuration without any collection.");
 
         /// <summary>
         /// Gets the current status of the <see cref="Replicator"/>
@@ -121,7 +124,11 @@ namespace Couchbase.Lite.Sync
         /// <param name="config">The configuration to use to create the replicator</param>
         public Replicator([NotNull]ReplicatorConfiguration config)
         {
-            Config = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(config), config).Freeze();
+            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(config), config);
+            if (config.Collections.Count <= 0)
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Replicator Configuration must contain at least one collection.");
+
+            _config = config.Freeze();
             _databaseThreadSafety = Config.Database.ThreadSafety;
         }
 

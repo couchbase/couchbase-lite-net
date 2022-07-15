@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 
 using Couchbase.Lite.Internal.Logging;
@@ -89,19 +90,14 @@ namespace Couchbase.Lite.Sync
         [NotNull]private readonly Freezer _freezer = new Freezer();
         private Authenticator _authenticator;
         private bool _continuous;
-        private Func<Document, DocumentFlags, bool> _pushFilter;
-        private Func<Document, DocumentFlags, bool> _pullValidator;
         private Database _otherDb;
         private Uri _remoteUrl;
         private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
         private C4SocketFactory _socketFactory;
-        private IConflictResolver _resolver;
 
         #endregion
 
         #region Properties
-
-        internal IDictionary<Collection, CollectionConfiguration> CollectionConfigs { get; set; }
 
         /// <summary>
         /// Gets or sets the class which will authenticate the replication
@@ -122,8 +118,14 @@ namespace Couchbase.Lite.Sync
         [CanBeNull]
         public IList<string> Channels
         {
-            get => Options.Channels;
-            set => _freezer.PerformAction(() => Options.Channels = value);
+            get => DefaultCollectionConfig.Options.Channels;
+            set {
+                _freezer.PerformAction(() =>
+                {
+                    DefaultCollectionConfig.Options.Channels = value;
+                    Options.Channels = value;
+                });
+            }
         }
 
         /// <summary>
@@ -139,8 +141,10 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets the local database participating in the replication. 
         /// </summary>
+        /// <exception cref="CouchbaseLiteException">Thrown if Database doesn't exist in the replicator configuration.</exception>
         [NotNull]
-        public Database Database { get; }
+        public Database Database => Collections.Count > 0 && Collections[0].Database != null ? Collections[0].Database
+            : throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Cannot operate on a missing Database in the Replication Configuration.");
 
         /// <summary>
         /// [DEPRECATED] A set of document IDs to filter by.  If not null, only documents with these IDs will be pushed
@@ -150,8 +154,14 @@ namespace Couchbase.Lite.Sync
         [CanBeNull]
         public IList<string> DocumentIDs
         {
-            get => Options.DocIDs;
-            set => _freezer.PerformAction(() =>  Options.DocIDs = value);
+            get => DefaultCollectionConfig.Options.DocIDs;
+            set {
+                _freezer.PerformAction(() =>
+                {
+                    DefaultCollectionConfig.Options.DocIDs = value;
+                    Options.DocIDs = value;
+                });
+            }
         }
 
         /// <summary>
@@ -200,8 +210,8 @@ namespace Couchbase.Lite.Sync
         [CanBeNull]
         public Func<Document, DocumentFlags, bool> PullFilter
         {
-            get => _pullValidator;
-            set => _freezer.PerformAction(() => _pullValidator = value);
+            get => DefaultCollectionConfig.PullFilter;
+            set => _freezer.PerformAction(() => DefaultCollectionConfig.PullFilter = value);
         }
 
         /// <summary>
@@ -213,8 +223,8 @@ namespace Couchbase.Lite.Sync
         [CanBeNull]
         public Func<Document, DocumentFlags, bool> PushFilter
         {
-            get => _pushFilter;
-            set => _freezer.PerformAction(() => _pushFilter = value);
+            get => DefaultCollectionConfig.PushFilter;
+            set => _freezer.PerformAction(() => DefaultCollectionConfig.PushFilter = value);
         }
 
         /// <summary>
@@ -313,9 +323,20 @@ namespace Couchbase.Lite.Sync
         [CanBeNull]
         public IConflictResolver ConflictResolver
         {
-            get => _resolver;
-            set => _freezer.PerformAction(() => _resolver = value);
+            get => DefaultCollectionConfig.ConflictResolver;
+            set => _freezer.PerformAction(() => DefaultCollectionConfig.ConflictResolver = value);
         }
+
+        /// <summary>
+        /// The collections in the replication.
+        /// </summary>
+        public IReadOnlyList<Collection> Collections => CollectionConfigs.Keys.ToList();
+
+        //Pre 3.1 Default Collection Config
+        internal CollectionConfiguration DefaultCollectionConfig => CollectionConfigs.ContainsKey(Database?.DefaultCollection) ? CollectionConfigs[Database.DefaultCollection] 
+            : throw new InvalidOperationException("Cannot operate on a missing Default Collection Configuration. Please AddCollection(Database.DefaultCollection, CollectionConfiguration).");
+
+        internal IDictionary<Collection, CollectionConfiguration> CollectionConfigs { get; set; } = new Dictionary<Collection, CollectionConfiguration>();
 
         internal TimeSpan CheckpointInterval
         {
@@ -354,6 +375,12 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Constructs a new builder object with the required properties
         /// </summary>
+        /// <remarks>
+        /// After the ReplicatorConfiguration created, use <see cref="AddCollection(Collection, CollectionConfiguration)"/> 
+        /// or <see cref="AddCollections(IList<Collection>, CollectionConfiguration)"/> to
+        /// configure the collections in the replication with the target. If there is no collection
+        /// specified, the replicator will not start with a no collections specified error.
+        /// </remarks>
         /// <param name="target">The endpoint to replicate to, either local or remote</param>
         /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
         /// is provided as <paramref name="target"/></exception>
@@ -363,7 +390,6 @@ namespace Couchbase.Lite.Sync
 
             var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
             castTarget.Visit(this);
-
         }
 
         /// <summary>
@@ -373,43 +399,86 @@ namespace Couchbase.Lite.Sync
         /// <param name="target">The endpoint to replicate to, either local or remote</param>
         /// <exception cref="ArgumentException">Thrown if an unsupported <see cref="IEndpoint"/> implementation
         /// is provided as <paramref name="target"/></exception>
-        [Obsolete("Constructor ReplicatorConfiguration([NotNull] Database database, [NotNull] IEndpoint target) is deprecated, please use ReplicatorConfiguration([NotNull] IEndpoint target)")]
+        [Obsolete("Constructor ReplicatorConfiguration(Database, IEndpoint) is deprecated, please use ReplicatorConfiguration(IEndpoint)")]
         public ReplicatorConfiguration([NotNull] Database database, [NotNull] IEndpoint target)
+            :this(target)
         {
-            Database = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(database), database);
-            Target = CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(target), target);
-
-            var castTarget = Misc.TryCast<IEndpoint, IEndpointInternal>(target);
-            castTarget.Visit(this);
+            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(database), database);
+            AddCollection(database.DefaultCollection);
         }
 
         #endregion
 
-        #region Public Methods - Scopes and Collections
+        #region Public Methods - Collections' Replicator Configurations
 
-        public void AddCollections(IList<Collection> collections, [CanBeNull]CollectionConfiguration config = null)
+        /// <summary>
+        /// Add a list of collections in the replication with an optional shared configuration. 
+        /// </summary>
+        /// <param name="collections"> that the given config will apply to</param>
+        /// <param name="config"> will apply to the given collections</param>
+        public void AddCollections(IList<Collection> collections, [CanBeNull] CollectionConfiguration config = null)
         {
+            if (collections == null || collections.Count == 0)
+                return;
+
             foreach(var col in collections) {
-                CollectionConfigs.Add(col, config);
+                AddCollection(col, config);
             }
         }
 
+        /// <summary>
+        /// Add a collection in the replication with an optional collection configuration. 
+        /// </summary>
+        /// <remarks>
+        /// The given configuration will replace the existing configuration of the given collection in replication.
+        /// Default configuration will apply in the replication of the given collection if the given configuration is null.
+        /// Configuration will be read only once applied to the collection in the replication.
+        /// </remarks>
+        /// <param name="collection"> to be added in the collections' configuration list</param>
+        /// <param name="config"> to be added in the collections' configuration list</param>
+        /// <exception cref="CouchbaseLiteException">Thrown if database of the given collection doesn't match 
+        /// with the database <see cref="Database"/> of the replicator configuration.</exception>
+        /// <exception cref="ArgumentNullException">Thrown if collection is null.</exception>
         public void AddCollection(Collection collection, [CanBeNull] CollectionConfiguration config = null)
         {
-            CollectionConfigs.Add(collection, config);
+            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
+
+            if (Collections.Count > 0 && collection.Database != Database)
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, 
+                    $"The given collection database {collection.Database} doesn't match the database {Database} participating in the replication. All collections in the replication configuration must operate on the same database.");
+
+            config = config == null ? new CollectionConfiguration() : new CollectionConfiguration(config);
+
+            if (CollectionConfigs.ContainsKey(collection))
+                CollectionConfigs.Remove(collection);
+
+            if (!CollectionConfigs.TryAdd(collection, config)) {
+                WriteLog.To.Sync.W(Tag, $"Failed adding collection {collection}'s config as {config}.");
+            } 
         }
 
+        /// <summary>
+        /// Remove the give collection and it's configuration from the replication.
+        /// </summary>
+        /// <param name="collection"> to be removed</param>
         public void RemoveCollection(Collection collection)
         {
             CollectionConfigs.Remove(collection);
         }
 
+        /// <summary>
+        /// Get a copy of the given collection’s config. 
+        /// </summary>
+        /// <remarks>
+        /// Use <see cref="AddCollection(Collection, CollectionConfiguration)"/> to add or update collection configuration in a replication.
+        /// </remarks>
+        /// <param name="collection">The collection config belongs to</param>
+        /// <returns>The collection config of the given collection</returns>
         [NotNull]
         public CollectionConfiguration GetCollectionConfig(Collection collection)
         {
-            CollectionConfiguration config = null;
-            if (!CollectionConfigs.TryGetValue(collection, out config)) {
-                WriteLog.To.Sync.W(Tag, $"Failed getting config.");
+            if (!CollectionConfigs.TryGetValue(collection, out var config)) {
+                WriteLog.To.Sync.W(Tag, $"Failed getting the collection {collection}'s config.");
                 return null;
             }
 
@@ -423,18 +492,20 @@ namespace Couchbase.Lite.Sync
         [NotNull]
         internal ReplicatorConfiguration Freeze()
         {
-            var retVal = new ReplicatorConfiguration(Database, Target)
+            foreach (var cc in CollectionConfigs) {
+                cc.Value.Freeze();
+            }
+
+            var retVal = new ReplicatorConfiguration(Target)
             {
                 Authenticator = Authenticator,
-                #if COUCHBASE_ENTERPRISE
+#if COUCHBASE_ENTERPRISE
                 AcceptOnlySelfSignedServerCertificate = AcceptOnlySelfSignedServerCertificate,
-                #endif
+#endif
                 Continuous = Continuous,
-                PushFilter = PushFilter,
-                PullFilter = PullFilter,
                 ReplicatorType = ReplicatorType,
-                ConflictResolver = ConflictResolver,
-                Options = Options
+                Options = Options,
+                CollectionConfigs = CollectionConfigs
             };
 
             retVal._freezer.Freeze("Cannot modify a ReplicatorConfiguration that is in use");
