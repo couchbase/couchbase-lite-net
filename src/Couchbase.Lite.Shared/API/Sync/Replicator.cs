@@ -124,8 +124,9 @@ namespace Couchbase.Lite.Sync
         /// <param name="config">The configuration to use to create the replicator</param>
         public Replicator([NotNull]ReplicatorConfiguration config)
         {
-            if (config?.Collections.Count <= 0)
-                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Replicator configuration cannot be null.");
+            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(config), config);
+            if (config.Collections.Count <= 0)
+                throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Replicator Configuration must contain at least one collection.");
 
             _config = config.Freeze();
             _databaseThreadSafety = Config.Database.ThreadSafety;
