@@ -301,7 +301,7 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// Gets a list of document IDs that are going to be pushed, but have not been pushed yet
+        /// [DEPRECATED] Gets a list of document IDs that are going to be pushed, but have not been pushed yet
         /// <item type="bullet">
         /// <description>API is a snapshot and results may change between the time the call was made and the time</description>
         /// </item>
@@ -309,49 +309,15 @@ namespace Couchbase.Lite.Sync
         /// <returns>An immutable set of strings, each of which is a document ID</returns>
         /// <exception cref="CouchbaseLiteException">Thrown if no push replication</exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        [Obsolete("GetPendingDocumentIDs() is deprecated, please use GetPendingDocumentIDs(Collection collection)")]
         [NotNull]
         public IImmutableSet<string> GetPendingDocumentIDs()
         {
-            var result = new HashSet<string>();
-            if (!IsPushing()) {
-                CBDebug.LogAndThrow(WriteLog.To.Sync,
-                    new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
-                    Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
-            }
-
-            DispatchQueue.DispatchSync(() => {
-                var errSetupRepl = SetupC4Replicator();
-                if (errSetupRepl.code > 0) {
-                    CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString(), true);
-                }
-            });
-
-            byte[] pendingDocIds = LiteCoreBridge.Check(err =>
-            {
-                return Native.c4repl_getPendingDocIDs(_repl, _c4collSpec, err);
-            });
-            
-            if (pendingDocIds != null) {
-                _databaseThreadSafety.DoLocked(() => {
-                    var flval = Native.FLValue_FromData(pendingDocIds, FLTrust.Trusted);
-                    var flarr = Native.FLValue_AsArray(flval);
-                    var cnt = (int) Native.FLArray_Count(flarr);
-                    for (int i = 0; i < cnt; i++) {
-                        var flv = Native.FLArray_Get(flarr, (uint) i);
-                        result.Add(Native.FLValue_AsString(flv));
-                    }
-
-                    Array.Clear(pendingDocIds, 0, pendingDocIds.Length);
-                    pendingDocIds = null;
-                });
-            }
-
-            _pendingDocIds = result.ToImmutableHashSet<string>();
-            return _pendingDocIds;
+            return GetPendingDocumentIDs(Config.Database.DefaultCollection);
         }
 
         /// <summary>
-        /// Checks whether or not a document with the given ID has any pending revisions to push
+        /// [DEPRECATED] Checks whether or not a document with the given ID has any pending revisions to push
         /// </summary>
         /// <param name="documentID">The document ID</param>
         /// <returns>A bool which represents whether or not the document with the corresponding ID has one or more pending revisions.  
@@ -359,9 +325,27 @@ namespace Couchbase.Lite.Sync
         /// and <c>false</c> means that all revisions on the document have been pushed</returns>
         /// <exception cref="CouchbaseLiteException">Thrown if no push replication</exception>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        [Obsolete("IsDocumentPending(string documentID) is deprecated, please use IsDocumentPending(string documentID, Collection collection)")]
         public bool IsDocumentPending([NotNull]string documentID)
         {
+            return IsDocumentPending(documentID, Config.Database.DefaultCollection);
+        }
+
+        /// <summary>
+        /// Checks whether or not a document with the given ID in the given collection is pending to push or not. 
+        /// If the given collection is not part of the replication, an Invalid Parameter Exception will be thrown.
+        /// </summary>
+        /// <param name="documentID">The document ID</param>
+        /// <param name="collection">The collection contains the doc with the given document ID</param>
+        /// <returns>A bool which represents whether or not the document with the corresponding ID has one or more pending revisions.  
+        /// <c>true</c> means that one or more revisions have not been pushed to the remote yet, 
+        /// and <c>false</c> means that all revisions on the document have been pushed</returns>
+        /// <exception cref="CouchbaseLiteException">Thrown if no push replication</exception>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        public bool IsDocumentPending([NotNull] string documentID, [NotNull] Collection collection)
+        {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(documentID), documentID);
+            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
             bool isDocPending = false;
 
             if (!IsPushing()) {
@@ -377,13 +361,87 @@ namespace Couchbase.Lite.Sync
                 }
             });
 
-            LiteCoreBridge.Check(err => 
-            {
-                isDocPending = Native.c4repl_isDocumentPending(_repl, documentID, _c4collSpec, err);
-                return isDocPending;
-            });
+            using (var collName_ = new C4String(collection.Name))
+            using (var scopeName_ = new C4String(collection.Scope.Name)) {
+                var collectionSpec = new C4CollectionSpec()
+                {
+                    name = collName_.AsFLSlice(),
+                    scope = scopeName_.AsFLSlice()
+                };
+
+                LiteCoreBridge.Check(err =>
+                {
+                    isDocPending = Native.c4repl_isDocumentPending(_repl, documentID, collectionSpec, err);
+                    return isDocPending;
+                });
+            }
 
             return isDocPending;
+        }
+
+        /// <summary>
+        /// Gets a list of document IDs of docs in the given collection that are going to be pushed, but have not been pushed yet. 
+        /// If the given collection is not part of the replication, an Invalid Parameter Exception will be thrown.
+        /// <item type="bullet">
+        /// <description>API is a snapshot and results may change between the time the call was made and the time</description>
+        /// </item>
+        /// </summary>
+        /// <param name="collection">The collection contains the list of document IDs of docs</param>
+        /// <returns>An immutable set of strings, each of which is a document ID</returns>
+        /// <exception cref="CouchbaseLiteException">Thrown if no push replication</exception>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        [NotNull]
+        public IImmutableSet<string> GetPendingDocumentIDs([NotNull] Collection collection)
+        {
+            CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
+            var result = new HashSet<string>();
+            byte[] pendingDocIds = null;
+
+            if (!IsPushing()) {
+                CBDebug.LogAndThrow(WriteLog.To.Sync,
+                    new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
+                    Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
+            }
+
+            DispatchQueue.DispatchSync(() => {
+                var errSetupRepl = SetupC4Replicator();
+                if (errSetupRepl.code > 0) {
+                    CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString(), true);
+                }
+            });
+
+            using (var collName_ = new C4String(collection.Name))
+            using (var scopeName_ = new C4String(collection.Scope.Name)) {
+                var collectionSpec = new C4CollectionSpec()
+                {
+                    name = collName_.AsFLSlice(),
+                    scope = scopeName_.AsFLSlice()
+                };
+
+                pendingDocIds = LiteCoreBridge.Check(err =>
+                {
+                    return Native.c4repl_getPendingDocIDs(_repl, collectionSpec, err);
+                });
+
+                if (pendingDocIds != null) {
+                    _databaseThreadSafety.DoLocked(() =>
+                    {
+                        var flval = Native.FLValue_FromData(pendingDocIds, FLTrust.Trusted);
+                        var flarr = Native.FLValue_AsArray(flval);
+                        var cnt = (int)Native.FLArray_Count(flarr);
+                        for (int i = 0; i < cnt; i++) {
+                            var flv = Native.FLArray_Get(flarr, (uint)i);
+                            result.Add(Native.FLValue_AsString(flv));
+                        }
+
+                        Array.Clear(pendingDocIds, 0, pendingDocIds.Length);
+                        pendingDocIds = null;
+                    });
+                }
+            }
+
+            _pendingDocIds = result.ToImmutableHashSet<string>();
+            return _pendingDocIds;
         }
 
         #endregion
