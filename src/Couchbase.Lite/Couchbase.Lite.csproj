@@ -1,9 +1,16 @@
 ﻿<Project Sdk="MSBuild.Sdk.Extras">
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
-    <TargetFrameworks Condition=" !$(Configuration.EndsWith('Coverage')) ">netstandard2.0;netcoreapp3.1;net6.0;net461;uap10.0.19041;MonoAndroid80;Xamarin.iOS10</TargetFrameworks>
+    <TargetFrameworks Condition=" !$(Configuration.EndsWith('Coverage')) ">netstandard2.0;netcoreapp3.1;net6.0;net6.0-android;net6.0-ios;net6.0-maccatalyst;net462;uap10.0.19041;MonoAndroid80;Xamarin.iOS10</TargetFrameworks>
     <TargetFrameworks Condition=" $(Configuration.EndsWith('Coverage')) ">netcoreapp3.1;net6.0</TargetFrameworks>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net6.0-windows10.0.19041.0</TargetFrameworks>
+    <SingleProject>true</SingleProject>
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.0</SupportedOSPlatformVersion>
+	<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
+	<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">22.0</SupportedOSPlatformVersion>
+	<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.20348.0</SupportedOSPlatformVersion>
+	<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</TargetPlatformMinVersion>
     <AssemblyName>Couchbase.Lite</AssemblyName>
     <PackageId>Couchbase.Lite</PackageId>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
@@ -42,16 +49,16 @@
     <DefineConstants>TRACE;LITECORE_PACKAGED;TEST_COVERAGE</DefineConstants>
     <EnableSourceLink>false</EnableSourceLink>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'net461' or $(TargetFramework.StartsWith('netcoreapp')) or $(TargetFramework.StartsWith('net6')) ">
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net462' or $(TargetFramework.StartsWith('netcoreapp')) or $(TargetFramework.StartsWith('net6')) ">
     <DefineConstants>$(DefineConstants);NEEDS_LITECORE_LOAD</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <DotNetCliToolReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="dotnet-sourcelink" Version="2.1.2" />
-    <PackageReference Include="SimpleInjector" Version="5.2.0" />
+    <PackageReference Include="SimpleInjector" Version="5.3.3" />
     <PackageReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="SourceLink.Create.GitHub" Version="2.7.5" PrivateAssets="all" />
     <PackageReference Include="GitInfo" Version="2.0.20" PrivateAssets="all" />
-	<PackageReference Include="System.Collections.Immutable" Version="1.2.5.0" />
+	<PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
     <DotNetCliToolReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="dotnet-sourcelink-git" Version="2.1.2" />
   </ItemGroup>
 
@@ -59,11 +66,11 @@
     <PackageReference Include="Microsoft.Win32.Registry" Version="4.5.0" />
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net461' or $(TargetFramework.StartsWith('netcoreapp')) or $(TargetFramework.StartsWith('net6')) ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' or $(TargetFramework.StartsWith('netcoreapp')) or $(TargetFramework.StartsWith('net6')) or $([MSBuild]::IsOSPlatform('windows'))">
     <ProjectReference Include="..\..\src\Couchbase.Lite.Support.NetDesktop\Couchbase.Lite.Support.NetDesktop.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition=" $(TargetFramework.StartsWith('MonoAndroid')) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
+  <ItemGroup Condition=" $(TargetFramework.StartsWith('MonoAndroid')) or $(TargetFramework.EndsWith('android')) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
     <ProjectReference Include="..\..\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" />
   </ItemGroup>
 
@@ -84,6 +91,24 @@
       <DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
     </Compile>
   </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+		<PackageReference Include="CommunityToolkit.Maui.Core">
+			<Version>1.0.0</Version>
+		</PackageReference>
+		<PackageReference Include="System.Runtime.InteropServices.NFloat.Internal">
+			<Version>6.0.1</Version>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0-windows10.0.19041.0'">
+		<PackageReference Include="CommunityToolkit.Maui.Core">
+			<Version>1.0.0</Version>
+		</PackageReference>
+		<PackageReference Include="System.Runtime.InteropServices.NFloat.Internal">
+			<Version>6.0.1</Version>
+		</PackageReference>
+	</ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" />
   <Import Project="..\LiteCore\src\LiteCore.Shared\LiteCore.Shared.projitems" Label="Shared" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TextTemplating\Microsoft.TextTemplating.targets" Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TextTemplating\Microsoft.TextTemplating.targets')"  />
