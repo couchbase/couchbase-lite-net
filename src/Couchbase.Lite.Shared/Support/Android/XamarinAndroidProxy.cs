@@ -36,14 +36,14 @@ namespace Couchbase.Lite.Support
             string host = JavaSystem.GetProperty("http.proxyHost")?.TrimEnd('/');
             string port = JavaSystem.GetProperty("http.proxyPort");
 
-            if (host == null)
+            if (!Uri.TryCreate(host, UriKind.RelativeOrAbsolute, out var validUri))
                 return Task.FromResult<WebProxy>(null);
 
             //proxy auth
             //ICredentials credentials = new NetworkCredential("username", "password");
             //WebProxy proxy = new WebProxy(new Uri(host+':'+port), true, null, credentials);
             
-            return Task.FromResult(new WebProxy(host, Int32.Parse(port)));
+            return Task.FromResult(new WebProxy(validUri.Host, Int32.Parse(port)));
         }
 
         #endregion
