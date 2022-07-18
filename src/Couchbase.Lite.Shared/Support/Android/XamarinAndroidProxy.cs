@@ -32,21 +32,19 @@ namespace Couchbase.Lite.Support
 
         public Task<WebProxy> CreateProxyAsync(Uri destination)
         {
+            WebProxy webproxy = null;
             // if a proxy is enabled set it up here
             string host = JavaSystem.GetProperty("http.proxyHost")?.TrimEnd('/');
             string port = JavaSystem.GetProperty("http.proxyPort");
 
-            if (!Uri.TryCreate(host, UriKind.RelativeOrAbsolute, out var validUri) ||
-                !Int32.TryParse(port, out var validPort)) {
-                WriteLog.To.Sync.W("CreateProxyAsync", "Invalid proxy host or port is detected. Please check your system proxy setting.");
+            try {
+                webproxy = new WebProxy(host, Int32.Parse(port));
+            } catch { // UriFormatException
+                WriteLog.To.Sync.W("CreateProxyAsync", "The URI formed by combining Host and Port is not a valid URI. Please check your system proxy setting.");
                 return Task.FromResult<WebProxy>(null);
             }
 
-            //proxy auth
-            //ICredentials credentials = new NetworkCredential("username", "password");
-            //WebProxy proxy = new WebProxy(new Uri(host+':'+port), true, null, credentials);
-            
-            return Task.FromResult(new WebProxy(validUri.Host, validPort));
+            return Task.FromResult(webproxy);
         }
 
         #endregion
