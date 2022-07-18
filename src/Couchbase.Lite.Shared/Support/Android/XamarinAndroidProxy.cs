@@ -21,7 +21,7 @@ using System.Net;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
-
+using Couchbase.Lite.Internal.Logging;
 using Java.Lang;
 
 namespace Couchbase.Lite.Support
@@ -37,8 +37,10 @@ namespace Couchbase.Lite.Support
             string port = JavaSystem.GetProperty("http.proxyPort");
 
             if (!Uri.TryCreate(host, UriKind.RelativeOrAbsolute, out var validUri) ||
-                !Int32.TryParse(port, out var validPort))
+                !Int32.TryParse(port, out var validPort)) {
+                WriteLog.To.Sync.W("CreateProxyAsync", "Invalid proxy host or port is detected. Please check your system proxy setting.");
                 return Task.FromResult<WebProxy>(null);
+            }
 
             //proxy auth
             //ICredentials credentials = new NetworkCredential("username", "password");
