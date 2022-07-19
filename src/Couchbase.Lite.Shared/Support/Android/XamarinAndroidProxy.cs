@@ -21,7 +21,7 @@ using System.Net;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
-
+using Couchbase.Lite.Internal.Logging;
 using Java.Lang;
 
 namespace Couchbase.Lite.Support
@@ -32,18 +32,19 @@ namespace Couchbase.Lite.Support
 
         public Task<WebProxy> CreateProxyAsync(Uri destination)
         {
+            WebProxy webproxy = null;
             // if a proxy is enabled set it up here
             string host = JavaSystem.GetProperty("http.proxyHost")?.TrimEnd('/');
             string port = JavaSystem.GetProperty("http.proxyPort");
 
-            if (host == null)
+            try {
+                webproxy = new WebProxy(host, Int32.Parse(port));
+            } catch { // UriFormatException
+                WriteLog.To.Sync.W("CreateProxyAsync", "The URI formed by combining Host and Port is not a valid URI. Please check your system proxy setting.");
                 return Task.FromResult<WebProxy>(null);
+            }
 
-            //proxy auth
-            //ICredentials credentials = new NetworkCredential("username", "password");
-            //WebProxy proxy = new WebProxy(new Uri(host+':'+port), true, null, credentials);
-            
-            return Task.FromResult(new WebProxy(host, Int32.Parse(port)));
+            return Task.FromResult(webproxy);
         }
 
         #endregion
