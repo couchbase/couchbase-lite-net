@@ -50,35 +50,40 @@ pipeline {
                         // }
                     }
                 }
-				stage("Linux Node") {
-                    agent { label 's61113u16 (litecore)' }
-                    environment {
-                        NETCORE_VERSION = "${BRANCH_NAME == "release/hydrogen" ? "netcoreapp2.0" : "netcoreapp3.1"}"
-                    }
-                    stages {
-                        stage("Checkout") {
-                            steps {
-                                sh '''#!/bin/bash
-                                git clone https://github.com/couchbase/couchbase-lite-net --branch $BRANCH_NAME --depth 1 couchbase-lite-net || \
-                                    git clone https://github.com/couchbase/couchbase-lite-net --branch $CHANGE_TARGET --depth 1 couchbase-lite-net
-								
+	            stage("Linux Node") {
+		            agent { label 's61113u16 (litecore)' }
+		            environment {
+				        NETCORE_VERSION = "${BRANCH_NAME == "release/hydrogen" ? "netcoreapp2.0" : "netcoreapp3.1"}"
+		            }
+		            stages {
+				        stage("Checkout") {
+					        steps {
+							    sh '''#!/bin/bash
+							    set -e
+                                shopt -s extglob dotglob
+                                mkdir tmp
+                                mv !(tmp) tmp
+                                git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $BRANCH_NAME --depth 1 couchbase-lite-net-ee || \
+                                    git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $CHANGE_TARGET --depth 1 couchbase-lite-net-ee
+                                mv couchbase-lite-net-ee/* .
+                                mv tmp/* couchbase-lite-net
+                                rmdir tmp
                                 pushd couchbase-lite-net
                                 git submodule update --init --recursive
                                 popd
-
                                 pushd jenkins
                                 git clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 proj
                                 popd
                                 '''
                             }
                         }
-                        stage(".NET Core Linux") {
-                            steps {
-                                sh 'jenkins/run_unix_tests.sh'
-                            }
-                        }
-                    }
-                }
+				        stage(".NET Core Linux") {
+					        steps {
+							    sh 'jenkins/run_unix_tests.sh'
+					        }
+				        }
+		            }
+	            }
 	            stage("Mac Node") {
 		            agent { label 'dotnet-mobile-mac-mini'  }
 			        environment {
