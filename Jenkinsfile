@@ -6,12 +6,12 @@ pipeline {
     stages {
 	    stage("Entry") {
             parallel {
-                stage("Windows Node") {
-                    agent { label 'couchbase-lite-net-validation' }
-                    environment {
+	            stage("Windows Node") {
+		            agent { label 'couchbase-lite-net-validation' }
+		            environment {
                         NETCORE_VERSION = "${env.BRANCH_NAME == "release/hydrogen" ? "netcoreapp2.0" : "netcoreapp3.1"}"
-                    }
-                    stages {
+		            }
+		            stages {
                         stage("Checkout") {
                             steps {
                                 powershell '''
@@ -48,9 +48,9 @@ pipeline {
                         //         powershell 'jenkins\\run_uwp_tests.ps1'
                         //     }
                         // }
-                    }
-                }
-	            stage("Linux Node") {
+		            }
+	            }
+                stage("Linux Node") {
 		            agent { label 's61113u16 (litecore)' }
 		            environment {
 				        NETCORE_VERSION = "${BRANCH_NAME == "release/hydrogen" ? "netcoreapp2.0" : "netcoreapp3.1"}"
@@ -58,28 +58,32 @@ pipeline {
 		            stages {
 				        stage("Checkout") {
 					        steps {
-							    sh '''#!/bin/bash
-							    set -e
-                                shopt -s extglob dotglob
-                                mkdir tmp
-                                mv !(tmp) tmp
-                                git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $BRANCH_NAME --depth 1 couchbase-lite-net-ee || \
+						        sh '''#!/bin/bash
+						        set -e
+						        shopt -s extglob dotglob
+						        mkdir tmp
+						        mv !(tmp) tmp
+						        git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $BRANCH_NAME --depth 1 couchbase-lite-net-ee || \
                                     git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $CHANGE_TARGET --depth 1 couchbase-lite-net-ee
-                                mv couchbase-lite-net-ee/* .
-                                mv tmp/* couchbase-lite-net
-                                rmdir tmp
-                                pushd couchbase-lite-net
-                                git submodule update --init --recursive
-                                popd
-                                pushd jenkins
-                                git clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 proj
-                                popd
-                                '''
+						        mv couchbase-lite-net-ee/* .
+						        mv tmp/* couchbase-lite-net
+						        rmdir tmp
+						        pushd couchbase-lite-net
+						        git submodule update --init --recursive
+						        popd
+						        pushd jenkins
+						        git clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 proj
+						        popd
+						        '''
                             }
-                        }
+				        }
 				        stage(".NET Core Linux") {
 					        steps {
-							    sh 'jenkins/run_unix_tests.sh'
+						        catchError {
+                                    sh 'jenkins/run_unix_tests.sh'
+						        }
+								
+						        echo currentBuild.result
 					        }
 				        }
 		            }

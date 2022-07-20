@@ -17,11 +17,12 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 pushd $SCRIPT_DIR/../couchbase-lite-net/vendor/couchbase-lite-core/build_cmake
 Sha=`"$SCRIPT_DIR/amalgamate_sha.sh"`
 
+if [[ "$OSTYPE" != "darwin"* ]]; then
 python3 -m venv myenv
-myenv/bin/activate
-pip install GitPython
-python $SCRIPT_DIR/../couchbase-lite-net/vendor/couchbase-lite-core/scripts/fetch_litecore.py -v $VARIANTS $DEBUG_LIB -s $Sha -o $SCRIPT_DIR/../couchbase-lite-net/vendor/couchbase-lite-core/build_cmake
-myenv/bin/deactivate
+pip3 install GitPython
+fi
+
+python3 $SCRIPT_DIR/../couchbase-lite-net/vendor/couchbase-lite-core/tools/fetch_litecore.py -v $VARIANTS $DEBUG_LIB -s $Sha -o $SCRIPT_DIR/../couchbase-lite-net/vendor/couchbase-lite-core/build_cmake
 
 if [ -f "macos/x86_64/lib/libLiteCore.dylib" ]; then
     mv -f macos/x86_64/lib/libLiteCore.dylib libLiteCore.dylib
