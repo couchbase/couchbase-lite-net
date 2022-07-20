@@ -19,8 +19,8 @@ Sha=`"$SCRIPT_DIR/amalgamate_sha.sh"`
 
 python3 -m venv myenv
 myenv/bin/activate
-pip3 install GitPython
-python3 $SCRIPT_DIR/../couchbase-lite-net/vendor/couchbase-lite-core/scripts/fetch_litecore.py -v $VARIANTS $DEBUG_LIB -s $Sha -o $SCRIPT_DIR/../couchbase-lite-net/vendor/couchbase-lite-core/build_cmake
+pip install GitPython
+python $SCRIPT_DIR/../couchbase-lite-net/vendor/couchbase-lite-core/scripts/fetch_litecore.py -v $VARIANTS $DEBUG_LIB -s $Sha -o $SCRIPT_DIR/../couchbase-lite-net/vendor/couchbase-lite-core/build_cmake
 myenv/bin/deactivate
 
 if [ -f "macos/x86_64/lib/libLiteCore.dylib" ]; then
