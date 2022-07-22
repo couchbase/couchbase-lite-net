@@ -68,7 +68,7 @@ namespace Couchbase.Lite.Support
 
         #region Internal Methods
 
-        internal static void LoadLiteCore()
+        public static void LoadLiteCore()
         {
             if (Interlocked.Exchange(ref _Activated, 1) == 1) {
                 return;
@@ -90,10 +90,10 @@ namespace Couchbase.Lite.Support
                     nugetBase = Path.GetDirectoryName(nugetBase);
                 }
 
-                var dllPath = Path.Combine(codeBase, architecture, "LiteCore.dll");
-                var dllPathAsp = Path.Combine(codeBase, "bin", architecture, "LiteCore.dll");
+                var dllPath = Path.Combine(codeBase??"", architecture, "LiteCore.dll");
+                var dllPathAsp = Path.Combine(codeBase??"", "bin", architecture, "LiteCore.dll");
                 var dllPathNuget =
-                    Path.Combine(nugetBase, "runtimes", $"win7-{architecture}", "native", "LiteCore.dll");
+                    Path.Combine(nugetBase??"", "runtimes", $"win7-{architecture}", "native", "LiteCore.dll");
                 var foundPath = default(string);
                 foreach (var path in new[] {dllPathNuget, dllPath, dllPathAsp}) {
                     foundPath = File.Exists(path) ? path : null;
