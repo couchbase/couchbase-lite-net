@@ -452,9 +452,7 @@ namespace Couchbase.Lite.Sync
             if (CollectionConfigs.ContainsKey(collection))
                 CollectionConfigs.Remove(collection);
 
-            if (!CollectionConfigs.TryAdd(collection, config)) {
-                WriteLog.To.Sync.W(Tag, $"Failed adding collection {collection}'s config as {config}.");
-            } 
+            CollectionConfigs.Add(collection, config);
         }
 
         /// <summary>
