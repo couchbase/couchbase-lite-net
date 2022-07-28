@@ -102,6 +102,8 @@ namespace LiteCore.Interop
                 _errorIsTransient = Convert.ToByte(value);
             }
         }
+
+        public void* collectionContext;
     }
 
 	internal unsafe struct C4ReplicationCollection

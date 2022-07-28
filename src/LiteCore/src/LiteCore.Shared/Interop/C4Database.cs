@@ -112,4 +112,16 @@ namespace LiteCore.Interop
 
         #endregion
     }
+
+    [ExcludeFromCodeCoverage]
+    internal sealed class CollectionSpec
+    {
+        #region Properties
+
+        public string Name { get; set; }
+
+        public string Scope { get; set; }
+
+        #endregion
+    }
 }

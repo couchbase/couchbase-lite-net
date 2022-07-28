@@ -78,7 +78,6 @@ namespace Couchbase.Lite.Sync
         private C4ReplicatorStatus _rawStatus;
         private IReachability _reachability;
         private C4Replicator* _repl;
-        private C4CollectionSpec _c4collSpec; //TODO New param for c4repl_getPendingDocIDs & c4repl_isDocumentPending
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
         private IImmutableSet<string> _pendingDocIds;
         private ReplicatorConfiguration _config;
@@ -348,7 +347,7 @@ namespace Couchbase.Lite.Sync
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
             bool isDocPending = false;
 
-            if (!IsPushing()) {
+            if (!IsPushing(collection)) {
                 CBDebug.LogAndThrow(WriteLog.To.Sync,
                     new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
                     Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
@@ -397,13 +396,14 @@ namespace Couchbase.Lite.Sync
             var result = new HashSet<string>();
             byte[] pendingDocIds = null;
 
-            if (!IsPushing()) {
+            if (!IsPushing(collection)) {
                 CBDebug.LogAndThrow(WriteLog.To.Sync,
                     new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
                     Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
             }
 
-            DispatchQueue.DispatchSync(() => {
+            DispatchQueue.DispatchSync(() =>
+            {
                 var errSetupRepl = SetupC4Replicator();
                 if (errSetupRepl.code > 0) {
                     CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString(), true);
@@ -462,9 +462,10 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods
 
-        private bool IsPushing()
+        private bool IsPushing(Collection collection)
         {
-            return Config.ReplicatorType.HasFlag(ReplicatorType.Push);
+            var collConfig = Config.GetCollectionConfig(collection);
+            return collConfig.ReplicatorType.HasFlag(ReplicatorType.Push);
         }
 
         private static C4ReplicatorMode Mkmode(bool active, bool continuous)
@@ -485,6 +486,7 @@ namespace Couchbase.Lite.Sync
             var documentReplications = new List<ReplicatedDocument>();
             for (int i = 0; i < (int) numDocs; i++) {
                 var current = docs[i];
+                var collectionConfig = GCHandle.FromIntPtr((IntPtr)current->collectionContext).Target as CollectionConfiguration;
                 if (!pushing && current->error.domain == C4ErrorDomain.LiteCoreDomain &&
                     current->error.code == (int) C4ErrorCode.Conflict) {
                     replicatedDocumentsContainConflict.Add(new ReplicatedDocument(current->docID.CreateString() ?? "", current->collectionSpec,
@@ -620,6 +622,7 @@ namespace Couchbase.Lite.Sync
 
                     _nativeParams?.Dispose();
                     Config.Options.Dispose();
+
                     if (Status.Activity != ReplicatorActivityLevel.Stopped) {
                         var newStatus = new ReplicatorStatus(ReplicatorActivityLevel.Stopped, Status.Progress, null);
                         _statusChanged.Fire(this, new ReplicatorStatusChangedEventArgs(newStatus));
@@ -659,7 +662,7 @@ namespace Couchbase.Lite.Sync
                 {
                     try {//TODO
                         //var coll = Config.Database.GetCollection(replicatedDoc.CollectionName, replicatedDoc.ScopeName);
-                        //var config = Config.CollectionConfigs[coll];
+                        //var config = Config.GetCollectionConfig(coll);
                         Config.Database.ResolveConflict(replicatedDoc.Id, Config.ConflictResolver);
                         replicatedDoc = replicatedDoc.ClearError();
                     } catch (CouchbaseException e) {
@@ -795,53 +798,52 @@ namespace Couchbase.Lite.Sync
 
                 // Clear the reset flag, it is a one-time thing
                 options.Reset = false;
+
                 //TODO
-                if (Config.PushFilter != null)
-                    _nativeParams.PushFilter = PushFilterCallback;
-                if (Config.PullFilter != null)
-                    _nativeParams.PullFilter = PullValidateCallback;
+                if (Config.CollectionConfigs.ContainsKey(Config.Database?.DefaultCollection)) {
+                    if (Config.PushFilter != null)
+                        _nativeParams.PushFilter = PushFilterCallback;
+                    if (Config.PullFilter != null)
+                        _nativeParams.PullFilter = PullValidateCallback;
+                }
 
                 _nativeParams.CollectionCount = (long)Config.Collections.Count;
-                var c4ReplCols = new C4ReplicationCollection[Config.Collections.Count];
+                _nativeParams.CollectionConfigs = new List<ReplicationCollection>();
                 for (int i = 0; i < Config.Collections.Count; i++) {
                     var collectionConfig = Config.CollectionConfigs.ElementAt(i);
                     var col = collectionConfig.Key;
                     var config = collectionConfig.Value;
-
                     var colConfigOptions = config.Options;
 
                     colConfigOptions.Build();
+                    //var collPush = config.ReplicatorType.HasFlag(ReplicatorType.Push);
+                    //var collPull = config.ReplicatorType.HasFlag(ReplicatorType.Pull);
 
-                    using (var collName_ = new C4String(col.Name))
-                    using (var scopeName_ = new C4String(col.Scope.Name)) {
-                        var replicationCollection = new ReplicationCollection(colConfigOptions)
+                    var replicationCollection = new ReplicationCollection(colConfigOptions)
+                    {
+                        CollectionSpec = new CollectionSpec()
                         {
-                            CollectionSpec = new C4CollectionSpec()
-                            {
-                                name = collName_.AsFLSlice(),
-                                scope = scopeName_.AsFLSlice()
-                            },
-                            Push = Mkmode(push, continuous),
-                            Pull = Mkmode(pull, continuous),
-                            Context = this
-                        };
+                            Name = col.Name,
+                            Scope = col.Scope.Name
+                        },
+                        Push = Mkmode(push, continuous),
+                        Pull = Mkmode(pull, continuous),
+                        Context = col
+                    };
 
-                        if (config.PushFilter != null)
-                            replicationCollection.PushFilter = PushFilterCallback;
-                        if (config.PullFilter != null)
-                            replicationCollection.PullFilter = PullValidateCallback;
+                    if (config.PushFilter != null)
+                        replicationCollection.PushFilter = PushFilterCallback;
+                    if (config.PullFilter != null)
+                        replicationCollection.PullFilter = PullValidateCallback;
 
-                        c4ReplCols[i] = replicationCollection.C4ReplicationCol;
-                    }
-                }
-
-                fixed (C4ReplicationCollection* c4ReplCols_ = c4ReplCols) {
-                    _nativeParams.CollectionConfigs = c4ReplCols_;
+                    _nativeParams.CollectionConfigs.Add(replicationCollection);
                 }
 
                 DispatchQueue.DispatchSync(() =>
                 {
                     C4Error localErr = new C4Error();
+                    _nativeParams.UpdateC4ReplicationCollection();
+
                     #if COUCHBASE_ENTERPRISE
                     if (otherDB != null)
                         _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,

@@ -37,6 +37,7 @@ namespace Couchbase.Lite.Sync
         private IConflictResolver _resolver;
         private Func<Document, DocumentFlags, bool> _pushFilter;
         private Func<Document, DocumentFlags, bool> _pullValidator;
+        internal ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
 
         #endregion
 
@@ -101,6 +102,16 @@ namespace Couchbase.Lite.Sync
             set => _freezer.PerformAction(() => Options.DocIDs = value);
         }
 
+        /// <summary>
+        /// A value indicating the direction of the replication.  The default is
+        /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
+        /// </summary>
+        internal ReplicatorType ReplicatorType
+        {
+            get => _replicatorType;
+            set => _freezer.SetValue(ref _replicatorType, value);
+        }
+
         [NotNull]
         internal ReplicatorOptionsDictionary Options { get; set; } = new ReplicatorOptionsDictionary();
 
@@ -112,10 +123,14 @@ namespace Couchbase.Lite.Sync
 
         internal CollectionConfiguration(CollectionConfiguration copy)
         {
-            PushFilter = copy?.PushFilter;
-            PullFilter = copy?.PullFilter;
-            ConflictResolver = copy?.ConflictResolver;
-            Options = copy?.Options;
+            if (copy == null)
+                return;
+
+            PushFilter = copy.PushFilter;
+            PullFilter = copy.PullFilter;
+            ConflictResolver = copy.ConflictResolver;
+            ReplicatorType = copy.ReplicatorType;
+            Options = copy.Options;
         }
 
         #endregion
@@ -130,6 +145,7 @@ namespace Couchbase.Lite.Sync
                 PushFilter = PushFilter,
                 PullFilter = PullFilter,
                 ConflictResolver = ConflictResolver,
+                ReplicatorType = ReplicatorType,
                 Options = Options
             };
 
