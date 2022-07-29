@@ -72,8 +72,6 @@ namespace LiteCore.Interop
         private C4ReplicatorStatusChangedCallback _onStatusChanged;
         private C4ReplicatorValidationFunction _pushFilter;
         private C4ReplicatorValidationFunction _validation;
-        private C4ReplicationCollection[] c4ReplicationCollections;
-        private C4CollectionSpec[] c4CollectionSpec;
 
         #endregion
 
@@ -164,7 +162,11 @@ namespace LiteCore.Interop
             }
         }
 
-        public List<ReplicationCollection> CollectionConfigs { get; set; }
+        public unsafe C4ReplicationCollection* ReplicationCollection
+        {
+            get => _c4Params.collections;
+            set => _c4Params.collections = value;
+        }
 
         public long CollectionCount
         {
@@ -190,46 +192,11 @@ namespace LiteCore.Interop
 
         #endregion
 
-        #region Internal Methods
-
-        internal unsafe void UpdateC4ReplicationCollection()
-        {
-            if (CollectionCount == 0)
-                return;
-
-            c4ReplicationCollections = new C4ReplicationCollection[CollectionCount];
-            c4CollectionSpec = new C4CollectionSpec[CollectionCount];
-            for (int i =0; i< CollectionCount; i++) {
-                var colName = CollectionConfigs[i].CollectionSpec.Name;
-                var scopeName = CollectionConfigs[i].CollectionSpec.Scope;
-                c4CollectionSpec[i] = new C4CollectionSpec()
-                {
-                    name = new C4String(colName).AsFLSlice(),
-                    scope = new C4String(scopeName).AsFLSlice()
-                };
-                var localC4ReplicationCol = CollectionConfigs[i].C4ReplicationCol;
-                localC4ReplicationCol.collection = c4CollectionSpec[i];
-                c4ReplicationCollections[i] = localC4ReplicationCol;
-            }
-
-            fixed (C4ReplicationCollection* ptr = c4ReplicationCollections) {
-                _c4Params.collections = ptr;
-            }
-        }
-
-        #endregion
-
         #region Private Methods
 
         private unsafe void Dispose(bool finalizing)
         {
             Native.FLSliceResult_Release((FLSliceResult)_c4Params.optionsDictFleece);
-            c4CollectionSpec = null;
-            c4ReplicationCollections = null;
-            foreach (var c in CollectionConfigs) {
-                c.Dispose();
-            }
-
             Context = null;
             if (_hasFactory) {
                 GCHandle.FromIntPtr((IntPtr)_factoryKeepAlive.context).Free();
@@ -307,8 +274,6 @@ namespace LiteCore.Interop
                 _c4ReplicationCol.pushFilter = Marshal.GetFunctionPointerForDelegate(value);
             }
         }
-
-        internal CollectionSpec CollectionSpec { get; set; }
 
         #endregion
 

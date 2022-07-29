@@ -807,25 +807,30 @@ namespace Couchbase.Lite.Sync
                         _nativeParams.PullFilter = PullValidateCallback;
                 }
 
-                _nativeParams.CollectionCount = (long)Config.Collections.Count;
-                _nativeParams.CollectionConfigs = new List<ReplicationCollection>();
-                for (int i = 0; i < Config.Collections.Count; i++) {
+                var collCnt = (long)Config.Collections.Count;
+                _nativeParams.CollectionCount = collCnt;
+
+                C4ReplicationCollection[] c4ReplicationCollections = new C4ReplicationCollection[collCnt];
+                C4CollectionSpec[] c4CollectionSpec = new C4CollectionSpec[collCnt];
+
+                for (int i = 0; i < collCnt; i++) {
                     var collectionConfig = Config.CollectionConfigs.ElementAt(i);
                     var col = collectionConfig.Key;
                     var config = collectionConfig.Value;
                     var colConfigOptions = config.Options;
 
-                    colConfigOptions.Build();
-                    //var collPush = config.ReplicatorType.HasFlag(ReplicatorType.Push);
-                    //var collPull = config.ReplicatorType.HasFlag(ReplicatorType.Pull);
+                    colConfigOptions.Build(); //TODO collection push/pull settings not pick up by LiteCore yet..
+                                              //var collPush = config.ReplicatorType.HasFlag(ReplicatorType.Push);
+                                              //var collPull = config.ReplicatorType.HasFlag(ReplicatorType.Pull);
+
+                    c4CollectionSpec[i] = new C4CollectionSpec()
+                    {
+                        name = new C4String(col.Name).AsFLSlice(),
+                        scope = new C4String(col.Scope.Name).AsFLSlice()
+                    };
 
                     var replicationCollection = new ReplicationCollection(colConfigOptions)
                     {
-                        CollectionSpec = new CollectionSpec()
-                        {
-                            Name = col.Name,
-                            Scope = col.Scope.Name
-                        },
                         Push = Mkmode(push, continuous),
                         Pull = Mkmode(pull, continuous),
                         Context = col
@@ -836,26 +841,32 @@ namespace Couchbase.Lite.Sync
                     if (config.PullFilter != null)
                         replicationCollection.PullFilter = PullValidateCallback;
 
-                    _nativeParams.CollectionConfigs.Add(replicationCollection);
+                    var localC4ReplicationCol = replicationCollection.C4ReplicationCol;
+                    localC4ReplicationCol.collection = c4CollectionSpec[i];
+                    c4ReplicationCollections[i] = localC4ReplicationCol;
                 }
 
                 DispatchQueue.DispatchSync(() =>
                 {
                     C4Error localErr = new C4Error();
-                    _nativeParams.UpdateC4ReplicationCollection();
+                    fixed (C4ReplicationCollection* ptr = c4ReplicationCollections) {
+                        _nativeParams.ReplicationCollection = ptr;
 
-                    #if COUCHBASE_ENTERPRISE
-                    if (otherDB != null)
-                        _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
-                            &localErr);
-                    else
-                    #endif
-                    _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
+                        #if COUCHBASE_ENTERPRISE
+                        if (otherDB != null)
+                            _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
+                                &localErr);
+                        else
+                        #endif
+                            _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
+                    }
 
                     if (_documentEndedUpdate.Counter > 0) {
                         SetProgressLevel(C4ReplicatorProgressLevel.ReplProgressPerDocument);
                     }
 
+                    c4ReplicationCollections = null;
+                    c4CollectionSpec = null;
                     err = localErr;
                 });
             }
