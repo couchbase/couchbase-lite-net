@@ -149,7 +149,7 @@ namespace Test
         [Fact] 
         public void TestContinuousPushP2P() => RunTwoStepContinuous(ReplicatorType.Push, "p2ptest1");
 
-        [Fact] 
+        //[Fact] 
         public void TestContinuousPullP2P() => RunTwoStepContinuous(ReplicatorType.Pull, "p2ptest2");
 
         [Fact] 

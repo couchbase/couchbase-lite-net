@@ -54,7 +54,8 @@ namespace Couchbase.Lite
         {
             get {
                 if (Database.c4db == null)
-                    throw new CouchbaseLiteException(C4ErrorCode.NotOpen, String.Format(CouchbaseLiteErrorMessage.DBClosed));
+                    throw new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosedOrCollectionDeleted,
+                        new CouchbaseLiteException(C4ErrorCode.NotOpen, CouchbaseLiteErrorMessage.DBClosed));
                 return Database.c4db;
             }
         }
