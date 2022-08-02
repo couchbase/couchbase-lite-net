@@ -78,7 +78,6 @@ namespace Couchbase.Lite.Sync
         private C4ReplicatorStatus _rawStatus;
         private IReachability _reachability;
         private C4Replicator* _repl;
-        private C4CollectionSpec _c4collSpec; //TODO New param for c4repl_getPendingDocIDs & c4repl_isDocumentPending
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
         private IImmutableSet<string> _pendingDocIds;
         private ReplicatorConfiguration _config;
@@ -348,7 +347,7 @@ namespace Couchbase.Lite.Sync
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
             bool isDocPending = false;
 
-            if (!IsPushing()) {
+            if (!IsPushing(collection)) {
                 CBDebug.LogAndThrow(WriteLog.To.Sync,
                     new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
                     Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
@@ -397,7 +396,7 @@ namespace Couchbase.Lite.Sync
             var result = new HashSet<string>();
             byte[] pendingDocIds = null;
 
-            if (!IsPushing()) {
+            if (!IsPushing(collection)) {
                 CBDebug.LogAndThrow(WriteLog.To.Sync,
                     new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
                     Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
@@ -462,9 +461,10 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods
 
-        private bool IsPushing()
+        private bool IsPushing(Collection collection)
         {
-            return Config.ReplicatorType.HasFlag(ReplicatorType.Push);
+            var collConfig = Config.GetCollectionConfig(collection);
+            return collConfig.ReplicatorType.HasFlag(ReplicatorType.Push);
         }
 
         private static C4ReplicatorMode Mkmode(bool active, bool continuous)
@@ -542,7 +542,7 @@ namespace Couchbase.Lite.Sync
             }
 
             var docIDStr = docID.CreateString();
-            //TODO Getting empty slice for both collection and scope names, alter to use default for now...
+            // TODO: CBL-3413 Getting empty slice for both collection and scope names, alter to use default for now...
             var collName = collectionSpec.name.CreateString();
             var scope = collectionSpec.scope.CreateString();
             if (docIDStr == null) {
@@ -567,7 +567,7 @@ namespace Couchbase.Lite.Sync
             }
 
             var docIDStr = docID.CreateString();
-            //TODO Getting empty slice for both collection and scope names, alter to use default for now...
+            // TODO: CBL-3413 Getting empty slice for both collection and scope names, alter to use default for now...
             var collName = collectionSpec.name.CreateString() ;
             var scope = collectionSpec.scope.CreateString();
             if (docIDStr == null) {
@@ -638,8 +638,8 @@ namespace Couchbase.Lite.Sync
         }
 
         private bool filterCallback(Func<Document, DocumentFlags, bool> filterFunction, string collectionName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
-        {
-            var coll = Config.Database.GetCollection(collectionName, scope);
+        {// TODO: CBL-3413
+            var coll = Config.Database.GetCollection(collectionName ?? Database._defaultCollectionName, scope ?? Database._defaultScopeName);
             var doc = new Document(coll, docID, revID, value);
             return filterFunction(doc, flags);
         }
@@ -687,11 +687,11 @@ namespace Couchbase.Lite.Sync
                 var replication = replications[i];
                 var docID = replication.Id;
                 var error = replication.NativeError;
-                var transient = replication.IsTransient;
-                var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
-                var transientStr = transient ? "transient " : String.Empty;
-                var dirStr = pushing ? "pushing" : "pulling";
                 if (error.code > 0) {
+                    var transient = replication.IsTransient;
+                    var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
+                    var transientStr = transient ? "transient " : String.Empty;
+                    var dirStr = pushing ? "pushing" : "pulling";
                     WriteLog.To.Sync.I(Tag,
                         $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
                 }
@@ -701,14 +701,17 @@ namespace Couchbase.Lite.Sync
         }
 
         private bool PullValidateCallback(string collNmae, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
-        {
-            return filterCallback(Config.PullFilter, collNmae, scope, docID, revID, value, flags);
+        {// TODO: CBL-3413
+            var coll = Config.Database.GetCollection(collNmae ?? Database._defaultCollectionName, scope ?? Database._defaultScopeName);
+            var config = Config.GetCollectionConfig(coll);
+            return filterCallback(config.PullFilter, collNmae, scope, docID, revID, value, flags);
         }
 
         private bool PushFilterCallback(string collNmae, string scope, [NotNull]string docID, string revID, FLDict* value, DocumentFlags flags)
-        {
-            var coll = Config.Database.GetCollection(collNmae, scope);
-            return Config.PushFilter(new Document(coll, docID, revID, value), flags);
+        {// TODO: CBL-3413
+            var coll = Config.Database.GetCollection(collNmae ?? Database._defaultCollectionName, scope ?? Database._defaultScopeName);
+            var config = Config.GetCollectionConfig(coll);
+            return config.PushFilter(new Document(coll, docID, revID, value), flags);
         }
 
         private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)
@@ -780,8 +783,6 @@ namespace Couchbase.Lite.Sync
                 socketFactory.context = GCHandle.ToIntPtr(GCHandle.Alloc(this)).ToPointer();
                 _nativeParams = new ReplicatorParameters(options)
                 {
-                    Push = Mkmode(push, continuous),
-                    Pull = Mkmode(pull, continuous),
                     Context = this,
                     OnDocumentEnded = OnDocEnded,
                     OnStatusChanged = StatusChangedCallback,
@@ -791,21 +792,59 @@ namespace Couchbase.Lite.Sync
                 // Clear the reset flag, it is a one-time thing
                 options.Reset = false;
 
-                if (Config.PushFilter != null)
-                    _nativeParams.PushFilter = PushFilterCallback;
-                if (Config.PullFilter != null)
-                    _nativeParams.PullFilter = PullValidateCallback;
+                var collCnt = (long)Config.Collections.Count;
+                _nativeParams.CollectionCount = collCnt;
+
+                C4ReplicationCollection[] c4ReplicationCollections = new C4ReplicationCollection[collCnt];
+                C4CollectionSpec[] c4CollectionSpec = new C4CollectionSpec[collCnt];
+
+                for (int i = 0; i < collCnt; i++) {
+                    var collectionConfig = Config.CollectionConfigs.ElementAt(i);
+                    var col = collectionConfig.Key;
+                    var config = collectionConfig.Value;
+                    var colConfigOptions = config.Options;
+
+                    colConfigOptions.Build(); //TODO: in the future we can set different replicator type by collections
+                                              //var collPush = config.ReplicatorType.HasFlag(ReplicatorType.Push);
+                                              //var collPull = config.ReplicatorType.HasFlag(ReplicatorType.Pull);
+
+                    c4CollectionSpec[i] = new C4CollectionSpec()
+                    {
+                        name = new C4String(col.Name).AsFLSlice(),
+                        scope = new C4String(col.Scope.Name).AsFLSlice()
+                    };
+
+                    var replicationCollection = new ReplicationCollection(colConfigOptions)
+                    {
+                        Push = Mkmode(push, continuous),
+                        Pull = Mkmode(pull, continuous),
+                        Context = config
+                    };
+
+                    if (config.PushFilter != null) // TODO: CBL-3413
+                        replicationCollection.PushFilter = PushFilterCallback;
+                    if (config.PullFilter != null)
+                        replicationCollection.PullFilter = PullValidateCallback;
+
+                    var localC4ReplicationCol = replicationCollection.C4ReplicationCol;
+                    localC4ReplicationCol.collection = c4CollectionSpec[i];
+                    c4ReplicationCollections[i] = localC4ReplicationCol;
+                }
 
                 DispatchQueue.DispatchSync(() =>
                 {
                     C4Error localErr = new C4Error();
-                    #if COUCHBASE_ENTERPRISE
-                    if (otherDB != null)
-                        _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
-                            &localErr);
-                    else
-                    #endif
-                    _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
+                    fixed (C4ReplicationCollection* ptr = c4ReplicationCollections) {
+                        _nativeParams.ReplicationCollection = ptr;
+
+                        #if COUCHBASE_ENTERPRISE
+                        if (otherDB != null)
+                            _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
+                                &localErr);
+                        else
+                        #endif
+                            _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
+                    }
 
                     if (_documentEndedUpdate.Counter > 0) {
                         SetProgressLevel(C4ReplicatorProgressLevel.ReplProgressPerDocument);

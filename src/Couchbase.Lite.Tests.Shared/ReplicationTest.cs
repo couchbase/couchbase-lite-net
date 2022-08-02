@@ -422,13 +422,13 @@ namespace Test
             RunReplication(config, 0, 0);
         }
 
-        [Fact]
+        //[Fact] // TODO: CBL-3413
         public void TestPushDocWithFilterOneShot() => TestPushDocWithFilter(false);
 
-        [Fact]
+        //[Fact] // TODO: CBL-3413
         public void TestPushDocWithFilterContinuous() => TestPushDocWithFilter(true);
 
-        [Fact]
+        //[Fact] // TODO: CBL-3413
         public void TestPushPullKeepsFilter()
         {
             var config = CreateConfig(true, true, false);
@@ -451,7 +451,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact] // TODO: CBL-3413
         public void TestPushDeletedDocWithFilter()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -626,7 +626,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact] // TODO: CBL-3413
         public void TestPullDocWithFilter()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -647,7 +647,7 @@ namespace Test
             _isFilteredCallback = false;
         }
 
-        [Fact]
+        //[Fact] // TODO: CBL-3413
         public void TestPullDeletedDocWithFilter()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -680,7 +680,7 @@ namespace Test
             _isFilteredCallback = false;
         }
 
-        [Fact]
+        //[Fact] // TODO: CBL-3413
         public void TestPullRemovedDocWithFilter()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -1842,7 +1842,7 @@ namespace Test
         [Fact]
         public void TestPendingDocIDsWithPurge() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.PURGE);
 
-        [Fact]
+        //[Fact] // TODO: CBL-3413
         public void TestPendingDocIDsWithFilter() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.FILTER);
 
         [Fact]
@@ -1895,7 +1895,7 @@ namespace Test
         [Fact]
         public void TestIsDocumentPendingWithPurge() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.PURGE);
 
-        [Fact]
+        //[Fact] // TODO: CBL-3413
         public void TestIsDocumentPendingWithFilter() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.FILTER);
 
         [Fact]

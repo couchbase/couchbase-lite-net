@@ -189,10 +189,9 @@ namespace Test
                 Db.CreateCollection(letter + str).Should().NotBeNull($"Valid collection name '{letter + str}'.");
             }
 
-            // TODO : wait for CBL-3195 fix
-            //for (char letter = 'a'; letter <= 'z'; letter++) {
-            //    Db.CreateCollection(letter + str).Should().NotBeNull($"Valid collection name '{letter + str}'.");
-            //}
+            for (char letter = 'a'; letter <= 'z'; letter++) {
+                Db.CreateCollection(letter + str).Should().NotBeNull($"Valid collection name '{letter + str}'.");
+            }
 
             for (char letter = '0'; letter <= '9'; letter++) {
                 Db.CreateCollection(letter + str).Should().NotBeNull($"Valid collection name '{letter + str}'.");
@@ -262,13 +261,14 @@ namespace Test
             badAction.Should().Throw<CouchbaseLiteException>($"Invalid collection name '{str}' in scope because the collection name length {str.Length} is over naming length limit.");
         }
 
-        [Fact] // I think this test case is a dup of TestCollectionNameWithValidChars?
+        [Fact] 
         public void TestCollectionNameCaseSensitive()
         {
-            Db.CreateCollection("COLLECTION1").Should().NotBeNull();
-            // TODO : wait for CBL-3195 fix
-            //Db.CreateCollection("collection1").Should().NotBeNull("Should be able to be created because collection name is case sensitive.");
-            //This will already return non-null, it will just be the same as COLLECTION1. The test should ensure they are different from each other (e.g. independent documents)
+            var collCap = Db.CreateCollection("COLLECTION1");
+            collCap.Should().NotBeNull();
+            var coll = Db.CreateCollection("collection1");
+            coll.Should().NotBeNull("Should be able to be created because collection name is case sensitive.");
+            coll.Should().NotBeSameAs(collCap);
         }
 
         [Fact]
@@ -281,10 +281,9 @@ namespace Test
                 Db.CreateCollection("abc", letter + str).Should().NotBeNull($"Valid scope name '{letter + str}'.");
             }
 
-            // TODO : wait for CBL-3195 fix
-            //for (char letter = 'a'; letter <= 'z'; letter++) {
-            //    Db.CreateCollection("abc", letter + str).Should().NotBeNull($"Valid scope name '{letter + str}'.");
-            //}
+            for (char letter = 'a'; letter <= 'z'; letter++) {
+                Db.CreateCollection("abc", letter + str).Should().NotBeNull($"Valid scope name '{letter + str}'.");
+            }
 
             for (char letter = '0'; letter <= '9'; letter++) {
                 Db.CreateCollection("abc", letter + str).Should().NotBeNull($"Valid scope name '{letter + str}'.");
@@ -353,12 +352,14 @@ namespace Test
             badAction.Should().Throw<CouchbaseLiteException>($"Invalid scope name '{str}' because the scope name length {str.Length} is over naming length limit.");
         }
 
-        [Fact] // I think this test case is dup of TestScopeNameWithValidChars
+        [Fact]
         public void TestScopeNameCaseSensitive()
         {
-            Db.CreateCollection("abc", "SCOPE1").Should().NotBeNull();
-            // TODO : wait for CBL-3195 fix
-            //Db.CreateCollection("abc", "scope1").Should().NotBeNull("Should be able to be created because scope name is case sensitive.");
+            var scopeCap = Db.CreateCollection("abc", "SCOPE1");
+            scopeCap.Should().NotBeNull();
+            var scope = Db.CreateCollection("abc", "scope1");
+            scope.Should().NotBeNull("Should be able to be created because scope name is case sensitive.");
+            scope.Should().NotBeSameAs(scopeCap);
         }
 
         [Fact]

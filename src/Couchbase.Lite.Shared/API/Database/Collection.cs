@@ -997,7 +997,7 @@ namespace Couchbase.Lite
                 return false;
             }
 
-            return IsValid
+            return ThreadSafety.DoLocked(() => IsValid)
                 && String.Equals(Name, other.Name, StringComparison.Ordinal)
                 && String.Equals(Scope.Name, other.Scope.Name, StringComparison.Ordinal)
                 && String.Equals(Database?.Path, other?.Database?.Path, StringComparison.OrdinalIgnoreCase);
