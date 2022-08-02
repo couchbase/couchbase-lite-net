@@ -58,7 +58,7 @@ namespace Test
 #endif
 
 #if !CBL_NO_EXTERN_FILES
-        /* CBL-3514
+        // CBL-3514
         [Fact]
         public void TestQueryObserver()
         {
@@ -353,7 +353,7 @@ namespace Test
                 firstNames.Should()
                     .OnlyContain(str => regex.IsMatch(str), "because otherwise an incorrect entry came in");
             }
-        }*/
+        }
 
 #endif
     }

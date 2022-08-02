@@ -70,7 +70,7 @@ namespace Test
             //Database.Log.Console.Level = LogLevel.Debug;
         }
 
-        /* TODO: CBL-3151
+        //TODO: CBL-3151
         [Fact]
         public void TestShortP2P()
         {
@@ -337,7 +337,6 @@ namespace Test
 
             statuses.Count.Should().Be(0);
         }
-        */
 
         private ReplicatorConfiguration CreateFailureP2PConfiguration(ProtocolType protocolType, MockConnectionLifecycleLocation location, bool recoverable)
         {
