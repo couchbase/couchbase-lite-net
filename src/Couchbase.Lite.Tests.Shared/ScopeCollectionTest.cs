@@ -215,10 +215,10 @@ namespace Test
         {
             var str = "ab";
             /* Create collections with the collection name containing the following characters
-               !, @, #, $, ^, &, *, (, ), +, -, ., <, >, ?, [, ], {, }, =, “, ‘, |, \, /,`,~ are prohibited. */
+               !, @, #, $, ^, &, *, (, ), +, ., <, >, ?, [, ], {, }, =, “, ‘, |, \, /,`,~ are prohibited. */
             for (char letter = '!'; letter <= '/'; letter++) {
-                if (letter == '%')
-                    return;
+                if (letter == '%' || letter == '-')
+                    continue;
 
                 Action badAction = (() => Db.CreateCollection(str + letter));
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid collection name '{str + letter}' in scope '_default'.");
@@ -230,6 +230,9 @@ namespace Test
             }
 
             for (char letter = '['; letter <= '`'; letter++) {
+                if (letter == '_')
+                    continue;
+
                 Action badAction = (() => Db.CreateCollection(str + letter));
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid collection name '{str + letter}' in scope '_default'.");
             }
@@ -307,10 +310,11 @@ namespace Test
         {
             var str = "ab";
             /* Create collections with the collection name containing the following characters
-               !, @, #, $, ^, &, *, (, ), +, -, ., <, >, ?, [, ], {, }, =, “, ‘, |, \, /,`,~ are prohibited. */
+               !, @, #, $, ^, &, *, (, ), +, ., <, >, ?, [, ], {, }, =, “, ‘, |, \, /,`,~ are prohibited. */
             for (char letter = '!'; letter <= '/'; letter++) {
-                if (letter == '%')
-                    return;
+                if (letter == '%' || letter == '-')
+                    continue;
+
                 Action badAction = (() => Db.CreateCollection("abc", str + letter));
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid scope name '{str + letter}'.");
             }
@@ -321,6 +325,9 @@ namespace Test
             }
 
             for (char letter = '['; letter <= '`'; letter++) {
+                if (letter == '_')
+                    continue;
+
                 Action badAction = (() => Db.CreateCollection("abc", str + letter));
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid scope name '{str + letter}'.");
             }

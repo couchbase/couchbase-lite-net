@@ -422,13 +422,13 @@ namespace Test
             RunReplication(config, 0, 0);
         }
 
-        //[Fact] // TODO: CBL-3413
+        [Fact]
         public void TestPushDocWithFilterOneShot() => TestPushDocWithFilter(false);
 
-        //[Fact] // TODO: CBL-3413
+        [Fact]
         public void TestPushDocWithFilterContinuous() => TestPushDocWithFilter(true);
 
-        //[Fact] // TODO: CBL-3413
+        [Fact]
         public void TestPushPullKeepsFilter()
         {
             var config = CreateConfig(true, true, false);
@@ -451,7 +451,7 @@ namespace Test
             }
         }
 
-        //[Fact] // TODO: CBL-3413
+        [Fact]
         public void TestPushDeletedDocWithFilter()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -466,9 +466,9 @@ namespace Test
             var config = CreateConfig(true, false, false);
             config.PushFilter = _replicator__filterCallback;
             RunReplication(config, 0, 0);
-            _isFilteredCallback.Should().BeTrue();
             OtherDb.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
             OtherDb.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
+            _isFilteredCallback.Should().BeTrue();
             _isFilteredCallback = false;
 
             using (var doc1 = Db.GetDocument("doc1"))
@@ -478,9 +478,9 @@ namespace Test
             }
 
             RunReplication(config, 0, 0);
-            _isFilteredCallback.Should().BeTrue();
             OtherDb.GetDocument("doc1").Should().NotBeNull("because doc1's deletion should be rejected");
             OtherDb.GetDocument("pass").Should().BeNull("because the next document's deletion is not rejected");
+            _isFilteredCallback.Should().BeTrue();
             _isFilteredCallback = false;
         }
 
@@ -626,7 +626,7 @@ namespace Test
             }
         }
 
-        //[Fact] // TODO: CBL-3413
+        [Fact]
         public void TestPullDocWithFilter()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -641,13 +641,13 @@ namespace Test
             var config = CreateConfig(false, true, false);
             config.PullFilter = _replicator__filterCallback;
             RunReplication(config, 0, 0);
-            _isFilteredCallback.Should().BeTrue();
             Db.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
             Db.GetDocument("doc2").Should().NotBeNull("because doc2 is filtered in in the callback");
+            _isFilteredCallback.Should().BeTrue();
             _isFilteredCallback = false;
         }
 
-        //[Fact] // TODO: CBL-3413
+        [Fact]
         public void TestPullDeletedDocWithFilter()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -680,7 +680,7 @@ namespace Test
             _isFilteredCallback = false;
         }
 
-        //[Fact] // TODO: CBL-3413
+        [Fact]
         public void TestPullRemovedDocWithFilter()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -1842,7 +1842,7 @@ namespace Test
         [Fact]
         public void TestPendingDocIDsWithPurge() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.PURGE);
 
-        //[Fact] // TODO: CBL-3413
+        [Fact]
         public void TestPendingDocIDsWithFilter() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.FILTER);
 
         [Fact]
@@ -1895,7 +1895,7 @@ namespace Test
         [Fact]
         public void TestIsDocumentPendingWithPurge() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.PURGE);
 
-        //[Fact] // TODO: CBL-3413
+        [Fact]
         public void TestIsDocumentPendingWithFilter() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.FILTER);
 
         [Fact]
@@ -2639,9 +2639,10 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             var config = CreateConfig(true, false, continuous);
             config.PushFilter = _replicator__filterCallback;
             RunReplication(config, 0, 0);
-            _isFilteredCallback.Should().BeTrue();
+            
             OtherDb.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
             OtherDb.GetDocument("doc2").Should().NotBeNull("because doc2 is filtered in in the callback");
+            _isFilteredCallback.Should().BeTrue();
             _isFilteredCallback = false;
         }
 

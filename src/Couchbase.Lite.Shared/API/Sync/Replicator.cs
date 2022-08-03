@@ -542,7 +542,6 @@ namespace Couchbase.Lite.Sync
             }
 
             var docIDStr = docID.CreateString();
-            // TODO: CBL-3413 Getting empty slice for both collection and scope names, alter to use default for now...
             var collName = collectionSpec.name.CreateString();
             var scope = collectionSpec.scope.CreateString();
             if (docIDStr == null) {
@@ -550,8 +549,8 @@ namespace Couchbase.Lite.Sync
                 return false;
             }
 
-            var flags = revisionFlags.ToDocumentFlags();//TODO Getting empty slice for both collection and scope names, alter to use default for now...
-            return replicator.PullValidateCallback(collName ?? Database._defaultCollectionName, scope ?? Database._defaultScopeName, docIDStr, revID.CreateString(), dict, flags);
+            var flags = revisionFlags.ToDocumentFlags();
+            return replicator.PullValidateCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
         }
 
         #if __IOS__
@@ -567,7 +566,6 @@ namespace Couchbase.Lite.Sync
             }
 
             var docIDStr = docID.CreateString();
-            // TODO: CBL-3413 Getting empty slice for both collection and scope names, alter to use default for now...
             var collName = collectionSpec.name.CreateString() ;
             var scope = collectionSpec.scope.CreateString();
             if (docIDStr == null) {
@@ -575,8 +573,8 @@ namespace Couchbase.Lite.Sync
                 return false;
             }
 
-            var flags = revisionFlags.ToDocumentFlags(); //TODO Getting empty slice for both collection and scope names, alter to use default for now...
-            return replicator.PushFilterCallback(collName ?? Database._defaultCollectionName, scope ?? Database._defaultScopeName, docIDStr, revID.CreateString(), dict, flags);
+            var flags = revisionFlags.ToDocumentFlags();
+            return replicator.PushFilterCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
         }
 
         #if __IOS__
@@ -638,8 +636,8 @@ namespace Couchbase.Lite.Sync
         }
 
         private bool filterCallback(Func<Document, DocumentFlags, bool> filterFunction, string collectionName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
-        {// TODO: CBL-3413
-            var coll = Config.Database.GetCollection(collectionName ?? Database._defaultCollectionName, scope ?? Database._defaultScopeName);
+        {
+            var coll = Config.Database.GetCollection(collectionName, scope);
             var doc = new Document(coll, docID, revID, value);
             return filterFunction(doc, flags);
         }
@@ -701,15 +699,15 @@ namespace Couchbase.Lite.Sync
         }
 
         private bool PullValidateCallback(string collNmae, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
-        {// TODO: CBL-3413
-            var coll = Config.Database.GetCollection(collNmae ?? Database._defaultCollectionName, scope ?? Database._defaultScopeName);
+        {
+            var coll = Config.Database.GetCollection(collNmae, scope);
             var config = Config.GetCollectionConfig(coll);
             return filterCallback(config.PullFilter, collNmae, scope, docID, revID, value, flags);
         }
 
         private bool PushFilterCallback(string collNmae, string scope, [NotNull]string docID, string revID, FLDict* value, DocumentFlags flags)
-        {// TODO: CBL-3413
-            var coll = Config.Database.GetCollection(collNmae ?? Database._defaultCollectionName, scope ?? Database._defaultScopeName);
+        {
+            var coll = Config.Database.GetCollection(collNmae, scope);
             var config = Config.GetCollectionConfig(coll);
             return config.PushFilter(new Document(coll, docID, revID, value), flags);
         }
@@ -752,7 +750,7 @@ namespace Couchbase.Lite.Sync
                 if (addrFromUrl) {
                     //get cookies from url and add to replicator options
                     var cookiestring = Config.Database.GetCookies(remoteUrl);
-                    if (!String.IsNullOrEmpty(cookiestring))  {
+                    if (!String.IsNullOrEmpty(cookiestring)) {
                         var split = cookiestring.Split(';') ?? Enumerable.Empty<string>();
                         foreach (var entry in split) {
                             var pieces = entry?.Split('=');
@@ -764,7 +762,6 @@ namespace Couchbase.Lite.Sync
                             Config.Options.Cookies.Add(new Cookie(pieces[0]?.Trim(), pieces[1]?.Trim()));
                         }
                     }
-
                 } else {
                     Config.OtherDB?.CheckOpenLocked();
                     otherDB = Config.OtherDB;
@@ -794,49 +791,47 @@ namespace Couchbase.Lite.Sync
 
                 var collCnt = (long)Config.Collections.Count;
                 _nativeParams.CollectionCount = collCnt;
-
-                C4ReplicationCollection[] c4ReplicationCollections = new C4ReplicationCollection[collCnt];
-                C4CollectionSpec[] c4CollectionSpec = new C4CollectionSpec[collCnt];
-
-                for (int i = 0; i < collCnt; i++) {
-                    var collectionConfig = Config.CollectionConfigs.ElementAt(i);
-                    var col = collectionConfig.Key;
-                    var config = collectionConfig.Value;
-                    var colConfigOptions = config.Options;
-
-                    colConfigOptions.Build(); //TODO: in the future we can set different replicator type by collections
-                                              //var collPush = config.ReplicatorType.HasFlag(ReplicatorType.Push);
-                                              //var collPull = config.ReplicatorType.HasFlag(ReplicatorType.Pull);
-
-                    c4CollectionSpec[i] = new C4CollectionSpec()
-                    {
-                        name = new C4String(col.Name).AsFLSlice(),
-                        scope = new C4String(col.Scope.Name).AsFLSlice()
-                    };
-
-                    var replicationCollection = new ReplicationCollection(colConfigOptions)
-                    {
-                        Push = Mkmode(push, continuous),
-                        Pull = Mkmode(pull, continuous),
-                        Context = config
-                    };
-
-                    if (config.PushFilter != null) // TODO: CBL-3413
-                        replicationCollection.PushFilter = PushFilterCallback;
-                    if (config.PullFilter != null)
-                        replicationCollection.PullFilter = PullValidateCallback;
-
-                    var localC4ReplicationCol = replicationCollection.C4ReplicationCol;
-                    localC4ReplicationCol.collection = c4CollectionSpec[i];
-                    c4ReplicationCollections[i] = localC4ReplicationCol;
-                }
-
                 DispatchQueue.DispatchSync(() =>
                 {
+                    C4ReplicationCollection[] c4ReplicationCollections = new C4ReplicationCollection[collCnt];
+                    C4CollectionSpec[] c4CollectionSpec = new C4CollectionSpec[collCnt];
+                    for (int i = 0; i < collCnt; i++) {
+                        var collectionConfig = Config.CollectionConfigs.ElementAt(i);
+                        var col = collectionConfig.Key;
+                        var config = collectionConfig.Value;
+                        var colConfigOptions = config.Options;
+
+                        colConfigOptions.Build(); //TODO: in the future we can set different replicator type by collections
+                                                  //var collPush = config.ReplicatorType.HasFlag(ReplicatorType.Push);
+                                                  //var collPull = config.ReplicatorType.HasFlag(ReplicatorType.Pull);
+
+                        c4CollectionSpec[i] = new C4CollectionSpec()
+                        {
+                            name = new C4String(col.Name).AsFLSlice(),
+                            scope = new C4String(col.Scope.Name).AsFLSlice()
+                        };
+
+                        var replicationCollection = new ReplicationCollection(colConfigOptions)
+                        {
+                            Push = Mkmode(push, continuous),
+                            Pull = Mkmode(pull, continuous),
+                            Context = this
+                        };
+
+                        if (config.PushFilter != null)
+                            replicationCollection.PushFilter = PushFilterCallback;
+                        if (config.PullFilter != null)
+                            replicationCollection.PullFilter = PullValidateCallback;
+
+                        var localC4ReplicationCol = replicationCollection.C4ReplicationCol;
+                        localC4ReplicationCol.collection = c4CollectionSpec[i];
+                        c4ReplicationCollections[i] = localC4ReplicationCol;
+                    }
+
+
                     C4Error localErr = new C4Error();
                     fixed (C4ReplicationCollection* ptr = c4ReplicationCollections) {
                         _nativeParams.ReplicationCollection = ptr;
-
                         #if COUCHBASE_ENTERPRISE
                         if (otherDB != null)
                             _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
