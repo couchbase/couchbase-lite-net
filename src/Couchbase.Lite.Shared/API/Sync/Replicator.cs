@@ -459,18 +459,73 @@ namespace Couchbase.Lite.Sync
 
         #endregion
 
-        #region Private Methods
+        #region Private Methods - Filters
 
-        private bool IsPushing(Collection collection)
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
+        #endif
+        private static bool PullValidateCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
-            var collConfig = Config.GetCollectionConfig(collection);
-            return collConfig.ReplicatorType.HasFlag(ReplicatorType.Push);
+            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            if (replicator == null) {
+                WriteLog.To.Database.E(Tag, "Pull filter context pointing to invalid object {0}, aborting and returning true...",
+                    replicator);
+                return true;
+            }
+
+            var docIDStr = docID.CreateString();
+            if (docIDStr == null) {
+                WriteLog.To.Database.E(Tag, "Null document ID received in pull filter, rejecting...");
+                return false;
+            }
+
+            var collName = collectionSpec.name.CreateString();
+            var scope = collectionSpec.scope.CreateString();
+            var flags = revisionFlags.ToDocumentFlags();
+            return replicator.PullValidateCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
         }
 
-        private static C4ReplicatorMode Mkmode(bool active, bool continuous)
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
+        #endif
+        private static bool PushFilterCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
-            return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
+            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            if (replicator == null) {
+                WriteLog.To.Database.E(Tag, "Push filter context pointing to invalid object {0}, aborting and returning true...",
+                    replicator);
+                return true;
+            }
+
+            var docIDStr = docID.CreateString();
+            if (docIDStr == null) {
+                WriteLog.To.Database.E(Tag, "Null document ID received in push filter, rejecting...");
+                return false;
+            }
+
+            var collName = collectionSpec.name.CreateString();
+            var scope = collectionSpec.scope.CreateString();
+            var flags = revisionFlags.ToDocumentFlags();
+            return replicator.PushFilterCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
         }
+
+        private bool PullValidateCallback(string collNmae, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
+        {
+            var coll = Config.Database.GetCollection(collNmae, scope);
+            var config = Config.GetCollectionConfig(coll);
+            return config.PullFilter(new Document(coll, docID, revID, value), flags);
+        }
+
+        private bool PushFilterCallback(string collNmae, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
+        {
+            var coll = Config.Database.GetCollection(collNmae, scope);
+            var config = Config.GetCollectionConfig(coll);
+            return config.PushFilter(new Document(coll, docID, revID, value), flags);
+        }
+
+        #endregion
+
+        #region Private Methods - Doc Ended
 
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorDocumentEndedCallback))]
@@ -483,10 +538,10 @@ namespace Couchbase.Lite.Sync
 
             var replicatedDocumentsContainConflict = new List<ReplicatedDocument>();
             var documentReplications = new List<ReplicatedDocument>();
-            for (int i = 0; i < (int) numDocs; i++) {
+            for (int i = 0; i < (int)numDocs; i++) {
                 var current = docs[i];
                 if (!pushing && current->error.domain == C4ErrorDomain.LiteCoreDomain &&
-                    current->error.code == (int) C4ErrorCode.Conflict) {
+                    current->error.code == (int)C4ErrorCode.Conflict) {
                     replicatedDocumentsContainConflict.Add(new ReplicatedDocument(current->docID.CreateString() ?? "", current->collectionSpec,
                         current->flags, current->error, current->errorIsTransient));
                 } else {
@@ -495,7 +550,7 @@ namespace Couchbase.Lite.Sync
                 }
             }
 
-            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
+            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             if (documentReplications.Count > 0) {
                 replicator?.DispatchQueue.DispatchAsync(() =>
                 {
@@ -509,6 +564,189 @@ namespace Couchbase.Lite.Sync
                     replicator.OnDocEndedWithConflict(replicatedDocumentsContainConflict);
                 });
             }
+        }
+
+        private void OnDocEndedWithConflict(List<ReplicatedDocument> replications)
+        {
+            if (_disposed) {
+                return;
+            }
+
+            for (int i = 0; i < replications.Count; i++) {
+                var replication = replications[i];
+                // Conflict pulling a document -- the revision was added but app needs to resolve it:
+                var safeDocID = new SecureLogString(replication.Id, LogMessageSensitivity.PotentiallyInsecure);
+                WriteLog.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
+                Task t = Task.Run(() =>
+                {
+                    try {//TODO
+                        //var coll = Config.Database.GetCollection(replication.CollectionName, replication.ScopeName);
+                        //var config = Config.GetCollectionConfig(coll);
+                        Config.Database.ResolveConflict(replication.Id, Config.ConflictResolver);
+                        replication = replication.ClearError();
+                    } catch (CouchbaseException e) {
+                        replication.Error = e;
+                    } catch (Exception e) {
+                        replication.Error = new CouchbaseLiteException(C4ErrorCode.UnexpectedError, e.Message, e);
+                    }
+
+                    if (replication.Error != null) {
+                        WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{replication.Id}' failed", replication.Error);
+                    }
+
+                    _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, false));
+                });
+
+                _conflictTasks.TryAdd(t.ContinueWith(task => _conflictTasks.TryRemove(t, out var dummy)), 0);
+            }
+        }
+
+        private void OnDocEnded(List<ReplicatedDocument> replications, bool pushing)
+        {
+            if (_disposed) {
+                return;
+            }
+
+            for (int i = 0; i < replications.Count; i++) {
+                var replication = replications[i];
+                var error = replication.NativeError;
+                if (error.code > 0) {
+                    var docID = replication.Id;
+                    var transient = replication.IsTransient;
+                    var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
+                    var transientStr = transient ? "transient " : String.Empty;
+                    var dirStr = pushing ? "pushing" : "pulling";
+                    WriteLog.To.Sync.I(Tag,
+                        $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
+                }
+            }
+
+            _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(replications, pushing));
+        }
+
+        #endregion
+
+        #region Private Methods - Status Change
+
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorStatusChangedCallback))]
+        #endif
+        private static void StatusChangedCallback(C4Replicator* repl, C4ReplicatorStatus status, void* context)
+        {
+            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            if (replicator == null)
+                return;
+
+            replicator.WaitPendingConflictTasks(status);
+            replicator.DispatchQueue.DispatchSync(() =>
+            {
+                replicator.StatusChangedCallback(status);
+            });
+        }
+
+        // Must be called from within the ThreadSafety
+        private void StatusChangedCallback(C4ReplicatorStatus status)
+        {
+            if (_disposed) {
+                return;
+            }
+
+            // idle or busy
+            if ((status.level > C4ReplicatorActivityLevel.Connecting
+                && status.level != C4ReplicatorActivityLevel.Stopping)
+                && status.error.code == 0) {
+                StopReachabilityObserver();
+            }
+
+            UpdateStateProperties(status);
+
+            // offline
+            if (status.level == C4ReplicatorActivityLevel.Offline) {
+                StartReachabilityObserver();
+            }
+
+            //  stopped
+            if (status.level == C4ReplicatorActivityLevel.Stopped) {
+                StopReachabilityObserver();
+                Stopped();
+            }
+
+            try {
+                _statusChanged.Fire(this, new ReplicatorStatusChangedEventArgs(Status));
+            } catch (Exception e) {
+                WriteLog.To.Sync.W(Tag, "Exception during StatusChanged callback", e);
+            }
+        }
+
+        private void WaitPendingConflictTasks(C4ReplicatorStatus status)
+        {
+            if (status.error.code == 0 && status.error.domain == 0)
+                return;
+
+            if (status.level == C4ReplicatorActivityLevel.Stopped
+                || status.level == C4ReplicatorActivityLevel.Idle) {
+                var array = _conflictTasks?.Keys?.ToArray();
+                if (array != null) {
+                    Task.WaitAll(array);
+                }
+            }
+        }
+
+        #endregion
+
+        #region Private Methods - Reachability
+
+        private void StartReachabilityObserver()
+        {
+            if (_reachability != null) {
+                return;
+            }
+
+            var remoteUrl = (Config.Target as URLEndpoint)?.Url;
+            if (remoteUrl == null) {
+                return;
+            }
+
+            _reachability = Service.GetInstance<IReachability>() ?? new Reachability();
+            _reachability.StatusChanged += ReachabilityChanged;
+            _reachability.Url = remoteUrl;
+            _reachability.Start();
+        }
+
+        private void StopReachabilityObserver()
+        {
+            if (_reachability != null) {
+                _reachability.StatusChanged -= ReachabilityChanged;
+                _reachability.Stop();
+                _reachability = null;
+            }
+        }
+
+        private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)
+        {
+            Debug.Assert(e != null);
+
+            DispatchQueue.DispatchAsync(() =>
+            {
+                if (_repl != null /* just to be safe */) {
+                    Native.c4repl_setHostReachable(_repl, e.Status == NetworkReachabilityStatus.Reachable);
+                }
+            });
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private bool IsPushing(Collection collection)
+        {
+            var collConfig = Config.GetCollectionConfig(collection);
+            return collConfig.ReplicatorType.HasFlag(ReplicatorType.Push);
+        }
+
+        private static C4ReplicatorMode Mkmode(bool active, bool continuous)
+        {
+            return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
         }
 
         private void OnTlsCertificate(object sender, TlsCertificateReceivedEventArgs e)
@@ -527,84 +765,6 @@ namespace Couchbase.Lite.Sync
             }
 
             Config.Database.SaveCookie(e, remoteUrl);
-        }
-
-        #if __IOS__
-        [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
-        #endif
-        private static bool PullValidateCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
-        {
-            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
-            if (replicator == null) {
-                WriteLog.To.Database.E(Tag, "Pull filter context pointing to invalid object {0}, aborting and returning true...",
-                    replicator);
-                return true;
-            }
-
-            var docIDStr = docID.CreateString();
-            var collName = collectionSpec.name.CreateString();
-            var scope = collectionSpec.scope.CreateString();
-            if (docIDStr == null) {
-                WriteLog.To.Database.E(Tag, "Null document ID received in pull filter, rejecting...");
-                return false;
-            }
-
-            var flags = revisionFlags.ToDocumentFlags();
-            return replicator.PullValidateCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
-        }
-
-        #if __IOS__
-        [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
-        #endif
-        private static bool PushFilterCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
-        {
-            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
-            if (replicator == null) {
-                WriteLog.To.Database.E(Tag, "Push filter context pointing to invalid object {0}, aborting and returning true...",
-                    replicator);
-                return true;
-            }
-
-            var docIDStr = docID.CreateString();
-            var collName = collectionSpec.name.CreateString() ;
-            var scope = collectionSpec.scope.CreateString();
-            if (docIDStr == null) {
-                WriteLog.To.Database.E(Tag, "Null document ID received in push filter, rejecting...");
-                return false;
-            }
-
-            var flags = revisionFlags.ToDocumentFlags();
-            return replicator.PushFilterCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
-        }
-
-        #if __IOS__
-        [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorStatusChangedCallback))]
-        #endif
-        private static void StatusChangedCallback(C4Replicator* repl, C4ReplicatorStatus status, void* context)
-        {
-            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
-            if (replicator == null)
-                return;
-
-            replicator.WaitPendingConflictTasks(status);
-            replicator.DispatchQueue.DispatchSync(() =>
-            {
-                replicator.StatusChangedCallback(status);
-            });
-        }
-
-        private void WaitPendingConflictTasks(C4ReplicatorStatus status)
-        {
-            if (status.error.code == 0 && status.error.domain == 0)
-                return;
-
-            if (status.level == C4ReplicatorActivityLevel.Stopped
-                || status.level == C4ReplicatorActivityLevel.Idle) {
-                var array = _conflictTasks?.Keys?.ToArray();
-                if (array != null) {
-                    Task.WaitAll(array);
-                }
-            }
         }
 
         private void Dispose(bool finalizing)
@@ -633,95 +793,6 @@ namespace Couchbase.Lite.Sync
                  Native.c4repl_free(_repl);
                  _repl = null;
             }
-        }
-
-        private bool filterCallback(Func<Document, DocumentFlags, bool> filterFunction, string collectionName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
-        {
-            var coll = Config.Database.GetCollection(collectionName, scope);
-            var doc = new Document(coll, docID, revID, value);
-            return filterFunction(doc, flags);
-        }
-
-        private void OnDocEndedWithConflict(List<ReplicatedDocument> replications)
-        {
-            if (_disposed) {
-                return;
-            }
-
-            for (int i = 0; i < replications.Count; i++) {
-                var replication = replications[i];
-                // Conflict pulling a document -- the revision was added but app needs to resolve it:
-                var safeDocID = new SecureLogString(replication.Id, LogMessageSensitivity.PotentiallyInsecure);
-                WriteLog.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
-                Task t = Task.Run(() =>
-                {
-                    try {
-                        Config.Database.ResolveConflict(replication.Id, Config.ConflictResolver);
-                        replication = replication.ClearError();
-                    } catch (CouchbaseException e) {
-                        replication.Error = e;
-                    } catch (Exception e) {
-                        replication.Error = new CouchbaseLiteException(C4ErrorCode.UnexpectedError, e.Message, e);
-                    }
-
-                    if (replication.Error != null) {
-                        WriteLog.To.Sync.W(Tag, $"Conflict resolution of '{replication.Id}' failed", replication.Error);
-                    }
-
-                    _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, false));
-                });
-
-                _conflictTasks.TryAdd(t.ContinueWith(task => _conflictTasks.TryRemove(t, out var dummy)), 0);
-            }
-        }
-
-        private void OnDocEnded(List<ReplicatedDocument> replications, bool pushing)
-        {
-            if (_disposed) {
-                return;
-            }
-            
-            for (int i = 0; i < replications.Count; i++) {
-                var replication = replications[i];
-                var docID = replication.Id;
-                var error = replication.NativeError;
-                if (error.code > 0) {
-                    var transient = replication.IsTransient;
-                    var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
-                    var transientStr = transient ? "transient " : String.Empty;
-                    var dirStr = pushing ? "pushing" : "pulling";
-                    WriteLog.To.Sync.I(Tag,
-                        $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
-                }
-            }
-
-            _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(replications, pushing));
-        }
-
-        private bool PullValidateCallback(string collNmae, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
-        {
-            var coll = Config.Database.GetCollection(collNmae, scope);
-            var config = Config.GetCollectionConfig(coll);
-            return filterCallback(config.PullFilter, collNmae, scope, docID, revID, value, flags);
-        }
-
-        private bool PushFilterCallback(string collNmae, string scope, [NotNull]string docID, string revID, FLDict* value, DocumentFlags flags)
-        {
-            var coll = Config.Database.GetCollection(collNmae, scope);
-            var config = Config.GetCollectionConfig(coll);
-            return config.PushFilter(new Document(coll, docID, revID, value), flags);
-        }
-
-        private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)
-        {
-            Debug.Assert(e != null);
-
-            DispatchQueue.DispatchAsync(() =>
-            {
-                if (_repl != null /* just to be safe */) {
-                    Native.c4repl_setHostReachable(_repl, e.Status == NetworkReachabilityStatus.Reachable);
-                }
-            });
         }
 
         private C4Error SetupC4Replicator()
@@ -828,7 +899,6 @@ namespace Couchbase.Lite.Sync
                         c4ReplicationCollections[i] = localC4ReplicationCol;
                     }
 
-
                     C4Error localErr = new C4Error();
                     fixed (C4ReplicationCollection* ptr = c4ReplicationCollections) {
                         _nativeParams.ReplicationCollection = ptr;
@@ -862,66 +932,6 @@ namespace Couchbase.Lite.Sync
             C4Error err = new C4Error();
             if (!Native.c4repl_setProgressLevel(_repl, progressLevel, &err) || err.code > 0) {
                 WriteLog.To.Sync.W(Tag, $"Failed set progress level to {progressLevel}", err);
-            }
-        }
-
-        private void StartReachabilityObserver()
-        {
-            if (_reachability != null) {
-                return;
-            }
-
-            var remoteUrl = (Config.Target as URLEndpoint)?.Url;
-            if (remoteUrl == null) {
-                return;
-            }
-
-            _reachability = Service.GetInstance<IReachability>() ?? new Reachability();
-            _reachability.StatusChanged += ReachabilityChanged;
-            _reachability.Url = remoteUrl;
-            _reachability.Start();
-        }
-
-        private void StopReachabilityObserver()
-        {
-            if (_reachability != null) {
-                _reachability.StatusChanged -= ReachabilityChanged;
-                _reachability.Stop();
-                _reachability = null;
-            }
-        }
-
-        // Must be called from within the ThreadSafety
-        private void StatusChangedCallback(C4ReplicatorStatus status)
-        {
-            if (_disposed) {
-                return;
-            }
-
-            // idle or busy
-            if ((status.level > C4ReplicatorActivityLevel.Connecting
-                && status.level != C4ReplicatorActivityLevel.Stopping)
-                && status.error.code == 0) {
-                StopReachabilityObserver();
-            }
-
-            UpdateStateProperties(status);
-
-            // offline
-            if (status.level == C4ReplicatorActivityLevel.Offline) {
-                StartReachabilityObserver();
-            }
-
-            //  stopped
-            if (status.level == C4ReplicatorActivityLevel.Stopped) {
-                StopReachabilityObserver();
-                Stopped();
-            }
-
-            try {
-                _statusChanged.Fire(this, new ReplicatorStatusChangedEventArgs(Status));
-            } catch (Exception e) {
-                WriteLog.To.Sync.W(Tag, "Exception during StatusChanged callback", e);
             }
         }
 

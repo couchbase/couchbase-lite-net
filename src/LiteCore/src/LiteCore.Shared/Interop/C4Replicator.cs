@@ -70,8 +70,6 @@ namespace LiteCore.Interop
         private bool _hasFactory;
         private C4ReplicatorDocumentEndedCallback _onDocumentEnded;
         private C4ReplicatorStatusChangedCallback _onStatusChanged;
-        private C4ReplicatorValidationFunction _pushFilter;
-        private C4ReplicatorValidationFunction _validation;
 
         #endregion
 
