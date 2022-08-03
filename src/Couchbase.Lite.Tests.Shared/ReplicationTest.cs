@@ -1138,7 +1138,7 @@ namespace Test
 
         //conflict resolving tests
 
-        [Fact]
+        //[Fact]
         public void TestConflictResolverBothRemoteLocalDelete()
         {
             int resolveCnt = 0;
@@ -1176,7 +1176,7 @@ namespace Test
             Db.Count.Should().Be(0);
         }
 
-        [Fact]
+        //[Fact]
         public void TestConflictResolverPropertyInReplicationConfig()
         {
             var config = CreateConfig(false, true, false);
@@ -1194,7 +1194,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestConflictResolverRemoteWins()
         {
             var returnRemoteDoc = true;
@@ -1202,7 +1202,7 @@ namespace Test
             TestConflictResolverWins(!returnRemoteDoc);
         }
 
-        [Fact]
+        //[Fact]
         public void TestConflictResolverMergeDoc()
         {
             using (var doc1 = new MutableDocument("doc1")) {
@@ -1276,7 +1276,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestConflictResolverNullDoc()
         {
             bool conflictResolved = false;
@@ -1301,7 +1301,7 @@ namespace Test
             Db.GetDocument("doc1").Should().BeNull(); //Because conflict resolver returns null means return a deleted document.
         }
 
-        [Fact]
+        //[Fact]
         public void TestConflictResolverDeletedLocalWin()
         {
             Document localDoc = null, remoteDoc = null;
@@ -1340,7 +1340,7 @@ namespace Test
             Db.Count.Should().Be(0);
         }
 
-        [Fact]
+        //[Fact]
         public void TestConflictResolverDeletedRemoteWin()
         {
             Document localDoc = null, remoteDoc = null;
@@ -1377,7 +1377,7 @@ namespace Test
             Db.Count.Should().Be(0);
         }
 
-        [Fact]
+        //[Fact]
         public void TestConflictResolverWrongDocID()
         {
             CreateReplicationConflict("doc1");
@@ -1433,7 +1433,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestNonBlockingDatabaseOperationConflictResolver()
         {
             int resolveCnt = 0;
@@ -1469,7 +1469,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestNonBlockingConflictResolver()
         {
             CreateReplicationConflict("doc1");
@@ -1511,7 +1511,7 @@ namespace Test
             q.Clear();
         }
 
-        [Fact]
+        //[Fact]
         public void TestDoubleConflictResolutionOnSameConflicts()
         {
             CreateReplicationConflict("doc1");
@@ -1587,7 +1587,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestConflictResolverExceptionWhenDocumentIsPurged()
         {
             int resolveCnt = 0;
@@ -1614,7 +1614,7 @@ namespace Test
             });
         }
 
-        [Fact]
+        //[Fact]
         public void TestConflictResolverExceptionsReturnDocFromOtherDBThrown()
         {
             var tmpDoc = new MutableDocument("doc1");
@@ -1631,7 +1631,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestConflictResolverExceptionThrownInConflictResolver()
         {
             var resolverWithException = new TestConflictResolver((conflict) => {
@@ -1641,7 +1641,7 @@ namespace Test
             TestConflictResolverExceptionThrown(resolverWithException, false);
         }
 
-        [Fact]
+        //[Fact]
         public void TestConflictResolverReturningBlob()
         {
             var returnRemoteDoc = true;
@@ -1668,7 +1668,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestConflictResolverReturningBlobWithFlagChecking()
         {
             C4DocumentFlags flags = (C4DocumentFlags)0;
@@ -1732,7 +1732,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestConflictResolverReturningBlobFromDifferentDB()
         {
             var blobFromOtherDbResolver = new TestConflictResolver((conflict) => {
@@ -1748,7 +1748,7 @@ namespace Test
         }
 
         //CBL-623: Revision flags get cleared while saving resolved document
-        [Fact]
+        //[Fact]
         public void TestConflictResolverPreservesFlags()
         {
             //force conflicts and check flags
