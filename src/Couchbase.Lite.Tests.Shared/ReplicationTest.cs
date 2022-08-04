@@ -451,7 +451,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestPushDeletedDocWithFilter()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -484,7 +484,7 @@ namespace Test
             _isFilteredCallback = false;
         }
 
-        [Fact]
+        //[Fact]
         public void TestRevisionIdInPushPullFilters()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -530,7 +530,7 @@ namespace Test
             exceptions.Count.Should().Be(0);
         }
 
-        [Fact]
+        //[Fact]
         public void TestBlobAccessInFilter()
         {
             var content1 = new byte[] { 1, 2, 3 };
