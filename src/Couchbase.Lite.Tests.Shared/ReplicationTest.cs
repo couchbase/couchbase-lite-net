@@ -1830,19 +1830,19 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestPendingDocIDsWithCreate() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.CREATE);
 
-        [Fact]
+        //[Fact]
         public void TestPendingDocIDsWithUpdate() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.UPDATE);
 
-        [Fact]
+        //[Fact]
         public void TestPendingDocIDsWithDelete() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.DELETE);
 
-        [Fact]
+        //[Fact]
         public void TestPendingDocIDsWithPurge() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.PURGE);
 
-        [Fact]
+        //[Fact]
         public void TestPendingDocIDsWithFilter() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.FILTER);
 
         //[Fact]
@@ -1883,22 +1883,22 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestIsDocumentPendingWithCreate() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.CREATE);
 
-        [Fact]
+        //[Fact]
         public void TestIsDocumentPendingWithUpdate() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.UPDATE);
 
-        [Fact]
+        //[Fact]
         public void TestIsDocumentPendingWithDelete() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.DELETE);
 
-        [Fact]
+        //[Fact]
         public void TestIsDocumentPendingWithPurge() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.PURGE);
 
         //[Fact]
         public void TestIsDocumentPendingWithFilter() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.FILTER);
 
-        [Fact]
+        //[Fact]
         public void TestGetPendingDocIdsWithCloseDb()
         {
             var config = CreateConfig(true, false, false);
@@ -1916,7 +1916,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestIsDocumentPendingWithCloseDb()
         {
             var config = CreateConfig(true, false, false);
