@@ -347,16 +347,16 @@ namespace Couchbase.Lite.Sync
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
             bool isDocPending = false;
 
-            if (!IsPushing(collection)) {
-                CBDebug.LogAndThrow(WriteLog.To.Sync,
-                    new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
-                    Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
-            }
-
             DispatchQueue.DispatchSync(() => {
                 var errSetupRepl = SetupC4Replicator();
                 if (errSetupRepl.code > 0) {
                     CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString(), true);
+                }
+
+                if (!IsPushing(collection)) {
+                    CBDebug.LogAndThrow(WriteLog.To.Sync,
+                        new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
+                        Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
                 }
             });
 
@@ -396,16 +396,16 @@ namespace Couchbase.Lite.Sync
             var result = new HashSet<string>();
             byte[] pendingDocIds = null;
 
-            if (!IsPushing(collection)) {
-                CBDebug.LogAndThrow(WriteLog.To.Sync,
-                    new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
-                    Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
-            }
-
             DispatchQueue.DispatchSync(() => {
                 var errSetupRepl = SetupC4Replicator();
                 if (errSetupRepl.code > 0) {
                     CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString(), true);
+                }
+
+                if (!IsPushing(collection)) {
+                    CBDebug.LogAndThrow(WriteLog.To.Sync,
+                        new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
+                        Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
                 }
             });
 
@@ -872,9 +872,13 @@ namespace Couchbase.Lite.Sync
                         var config = collectionConfig.Value;
                         var colConfigOptions = config.Options;
 
-                        colConfigOptions.Build(); //TODO: in the future we can set different replicator type by collections
-                                                  //var collPush = config.ReplicatorType.HasFlag(ReplicatorType.Push);
-                                                  //var collPull = config.ReplicatorType.HasFlag(ReplicatorType.Pull);
+                        //TODO: in the future we can set different replicator type by collections
+                        //var collPush = config.ReplicatorType.HasFlag(ReplicatorType.Push);
+                        //var collPull = config.ReplicatorType.HasFlag(ReplicatorType.Pull);
+                        //for now collecion config's ReplicatorType should be the same as ReplicatorType in replicator config
+                        config.ReplicatorType = Config.ReplicatorType; 
+
+                        colConfigOptions.Build(); 
 
                         c4CollectionSpec[i] = new C4CollectionSpec()
                         {
