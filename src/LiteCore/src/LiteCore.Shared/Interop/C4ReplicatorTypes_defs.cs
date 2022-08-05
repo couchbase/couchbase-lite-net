@@ -92,6 +92,7 @@ namespace LiteCore.Interop
         public ulong sequence;
         public C4Error error;
         private byte _errorIsTransient;
+        public void* collectionContext;
 
         public bool errorIsTransient
         {
@@ -117,11 +118,7 @@ namespace LiteCore.Interop
 
     internal unsafe struct C4ReplicatorParameters
     {
-        public C4ReplicatorMode push;
-        public C4ReplicatorMode pull;
         public FLSlice optionsDictFleece;
-        public IntPtr pushFilter;
-        public IntPtr validationFunc;
         public IntPtr onStatusChanged;
         public IntPtr onDocumentEnded;
         public IntPtr onBlobProgress;
@@ -129,7 +126,7 @@ namespace LiteCore.Interop
         public IntPtr onPropertyDecryption;
         public void* callbackContext;
         public C4SocketFactory* socketFactory;
-        public C4ReplicationCollection collections;
+        public C4ReplicationCollection* collections;
         public IntPtr collectionCount;
     }
 

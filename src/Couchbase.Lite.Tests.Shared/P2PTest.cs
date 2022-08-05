@@ -69,7 +69,8 @@ namespace Test
             //uncomment the code below when you need to see more detail log
             //Database.Log.Console.Level = LogLevel.Debug;
         }
-        
+
+        //TODO: CBL-3151
         [Fact]
         public void TestShortP2P()
         {
@@ -149,7 +150,7 @@ namespace Test
         [Fact] 
         public void TestContinuousPushP2P() => RunTwoStepContinuous(ReplicatorType.Push, "p2ptest1");
 
-        [Fact] 
+        //[Fact] //CBL-3526
         public void TestContinuousPullP2P() => RunTwoStepContinuous(ReplicatorType.Pull, "p2ptest2");
 
         [Fact] 

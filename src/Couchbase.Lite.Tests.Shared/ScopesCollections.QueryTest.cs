@@ -58,7 +58,7 @@ namespace Test
 #endif
 
 #if !CBL_NO_EXTERN_FILES
-        
+        // CBL-3514
         [Fact]
         public void TestQueryObserver()
         {

@@ -78,7 +78,6 @@ namespace Couchbase.Lite.Sync
         private C4ReplicatorStatus _rawStatus;
         private IReachability _reachability;
         private C4Replicator* _repl;
-        private C4CollectionSpec _c4collSpec; //TODO New param for c4repl_getPendingDocIDs & c4repl_isDocumentPending
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
         private IImmutableSet<string> _pendingDocIds;
         private ReplicatorConfiguration _config;
@@ -108,6 +107,8 @@ namespace Couchbase.Lite.Sync
         /// provide an SSH type of authentication.
         /// </summary>
         public X509Certificate2 ServerCertificate { get; private set; }
+
+        private ReplicationCollection[] replicationCollections => new ReplicationCollection[Config.Collections.Count];
 
         #endregion
 
@@ -348,16 +349,16 @@ namespace Couchbase.Lite.Sync
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(collection), collection);
             bool isDocPending = false;
 
-            if (!IsPushing()) {
-                CBDebug.LogAndThrow(WriteLog.To.Sync,
-                    new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
-                    Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
-            }
-
             DispatchQueue.DispatchSync(() => {
                 var errSetupRepl = SetupC4Replicator();
                 if (errSetupRepl.code > 0) {
                     CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString(), true);
+                }
+
+                if (!IsPushing(collection)) {
+                    CBDebug.LogAndThrow(WriteLog.To.Sync,
+                        new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
+                        Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
                 }
             });
 
@@ -397,16 +398,16 @@ namespace Couchbase.Lite.Sync
             var result = new HashSet<string>();
             byte[] pendingDocIds = null;
 
-            if (!IsPushing()) {
-                CBDebug.LogAndThrow(WriteLog.To.Sync,
-                    new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
-                    Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
-            }
-
             DispatchQueue.DispatchSync(() => {
                 var errSetupRepl = SetupC4Replicator();
                 if (errSetupRepl.code > 0) {
                     CBDebug.LogAndThrow(WriteLog.To.Sync, CouchbaseException.Create(errSetupRepl), Tag, errSetupRepl.ToString(), true);
+                }
+
+                if (!IsPushing(collection)) {
+                    CBDebug.LogAndThrow(WriteLog.To.Sync,
+                        new CouchbaseLiteException(C4ErrorCode.Unsupported, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs),
+                        Tag, CouchbaseLiteErrorMessage.PullOnlyPendingDocIDs, true);
                 }
             });
 
@@ -460,17 +461,73 @@ namespace Couchbase.Lite.Sync
 
         #endregion
 
-        #region Private Methods
+        #region Private Methods - Filters
 
-        private bool IsPushing()
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
+        #endif
+        private static bool PullValidateCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
-            return Config.ReplicatorType.HasFlag(ReplicatorType.Push);
+            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            if (replicator == null) {
+                WriteLog.To.Database.E(Tag, "Pull filter context pointing to invalid object {0}, aborting and returning true...",
+                    replicator);
+                return true;
+            }
+
+            var docIDStr = docID.CreateString();
+            if (docIDStr == null) {
+                WriteLog.To.Database.E(Tag, "Null document ID received in pull filter, rejecting...");
+                return false;
+            }
+
+            var collName = collectionSpec.name.CreateString();
+            var scope = collectionSpec.scope.CreateString();
+            var flags = revisionFlags.ToDocumentFlags();
+            return replicator.PullValidateCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
         }
 
-        private static C4ReplicatorMode Mkmode(bool active, bool continuous)
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
+        #endif
+        private static bool PushFilterCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
         {
-            return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
+            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            if (replicator == null) {
+                WriteLog.To.Database.E(Tag, "Push filter context pointing to invalid object {0}, aborting and returning true...",
+                    replicator);
+                return true;
+            }
+
+            var docIDStr = docID.CreateString();
+            if (docIDStr == null) {
+                WriteLog.To.Database.E(Tag, "Null document ID received in push filter, rejecting...");
+                return false;
+            }
+
+            var collName = collectionSpec.name.CreateString();
+            var scope = collectionSpec.scope.CreateString();
+            var flags = revisionFlags.ToDocumentFlags();
+            return replicator.PushFilterCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
         }
+
+        private bool PullValidateCallback(string collName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
+        {
+            var coll = Config.Database.GetCollection(collName, scope);
+            var config = Config.GetCollectionConfig(coll);
+            return config.PullFilter(new Document(coll, docID, revID, value), flags);
+        }
+
+        private bool PushFilterCallback(string collName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
+        {
+            var coll = Config.Database.GetCollection(collName, scope);
+            var config = Config.GetCollectionConfig(coll);
+            return config.PushFilter(new Document(coll, docID, revID, value), flags);
+        }
+
+        #endregion
+
+        #region Private Methods - Doc Ended
 
         #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorDocumentEndedCallback))]
@@ -483,10 +540,12 @@ namespace Couchbase.Lite.Sync
 
             var replicatedDocumentsContainConflict = new List<ReplicatedDocument>();
             var documentReplications = new List<ReplicatedDocument>();
-            for (int i = 0; i < (int) numDocs; i++) {
+            for (int i = 0; i < (int)numDocs; i++) {
                 var current = docs[i];
+                //TODO - check if can take advantage of this collection context
+                var collection = GCHandle.FromIntPtr((IntPtr)current->collectionContext).Target as Collection;
                 if (!pushing && current->error.domain == C4ErrorDomain.LiteCoreDomain &&
-                    current->error.code == (int) C4ErrorCode.Conflict) {
+                    current->error.code == (int)C4ErrorCode.Conflict) {
                     replicatedDocumentsContainConflict.Add(new ReplicatedDocument(current->docID.CreateString() ?? "", current->collectionSpec,
                         current->flags, current->error, current->errorIsTransient));
                 } else {
@@ -495,7 +554,7 @@ namespace Couchbase.Lite.Sync
                 }
             }
 
-            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
+            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
             if (documentReplications.Count > 0) {
                 replicator?.DispatchQueue.DispatchAsync(() =>
                 {
@@ -511,139 +570,6 @@ namespace Couchbase.Lite.Sync
             }
         }
 
-        private void OnTlsCertificate(object sender, TlsCertificateReceivedEventArgs e)
-        {
-            ((WebSocketWrapper) sender).PeerCertificateReceived -= OnTlsCertificate;
-            ServerCertificate = e.PeerCertificate;
-        }
-
-        private void OnCookiesToSetReceived(object sender, string e)
-        {
-            ((WebSocketWrapper) sender).CookiesToSetReceived -= OnCookiesToSetReceived;
-
-            var remoteUrl = (Config.Target as URLEndpoint)?.Url;
-            if (remoteUrl == null) {
-                return;
-            }
-
-            Config.Database.SaveCookie(e, remoteUrl);
-        }
-
-        #if __IOS__
-        [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
-        #endif
-        private static bool PullValidateCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
-        {
-            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
-            if (replicator == null) {
-                WriteLog.To.Database.E(Tag, "Pull filter context pointing to invalid object {0}, aborting and returning true...",
-                    replicator);
-                return true;
-            }
-
-            var docIDStr = docID.CreateString();
-            //TODO Getting empty slice for both collection and scope names, alter to use default for now...
-            var collName = collectionSpec.name.CreateString();
-            var scope = collectionSpec.scope.CreateString();
-            if (docIDStr == null) {
-                WriteLog.To.Database.E(Tag, "Null document ID received in pull filter, rejecting...");
-                return false;
-            }
-
-            var flags = revisionFlags.ToDocumentFlags();//TODO Getting empty slice for both collection and scope names, alter to use default for now...
-            return replicator.PullValidateCallback(collName ?? Database._defaultCollectionName, scope ?? Database._defaultScopeName, docIDStr, revID.CreateString(), dict, flags);
-        }
-
-        #if __IOS__
-        [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
-        #endif
-        private static bool PushFilterCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
-        {
-            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
-            if (replicator == null) {
-                WriteLog.To.Database.E(Tag, "Push filter context pointing to invalid object {0}, aborting and returning true...",
-                    replicator);
-                return true;
-            }
-
-            var docIDStr = docID.CreateString();
-            //TODO Getting empty slice for both collection and scope names, alter to use default for now...
-            var collName = collectionSpec.name.CreateString() ;
-            var scope = collectionSpec.scope.CreateString();
-            if (docIDStr == null) {
-                WriteLog.To.Database.E(Tag, "Null document ID received in push filter, rejecting...");
-                return false;
-            }
-
-            var flags = revisionFlags.ToDocumentFlags(); //TODO Getting empty slice for both collection and scope names, alter to use default for now...
-            return replicator.PushFilterCallback(collName ?? Database._defaultCollectionName, scope ?? Database._defaultScopeName, docIDStr, revID.CreateString(), dict, flags);
-        }
-
-        #if __IOS__
-        [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorStatusChangedCallback))]
-        #endif
-        private static void StatusChangedCallback(C4Replicator* repl, C4ReplicatorStatus status, void* context)
-        {
-            var replicator = GCHandle.FromIntPtr((IntPtr) context).Target as Replicator;
-            if (replicator == null)
-                return;
-
-            replicator.WaitPendingConflictTasks(status);
-            replicator.DispatchQueue.DispatchSync(() =>
-            {
-                replicator.StatusChangedCallback(status);
-            });
-        }
-
-        private void WaitPendingConflictTasks(C4ReplicatorStatus status)
-        {
-            if (status.error.code == 0 && status.error.domain == 0)
-                return;
-
-            if (status.level == C4ReplicatorActivityLevel.Stopped
-                || status.level == C4ReplicatorActivityLevel.Idle) {
-                var array = _conflictTasks?.Keys?.ToArray();
-                if (array != null) {
-                    Task.WaitAll(array);
-                }
-            }
-        }
-
-        private void Dispose(bool finalizing)
-        {
-            if(!finalizing) {
-                DispatchQueue.DispatchSync(() =>
-                {
-                    if (_disposed) {
-                        return;
-                    }
-
-                    _nativeParams?.Dispose();
-                    Config.Options.Dispose();
-                    if (Status.Activity != ReplicatorActivityLevel.Stopped) {
-                        var newStatus = new ReplicatorStatus(ReplicatorActivityLevel.Stopped, Status.Progress, null);
-                        _statusChanged.Fire(this, new ReplicatorStatusChangedEventArgs(newStatus));
-                        Status = newStatus;
-                    }
-
-                    Stop();
-                    Native.c4repl_free(_repl);
-                    _repl = null;
-                    _disposed = true;
-                });
-            } else {
-                 Native.c4repl_free(_repl);
-                 _repl = null;
-            }
-        }
-
-        private bool filterCallback(Func<Document, DocumentFlags, bool> filterFunction, string collectionName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
-        {
-            var coll = Config.Database.GetCollection(collectionName, scope);
-            var doc = new Document(coll, docID, revID, value);
-            return filterFunction(doc, flags);
-        }
-
         private void OnDocEndedWithConflict(List<ReplicatedDocument> replications)
         {
             if (_disposed) {
@@ -657,7 +583,9 @@ namespace Couchbase.Lite.Sync
                 WriteLog.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
                 Task t = Task.Run(() =>
                 {
-                    try {
+                    try {//TODO
+                        //var coll = Config.Database.GetCollection(replication.CollectionName, replication.ScopeName);
+                        //var config = Config.GetCollectionConfig(coll);
                         Config.Database.ResolveConflict(replication.Id, Config.ConflictResolver);
                         replication = replication.ClearError();
                     } catch (CouchbaseException e) {
@@ -682,16 +610,16 @@ namespace Couchbase.Lite.Sync
             if (_disposed) {
                 return;
             }
-            
+
             for (int i = 0; i < replications.Count; i++) {
                 var replication = replications[i];
-                var docID = replication.Id;
                 var error = replication.NativeError;
-                var transient = replication.IsTransient;
-                var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
-                var transientStr = transient ? "transient " : String.Empty;
-                var dirStr = pushing ? "pushing" : "pulling";
                 if (error.code > 0) {
+                    var docID = replication.Id;
+                    var transient = replication.IsTransient;
+                    var logDocID = new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure);
+                    var transientStr = transient ? "transient " : String.Empty;
+                    var dirStr = pushing ? "pushing" : "pulling";
                     WriteLog.To.Sync.I(Tag,
                         $"{this}: {transientStr}error {dirStr} '{logDocID}' : {error.code} ({Native.c4error_getMessage(error)})");
                 }
@@ -700,161 +628,24 @@ namespace Couchbase.Lite.Sync
             _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(replications, pushing));
         }
 
-        private bool PullValidateCallback(string collNmae, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
-        {
-            return filterCallback(Config.PullFilter, collNmae, scope, docID, revID, value, flags);
-        }
+        #endregion
 
-        private bool PushFilterCallback(string collNmae, string scope, [NotNull]string docID, string revID, FLDict* value, DocumentFlags flags)
-        {
-            var coll = Config.Database.GetCollection(collNmae, scope);
-            return Config.PushFilter(new Document(coll, docID, revID, value), flags);
-        }
+        #region Private Methods - Status Change
 
-        private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)
+        #if __IOS__
+        [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorStatusChangedCallback))]
+        #endif
+        private static void StatusChangedCallback(C4Replicator* repl, C4ReplicatorStatus status, void* context)
         {
-            Debug.Assert(e != null);
+            var replicator = GCHandle.FromIntPtr((IntPtr)context).Target as Replicator;
+            if (replicator == null)
+                return;
 
-            DispatchQueue.DispatchAsync(() =>
+            replicator.WaitPendingConflictTasks(status);
+            replicator.DispatchQueue.DispatchSync(() =>
             {
-                if (_repl != null /* just to be safe */) {
-                    Native.c4repl_setHostReachable(_repl, e.Status == NetworkReachabilityStatus.Reachable);
-                }
+                replicator.StatusChangedCallback(status);
             });
-        }
-
-        private C4Error SetupC4Replicator()
-        {
-            Config.Database.CheckOpenLocked();
-            C4Error err = new C4Error();
-            if (_repl != null) {
-                Native.c4repl_setOptions(_repl, ((FLSlice) Config.Options.FLEncode()).ToArrayFast());
-                return err;
-            }
-
-            _desc = ToString(); // Cache this; it may be called a lot when logging
-
-            // Target:
-            var addr = new C4Address();
-            Database otherDB = null;
-            var remoteUrl = Config.RemoteUrl;
-            string dbNameStr = remoteUrl?.Segments?.Last().TrimEnd('/');
-            using (var dbNameStr_ = new C4String(dbNameStr))
-            using (var remoteUrlStr_ = new C4String(remoteUrl?.AbsoluteUri)) {
-                FLSlice dn = dbNameStr_.AsFLSlice();
-                C4Address localAddr;
-                var addrFromUrl = NativeRaw.c4address_fromURL(remoteUrlStr_.AsFLSlice(), &localAddr, &dn);
-                addr = localAddr;
-
-                if (addrFromUrl) {
-                    //get cookies from url and add to replicator options
-                    var cookiestring = Config.Database.GetCookies(remoteUrl);
-                    if (!String.IsNullOrEmpty(cookiestring))  {
-                        var split = cookiestring.Split(';') ?? Enumerable.Empty<string>();
-                        foreach (var entry in split) {
-                            var pieces = entry?.Split('=');
-                            if (pieces?.Length != 2) {
-                                WriteLog.To.Sync.W(Tag, "Garbage cookie value, ignoring");
-                                continue;
-                            }
-
-                            Config.Options.Cookies.Add(new Cookie(pieces[0]?.Trim(), pieces[1]?.Trim()));
-                        }
-                    }
-
-                } else {
-                    Config.OtherDB?.CheckOpenLocked();
-                    otherDB = Config.OtherDB;
-                }
-
-                var options = Config.Options;
-
-                Config.Authenticator?.Authenticate(options);
-
-                options.Build();
-                var push = Config.ReplicatorType.HasFlag(ReplicatorType.Push);
-                var pull = Config.ReplicatorType.HasFlag(ReplicatorType.Pull);
-                var continuous = Config.Continuous;
-
-                var socketFactory = Config.SocketFactory;
-                socketFactory.context = GCHandle.ToIntPtr(GCHandle.Alloc(this)).ToPointer();
-                _nativeParams = new ReplicatorParameters(options)
-                {
-                    Push = Mkmode(push, continuous),
-                    Pull = Mkmode(pull, continuous),
-                    Context = this,
-                    OnDocumentEnded = OnDocEnded,
-                    OnStatusChanged = StatusChangedCallback,
-                    SocketFactory = &socketFactory
-                };
-
-                // Clear the reset flag, it is a one-time thing
-                options.Reset = false;
-
-                if (Config.PushFilter != null)
-                    _nativeParams.PushFilter = PushFilterCallback;
-                if (Config.PullFilter != null)
-                    _nativeParams.PullFilter = PullValidateCallback;
-
-                DispatchQueue.DispatchSync(() =>
-                {
-                    C4Error localErr = new C4Error();
-                    #if COUCHBASE_ENTERPRISE
-                    if (otherDB != null)
-                        _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
-                            &localErr);
-                    else
-                    #endif
-                    _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
-
-                    if (_documentEndedUpdate.Counter > 0) {
-                        SetProgressLevel(C4ReplicatorProgressLevel.ReplProgressPerDocument);
-                    }
-
-                    err = localErr;
-                });
-            }
-
-            return err;
-        }
-
-        private void SetProgressLevel(C4ReplicatorProgressLevel progressLevel)
-        {
-            if (_repl == null) {
-                WriteLog.To.Sync.V(Tag, $"Progress level {progressLevel} is not yet set because C4Replicator is not created.");
-                return;
-            }
-
-            C4Error err = new C4Error();
-            if (!Native.c4repl_setProgressLevel(_repl, progressLevel, &err) || err.code > 0) {
-                WriteLog.To.Sync.W(Tag, $"Failed set progress level to {progressLevel}", err);
-            }
-        }
-
-        private void StartReachabilityObserver()
-        {
-            if (_reachability != null) {
-                return;
-            }
-
-            var remoteUrl = (Config.Target as URLEndpoint)?.Url;
-            if (remoteUrl == null) {
-                return;
-            }
-
-            _reachability = Service.GetInstance<IReachability>() ?? new Reachability();
-            _reachability.StatusChanged += ReachabilityChanged;
-            _reachability.Url = remoteUrl;
-            _reachability.Start();
-        }
-
-        private void StopReachabilityObserver()
-        {
-            if (_reachability != null) {
-                _reachability.StatusChanged -= ReachabilityChanged;
-                _reachability.Stop();
-                _reachability = null;
-            }
         }
 
         // Must be called from within the ThreadSafety
@@ -888,6 +679,277 @@ namespace Couchbase.Lite.Sync
                 _statusChanged.Fire(this, new ReplicatorStatusChangedEventArgs(Status));
             } catch (Exception e) {
                 WriteLog.To.Sync.W(Tag, "Exception during StatusChanged callback", e);
+            }
+        }
+
+        private void WaitPendingConflictTasks(C4ReplicatorStatus status)
+        {
+            if (status.error.code == 0 && status.error.domain == 0)
+                return;
+
+            if (status.level == C4ReplicatorActivityLevel.Stopped
+                || status.level == C4ReplicatorActivityLevel.Idle) {
+                var array = _conflictTasks?.Keys?.ToArray();
+                if (array != null) {
+                    Task.WaitAll(array);
+                }
+            }
+        }
+
+        #endregion
+
+        #region Private Methods - Reachability
+
+        private void StartReachabilityObserver()
+        {
+            if (_reachability != null) {
+                return;
+            }
+
+            var remoteUrl = (Config.Target as URLEndpoint)?.Url;
+            if (remoteUrl == null) {
+                return;
+            }
+
+            _reachability = Service.GetInstance<IReachability>() ?? new Reachability();
+            _reachability.StatusChanged += ReachabilityChanged;
+            _reachability.Url = remoteUrl;
+            _reachability.Start();
+        }
+
+        private void StopReachabilityObserver()
+        {
+            if (_reachability != null) {
+                _reachability.StatusChanged -= ReachabilityChanged;
+                _reachability.Stop();
+                _reachability = null;
+            }
+        }
+
+        private void ReachabilityChanged(object sender, NetworkReachabilityChangeEventArgs e)
+        {
+            Debug.Assert(e != null);
+
+            DispatchQueue.DispatchAsync(() =>
+            {
+                if (_repl != null /* just to be safe */) {
+                    Native.c4repl_setHostReachable(_repl, e.Status == NetworkReachabilityStatus.Reachable);
+                }
+            });
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private bool IsPushing(Collection collection)
+        {
+            var collConfig = Config.GetCollectionConfig(collection);
+            return collConfig.ReplicatorType.HasFlag(ReplicatorType.Push);
+        }
+
+        private static C4ReplicatorMode Mkmode(bool active, bool continuous)
+        {
+            return Modes[2 * Convert.ToInt32(active) + Convert.ToInt32(continuous)];
+        }
+
+        private void OnTlsCertificate(object sender, TlsCertificateReceivedEventArgs e)
+        {
+            ((WebSocketWrapper) sender).PeerCertificateReceived -= OnTlsCertificate;
+            ServerCertificate = e.PeerCertificate;
+        }
+
+        private void OnCookiesToSetReceived(object sender, string e)
+        {
+            ((WebSocketWrapper) sender).CookiesToSetReceived -= OnCookiesToSetReceived;
+
+            var remoteUrl = (Config.Target as URLEndpoint)?.Url;
+            if (remoteUrl == null) {
+                return;
+            }
+
+            Config.Database.SaveCookie(e, remoteUrl);
+        }
+
+        private void Dispose(bool finalizing)
+        {
+            if(!finalizing) {
+                DispatchQueue.DispatchSync(() =>
+                {
+                    if (_disposed) {
+                        return;
+                    }
+
+                    foreach(var col in replicationCollections) {
+                        if (col != null) {
+                            GCHandle.FromIntPtr((IntPtr)col.C4ReplicationCol.callbackContext).Free();
+                            col.Dispose();
+                        }
+                    }
+
+                    _nativeParams?.Dispose();
+                    Config.Options.Dispose();
+                    if (Status.Activity != ReplicatorActivityLevel.Stopped) {
+                        var newStatus = new ReplicatorStatus(ReplicatorActivityLevel.Stopped, Status.Progress, null);
+                        _statusChanged.Fire(this, new ReplicatorStatusChangedEventArgs(newStatus));
+                        Status = newStatus;
+                    }
+
+                    Stop();
+                    Native.c4repl_free(_repl);
+                    _repl = null;
+                    _disposed = true;
+                });
+            } else {
+                 Native.c4repl_free(_repl);
+                 _repl = null;
+            }
+        }
+
+        private C4Error SetupC4Replicator()
+        {
+            Config.Database.CheckOpenLocked();
+            C4Error err = new C4Error();
+            if (_repl != null) {
+                Native.c4repl_setOptions(_repl, ((FLSlice) Config.Options.FLEncode()).ToArrayFast());
+                return err;
+            }
+
+            _desc = ToString(); // Cache this; it may be called a lot when logging
+
+            // Target:
+            var addr = new C4Address();
+            Database otherDB = null;
+            var remoteUrl = Config.RemoteUrl;
+            string dbNameStr = remoteUrl?.Segments?.Last().TrimEnd('/');
+            using (var dbNameStr_ = new C4String(dbNameStr))
+            using (var remoteUrlStr_ = new C4String(remoteUrl?.AbsoluteUri)) {
+                FLSlice dn = dbNameStr_.AsFLSlice();
+                C4Address localAddr;
+                var addrFromUrl = NativeRaw.c4address_fromURL(remoteUrlStr_.AsFLSlice(), &localAddr, &dn);
+                addr = localAddr;
+
+                if (addrFromUrl) {
+                    //get cookies from url and add to replicator options
+                    var cookiestring = Config.Database.GetCookies(remoteUrl);
+                    if (!String.IsNullOrEmpty(cookiestring)) {
+                        var split = cookiestring.Split(';') ?? Enumerable.Empty<string>();
+                        foreach (var entry in split) {
+                            var pieces = entry?.Split('=');
+                            if (pieces?.Length != 2) {
+                                WriteLog.To.Sync.W(Tag, "Garbage cookie value, ignoring");
+                                continue;
+                            }
+
+                            Config.Options.Cookies.Add(new Cookie(pieces[0]?.Trim(), pieces[1]?.Trim()));
+                        }
+                    }
+                } else {
+                    Config.OtherDB?.CheckOpenLocked();
+                    otherDB = Config.OtherDB;
+                }
+
+                var options = Config.Options;
+
+                Config.Authenticator?.Authenticate(options);
+
+                options.Build();
+                var push = Config.ReplicatorType.HasFlag(ReplicatorType.Push);
+                var pull = Config.ReplicatorType.HasFlag(ReplicatorType.Pull);
+                var continuous = Config.Continuous;
+
+                var socketFactory = Config.SocketFactory;
+                socketFactory.context = GCHandle.ToIntPtr(GCHandle.Alloc(this)).ToPointer();
+                _nativeParams = new ReplicatorParameters(options)
+                {
+                    Context = this,
+                    OnDocumentEnded = OnDocEnded,
+                    OnStatusChanged = StatusChangedCallback,
+                    SocketFactory = &socketFactory
+                };
+
+                // Clear the reset flag, it is a one-time thing
+                options.Reset = false;
+
+                var collCnt = (long)Config.Collections.Count;
+                _nativeParams.CollectionCount = collCnt;
+                DispatchQueue.DispatchSync(() =>
+                {
+                    C4ReplicationCollection[] c4ReplicationCollections = new C4ReplicationCollection[collCnt];
+                    C4CollectionSpec[] c4CollectionSpec = new C4CollectionSpec[collCnt];
+                    for (int i = 0; i < collCnt; i++) {
+                        var collectionConfig = Config.CollectionConfigs.ElementAt(i);
+                        var col = collectionConfig.Key;
+                        var config = collectionConfig.Value;
+                        var colConfigOptions = config.Options;
+
+                        //TODO: in the future we can set different replicator type per collection
+                        //var collPush = config.ReplicatorType.HasFlag(ReplicatorType.Push);
+                        //var collPull = config.ReplicatorType.HasFlag(ReplicatorType.Pull);
+                        //for now collecion config's ReplicatorType should be the same as ReplicatorType in replicator config
+                        config.ReplicatorType = Config.ReplicatorType; 
+
+                        colConfigOptions.Build();
+
+                        var collName = new C4String(col.Name);
+                        var scopeName = new C4String(col.Scope.Name);
+                        c4CollectionSpec[i] = new C4CollectionSpec()
+                        {
+                            name = collName.AsFLSlice(),
+                            scope = scopeName.AsFLSlice()
+                        };
+
+                        var replicationCollection = new ReplicationCollection(colConfigOptions)
+                        {
+                            Push = Mkmode(push, continuous),
+                            Pull = Mkmode(pull, continuous),
+                            Context = this
+                        };
+
+                        if (config.PushFilter != null)
+                            replicationCollection.PushFilter = PushFilterCallback;
+                        if (config.PullFilter != null)
+                            replicationCollection.PullFilter = PullValidateCallback;
+
+                        var localC4ReplicationCol = replicationCollection.C4ReplicationCol;
+                        localC4ReplicationCol.collection = c4CollectionSpec[i];
+                        c4ReplicationCollections[i] = localC4ReplicationCol;
+                        replicationCollections[i] = replicationCollection;
+                    }
+
+                    C4Error localErr = new C4Error();
+                    fixed (C4ReplicationCollection* ptr = c4ReplicationCollections) {
+                        _nativeParams.ReplicationCollection = ptr;
+                        #if COUCHBASE_ENTERPRISE
+                        if (otherDB != null)
+                            _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
+                                &localErr);
+                        else
+                        #endif
+                            _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
+                    }
+
+                    if (_documentEndedUpdate.Counter > 0) {
+                        SetProgressLevel(C4ReplicatorProgressLevel.ReplProgressPerDocument);
+                    }
+
+                    err = localErr;
+                });
+            }
+
+            return err;
+        }
+
+        private void SetProgressLevel(C4ReplicatorProgressLevel progressLevel)
+        {
+            if (_repl == null) {
+                WriteLog.To.Sync.V(Tag, $"Progress level {progressLevel} is not yet set because C4Replicator is not created.");
+                return;
+            }
+
+            C4Error err = new C4Error();
+            if (!Native.c4repl_setProgressLevel(_repl, progressLevel, &err) || err.code > 0) {
+                WriteLog.To.Sync.W(Tag, $"Failed set progress level to {progressLevel}", err);
             }
         }
 

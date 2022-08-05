@@ -28,7 +28,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)ScopesCollections.ReplicationTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ReplicationTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ScopeCollectionTest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)ScopesCollections.QueryTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)TLSIdentityTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PerfTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PredictiveQueryTest.cs" />
