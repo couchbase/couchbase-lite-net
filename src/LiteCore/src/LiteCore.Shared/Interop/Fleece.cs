@@ -80,8 +80,7 @@ namespace LiteCore.Interop
 
         public byte[] ToArrayFast()
         {
-            if (buf == null)
-            {
+            if (buf == null) {
                 return null;
             }
 
@@ -96,7 +95,6 @@ namespace LiteCore.Interop
             if(buf == null) {
                 return null;
             }
-
 
             var tmp = new IntPtr(buf);
             var bytes = new byte[size];
