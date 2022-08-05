@@ -208,6 +208,7 @@ namespace LiteCore.Interop
                 }
 
                 if (value != null) {
+                    //the context(which is a GCHandle object) needs to be retained though the lifetime of the Replicator.
                     _c4ReplicationCol.callbackContext = GCHandle.ToIntPtr(GCHandle.Alloc(value)).ToPointer();
                 }
             }
@@ -266,7 +267,6 @@ namespace LiteCore.Interop
         private unsafe void Dispose(bool finalizing)
         {
             Native.FLSliceResult_Release((FLSliceResult)_c4ReplicationCol.optionsDictFleece);
-            Context = null;
         }
 
         #endregion

@@ -81,6 +81,7 @@ namespace Couchbase.Lite.Sync
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
         private IImmutableSet<string> _pendingDocIds;
         private ReplicatorConfiguration _config;
+        private ReplicationCollection[] replicationCollections => new ReplicationCollection[Config.Collections.Count];
 
         #endregion
 
@@ -509,9 +510,9 @@ namespace Couchbase.Lite.Sync
             return replicator.PushFilterCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
         }
 
-        private bool PullValidateCallback(string collNmae, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
+        private bool PullValidateCallback(string collName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
         {
-            var coll = Config.Database.GetCollection(collNmae, scope);
+            var coll = Config.Database.GetCollection(collName, scope);
             var config = Config.GetCollectionConfig(coll);
             return config.PullFilter(new Document(coll, docID, revID, value), flags);
         }
@@ -540,6 +541,8 @@ namespace Couchbase.Lite.Sync
             var documentReplications = new List<ReplicatedDocument>();
             for (int i = 0; i < (int)numDocs; i++) {
                 var current = docs[i];
+                //TODO - check if can take advantage of this collection context
+                var collection = GCHandle.FromIntPtr((IntPtr)current->collectionContext).Target as Collection;
                 if (!pushing && current->error.domain == C4ErrorDomain.LiteCoreDomain &&
                     current->error.code == (int)C4ErrorCode.Conflict) {
                     replicatedDocumentsContainConflict.Add(new ReplicatedDocument(current->docID.CreateString() ?? "", current->collectionSpec,
@@ -776,6 +779,13 @@ namespace Couchbase.Lite.Sync
                         return;
                     }
 
+                    foreach(var col in replicationCollections) {
+                        if (col != null) {
+                            GCHandle.FromIntPtr((IntPtr)col.C4ReplicationCol.callbackContext).Free();
+                            col.Dispose();
+                        }
+                    }
+
                     _nativeParams?.Dispose();
                     Config.Options.Dispose();
                     if (Status.Activity != ReplicatorActivityLevel.Stopped) {
@@ -872,18 +882,20 @@ namespace Couchbase.Lite.Sync
                         var config = collectionConfig.Value;
                         var colConfigOptions = config.Options;
 
-                        //TODO: in the future we can set different replicator type by collections
+                        //TODO: in the future we can set different replicator type per collection
                         //var collPush = config.ReplicatorType.HasFlag(ReplicatorType.Push);
                         //var collPull = config.ReplicatorType.HasFlag(ReplicatorType.Pull);
                         //for now collecion config's ReplicatorType should be the same as ReplicatorType in replicator config
                         config.ReplicatorType = Config.ReplicatorType; 
 
-                        colConfigOptions.Build(); 
+                        colConfigOptions.Build();
 
+                        var collName = new C4String(col.Name);
+                        var scopeName = new C4String(col.Scope.Name);
                         c4CollectionSpec[i] = new C4CollectionSpec()
                         {
-                            name = new C4String(col.Name).AsFLSlice(),
-                            scope = new C4String(col.Scope.Name).AsFLSlice()
+                            name = collName.AsFLSlice(),
+                            scope = scopeName.AsFLSlice()
                         };
 
                         var replicationCollection = new ReplicationCollection(colConfigOptions)
@@ -901,6 +913,7 @@ namespace Couchbase.Lite.Sync
                         var localC4ReplicationCol = replicationCollection.C4ReplicationCol;
                         localC4ReplicationCol.collection = c4CollectionSpec[i];
                         c4ReplicationCollections[i] = localC4ReplicationCol;
+                        replicationCollections[i] = replicationCollection;
                     }
 
                     C4Error localErr = new C4Error();
