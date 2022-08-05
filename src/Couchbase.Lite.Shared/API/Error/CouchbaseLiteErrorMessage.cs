@@ -40,7 +40,7 @@ namespace Couchbase.Lite
         internal const string CollectionNotAvailable = "Attempt to perform an operation on an unavailable collection {0}.";
         internal const string NoDocumentRevision = "No revision data on the document!";
         internal const string FragmentPathNotExist = "Specified fragment path does not exist in object; cannot set value.";
-        internal const string InvalidCouchbaseObjType = "{0} is not a valid type. You may only pass {1}, Blob, a one-dimensional array or a dictionary whose members are one of the preceding types.";
+        internal const string InvalidCouchbaseObjType = "{0} is not a valid type. Valid types are simple types and dictionaries and one-dimensional arrays of those types, including {1}.";
         internal const string InvalidValueToBeDeserialized = "Non-string or null key in data to be deserialized.";
         internal const string BlobContainsNoData = "Blob has no data available.";
         internal const string NotFileBasedURL = "{0} must be a file-based URL.";
