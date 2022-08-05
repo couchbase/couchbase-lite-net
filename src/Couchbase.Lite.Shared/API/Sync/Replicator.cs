@@ -81,7 +81,6 @@ namespace Couchbase.Lite.Sync
         private ConcurrentDictionary<Task, int> _conflictTasks = new ConcurrentDictionary<Task, int>();
         private IImmutableSet<string> _pendingDocIds;
         private ReplicatorConfiguration _config;
-        private ReplicationCollection[] replicationCollections => new ReplicationCollection[Config.Collections.Count];
 
         #endregion
 
@@ -108,6 +107,8 @@ namespace Couchbase.Lite.Sync
         /// provide an SSH type of authentication.
         /// </summary>
         public X509Certificate2 ServerCertificate { get; private set; }
+
+        private ReplicationCollection[] replicationCollections => new ReplicationCollection[Config.Collections.Count];
 
         #endregion
 
@@ -517,9 +518,9 @@ namespace Couchbase.Lite.Sync
             return config.PullFilter(new Document(coll, docID, revID, value), flags);
         }
 
-        private bool PushFilterCallback(string collNmae, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
+        private bool PushFilterCallback(string collName, string scope, string docID, string revID, FLDict* value, DocumentFlags flags)
         {
-            var coll = Config.Database.GetCollection(collNmae, scope);
+            var coll = Config.Database.GetCollection(collName, scope);
             var config = Config.GetCollectionConfig(coll);
             return config.PushFilter(new Document(coll, docID, revID, value), flags);
         }
