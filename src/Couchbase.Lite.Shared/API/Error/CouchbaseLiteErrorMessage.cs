@@ -35,6 +35,7 @@ namespace Couchbase.Lite
         internal const string ResolvedDocContainsNull = "Resolved document has a null body.";
         internal const string ResolvedDocFailedLiteCore = "LiteCore failed resolving conflict.";
         internal const string ResolvedDocWrongDb = "Resolved document's database {0} is different from expected database {1}.";
+        internal const string DBClosedOrCollectionDeleted = "Attempt to perform an operation on a closed database or a deleted collection.";
         internal const string DBClosed = "Attempt to perform an operation on a closed database.";
         internal const string CollectionNotAvailable = "Attempt to perform an operation on an unavailable collection {0}.";
         internal const string NoDocumentRevision = "No revision data on the document!";
