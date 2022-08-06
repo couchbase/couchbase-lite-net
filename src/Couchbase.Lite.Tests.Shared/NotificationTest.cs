@@ -138,7 +138,7 @@ namespace Test
             _wa.WaitForResult(TimeSpan.FromSeconds(5));
         }
 
-        //[Fact]
+        [Fact]
         public async void TestCollectionDocumentChange()
         {
             var colA = Db.CreateCollection("colA", "scopeA");
