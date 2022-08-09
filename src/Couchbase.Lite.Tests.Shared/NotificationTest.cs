@@ -167,7 +167,7 @@ namespace Test
             };
             _wa = new WaitAssert();
 
-            await Task.Delay(800);
+            await Task.Delay(1000);
             _expectedDocumentChanges.Count.Should().Be(0);
 
             _expectedDocumentChanges.Add("doc1");
