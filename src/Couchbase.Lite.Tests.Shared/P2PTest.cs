@@ -70,7 +70,6 @@ namespace Test
             //Database.Log.Console.Level = LogLevel.Debug;
         }
 
-        //TODO: CBL-3151
         [Fact]
         public void TestShortP2P()
         {
@@ -291,7 +290,7 @@ namespace Test
             closeWait2.Dispose();
         }
 
-        [Fact] //uwp
+        [Fact]
         public void TestP2PChangeListener()
         {
             var statuses = new List<ReplicatorActivityLevel>();
@@ -314,7 +313,7 @@ namespace Test
                 .BeGreaterThan(1, "because otherwise there were no callbacks to the change listener");
         }
 
-        [Fact] //uwp
+        [Fact]
         public void TestRemoveChangeListener()
         {
             var statuses = new List<ReplicatorActivityLevel>();
