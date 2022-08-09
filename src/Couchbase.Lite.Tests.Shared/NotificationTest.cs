@@ -148,6 +148,12 @@ namespace Test
             colA.AddDocumentChangeListener("doc2", DocumentChanged);
             colB.AddDocumentChangeListener("doc4", DocumentChanged);
 
+            _expectedDocumentChanges = new HashSet<string> {
+                "doc1",
+                "doc2",
+                "doc4"
+            };
+
             var doc1 = new MutableDocument("doc1");
             doc1.SetString("name", "Scott");
             colA.Save(doc1);
@@ -159,15 +165,10 @@ namespace Test
             var doc4 = new MutableDocument("doc4");
             doc4.SetString("name", "Peter");
             colB.Save(doc4);
-
-            _expectedDocumentChanges = new HashSet<string> {
-                "doc1",
-                "doc2",
-                "doc4"
-            };
+            
             _wa = new WaitAssert();
 
-            await Task.Delay(1600);
+            await Task.Delay(1000);
             _expectedDocumentChanges.Count.Should().Be(0);
 
             _expectedDocumentChanges.Add("doc1");
@@ -177,13 +178,13 @@ namespace Test
             doc4.SetString("name", "Peter Tiger");
             colB.Save(doc4);
 
-            await Task.Delay(1000);
+            await Task.Delay(800);
             _expectedDocumentChanges.Count.Should().Be(0);
 
             _expectedDocumentChanges.Add("doc2");
             colA.Delete(doc2);
 
-            await Task.Delay(800);
+            await Task.Delay(500);
             _expectedDocumentChanges.Count.Should().Be(0);
 
             _expectedDocumentChanges.Add("doc3");
