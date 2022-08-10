@@ -89,8 +89,8 @@ namespace Couchbase.Lite.Sync
             bool isTransient)
         {
             Id = docID;
-            CollectionName = collectionSpec.name.ToString();
-            ScopeName = collectionSpec.scope.ToString();
+            CollectionName = collectionSpec.name.CreateString();
+            ScopeName = collectionSpec.scope.CreateString();
             Flags = flags.ToDocumentFlags();
             NativeError = error;
             Error = error.domain == 0 ? null : CouchbaseException.Create(error);
