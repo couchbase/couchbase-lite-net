@@ -139,7 +139,7 @@ namespace Test
         }
 
         [Fact]
-        public async void TestCollectionDocumentChange()
+        public void TestCollectionDocumentChange()
         {
             var colA = Db.CreateCollection("colA", "scopeA");
             var colB = Db.CreateCollection("colB", "scopeA");
@@ -168,7 +168,7 @@ namespace Test
             
             _wa = new WaitAssert();
 
-            await Task.Delay(1000);
+            Thread.Sleep(800);
             _expectedDocumentChanges.Count.Should().Be(0);
 
             _expectedDocumentChanges.Add("doc1");
@@ -178,13 +178,13 @@ namespace Test
             doc4.SetString("name", "Peter Tiger");
             colB.Save(doc4);
 
-            await Task.Delay(800);
+            Thread.Sleep(800);
             _expectedDocumentChanges.Count.Should().Be(0);
 
             _expectedDocumentChanges.Add("doc2");
             colA.Delete(doc2);
 
-            await Task.Delay(500);
+            Thread.Sleep(800);
             _expectedDocumentChanges.Count.Should().Be(0);
 
             _expectedDocumentChanges.Add("doc3");
