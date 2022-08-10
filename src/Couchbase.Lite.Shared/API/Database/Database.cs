@@ -1208,7 +1208,7 @@ namespace Couchbase.Lite
             return cookieSaved;
         }
 
-        internal void ResolveConflict([@NotNull]string docID, [@CanBeNull]IConflictResolver conflictResolver)
+        internal void ResolveConflict([@NotNull]string docID, [@CanBeNull]IConflictResolver conflictResolver, Collection collection)
         {
             Debug.Assert(docID != null);
 
@@ -1221,12 +1221,12 @@ namespace Couchbase.Lite
                     {
                         // Do this in a batch so that there are no changes to the document between
                         // localDoc read and remoteDoc read
-                        localDoc = new Document(DefaultCollection, docID);
+                        localDoc = new Document(collection ?? DefaultCollection, docID);
                         if (!localDoc.Exists) {
                             throw new CouchbaseLiteException(C4ErrorCode.NotFound);
                         }
 
-                        remoteDoc = new Document(DefaultCollection, docID, C4DocContentLevel.DocGetAll);
+                        remoteDoc = new Document(collection ?? DefaultCollection, docID, C4DocContentLevel.DocGetAll);
                         if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
                             WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', the conflict may have been previously resolved...",
                                 new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
@@ -1261,7 +1261,7 @@ namespace Couchbase.Lite
                             Misc.SafeSwap(ref resolvedDoc, new MutableDocument(docID, resolvedDoc.ToDictionary()));
                         }
                         if (resolvedDoc.Collection == null) {
-                            resolvedDoc.Collection = DefaultCollection;
+                            resolvedDoc.Collection = collection ?? DefaultCollection;
                         } else if (resolvedDoc.Database != this) {
                             throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.ResolvedDocWrongDb,
                                 resolvedDoc.Database.Name, this.Name));

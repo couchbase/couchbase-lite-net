@@ -583,10 +583,10 @@ namespace Couchbase.Lite.Sync
                 WriteLog.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
                 Task t = Task.Run(() =>
                 {
-                    try {//TODO
-                        //var coll = Config.Database.GetCollection(replication.CollectionName, replication.ScopeName);
-                        //var config = Config.GetCollectionConfig(coll);
-                        Config.Database.ResolveConflict(replication.Id, Config.ConflictResolver);
+                    try {
+                        var coll = Config.Database.GetCollection(replication.CollectionName, replication.ScopeName);
+                        var config = Config.GetCollectionConfig(coll);
+                        Config.Database.ResolveConflict(replication.Id, config.ConflictResolver, coll);
                         replication = replication.ClearError();
                     } catch (CouchbaseException e) {
                         replication.Error = e;
