@@ -151,6 +151,8 @@ namespace Test
                 colA.AddDocumentChangeListener("doc1", DocumentChanged);
                 colA.AddDocumentChangeListener("doc2", DocumentChanged);
                 colB.AddDocumentChangeListener("doc4", DocumentChanged);
+                
+                _wa = new WaitAssert();
 
                 var doc1 = new MutableDocument("doc1");
                 doc1.SetString("name", "Scott");
@@ -164,12 +166,11 @@ namespace Test
                 doc4.SetString("name", "Peter");
                 colB.Save(doc4);
 
+                _wa.WaitForResult(TimeSpan.FromSeconds(5));
+                _expectedDocumentChanges.Count.Should().Be(0);
+                
                 _wa = new WaitAssert();
 
-                while (_expectedDocumentChanges.Count > 0)
-                    Thread.Sleep(100);
-
-                _expectedDocumentChanges.Count.Should().Be(0);
                 _expectedDocumentChanges.Add("doc1");
                 _expectedDocumentChanges.Add("doc4");
                 doc1.SetString("name", "Scott Tiger");
@@ -177,26 +178,23 @@ namespace Test
                 doc4.SetString("name", "Peter Tiger");
                 colB.Save(doc4);
 
-                while (_expectedDocumentChanges.Count > 0)
-                    Thread.Sleep(100);
-
+                _wa.WaitForResult(TimeSpan.FromSeconds(5));
                 _expectedDocumentChanges.Count.Should().Be(0);
+
+                _wa = new WaitAssert();
+
                 _expectedDocumentChanges.Add("doc2");
                 colA.Delete(doc2);
 
-                while (_expectedDocumentChanges.Count > 0)
-                    Thread.Sleep(100);
-
-                _expectedDocumentChanges.Count.Should().Be(0);
                 _wa.WaitForResult(TimeSpan.FromSeconds(5));
+                _expectedDocumentChanges.Count.Should().Be(0);
 
                 _expectedDocumentChanges.Add("doc3");
                 var doc3 = new MutableDocument("doc3");
                 doc3.SetString("name", "Jack");
                 colA.Save(doc3);
 
-                while (_expectedDocumentChanges.Count > 1)
-                    Thread.Sleep(100);
+                Thread.Sleep(1000);
 
                 _expectedDocumentChanges.Count.Should().Be(1, "Because there is no listener to observe doc3 change.");
                 _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
