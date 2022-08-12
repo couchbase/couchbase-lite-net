@@ -138,62 +138,68 @@ namespace Test
             _wa.WaitForResult(TimeSpan.FromSeconds(5));
         }
 
-        //[Fact]
-        public async void TestCollectionDocumentChange()
+        [Fact]
+        public void TestCollectionDocumentChange()
         {
-            var colA = Db.CreateCollection("colA", "scopeA");
-            var colB = Db.CreateCollection("colB", "scopeA");
-            
-            colA.AddDocumentChangeListener("doc1", DocumentChanged);
-            colA.AddDocumentChangeListener("doc2", DocumentChanged);
-            colB.AddDocumentChangeListener("doc4", DocumentChanged);
+            using (var colA = Db.CreateCollection("colA", "scopeA"))
+            using (var colB = Db.CreateCollection("colB", "scopeA")) {
+                _expectedDocumentChanges = new HashSet<string> {
+                    "doc1",
+                    "doc2",
+                    "doc4"
+                };
+                colA.AddDocumentChangeListener("doc1", DocumentChanged);
+                colA.AddDocumentChangeListener("doc2", DocumentChanged);
+                colB.AddDocumentChangeListener("doc4", DocumentChanged);
+                
+                _wa = new WaitAssert();
 
-            var doc1 = new MutableDocument("doc1");
-            doc1.SetString("name", "Scott");
-            colA.Save(doc1);
+                var doc1 = new MutableDocument("doc1");
+                doc1.SetString("name", "Scott");
+                colA.Save(doc1);
 
-            var doc2 = new MutableDocument("doc2");
-            doc2.SetString("name", "Daniel");
-            colA.Save(doc2);
+                var doc2 = new MutableDocument("doc2");
+                doc2.SetString("name", "Daniel");
+                colA.Save(doc2);
 
-            var doc4 = new MutableDocument("doc4");
-            doc4.SetString("name", "Peter");
-            colB.Save(doc4);
+                var doc4 = new MutableDocument("doc4");
+                doc4.SetString("name", "Peter");
+                colB.Save(doc4);
 
-            _expectedDocumentChanges = new HashSet<string> {
-                "doc1",
-                "doc2",
-                "doc4"
-            };
-            _wa = new WaitAssert();
+                _wa.WaitForResult(TimeSpan.FromSeconds(5));
+                _expectedDocumentChanges.Count.Should().Be(0);
+                
+                _wa = new WaitAssert();
 
-            await Task.Delay(800);
-            _expectedDocumentChanges.Count.Should().Be(0);
+                _expectedDocumentChanges.Add("doc1");
+                _expectedDocumentChanges.Add("doc4");
+                doc1.SetString("name", "Scott Tiger");
+                colA.Save(doc1);
+                doc4.SetString("name", "Peter Tiger");
+                colB.Save(doc4);
 
-            _expectedDocumentChanges.Add("doc1");
-            _expectedDocumentChanges.Add("doc4");
-            doc1.SetString("name", "Scott Tiger");
-            colA.Save(doc1);
-            doc4.SetString("name", "Peter Tiger");
-            colB.Save(doc4);
+                _wa.WaitForResult(TimeSpan.FromSeconds(5));
+                _expectedDocumentChanges.Count.Should().Be(0);
 
-            await Task.Delay(800);
-            _expectedDocumentChanges.Count.Should().Be(0);
+                _wa = new WaitAssert();
 
-            _expectedDocumentChanges.Add("doc2");
-            colA.Delete(doc2);
+                _expectedDocumentChanges.Add("doc2");
+                colA.Delete(doc2);
 
-            await Task.Delay(800);
-            _expectedDocumentChanges.Count.Should().Be(0);
+                _wa.WaitForResult(TimeSpan.FromSeconds(5));
+                _expectedDocumentChanges.Count.Should().Be(0);
 
-            _expectedDocumentChanges.Add("doc3");
-            var doc3 = new MutableDocument("doc3");
-            doc3.SetString("name", "Jack");
-            colA.Save(doc3);
-            _expectedDocumentChanges.Count.Should().Be(1, "Because there is no listener to observe doc3 change.");
+                _expectedDocumentChanges.Add("doc3");
+                var doc3 = new MutableDocument("doc3");
+                doc3.SetString("name", "Jack");
+                colA.Save(doc3);
 
-            _wa.WaitForResult(TimeSpan.FromSeconds(5));
-            _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
+                Thread.Sleep(1000);
+
+                _expectedDocumentChanges.Count.Should().Be(1, "Because there is no listener to observe doc3 change.");
+                _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
+                _expectedDocumentChanges.Clear();
+            }
         }
 
         [Fact]

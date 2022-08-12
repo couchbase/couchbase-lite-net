@@ -422,13 +422,13 @@ namespace Test
             RunReplication(config, 0, 0);
         }
 
-        //[Fact]
+        [Fact]
         public void TestPushDocWithFilterOneShot() => TestPushDocWithFilter(false);
 
         [Fact]
         public void TestPushDocWithFilterContinuous() => TestPushDocWithFilter(true);
 
-        //[Fact]
+        [Fact]
         public void TestPushPullKeepsFilter()
         {
             var config = CreateConfig(true, true, false);
@@ -451,7 +451,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestPushDeletedDocWithFilter()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -466,9 +466,9 @@ namespace Test
             var config = CreateConfig(true, false, false);
             config.PushFilter = _replicator__filterCallback;
             RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue("Because the callback should be triggered when there are docs to be pushed to the other db.");
             OtherDb.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
             OtherDb.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
-            _isFilteredCallback.Should().BeTrue();
             _isFilteredCallback = false;
 
             using (var doc1 = Db.GetDocument("doc1"))
@@ -478,13 +478,13 @@ namespace Test
             }
 
             RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue("Because the callback should be triggered when the docs are deleted.");
             OtherDb.GetDocument("doc1").Should().NotBeNull("because doc1's deletion should be rejected");
             OtherDb.GetDocument("pass").Should().BeNull("because the next document's deletion is not rejected");
-            _isFilteredCallback.Should().BeTrue();
             _isFilteredCallback = false;
         }
 
-        //[Fact]
+        [Fact]
         public void TestRevisionIdInPushPullFilters()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -530,7 +530,7 @@ namespace Test
             exceptions.Count.Should().Be(0);
         }
 
-        //[Fact]
+        [Fact]
         public void TestBlobAccessInFilter()
         {
             var content1 = new byte[] { 1, 2, 3 };
@@ -626,7 +626,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestPullDocWithFilter()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -641,13 +641,13 @@ namespace Test
             var config = CreateConfig(false, true, false);
             config.PullFilter = _replicator__filterCallback;
             RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue();
             Db.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
             Db.GetDocument("doc2").Should().NotBeNull("because doc2 is filtered in in the callback");
-            _isFilteredCallback.Should().BeTrue();
             _isFilteredCallback = false;
         }
 
-        //[Fact]
+        [Fact]
         public void TestPullDeletedDocWithFilter()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -662,9 +662,9 @@ namespace Test
             var config = CreateConfig(false, true, false);
             config.PullFilter = _replicator__filterCallback;
             RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue("Because the callback should be triggered when there are docs to be pulled from the other db.");
             Db.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
             Db.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
-            _isFilteredCallback.Should().BeTrue();
             _isFilteredCallback = false;
 
             using (var doc1 = OtherDb.GetDocument("doc1"))
@@ -674,13 +674,13 @@ namespace Test
             }
 
             RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue("Because the callback should be triggered when the docs on the other db are deleted.");
             Db.GetDocument("doc1").Should().NotBeNull("because doc1's deletion should be rejected");
             Db.GetDocument("pass").Should().BeNull("because the next document's deletion is not rejected");
-            _isFilteredCallback.Should().BeTrue();
             _isFilteredCallback = false;
         }
 
-        //[Fact]
+        [Fact]
         public void TestPullRemovedDocWithFilter()
         {
             using (var doc1 = new MutableDocument("doc1"))
@@ -695,9 +695,9 @@ namespace Test
             var config = CreateConfig(false, true, false);
             config.PullFilter = _replicator__filterCallback;
             RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue("Because the callback should be triggered when there are docs to be pulled from the other db.");
             Db.GetDocument("doc1").Should().NotBeNull("because doc1 passes the filter");
             Db.GetDocument("pass").Should().NotBeNull("because the next document passes the filter");
-            _isFilteredCallback.Should().BeTrue();
             _isFilteredCallback = false;
 
             using (var doc1 = OtherDb.GetDocument("doc1"))
@@ -711,9 +711,9 @@ namespace Test
             }
 
             RunReplication(config, 0, 0);
+            _isFilteredCallback.Should().BeTrue("Because the callback should be triggered when the docs on the other db are removed.");
             Db.GetDocument("doc1").Should().NotBeNull("because doc1's removal should be rejected");
             Db.GetDocument("pass").Should().BeNull("because the next document's removal is not rejected");
-            _isFilteredCallback.Should().BeTrue();
             _isFilteredCallback = false;
         }
 
@@ -1138,7 +1138,7 @@ namespace Test
 
         //conflict resolving tests
 
-        //[Fact]
+        [Fact]
         public void TestConflictResolverBothRemoteLocalDelete()
         {
             int resolveCnt = 0;
@@ -1176,7 +1176,7 @@ namespace Test
             Db.Count.Should().Be(0);
         }
 
-        //[Fact]
+        [Fact]
         public void TestConflictResolverPropertyInReplicationConfig()
         {
             var config = CreateConfig(false, true, false);
@@ -1194,7 +1194,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestConflictResolverRemoteWins()
         {
             var returnRemoteDoc = true;
@@ -1202,7 +1202,7 @@ namespace Test
             TestConflictResolverWins(!returnRemoteDoc);
         }
 
-        //[Fact]
+        [Fact]
         public void TestConflictResolverMergeDoc()
         {
             using (var doc1 = new MutableDocument("doc1")) {
@@ -1276,7 +1276,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestConflictResolverNullDoc()
         {
             bool conflictResolved = false;
@@ -1301,7 +1301,7 @@ namespace Test
             Db.GetDocument("doc1").Should().BeNull(); //Because conflict resolver returns null means return a deleted document.
         }
 
-        //[Fact]
+        [Fact]
         public void TestConflictResolverDeletedLocalWin()
         {
             Document localDoc = null, remoteDoc = null;
@@ -1340,7 +1340,7 @@ namespace Test
             Db.Count.Should().Be(0);
         }
 
-        //[Fact]
+        [Fact]
         public void TestConflictResolverDeletedRemoteWin()
         {
             Document localDoc = null, remoteDoc = null;
@@ -1377,7 +1377,7 @@ namespace Test
             Db.Count.Should().Be(0);
         }
 
-        //[Fact]
+        [Fact]
         public void TestConflictResolverWrongDocID()
         {
             CreateReplicationConflict("doc1");
@@ -1396,7 +1396,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestConflictResolverCalledTwice()
         {
             int resolveCnt = 0;
@@ -1433,7 +1433,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestNonBlockingDatabaseOperationConflictResolver()
         {
             int resolveCnt = 0;
@@ -1469,7 +1469,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestNonBlockingConflictResolver()
         {
             CreateReplicationConflict("doc1");
@@ -1511,7 +1511,7 @@ namespace Test
             q.Clear();
         }
 
-        //[Fact]
+        [Fact]
         public void TestDoubleConflictResolutionOnSameConflicts()
         {
             CreateReplicationConflict("doc1");
@@ -1587,7 +1587,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestConflictResolverExceptionWhenDocumentIsPurged()
         {
             int resolveCnt = 0;
@@ -1614,7 +1614,7 @@ namespace Test
             });
         }
 
-        //[Fact]
+        [Fact]
         public void TestConflictResolverExceptionsReturnDocFromOtherDBThrown()
         {
             var tmpDoc = new MutableDocument("doc1");
@@ -1631,7 +1631,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestConflictResolverExceptionThrownInConflictResolver()
         {
             var resolverWithException = new TestConflictResolver((conflict) => {
@@ -1641,7 +1641,7 @@ namespace Test
             TestConflictResolverExceptionThrown(resolverWithException, false);
         }
 
-        //[Fact]
+        [Fact]
         public void TestConflictResolverReturningBlob()
         {
             var returnRemoteDoc = true;
@@ -1668,7 +1668,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestConflictResolverReturningBlobWithFlagChecking()
         {
             C4DocumentFlags flags = (C4DocumentFlags)0;
@@ -1732,7 +1732,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestConflictResolverReturningBlobFromDifferentDB()
         {
             var blobFromOtherDbResolver = new TestConflictResolver((conflict) => {
@@ -1748,7 +1748,7 @@ namespace Test
         }
 
         //CBL-623: Revision flags get cleared while saving resolved document
-        //[Fact]
+        [Fact]
         public void TestConflictResolverPreservesFlags()
         {
             //force conflicts and check flags
@@ -1794,7 +1794,7 @@ namespace Test
 
         // Pending Doc Ids unit tests
 
-        //[Fact]
+        [Fact]
         public void TestPendingDocIDsPullOnlyException()
         {
             LoadDocs();
@@ -1822,7 +1822,7 @@ namespace Test
                 replicator.Start();
 
                 try {
-                    wa.WaitForResult(TimeSpan.FromSeconds(100));
+                    wa.WaitForResult(TimeSpan.FromSeconds(10));
                     replicator.Status.Activity.Should().Be(ReplicatorActivityLevel.Stopped);
                 } finally {
                     token.Remove();
@@ -1830,22 +1830,22 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestPendingDocIDsWithCreate() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.CREATE);
 
-        //[Fact]
+        [Fact]
         public void TestPendingDocIDsWithUpdate() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.UPDATE);
 
-        //[Fact]
+        [Fact]
         public void TestPendingDocIDsWithDelete() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.DELETE);
 
-        //[Fact]
+        [Fact]
         public void TestPendingDocIDsWithPurge() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.PURGE);
 
-        //[Fact]
+        [Fact]
         public void TestPendingDocIDsWithFilter() => ValidatePendingDocumentIds(PENDING_DOC_ID_SEL.FILTER);
 
-        //[Fact]
+        [Fact]
         public void TestIsDocumentPendingPullOnlyException()
         {
             LoadDocs();
@@ -1883,22 +1883,22 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestIsDocumentPendingWithCreate() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.CREATE);
 
-        //[Fact]
+        [Fact]
         public void TestIsDocumentPendingWithUpdate() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.UPDATE);
 
-        //[Fact]
+        [Fact]
         public void TestIsDocumentPendingWithDelete() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.DELETE);
 
-        //[Fact]
+        [Fact]
         public void TestIsDocumentPendingWithPurge() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.PURGE);
 
-        //[Fact]
+        [Fact]
         public void TestIsDocumentPendingWithFilter() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.FILTER);
 
-        //[Fact]
+        [Fact]
         public void TestGetPendingDocIdsWithCloseDb()
         {
             var config = CreateConfig(true, false, false);
@@ -1916,7 +1916,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestIsDocumentPendingWithCloseDb()
         {
             var config = CreateConfig(true, false, false);
@@ -1932,6 +1932,29 @@ namespace Test
                 Action badAct = () => replicator.IsDocumentPending("doc1");
                 badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
             }
+        }
+
+        [Fact]
+        public void TestForum()
+        {
+            var bucketstring = "anything";
+            var _database = new Database(bucketstring);
+            var targetEndpoint = new URLEndpoint(new Uri("ws://zzz:4984/" + bucketstring));
+            var replConfig = new ReplicatorConfiguration(_database, targetEndpoint);
+            replConfig.ReplicatorType = ReplicatorType.PushAndPull;
+            replConfig.Continuous = true;
+            replConfig.Authenticator = new BasicAuthenticator("user", "password");
+
+            var _replicator = new Replicator(replConfig);
+            _replicator.AddChangeListener((sender, args) =>
+            {
+                if (args.Status.Error != null)
+                {
+                    Console.WriteLine($"Error :: {args.Status.Error}");
+                    _replicator.Stop();
+                }
+            });
+            _replicator.Start();
         }
 
         //end pending doc id tests
@@ -2639,10 +2662,9 @@ ESQFuQKBgQDP7fFUpqTbidPOLHa/bznIftj81mJp8zXt3Iv9g5pW2/QqYOk7v/DQ
             var config = CreateConfig(true, false, continuous);
             config.PushFilter = _replicator__filterCallback;
             RunReplication(config, 0, 0);
-            
+            _isFilteredCallback.Should().BeTrue();
             OtherDb.GetDocument("doc1").Should().BeNull("because doc1 is filtered out in the callback");
             OtherDb.GetDocument("doc2").Should().NotBeNull("because doc2 is filtered in in the callback");
-            _isFilteredCallback.Should().BeTrue();
             _isFilteredCallback = false;
         }
 

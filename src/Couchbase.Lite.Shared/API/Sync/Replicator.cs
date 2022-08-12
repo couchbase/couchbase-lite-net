@@ -542,8 +542,6 @@ namespace Couchbase.Lite.Sync
             var documentReplications = new List<ReplicatedDocument>();
             for (int i = 0; i < (int)numDocs; i++) {
                 var current = docs[i];
-                //TODO - check if can take advantage of this collection context
-                var collection = GCHandle.FromIntPtr((IntPtr)current->collectionContext).Target as Collection;
                 if (!pushing && current->error.domain == C4ErrorDomain.LiteCoreDomain &&
                     current->error.code == (int)C4ErrorCode.Conflict) {
                     replicatedDocumentsContainConflict.Add(new ReplicatedDocument(current->docID.CreateString() ?? "", current->collectionSpec,
@@ -583,10 +581,10 @@ namespace Couchbase.Lite.Sync
                 WriteLog.To.Sync.I(Tag, $"{this} pulled conflicting version of '{safeDocID}'");
                 Task t = Task.Run(() =>
                 {
-                    try {//TODO
-                        //var coll = Config.Database.GetCollection(replication.CollectionName, replication.ScopeName);
-                        //var config = Config.GetCollectionConfig(coll);
-                        Config.Database.ResolveConflict(replication.Id, Config.ConflictResolver);
+                    try {
+                        var coll = Config.Database.GetCollection(replication.CollectionName, replication.ScopeName);
+                        var collectionConfig = Config.GetCollectionConfig(coll);
+                        Config.Database.ResolveConflict(replication.Id, collectionConfig.ConflictResolver, coll);
                         replication = replication.ClearError();
                     } catch (CouchbaseException e) {
                         replication.Error = e;
