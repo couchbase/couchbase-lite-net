@@ -123,8 +123,8 @@ namespace Couchbase.Lite.Support
                             $"LiteCore found in: ${foundPath}");
                     }
 
-                    throw new DllNotFoundException("LiteCore.dll failed to load!  Please ensure that the Visual\r\n" +
-                                                   "Studio 2015-2019 C++ runtime is installed from https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads");
+                    throw new DllNotFoundException("LiteCore.dll failed to load!  Please ensure that the\r\n" +
+                        "Visual Studio 2022 C++ runtime is installed from https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads");
                 }
             }
         }
@@ -155,8 +155,9 @@ namespace Couchbase.Lite.Support
                     continue;
                 }
 
-                if (version < 14.10) {
-                    Console.WriteLine($"Found C++ runtime, but version too old ({keyComponents[3]} < 14.10)");
+                if (version < 14.30) {
+                    Console.WriteLine($"Found C++ runtime, but version too old ({keyComponents[3]} < 14.30). Please ensure that the\r\n" +
+                        "Visual Studio 2022 C++ runtime is installed from https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads");
                     continue;
                 }
 
