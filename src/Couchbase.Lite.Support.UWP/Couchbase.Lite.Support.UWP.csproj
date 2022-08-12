@@ -11,9 +11,9 @@
     <AssemblyName>Couchbase.Lite.Support.UWP</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
-    <TargetPlatformVersion Condition=" '$(TargetPlatformVersion)' == '' ">10.0.16299.0</TargetPlatformVersion>
-    <TargetPlatformMinVersion>10.0.16299.0</TargetPlatformMinVersion>
-    <MinimumVisualStudioVersion>14</MinimumVisualStudioVersion>
+    <TargetPlatformVersion Condition=" '$(TargetPlatformVersion)' == '' ">10.0.20348.0</TargetPlatformVersion>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+	<MinimumVisualStudioVersion>14</MinimumVisualStudioVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{A5A43C5B-DE2A-4C0C-9213-0A381AF9435A};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -38,47 +38,25 @@
     <WarningLevel>4</WarningLevel>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
-    <PlatformTarget>x86</PlatformTarget>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM64'">
+    <PlatformTarget>ARM64</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\x86\Debug\</OutputPath>
+    <OutputPath>bin\ARM64\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
     <NoWarn>;2008</NoWarn>
     <DebugType>portable</DebugType>
-    <PlatformTarget>x86</PlatformTarget>
+    <PlatformTarget>ARM64</PlatformTarget>
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
-    <PlatformTarget>x86</PlatformTarget>
-    <OutputPath>bin\x86\Release\</OutputPath>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|ARM64'">
+    <PlatformTarget>ARM64</PlatformTarget>
+    <OutputPath>bin\ARM64\Release\</OutputPath>
     <DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
     <Optimize>true</Optimize>
     <NoWarn>;2008</NoWarn>
     <DebugType>portable</DebugType>
-    <PlatformTarget>x86</PlatformTarget>
-    <UseVSHostingProcess>false</UseVSHostingProcess>
-    <ErrorReport>prompt</ErrorReport>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM'">
-    <PlatformTarget>ARM</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\ARM\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
-    <NoWarn>;2008</NoWarn>
-    <DebugType>portable</DebugType>
-    <PlatformTarget>ARM</PlatformTarget>
-    <UseVSHostingProcess>false</UseVSHostingProcess>
-    <ErrorReport>prompt</ErrorReport>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|ARM'">
-    <PlatformTarget>ARM</PlatformTarget>
-    <OutputPath>bin\ARM\Release\</OutputPath>
-    <DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
-    <Optimize>true</Optimize>
-    <NoWarn>;2008</NoWarn>
-    <DebugType>portable</DebugType>
-    <PlatformTarget>ARM</PlatformTarget>
+    <PlatformTarget>ARM64</PlatformTarget>
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
@@ -134,14 +112,6 @@
     <Content Include="Properties\Couchbase.Lite.Support.UWP.rd.xml" />
   </ItemGroup>
   <ItemGroup Condition="$(Configuration.Contains('Packaging'))">
-    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x86_store\RelWithDebInfo\LiteCore.dll">
-      <Link>x86\LiteCore.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x86_store\RelWithDebInfo\LiteCore.pdb">
-      <Link>x86\LiteCore.pdb</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x64_store\RelWithDebInfo\LiteCore.dll">
       <Link>x64\LiteCore.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -150,24 +120,16 @@
       <Link>x64\LiteCore.pdb</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\ARM\RelWithDebInfo\LiteCore.dll">
-      <Link>ARM\LiteCore.dll</Link>
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\ARM64\RelWithDebInfo\LiteCore.dll">
+      <Link>ARM64\LiteCore.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\ARM\RelWithDebInfo\LiteCore.pdb">
-      <Link>ARM\LiteCore.pdb</Link>
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\ARM64\RelWithDebInfo\LiteCore.pdb">
+      <Link>ARM64\LiteCore.pdb</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <ItemGroup Condition="!$(Configuration.Contains('Packaging'))">
-    <Content Condition="'$(Platform)' == 'x86'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x86_store\RelWithDebInfo\LiteCore.dll">
-      <Link>LiteCore.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Condition="'$(Platform)' == 'x86'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x86_store\RelWithDebInfo\LiteCore.pdb">
-      <Link>LiteCore.pdb</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Condition="'$(Platform)' == 'x64'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x64_store\RelWithDebInfo\LiteCore.dll">
       <Link>LiteCore.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -176,11 +138,11 @@
       <Link>LiteCore.pdb</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Condition="'$(Platform)' == 'ARM'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\ARM\RelWithDebInfo\LiteCore.dll">
+    <Content Condition="'$(Platform)' == 'ARM64'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\ARM64\RelWithDebInfo\LiteCore.dll">
       <Link>LiteCore.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Condition="'$(Platform)' == 'ARM'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\ARM\RelWithDebInfo\LiteCore.pdb">
+    <Content Condition="'$(Platform)' == 'ARM64'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\ARM64\RelWithDebInfo\LiteCore.pdb">
       <Link>LiteCore.pdb</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -202,27 +164,14 @@
     <DebugSymbols>true</DebugSymbols>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|x86'">
-    <OutputPath>bin\x86\Packaging\</OutputPath>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|ARM64'">
+    <OutputPath>bin\ARM64\Packaging\</OutputPath>
     <DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
     <Optimize>true</Optimize>
     <NoWarn>;2008</NoWarn>
     <NoStdLib>true</NoStdLib>
     <DebugType>portable</DebugType>
-    <PlatformTarget>x86</PlatformTarget>
-    <UseVSHostingProcess>false</UseVSHostingProcess>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|ARM'">
-    <OutputPath>bin\ARM\Packaging\</OutputPath>
-    <DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
-    <Optimize>true</Optimize>
-    <NoWarn>;2008</NoWarn>
-    <NoStdLib>true</NoStdLib>
-    <DebugType>portable</DebugType>
-    <PlatformTarget>ARM</PlatformTarget>
+    <PlatformTarget>ARM64</PlatformTarget>
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
@@ -253,28 +202,15 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'PackagingDebug|x86'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'PackagingDebug|ARM64'">
     <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\x86\PackagingDebug\</OutputPath>
+    <OutputPath>bin\ARM64\PackagingDebug\</OutputPath>
     <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>;2008</NoWarn>
     <NoStdLib>true</NoStdLib>
     <DebugType>portable</DebugType>
-    <PlatformTarget>x86</PlatformTarget>
-    <UseVSHostingProcess>false</UseVSHostingProcess>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'PackagingDebug|ARM'">
-    <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\ARM\PackagingDebug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <NoWarn>;2008</NoWarn>
-    <NoStdLib>true</NoStdLib>
-    <DebugType>portable</DebugType>
-    <PlatformTarget>ARM</PlatformTarget>
+    <PlatformTarget>ARM64</PlatformTarget>
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>

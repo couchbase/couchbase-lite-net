@@ -77,7 +77,7 @@ foreach($arch in @("x86", "x86_64", "armeabi-v7a", "arm64-v8a")) {
 }
 
 # Process Windows Libraries
-foreach($arch in @("x64", "x86", "x64_store", "x86_store")) {
+foreach($arch in @("x64", "x64_store")) {
 	if(Test-Path $arch){
 		Remove-item $arch -Recurse
 	}
@@ -94,17 +94,6 @@ if(Test-Path "windows/arm-store/bin"){
     Set-Location ..\..
 }
 
-if(Test-Path "windows/x86-store/bin"){
-	if(Test-Path "x86_store/RelWithDebInfo"){
-		Remove-item "x86_store/RelWithDebInfo" -Recurse
-	} 
-	
-	New-Item -Type directory -ErrorAction Ignore x86_store\RelWithDebInfo
-	Set-Location x86_store\RelWithDebInfo
-	Move-Item ..\..\windows\x86-store\bin\LiteCore.dll,..\..\windows\x86-store\bin\LiteCore.pdb .
-    Set-Location ..\..
-}
-
 if(Test-Path "windows/x86_64-store/bin"){
 	if(Test-Path "x64_store/RelWithDebInfo"){
 		Remove-item "x64_store/RelWithDebInfo" -Recurse
@@ -113,17 +102,6 @@ if(Test-Path "windows/x86_64-store/bin"){
 	New-Item -Type directory -ErrorAction Ignore x64_store\RelWithDebInfo
 	Set-Location x64_store\RelWithDebInfo
 	Move-Item ..\..\windows\x86_64-store\bin\LiteCore.dll,..\..\windows\x86_64-store\bin\LiteCore.pdb .
-    Set-Location ..\..
-}
-
-if(Test-Path "windows/x86/bin"){
-	if(Test-Path "x86/RelWithDebInfo"){
-		Remove-item "x86/RelWithDebInfo" -Recurse
-	}
-	
-	New-Item -Type directory -ErrorAction Ignore x86\RelWithDebInfo
-	Set-Location x86\RelWithDebInfo
-	Move-Item ..\..\windows\x86\bin\LiteCore.dll,..\..\windows\x86\bin\LiteCore.pdb .
     Set-Location ..\..
 }
 

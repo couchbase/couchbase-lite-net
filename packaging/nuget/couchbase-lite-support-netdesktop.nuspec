@@ -33,10 +33,8 @@
     <file target="lib\netcoreapp3.1\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp3.1\Couchbase.Lite.Support.NetDesktop.dll" />
     <file target="lib\netcoreapp3.1\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp3.1\Couchbase.Lite.Support.NetDesktop.pdb" />
     <file target="lib\netcoreapp3.1\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp3.1\Couchbase.Lite.Support.NetDesktop.xml" />
-    <file target="runtimes\win7-x86\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\x86\LiteCore.dll" />
-    <file target="runtimes\win7-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\x64\LiteCore.dll" />
-    <file target="runtimes\win7-x86\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\x86\LiteCore.pdb" />
-    <file target="runtimes\win7-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\x64\LiteCore.pdb" />
+    <file target="runtimes\win10-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\x64\LiteCore.dll" />
+    <file target="runtimes\win10-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\x64\LiteCore.pdb" />
     <file target="runtimes\osx-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libLiteCore.dylib" />
     <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libLiteCore.so" />
     <file target="runtimes\linux-x64\native" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net461\libstdc++.so" />

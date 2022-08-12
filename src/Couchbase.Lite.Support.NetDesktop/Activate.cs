@@ -75,6 +75,10 @@ namespace Couchbase.Lite.Support
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+				if(IntPtr.Size == 4) {
+                    throw new PlatformNotSupportedException("32-bit Windows is no longer supported");
+                }
+				
                 var codeBase = Path.GetDirectoryName(typeof(NetDesktop).GetTypeInfo().Assembly.Location);
                 if (codeBase == null) {
                     throw new DllNotFoundException(
@@ -93,7 +97,7 @@ namespace Couchbase.Lite.Support
                 var dllPath = Path.Combine(codeBase??"", architecture, "LiteCore.dll");
                 var dllPathAsp = Path.Combine(codeBase??"", "bin", architecture, "LiteCore.dll");
                 var dllPathNuget =
-                    Path.Combine(nugetBase??"", "runtimes", $"win7-{architecture}", "native", "LiteCore.dll");
+                    Path.Combine(nugetBase??"", "runtimes", $"win10-{architecture}", "native", "LiteCore.dll");
                 var foundPath = default(string);
                 foreach (var path in new[] {dllPathNuget, dllPath, dllPathAsp}) {
                     foundPath = File.Exists(path) ? path : null;
@@ -119,8 +123,8 @@ namespace Couchbase.Lite.Support
                             $"LiteCore found in: ${foundPath}");
                     }
 
-                    throw new DllNotFoundException("LiteCore.dll failed to load!  Please ensure that the Visual\r\n" +
-                                                   "Studio 2015-2019 C++ runtime is installed from https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads");
+                    throw new DllNotFoundException("LiteCore.dll failed to load!  Please ensure that the\r\n" +
+                        "Visual Studio 2022 C++ runtime is installed from https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads");
                 }
             }
         }
@@ -151,8 +155,9 @@ namespace Couchbase.Lite.Support
                     continue;
                 }
 
-                if (version < 14.10) {
-                    Console.WriteLine($"Found C++ runtime, but version too old ({keyComponents[3]} < 14.10)");
+                if (version < 14.30) {
+                    Console.WriteLine($"Found C++ runtime, but version too old ({keyComponents[3]} < 14.30). Please ensure that the\r\n" +
+                        "Visual Studio 2022 C++ runtime is installed from https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads");
                     continue;
                 }
 
