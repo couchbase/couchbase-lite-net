@@ -72,10 +72,10 @@
     <file target="lib\net461\" src="src\Couchbase.Lite\bin\Packaging\net461\Couchbase.Lite.dll" />
     <file target="lib\net461\" src="src\Couchbase.Lite\bin\Packaging\net461\Couchbase.Lite.pdb" />
     <file target="lib\net461\" src="src\Couchbase.Lite\bin\Packaging\net461\Couchbase.Lite.xml" />
-    <file target="lib\uap10.0.16299\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.16299\Couchbase.Lite.dll" />
-    <file target="lib\uap10.0.16299\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.16299\Couchbase.Lite.pdb" />
-    <file target="lib\uap10.0.16299\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.16299\Couchbase.Lite.xml" />
-    <file target="lib\uap10.0.16299\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.16299\Couchbase.Lite.pri" />
+    <file target="lib\uap10.0.19041\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.19041\Couchbase.Lite.dll" />
+    <file target="lib\uap10.0.19041\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.19041\Couchbase.Lite.pdb" />
+    <file target="lib\uap10.0.19041\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.19041\Couchbase.Lite.xml" />
+    <file target="lib\uap10.0.19041\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.19041\Couchbase.Lite.pri" />
     <file target="lib\xamarinios\" src="src\Couchbase.Lite\bin\Packaging\xamarin.ios10\Couchbase.Lite.dll" />
     <file target="lib\xamarinios\" src="src\Couchbase.Lite\bin\Packaging\xamarin.ios10\Couchbase.Lite.pdb" />
     <file target="lib\xamarinios\" src="src\Couchbase.Lite\bin\Packaging\xamarin.ios10\Couchbase.Lite.xml" />
