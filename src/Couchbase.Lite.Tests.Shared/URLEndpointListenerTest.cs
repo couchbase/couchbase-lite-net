@@ -638,7 +638,7 @@ namespace Test
         public void TestMultipleListenersOnSameDatabase()
         {
             _listener = CreateListener();
-            var listener2 = CreateNewListener();
+            var listener2 = CreateNewListener(enableTls: false);
 
             using (var doc1 = new MutableDocument("doc1"))
             using (var doc2 = new MutableDocument("doc2")) {
@@ -856,7 +856,111 @@ namespace Test
 
         #endregion
 
+        #region 8.15 Collections replication in URLEndpointListener
+
+        [Fact]
+        public void TestCollectionsSingleShotPushPullReplication() => CollectionsPushPullReplication(continuous: false);
+
+        [Fact]
+        public void TestCollectionsContinuousPushPullReplication() => CollectionsPushPullReplication(continuous: true);
+
+        //[Fact] //CBL-3512
+        public void TestMismatchedCollectionReplication()
+        {
+            using (var colAOtherDb = OtherDb.CreateCollection("colA", "scopeA"))
+            using (var colADb = Db.CreateCollection("colB", "scopeA")) {
+                var collsOtherDb = new List<Collection>();
+                collsOtherDb.Add(colAOtherDb);
+
+                var config = new URLEndpointListenerConfiguration(collsOtherDb)
+                {
+                    Port = 0,
+                    DisableTLS = true
+                };
+
+                var listener = new URLEndpointListener(config);
+                listener.Start();
+                var targetEndpoint = listener.LocalEndpoint();
+                var replConfig = new ReplicatorConfiguration(targetEndpoint)
+                {
+                    ReplicatorType = ReplicatorType.PushAndPull,
+                    Continuous = false
+                };
+                replConfig.AddCollection(colADb);
+
+                RunReplication(replConfig, (int)CouchbaseLiteError.HTTPNotFound, CouchbaseLiteErrorType.CouchbaseLite);
+
+                listener.Stop();
+            }
+        }
+
+        [Fact]
+        public void TestCreateListenerConfigWithEmptyCollection()
+        {
+            var collsOtherDb = new List<Collection>();
+            Action badAct = () => new URLEndpointListenerConfiguration(collsOtherDb)
+            {
+                Port = 0,
+                DisableTLS = true
+            };
+            badAct.Should().Throw<CouchbaseLiteException>().WithMessage("The given collections must not be null or empty.");
+        }
+
+        #endregion
+
         #region Private Methods
+
+        private void CollectionsPushPullReplication(bool continuous)
+        {
+            using (var colAOtherDb = OtherDb.CreateCollection("colA", "scopeA"))
+            using (var colADb = Db.CreateCollection("colA", "scopeA")) {
+                using (var doc = new MutableDocument("doc"))
+                using (var doc1 = new MutableDocument("doc1")) {
+                    doc.SetString("str", "string");
+                    doc1.SetString("str1", "string1");
+                    colADb.Save(doc);
+                    colADb.Save(doc1);
+                }
+
+                using (var doc = new MutableDocument("doc2"))
+                using (var doc1 = new MutableDocument("doc3")) {
+                    doc.SetString("str2", "string2");
+                    doc1.SetString("str3", "string3");
+                    colAOtherDb.Save(doc);
+                    colAOtherDb.Save(doc1);
+                }
+
+                var collsOtherDb = new List<Collection>();
+                collsOtherDb.Add(colAOtherDb);
+
+                var config = new URLEndpointListenerConfiguration(collsOtherDb)
+                {
+                    Port = 0,
+                    DisableTLS = true
+                };
+
+                var listener = new URLEndpointListener(config);
+                listener.Start();
+
+                var targetEndpoint = listener.LocalEndpoint();
+                var replConfig = new ReplicatorConfiguration(targetEndpoint)
+                {
+                    ReplicatorType = ReplicatorType.PushAndPull,
+                    Continuous = continuous
+                };
+                replConfig.AddCollection(colADb);
+
+                RunReplication(replConfig, 0, 0);
+
+                listener.Stop();
+
+                // Check docs are replicated between collections colADb & colAOtherDb
+                colAOtherDb.GetDocument("doc").GetString("str").Should().Be("string");
+                colAOtherDb.GetDocument("doc1").GetString("str1").Should().Be("string1");
+                colADb.GetDocument("doc2").GetString("str2").Should().Be("string2");
+                colADb.GetDocument("doc3").GetString("str3").Should().Be("string3");
+            }
+        }
 
         private int GetEADDRINUSECode()
         {
@@ -880,7 +984,7 @@ namespace Test
             WaitAssert waitStoppedAssert1 = new WaitAssert();
 
             _listener = CreateListener();
-            var listener2 = CreateNewListener();
+            var listener2 = CreateNewListener(enableTls: false);
 
             _listener.Config.Database.ActiveStoppables.Count.Should().Be(2);
             listener2.Config.Database.ActiveStoppables.Count.Should().Be(2);
@@ -1250,11 +1354,11 @@ namespace Test
             return _listener;
         }
 
-        private URLEndpointListener CreateNewListener()
+        private URLEndpointListener CreateNewListener(bool enableTls)
         {
             var config = new URLEndpointListenerConfiguration(OtherDb) {
                 Port = 0,
-                DisableTLS = false
+                DisableTLS = !enableTls
             };
 
             var listener = new URLEndpointListener(config);

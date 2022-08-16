@@ -337,6 +337,88 @@ namespace Test
             statuses.Count.Should().Be(0);
         }
 
+        #region 8.16 Collections replication in MessageEndpointListener
+
+        [Fact]
+        public void TestCollectionsSingleShotPushPullReplication() => CollectionPushPullReplication(continuous: false);
+
+        [Fact]
+        public void TestCollectionsContinuousPushPullReplication() => CollectionPushPullReplication(continuous: true);
+
+        //[Fact] //CBL-3512
+        public void TestMismatchedCollectionReplication()
+        {
+            using (var colAOtherDb = OtherDb.CreateCollection("colA", "scopeA"))
+            using (var colADb = Db.CreateCollection("colB", "scopeA")) {
+                var collsOtherDb = new List<Collection>();
+                collsOtherDb.Add(colAOtherDb);
+                var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(collsOtherDb, ProtocolType.ByteStream));
+                var server = new MockServerConnection(listener, ProtocolType.ByteStream);
+                var config = new ReplicatorConfiguration(new MessageEndpoint("p2pCollsTests", server, ProtocolType.ByteStream, new MockConnectionFactory(null)))
+                {
+                    ReplicatorType = ReplicatorType.PushAndPull,
+                    Continuous = false
+                };
+
+                config.AddCollection(colADb);
+
+                RunReplication(config, (int)CouchbaseLiteError.HTTPNotFound, CouchbaseLiteErrorType.CouchbaseLite);
+            }
+        }
+
+        [Fact]
+        public void TestCreateListenerConfigWithEmptyCollection()
+        {
+            var collsOtherDb = new List<Collection>();
+            Action badAct = () => new MessageEndpointListenerConfiguration(collsOtherDb, ProtocolType.ByteStream);
+            badAct.Should().Throw<CouchbaseLiteException>().WithMessage("The given collections must not be null or empty.");
+        }
+
+        #endregion
+
+        private void CollectionPushPullReplication(bool continuous)
+        {
+            using (var colAOtherDb = OtherDb.CreateCollection("colA", "scopeA"))
+            using (var colADb = Db.CreateCollection("colA", "scopeA")) {
+
+                using (var doc = new MutableDocument("doc"))
+                using (var doc1 = new MutableDocument("doc1")) {
+                    doc.SetString("str", "string");
+                    doc1.SetString("str1", "string1");
+                    colADb.Save(doc);
+                    colADb.Save(doc1);
+                }
+
+                using (var doc = new MutableDocument("doc2"))
+                using (var doc1 = new MutableDocument("doc3")) {
+                    doc.SetString("str2", "string2");
+                    doc1.SetString("str3", "string3");
+                    colAOtherDb.Save(doc);
+                    colAOtherDb.Save(doc1);
+                }
+
+                var collsOtherDb = new List<Collection>();
+                collsOtherDb.Add(colAOtherDb);
+                var listener = new MessageEndpointListener(new MessageEndpointListenerConfiguration(collsOtherDb, ProtocolType.ByteStream));
+                var server = new MockServerConnection(listener, ProtocolType.ByteStream);
+                var config = new ReplicatorConfiguration(new MessageEndpoint("p2pCollsTests", server, ProtocolType.ByteStream, new MockConnectionFactory(null)))
+                {
+                    ReplicatorType = ReplicatorType.PushAndPull,
+                    Continuous = continuous
+                };
+
+                config.AddCollection(colADb);
+
+                RunReplication(config, 0, 0);
+
+                // Check docs are replicated between collections colADb & colAOtherDb
+                colAOtherDb.GetDocument("doc").GetString("str").Should().Be("string");
+                colAOtherDb.GetDocument("doc1").GetString("str1").Should().Be("string1");
+                colADb.GetDocument("doc2").GetString("str2").Should().Be("string2");
+                colADb.GetDocument("doc3").GetString("str3").Should().Be("string3");
+            }
+        }
+
         private ReplicatorConfiguration CreateFailureP2PConfiguration(ProtocolType protocolType, MockConnectionLifecycleLocation location, bool recoverable)
         {
             var errorLocation = TestErrorLogic.FailWhen(location);
