@@ -48,20 +48,22 @@ namespace Test
 #if WINDOWS_UWP
     [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
 #endif
-    public class ScopesCollectionsQueryTest : TestCase
+    public sealed class ScopesCollectionsQueryTest : TestCase
     {
 #if !WINDOWS_UWP
         public ScopesCollectionsQueryTest(ITestOutputHelper output) : base(output)
         {
-            CollA = Db.CreateCollection("collA", "scopeA");
+            
         }
 #endif
 
+
 #if !CBL_NO_EXTERN_FILES
-        // CBL-3514
+
         [Fact]
         public void TestQueryObserver()
         {
+            CollA = Db.CreateCollection("collA", "scopeA");
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM scopeA.collA WHERE contact.address.state = 'CA'");
             TestQueryObserverWithQuery(n1qlQ, isDefaultCollection: false);
             n1qlQ.Dispose();
@@ -75,6 +77,7 @@ namespace Test
         [Fact]
         public void TestMultipleQueryObservers()
         {
+            CollA = Db.CreateCollection("collA", "scopeA");
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM scopeA.collA WHERE contact.address.state = 'CA'");
             TestMultipleQueryObserversWithQuery(n1qlQ, isDefaultCollection: false);
             n1qlQ.Dispose();
@@ -90,6 +93,7 @@ namespace Test
         [Fact]
         public void TestQueryObserverWithChangingQueryParameters()
         {
+            CollA = Db.CreateCollection("collA", "scopeA");
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM scopeA.collA WHERE contact.address.state = $state");
             TestQueryObserverWithChangingQueryParametersWithQuery(n1qlQ, isDefaultCollection: false);
             n1qlQ.Dispose();
@@ -103,6 +107,7 @@ namespace Test
         [Fact]
         public void TestGroupBy()
         {
+            CollA = Db.CreateCollection("collA", "scopeA");
             var expectedStates = new[] { "AL", "CA", "CO", "FL", "IA" };
             var expectedCounts = new[] { 1, 6, 1, 1, 3 };
             var expectedZips = new[] { "35243", "94153", "81223", "33612", "50801" };
@@ -162,6 +167,7 @@ namespace Test
         [Fact]
         public void TestNoWhereQuery()
         {
+            CollA = Db.CreateCollection("collA", "scopeA");
             LoadJSONResource("names_100", isDefaultCollection: false);
             using (var q = QueryBuilder.Select(DocID, Sequence).From(DataSource.Collection(CollA))) {
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -183,6 +189,7 @@ namespace Test
         [Fact]
         public void TestOrderBy()
         {
+            CollA = Db.CreateCollection("collA", "scopeA");
             LoadJSONResource("names_100", isDefaultCollection: false);
             foreach (var ascending in new[] { true, false })
             {
@@ -220,6 +227,7 @@ namespace Test
         [Fact]
         public void TestQuantifiedOperators()
         {
+            CollA = Db.CreateCollection("collA", "scopeA");
             LoadJSONResource("names_100", isDefaultCollection: false);
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
@@ -255,6 +263,7 @@ namespace Test
         [Fact]
         public void TestQueryResult()
         {
+            CollA = Db.CreateCollection("collA", "scopeA");
             LoadJSONResource("names_100", isDefaultCollection: false);
 
             var FNAME = Expression.Property("name.first");
@@ -284,6 +293,7 @@ namespace Test
         [Fact]
         public void TestWhereIn()
         {
+            CollA = Db.CreateCollection("collA", "scopeA");
             LoadJSONResource("names_100", isDefaultCollection: false);
 
             var expected = new[] { "Marcy", "Margaretta", "Margrett", "Marlen", "Maryjo" };
@@ -307,6 +317,7 @@ namespace Test
         [Fact]
         public void TestWhereLike()
         {
+            CollA = Db.CreateCollection("collA", "scopeA");
             LoadJSONResource("names_100", isDefaultCollection: false);
 
             var where = Expression.Property("name.first").Like(Expression.String("%Mar%"));
@@ -332,6 +343,7 @@ namespace Test
         [Fact]
         public void TestWhereRegex()
         {
+            CollA = Db.CreateCollection("collA", "scopeA");
             LoadJSONResource("names_100", isDefaultCollection: false);
 
             var where = Expression.Property("name.first").Regex(Expression.String("^Mar.*"));
@@ -353,6 +365,11 @@ namespace Test
                 firstNames.Should()
                     .OnlyContain(str => regex.IsMatch(str), "because otherwise an incorrect entry came in");
             }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            CollA.Dispose();
         }
 
 #endif

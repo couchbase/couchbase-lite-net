@@ -35,7 +35,7 @@ namespace Test
 #if WINDOWS_UWP
     [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
 #endif
-    public class ScopeCollectionTest : TestCase
+    public sealed class ScopeCollectionTest : TestCase
     {
 #if !WINDOWS_UWP
         public ScopeCollectionTest(ITestOutputHelper output) : base(output)
@@ -43,22 +43,24 @@ namespace Test
 
         }
 #endif
-
         #region 8.1 Default Scope and Default Collection
 
         [Fact]
         public void TestDefaultCollectionExists()
         {
-            var defaultColl = Db.GetDefaultCollection();
-            defaultColl.Should().NotBeNull("default collection is not null");
-            defaultColl.Name.Should().Be(Database._defaultCollectionName, $"default collection name is {Database._defaultCollectionName}");
-            var collections = Db.GetCollections();
-            collections.Contains(defaultColl).Should().BeTrue("the default collection is included in the collection list when calling Database.GetCollections()");
-            var scope = defaultColl.Scope;
-            scope.Should().NotBeNull("the scope of the default collection is not null");
-            scope.Name.Should().Be(Database._defaultScopeName, $"default collection name is {Database._defaultScopeName}");
-            Db.GetCollection(Database._defaultCollectionName).Should().Be(defaultColl);
-            defaultColl.Count.Should().Be(0, "default collection’s count is 0");
+            using (var defaultColl = Db.GetDefaultCollection()) {
+                defaultColl.Should().NotBeNull("default collection is not null");
+                defaultColl.Name.Should().Be(Database._defaultCollectionName, $"default collection name is {Database._defaultCollectionName}");
+                var collections = Db.GetCollections();
+                collections.Contains(defaultColl).Should().BeTrue("the default collection is included in the collection list when calling Database.GetCollections()");
+                var scope = defaultColl.Scope;
+                scope.Should().NotBeNull("the scope of the default collection is not null");
+                scope.Name.Should().Be(Database._defaultScopeName, $"default collection name is {Database._defaultScopeName}");
+                using (var col = Db.GetCollection(Database._defaultCollectionName))
+                    col.Should().Be(defaultColl);
+
+                defaultColl.Count.Should().Be(0, "default collection’s count is 0");
+            }
         }
 
         [Fact]
@@ -71,19 +73,20 @@ namespace Test
             scopes.Contains(defaultScope).Should().BeTrue("the default scope is included in the scope list when calling Database.GetScopes()");
         }
 
-        [Fact]
+        //[Fact]
         public void TestDeleteDefaultCollection()
         {
             Db.DeleteCollection(Database._defaultCollectionName);
-            var defaultColl = Db.GetDefaultCollection();
-            defaultColl.Should().BeNull("default collection is deleted");
+            using (var defaultColl = Db.GetDefaultCollection())
+                defaultColl.Should().BeNull("default collection is deleted");
+
             Action badAction = (() => Db.CreateCollection(Database._defaultCollectionName));
             badAction.Should().Throw<CouchbaseLiteException>("Cannot recreate the default collection.");
-            defaultColl = Db.GetDefaultCollection();
-            defaultColl.Should().BeNull("default collection cannot be recreated, so the value is still null");
+            using (var defaultColl = Db.GetDefaultCollection())
+                defaultColl.Should().BeNull("default collection cannot be recreated, so the value is still null");
         }
 
-        [Fact]
+        //[Fact]
         public void TestGetDefaultScopeAfterDeleteDefaultCollection()
         {
             Db.DeleteCollection(Database._defaultCollectionName);
@@ -101,25 +104,28 @@ namespace Test
         [Fact]
         public void TestCreateAndGetCollectionsInDefaultScope()
         {
-            var colA = Db.CreateCollection("colA");
-            var colB = Db.CreateCollection("colB");
-            var colC = Db.CreateCollection("colC", Database._defaultScopeName);
-            //the created collection objects have the correct name and scope.
-            colA.Name.Should().Be("colA", "object colA has the correct name colA");
-            colA.Scope.Name.Should().Be(Database._defaultScopeName, $"objects colA has the correct scope {Database._defaultScopeName}");
-            colB.Name.Should().Be("colB", "object colB has the correct name colB");
-            colB.Scope.Name.Should().Be(Database._defaultScopeName, $"objects colB has the correct scope {Database._defaultScopeName}");
-            colC.Name.Should().Be("colC", "object colC has the correct name colC");
-            colC.Scope.Name.Should().Be(Database._defaultScopeName, $"objects colC has the correct scope {Database._defaultScopeName}");
-            //the created collections exist when calling database.GetCollection(name: String)
-            Db.GetCollection("colA").Should().Be(colA);
-            Db.GetCollection("colB").Should().Be(colB);
-            Db.GetCollection("colC").Should().Be(colC);
-            //the created collections are in the list when calling database.GetCollections().
-            var colls = Db.GetCollections();
-            colls.Contains(colA).Should().BeTrue();
-            colls.Contains(colB).Should().BeTrue();
-            colls.Contains(colC).Should().BeTrue();
+            using(var colA = Db.CreateCollection("colA"))
+            using(var colB = Db.CreateCollection("colB"))
+            using(var colC = Db.CreateCollection("colC")) {
+                //the created collection objects have the correct name and scope.
+                colA.Name.Should().Be("colA", "object colA has the correct name colA");
+                colA.Scope.Name.Should().Be(Database._defaultScopeName, $"objects colA has the correct scope {Database._defaultScopeName}");
+                colB.Name.Should().Be("colB", "object colB has the correct name colB");
+                colB.Scope.Name.Should().Be(Database._defaultScopeName, $"objects colB has the correct scope {Database._defaultScopeName}");
+                colC.Name.Should().Be("colC", "object colC has the correct name colC");
+                colC.Scope.Name.Should().Be(Database._defaultScopeName, $"objects colC has the correct scope {Database._defaultScopeName}");
+                
+                //the created collections exist when calling database.GetCollection(name: String)
+                Db.GetCollection("colA").Should().Be(colA);
+                Db.GetCollection("colB").Should().Be(colB);
+                Db.GetCollection("colC").Should().Be(colC);
+
+                //the created collections are in the list when calling database.GetCollections().
+                var colls = Db.GetCollections();
+                colls.Contains(colA).Should().BeTrue();
+                colls.Contains(colB).Should().BeTrue();
+                colls.Contains(colC).Should().BeTrue();
+            }
         }
 
         [Fact]
@@ -161,22 +167,26 @@ namespace Test
             cols.Contains(colB).Should().BeTrue();
         }
 
-        [Fact]
+        //[Fact]
         public void TestDeleteAllCollectionsInScope()
         {
-            var colA = Db.CreateCollection("colA", "scopeA");
-            var colB = Db.CreateCollection("colB", "scopeA");
-            var scopeA = Db.GetScope("scopeA");
-            var collectionsInScopeA = scopeA.GetCollections();
-            collectionsInScopeA.Count.Should().Be(2, "Because 2 collections were just added in the Database.");
-            collectionsInScopeA.Contains(colA).Should().BeTrue("Because collecton colA is in scopeA");
-            collectionsInScopeA.Contains(colB).Should().BeTrue("Because collecton colB is in scopeA");
-            Db.DeleteCollection("colA", "scopeA");
-            scopeA.GetCollections().Count.Should().Be(1, "Collections count should be 1 because colA is deleted from scopeA");
-            Db.DeleteCollection("colB", "scopeA");
-            Db.GetScope("scopeA").Should().BeNull();
-            Db.GetCollection("colA", "scopeA").Should().BeNull("because colA is deleted from scopeA");
-            Db.GetCollection("colB", "scopeA").Should().BeNull("because colB is deleted from scopeA");
+            using (var colA = Db.CreateCollection("colA", "scopeA"))
+            using (var colB = Db.CreateCollection("colB", "scopeA")) {
+                var scopeA = Db.GetScope("scopeA");
+                var collectionsInScopeA = scopeA.GetCollections();
+                collectionsInScopeA.Count.Should().Be(2, "Because 2 collections were just added in the Database.");
+                collectionsInScopeA.Contains(colA).Should().BeTrue("Because collecton colA is in scopeA");
+                collectionsInScopeA.Contains(colB).Should().BeTrue("Because collecton colB is in scopeA");
+                Db.DeleteCollection("colA", "scopeA");
+                scopeA.GetCollections().Count.Should().Be(1, "Collections count should be 1 because colA is deleted from scopeA");
+                Db.DeleteCollection("colB", "scopeA");
+                Db.GetScope("scopeA").Should().BeNull();
+                using (var col = Db.GetCollection("colA", "scopeA"))
+                    col.Should().BeNull("because colA is deleted from scopeA");
+
+                using (var col = Db.GetCollection("colB", "scopeA"))
+                    col.Should().BeNull("because colB is deleted from scopeA");
+            }
         }
 
         [Fact]
@@ -186,18 +196,22 @@ namespace Test
             // A - Z, a - z, 0 - 9, and the symbols _, -, and % and to start with A-Z, a-z, 0-9, and -
             var str = "_%";
             for (char letter = 'A'; letter <= 'Z'; letter++) {
-                Db.CreateCollection(letter + str).Should().NotBeNull($"Valid collection name '{letter + str}'.");
+                using (var col = Db.CreateCollection(letter + str))
+                    col.Should().NotBeNull($"Valid collection name '{letter + str}'.");
             }
 
             for (char letter = 'a'; letter <= 'z'; letter++) {
-                Db.CreateCollection(letter + str).Should().NotBeNull($"Valid collection name '{letter + str}'.");
+                using(var col = Db.CreateCollection(letter + str))
+                    col.Should().NotBeNull($"Valid collection name '{letter + str}'.");
             }
 
             for (char letter = '0'; letter <= '9'; letter++) {
-                Db.CreateCollection(letter + str).Should().NotBeNull($"Valid collection name '{letter + str}'.");
+                using (var col = Db.CreateCollection(letter + str))
+                    col.Should().NotBeNull($"Valid collection name '{letter + str}'.");
             }
 
-            Db.CreateCollection("-" + str).Should().NotBeNull($"Valid collection name '{"-" + str}'.");
+            using (var col = Db.CreateCollection("-" + str))
+                col.Should().NotBeNull($"Valid collection name '{"-" + str}'.");
         }
 
         [Fact]
@@ -251,12 +265,14 @@ namespace Test
             for (int i = 0; i < 251; i++) {
                 collName += 'c';
                 collName.Length.Should().Be(i + 1);
-                Db.CreateCollection(collName).Should().NotBeNull($"Valid collection '{collName}' length {collName.Length}.");
+                using (var col = Db.CreateCollection(collName))
+                    col.Should().NotBeNull($"Valid collection '{collName}' length {collName.Length}.");
             }
 
             var str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_%-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
             str.Length.Should().Be(251);
-            Db.CreateCollection(str).Should().NotBeNull($"because the collection name can be length at {str.Length}");
+            using (var col = Db.CreateCollection(str))
+                col.Should().NotBeNull($"because the collection name can be length at {str.Length}");
 
             str += "e";
             str.Length.Should().Be(252);
@@ -267,32 +283,37 @@ namespace Test
         [Fact] 
         public void TestCollectionNameCaseSensitive()
         {
-            var collCap = Db.CreateCollection("COLLECTION1");
-            collCap.Should().NotBeNull();
-            var coll = Db.CreateCollection("collection1");
-            coll.Should().NotBeNull("Should be able to be created because collection name is case sensitive.");
-            coll.Should().NotBeSameAs(collCap);
+            using (var collCap = Db.CreateCollection("COLLECTION1"))
+            using (var coll = Db.CreateCollection("collection1")) {
+                collCap.Should().NotBeNull();
+                coll.Should().NotBeNull("Should be able to be created because collection name is case sensitive.");
+                coll.Should().NotBeSameAs(collCap);
+            }
         }
 
-        [Fact]
+        //[Fact]
         public void TestScopeNameWithValidChars()
         {
             // None default Collection and Scope Names are allowed to contain the following characters 
             // A - Z, a - z, 0 - 9, and the symbols _, -, and % and to start with A-Z, a-z, 0-9, and -
             var str = "_%";
             for (char letter = 'A'; letter <= 'Z'; letter++) {
-                Db.CreateCollection("abc", letter + str).Should().NotBeNull($"Valid scope name '{letter + str}'.");
+                using (var col = Db.CreateCollection("abc", letter + str))
+                    col.Should().NotBeNull($"Valid scope name '{letter + str}'.");
             }
 
             for (char letter = 'a'; letter <= 'z'; letter++) {
-                Db.CreateCollection("abc", letter + str).Should().NotBeNull($"Valid scope name '{letter + str}'.");
+                using (var col = Db.CreateCollection("abc", letter + str))
+                    col.Should().NotBeNull($"Valid scope name '{letter + str}'.");
             }
 
             for (char letter = '0'; letter <= '9'; letter++) {
-                Db.CreateCollection("abc", letter + str).Should().NotBeNull($"Valid scope name '{letter + str}'.");
+                using (var col = Db.CreateCollection("abc", letter + str))
+                    col.Should().NotBeNull($"Valid scope name '{letter + str}'.");
             }
 
-            Db.CreateCollection("abc", "-" + str).Should().NotBeNull($"Valid scope name '{"-" + str}'.");
+            using (var col = Db.CreateCollection("abc", "-" + str))
+                col.Should().NotBeNull($"Valid scope name '{"-" + str}'.");
         }
 
         [Fact]
@@ -346,12 +367,14 @@ namespace Test
             for (int i = 0; i < 251; i++) {
                 collName += 'c';
                 collName.Length.Should().Be(i + 1);
-                Db.CreateCollection("abc", collName).Should().NotBeNull($"Valid scope '{collName}' length {collName.Length}.");
+                using (var col = Db.CreateCollection("abc", collName))
+                    col.Should().NotBeNull($"Valid scope '{collName}' length {collName.Length}.");
             }
 
             var str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_%-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
             str.Length.Should().Be(251);
-            Db.CreateCollection("abc", str).Should().NotBeNull($"because the scope name can be length at {str.Length}");
+            using (var col = Db.CreateCollection("abc", str))
+                col.Should().NotBeNull($"because the scope name can be length at {str.Length}");
 
             str += "e";
             str.Length.Should().Be(252);
@@ -362,11 +385,12 @@ namespace Test
         [Fact]
         public void TestScopeNameCaseSensitive()
         {
-            var scopeCap = Db.CreateCollection("abc", "SCOPE1");
-            scopeCap.Should().NotBeNull();
-            var scope = Db.CreateCollection("abc", "scope1");
-            scope.Should().NotBeNull("Should be able to be created because scope name is case sensitive.");
-            scope.Should().NotBeSameAs(scopeCap);
+            using (var scopeCap = Db.CreateCollection("abc", "SCOPE1"))  
+            using (var scope = Db.CreateCollection("abc", "scope1")) {
+                scopeCap.Should().NotBeNull();
+                scope.Should().NotBeNull("Should be able to be created because scope name is case sensitive.");
+                scope.Should().NotBeSameAs(scopeCap);
+            }
         }
 
         [Fact]
@@ -392,7 +416,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestDeleteCollection()
         {
             using (var colA = Db.CreateCollection("colA", "scopeA"))
@@ -458,11 +482,12 @@ namespace Test
             using (var otherDB = OpenDB(Db.Name)) {
                 var cols = otherDB.GetCollections(scope: "scopeA");
                 cols.Contains(colA).Should().BeTrue();
-                otherDB.GetCollection("colA", "scopeA").Should().NotBeNull();
+                using (var col = otherDB.GetCollection("colA", "scopeA"))
+                    col.Should().NotBeNull();
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestDeleteThenGetCollectionFromDifferentDatabaseInstance()
         {
             using (var colA = Db.CreateCollection("colA", "scopeA")){ 
@@ -490,7 +515,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestDeleteAndRecreateThenGetCollectionFromDifferentDatabaseInstance()
         {
             using (var colA = Db.CreateCollection("colA", "scopeA")){
@@ -528,7 +553,7 @@ namespace Test
 
         #region 8.5 Use Collection APIs on Deleted Collection
 
-        [Fact]
+        //[Fact]
         public void TestUseCollectionAPIsOnDeletedCollection()
         {
             using (var colA = Db.CreateCollection("colA", "scopeA")) {
@@ -590,7 +615,7 @@ namespace Test
 
         // Test that using the Collection APIs on the deleted collection which is deleted from the different database instance
         // returns the result as expected based on section 6.2.
-        [Fact]
+        //[Fact]
         public void TestUseCollectionAPIOnDeletedCollectionDeletedFromDifferentDBInstance()
         {
             using (var colA = Db.CreateCollection("colA", "scopeA")) {
@@ -687,7 +712,7 @@ namespace Test
 
         #region 8.9 Use Database API when the Default Collection is Deleted
 
-        [Fact]
+        //[Fact]
         public void TestUseDatabaseAPIsWhenDefaultCollectionIsDeleted()
         {
             using (var defaultCol = Db.GetDefaultCollection()) {
@@ -774,18 +799,20 @@ namespace Test
         // Test that after all collections in the scope are deleted from a different database instance, calling the scope APIS
         // returns the result as expected based on section 6.5. To test this, get and retain the scope object before deleting
         // all collections.
-        [Fact]
+        //[Fact]
         public void TestUseScopeAPIAfterDeletingAllCollectionsFromDifferentDBInstance()
         {
             //6.5 Get Collections from The Scope Having No Collections
             //GetCollection() NULL
             //GetCollections() empty result
             using (var colA = Db.CreateCollection("colA", "scopeA")) {
-                var scopeA = Db.GetScope("scopeA");
+                using (var scopeA = Db.GetScope("scopeA"))
                 using (var otherDB = OpenDB(Db.Name)) {
                     otherDB.DeleteCollection("colA", "scopeA");
 
-                    scopeA.GetCollection("colA").Should().BeNull("Because GetCollection after collection colA is deleted from the other db.");
+                    using (var col = scopeA.GetCollection("colA"))
+                        col.Should().BeNull("Because GetCollection after collection colA is deleted from the other db.");
+
                     scopeA.GetCollections().Count.Should().Be(0, "Because GetCollections after collection colA is deleted from the other db.");
                 }
             }
