@@ -12,7 +12,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
     <releaseNotes>
-		https://docs.couchbase.com/couchbase-lite/3.0/csharp.html#release-notes
+		https://docs.couchbase.com/couchbase-lite/current/csharp/releasenotes.html
     </releaseNotes>
     <copyright>Copyright 2014-2022</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
@@ -38,19 +38,19 @@
 		<dependency id="System.Collections.Immutable" version="[1.3.0,6.0.0)" />
         <dependency id="Couchbase.Lite.Support.NetDesktop" version="[$version$]" />
       </group>
-      <group targetFramework="uap10.0.16299">
+      <group targetFramework="uap10.0.19041">
         <dependency id="Newtonsoft.Json" version="11.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
 		<dependency id="System.Collections.Immutable" version="[1.3.0,6.0.0)" />
         <dependency id="Couchbase.Lite.Support.UWP" version="[$version$]" />
       </group>
-      <group targetFramework="monoandroid">
+      <group targetFramework="MonoAndroid80">
         <dependency id="Newtonsoft.Json" version="11.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
 		<dependency id="System.Collections.Immutable" version="[1.3.0,6.0.0)" />
         <dependency id="Couchbase.Lite.Support.Android" version="[$version$]" />
       </group>
-      <group targetFramework="xamarinios">
+      <group targetFramework="Xamarin.iOS11">
         <dependency id="Newtonsoft.Json" version="11.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
 		<dependency id="System.Collections.Immutable" version="[1.3.0,6.0.0)" />
@@ -79,8 +79,8 @@
     <file target="lib\uap10.0.19041\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.19041\Couchbase.Lite.pdb" />
     <file target="lib\uap10.0.19041\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.19041\Couchbase.Lite.xml" />
     <file target="lib\uap10.0.19041\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.19041\Couchbase.Lite.pri" />
-    <file target="lib\xamarinios\" src="src\Couchbase.Lite\bin\Packaging\xamarin.ios10\Couchbase.Lite.dll" />
-    <file target="lib\xamarinios\" src="src\Couchbase.Lite\bin\Packaging\xamarin.ios10\Couchbase.Lite.pdb" />
-    <file target="lib\xamarinios\" src="src\Couchbase.Lite\bin\Packaging\xamarin.ios10\Couchbase.Lite.xml" />
+    <file target="lib\xamarinios\" src="src\Couchbase.Lite\bin\Packaging\xamarin.ios11\Couchbase.Lite.dll" />
+    <file target="lib\xamarinios\" src="src\Couchbase.Lite\bin\Packaging\xamarin.ios11\Couchbase.Lite.pdb" />
+    <file target="lib\xamarinios\" src="src\Couchbase.Lite\bin\Packaging\xamarin.ios11\Couchbase.Lite.xml" />
   </files>
 </package>

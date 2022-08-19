@@ -43,11 +43,9 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Win32.Registry" Version="4.5.0" />
   </ItemGroup>
-
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
       <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
   </ItemGroup>
-
   <ItemGroup>
     <None Include="desktop.targets">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
