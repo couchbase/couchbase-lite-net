@@ -14,7 +14,7 @@
     <releaseNotes>
         https://docs.couchbase.com/couchbase-lite/current/csharp/releasenotes.html
     </releaseNotes>
-    <copyright>Copyright 2022</copyright>
+    <copyright>Copyright 2018-2022</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>

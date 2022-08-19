@@ -14,7 +14,7 @@
     <releaseNotes>
         https://docs.couchbase.com/couchbase-lite/current/csharp/releasenotes.html
     </releaseNotes>
-    <copyright>Copyright 2019</copyright>
+    <copyright>Copyright 2018-2022</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
@@ -22,6 +22,16 @@
   </metadata>
   <files>
     <file target="" src="packaging\nuget\LICENSE.txt" />
+    <file target="lib\net6.0-maccatalyst\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.dll" />
+    <file target="lib\net6.0-maccatalyst\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.pdb" />
+    <file target="lib\net6.0-maccatalyst\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.xml" />
+    <file target="build\net6.0-maccatalyst\Couchbase.Lite.Support.iOS.targets" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\ios.targets" />
+    <file target="build\net6.0-maccatalyst\LiteCore.framework" src="src\Couchbase.Lite.Support.Apple\iOS\Native\LiteCore.framework\*" />
+    <file target="lib\net6.0-ios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.dll" />
+    <file target="lib\net6.0-ios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.pdb" />
+    <file target="lib\net6.0-ios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.xml" />
+    <file target="build\net6.0-ios\Couchbase.Lite.Support.iOS.targets" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\ios.targets" />
+    <file target="build\net6.0-ios\LiteCore.framework" src="src\Couchbase.Lite.Support.Apple\iOS\Native\LiteCore.framework\*" />
     <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.dll" />
     <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.pdb" />
     <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\Couchbase.Lite.Support.iOS.xml" />
