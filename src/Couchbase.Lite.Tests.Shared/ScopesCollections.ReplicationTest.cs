@@ -608,7 +608,14 @@ namespace Test
             }
         }
 
-        [Fact]
+        /* Create collection "colA"  in the scope "scopeA" in database A.
+                Create collection "colB"  in the scope "scopeA" in database B.
+                Create a ReplicatorConfiguration using a database endpoint to database B.
+                Add colA to the config.
+                Create a replicator with config.
+                Start the replicator and wait until the replicator stops.
+                Check if there is an error with invalidParameter code occurred (Note : error code might be changed) */
+        //[Fact] //CBL-3512
         public void TestMismatchedCollectionReplication()
         {
             var config = CreateConfig(ReplicatorType.Pull);
