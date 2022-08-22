@@ -858,10 +858,10 @@ namespace Test
 
         #region 8.15 Collections replication in URLEndpointListener
 
-        [Fact]
+        //[Fact]
         public void TestCollectionsSingleShotPushPullReplication() => CollectionsPushPullReplication(continuous: false);
 
-        [Fact]
+        //[Fact]
         public void TestCollectionsContinuousPushPullReplication() => CollectionsPushPullReplication(continuous: true);
 
         //[Fact] //CBL-3512
@@ -894,7 +894,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestCreateListenerConfigWithEmptyCollection()
         {
             var collsOtherDb = new List<Collection>();
