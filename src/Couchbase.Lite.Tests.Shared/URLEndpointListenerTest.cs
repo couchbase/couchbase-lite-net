@@ -894,7 +894,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //[Fact]
         public void TestCreateListenerConfigWithEmptyCollection()
         {
             var collsOtherDb = new List<Collection>();
@@ -1354,7 +1354,7 @@ namespace Test
             return _listener;
         }
 
-        private URLEndpointListener CreateNewListener(bool enableTls = true)
+        private URLEndpointListener CreateNewListener(bool enableTls = false)
         {
             var config = new URLEndpointListenerConfiguration(OtherDb) {
                 Port = 0,
