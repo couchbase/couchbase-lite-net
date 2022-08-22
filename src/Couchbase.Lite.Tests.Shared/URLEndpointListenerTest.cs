@@ -638,7 +638,7 @@ namespace Test
         public void TestMultipleListenersOnSameDatabase()
         {
             _listener = CreateListener();
-            var listener2 = CreateNewListener(enableTls: false);
+            var listener2 = CreateNewListener();
 
             using (var doc1 = new MutableDocument("doc1"))
             using (var doc2 = new MutableDocument("doc2")) {
@@ -984,7 +984,7 @@ namespace Test
             WaitAssert waitStoppedAssert1 = new WaitAssert();
 
             _listener = CreateListener();
-            var listener2 = CreateNewListener(enableTls: false);
+            var listener2 = CreateNewListener();
 
             _listener.Config.Database.ActiveStoppables.Count.Should().Be(2);
             listener2.Config.Database.ActiveStoppables.Count.Should().Be(2);
@@ -1354,7 +1354,7 @@ namespace Test
             return _listener;
         }
 
-        private URLEndpointListener CreateNewListener(bool enableTls)
+        private URLEndpointListener CreateNewListener(bool enableTls = true)
         {
             var config = new URLEndpointListenerConfiguration(OtherDb) {
                 Port = 0,
