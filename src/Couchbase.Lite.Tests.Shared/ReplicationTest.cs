@@ -743,7 +743,7 @@ namespace Test
         }
 
         [ForIssue("couchbase-lite-core/156")]
-        [Fact] //android
+        [Fact]
         public void TestPullDocContinuous()
         {
             using (var doc1 = new MutableDocument("doc1")) {
@@ -1176,7 +1176,7 @@ namespace Test
             Db.Count.Should().Be(0);
         }
 
-        [Fact]
+        //-[Fact]
         public void TestConflictResolverPropertyInReplicationConfig()
         {
             var config = CreateConfig(false, true, false);
@@ -1194,7 +1194,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //-[Fact]
         public void TestConflictResolverRemoteWins()
         {
             var returnRemoteDoc = true;
@@ -1276,7 +1276,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //-[Fact]
         public void TestConflictResolverNullDoc()
         {
             bool conflictResolved = false;
@@ -1377,7 +1377,7 @@ namespace Test
             Db.Count.Should().Be(0);
         }
 
-        [Fact]
+        //-[Fact]
         public void TestConflictResolverWrongDocID()
         {
             CreateReplicationConflict("doc1");
@@ -1396,7 +1396,7 @@ namespace Test
             }
         }
 
-        [Fact]
+        //-[Fact]
         public void TestConflictResolverCalledTwice()
         {
             int resolveCnt = 0;
@@ -1511,7 +1511,7 @@ namespace Test
             q.Clear();
         }
 
-        [Fact]
+        //-[Fact]
         public void TestDoubleConflictResolutionOnSameConflicts()
         {
             CreateReplicationConflict("doc1");
@@ -1614,7 +1614,7 @@ namespace Test
             });
         }
 
-        [Fact]
+        //-[Fact]
         public void TestConflictResolverExceptionsReturnDocFromOtherDBThrown()
         {
             var tmpDoc = new MutableDocument("doc1");
