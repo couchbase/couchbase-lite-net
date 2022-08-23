@@ -85,12 +85,7 @@
       <DependentUpon>DynamicAssemblyInfo.tt</DependentUpon>
     </Compile>
   </ItemGroup>
-	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-		<PackageReference Include="System.Runtime.InteropServices.NFloat.Internal">
-			<Version>6.0.1</Version>
-		</PackageReference>
-	</ItemGroup>
-	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0-windows10.0.19041.0'">
+	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0' or '$(TargetFramework)' == 'net6.0-windows10.0.19041.0'">
 		<PackageReference Include="System.Runtime.InteropServices.NFloat.Internal">
 			<Version>6.0.1</Version>
 		</PackageReference>
