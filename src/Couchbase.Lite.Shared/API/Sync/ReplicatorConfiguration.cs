@@ -178,6 +178,10 @@ namespace Couchbase.Lite.Sync
         /// Gets or sets a certificate to trust.  All other certificates received
         /// by a <see cref="Replicator"/> with this configuration will be rejected.
         /// </summary>
+        /// <remarks>
+        /// A server will be authenticated if it presents a chain of certificates (possibly of length 1)
+        /// in which any one of the certificates matches the one passed here.
+        /// </remarks>
         [CanBeNull]
         public X509Certificate2 PinnedServerCertificate
         {
