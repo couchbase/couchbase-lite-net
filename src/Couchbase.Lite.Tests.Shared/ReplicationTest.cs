@@ -1614,7 +1614,7 @@ namespace Test
             });
         }
 
-        //-[Fact]
+        [Fact]
         public void TestConflictResolverExceptionsReturnDocFromOtherDBThrown()
         {
             var tmpDoc = new MutableDocument("doc1");
