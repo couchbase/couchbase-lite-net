@@ -12,9 +12,9 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Xamarin Android native libraries and support classes for Couchbase Lite .NET</description>
     <releaseNotes>
-        https://docs.couchbase.com/couchbase-lite/2.6/csharp.html#2-6-0
+        https://docs.couchbase.com/couchbase-lite/current/csharp/releasenotes.html
     </releaseNotes>
-    <copyright>Copyright 2019</copyright>
+    <copyright>Copyright 2018-2022</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
@@ -22,8 +22,11 @@
   </metadata>
   <files>
     <file target="" src="packaging\nuget\LICENSE.txt" />
-    <file target="lib\monoandroid41\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.dll" />
-    <file target="lib\monoandroid41\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.pdb" />
-    <file target="lib\monoandroid41\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.xml" />
+	<file target="lib\net6.0-android\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.dll" />
+    <file target="lib\net6.0-android\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.pdb" />
+    <file target="lib\net6.0-android\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.xml" />
+    <file target="lib\monoandroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.dll" />
+    <file target="lib\monoandroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.pdb" />
+    <file target="lib\monoandroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\Couchbase.Lite.Support.Android.xml" />
   </files>
 </package>
