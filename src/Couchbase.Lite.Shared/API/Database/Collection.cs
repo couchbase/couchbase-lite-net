@@ -628,7 +628,7 @@ namespace Couchbase.Lite
 
         #region Private Methods - Observers
 
-        #if __IOS__
+        #if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4CollectionObserverCallback))]
         #endif
         private static void DbObserverCallback(C4CollectionObserver* db, void* context)
@@ -640,7 +640,7 @@ namespace Couchbase.Lite
             });
         }
 
-        #if __IOS__
+        #if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4DocumentObserverCallback))]
         #endif
         private static void DocObserverCallback(C4DocumentObserver* obs, C4Collection* collection, FLSlice docId, ulong sequence, void* context)

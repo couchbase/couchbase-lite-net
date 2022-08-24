@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-#if __IOS__
+#if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -28,15 +28,15 @@ namespace Couchbase.Lite.Support
     [CouchbaseDependency]
     internal sealed class iOSConsoleLogger : IConsoleLogger
     {
-        #region Properties
+#region Properties
 
         public LogDomain Domains { get; set; } = LogDomain.All;
 
         public LogLevel Level { get; set; } = LogLevel.Warning;
 
-        #endregion
+#endregion
 
-        #region Private Methods
+#region Private Methods
 
         private static string MakeMessage(string message, LogLevel level, LogDomain domain)
         {
@@ -44,9 +44,9 @@ namespace Couchbase.Lite.Support
             return $"[{threadId}]| {level.ToString().ToUpperInvariant()})  [{domain}] {message}";
         }
 
-        #endregion
+#endregion
 
-        #region ILogger
+#region ILogger
 
         public void Log(LogLevel level, LogDomain domain, string message)
         {
@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Support
             Console.WriteLine(finalStr); // Console.WriteLine == NSLog
         }
 
-        #endregion
+#endregion
     }
 }
 #endif

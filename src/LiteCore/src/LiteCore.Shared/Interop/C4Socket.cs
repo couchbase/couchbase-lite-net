@@ -90,7 +90,7 @@ namespace LiteCore.Interop
             Native.c4socket_registerFactory(InternalFactory);
         }
 
-        #if __IOS__
+        #if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
         [ObjCRuntime.MonoPInvokeCallback(typeof(SocketRequestCloseDelegate))]
         #endif
         private static void SocketRequestClose(C4Socket* socket, int status, FLSlice message)
@@ -102,7 +102,7 @@ namespace LiteCore.Interop
             }
         }
 
-        #if __IOS__
+        #if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
         [ObjCRuntime.MonoPInvokeCallback(typeof(SocketDisposeDelegate))]
         #endif
         private static void SocketDispose(C4Socket* socket)
@@ -141,7 +141,7 @@ namespace LiteCore.Interop
             _error = doError;
         }
 
-        #if __IOS__
+        #if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
         [ObjCRuntime.MonoPInvokeCallback(typeof(SocketOpenDelegate))]
         #endif
         private static void SocketOpened(C4Socket* socket, C4Address* address, FLSlice options, void* context)
@@ -154,7 +154,7 @@ namespace LiteCore.Interop
             }
         }
 
-        #if __IOS__
+        #if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
         [ObjCRuntime.MonoPInvokeCallback(typeof(SocketCloseDelegate))]
         #endif
         private static void SocketClose(C4Socket* socket)
@@ -166,7 +166,7 @@ namespace LiteCore.Interop
             }
         }
 
-        #if __IOS__
+        #if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
         [ObjCRuntime.MonoPInvokeCallback(typeof(SocketWriteDelegate))]
         #endif
         private static void SocketWrittenTo(C4Socket* socket, FLSliceResult allocatedData)
@@ -181,7 +181,7 @@ namespace LiteCore.Interop
             }
         }
 
-        #if __IOS__
+        #if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
         [ObjCRuntime.MonoPInvokeCallback(typeof(SocketCompletedReceiveDelegate))]
         #endif
         private static void SocketCompletedReceive(C4Socket* socket, UIntPtr byteCount)

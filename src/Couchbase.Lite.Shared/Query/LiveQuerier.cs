@@ -116,7 +116,7 @@ namespace Couchbase.Lite.Internal.Query
 
         #region Private Methods
 
-        #if __IOS__
+        #if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4QueryObserverCallback))]
         #endif
         private static void QueryObserverCallback(C4QueryObserver* obs, C4Query* query, void* context)

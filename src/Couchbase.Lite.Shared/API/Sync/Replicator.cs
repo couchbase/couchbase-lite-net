@@ -463,7 +463,7 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods - Filters
 
-        #if __IOS__
+        #if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
         #endif
         private static bool PullValidateCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
@@ -487,7 +487,7 @@ namespace Couchbase.Lite.Sync
             return replicator.PullValidateCallback(collName, scope, docIDStr, revID.CreateString(), dict, flags);
         }
 
-        #if __IOS__
+        #if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorValidationFunction))]
         #endif
         private static bool PushFilterCallback(C4CollectionSpec collectionSpec, FLSlice docID, FLSlice revID, C4RevisionFlags revisionFlags, FLDict* dict, void* context)
@@ -529,7 +529,7 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods - Doc Ended
 
-        #if __IOS__
+        #if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorDocumentEndedCallback))]
         #endif
         private static void OnDocEnded(C4Replicator* repl, bool pushing, IntPtr numDocs, C4DocumentEnded** docs, void* context)
@@ -630,7 +630,7 @@ namespace Couchbase.Lite.Sync
 
         #region Private Methods - Status Change
 
-        #if __IOS__
+        #if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4ReplicatorStatusChangedCallback))]
         #endif
         private static void StatusChangedCallback(C4Replicator* repl, C4ReplicatorStatus status, void* context)

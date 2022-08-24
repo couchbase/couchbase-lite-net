@@ -15,7 +15,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 // 
-#if __IOS__
+#if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -30,19 +30,19 @@ namespace Couchbase.Lite.Support
     [CouchbaseDependency(Lazy = true, Transient = true)]
     internal sealed class MainThreadTaskScheduler : TaskScheduler, IMainThreadTaskScheduler
     {
-        #region Constants
+#region Constants
 
         private const string Tag = nameof(MainThreadTaskScheduler);
 
-        #endregion
+#endregion
 
-        #region Properties
+#region Properties
 
         public bool IsMainThread => NSThread.IsMain;
 
-        #endregion
+#endregion
 
-        #region Overrides
+#region Overrides
 
         protected override IEnumerable<Task> GetScheduledTasks()
         {
@@ -68,13 +68,13 @@ namespace Couchbase.Lite.Support
             return TryExecuteTask(task);
         }
 
-        #endregion
+#endregion
 
-        #region IMainThreadTaskScheduler
+#region IMainThreadTaskScheduler
 
         public TaskScheduler AsTaskScheduler() => this;
 
-        #endregion
+#endregion
     }
 }
 #endif

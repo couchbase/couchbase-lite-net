@@ -3,7 +3,7 @@
     <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
     <TargetFrameworks Condition=" !$(Configuration.EndsWith('Coverage')) ">netstandard2.0;netcoreapp3.1;net6.0;net6.0-android;net6.0-ios;net6.0-maccatalyst;net462;uap10.0.19041;MonoAndroid80;Xamarin.iOS10</TargetFrameworks>
     <TargetFrameworks Condition=" $(Configuration.EndsWith('Coverage')) ">netcoreapp3.1;net6.0</TargetFrameworks>
-	<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net6.0-windows10.0.19041.0</TargetFrameworks>
+	<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">netcoreapp3.1;net6.0;net6.0-windows10.0.19041.0;net462;uap10.0.19041</TargetFrameworks>
     <SingleProject>true</SingleProject>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.0</SupportedOSPlatformVersion>
@@ -55,7 +55,7 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <DotNetCliToolReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="dotnet-sourcelink" Version="2.1.2" />
-    <PackageReference Include="SimpleInjector" Version="5.3.3" />
+    <PackageReference Include="SimpleInjector" Version="5.4.0" />
     <PackageReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="SourceLink.Create.GitHub" Version="2.7.5" PrivateAssets="all" />
     <PackageReference Include="GitInfo" Version="2.0.20" PrivateAssets="all" />
 	<PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
