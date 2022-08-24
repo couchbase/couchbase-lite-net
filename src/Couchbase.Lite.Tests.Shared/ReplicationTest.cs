@@ -1176,7 +1176,7 @@ namespace Test
             Db.Count.Should().Be(0);
         }
 
-        //-[Fact]
+        [Fact]
         public void TestConflictResolverPropertyInReplicationConfig()
         {
             var config = CreateConfig(false, true, false);
@@ -1276,7 +1276,7 @@ namespace Test
             }
         }
 
-        //-[Fact]
+        [Fact]
         public void TestConflictResolverNullDoc()
         {
             bool conflictResolved = false;
@@ -1396,7 +1396,7 @@ namespace Test
             }
         }
 
-        //-[Fact]
+        [Fact]
         public void TestConflictResolverCalledTwice()
         {
             int resolveCnt = 0;
