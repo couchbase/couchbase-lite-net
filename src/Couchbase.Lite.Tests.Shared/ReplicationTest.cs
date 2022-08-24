@@ -1194,7 +1194,7 @@ namespace Test
             }
         }
 
-        //-[Fact]
+        [Fact]
         public void TestConflictResolverRemoteWins()
         {
             var returnRemoteDoc = true;
@@ -1377,7 +1377,7 @@ namespace Test
             Db.Count.Should().Be(0);
         }
 
-        //-[Fact]
+        [Fact]
         public void TestConflictResolverWrongDocID()
         {
             CreateReplicationConflict("doc1");
@@ -1511,7 +1511,7 @@ namespace Test
             q.Clear();
         }
 
-        //-[Fact]
+        [Fact]
         public void TestDoubleConflictResolutionOnSameConflicts()
         {
             CreateReplicationConflict("doc1");
