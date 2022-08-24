@@ -186,7 +186,7 @@ namespace Couchbase.Lite
                 var cbHandler = new CouchbaseEventHandler<CollectionChangedEventArgs>(handler, scheduler);
                 if (_databaseChanged.Add(cbHandler) == 0) {
                     _obsContext = GCHandle.Alloc(this);
-                    _obs = Native.c4dbobs_createOnCollection(c4coll, _databaseObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer());
+                    _obs = (C4CollectionObserver*)LiteCoreBridge.Check(err => Native.c4dbobs_createOnCollection(c4coll, _databaseObserverCallback, GCHandle.ToIntPtr(_obsContext).ToPointer(), err));
                 }
 
                 return new ListenerToken(cbHandler, ListenerTokenType.Database, this);
@@ -235,7 +235,7 @@ namespace Couchbase.Lite
                 var count = _documentChanged.Add(cbHandler);
                 if (count == 0) {
                     var handle = GCHandle.Alloc(this);
-                    var docObs = Native.c4docobs_createWithCollection(c4coll, id, _documentObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    var docObs = (C4DocumentObserver*)LiteCoreBridge.Check(err => Native.c4docobs_createWithCollection(c4coll, id, _documentObserverCallback, GCHandle.ToIntPtr(handle).ToPointer(), err));
                     _docObs[id] = Tuple.Create((IntPtr)docObs, handle);
                 }
 

@@ -60,7 +60,8 @@ namespace LiteCore.Tests
                 var handle = GCHandle.Alloc(this);
                 try
                 {
-                    _dbObserver = Native.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    C4Error error;
+                    _dbObserver = Native.c4dbobs_createOnCollection(DefaultColl, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer(), &error);
                     CreateRev("A", FLSlice.Constant("1-aa"), FleeceBody);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
                     CreateRev("B", FLSlice.Constant("1-bb"), FleeceBody);
@@ -95,8 +96,9 @@ namespace LiteCore.Tests
                 var handle = GCHandle.Alloc(this);
                 try {
                     CreateRev("A", FLSlice.Constant("1-aa"), FleeceBody);
-                    _docObserver = Native.c4docobs_create(Db, "A", DocumentCallback,
-                        GCHandle.ToIntPtr(handle).ToPointer());
+                    C4Error error;
+                    _docObserver = Native.c4docobs_createWithCollection(DefaultColl, "A", DocumentCallback,
+                        GCHandle.ToIntPtr(handle).ToPointer(), &error);
 
                     CreateRev("A", FLSlice.Constant("2-bb"), FleeceBody);
                     CreateRev("B", FLSlice.Constant("1-bb"), FleeceBody);
@@ -117,7 +119,8 @@ namespace LiteCore.Tests
                 var handle = GCHandle.Alloc(this);
                 try
                 {
-                    _dbObserver = Native.c4dbobs_create(Db, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer());
+                    C4Error error;
+                    _dbObserver = Native.c4dbobs_createOnCollection(DefaultColl, DatabaseCallback, GCHandle.ToIntPtr(handle).ToPointer(), &error);
                     CreateRev("A", FLSlice.Constant("1-aa"), FleeceBody);
                     _dbCallbackCalls.Should().Be(1, "because we should have received a callback");
                     CreateRev("B", FLSlice.Constant("1-bb"), FleeceBody);

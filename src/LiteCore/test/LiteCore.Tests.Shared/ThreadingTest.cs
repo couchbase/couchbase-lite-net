@@ -84,8 +84,10 @@ namespace LiteCore.Tests
         private void ObserverTask()
         {
             var database = OpenDB();
+            C4Error error;
+            var defaultColl = Native.c4db_getDefaultCollection(database, &error);
             var handle = GCHandle.Alloc(this);
-            var observer = Native.c4dbobs_create(database, ObserverCallback, GCHandle.ToIntPtr(handle).ToPointer());
+            var observer = Native.c4dbobs_createOnCollection(defaultColl, ObserverCallback, GCHandle.ToIntPtr(handle).ToPointer(), &error);
             var lastSequence = 0UL;
 
             try {
