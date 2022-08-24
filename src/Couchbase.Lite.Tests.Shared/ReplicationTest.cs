@@ -1511,7 +1511,7 @@ namespace Test
             q.Clear();
         }
 
-        [Fact]
+        //-[Fact]
         public void TestDoubleConflictResolutionOnSameConflicts()
         {
             CreateReplicationConflict("doc1");
