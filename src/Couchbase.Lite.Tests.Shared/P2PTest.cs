@@ -345,7 +345,7 @@ namespace Test
         [Fact]
         public void TestCollectionsContinuousPushPullReplication() => CollectionPushPullReplication(continuous: true);
 
-        //[Fact] //CBL-3512
+        [Fact]
         public void TestMismatchedCollectionReplication()
         {
             using (var colAOtherDb = OtherDb.CreateCollection("colA", "scopeA"))
