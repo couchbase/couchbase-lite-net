@@ -615,35 +615,14 @@ namespace Test
                 Create a replicator with config.
                 Start the replicator and wait until the replicator stops.
                 Check if there is an error with invalidParameter code occurred (Note : error code might be changed) */
-        [Fact]
+        //[Fact] //CBL-3512
         public void TestMismatchedCollectionReplication()
         {
             var config = CreateConfig(ReplicatorType.Pull);
             using (var colA = Db.CreateCollection("colA", "scopeA"))
-            using (var colB = OtherDb.CreateCollection("colB", "scopeA"))
-            {
-                using (var doc = new MutableDocument("doc"))
-                using (var doc1 = new MutableDocument("doc1"))
-                {
-                    doc.SetString("str", "string");
-                    doc1.SetString("str1", "string1");
-                    colA.Save(doc);
-                    colA.Save(doc1);
-                }
-
-                using (var doc = new MutableDocument("doc2"))
-                using (var doc1 = new MutableDocument("doc3"))
-                {
-                    doc.SetString("str2", "string2");
-                    doc1.SetString("str3", "string3");
-                    colB.Save(doc);
-                    colB.Save(doc1);
-                }
-
+            using (var colB = OtherDb.CreateCollection("colB", "scopeA")) {
                 config.AddCollection(colA);
-
-                //Action badAct = () => RunReplication(config, 0, 0);
-                //badAct.Should().Throw<CouchbaseLiteException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
+                RunReplication(config, (int)CouchbaseLiteError.WebSocketUserPermanent, CouchbaseLiteErrorType.CouchbaseLite);
             }
         }
 
