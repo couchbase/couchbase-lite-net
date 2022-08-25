@@ -352,7 +352,7 @@ namespace Test
                              e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
         }
 
-        //[Fact]
+        [Fact]
         public void TestAddDeletedCollections()
         {
             var colA = Db.CreateCollection("colA", "scopeA");
