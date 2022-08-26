@@ -248,7 +248,7 @@ namespace Test
             });
         }
 
-#if !__ANDROID__
+#if !__ANDROID__ && !NET6_0_ANDROID
         [Fact]
         public void TestConsoleLoggingLevels()
         {
