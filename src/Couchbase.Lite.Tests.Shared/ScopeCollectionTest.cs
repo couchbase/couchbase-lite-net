@@ -73,7 +73,7 @@ namespace Test
             scopes.Contains(defaultScope).Should().BeTrue("the default scope is included in the scope list when calling Database.GetScopes()");
         }
 
-        //[Fact]
+        [Fact]
         public void TestDeleteDefaultCollection()
         {
             Db.DeleteCollection(Database._defaultCollectionName);
@@ -86,7 +86,7 @@ namespace Test
                 defaultColl.Should().BeNull("default collection cannot be recreated, so the value is still null");
         }
 
-        //[Fact]
+        [Fact]
         public void TestGetDefaultScopeAfterDeleteDefaultCollection()
         {
             Db.DeleteCollection(Database._defaultCollectionName);
@@ -167,7 +167,7 @@ namespace Test
             cols.Contains(colB).Should().BeTrue();
         }
 
-        //[Fact]
+        [Fact]
         public void TestDeleteAllCollectionsInScope()
         {
             using (var colA = Db.CreateCollection("colA", "scopeA"))
@@ -291,7 +291,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestScopeNameWithValidChars()
         {
             // None default Collection and Scope Names are allowed to contain the following characters 
@@ -416,7 +416,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestDeleteCollection()
         {
             using (var colA = Db.CreateCollection("colA", "scopeA"))
@@ -487,7 +487,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestDeleteThenGetCollectionFromDifferentDatabaseInstance()
         {
             using (var colA = Db.CreateCollection("colA", "scopeA")){ 
@@ -515,7 +515,7 @@ namespace Test
             }
         }
 
-        //[Fact]
+        [Fact]
         public void TestDeleteAndRecreateThenGetCollectionFromDifferentDatabaseInstance()
         {
             using (var colA = Db.CreateCollection("colA", "scopeA")){
@@ -553,7 +553,7 @@ namespace Test
 
         #region 8.5 Use Collection APIs on Deleted Collection
 
-        //[Fact]
+        [Fact]
         public void TestUseCollectionAPIsOnDeletedCollection()
         {
             using (var colA = Db.CreateCollection("colA", "scopeA")) {
@@ -615,7 +615,7 @@ namespace Test
 
         // Test that using the Collection APIs on the deleted collection which is deleted from the different database instance
         // returns the result as expected based on section 6.2.
-        //[Fact]
+        [Fact]
         public void TestUseCollectionAPIOnDeletedCollectionDeletedFromDifferentDBInstance()
         {
             using (var colA = Db.CreateCollection("colA", "scopeA")) {
@@ -712,7 +712,7 @@ namespace Test
 
         #region 8.9 Use Database API when the Default Collection is Deleted
 
-        //[Fact]
+        [Fact]
         public void TestUseDatabaseAPIsWhenDefaultCollectionIsDeleted()
         {
             using (var defaultCol = Db.GetDefaultCollection()) {
@@ -799,7 +799,7 @@ namespace Test
         // Test that after all collections in the scope are deleted from a different database instance, calling the scope APIS
         // returns the result as expected based on section 6.5. To test this, get and retain the scope object before deleting
         // all collections.
-        //[Fact]
+        [Fact]
         public void TestUseScopeAPIAfterDeletingAllCollectionsFromDifferentDBInstance()
         {
             //6.5 Get Collections from The Scope Having No Collections
