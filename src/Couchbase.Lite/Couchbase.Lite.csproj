@@ -1,12 +1,11 @@
 ﻿<Project Sdk="MSBuild.Sdk.Extras">
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
-    <TargetFrameworks Condition=" !$(Configuration.EndsWith('Coverage')) ">netstandard2.0;netcoreapp3.1;net6.0;net6.0-android;net6.0-ios;net6.0-maccatalyst;net462;uap10.0.19041;MonoAndroid80;Xamarin.iOS10</TargetFrameworks>
-    <TargetFrameworks Condition=" $(Configuration.EndsWith('Coverage')) ">netcoreapp3.1;net6.0</TargetFrameworks>
-	<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">netcoreapp3.1;net6.0;net6.0-windows10.0.19041.0;net462;uap10.0.19041</TargetFrameworks>
+	<TargetFrameworks>netstandard2.0;netcoreapp3.1;net6.0;net6.0-android;net6.0-ios;net6.0-maccatalyst;net462;MonoAndroid90;Xamarin.iOS10</TargetFrameworks>
+	<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);uap10.0.19041;net6.0-windows10.0.19041.0</TargetFrameworks>
     <SingleProject>true</SingleProject>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.0</SupportedOSPlatformVersion>
+	<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.2</SupportedOSPlatformVersion>
 	<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
 	<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">22.0</SupportedOSPlatformVersion>
 	<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</SupportedOSPlatformVersion>
