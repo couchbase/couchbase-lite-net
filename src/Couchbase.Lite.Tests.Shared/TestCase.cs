@@ -657,12 +657,12 @@ namespace Test
 
                 var lines = Windows.Storage.FileIO.ReadLinesAsync(file).AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
                 foreach(var line in lines) {
-#elif __ANDROID__ && !NET6_0_ANDROID
+#elif __ANDROID__
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
             using (var tr = new StreamReader(ctx.Assets.Open(path))) {
                 string line;
                 while ((line = tr.ReadLine()) != null) {
-#elif __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
+#elif __IOS__
 			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			using (var tr = new StreamReader(File.Open(bundlePath, FileMode.Open, FileAccess.Read))) {
 				string line;
@@ -697,7 +697,7 @@ namespace Test
 #elif __ANDROID__
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
             return ctx.Assets.Open(path);
-#elif __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
+#elif __IOS__
             var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			return File.Open(bundlePath, FileMode.Open, FileAccess.Read);
 #else

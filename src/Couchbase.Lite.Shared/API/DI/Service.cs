@@ -67,10 +67,10 @@ namespace Couchbase.Lite.DI
             } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
                 Service.Register<IProxy>(new LinuxProxy());
             }
-            #elif UAP10_0_16299 || WINDOWS_UWP || NET6_0_WINDOWS10_0_19041_0
+            #elif UAP10_0_16299 || WINDOWS_UWP
             Service.AutoRegister(typeof(Database).GetTypeInfo().Assembly);
             Service.Register<IProxy>(new UWPProxy());
-            #elif __ANDROID__ && !NET6_0_ANDROID
+            #elif __ANDROID__
             #if !TEST_COVERAGE
             if (Droid.Context == null) {
                 throw new RuntimeException(
@@ -82,7 +82,7 @@ namespace Couchbase.Lite.DI
             Service.Register<IMainThreadTaskScheduler>(() => new MainThreadTaskScheduler(Droid.Context));
             Service.Register<IProxy>(new XamarinAndroidProxy());
             #endif
-            #elif __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
+            #elif __IOS__
             Service.AutoRegister(typeof(Database).Assembly);
             Service.Register<IProxy>(new IOSProxy());
             #elif NETSTANDARD2_0

@@ -24,6 +24,9 @@
   <files>
     <file target="" src="packaging\nuget\LICENSE.txt" />
     <file target="build\Couchbase.Lite.Support.UWP.targets" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\uwp.targets" />
+	<file target="lib\net6.0-windows10.0.19041.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.dll" />
+    <file target="lib\net6.0-windows10.0.19041.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.pdb" />
+    <file target="lib\net6.0-windows10.0.19041.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.xml" />
     <file target="lib\uap10.0.19041\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.dll" />
     <file target="lib\uap10.0.19041\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.pdb" />
     <file target="lib\uap10.0.19041\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\Couchbase.Lite.Support.UWP.xml" />
