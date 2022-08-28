@@ -30,9 +30,6 @@
     <file target="lib\net6.0\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net6.0\Couchbase.Lite.Support.NetDesktop.dll" />
     <file target="lib\net6.0\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net6.0\Couchbase.Lite.Support.NetDesktop.pdb" />
     <file target="lib\net6.0\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net6.0\Couchbase.Lite.Support.NetDesktop.xml" />
-	<file target="lib\net6.0-windows10.0.19041.0\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net6.0-windows10.0.19041.0\Couchbase.Lite.Support.NetDesktop.dll" />
-    <file target="lib\net6.0-windows10.0.19041.0\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net6.0-windows10.0.19041.0\Couchbase.Lite.Support.NetDesktop.pdb" />
-    <file target="lib\net6.0-windows10.0.19041.0\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\net6.0-windows10.0.19041.0\Couchbase.Lite.Support.NetDesktop.xml" />
     <file target="lib\netcoreapp3.1\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp3.1\Couchbase.Lite.Support.NetDesktop.dll" />
     <file target="lib\netcoreapp3.1\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp3.1\Couchbase.Lite.Support.NetDesktop.pdb" />
     <file target="lib\netcoreapp3.1\" src="src\Couchbase.Lite.Support.NetDesktop\bin\Packaging\netcoreapp3.1\Couchbase.Lite.Support.NetDesktop.xml" />

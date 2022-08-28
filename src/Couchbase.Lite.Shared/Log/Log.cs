@@ -117,7 +117,7 @@ namespace Couchbase.Lite.Internal.Logging
             return Native.c4log_getDomain((byte*) bytes, create);
         }
 
-        #if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
+        #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(C4LogCallback))]
         #endif
         private static void LiteCoreLog(C4LogDomain* domain, C4LogLevel level, IntPtr message, IntPtr ignored)

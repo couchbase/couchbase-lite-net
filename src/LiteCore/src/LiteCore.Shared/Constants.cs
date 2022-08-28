@@ -23,7 +23,7 @@ namespace LiteCore
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     internal static class Constants
     {
-        #if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
+        #if __IOS__
         [NotNull]
         internal const string DllName = "@rpath/LiteCore.framework/LiteCore";
         #else

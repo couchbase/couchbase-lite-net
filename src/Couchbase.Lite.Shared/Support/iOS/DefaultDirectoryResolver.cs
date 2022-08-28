@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#if __IOS__ || NET6_0_IOS || NET6_0_MACCATALYST
+#if __IOS__
 using System.IO;
 using Couchbase.Lite.DI;
 using Foundation;

@@ -83,14 +83,14 @@ foreach($arch in @("x64", "x64_store", "arm64_store")) {
 	}
 }
 
-if(Test-Path "windows/arm-store/bin"){
+if(Test-Path "windows/arm64-store/bin"){
 	if(Test-Path "arm64_store/RelWithDebInfo"){
 		Remove-item "arm64_store/RelWithDebInfo" -Recurse
 	}
 	
 	New-Item -Type directory -ErrorAction Ignore arm64_store\RelWithDebInfo
 	Set-Location arm64_store\RelWithDebInfo
-	Move-Item ..\..\windows\arm-store\bin\LiteCore.dll,..\..\windows\arm-store\bin\LiteCore.pdb .
+	Move-Item ..\..\windows\arm64-store\bin\LiteCore.dll,..\..\windows\arm64-store\bin\LiteCore.pdb .
     Set-Location ..\..
 }
 
@@ -113,6 +113,17 @@ if(Test-Path "windows/x86_64/bin"){
 	New-Item -Type directory -ErrorAction Ignore x64\RelWithDebInfo
 	Set-Location x64\RelWithDebInfo
 	Move-Item ..\..\windows\x86_64\bin\LiteCore.dll,..\..\windows\x86_64\bin\LiteCore.pdb .
+    Set-Location ..\..
+}
+
+if(Test-Path "windows/arm64/bin"){
+	if(Test-Path "arm64/RelWithDebInfo"){
+		Remove-item "arm64/RelWithDebInfo" -Recurse
+	} 
+	
+	New-Item -Type directory -ErrorAction Ignore arm64\RelWithDebInfo
+	Set-Location arm64\RelWithDebInfo
+	Move-Item ..\..\windows\arm64\bin\LiteCore.dll,..\..\windows\arm64\bin\LiteCore.pdb .
     Set-Location ..\..
 }
 

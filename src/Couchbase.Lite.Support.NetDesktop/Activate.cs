@@ -85,10 +85,7 @@ namespace Couchbase.Lite.Support
                         "Couldn't find directory of the loaded support assembly, very weird!");
                 }
 
-                var architecture = IntPtr.Size == 4
-                    ? "x86"
-                    : "x64";
-
+                var architecture = "x64";
                 var nugetBase = codeBase;
                 for (int i = 0; i < 2; i++) {
                     nugetBase = Path.GetDirectoryName(nugetBase);
