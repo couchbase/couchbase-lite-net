@@ -89,10 +89,10 @@
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
-  <!--ItemGroup>
+  <ItemGroup>
     <PackageReference Include="SourceLink.Embed.AllSourceFiles">
       <Version>2.7.5</Version>
     </PackageReference>
-  </ItemGroup-->
+  </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
 </Project>
