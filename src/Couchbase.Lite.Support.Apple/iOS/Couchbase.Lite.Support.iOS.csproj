@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
 	<TargetFrameworks>net6.0-ios;net6.0-maccatalyst;Xamarin.iOS10</TargetFrameworks>
 	<SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.2</SupportedOSPlatformVersion>
-	<SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
+	<SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.2</SupportedOSPlatformVersion>
 	<ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{3D634C07-2603-4474-A8CD-DE0CF495307C}</ProjectGuid>
