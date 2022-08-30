@@ -38,6 +38,7 @@ using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Sync
 {

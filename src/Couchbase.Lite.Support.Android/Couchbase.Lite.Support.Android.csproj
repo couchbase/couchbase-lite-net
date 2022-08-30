@@ -3,10 +3,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
 	<Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-	<!--TargetFrameworks>net6.0-android;MonoAndroid90</TargetFrameworks>
-	<SupportedOSPlatformVersion>22.0</SupportedOSPlatformVersion-->
-	<ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
+	  <!--TargetFrameworks>net6.0-android;MonoAndroid90</TargetFrameworks-->
+	<SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6'))">22.0</SupportedOSPlatformVersion>
+	<ProductVersion Condition="!$(TargetFramework.StartsWith('net6'))">8.0.30703</ProductVersion>
+    <SchemaVersion Condition="!$(TargetFramework.StartsWith('net6'))">2.0</SchemaVersion>
     <ProjectGuid>{B1D1B3B3-225E-43BF-9FEB-2EDE6D926DEE}</ProjectGuid>
     <ProjectTypeGuids>{EFBA0AD7-5A72-4C68-AF49-83D382785DCF};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <OutputType>Library</OutputType>
@@ -55,10 +55,10 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Mono.Android" />
+	<Reference Condition="!$(TargetFramework.StartsWith('net6'))" Include="Mono.Android" />
     <Reference Include="mscorlib" />
     <Reference Include="System" />
-    <Reference Include="System.Core" />
+	<Reference Condition="!$(TargetFramework.StartsWith('net6'))" Include="System.Core" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml.Linq" />
