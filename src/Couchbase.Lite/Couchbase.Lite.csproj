@@ -22,9 +22,9 @@
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
     <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
-    <DebugType Condition= " !$(TargetFramework.StartsWith('uap')) ">portable</DebugType>
+    <DebugType Condition= " !$(TargetFramework.StartsWith('uap')) and !$(TargetFramework.StartsWith('net6.0-windows')) ">portable</DebugType>
     <DebugSymbols>True</DebugSymbols>
-	<LangVersion>9.0</LangVersion>
+	<LangVersion Condition=" $(TargetFramework.StartsWith('net6')) ">9.0</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Packaging|AnyCPU'">
     <Optimize>True</Optimize>
@@ -40,7 +40,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DefineConstants>TRACE;RELEASE;LITECORE_PACKAGED</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition=" $(TargetFramework.StartsWith('uap')) ">
+  <PropertyGroup Condition=" $(TargetFramework.StartsWith('uap')) or $(TargetFramework.StartsWith('net6.0-windows')) ">
       <DebugType>pdbonly</DebugType>
       <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
     </PropertyGroup>

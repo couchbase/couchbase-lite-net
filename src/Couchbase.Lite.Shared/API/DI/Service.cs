@@ -70,7 +70,7 @@ namespace Couchbase.Lite.DI
             #elif UAP10_0_16299 || WINDOWS_UWP
             Service.AutoRegister(typeof(Database).GetTypeInfo().Assembly);
             Service.Register<IProxy>(new UWPProxy());
-            #elif __ANDROID__ && !NET6_0_ANDROID
+            #elif __ANDROID__
             #if !TEST_COVERAGE
             if (Droid.Context == null) {
                 throw new RuntimeException(
