@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-	<TargetFrameworks>net6.0-ios;net6.0-maccatalyst;Xamarin.iOS10</TargetFrameworks>
+	<TargetFrameworks>net6.0-ios14.2;net6.0-maccatalyst14.2;Xamarin.iOS10</TargetFrameworks>
 	<SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.2</SupportedOSPlatformVersion>
 	<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.2</SupportedOSPlatformVersion>
     <OutputType>Library</OutputType>

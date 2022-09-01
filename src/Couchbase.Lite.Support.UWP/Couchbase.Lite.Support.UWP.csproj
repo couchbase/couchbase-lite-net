@@ -6,14 +6,13 @@
 		<TargetFrameworks>uap10.0.19041;net6.0-windows10.0.19041.0</TargetFrameworks>
 		<SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+		<TargetPlatformIdentifier Condition="!$(TargetFramework.StartsWith('net6'))">UAP</TargetPlatformIdentifier>
+		<TargetPlatformVersion Condition="!$(TargetFramework.StartsWith('net6'))">10.0.19041.0</TargetPlatformVersion>
 		<OutputType>Library</OutputType>
 		<AppDesignerFolder>Properties</AppDesignerFolder>
 		<RootNamespace>Couchbase.Lite.Support.UWP</RootNamespace>
 		<AssemblyName>Couchbase.Lite.Support.UWP</AssemblyName>
 		<DefaultLanguage>en-US</DefaultLanguage>
-		<TargetPlatformIdentifier Condition="!$(TargetFramework.StartsWith('net6'))">UAP</TargetPlatformIdentifier>
-		<TargetPlatformVersion Condition="!$(TargetFramework.StartsWith('net6'))">10.0.19041.0</TargetPlatformVersion>
-		<TargetPlatformMinVersion Condition="!$(TargetFramework.StartsWith('net6'))">10.0.19041.0</TargetPlatformMinVersion>
 		<MinimumVisualStudioVersion>14</MinimumVisualStudioVersion>
 		<FileAlignment>512</FileAlignment>
 		<SingleProject>true</SingleProject>
