@@ -183,7 +183,7 @@ namespace LiteCore.Tests
                     WriteLine("---- Purging a document...");
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
                     try {
-                        Native.c4db_purgeDoc(Db, "after2", &error);
+                        Native.c4coll_purgeDoc(Native.c4db_getDefaultCollection(Db, null), "after2", &error);
                         WriteLine("---- Commiting changes");
                     } finally {
                         LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
@@ -469,7 +469,8 @@ namespace LiteCore.Tests
                 // Delete doc "0000015":
                 LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
                 try {
-                    var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, "0000015", true, C4DocContentLevel.DocGetCurrentRev, err));
+                    var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4coll_getDoc(Native.c4db_getDefaultCollection(Db, null), 
+                        "0000015", true, C4DocContentLevel.DocGetCurrentRev, err));
                     var rq = new C4DocPutRequest {
                         docID = FLSlice.Constant("0000015"),
                         history = (FLSlice *)&doc->revID,
@@ -479,7 +480,7 @@ namespace LiteCore.Tests
                     };
                     var updatedDoc = (C4Document *)LiteCoreBridge.Check(err => {
                         var localRq = rq;
-                        return Native.c4doc_put(Db, &localRq, null, err);
+                        return Native.c4coll_putDoc(Native.c4db_getDefaultCollection(Db, null), &localRq, null, err);
                     });
 
                     Native.c4doc_release(doc);

@@ -74,7 +74,7 @@ namespace LiteCore.Tests
                         rq.historyCount = 1;
                         rq.body = json.AsFLSlice();
                         rq.save = true;
-                        var doc = Native.c4doc_put(Db, &rq, null, &err);
+                        var doc = Native.c4coll_putDoc(Native.c4db_getDefaultCollection(Db, null), &rq, null, &err);
                         ((long)doc).Should().NotBe(0, $"because otherwise the put failed");
                         Native.c4doc_release(doc);
                     }
@@ -83,7 +83,7 @@ namespace LiteCore.Tests
 
             Native.c4db_endTransaction(Db, true, &err).Should().BeTrue("because otherwise the transaction failed to end");
             Console.WriteLine($"Created {NumDocuments} docs");
-            Native.c4db_getDocumentCount(Db).Should().Be(NumDocuments, "because the number of documents should be the number that was just inserted");
+            Native.c4coll_getDocumentCount(Native.c4db_getDefaultCollection(Db, null)).Should().Be(NumDocuments, "because the number of documents should be the number that was just inserted");
         }
     }
 }

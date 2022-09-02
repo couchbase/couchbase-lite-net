@@ -343,7 +343,7 @@ namespace LiteCore.Tests
                         };
                         var doc = (C4Document *)LiteCoreBridge.Check(err => {
                             var localRq = rq;
-                            return Native.c4doc_put(Db, &localRq, null, err);
+                            return Native.c4coll_putDoc(Native.c4db_getDefaultCollection(Db, null), &localRq, null, err);
                         });
                         Native.c4doc_release(doc);
                     }
@@ -439,7 +439,7 @@ namespace LiteCore.Tests
                 rq.revFlags = C4RevisionFlags.HasAttachments;
                 rq.body = (FLSlice)body;
                 rq.save = true;
-                var doc = Native.c4doc_put(Db, &rq, null, &error);
+                var doc = Native.c4coll_putDoc(Native.c4db_getDefaultCollection(Db, null), &rq, null, &error);
                 Native.FLSliceResult_Release(body);
                 ((long) doc).Should().NotBe(0, "because otherwise the put failed");
                 Native.c4doc_release(doc);
@@ -525,7 +525,7 @@ namespace LiteCore.Tests
                     var doc = (C4Document*)LiteCoreBridge.Check(err =>
                     {
                         var localPut = rq;
-                        return Native.c4doc_put(Db, &localPut, null, err);
+                        return Native.c4coll_putDoc(Native.c4db_getDefaultCollection(Db, null), &localPut, null, err);
                     });
 
                     Native.c4doc_release(doc);

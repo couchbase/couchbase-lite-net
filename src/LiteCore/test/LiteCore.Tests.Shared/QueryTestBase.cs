@@ -167,7 +167,7 @@ namespace LiteCore.Tests
                     };
 
                     C4Document* doc;
-                    doc = Native.c4doc_put(Db, &rq, null, &error);
+                    doc = Native.c4coll_putDoc(Native.c4db_getDefaultCollection(Db, null), &rq, null, &error);
                     ((long)doc).Should().NotBe(0, "because otherwise the put failed");
                     Native.c4doc_release(doc);
                     Native.FLSliceResult_Release(body);

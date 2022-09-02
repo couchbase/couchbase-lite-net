@@ -27,20 +27,6 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        public static C4Document* c4db_getDoc(C4Database* database, string docID, bool mustExist, C4DocContentLevel content, C4Error* outError)
-        {
-            using (var docID_ = new C4String(docID)) {
-                return NativeRaw.c4db_getDoc(database, docID_.AsFLSlice(), mustExist, content, outError);
-            }
-        }
-
-        public static C4Document* c4doc_get(C4Database* database, string docID, bool mustExist, C4Error* outError)
-        {
-            using(var docID_ = new C4String(docID)) {
-                return NativeRaw.c4doc_get(database, docID_.AsFLSlice(), mustExist, outError);
-            }
-        }
-
         public static bool c4doc_selectRevision(C4Document* doc, string revID, bool withBody, C4Error* outError)
         {
             using (var revID_ = new C4String(revID)) {
@@ -79,56 +65,12 @@ namespace LiteCore.Interop
                 }
         }
 
-        public static bool c4db_purgeDoc(C4Database* database, string docID, C4Error* outError)
-        {
-            using (var docID_ = new C4String(docID)) {
-                return NativeRaw.c4db_purgeDoc(database, docID_.AsFLSlice(), outError);
-            }
-        }
-
-        public static bool c4doc_setExpiration(C4Database* db, string docID, long timestamp, C4Error* outError)
-        {
-            using (var docID_ = new C4String(docID)) {
-                return NativeRaw.c4doc_setExpiration(db, docID_.AsFLSlice(), timestamp, outError);
-            }
-        }
-
-        public static long c4doc_getExpiration(C4Database* db, string docID, C4Error* outError)
-        {
-            using (var docID_ = new C4String(docID)) {
-                return NativeRaw.c4doc_getExpiration(db, docID_.AsFLSlice(), outError);
-            }
-        }
-
-        public static C4Document* c4doc_put(C4Database* database, C4DocPutRequest* request, ulong* outCommonAncestorIndex, C4Error* outError)
-        {
-            var uintptr = new UIntPtr();
-            var retVal = NativeRaw.c4doc_put(database, request, &uintptr, outError);
-            if (outCommonAncestorIndex != null) {
-                *outCommonAncestorIndex = uintptr.ToUInt64();
-            }
-
-            return retVal;
-        }
-
-
-        public static C4Document* c4doc_create(C4Database* db, string docID, byte[] body, C4RevisionFlags revisionFlags, C4Error* error)
-        {
-            using (var docID_ = new C4String(docID))
-                fixed (byte* body_ = body) {
-                    return NativeRaw.c4doc_create(db, docID_.AsFLSlice(), new FLSlice(body_, body == null ? 0 : (ulong)body.Length), revisionFlags, error);
-                }
-        }
-
         public static C4Document* c4doc_update(C4Document* doc, byte[] revisionBody, C4RevisionFlags revisionFlags, C4Error* error)
         {
             fixed (byte* revisionBody_ = revisionBody) {
                 return NativeRaw.c4doc_update(doc, new FLSlice(revisionBody_, revisionBody == null ? 0 : (ulong)revisionBody.Length), revisionFlags, error);
             }
         }
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Document* c4doc_getBySequence(C4Database* database, ulong sequence, C4Error* outError);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -163,12 +105,6 @@ namespace LiteCore.Interop
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Document* c4db_getDoc(C4Database* database, FLSlice docID, [MarshalAs(UnmanagedType.U1)] bool mustExist, C4DocContentLevel content, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Document* c4doc_get(C4Database* database, FLSlice docID, [MarshalAs(UnmanagedType.U1)]bool mustExist, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern FLSlice c4doc_getRevisionBody(C4Document* doc);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
@@ -188,23 +124,6 @@ namespace LiteCore.Interop
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4doc_resolveConflict(C4Document* doc, FLSlice winningRevID, FLSlice losingRevID, FLSlice mergedBody, C4RevisionFlags mergedFlags, C4Error* error);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_purgeDoc(C4Database* database, FLSlice docID, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4doc_setExpiration(C4Database* db, FLSlice docID, long timestamp, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern long c4doc_getExpiration(C4Database* db, FLSlice docID, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Document* c4doc_put(C4Database* database, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Document* c4doc_create(C4Database* db, FLSlice docID, FLSlice body, C4RevisionFlags revisionFlags, C4Error* error);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern C4Document* c4doc_update(C4Document* doc, FLSlice revisionBody, C4RevisionFlags revisionFlags, C4Error* error);
