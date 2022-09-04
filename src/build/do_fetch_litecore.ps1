@@ -52,10 +52,15 @@ if(Test-Path "ios-fat") {
 	Remove-Item "ios-fat" -Recurse
 }
 	
-if(Test-Path "ios/LiteCore.framework/LiteCore") {
-    New-Item -Type directory -ErrorAction Ignore ios-fat\LiteCore.framework
-    Set-Location ios-fat\LiteCore.framework
-	Move-Item ..\..\ios\LiteCore.framework\LiteCore,..\..\ios\LiteCore.framework\Info.plist .
+$framework = "LiteCore.framework"
+if($DebugLib) {
+	$framework = "LiteCore-Debug.framework"
+}
+
+if(Test-Path ios/$framework/LiteCore) {
+    New-Item -Type directory -ErrorAction Ignore ios-fat\$framework
+    Set-Location ios-fat\$framework
+	Move-Item ..\..\ios\$framework\LiteCore,..\..\ios\$framework\Info.plist .
     Set-Location ..\..
 	Remove-Item "ios" -Recurse
 }

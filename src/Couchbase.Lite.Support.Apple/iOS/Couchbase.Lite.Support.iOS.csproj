@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Xamarin.Legacy.Sdk/0.2.0-alpha2">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+	<Configurations>Debug;Release;Packaging</Configurations>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
 	<TargetFrameworks>net6.0-ios14.2;net6.0-maccatalyst14.2;Xamarin.iOS10</TargetFrameworks>
 	<SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.2</SupportedOSPlatformVersion>
