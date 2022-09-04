@@ -1,14 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Xamarin.Legacy.Sdk/0.2.0-alpha2">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+	<Configurations>Debug;Release;Packaging</Configurations>
 	<Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-	<TargetFrameworks>net6.0-android;monoandroid90</TargetFrameworks>
-	<SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6'))">22.0</SupportedOSPlatformVersion>
+	<TargetFrameworks>net6.0-android31;monoandroid90</TargetFrameworks>
+	<SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6'))">22</SupportedOSPlatformVersion>
+	<TargetFrameworkVersion Condition="!$(TargetFramework.StartsWith('net6'))">v9.0</TargetFrameworkVersion>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Support.Android</RootNamespace>
     <AssemblyName>Couchbase.Lite.Support.Android</AssemblyName>
-	<TargetFrameworkVersion Condition="!$(TargetFramework.StartsWith('net6'))">v9.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
 	<UseMicrosoftAndroidSdk>true</UseMicrosoftAndroidSdk>
 	<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
@@ -22,6 +22,7 @@
 	<GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
 	<GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
 	<GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+	<AndroidUseLatestPlatformSdk>false</AndroidUseLatestPlatformSdk>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -89,8 +90,8 @@
       <LastGenOutput>DynamicAssemblyInfo.cs</LastGenOutput>
     </None>
   </ItemGroup>
-  <ItemGroup Condition="!$(TargetFramework.StartsWith('net6'))">
-    <PackageReference Include="SourceLink.Embed.AllSourceFiles">
+  <ItemGroup>
+    <PackageReference Condition="!$(TargetFramework.StartsWith('net6'))" Include="SourceLink.Embed.AllSourceFiles">
       <Version>2.7.5</Version>
     </PackageReference>
   </ItemGroup>

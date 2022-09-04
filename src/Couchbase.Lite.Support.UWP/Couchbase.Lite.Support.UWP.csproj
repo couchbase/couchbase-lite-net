@@ -1,20 +1,19 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="MSBuild.Sdk.Extras">
 	<PropertyGroup>
-		<Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+		<Configurations>Debug;Release;Packaging;PackagingDebug</Configurations>
 		<Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
 		<TargetFrameworks>uap10.0.19041;net6.0-windows10.0.19041.0</TargetFrameworks>
-		<SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+		<TargetPlatformIdentifier Condition="!$(TargetFramework.StartsWith('net6'))">UAP</TargetPlatformIdentifier>
+		<SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6'))">10.0.19041.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+		<TargetPlatformVersion Condition="!$(TargetFramework.StartsWith('net6'))">10.0.19041.0</TargetPlatformVersion>
 		<OutputType>Library</OutputType>
 		<AppDesignerFolder>Properties</AppDesignerFolder>
 		<RootNamespace>Couchbase.Lite.Support.UWP</RootNamespace>
 		<AssemblyName>Couchbase.Lite.Support.UWP</AssemblyName>
 		<DefaultLanguage>en-US</DefaultLanguage>
-		<TargetPlatformIdentifier Condition="!$(TargetFramework.StartsWith('net6'))">UAP</TargetPlatformIdentifier>
-		<TargetPlatformVersion Condition="!$(TargetFramework.StartsWith('net6'))">10.0.19041.0</TargetPlatformVersion>
-		<TargetPlatformMinVersion Condition="!$(TargetFramework.StartsWith('net6'))">10.0.19041.0</TargetPlatformMinVersion>
-		<MinimumVisualStudioVersion>14</MinimumVisualStudioVersion>
+		<MinimumVisualStudioVersion>17</MinimumVisualStudioVersion>
 		<FileAlignment>512</FileAlignment>
 		<SingleProject>true</SingleProject>
 		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
@@ -34,7 +33,7 @@
 		<PlatformTarget>AnyCPU</PlatformTarget>
 		<DebugSymbols>true</DebugSymbols>
 		<DebugType>portable</DebugType>
-		<Optimize>True</Optimize>
+		<Optimize>false</Optimize>
 		<OutputPath>bin\Debug\</OutputPath>
 		<DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
 		<ErrorReport>prompt</ErrorReport>
@@ -50,25 +49,25 @@
 		<WarningLevel>4</WarningLevel>
 		<DebugSymbols>true</DebugSymbols>
 	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM64'">
-		<PlatformTarget>ARM64</PlatformTarget>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|arm64'">
+		<PlatformTarget>arm64</PlatformTarget>
 		<DebugSymbols>true</DebugSymbols>
-		<OutputPath>bin\ARM64\Debug\</OutputPath>
+		<OutputPath>bin\arm64\Debug\</OutputPath>
 		<DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
 		<NoWarn>;2008</NoWarn>
 		<DebugType>portable</DebugType>
-		<PlatformTarget>ARM64</PlatformTarget>
+		<PlatformTarget>arm64</PlatformTarget>
 		<UseVSHostingProcess>false</UseVSHostingProcess>
 		<ErrorReport>prompt</ErrorReport>
 	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|ARM64'">
-		<PlatformTarget>ARM64</PlatformTarget>
-		<OutputPath>bin\ARM64\Release\</OutputPath>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|arm64'">
+		<PlatformTarget>arm64</PlatformTarget>
+		<OutputPath>bin\arm64\Release\</OutputPath>
 		<DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
 		<Optimize>true</Optimize>
 		<NoWarn>;2008</NoWarn>
 		<DebugType>portable</DebugType>
-		<PlatformTarget>ARM64</PlatformTarget>
+		<PlatformTarget>arm64</PlatformTarget>
 		<UseVSHostingProcess>false</UseVSHostingProcess>
 		<ErrorReport>prompt</ErrorReport>
 	</PropertyGroup>
@@ -96,6 +95,80 @@
 	</PropertyGroup>
 	<PropertyGroup>
 		<RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|AnyCPU'">
+		<OutputPath>bin\Packaging\</OutputPath>
+		<DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
+		<Optimize>true</Optimize>
+		<NoStdLib>true</NoStdLib>
+		<DebugType>portable</DebugType>
+		<PlatformTarget>AnyCPU</PlatformTarget>
+		<UseVSHostingProcess>false</UseVSHostingProcess>
+		<ErrorReport>prompt</ErrorReport>
+		<CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+		<DocumentationFile>bin\Packaging\Couchbase.Lite.Support.UWP.xml</DocumentationFile>
+		<DebugSymbols>true</DebugSymbols>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|arm64'">
+		<OutputPath>bin\arm64\Packaging\</OutputPath>
+		<DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
+		<Optimize>true</Optimize>
+		<NoWarn>;2008</NoWarn>
+		<NoStdLib>true</NoStdLib>
+		<DebugType>portable</DebugType>
+		<PlatformTarget>arm64</PlatformTarget>
+		<UseVSHostingProcess>false</UseVSHostingProcess>
+		<ErrorReport>prompt</ErrorReport>
+		<DocumentationFile>bin\Packaging\Couchbase.Lite.Support.UWP.xml</DocumentationFile>
+		<CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|x64'">
+		<OutputPath>bin\x64\Packaging\</OutputPath>
+		<DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
+		<Optimize>true</Optimize>
+		<NoWarn>;2008</NoWarn>
+		<NoStdLib>true</NoStdLib>
+		<DebugType>portable</DebugType>
+		<PlatformTarget>x64</PlatformTarget>
+		<UseVSHostingProcess>false</UseVSHostingProcess>
+		<ErrorReport>prompt</ErrorReport>
+		<DocumentationFile>bin\Packaging\Couchbase.Lite.Support.UWP.xml</DocumentationFile>
+		<CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'PackagingDebug|AnyCPU'">
+		<DebugSymbols>true</DebugSymbols>
+		<OutputPath>bin\PackagingDebug\</OutputPath>
+		<DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
+		<NoStdLib>true</NoStdLib>
+		<DebugType>portable</DebugType>
+		<PlatformTarget>AnyCPU</PlatformTarget>
+		<UseVSHostingProcess>false</UseVSHostingProcess>
+		<ErrorReport>prompt</ErrorReport>
+		<CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'PackagingDebug|arm64'">
+		<DebugSymbols>true</DebugSymbols>
+		<OutputPath>bin\arm64\PackagingDebug\</OutputPath>
+		<DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
+		<NoWarn>;2008</NoWarn>
+		<NoStdLib>true</NoStdLib>
+		<DebugType>portable</DebugType>
+		<PlatformTarget>arm64</PlatformTarget>
+		<UseVSHostingProcess>false</UseVSHostingProcess>
+		<ErrorReport>prompt</ErrorReport>
+		<CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'PackagingDebug|x64'">
+		<DebugSymbols>true</DebugSymbols>
+		<OutputPath>bin\x64\PackagingDebug\</OutputPath>
+		<DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
+		<NoWarn>;2008</NoWarn>
+		<NoStdLib>true</NoStdLib>
+		<DebugType>portable</DebugType>
+		<PlatformTarget>x64</PlatformTarget>
+		<UseVSHostingProcess>false</UseVSHostingProcess>
+		<ErrorReport>prompt</ErrorReport>
+		<CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
 	</PropertyGroup>
 	<ItemGroup>
 		<Compile Include="..\Couchbase.Lite\Properties\DynamicAssemblyInfo.cs">
@@ -129,11 +202,11 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 		<Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\arm64_store\RelWithDebInfo\LiteCore.dll">
-			<Link>ARM64\LiteCore.dll</Link>
+			<Link>arm64\LiteCore.dll</Link>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 		<Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\arm64_store\RelWithDebInfo\LiteCore.pdb">
-			<Link>ARM64\LiteCore.pdb</Link>
+			<Link>arm64\LiteCore.pdb</Link>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
@@ -146,95 +219,17 @@
 			<Link>LiteCore.pdb</Link>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
-		<Content Condition="'$(Platform)' == 'ARM64'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\arm64_store\RelWithDebInfo\LiteCore.dll">
+		<Content Condition="'$(Platform)' == 'arm64'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\arm64_store\RelWithDebInfo\LiteCore.dll">
 			<Link>LiteCore.dll</Link>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
-		<Content Condition="'$(Platform)' == 'ARM64'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\arm64_store\RelWithDebInfo\LiteCore.pdb">
+		<Content Condition="'$(Platform)' == 'arm64'" Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\arm64_store\RelWithDebInfo\LiteCore.pdb">
 			<Link>LiteCore.pdb</Link>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
-	<PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
-		<VisualStudioVersion>14.0</VisualStudioVersion>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|AnyCPU'">
-		<OutputPath>bin\Packaging\</OutputPath>
-		<DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
-		<Optimize>true</Optimize>
-		<NoStdLib>true</NoStdLib>
-		<DebugType>portable</DebugType>
-		<PlatformTarget>AnyCPU</PlatformTarget>
-		<UseVSHostingProcess>false</UseVSHostingProcess>
-		<ErrorReport>prompt</ErrorReport>
-		<CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-		<DocumentationFile>bin\Packaging\Couchbase.Lite.Support.UWP.xml</DocumentationFile>
-		<DebugSymbols>true</DebugSymbols>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|ARM64'">
-		<OutputPath>bin\ARM64\Packaging\</OutputPath>
-		<DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
-		<Optimize>true</Optimize>
-		<NoWarn>;2008</NoWarn>
-		<NoStdLib>true</NoStdLib>
-		<DebugType>portable</DebugType>
-		<PlatformTarget>ARM64</PlatformTarget>
-		<UseVSHostingProcess>false</UseVSHostingProcess>
-		<ErrorReport>prompt</ErrorReport>
-		<CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Packaging|x64'">
-		<OutputPath>bin\x64\Packaging\</OutputPath>
-		<DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
-		<Optimize>true</Optimize>
-		<NoWarn>;2008</NoWarn>
-		<NoStdLib>true</NoStdLib>
-		<DebugType>portable</DebugType>
-		<PlatformTarget>x64</PlatformTarget>
-		<UseVSHostingProcess>false</UseVSHostingProcess>
-		<ErrorReport>prompt</ErrorReport>
-		<CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'PackagingDebug|AnyCPU'">
-		<DebugSymbols>true</DebugSymbols>
-		<OutputPath>bin\PackagingDebug\</OutputPath>
-		<DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<NoStdLib>true</NoStdLib>
-		<DebugType>portable</DebugType>
-		<PlatformTarget>AnyCPU</PlatformTarget>
-		<UseVSHostingProcess>false</UseVSHostingProcess>
-		<ErrorReport>prompt</ErrorReport>
-		<CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'PackagingDebug|ARM64'">
-		<DebugSymbols>true</DebugSymbols>
-		<OutputPath>bin\ARM64\PackagingDebug\</OutputPath>
-		<DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<NoWarn>;2008</NoWarn>
-		<NoStdLib>true</NoStdLib>
-		<DebugType>portable</DebugType>
-		<PlatformTarget>ARM64</PlatformTarget>
-		<UseVSHostingProcess>false</UseVSHostingProcess>
-		<ErrorReport>prompt</ErrorReport>
-		<CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'PackagingDebug|x64'">
-		<DebugSymbols>true</DebugSymbols>
-		<OutputPath>bin\x64\PackagingDebug\</OutputPath>
-		<DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<NoWarn>;2008</NoWarn>
-		<NoStdLib>true</NoStdLib>
-		<DebugType>portable</DebugType>
-		<PlatformTarget>x64</PlatformTarget>
-		<UseVSHostingProcess>false</UseVSHostingProcess>
-		<ErrorReport>prompt</ErrorReport>
-		<CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+	<PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '17.0' ">
+		<VisualStudioVersion>17.0</VisualStudioVersion>
 	</PropertyGroup>
 	<!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
