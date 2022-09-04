@@ -65,12 +65,12 @@ namespace Test
         {
             CollA = Db.CreateCollection("collA", "scopeA");
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM scopeA.collA WHERE contact.address.state = 'CA'");
-            TestQueryObserverWithQuery(n1qlQ, isDefaultCollection: false);
+            TestQueryObserverWithQuery(n1qlQ, isLegacy: false);
             n1qlQ.Dispose();
             var query = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
                 .From(DataSource.Collection(CollA))
                 .Where(Expression.Property("contact.address.state").EqualTo(Expression.String("CA")));
-            TestQueryObserverWithQuery(query, isDefaultCollection: false);
+            TestQueryObserverWithQuery(query, isLegacy: false);
             query.Dispose();
         }
 
@@ -79,12 +79,12 @@ namespace Test
         {
             CollA = Db.CreateCollection("collA", "scopeA");
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM scopeA.collA WHERE contact.address.state = 'CA'");
-            TestMultipleQueryObserversWithQuery(n1qlQ, isDefaultCollection: false);
+            TestMultipleQueryObserversWithQuery(n1qlQ, isLegacy: false);
             n1qlQ.Dispose();
             var query = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
                 .From(DataSource.Collection(CollA))
                 .Where(Expression.Property("contact.address.state").EqualTo(Expression.String("CA")));
-            TestMultipleQueryObserversWithQuery(query, isDefaultCollection: false);
+            TestMultipleQueryObserversWithQuery(query, isLegacy: false);
             query.Dispose();
         }
 
@@ -95,12 +95,12 @@ namespace Test
         {
             CollA = Db.CreateCollection("collA", "scopeA");
             var n1qlQ = Db.CreateQuery("SELECT META().id, contact FROM scopeA.collA WHERE contact.address.state = $state");
-            TestQueryObserverWithChangingQueryParametersWithQuery(n1qlQ, isDefaultCollection: false);
+            TestQueryObserverWithChangingQueryParametersWithQuery(n1qlQ, isLegacy: false);
             n1qlQ.Dispose();
             var query = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
                 .From(DataSource.Collection(CollA))
                 .Where(Expression.Property("contact.address.state").EqualTo(Expression.Parameter("state")));
-            TestQueryObserverWithChangingQueryParametersWithQuery(query, isDefaultCollection: false);
+            TestQueryObserverWithChangingQueryParametersWithQuery(query, isLegacy: false);
             query.Dispose();
         }
 
@@ -112,7 +112,7 @@ namespace Test
             var expectedCounts = new[] { 1, 6, 1, 1, 3 };
             var expectedZips = new[] { "35243", "94153", "81223", "33612", "50801" };
 
-            LoadJSONResource("names_100", isDefaultCollection: false);
+            LoadJSONResource("names_100", coll: CollA);
 
             var STATE = Expression.Property("contact.address.state");
             var gender = Expression.Property("gender");
@@ -168,7 +168,7 @@ namespace Test
         public void TestNoWhereQuery()
         {
             CollA = Db.CreateCollection("collA", "scopeA");
-            LoadJSONResource("names_100", isDefaultCollection: false);
+            LoadJSONResource("names_100", coll: CollA);
             using (var q = QueryBuilder.Select(DocID, Sequence).From(DataSource.Collection(CollA))) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
@@ -190,7 +190,7 @@ namespace Test
         public void TestOrderBy()
         {
             CollA = Db.CreateCollection("collA", "scopeA");
-            LoadJSONResource("names_100", isDefaultCollection: false);
+            LoadJSONResource("names_100", coll: CollA);
             foreach (var ascending in new[] { true, false })
             {
                 IOrdering order;
@@ -228,7 +228,7 @@ namespace Test
         public void TestQuantifiedOperators()
         {
             CollA = Db.CreateCollection("collA", "scopeA");
-            LoadJSONResource("names_100", isDefaultCollection: false);
+            LoadJSONResource("names_100", coll: CollA);
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
                 .From(DataSource.Collection(CollA))
@@ -264,7 +264,7 @@ namespace Test
         public void TestQueryResult()
         {
             CollA = Db.CreateCollection("collA", "scopeA");
-            LoadJSONResource("names_100", isDefaultCollection: false);
+            LoadJSONResource("names_100", coll: CollA);
 
             var FNAME = Expression.Property("name.first");
             var LNAME = Expression.Property("name.last");
@@ -294,7 +294,7 @@ namespace Test
         public void TestWhereIn()
         {
             CollA = Db.CreateCollection("collA", "scopeA");
-            LoadJSONResource("names_100", isDefaultCollection: false);
+            LoadJSONResource("names_100", coll: CollA);
 
             var expected = new[] { "Marcy", "Margaretta", "Margrett", "Marlen", "Maryjo" };
             var inExpression = expected.Select(Expression.String); // Note, this is LINQ Select, so don't get confused
@@ -318,7 +318,7 @@ namespace Test
         public void TestWhereLike()
         {
             CollA = Db.CreateCollection("collA", "scopeA");
-            LoadJSONResource("names_100", isDefaultCollection: false);
+            LoadJSONResource("names_100", coll: CollA);
 
             var where = Expression.Property("name.first").Like(Expression.String("%Mar%"));
             using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("name.first")))
@@ -344,7 +344,7 @@ namespace Test
         public void TestWhereRegex()
         {
             CollA = Db.CreateCollection("collA", "scopeA");
-            LoadJSONResource("names_100", isDefaultCollection: false);
+            LoadJSONResource("names_100", coll: CollA);
 
             var where = Expression.Property("name.first").Regex(Expression.String("^Mar.*"));
             using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("name.first")))
@@ -367,9 +367,169 @@ namespace Test
             }
         }
 
+        #region 8.11 SQL++ Query
+
+        [Fact]
+        public void TestQueryDefaultCollection()
+        {
+            //Test that query the default collection by using each default collection identity works as expected.
+            LoadJSONResource("names_100", coll: DefaultCollection);
+            var listQueries = new List<string>()
+            {
+                "SELECT name.first FROM _ ORDER BY name.first LIMIT 1",
+                "SELECT name.first FROM _default ORDER BY name.first limit 1",
+                $"SELECT name.first FROM {Db.Name} ORDER BY name.first limit 1"
+            };
+
+            foreach (var qExp in listQueries) {
+                using (var q = DefaultCollection.CreateQuery(qExp)) {
+                    var res = q.Execute().ToList();
+                    res.Count().Should().Be(1);
+                    res[0].GetString("first").Should().Be("Abe");
+                }
+            }
+        }
+
+        [Fact]
+        public void TestQueryDefaultScope()
+        {
+            // Test that query a collection in the default scope works as expected.
+            using (var collWithDefaultScope = Db.CreateCollection("names")) {
+                LoadJSONResource("names_100", coll: collWithDefaultScope);
+                var listQueries = new List<string>()
+                {
+                    "SELECT name.first FROM _default.names ORDER BY name.first limit 1",
+                    "SELECT name.first FROM names ORDER BY name.first limit 1"
+                };
+
+                foreach (var qExp in listQueries) {
+                    using (var q = collWithDefaultScope.CreateQuery(qExp)) {
+                        var res = q.Execute().ToList();
+                        res.Count().Should().Be(1);
+                        res[0].GetString("first").Should().Be("Abe");
+                    }
+                }
+            }
+        }
+
+        [Fact]
+        public void TestQueryNamedCollection()
+        {
+            // Test that query a collection in non-default scope works as expected.
+            using (var coll = Db.CreateCollection("names", "people")) {
+                LoadJSONResource("names_100", coll: coll);
+                using (var q = coll.CreateQuery("SELECT name.first FROM people.names ORDER BY name.first limit 1")) {
+                    var res = q.Execute().ToList();
+                    res.Count().Should().Be(1);
+                    res[0].GetString("first").Should().Be("Abe");
+                }
+            }
+        }
+        
+        [Fact]
+        public void TestQueryNonExistingCollection()
+        {
+            // Test that query non-existing collection returns an error as expected.
+            using (var coll = Db.CreateCollection("names", "people")) {
+                LoadJSONResource("names_100", coll: coll);
+                Action badAction = (() => coll.CreateQuery("SELECT name.first FROM person.names ORDER BY name.first limit 1"));
+                badAction.Should().Throw<CouchbaseLiteException>()
+                    .WithMessage("CouchbaseLiteException (LiteCoreDomain / 23): no such collection \"person.names\".");
+            }
+        }
+        
+        [Fact]
+        public void TestJoinWithCollections()
+        {
+            // Test that query by joining collections works as expected.
+            using(var flowersCol = Db.CreateCollection("flowers", "test"))
+            using (var colorsCol = Db.CreateCollection("colors", "test")) {
+
+                // flowers collections
+                using (var mdoc = new MutableDocument("c1")) {
+                    mdoc.SetString("cid", "c1");
+                    mdoc.SetString("name", "rose");
+                    flowersCol.Save(mdoc);
+                }
+
+                using (var mdoc = new MutableDocument("c2")) {
+                    mdoc.SetString("cid", "c2");
+                    mdoc.SetString("name", "hydrangea");
+                    flowersCol.Save(mdoc);
+                }
+
+                // colors collections
+                using (var mdoc = new MutableDocument("c1")) {
+                    mdoc.SetString("cid", "c1");
+                    mdoc.SetString("color", "red");
+                    colorsCol.Save(mdoc);
+                }
+
+                using (var mdoc = new MutableDocument("c2")) {
+                    mdoc.SetString("cid", "c2");
+                    mdoc.SetString("color", "blue");
+                    colorsCol.Save(mdoc);
+                }
+
+                using (var mdoc = new MutableDocument("c3")) {
+                    mdoc.SetString("cid", "c3");
+                    mdoc.SetString("color", "white");
+                    colorsCol.Save(mdoc);
+                }
+
+                using (var q = Db.CreateQuery("SELECT a.name, b.color FROM test.flowers a JOIN test.colors b ON a.cid = b.cid ORDER BY a.name")) {
+                    var res = q.Execute().ToList();
+                    res.Count().Should().Be(2);
+                    res[0].GetString("name").Should().Be("hydrangea");
+                    res[0].GetString("color").Should().Be("blue");
+                    res[1].GetString("name").Should().Be("rose");
+                    res[1].GetString("color").Should().Be("red");
+                }
+            }
+        }
+
+        #endregion
+
+        #region 8.12 QueryBuilder
+
+        [Fact]
+        public void TestQueryBuilderWithDefaultCollectionAsDataSource()
+        {
+            // Test that query by using the default collection as data source works as expected.
+            LoadJSONResource("names_100", coll: DefaultCollection);
+            using (var q = QueryBuilder.Select(SelectResult.Property("name.first"))
+                .From(DataSource.Collection(DefaultCollection))
+                .OrderBy(Ordering.Property("name.first"))
+                .Limit(Expression.Int(1))) {
+                var res = q.Execute().ToList();
+                res.Count().Should().Be(1);
+                res[0].GetString("first").Should().Be("Abe");
+            }
+        }
+
+        [Fact]
+        public void TestQueryBuilderWithCollectionAsDataSource()
+        {
+            // Test that query by using a collection as data source works as expected.
+            using (var coll = Db.CreateCollection("names", "people"))
+            {
+                LoadJSONResource("names_100", coll: coll);
+                using (var q = QueryBuilder.Select(SelectResult.Property("name.first"))
+                    .From(DataSource.Collection(coll))
+                    .OrderBy(Ordering.Property("name.first"))
+                    .Limit(Expression.Int(1))) {
+                    var res = q.Execute().ToList();
+                    res.Count().Should().Be(1);
+                    res[0].GetString("first").Should().Be("Abe");
+                }
+            }
+        }
+
+        #endregion
+
         protected override void Dispose(bool disposing)
         {
-            CollA.Dispose();
+            CollA?.Dispose();
         }
 
 #endif

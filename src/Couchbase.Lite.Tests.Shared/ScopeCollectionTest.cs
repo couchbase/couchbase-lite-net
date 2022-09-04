@@ -229,7 +229,7 @@ namespace Test
         {
             var str = "ab";
             /* Create collections with the collection name containing the following characters
-               !, @, #, $, ^, &, *, (, ), +, ., <, >, ?, [, ], {, }, =, “, ‘, |, \, /,`,~ are prohibited. */
+               !, @, #, $, ^, &, *, (, ), +, ., :, ;, <, >, ?, [, ], {, }, =, “, ‘, |, \, /,`,~ are prohibited. */
             for (char letter = '!'; letter <= '/'; letter++) {
                 if (letter == '%' || letter == '-')
                     continue;
@@ -238,7 +238,7 @@ namespace Test
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid collection name '{str + letter}' in scope '_default'.");
             }
 
-            for (char letter = '<'; letter <= '@'; letter++) {
+            for (char letter = ':'; letter <= '@'; letter++) {
                 Action badAction = (() => Db.CreateCollection(str + letter));
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid collection name '{str + letter}' in scope '_default'.");
             }
@@ -331,7 +331,7 @@ namespace Test
         {
             var str = "ab";
             /* Create collections with the collection name containing the following characters
-               !, @, #, $, ^, &, *, (, ), +, ., <, >, ?, [, ], {, }, =, “, ‘, |, \, /,`,~ are prohibited. */
+               !, @, #, $, ^, &, *, (, ), +, ., ;, :, <, >, ?, [, ], {, }, =, “, ‘, |, \, /,`,~ are prohibited. */
             for (char letter = '!'; letter <= '/'; letter++) {
                 if (letter == '%' || letter == '-')
                     continue;
@@ -340,7 +340,7 @@ namespace Test
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid scope name '{str + letter}'.");
             }
 
-            for (char letter = '<'; letter <= '@'; letter++) {
+            for (char letter = ':'; letter <= '@'; letter++) {
                 Action badAction = (() => Db.CreateCollection("abc", str + letter));
                 badAction.Should().Throw<CouchbaseLiteException>($"Invalid scope name '{str + letter}'.");
             }

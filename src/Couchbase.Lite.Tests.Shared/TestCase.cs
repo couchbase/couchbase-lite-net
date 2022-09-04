@@ -86,7 +86,7 @@ namespace Test
 
         protected Collection CollA { get; set; }
 
-        protected Collection Collection => Db.GetDefaultCollection();
+        protected Collection DefaultCollection => Db.GetDefaultCollection();
 
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
@@ -476,7 +476,7 @@ namespace Test
         }
 
         private void AddPersonInState(string docID, string state, string firstName = null,
-            bool isDefaultCollection = true)
+            bool isLegacy = true)
         {
             using (var doc = new MutableDocument(docID)) {
                 doc.SetBoolean("custom", true);
@@ -493,7 +493,7 @@ namespace Test
                 doc.SetDictionary("contact", contactDoc);
 
                 // Save document:
-                if (isDefaultCollection)
+                if (isLegacy)
                     Db.Save(doc);
                 else
                     CollA.Save(doc);
@@ -501,9 +501,9 @@ namespace Test
         }
 
         #if !CBL_NO_EXTERN_FILES
-        protected void TestQueryObserverWithQuery(IQuery query, bool isDefaultCollection = true)
+        protected void TestQueryObserverWithQuery(IQuery query, bool isLegacy = true)
         {
-            LoadJSONResource("names_100", isDefaultCollection: isDefaultCollection);
+            LoadJSONResource("names_100", coll: isLegacy == true ? null: CollA);
             using (var q = query) {
                 var wa = new WaitAssert();
                 var wa2 = new WaitAssert();
@@ -524,13 +524,13 @@ namespace Test
 
                 wa.WaitForResult(TimeSpan.FromSeconds(2));
                 count.Should().Be(1, "because we should have received a callback");
-                AddPersonInState("after1", "AL", isDefaultCollection: isDefaultCollection);
+                AddPersonInState("after1", "AL", isLegacy: isLegacy);
                 Thread.Sleep(2000);
                 count.Should().Be(1, "because we should not receive a callback since AL is not part of query result");
-                AddPersonInState("after2", "CA", isDefaultCollection: isDefaultCollection);
+                AddPersonInState("after2", "CA", isLegacy: isLegacy);
                 wa2.WaitForResult(TimeSpan.FromSeconds(2));
                 count.Should().Be(2, "because we should have received a callback, query result has updated");
-                if(isDefaultCollection)
+                if(isLegacy)
                     Db.Purge("after2");
                 else
                     CollA.Purge("after2");
@@ -540,9 +540,9 @@ namespace Test
             }
         }
 
-        protected void TestMultipleQueryObserversWithQuery(IQuery query, bool isDefaultCollection = true)
+        protected void TestMultipleQueryObserversWithQuery(IQuery query, bool isLegacy = true)
         {
-            LoadJSONResource("names_100", isDefaultCollection: isDefaultCollection);
+            LoadJSONResource("names_100", coll: isLegacy == true ? null : CollA);
             using (var q = query)
             using (var q1 = query)
             using (var q2 = query) {
@@ -589,9 +589,9 @@ namespace Test
             }
         }
 
-        protected void TestQueryObserverWithChangingQueryParametersWithQuery(IQuery query, bool isDefaultCollection = true)
+        protected void TestQueryObserverWithChangingQueryParametersWithQuery(IQuery query, bool isLegacy = true)
         {
-            LoadJSONResource("names_100", isDefaultCollection: isDefaultCollection);
+            LoadJSONResource("names_100", coll: isLegacy == true ? null : CollA);
             var qParameters = new Parameters().SetString("state", "CA");
             query.Parameters = qParameters;
             //query.Parameters.SetString("state", "CA"); //This works as well
@@ -618,7 +618,7 @@ namespace Test
             count.Should().Be(2, "because we should have received a callback, query result has updated");
         }
 
-        protected void LoadJSONResource(string resourceName, Database db = null, bool isDefaultCollection = true)
+        protected void LoadJSONResource(string resourceName, Database db = null, Collection coll = null)
         {
             if (db == null)
                 db = Db;
@@ -633,11 +633,10 @@ namespace Test
                     json.Should().NotBeNull("because otherwise the line failed to parse");
                     var doc = new MutableDocument(docID);
                     doc.SetData(json);
-                    if (isDefaultCollection) {
+                    if(coll == null)
                         db.Save(doc);
-                    } else {
-                        CollA = db.CreateCollection("collA", "scopeA");
-                        CollA.Save(doc);
+                    else {
+                        coll.Save(doc);
                     }
 
                     return true;
