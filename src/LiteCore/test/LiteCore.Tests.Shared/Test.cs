@@ -74,6 +74,7 @@ namespace LiteCore.Tests
         }
 
         internal C4DatabaseConfig2 DBConfig2 { get; set; }
+
         protected string Storage { get; private set; }
 
         internal FLSlice DocID => FLSlice.Constant("mydoc");
@@ -169,7 +170,7 @@ namespace LiteCore.Tests
             }
 
             DBConfig2 = new C4DatabaseConfig2() {
-                ParentDirectory = TestDir,
+                parentDirectory = new C4String(TestDir).AsFLSlice(),
                 flags = C4DatabaseFlags.Create,
                 encryptionKey = encryptionKey
             };
@@ -177,15 +178,16 @@ namespace LiteCore.Tests
             LiteCoreBridge.Check(error => Native.c4db_deleteNamed(DBName, TestDir, error));
 
             var config = DBConfig2;
-            Db = Native.c4db_openNamed(DBName, &config, &err);
+            using (var parentDirectory = new C4String(TestDir)) {
+                config.parentDirectory = parentDirectory.AsFLSlice();
+                Db = Native.c4db_openNamed(DBName, &config, &err);
+            }
 
             ((long) Db).Should().NotBe(0, "because otherwise the database failed to open");
         }
 
         protected override void TeardownVariant(int option)
         {
-            DBConfig2.Dispose();
-
             LiteCoreBridge.Check(err => Native.c4db_delete(Db, err));
             Native.c4db_release(Db);
             Db = null;
