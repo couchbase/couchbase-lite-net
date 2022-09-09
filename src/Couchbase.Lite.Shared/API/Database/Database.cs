@@ -606,7 +606,6 @@ namespace Couchbase.Lite
             LiteCoreBridge.Check(err =>
             {
                 var nativeConfig = DBConfig;
-                nativeConfig.ParentDirectory = config?.Directory;
 
                 #if COUCHBASE_ENTERPRISE
                 if (config?.EncryptionKey != null) {
@@ -618,8 +617,10 @@ namespace Couchbase.Lite
                     }
                 }
                 #endif
-
-                return Native.c4db_copyNamed(path, name, &nativeConfig, err);
+                using (var parentDirectory = new C4String(config?.Directory)) {
+                    nativeConfig.parentDirectory = parentDirectory.AsFLSlice();
+                    return Native.c4db_copyNamed(path, name, &nativeConfig, err);
+                }
             });
 
         }
@@ -1369,8 +1370,6 @@ namespace Couchbase.Lite
             }
 
             var config = DBConfig;
-            config.ParentDirectory = Config.Directory;
-
             var encrypted = "";
 
             #if COUCHBASE_ENTERPRISE
@@ -1393,7 +1392,10 @@ namespace Couchbase.Lite
                 _c4db = (C4Database*) LiteCoreBridge.Check(err =>
                 {
                     var localConfig2 = localConfig1;
-                    return Native.c4db_openNamed(Name, &localConfig2, err);
+                    using (var parentDirectory = new C4String(Config.Directory)) {
+                        localConfig2.parentDirectory = parentDirectory.AsFLSlice();
+                        return Native.c4db_openNamed(Name, &localConfig2, err);
+                    }
                 });
             });
         }
