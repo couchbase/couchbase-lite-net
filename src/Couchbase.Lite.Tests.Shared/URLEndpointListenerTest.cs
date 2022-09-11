@@ -491,7 +491,7 @@ namespace Test
             _listener = CreateListener();
             _listener.TlsIdentity.Should()
                 .NotBeNull("because otherwise the TLS identity was not created for the listener");
-            _listener.TlsIdentity.Certs.Should().HaveCount(1,
+            _listener.TlsIdentity.Certs.Count.Should().Be(1,
                 "because otherwise bogus certs were used");
 
             // listener = cert1; replicator.pin = cert2; acceptSelfSigned = true => fail
@@ -527,7 +527,7 @@ namespace Test
             _listener = CreateListener();
             _listener.TlsIdentity.Should()
                 .NotBeNull("because otherwise the TLS identity was not created for the listener");
-            _listener.TlsIdentity.Certs.Should().HaveCount(1,
+            _listener.TlsIdentity.Certs.Count.Should().Be(1,
                 "because otherwise bogus certs were used");
 
             DisableDefaultServerCertPinning = true;
@@ -564,7 +564,7 @@ namespace Test
             _listener = CreateListener();
             _listener.TlsIdentity.Should()
                 .NotBeNull("because otherwise the TLS identity was not created for the listener");
-            _listener.TlsIdentity.Certs.Should().HaveCount(1,
+            _listener.TlsIdentity.Certs.Count.Should().Be(1,
                 "because otherwise bogus certs were used");
 
             DisableDefaultServerCertPinning = true;
@@ -850,7 +850,7 @@ namespace Test
 
                 // Check error
                 var error = repl.Status.Error.As<CouchbaseWebsocketException>();
-                error.Error.Should().Be((int)CouchbaseLiteError.WebSocketGoingAway);
+                ((int)error.Error).Should().Be((int)CouchbaseLiteError.WebSocketGoingAway);
             }
         }
 
@@ -1334,14 +1334,14 @@ namespace Test
                 }
 
                 e.Domain.Should().Be(expectedErrDomain);
-                e.Error.Should().Be(expectedErrCode); 
+                ((int)e.Error).Should().Be(expectedErrCode); 
             } catch (CouchbaseNetworkException ne) {
                 if (expectedErrCode == 0) {
                     throw;
                 }
 
                 ne.Domain.Should().Be(expectedErrDomain);
-                ne.Error.Should().Be(expectedErrCode);
+                ((int)ne.Error).Should().Be(expectedErrCode);
             } catch (CouchbasePosixException pe) {
                 if (expectedErrCode == 0) {
                     throw;

@@ -147,7 +147,7 @@ namespace Test
                     .Should()
                     .BeSameAs(fragment.Array, "because both of these should access the same object");
 
-                fragment.Array.ToList().Should().BeEquivalentTo((IList)references);
+                fragment.Array.ToList().Equals((IList)references).Should().BeTrue();
             });
         }
 

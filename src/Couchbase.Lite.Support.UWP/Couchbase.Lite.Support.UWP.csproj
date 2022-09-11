@@ -5,6 +5,7 @@
 		<Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
 		<TargetFrameworks>uap10.0.19041;net6.0-windows10.0.19041.0</TargetFrameworks>
 		<TargetPlatformIdentifier Condition="!$(TargetFramework.StartsWith('net6'))">UAP</TargetPlatformIdentifier>
+		<RuntimeIdentifiers>win10-x64;win10-arm64</RuntimeIdentifiers>
 		<SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6'))">10.0.19041.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
 		<TargetPlatformVersion Condition="!$(TargetFramework.StartsWith('net6'))">10.0.19041.0</TargetPlatformVersion>
@@ -183,6 +184,11 @@
 	<ItemGroup>
 		<PackageReference Condition="!$(TargetFramework.StartsWith('net6'))" Include="SourceLink.Embed.AllSourceFiles" Version="2.8.3" />
 		<PackageReference Condition="$(TargetFramework.StartsWith('net6'))" Include="Microsoft.WindowsAppSDK" Version="1.1.4" />
+
+		<PackageReference Include="Microsoft.DotNet.UpgradeAssistant.Extensions.Default.Analyzers" Version="0.4.336902">
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		
 	</ItemGroup>
 	<ItemGroup>
 		<None Include="uwp.targets">
