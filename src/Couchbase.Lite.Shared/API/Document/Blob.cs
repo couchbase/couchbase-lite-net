@@ -31,6 +31,7 @@ using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
+using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite
 {

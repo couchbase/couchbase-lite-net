@@ -23,6 +23,7 @@ using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 using JetBrains.Annotations;
 using LiteCore.Interop;
+using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Query
 {

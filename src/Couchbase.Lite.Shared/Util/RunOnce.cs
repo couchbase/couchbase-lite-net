@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 
 using JetBrains.Annotations;
+using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Util
 {

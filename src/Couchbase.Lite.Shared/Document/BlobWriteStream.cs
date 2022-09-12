@@ -27,6 +27,7 @@ using JetBrains.Annotations;
 
 using LiteCore;
 using LiteCore.Interop;
+using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Doc
 {

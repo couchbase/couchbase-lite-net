@@ -16,7 +16,7 @@
 //  limitations under the License.
 //
 
-#if (UAP10_0_16299 || WINDOWS_UWP) && !NETCOREAPP3_1
+#if (UAP10_0_16299 || WINDOWS_UWP || NET6_0_WINDOWS10_0_19041_0) && !NETCOREAPP3_1_OR_GREATER
 using Couchbase.Lite.DI;
 using Windows.Storage;
 

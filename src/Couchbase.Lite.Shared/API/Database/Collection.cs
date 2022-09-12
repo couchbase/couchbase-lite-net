@@ -35,6 +35,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite
 {

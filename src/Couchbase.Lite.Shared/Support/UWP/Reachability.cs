@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-#if UAP10_0_16299 || WINDOWS_UWP
+#if UAP10_0_16299 || WINDOWS_UWP || NET6_0_WINDOWS10_0_19041_0
 using System;
 using System.Threading.Tasks;
 

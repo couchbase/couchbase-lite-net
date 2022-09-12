@@ -21,6 +21,7 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 using JetBrains.Annotations;
+using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Query
 {

@@ -16,21 +16,27 @@
 //  limitations under the License.
 // 
 
-#if UAP10_0_16299 || WINDOWS_UWP
+#if UAP10_0_16299 || WINDOWS_UWP || NET6_0_WINDOWS10_0_19041_0
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-
-using Windows.ApplicationModel.Core;
-using Windows.UI.Core;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 
 using JetBrains.Annotations;
 
+#if NET6_0_WINDOWS10_0_19041_0
+using Microsoft.UI.Dispatching;
+#elif UAP10_0_19041
+using Windows.ApplicationModel.Core;
+using Windows.UI.Core;
+#endif
+
 namespace Couchbase.Lite.Support
 {
+    #if NET6_0_WINDOWS10_0_19041_0
+
     [CouchbaseDependency(Lazy = true, Transient = true)]
     internal sealed class MainThreadTaskScheduler : TaskScheduler, IMainThreadTaskScheduler
     {
@@ -43,7 +49,65 @@ namespace Couchbase.Lite.Support
         #region Variables
 
         [NotNull]
-        private readonly CoreDispatcher _dispatcher = CoreApplication.MainView.CoreWindow.Dispatcher;
+        private DispatcherQueue _dispatcherQ = DispatcherQueue.GetForCurrentThread();
+
+        #endregion
+
+        #region Properties
+
+        public bool IsMainThread => _dispatcherQ.HasThreadAccess;
+
+        #endregion
+
+        #region Overrides
+
+        protected override IEnumerable<Task> GetScheduledTasks()
+        {
+            throw new NotSupportedException();
+        }
+
+        protected override void QueueTask(Task task)
+        {
+            var t = _dispatcherQ?.TryEnqueue(DispatcherQueuePriority.Normal, () =>
+            {
+                if (!TryExecuteTask(task)) {
+                    WriteLog.To.Database.W(Tag, "Failed to execute task");
+                }
+            });
+        }
+
+        protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
+        {
+            if (taskWasPreviouslyQueued || !_dispatcherQ.HasThreadAccess) {
+                return false;
+            }
+
+            return TryExecuteTask(task);
+        }
+
+        #endregion
+
+        #region IMainThreadTaskScheduler
+
+        public TaskScheduler AsTaskScheduler() => this;
+
+        #endregion
+    }
+
+    #elif UAP10_0_19041
+    [CouchbaseDependency(Lazy = true, Transient = true)]
+    internal sealed class MainThreadTaskScheduler : TaskScheduler, IMainThreadTaskScheduler
+    {
+        #region Constants
+
+        private const string Tag = nameof(MainThreadTaskScheduler);
+
+        #endregion
+
+        #region Variables
+
+        [NotNull]
+        private CoreDispatcher _dispatcher = CoreApplication.MainView.CoreWindow.Dispatcher;
 
         #endregion
 
@@ -62,7 +126,7 @@ namespace Couchbase.Lite.Support
 
         protected override void QueueTask(Task task)
         {
-            var t =_dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            var t =_dispatcher?.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
                 if (!TryExecuteTask(task)) {
                     WriteLog.To.Database.W(Tag, "Failed to execute task");
@@ -87,5 +151,6 @@ namespace Couchbase.Lite.Support
 
         #endregion
     }
+    #endif
 }
 #endif
