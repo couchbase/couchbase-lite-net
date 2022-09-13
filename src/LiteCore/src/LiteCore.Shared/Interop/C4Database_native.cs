@@ -95,18 +95,6 @@ namespace LiteCore.Interop
         public static extern C4DatabaseConfig2* c4db_getConfig2(C4Database* database);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern ulong c4db_getDocumentCount(C4Database* database);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern ulong c4db_getLastSequence(C4Database* database);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern long c4db_nextDocExpiration(C4Database* database);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern long c4db_purgeExpiredDocs(C4Database* db, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_getUUIDs(C4Database* database, C4UUID* publicUUID, C4UUID* privateUUID, C4Error* outError);
 

@@ -74,7 +74,7 @@ namespace LiteCore.Tests
             RunTestVariants(() => {
                 SetupAllDocs();
 
-                Native.c4db_getDocumentCount(Db).Should().Be(99UL, "because there are 99 non-deleted documents");
+                Native.c4coll_getDocumentCount(Native.c4db_getDefaultCollection(Db, null)).Should().Be(99UL, "because there are 99 non-deleted documents");
 
                 // No start or end ID:
                 var options = C4EnumeratorOptions.Default;
@@ -155,13 +155,13 @@ namespace LiteCore.Tests
                 CreateRev(docID, RevID, FleeceBody);
                 var expire = Native.c4_now() + 2000;
                 C4Error err;
-                Native.c4doc_setExpiration(Db, docID, expire, &err).Should().BeTrue();
-                Native.c4doc_getExpiration(Db, docID, null).Should().Be(expire);
-                Native.c4db_nextDocExpiration(Db).Should().Be(expire);
+                Native.c4coll_setDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, expire, &err).Should().BeTrue();
+                Native.c4coll_getDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, null).Should().Be(expire);
+                Native.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(Db, null)).Should().Be(expire);
 
-                Native.c4doc_setExpiration(Db, docID, 0, &err).Should().BeTrue();
-                Native.c4doc_getExpiration(Db, docID, null).Should().Be(0);
-                Native.c4db_nextDocExpiration(Db).Should().Be(0);
+                Native.c4coll_setDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, 0, &err).Should().BeTrue();
+                Native.c4coll_getDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, null).Should().Be(0);
+                Native.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(Db, null)).Should().Be(0);
             });
         }
 
@@ -323,8 +323,8 @@ namespace LiteCore.Tests
         public void TestDatabaseInfo()
         {
             RunTestVariants(() => {
-                Native.c4db_getDocumentCount(Db).Should().Be(0, "because the database is empty");
-                Native.c4db_getLastSequence(Db).Should().Be(0, "because the database is empty");
+                Native.c4coll_getDocumentCount(Native.c4db_getDefaultCollection(Db, null)).Should().Be(0, "because the database is empty");
+                Native.c4coll_getLastSequence(Native.c4db_getDefaultCollection(Db, null)).Should().Be(0, "because the database is empty");
                 var publicID = new C4UUID();
                 var privateID = new C4UUID();
                 C4Error err;
@@ -384,23 +384,23 @@ namespace LiteCore.Tests
             RunTestVariants(() =>
             {
                 C4Error err;
-                Native.c4db_nextDocExpiration(Db).Should().Be(0L);
+                Native.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(Db, null)).Should().Be(0L);
 
                 var docID = "expire_me";
                 CreateRev(docID, RevID, FleeceBody);
                 var expire = Native.c4_now() + 1000; //1000ms = 1 sec;
-                Native.c4doc_setExpiration(Db, docID, expire, &err).Should()
+                Native.c4coll_setDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, expire, &err).Should()
                     .BeTrue("because otherwise the 1 second expiration failed to set");
 
                 expire = Native.c4_now() + 2000;
-                Native.c4doc_setExpiration(Db, docID, expire, &err).Should()
+                Native.c4coll_setDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, expire, &err).Should()
                     .BeTrue("because otherwise the 2 second expiration failed to set");
-                Native.c4doc_setExpiration(Db, docID, expire, &err).Should()
+                Native.c4coll_setDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, expire, &err).Should()
                     .BeTrue("because setting to the same time twice should also work");
 
                 var docID2 = "expire_me_too";
                 CreateRev(docID2, RevID, FleeceBody);
-                Native.c4doc_setExpiration(Db, docID2, expire, &err).Should()
+                Native.c4coll_setDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID2, expire, &err).Should()
                     .BeTrue("because otherwise the 2 second expiration failed to set");
 
                 var docID3 = "dont_expire_me";
@@ -408,20 +408,20 @@ namespace LiteCore.Tests
 
                 var docID4 = "expire_me_later";
                 CreateRev(docID4, RevID, FleeceBody);
-                Native.c4doc_setExpiration(Db, docID4, expire + 100_000, &err).Should()
+                Native.c4coll_setDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID4, expire + 100_000, &err).Should()
                     .BeTrue("because otherwise the 100 second expiration failed to set");
 
-                Native.c4doc_setExpiration(Db, "nonexistent", expire + 50_000, &err).Should()
+                Native.c4coll_setDocExpiration(Native.c4db_getDefaultCollection(Db, null), "nonexistent", expire + 50_000, &err).Should()
                     .BeFalse("because the document is nonexistent");
                 err.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
                 err.code.Should().Be((int) C4ErrorCode.NotFound);
 
-                Native.c4doc_getExpiration(Db, docID, null).Should().Be(expire);
-                Native.c4doc_getExpiration(Db, docID2, null).Should().Be(expire);
-                Native.c4doc_getExpiration(Db, docID3, null).Should().Be(0L);
-                Native.c4doc_getExpiration(Db, docID4, null).Should().Be(expire + 100_000);
-                Native.c4doc_getExpiration(Db, "nonexistent", null).Should().Be(0L);
-                Native.c4db_nextDocExpiration(Db).Should().Be(expire);
+                Native.c4coll_getDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, null).Should().Be(expire);
+                Native.c4coll_getDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID2, null).Should().Be(expire);
+                Native.c4coll_getDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID3, null).Should().Be(0L);
+                Native.c4coll_getDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID4, null).Should().Be(expire + 100_000);
+                Native.c4coll_getDocExpiration(Native.c4db_getDefaultCollection(Db, null), "nonexistent", null).Should().Be(0L);
+                Native.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(Db, null)).Should().Be(expire);
 
                 WriteLine("--- Wait till expiration time...");
                 Thread.Sleep(TimeSpan.FromSeconds(2));
@@ -441,15 +441,15 @@ namespace LiteCore.Tests
                 var db2 = Native.c4db_openNamed(DBName, Native.c4db_getConfig2(Db), &error);
                 ((long) db2).Should().NotBe(0);
 
-                Native.c4db_nextDocExpiration(Db).Should().Be(0);
-                Native.c4db_nextDocExpiration(db2).Should().Be(0);
+                Native.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(Db, null)).Should().Be(0);
+                Native.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(db2, null)).Should().Be(0);
 
                 var docID = "expire_me";
                 CreateRev(docID, RevID, FleeceBody);
                 var expire = Native.c4_now() + 1000;
-                Native.c4doc_setExpiration(Db, docID, expire, &error);
+                Native.c4coll_setDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, expire, &error);
 
-                Native.c4db_nextDocExpiration(db2).Should().Be(expire);
+                Native.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(db2, null)).Should().Be(expire);
                 Native.c4db_release(db2);
             });
         }
@@ -549,7 +549,7 @@ namespace LiteCore.Tests
                 });
 
                 try {
-                    Native.c4db_getDocumentCount(nudb).Should().Be(2L, "because the database was seeded");
+                    Native.c4coll_getDocumentCount(Native.c4db_getDefaultCollection(nudb, null)).Should().Be(2L, "because the database was seeded");
                     LiteCoreBridge.Check(err => Native.c4db_delete(nudb, err));
                 } finally {
                     Native.c4db_release(nudb);
@@ -563,7 +563,7 @@ namespace LiteCore.Tests
 
                 try {
                     CreateRev(nudb, doc1ID, RevID, FleeceBody);
-                    Native.c4db_getDocumentCount(nudb).Should().Be(1L, "because a document was inserted");
+                    Native.c4coll_getDocumentCount(Native.c4db_getDefaultCollection(nudb, null)).Should().Be(1L, "because a document was inserted");
                 } finally {
                     Native.c4db_release(nudb);
                 }
@@ -589,7 +589,7 @@ namespace LiteCore.Tests
                 });
 
                 try {
-                    Native.c4db_getDocumentCount(nudb).Should().Be(1L, "because the original database should remain");
+                    Native.c4coll_getDocumentCount(Native.c4db_getDefaultCollection(nudb, null)).Should().Be(1L, "because the original database should remain");
                 }
                 finally {
                     Native.c4db_release(nudb);
@@ -612,7 +612,7 @@ namespace LiteCore.Tests
                 });
 
                 try {
-                    Native.c4db_getDocumentCount(nudb).Should().Be(1L, "because the original database should remain");
+                    Native.c4coll_getDocumentCount(Native.c4db_getDefaultCollection(nudb, null)).Should().Be(1L, "because the original database should remain");
                 }
                 finally {
                     Native.c4db_release(nudb);
@@ -628,7 +628,7 @@ namespace LiteCore.Tests
                 });
 
                 try {
-                    Native.c4db_getDocumentCount(nudb).Should().Be(1L, "because the database copy failed");
+                    Native.c4coll_getDocumentCount(Native.c4db_getDefaultCollection(nudb, null)).Should().Be(1L, "because the database copy failed");
                     LiteCoreBridge.Check(err => Native.c4db_delete(nudb, err));
                 } finally {
                     Native.c4db_release(nudb);
@@ -683,7 +683,7 @@ namespace LiteCore.Tests
                 }
 
                 // Verify the db works:
-                Native.c4db_getDocumentCount(Db).Should().Be(99);
+                Native.c4coll_getDocumentCount(Native.c4db_getDefaultCollection(Db, null)).Should().Be(99);
                 ((IntPtr)blobStore).Should().NotBe(IntPtr.Zero);
                 blobResult = NativeRaw.c4blob_getContents(blobStore, blobKey, &error);
                 ((FLSlice)blobResult).Should().Be(blobToStore);

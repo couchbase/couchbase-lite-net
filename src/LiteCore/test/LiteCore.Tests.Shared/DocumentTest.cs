@@ -59,7 +59,7 @@ namespace LiteCore.Tests
                         rq.body = FleeceBody;
                         rq.save = true;
                         rq.docID = docID;
-                        ((long) Native.c4doc_put(Db, &rq, null, &e)).Should()
+                        ((long) Native.c4coll_putDoc(Native.c4db_getDefaultCollection(Db, null), &rq, null, &e)).Should()
                             .Be(0, "because the invalid doc ID should cause the put to fail");
                         e.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
                         e.code.Should().Be((int) C4ErrorCode.BadDocID);
@@ -97,14 +97,14 @@ namespace LiteCore.Tests
             RunTestVariants(() => {
                 // Try reading doc with mustExist=true, which should fail:
                 C4Error error;
-                C4Document* doc = NativeRaw.c4db_getDoc(Db, DocID, true, C4DocContentLevel.DocGetCurrentRev, &error);
+                C4Document* doc = NativeRaw.c4coll_getDoc(Native.c4db_getDefaultCollection(Db, null), DocID, true, C4DocContentLevel.DocGetCurrentRev, &error);
                 ((long)doc).Should().Be(0, "because the document does not exist");
                 error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
                 error.code.Should().Be((int)C4ErrorCode.NotFound);
                 Native.c4doc_release(doc);
 
                 // Now get the doc with mustExist=false, which returns an empty doc:
-                doc = (C4Document *)LiteCoreBridge.Check(err => NativeRaw.c4db_getDoc(Db, DocID, false, C4DocContentLevel.DocGetCurrentRev, err));
+                doc = (C4Document *)LiteCoreBridge.Check(err => NativeRaw.c4coll_getDoc(Native.c4db_getDefaultCollection(Db, null), DocID, false, C4DocContentLevel.DocGetCurrentRev, err));
                 ((int)doc->flags).Should().Be(0, "because the document is empty");
                 doc->docID.Equals(DocID).Should().BeTrue("because the doc ID should match what was stored");
                 ((long)doc->revID.buf).Should().Be(0, "because the doc has no revision ID yet");
@@ -125,7 +125,7 @@ namespace LiteCore.Tests
 
                     doc = (C4Document *)LiteCoreBridge.Check(err => {
                         var localRq = rq;
-                        return Native.c4doc_put(Db, &localRq, null, err);
+                        return Native.c4coll_putDoc(Native.c4db_getDefaultCollection(Db, null), &localRq, null, err);
                     });
                     doc->revID.Equals(RevID).Should().BeTrue("because the doc should have the stored revID");
                     doc->selectedRev.revID.Equals(RevID).Should().BeTrue("because the doc should have the stored revID");
@@ -137,17 +137,7 @@ namespace LiteCore.Tests
                 }
 
                 // Reload the doc:
-                doc = (C4Document *)LiteCoreBridge.Check(err => NativeRaw.c4db_getDoc(Db, DocID, true, C4DocContentLevel.DocGetCurrentRev, err));
-                doc->flags.Should().Be(C4DocumentFlags.DocExists, "because this is an existing document");
-                doc->docID.Equals(DocID).Should().BeTrue("because the doc should have the stored doc ID");
-                doc->revID.Equals(RevID).Should().BeTrue("because the doc should have the stored rev ID");
-                doc->selectedRev.revID.Equals(RevID).Should().BeTrue("because the doc should have the stored rev ID");
-                doc->selectedRev.sequence.Should().Be(1, "because it is the first stored document");
-                NativeRaw.c4doc_getRevisionBody(doc).Equals(FleeceBody).Should().BeTrue("because the doc should have the stored body");
-                Native.c4doc_release(doc);
-
-                // Get the doc by its sequence
-                doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4doc_getBySequence(Db, 1, err));
+                doc = (C4Document *)LiteCoreBridge.Check(err => NativeRaw.c4coll_getDoc(Native.c4db_getDefaultCollection(Db, null), DocID, true, C4DocContentLevel.DocGetCurrentRev, err));
                 doc->flags.Should().Be(C4DocumentFlags.DocExists, "because this is an existing document");
                 doc->docID.Equals(DocID).Should().BeTrue("because the doc should have the stored doc ID");
                 doc->revID.Equals(RevID).Should().BeTrue("because the doc should have the stored rev ID");
@@ -170,7 +160,7 @@ namespace LiteCore.Tests
                 CreateRev(docID, Rev2ID, (FLSlice)Body2); // test redundant Insert
 
                 // Reload the doc:
-                var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, docID, true, C4DocContentLevel.DocGetAll, err));
+                var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4coll_getDoc(Native.c4db_getDefaultCollection(Db, null), docID, true, C4DocContentLevel.DocGetAll, err));
                 doc->flags.Should().HaveFlag(C4DocumentFlags.DocExists, "because the document was saved");
                 doc->docID.Should().Be(DocID, "because the doc ID should save correctly");
                 doc->revID.Should().Be(Rev2ID, "because the doc's rev ID should load correctly");
@@ -191,7 +181,7 @@ namespace LiteCore.Tests
                     // Add a 3rd revision:
                     CreateRev(docID, Rev3ID, (FLSlice)Body3);
                     // Revision 2 should keep its body due to the KeepBody flag
-                    doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, docID, true, C4DocContentLevel.DocGetAll, err));
+                    doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4coll_getDoc(Native.c4db_getDefaultCollection(Db, null), docID, true, C4DocContentLevel.DocGetAll, err));
                     Native.c4doc_selectParentRevision(doc).Should().BeTrue("because otherwise the selection of the 2nd revision failed");
                     doc->selectedRev.revID.Should().Be(Rev2ID, "because the rev's rev ID should load correctly");
                     doc->selectedRev.sequence.Should().Be(2, "because it is the second revision");
@@ -201,7 +191,7 @@ namespace LiteCore.Tests
 
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
                     try {
-                        doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, docID, true, C4DocContentLevel.DocGetAll, err));
+                        doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4coll_getDoc(Native.c4db_getDefaultCollection(Db, null), docID, true, C4DocContentLevel.DocGetAll, err));
                         var nPurged = NativeRaw.c4doc_purgeRevision(doc, Rev3ID, null);
                         nPurged.Should().Be(3, "because there are three revisions to purge");
                         LiteCoreBridge.Check(err => Native.c4doc_save(doc, 20, err));
@@ -245,7 +235,7 @@ namespace LiteCore.Tests
                     C4Document* doc = null;
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
                     try {
-                        doc = Native.c4doc_put(Db, &rq, null, &error);
+                        doc = Native.c4coll_putDoc(Native.c4db_getDefaultCollection(Db, null), &rq, null, &error);
                         ((IntPtr)doc).Should().NotBe(IntPtr.Zero);
                         Native.c4doc_release(doc);
                     } finally {
@@ -254,12 +244,12 @@ namespace LiteCore.Tests
 
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
                     try {
-                        LiteCoreBridge.Check(err => NativeRaw.c4db_purgeDoc(Db, DocID, err));
+                        LiteCoreBridge.Check(err => NativeRaw.c4coll_purgeDoc(Native.c4db_getDefaultCollection(Db, null), DocID, err));
                     } finally {
                         LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
                     }
 
-                    Native.c4db_getDocumentCount(Db).Should().Be(0UL);
+                    Native.c4coll_getDocumentCount(Native.c4db_getDefaultCollection(Db, null)).Should().Be(0UL);
 
                     CreateRev(DocID.CreateString(), RevID, FleeceBody);
                     CreateRev(DocID.CreateString(), Rev2ID, (FLSlice)body2);
@@ -267,7 +257,7 @@ namespace LiteCore.Tests
 
                     LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
                     try {
-                        doc = Native.c4doc_put(Db, &rq, null, &error);
+                        doc = Native.c4coll_putDoc(Native.c4db_getDefaultCollection(Db, null), &rq, null, &error);
                         ((IntPtr)doc).Should().NotBe(IntPtr.Zero);
                     } finally {
                         LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
@@ -282,7 +272,7 @@ namespace LiteCore.Tests
                         LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
                     }
 
-                    Native.c4db_getDocumentCount(Db).Should().Be(0UL);
+                    Native.c4coll_getDocumentCount(Native.c4db_getDefaultCollection(Db, null)).Should().Be(0UL);
                     Native.FLSliceResult_Release(body2);
                     Native.FLSliceResult_Release(body3);
                 }   
@@ -304,7 +294,7 @@ namespace LiteCore.Tests
 
                     var doc = (C4Document *)LiteCoreBridge.Check(err => {
                         var localRq = rq;
-                        return Native.c4doc_put(Db, &localRq, null, err);
+                        return Native.c4coll_putDoc(Native.c4db_getDefaultCollection(Db, null), &localRq, null, err);
                     });
 
                     doc->docID.Equals(DocID).Should().BeTrue("because the doc should have the correct doc ID");
@@ -325,9 +315,9 @@ namespace LiteCore.Tests
                         rq.history = history;
                         doc = (C4Document *)LiteCoreBridge.Check(err => {
                             var localRq = rq;
-                            ulong cai;
-                            var retVal = Native.c4doc_put(Db, &localRq, &cai, err);
-                            commonAncestorIndex = cai;
+                            UIntPtr cai;
+                            var retVal = Native.c4coll_putDoc(Native.c4db_getDefaultCollection(Db, null), &localRq, &cai, err);
+                            commonAncestorIndex = (ulong)cai;
                             return retVal;
                         });
                     }
@@ -354,9 +344,9 @@ namespace LiteCore.Tests
                         rq.history = history;
                         doc = (C4Document *)LiteCoreBridge.Check(err => {
                             var localRq = rq;
-                            ulong cai;
-                            var retVal = Native.c4doc_put(Db, &localRq, &cai, err);
-                            commonAncestorIndex = cai;
+                            UIntPtr cai;
+                            var retVal = Native.c4coll_putDoc(Native.c4db_getDefaultCollection(Db, null), &localRq, &cai, err);
+                            commonAncestorIndex = (ulong)cai;
                             return retVal;
                         });
                     }
@@ -383,7 +373,7 @@ namespace LiteCore.Tests
                 LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
                 try {
                     WriteLine("Begin create");
-                    doc = (C4Document*) LiteCoreBridge.Check(err => NativeRaw.c4doc_create(Db, DocID, FleeceBody, 0, err));
+                    doc = (C4Document*) LiteCoreBridge.Check(err => NativeRaw.c4coll_createDoc(Native.c4db_getDefaultCollection(Db, null), DocID, FleeceBody, 0, err));
                 } finally {
                     LiteCoreBridge.Check(err => Native.c4db_endTransaction(Db, true, err));
                 }
@@ -399,7 +389,7 @@ namespace LiteCore.Tests
                 doc->docID.Equals(DocID).Should().BeTrue("because that is the document ID that it was saved with");
 
                 // Read the doc into another C4Document
-                var doc2 = (C4Document*) LiteCoreBridge.Check(err => NativeRaw.c4db_getDoc(Db, DocID, false, C4DocContentLevel.DocGetAll, err));
+                var doc2 = (C4Document*) LiteCoreBridge.Check(err => NativeRaw.c4coll_getDoc(Native.c4db_getDefaultCollection(Db, null), DocID, false, C4DocContentLevel.DocGetAll, err));
                 doc->revID.Equals(expectedRevID).Should()
                     .BeTrue("because the other reference should have the same rev ID");
 
@@ -452,7 +442,7 @@ namespace LiteCore.Tests
                     WriteLine("Begin conflicting create");
                     C4Error error;
                     var body = JSON2Fleece("{\"ok\":\"no way\"}");
-                    ((long)NativeRaw.c4doc_create(Db, DocID, (FLSlice)body, 0, &error)).Should().Be(0, "because this is a conflict");
+                    ((long)NativeRaw.c4coll_createDoc(Native.c4db_getDefaultCollection(Db, null), DocID, (FLSlice)body, 0, &error)).Should().Be(0, "because this is a conflict");
                     error.code.Should().Be((int)C4ErrorCode.Conflict);
                     error.domain.Should().Be(C4ErrorDomain.LiteCoreDomain);
                     Native.FLSliceResult_Release(body);
@@ -499,7 +489,7 @@ namespace LiteCore.Tests
                         };
 
                         C4Error error;
-                        var doc = Native.c4doc_put(Db, &rq, null, &error);
+                        var doc = Native.c4coll_putDoc(Native.c4db_getDefaultCollection(Db, null), &rq, null, &error);
                         ((IntPtr)doc).Should().NotBe(IntPtr.Zero);
 
                         Native.FLSliceResult_Release(body2);
@@ -530,7 +520,8 @@ namespace LiteCore.Tests
                 var mergedBody = JSON2Fleece("{\"merged\":true}");
                 LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
                 try {
-                     var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, DocID.CreateString(), true, C4DocContentLevel.DocGetCurrentRev, err));
+                     var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4coll_getDoc(Native.c4db_getDefaultCollection(Db, null), 
+                         DocID.CreateString(), true, C4DocContentLevel.DocGetCurrentRev, err));
                      LiteCoreBridge.Check(err => NativeRaw.c4doc_resolveConflict(doc, FLSlice.Constant("4-dddd"), FLSlice.Constant("3-aaaaaa"), (FLSlice)mergedBody, 0, err));
                      Native.c4doc_selectCurrentRevision(doc);
                      doc->selectedRev.revID.CreateString().Should().Be("5-79b2ecd897d65887a18c46cc39db6f0a3f7b38c4");
@@ -543,7 +534,8 @@ namespace LiteCore.Tests
 
                  LiteCoreBridge.Check(err => Native.c4db_beginTransaction(Db, err));
                  try {
-                     var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4db_getDoc(Db, DocID.CreateString(), true, C4DocContentLevel.DocGetCurrentRev, err));
+                     var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4coll_getDoc(Native.c4db_getDefaultCollection(Db, null), 
+                         DocID.CreateString(), true, C4DocContentLevel.DocGetCurrentRev, err));
                      LiteCoreBridge.Check(err => NativeRaw.c4doc_resolveConflict(doc, FLSlice.Constant("3-aaaaaa"), FLSlice.Constant("4-dddd"), (FLSlice)mergedBody, 0, err));
                      Native.c4doc_selectCurrentRevision(doc);
                      doc->selectedRev.revID.CreateString().Should().Be("4-1fa2dbcb66b5e0456f6d6fc4a90918d42f3dd302");

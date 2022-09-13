@@ -1495,10 +1495,7 @@ namespace Couchbase.Lite
 
         private void PurgeDocById(string id)
         {
-            ThreadSafety.DoLockedBridge(err =>
-            {
-                return Native.c4db_purgeDoc(_c4db, id, err);
-            });
+            DefaultCollection.Purge(id);
         }
 
         private void ReleaseC4Db()

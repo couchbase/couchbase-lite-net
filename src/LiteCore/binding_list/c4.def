@@ -66,14 +66,11 @@ c4db_exists
 c4db_maintenance
 c4db_getCookies
 c4db_setCookie
-c4db_getDoc
 c4db_openNamed
 c4db_close
 c4db_delete
 c4db_rekey
 c4db_getPath
-c4db_getDocumentCount
-c4db_getLastSequence
 c4db_getUUIDs
 c4db_getExtraInfo
 c4db_setExtraInfo
@@ -91,9 +88,6 @@ c4raw_put
 
 c4doc_retain
 c4doc_release
-c4doc_get
-c4doc_getBySequence
-c4db_purgeDoc
 c4doc_selectRevision
 c4doc_selectCurrentRevision
 c4doc_loadRevisionBody
@@ -102,16 +96,10 @@ c4doc_selectParentRevision
 c4doc_selectNextRevision
 c4doc_selectNextLeafRevision
 c4doc_selectCommonAncestorRevision
-c4doc_put
-c4doc_create
 c4doc_update
 c4doc_resolveConflict
 c4doc_purgeRevision
 c4doc_save
-c4doc_setExpiration
-c4doc_getExpiration
-c4db_nextDocExpiration
-c4db_purgeExpiredDocs
 c4doc_isOldMetaProperty
 c4doc_dictContainsBlobs
 
