@@ -18,10 +18,12 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using LiteCore.Interop;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -63,6 +65,22 @@ namespace LiteCore.Tests
             _output = output;
         }
 #endif
+
+        [ExcludeFromCodeCoverage]
+        internal unsafe struct C4DatabaseConfig2Test
+        {
+            public static C4DatabaseConfig2 Clone(C4DatabaseConfig2* source)
+            {
+                var retVal = new C4DatabaseConfig2
+                {
+                    flags = source->flags,
+                    parentDirectory = source->parentDirectory,
+                    encryptionKey = source->encryptionKey
+                };
+
+                return retVal;
+            }
+        }
 
         protected void WriteLine(string line = "")
         {
