@@ -27,6 +27,7 @@ using Couchbase.Lite;
 
 using FluentAssertions;
 using LiteCore.Interop;
+using LiteCore.Util;
 #if !WINDOWS_UWP
 using Xunit;
 using Xunit.Abstractions;
@@ -458,7 +459,7 @@ namespace LiteCore.Tests
         {
             RunTestVariants(() => {
                 string bundleDBName = "cbl_core_test_bundle";
-                var config2 = C4DatabaseConfig2.Clone(Native.c4db_getConfig2(Db));
+                var config2 = C4DatabaseConfig2Test.Clone(Native.c4db_getConfig2(Db));
                 var tmp = config2;
 
                 var bundlePath = Path.Combine(TestDir, $"{bundleDBName}.cblite2{Path.DirectorySeparatorChar}");
@@ -530,8 +531,8 @@ namespace LiteCore.Tests
                 var srcPath = Native.c4db_getPath(Db);
                 C4Error error;
                 var config = DBConfig2;
-
-                if (!Native.c4db_deleteNamed(nuDBName, config.ParentDirectory, &error)) {
+                var parentPath = DBConfig2.parentDirectory;
+                if (!Native.c4db_deleteNamed(nuDBName, parentPath.CreateString(), &error)) {
                     error.code.Should().Be(0);
                 }
                 
@@ -568,12 +569,14 @@ namespace LiteCore.Tests
                 }
 
                 var bogusPath = $"{TestDir}bogus{Path.DirectorySeparatorChar}bogus";
-                C4DatabaseConfig2 bogusConfig = C4DatabaseConfig2.Clone(Native.c4db_getConfig2(Db));
-                bogusConfig.ParentDirectory = bogusPath;
+                C4DatabaseConfig2 bogusConfig = C4DatabaseConfig2Test.Clone(Native.c4db_getConfig2(Db));
                 Action a = () => LiteCoreBridge.Check(err =>
                 {
                     var localConfig = bogusConfig;
-                    return Native.c4db_copyNamed(srcPath, nuDBName, &localConfig, err);
+                    using (var parentDirectory = new C4String(bogusPath)) {
+                        localConfig.parentDirectory = parentDirectory.AsFLSlice();
+                        return Native.c4db_copyNamed(srcPath, nuDBName, &localConfig, err);
+                    }
                 });
                 a.Should().Throw<CouchbaseLiteException>().Where(e =>
                     e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);

@@ -62,7 +62,7 @@ namespace LiteCore.Interop
         public fixed byte bytes[32];
     }
 
-	internal unsafe partial struct C4DatabaseConfig2
+	internal unsafe struct C4DatabaseConfig2
     {
         public FLSlice parentDirectory;
         public C4DatabaseFlags flags;
