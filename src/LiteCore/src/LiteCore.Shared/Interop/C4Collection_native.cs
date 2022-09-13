@@ -82,9 +82,6 @@ namespace LiteCore.Interop
             }
         }
 
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4Document* c4coll_getDocBySequence(C4Collection* collection, ulong sequence, C4Error* outError);
-
         public static C4Document* c4coll_putDoc(C4Collection* collection, C4DocPutRequest* request, UIntPtr* outCommonAncestorIndex, C4Error* outError)
         {
             return NativeRaw.c4coll_putDoc(collection, request, outCommonAncestorIndex, outError);

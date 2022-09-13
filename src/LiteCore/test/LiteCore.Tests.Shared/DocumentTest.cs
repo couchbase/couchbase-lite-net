@@ -145,16 +145,6 @@ namespace LiteCore.Tests
                 doc->selectedRev.sequence.Should().Be(1, "because it is the first stored document");
                 NativeRaw.c4doc_getRevisionBody(doc).Equals(FleeceBody).Should().BeTrue("because the doc should have the stored body");
                 Native.c4doc_release(doc);
-
-                // Get the doc by its sequence
-                doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4coll_getDocBySequence(Native.c4db_getDefaultCollection(Db, null), 1, err));
-                doc->flags.Should().Be(C4DocumentFlags.DocExists, "because this is an existing document");
-                doc->docID.Equals(DocID).Should().BeTrue("because the doc should have the stored doc ID");
-                doc->revID.Equals(RevID).Should().BeTrue("because the doc should have the stored rev ID");
-                doc->selectedRev.revID.Equals(RevID).Should().BeTrue("because the doc should have the stored rev ID");
-                doc->selectedRev.sequence.Should().Be(1, "because it is the first stored document");
-                NativeRaw.c4doc_getRevisionBody(doc).Equals(FleeceBody).Should().BeTrue("because the doc should have the stored body");
-                Native.c4doc_release(doc);
             });
         }
 
