@@ -19,6 +19,7 @@
 #if UAP10_0_16299 || WINDOWS_UWP || NET6_0_WINDOWS10_0_19041_0
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
@@ -28,6 +29,7 @@ using JetBrains.Annotations;
 
 #if NET6_0_WINDOWS10_0_19041_0
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
 #elif UAP10_0_19041
 using Windows.ApplicationModel.Core;
 using Windows.UI.Core;
@@ -49,7 +51,7 @@ namespace Couchbase.Lite.Support
         #region Variables
 
         [NotNull]
-        private DispatcherQueue _dispatcherQ = DispatcherQueue.GetForCurrentThread();
+        private DispatcherQueue _dispatcherQ { get; set; }
 
         #endregion
 
@@ -58,6 +60,19 @@ namespace Couchbase.Lite.Support
         public bool IsMainThread => _dispatcherQ.HasThreadAccess;
 
         #endregion
+
+        public MainThreadTaskScheduler()
+        {
+            var obj = Application.Current;
+            var app = obj.GetType();
+            PropertyInfo[] props = app.GetProperties();
+            foreach (var prop in props) {
+                if (prop.Name == "DispatcherQueue") {
+                    _dispatcherQ = (DispatcherQueue)prop.GetValue(obj);
+                    break;
+                }
+            }
+        }
 
         #region Overrides
 
@@ -68,7 +83,7 @@ namespace Couchbase.Lite.Support
 
         protected override void QueueTask(Task task)
         {
-            var t = _dispatcherQ?.TryEnqueue(DispatcherQueuePriority.Normal, () =>
+            var t = _dispatcherQ.TryEnqueue(DispatcherQueuePriority.Normal, () =>
             {
                 if (!TryExecuteTask(task)) {
                     WriteLog.To.Database.W(Tag, "Failed to execute task");
