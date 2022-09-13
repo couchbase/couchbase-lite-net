@@ -51,7 +51,7 @@ namespace Couchbase.Lite.Support
         #region Variables
 
         [NotNull]
-        private DispatcherQueue _dispatcherQ { get; set; }
+        private DispatcherQueue _dispatcherQ = DispatcherQueue.GetForCurrentThread();
 
         #endregion
 
@@ -63,15 +63,17 @@ namespace Couchbase.Lite.Support
 
         public MainThreadTaskScheduler()
         {
-            var obj = Application.Current;
-            var app = obj.GetType();
-            PropertyInfo[] props = app.GetProperties();
-            foreach (var prop in props) {
-                if (prop.Name == "DispatcherQueue") {
-                    _dispatcherQ = (DispatcherQueue)prop.GetValue(obj);
-                    break;
-                }
-            }
+            //var obj = Application.Current;
+            //var app = obj.GetType();
+            //PropertyInfo[] props = app.GetProperties();
+            //foreach (var prop in props)
+            //{
+            //    if (prop.Name == "DispatcherQueue")
+            //    {
+            //        _dispatcherQ = (DispatcherQueue)prop.GetValue(obj);
+            //        break;
+            //    }
+            //}
         }
 
         #region Overrides
