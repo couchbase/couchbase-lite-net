@@ -5,6 +5,10 @@
                 <Link>LiteCore.dll</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </Content>
+		<Content Condition=" '$(Platform)' == 'arm64' " Include="$(MSBuildThisFileDirectory)..\runtimes\win10-arm64\native\LiteCore.dll">
+                <Link>LiteCore.dll</Link>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            </Content>
         </ItemGroup>
         <ItemGroup>
             <SDKReference Include="Microsoft.VCLibs, Version=14.3">
