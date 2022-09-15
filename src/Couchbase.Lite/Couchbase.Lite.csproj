@@ -52,6 +52,7 @@
     <DefineConstants>$(DefineConstants);NEEDS_LITECORE_LOAD</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+	<PackageReference Include="Microsoft.Maui.Dependencies" Version="6.0.486" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <DotNetCliToolReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="dotnet-sourcelink" Version="2.1.2" />
     <PackageReference Include="SimpleInjector" Version="5.4.0" />
