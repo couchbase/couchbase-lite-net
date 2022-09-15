@@ -10,10 +10,5 @@
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </Content>
         </ItemGroup>
-        <ItemGroup>
-            <SDKReference Include="Microsoft.VCLibs, Version=14.3">
-              <Name>Visual Studio 2022 C++ Runtime for Universal Windows Platform Apps</Name>
-            </SDKReference>
-        </ItemGroup>
     </Target>
 </Project>
