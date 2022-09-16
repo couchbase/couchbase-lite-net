@@ -222,7 +222,4 @@
 	<PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '17.0' ">
 		<VisualStudioVersion>17.0</VisualStudioVersion>
 	</PropertyGroup>
-	<ItemGroup>
-	  <None Remove="Properties\Couchbase.Lite.Support.WinUI.rd.xml" />
-	</ItemGroup>
 </Project>

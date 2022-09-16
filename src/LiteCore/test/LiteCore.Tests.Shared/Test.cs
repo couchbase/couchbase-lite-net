@@ -89,6 +89,8 @@ namespace LiteCore.Tests
         {
             #if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
+            #elif NET6_0_WINDOWS10
+            Couchbase.Lite.Support.WinUI.CheckVersion();
             #endif
             var enc = Native.FLEncoder_New();
             Native.FLEncoder_BeginDict(enc, 1);
@@ -267,7 +269,7 @@ namespace LiteCore.Tests
         #if !CBL_NO_EXTERN_FILES
         internal bool ReadFileByLines(string path, Func<FLSlice, bool> callback)
         {
-#if WINDOWS_UWP
+#if WINDOWS_UWP || NET6_0_WINDOWS10
             var url = $"ms-appx:///Assets/{path}";
             var file = Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri(url))
                 .AsTask()
@@ -300,7 +302,7 @@ namespace LiteCore.Tests
                         }
                     }
                 }
-#if !WINDOWS_UWP
+#if !WINDOWS_UWP && !NET6_0_WINDOWS10
         }
 #endif
 
@@ -462,7 +464,7 @@ namespace LiteCore.Tests
         {
             WriteLine($"Reading {path} ...");
             var st = Stopwatch.StartNew();
-#if WINDOWS_UWP
+#if WINDOWS_UWP || NET6_0_WINDOWS10
             var url = $"ms-appx:///Assets/{path}";
             var file = Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri(url))
                 .AsTask()
