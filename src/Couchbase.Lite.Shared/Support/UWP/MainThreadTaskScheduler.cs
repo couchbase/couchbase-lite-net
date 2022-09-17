@@ -27,75 +27,11 @@ using Couchbase.Lite.Internal.Logging;
 
 using JetBrains.Annotations;
 
-#if NET6_0_WINDOWS10_0_19041_0
-using Microsoft.UI.Dispatching;
-#elif UAP10_0_19041
 using Windows.ApplicationModel.Core;
 using Windows.UI.Core;
-#endif
 
 namespace Couchbase.Lite.Support
 {
-    #if NET6_0_WINDOWS10_0_19041_0
-
-    [CouchbaseDependency(Lazy = true, Transient = true)]
-    internal sealed class MainThreadTaskScheduler : TaskScheduler, IMainThreadTaskScheduler
-    {
-        #region Constants
-
-        private const string Tag = nameof(MainThreadTaskScheduler);
-
-        #endregion
-
-        #region Variables
-
-        [NotNull]
-        private DispatcherQueue _dispatcherQ = DispatcherQueue.GetForCurrentThread();
-
-        #endregion
-
-        #region Properties
-
-        public bool IsMainThread => _dispatcherQ.HasThreadAccess;
-
-        #endregion
-
-        #region Overrides
-
-        protected override IEnumerable<Task> GetScheduledTasks()
-        {
-            throw new NotSupportedException();
-        }
-
-        protected override void QueueTask(Task task)
-        {
-            var t = _dispatcherQ.TryEnqueue(DispatcherQueuePriority.Normal, () =>
-            {
-                if (!TryExecuteTask(task)) {
-                    WriteLog.To.Database.W(Tag, "Failed to execute task");
-                }
-            });
-        }
-
-        protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
-        {
-            if (taskWasPreviouslyQueued || !_dispatcherQ.HasThreadAccess) {
-                return false;
-            }
-
-            return TryExecuteTask(task);
-        }
-
-        #endregion
-
-        #region IMainThreadTaskScheduler
-
-        public TaskScheduler AsTaskScheduler() => this;
-
-        #endregion
-    }
-
-    #elif UAP10_0_19041
     [CouchbaseDependency(Lazy = true, Transient = true)]
     internal sealed class MainThreadTaskScheduler : TaskScheduler, IMainThreadTaskScheduler
     {
@@ -152,6 +88,5 @@ namespace Couchbase.Lite.Support
 
         #endregion
     }
-    #endif
 }
 #endif

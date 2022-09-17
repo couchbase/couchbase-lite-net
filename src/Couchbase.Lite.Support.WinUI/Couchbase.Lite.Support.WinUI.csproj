@@ -173,9 +173,6 @@
 		<Compile Include="Properties\AssemblyInfo.cs" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.1.5" />
-	</ItemGroup>
-	<ItemGroup>
 		<None Include="win.targets">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
