@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
 	  <Configurations>Debug;Release;Packaging;PackagingDebug</Configurations>
-    <TargetFramework>net6.0-windows10.0.19041.0</TargetFramework>
+      <TargetFramework>net6.0-windows10.0.19041.0</TargetFramework>
 	  <RuntimeIdentifiers>win10-x64;win10-arm64</RuntimeIdentifiers>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+      <ImplicitUsings>enable</ImplicitUsings>
+      <Nullable>enable</Nullable>
 	  <OutputType>Library</OutputType>
 	  <RootNamespace>Couchbase.Lite.Support.WinUI</RootNamespace>
 	  <AssemblyName>Couchbase.Lite.Support.WinUI</AssemblyName>
@@ -173,6 +173,9 @@
 		<Compile Include="Properties\AssemblyInfo.cs" />
 	</ItemGroup>
 	<ItemGroup>
+		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.1.5" />
+	</ItemGroup>
+	<ItemGroup>
 		<None Include="win.targets">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
@@ -219,4 +222,7 @@
 	<PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '17.0' ">
 		<VisualStudioVersion>17.0</VisualStudioVersion>
 	</PropertyGroup>
+	<ItemGroup>
+	  <None Remove="Properties\Couchbase.Lite.Support.WinUI.rd.xml" />
+	</ItemGroup>
 </Project>
