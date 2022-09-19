@@ -32,6 +32,7 @@ using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
 using Newtonsoft.Json;
+using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite
 {

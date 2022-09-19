@@ -57,7 +57,7 @@ namespace Couchbase.Lite.DI
         static Service()
         {
             // Windows 2012 doesn't define NETFRAMEWORK for some reason
-            #if NETCOREAPP3_1_OR_GREATER || NETCOREAPP || NETFRAMEWORK || NET462
+            #if (NETCOREAPP3_1_OR_GREATER || NETCOREAPP || NETFRAMEWORK || NET462) && !NET6_0_WINDOWS10_0_19041_0
             AutoRegister(typeof(Database).GetTypeInfo().Assembly);
             
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
@@ -67,7 +67,7 @@ namespace Couchbase.Lite.DI
             } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
                 Service.Register<IProxy>(new LinuxProxy());
             }
-            #elif UAP10_0_16299 || WINDOWS_UWP
+            #elif UAP10_0_16299 || WINDOWS_UWP || NET6_0_WINDOWS10_0_19041_0
             Service.AutoRegister(typeof(Database).GetTypeInfo().Assembly);
             Service.Register<IProxy>(new UWPProxy());
             #elif __ANDROID__

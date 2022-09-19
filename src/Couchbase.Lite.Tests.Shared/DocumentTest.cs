@@ -26,6 +26,7 @@ using System.Threading;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
 using FluentAssertions;
+using FluentAssertions.Common;
 using LiteCore;
 using LiteCore.Interop;
 using Newtonsoft.Json;
@@ -1455,12 +1456,12 @@ namespace Test
             using (var savedDoc = Db.GetDocument(doc.Id)) {
                 var members = savedDoc.GetArray("members");
                 members.Count.Should().Be(3, "because three elements were added");
-                members.Should().BeEquivalentTo((Array)dict["members"], "because otherwise the array has incorrect elements");
+                members.SequenceEqual(dict["members"].As<IList<object>>()).Should().BeTrue("because otherwise the array has incorrect elements");
 
                 Db.Delete(savedDoc);
 
                 members.Count.Should().Be(3, "because the array is independent of the document");
-                members.Should().BeEquivalentTo((Array)dict["members"], "because the array is independent of the document");
+                members.SequenceEqual(dict["members"].As<IList<object>>()).Should().BeTrue("because the array is independent of the document");
             }
         }
 

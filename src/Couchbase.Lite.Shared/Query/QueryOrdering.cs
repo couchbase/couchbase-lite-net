@@ -21,6 +21,7 @@ using System.Linq;
 
 using Couchbase.Lite.Query;
 using JetBrains.Annotations;
+using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Query
 {

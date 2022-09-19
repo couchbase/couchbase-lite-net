@@ -24,6 +24,7 @@ using System.Threading;
 using Couchbase.Lite.Logging;
 
 using JetBrains.Annotations;
+using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite.Internal.Logging
 {

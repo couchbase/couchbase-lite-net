@@ -224,7 +224,7 @@ namespace Test
                     deserializedDict.GetDictionary("bogus").Should().BeNull();
 
                     var dict = deserializedDict.ToDictionary();
-                    dict["array"].As<IList>().Should().Equal(1L, 2L, 3L);
+                    dict["array"].As<IEnumerable<object>>().Should().Equal(1L, 2L, 3L);
                     dict["dict"].As<IDictionary<string, object>>().Should().BeEquivalentTo(nestedDict);
                     var isContain = mDict.Contains("");
                     isContain.Should().BeFalse();

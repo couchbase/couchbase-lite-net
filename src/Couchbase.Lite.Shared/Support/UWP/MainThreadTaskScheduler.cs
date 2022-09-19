@@ -19,15 +19,16 @@
 #if UAP10_0_16299 || WINDOWS_UWP
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading.Tasks;
-
-using Windows.ApplicationModel.Core;
-using Windows.UI.Core;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 
 using JetBrains.Annotations;
+
+using Windows.ApplicationModel.Core;
+using Windows.UI.Core;
 
 namespace Couchbase.Lite.Support
 {
@@ -43,7 +44,7 @@ namespace Couchbase.Lite.Support
         #region Variables
 
         [NotNull]
-        private readonly CoreDispatcher _dispatcher = CoreApplication.MainView.CoreWindow.Dispatcher;
+        private CoreDispatcher _dispatcher = CoreApplication.MainView.CoreWindow.Dispatcher;
 
         #endregion
 
@@ -62,7 +63,7 @@ namespace Couchbase.Lite.Support
 
         protected override void QueueTask(Task task)
         {
-            var t =_dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            var t =_dispatcher?.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
                 if (!TryExecuteTask(task)) {
                     WriteLog.To.Database.W(Tag, "Failed to execute task");

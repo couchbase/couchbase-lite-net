@@ -41,6 +41,7 @@ using LiteCore.Interop;
 using LiteCore.Util;
 
 using Newtonsoft.Json;
+using Debug = System.Diagnostics.Debug;
 
 using NotNull = JetBrains.Annotations.NotNullAttribute;
 using ItemNotNull = JetBrains.Annotations.ItemNotNullAttribute;

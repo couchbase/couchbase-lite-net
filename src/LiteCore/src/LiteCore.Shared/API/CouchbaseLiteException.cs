@@ -28,6 +28,7 @@ using System.Net;
 using JetBrains.Annotations;
 
 using LiteCore.Interop;
+using Debug = System.Diagnostics.Debug;
 
 namespace Couchbase.Lite
 {

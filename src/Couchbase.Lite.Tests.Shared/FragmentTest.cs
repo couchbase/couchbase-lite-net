@@ -19,6 +19,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Couchbase.Lite;
 using FluentAssertions;
@@ -147,7 +148,8 @@ namespace Test
                     .Should()
                     .BeSameAs(fragment.Array, "because both of these should access the same object");
 
-                fragment.Array.ToList().Should().BeEquivalentTo((IList)references);
+                references[0].Should().BeEquivalentTo(fragment.Array.GetDictionary(0));
+                references[1].Should().BeEquivalentTo(fragment.Array.GetDictionary(1));
             });
         }
 
