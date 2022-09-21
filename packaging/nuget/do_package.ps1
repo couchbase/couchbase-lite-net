@@ -2,7 +2,7 @@
 Push-Location $PSScriptRoot
 Remove-Item *.nupkg
 if(-Not (Test-Path ..\..\nuget.exe)) {
-    Invoke-WebRequest https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile ..\..\nuget.exe
+    Invoke-WebRequest https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile -DisableBuffering ..\..\nuget.exe
 }
 
 if(-Not $env:NUGET_VERSION) {
