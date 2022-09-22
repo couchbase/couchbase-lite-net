@@ -51,7 +51,7 @@ namespace Test
 #endif
     public sealed class LogTest
     {
-#if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10
+#if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__ANDROID__
         static LogTest()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
@@ -471,7 +471,7 @@ namespace Test
             }
         }
 
-        private void TestWithConfiguration(LogLevel level, LogFileConfiguration config, [NotNull]Action a)
+        private void TestWithConfiguration(LogLevel level, LogFileConfiguration config, Action a)
         {
             var old = Database.Log.File.Config;
             Database.Log.File.Config = config;
@@ -484,7 +484,6 @@ namespace Test
             }
         }
 
-        [NotNull]
         private static string EmptyDirectory(string path)
         {
             if (String.IsNullOrEmpty(path)) {
@@ -524,7 +523,6 @@ namespace Test
 
         private class LogTestLogger : ILogger
         {
-            [NotNull]
             private readonly List<string> _lines = new List<string>();
 
             public IReadOnlyList<string> Lines => _lines;

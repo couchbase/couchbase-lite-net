@@ -1092,7 +1092,6 @@ namespace Test
     {
         #region Public Methods
 
-        [NotNull]
         public static IExpression CreateInput(string propertyName)
         {
             return Expression.Dictionary(new Dictionary<string, object>

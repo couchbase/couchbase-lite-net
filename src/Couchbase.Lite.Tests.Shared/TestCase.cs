@@ -91,7 +91,7 @@ namespace Test
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
 
-#if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10
+#if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__ANDROID__
         static TestCase()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
@@ -657,7 +657,11 @@ namespace Test
                 var lines = Windows.Storage.FileIO.ReadLinesAsync(file).AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
                 foreach(var line in lines) {
 #elif __ANDROID__
+            #if NET6_0_ANDROID
+            var ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
+            #else
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
+            #endif
             using (var tr = new StreamReader(ctx.Assets.Open(path))) {
                 string line;
                 while ((line = tr.ReadLine()) != null) {
@@ -694,7 +698,11 @@ namespace Test
 
                 return file.OpenStreamForReadAsync().ConfigureAwait(false).GetAwaiter().GetResult();
 #elif __ANDROID__
+            #if NET6_0_ANDROID
+            var ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
+            #else
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
+            #endif
             return ctx.Assets.Open(path);
 #elif __IOS__
             var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));

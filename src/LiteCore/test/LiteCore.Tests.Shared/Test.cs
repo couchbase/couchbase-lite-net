@@ -87,7 +87,7 @@ namespace LiteCore.Tests
 
         static Test()
         {
-            #if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10
+            #if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__ANDROID__
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
             #elif NET6_0_WINDOWS10
             Couchbase.Lite.Support.WinUI.CheckVersion();
@@ -280,7 +280,11 @@ namespace LiteCore.Tests
             var lines = Windows.Storage.FileIO.ReadLinesAsync(file).AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
             foreach(var line in lines) {
 #elif __ANDROID__
+            #if NET6_0_ANDROID
+            var ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
+            #else
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
+            #endif
             using (var tr = new StreamReader(ctx.Assets.Open(path))) {
                 string line;
                 while((line = tr.ReadLine()) != null) { 
@@ -476,7 +480,11 @@ namespace LiteCore.Tests
                 .GetResult();
             var jsonData = System.Runtime.InteropServices.WindowsRuntime.WindowsRuntimeBufferExtensions.ToArray(buffer);
 #elif __ANDROID__
+            #if NET6_0_ANDROID
+            var ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
+            #else
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
+            #endif
             byte[] jsonData;
             using (var stream = ctx.Assets.Open(path))
             using (var ms = new MemoryStream()) {
@@ -492,7 +500,7 @@ namespace LiteCore.Tests
                 jsonData = ms.ToArray();
             }
 #else
-			var jsonData = File.ReadAllBytes(path);
+            var jsonData = File.ReadAllBytes(path);
 #endif
 
             FLError error;

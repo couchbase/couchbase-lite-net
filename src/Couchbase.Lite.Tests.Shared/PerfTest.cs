@@ -60,7 +60,7 @@ namespace Test
 
         public Database Db { get; private set; }
 
-#if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10
+#if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__ANDROID__
         static PerfTest()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
