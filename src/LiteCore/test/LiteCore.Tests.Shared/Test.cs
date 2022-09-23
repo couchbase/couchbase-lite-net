@@ -91,6 +91,8 @@ namespace LiteCore.Tests
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
             #elif NET6_0_WINDOWS10
             Couchbase.Lite.Support.WinUI.CheckVersion();
+            #elif NET6_0_ANDROID
+            Couchbase.Lite.Support.Droid.CheckVersion();
             #endif
             var enc = Native.FLEncoder_New();
             Native.FLEncoder_BeginDict(enc, 1);
@@ -279,12 +281,13 @@ namespace LiteCore.Tests
 
             var lines = Windows.Storage.FileIO.ReadLinesAsync(file).AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
             foreach(var line in lines) {
-#elif __ANDROID__
-            #if NET6_0_ANDROID
-            var ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
-            #else
+#elif __ANDROID__ && !NET6_0_ANDROID
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
-            #endif
+            using (var tr = new StreamReader(ctx.Assets.Open(path))) {
+                string line;
+                while((line = tr.ReadLine()) != null) {
+#elif NET6_0_ANDROID
+            var ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
             using (var tr = new StreamReader(ctx.Assets.Open(path))) {
                 string line;
                 while((line = tr.ReadLine()) != null) { 
@@ -300,7 +303,7 @@ namespace LiteCore.Tests
                 string line;
                 while((line = tr.ReadLine()) != null) {
 #endif
-					using(var c4 = new C4String(line)) {
+                    using (var c4 = new C4String(line)) {
                         if(!callback((FLSlice)c4.AsFLSlice())) {
                             return false;
                         }
@@ -479,15 +482,20 @@ namespace LiteCore.Tests
             var buffer = Windows.Storage.FileIO.ReadBufferAsync(file).AsTask().ConfigureAwait(false).GetAwaiter()
                 .GetResult();
             var jsonData = System.Runtime.InteropServices.WindowsRuntime.WindowsRuntimeBufferExtensions.ToArray(buffer);
-#elif __ANDROID__
-            #if NET6_0_ANDROID
-            var ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
-            #else
+#elif __ANDROID__ && !NET6_0_ANDROID
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
-            #endif
             byte[] jsonData;
             using (var stream = ctx.Assets.Open(path))
             using (var ms = new MemoryStream()) {
+                stream.CopyTo(ms);
+                jsonData = ms.ToArray();
+            }
+#elif NET6_0_ANDROID
+            var ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
+            byte[] jsonData;
+            using (var stream = ctx.Assets.Open(path))
+            using (var ms = new MemoryStream())
+            {
                 stream.CopyTo(ms);
                 jsonData = ms.ToArray();
             }

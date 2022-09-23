@@ -65,6 +65,11 @@ namespace Test
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
         }
+#elif NET6_0_ANDROID
+        static PerfTest()
+        {
+            Couchbase.Lite.Support.Droid.CheckVersion();
+        }
 #endif
 
 #if !WINDOWS_UWP

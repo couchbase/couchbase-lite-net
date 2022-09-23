@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // 
-#if __ANDROID__
+#if __ANDROID__ || NET6_0_ANDROID31
 using System;
 using System.Collections.Generic;
 using System.Threading;

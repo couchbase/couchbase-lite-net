@@ -96,6 +96,11 @@ namespace Test
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
         }
+#elif NET6_0_ANDROID
+        static TestCase()
+        {
+            Couchbase.Lite.Support.Droid.CheckVersion();
+        }
 #endif
 
 
@@ -646,8 +651,8 @@ namespace Test
 
         internal static bool ReadFileByLines(string path, Func<string, bool> callback)
         {
-#if WINDOWS_UWP
-                var url = $"ms-appx:///Assets/{path}";
+#if WINDOWS_UWP || NET6_0_WINDOWS10
+            var url = $"ms-appx:///Assets/{path}";
                 var file = Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri(url))
                     .AsTask()
                     .ConfigureAwait(false)
@@ -656,31 +661,32 @@ namespace Test
 
                 var lines = Windows.Storage.FileIO.ReadLinesAsync(file).AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
                 foreach(var line in lines) {
-#elif __ANDROID__
-            #if NET6_0_ANDROID
-            var ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
-            #else
+#elif __ANDROID__ && !NET6_0_ANDROID
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
-            #endif
             using (var tr = new StreamReader(ctx.Assets.Open(path))) {
                 string line;
                 while ((line = tr.ReadLine()) != null) {
+#elif NET6_0_ANDROID
+            var ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
+            using (var tr = new StreamReader(ctx.Assets.Open(path))) {
+                string line;
+                while ((line = tr.ReadLine()) != null) {     
 #elif __IOS__
 			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			using (var tr = new StreamReader(File.Open(bundlePath, FileMode.Open, FileAccess.Read))) {
 				string line;
 				while ((line = tr.ReadLine()) != null) {
 #else
-                    using (var tr = new StreamReader(typeof(TestCase).GetTypeInfo().Assembly.GetManifestResourceStream(path.Replace("C/tests/data/", "")))) {
+            using (var tr = new StreamReader(typeof(TestCase).GetTypeInfo().Assembly.GetManifestResourceStream(path.Replace("C/tests/data/", "")))) {
                         string line;
                         while ((line = tr.ReadLine()) != null) {
 #endif
-					if (!callback(line)) {
+                    if (!callback(line)) {
 						return false;
 					}
 				}
-#if !WINDOWS_UWP
-			}
+#if !WINDOWS_UWP &&  !NET6_0_WINDOWS10
+        }
 #endif
 
             return true;
@@ -688,8 +694,8 @@ namespace Test
 
         internal Stream GetTestAsset(string path)
         {
-#if WINDOWS_UWP
-                var url = $"ms-appx:///Assets/{path}";
+#if WINDOWS_UWP || NET6_0_WINDOWS10
+            var url = $"ms-appx:///Assets/{path}";
                 var file = Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri(url))
                     .AsTask()
                     .ConfigureAwait(false)
@@ -697,12 +703,11 @@ namespace Test
                     .GetResult();
 
                 return file.OpenStreamForReadAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-#elif __ANDROID__
-            #if NET6_0_ANDROID
-            var ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
-            #else
+#elif __ANDROID__ && !NET6_0_ANDROID
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
-            #endif
+            return ctx.Assets.Open(path);
+#elif NET6_0_ANDROID
+            var ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
             return ctx.Assets.Open(path);
 #elif __IOS__
             var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
@@ -712,7 +717,7 @@ namespace Test
 #endif
 
         }
-        #endif
+#endif
 
         public void Dispose()
         {
