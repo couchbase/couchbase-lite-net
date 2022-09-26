@@ -1,17 +1,17 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Xamarin.Legacy.Sdk/0.2.0-alpha2">
   <PropertyGroup>
-	<Configurations>Debug;Release;Packaging</Configurations>
+    <Configurations>Debug;Release;Packaging</Configurations>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-	<TargetFrameworks>net6.0-ios14.2;net6.0-maccatalyst14.2;Xamarin.iOS10</TargetFrameworks>
-	<SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.2</SupportedOSPlatformVersion>
-	<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.2</SupportedOSPlatformVersion>
+    <TargetFrameworks>net6.0-ios14.2;net6.0-maccatalyst14.2;Xamarin.iOS10</TargetFrameworks>
+    <SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.2</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.2</SupportedOSPlatformVersion>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Support.iOS</RootNamespace>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
     <AssemblyName>Couchbase.Lite.Support.iOS</AssemblyName>
     <CopyNuGetImplementations>True</CopyNuGetImplementations>
-	<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
@@ -22,7 +22,7 @@
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
     <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
-	<SingleProject>true</SingleProject>
+    <SingleProject>true</SingleProject>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

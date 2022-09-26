@@ -1,29 +1,29 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Xamarin.Legacy.Sdk/0.2.0-alpha2">
   <PropertyGroup>
-	<Configurations>Debug;Release;Packaging</Configurations>
-	<Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-	<TargetFrameworks>net6.0-android31;monoandroid90</TargetFrameworks>
-	<SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6'))">22</SupportedOSPlatformVersion>
-	<TargetFrameworkVersion Condition="!$(TargetFramework.StartsWith('net6'))">v9.0</TargetFrameworkVersion>
+	  <Configurations>Debug;Release;Packaging</Configurations>
+	  <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+	  <TargetFrameworks>net6.0-android31;monoandroid90</TargetFrameworks>
+	  <SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6'))">22</SupportedOSPlatformVersion>
+	  <TargetFrameworkVersion Condition="!$(TargetFramework.StartsWith('net6'))">v9.0</TargetFrameworkVersion>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Support.Android</RootNamespace>
     <AssemblyName>Couchbase.Lite.Support.Android</AssemblyName>
     <FileAlignment>512</FileAlignment>
-	<UseMicrosoftAndroidSdk>true</UseMicrosoftAndroidSdk>
-	<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-	<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
-	<GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
-	<GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
-	<GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
-	<GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-	<GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-	<GenerateNeutralResourcesLanguageAttribute>false</GenerateNeutralResourcesLanguageAttribute>
-	<GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
-	<GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
-	<GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
-	<AndroidUseLatestPlatformSdk>false</AndroidUseLatestPlatformSdk>
-	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	  <UseMicrosoftAndroidSdk>true</UseMicrosoftAndroidSdk>
+	  <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+	  <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+	  <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+	  <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+	  <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+	  <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+	  <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+	  <GenerateNeutralResourcesLanguageAttribute>false</GenerateNeutralResourcesLanguageAttribute>
+	  <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+	  <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+	  <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+	  <AndroidUseLatestPlatformSdk>false</AndroidUseLatestPlatformSdk>
+	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -47,7 +47,7 @@
     <OutputPath>bin\Packaging\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <Optimize>true</Optimize>
-	<OutputPath>bin\Packaging\</OutputPath>
+	  <OutputPath>bin\Packaging\</OutputPath>
     <NoStdLib>true</NoStdLib>
     <DebugType>portable</DebugType>
     <ErrorReport>prompt</ErrorReport>
