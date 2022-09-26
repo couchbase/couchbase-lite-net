@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>Couchbase.Lite.Support.WinUI</id>
+    <title>Couchbase Lite WinUI Support</title>
+    <version>$version$</version>
+    <authors>Couchbase, Inc.</authors>
+    <owners>Couchbase</owners>
+    <license type="file">LICENSE.txt</license>
+    <projectUrl>https://github.com/couchbase/couchbase-lite-net</projectUrl>
+    <icon>logo.png</icon>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>WinUI native libraries and support classes for Couchbase Lite .NET</description>
+    <releaseNotes>
+        https://docs.couchbase.com/couchbase-lite/current/csharp/releasenotes.html
+    </releaseNotes>
+    <copyright>Copyright 2022</copyright>
+    <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin maui ios android windows linux mac osx nosql</tags>
+    <language>en-US</language>
+    <dependencies>
+        <dependency id="Microsoft.NETCore.UniversalWindowsPlatform" version="6.0.6" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file target="" src="packaging\nuget\LICENSE.txt" />
+	<file target="logo.png" src="packaging\nuget\logo.png" />
+    <file target="build\Couchbase.Lite.Support.WinUI.targets" src="src\Couchbase.Lite.Support.WinUI\bin\Packaging\net6.0-windows10.0.19041.0\win.targets" />
+	<file target="lib\net6.0-windows10.0.19041.0\" src="src\Couchbase.Lite.Support.WinUI\bin\Packaging\net6.0-windows10.0.19041.0\Couchbase.Lite.Support.WinUI.dll" />
+    <file target="lib\net6.0-windows10.0.19041.0\" src="src\Couchbase.Lite.Support.WinUI\bin\Packaging\net6.0-windows10.0.19041.0\Couchbase.Lite.Support.WinUI.pdb" />
+    <file target="lib\net6.0-windows10.0.19041.0\" src="src\Couchbase.Lite.Support.WinUI\bin\Packaging\net6.0-windows10.0.19041.0\Couchbase.Lite.Support.WinUI.xml" />
+	<file target="runtimes\win10-x64\native" src="src\Couchbase.Lite.Support.WinUI\bin\Packaging\net6.0-windows10.0.19041.0\x64\LiteCore.dll" />
+    <file target="runtimes\win10-x64\native" src="src\Couchbase.Lite.Support.WinUI\bin\Packaging\net6.0-windows10.0.19041.0\x64\LiteCore.pdb" />
+	<file target="runtimes\win10-arm64\native" src="src\Couchbase.Lite.Support.WinUI\bin\Packaging\net6.0-windows10.0.19041.0\arm64\LiteCore.dll" />
+    <file target="runtimes\win10-arm64\native" src="src\Couchbase.Lite.Support.WinUI\bin\Packaging\net6.0-windows10.0.19041.0\arm64\LiteCore.pdb" />
+  </files>
+</package>

@@ -15,7 +15,7 @@
 		https://docs.couchbase.com/couchbase-lite/current/csharp/releasenotes.html
     </releaseNotes>
     <copyright>Copyright 2014-2022</copyright>
-    <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
+    <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin maui ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
       <group targetFramework="netstandard2.0" />
@@ -23,21 +23,21 @@
         <dependency id="Newtonsoft.Json" version="13.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
         <dependency id="System.Collections.Immutable" version="[1.3.0,6.0.0)" />
-        <dependency id="Microsoft.Bcl.AsyncInterfaces" version="6.0.0" />
+        <dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0)" />
         <dependency id="Couchbase.Lite.Support.NetDesktop" version="[$version$]" />
       </group>
 	  <group targetFramework="net6.0-windows10.0.19041.0">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
         <dependency id="System.Collections.Immutable" version="[1.3.0,6.0.0)" />
-        <dependency id="Microsoft.Bcl.AsyncInterfaces" version="6.0.0" />
-        <dependency id="Couchbase.Lite.Support.NetDesktop" version="[$version$]" />
+        <dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0)" />
+        <dependency id="Couchbase.Lite.Support.WinUI" version="[$version$]" />
       </group>
       <group targetFramework="netcoreapp3.1">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
 		<dependency id="System.Collections.Immutable" version="[1.3.0,6.0.0)" />
-		<dependency id="Microsoft.Bcl.AsyncInterfaces" version="6.0.0" />
+		<dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0)" />
         <dependency id="Couchbase.Lite.Support.NetDesktop" version="[$version$]" />
       </group>
       <group targetFramework="net462">
