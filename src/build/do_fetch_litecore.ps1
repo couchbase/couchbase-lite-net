@@ -28,14 +28,14 @@ if(Test-Path "macos/lib/libLiteCore.dylib"){
 }
 
 # Process Linux Libraries
-foreach($arch in @("libLiteCore.so", "libstdc++.so", "libstdc++.so.6", "libicudata.so.54", "libicui18n.so.54", "libicuuc.so.54")) {
+foreach($arch in @("libLiteCore.so", "libstdc++.so", "libstdc++.so.6", "libicudata.so.71", "libicui18n.so.71", "libicuuc.so.71")) {
 	if(Test-Path $arch){
 		Remove-item $arch
 	}
 	
     if(Test-Path linux\x86_64\lib\$arch){
-	    if($arch -eq 'libicudata.so.54' -Or $arch -eq 'libicui18n.so.54' -Or $arch -eq 'libicuuc.so.54'){
-			$arch1 = $arch.Replace(".54", ".54.1")
+	    if($arch -eq 'libicudata.so.71' -Or $arch -eq 'libicui18n.so.71' -Or $arch -eq 'libicuuc.so.71'){
+			$arch1 = $arch.Replace(".71", ".71.1")
 		    Move-Item -Force linux\x86_64\lib\$arch1 $arch
 		} else {
 	        Move-Item -Force linux\x86_64\lib\$arch .
