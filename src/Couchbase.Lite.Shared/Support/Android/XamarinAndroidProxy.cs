@@ -25,7 +25,6 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 using Java.Lang;
 using Java.Net;
-using Java.Nio.Channels;
 
 namespace Couchbase.Lite.Support
 {
@@ -35,22 +34,26 @@ namespace Couchbase.Lite.Support
 
         public Task<WebProxy> CreateProxyAsync(Uri destination)
         {
-            var selector = ProxySelector.Default;
-            if (selector != null) {
-                try {
-                    var javaUri = new URI(EncodeUrl(destination));
-                    var proxy = selector.Select(javaUri).FirstOrDefault();
-                    if (proxy != null && proxy != Proxy.NoProxy && proxy.Address() is InetSocketAddress address) {
-                        var host = address.HostString;
-                        var port = address.Port;
-                        return Task.FromResult(new WebProxy(host, port));
+            WebProxy webProxy;
+            if (HasSystemProxy(out webProxy) && webProxy == null) {
+                var selector = ProxySelector.Default;
+                if (selector != null) {
+                    try {
+                        var javaUri = new URI(EncodeUrl(destination));
+                        var uriSelector = selector.Select(javaUri);
+                        var proxy = uriSelector.FirstOrDefault();
+                        if (proxy != null && proxy != Proxy.NoProxy && proxy.Address() is InetSocketAddress address) {
+                            var host = address.HostString;
+                            var port = address.Port;
+                            webProxy = new WebProxy(host, port);
+                        }
+                    } catch { // UriFormatException
+                        WriteLog.To.Sync.W("CreateProxyAsync", "The URI formed by combining Host and Port is not a valid URI. Please check your system proxy setting.");
                     }
-                } catch { // UriFormatException
-                    WriteLog.To.Sync.W("CreateProxyAsync", "The URI formed by combining Host and Port is not a valid URI. Please check your system proxy setting.");
                 }
             }
             
-            return Task.FromResult<WebProxy>(null);
+            return Task.FromResult<WebProxy>(webProxy);
         }
 
         #endregion
@@ -70,6 +73,28 @@ namespace Couchbase.Lite.Support
 
             // bldr.Uri.ToString () would ruin the good job UriBuilder did
             return bldr.ToString();
+        }
+
+        private bool HasSystemProxy(out WebProxy webProxy)
+        {
+            webProxy = null;
+
+            // if a proxy is enabled set it up here
+            string host = JavaSystem.GetProperty("http.proxyHost")?.TrimEnd('/');
+            string port = JavaSystem.GetProperty("http.proxyPort");
+
+            if (host == null)
+                return false; // return no proxy quickly
+
+            if (host != "localhost") {
+                try {
+                    webProxy = new WebProxy(host, int.Parse(port));
+                } catch { // UriFormatException
+                    WriteLog.To.Sync.W("CreateProxyAsync", "The URI formed by combining Host and Port is not a valid URI. Please check your system proxy setting.");
+                }
+            }
+
+            return true; // possible auto-config if host == "localhost"
         }
     }
 }
