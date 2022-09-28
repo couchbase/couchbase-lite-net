@@ -34,8 +34,9 @@ namespace Couchbase.Lite.Support
 
         public Task<WebProxy> CreateProxyAsync(Uri destination)
         {
-            WebProxy webProxy;
-            if (HasSystemProxy(out webProxy) && webProxy == null) {
+            WebProxy webProxy = null;
+            string proxyHost = JavaSystem.GetProperty("http.proxyHost")?.TrimEnd('/');
+            if (proxyHost != null) {
                 var selector = ProxySelector.Default;
                 if (selector != null) {
                     try {
@@ -43,9 +44,7 @@ namespace Couchbase.Lite.Support
                         var uriSelector = selector.Select(javaUri);
                         var proxy = uriSelector.FirstOrDefault();
                         if (proxy != null && proxy != Proxy.NoProxy && proxy.Address() is InetSocketAddress address) {
-                            var host = address.HostString;
-                            var port = address.Port;
-                            webProxy = new WebProxy(host, port);
+                            webProxy = new WebProxy(address.HostString, address.Port);
                         }
                     } catch { // UriFormatException
                         WriteLog.To.Sync.W("CreateProxyAsync", "The URI formed by combining Host and Port is not a valid URI. Please check your system proxy setting.");
@@ -53,7 +52,7 @@ namespace Couchbase.Lite.Support
                 }
             }
             
-            return Task.FromResult<WebProxy>(webProxy);
+            return Task.FromResult(webProxy);
         }
 
         #endregion
@@ -73,28 +72,6 @@ namespace Couchbase.Lite.Support
 
             // bldr.Uri.ToString () would ruin the good job UriBuilder did
             return bldr.ToString();
-        }
-
-        private bool HasSystemProxy(out WebProxy webProxy)
-        {
-            webProxy = null;
-
-            // if a proxy is enabled set it up here
-            string host = JavaSystem.GetProperty("http.proxyHost")?.TrimEnd('/');
-            string port = JavaSystem.GetProperty("http.proxyPort");
-
-            if (host == null)
-                return false; // return no proxy quickly
-
-            if (host != "localhost") {
-                try {
-                    webProxy = new WebProxy(host, int.Parse(port));
-                } catch { // UriFormatException
-                    WriteLog.To.Sync.W("CreateProxyAsync", "The URI formed by combining Host and Port is not a valid URI. Please check your system proxy setting.");
-                }
-            }
-
-            return true; // possible auto-config if host == "localhost"
         }
     }
 }
