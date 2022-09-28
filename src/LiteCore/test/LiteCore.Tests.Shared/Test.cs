@@ -87,7 +87,7 @@ namespace LiteCore.Tests
 
         static Test()
         {
-            #if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__ANDROID__
+            #if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__MOBILE__
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
             #elif NET6_0_WINDOWS10
             Couchbase.Lite.Support.WinUI.CheckVersion();
@@ -281,16 +281,16 @@ namespace LiteCore.Tests
 
             var lines = Windows.Storage.FileIO.ReadLinesAsync(file).AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
             foreach(var line in lines) {
-#elif __ANDROID__ && !NET6_0_ANDROID
-            var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
+#elif __ANDROID__
+            Android.Content.Context ctx = null;
+            #if !NET6_0_ANDROID
+            ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
+            #elif NET6_0_ANDROID
+            ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
+            #endif
             using (var tr = new StreamReader(ctx.Assets.Open(path))) {
                 string line;
                 while((line = tr.ReadLine()) != null) {
-#elif NET6_0_ANDROID
-            var ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
-            using (var tr = new StreamReader(ctx.Assets.Open(path))) {
-                string line;
-                while((line = tr.ReadLine()) != null) { 
 #elif __IOS__
 			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			using (var tr = new StreamReader(File.Open(bundlePath, FileMode.Open, FileAccess.Read)))
@@ -482,20 +482,16 @@ namespace LiteCore.Tests
             var buffer = Windows.Storage.FileIO.ReadBufferAsync(file).AsTask().ConfigureAwait(false).GetAwaiter()
                 .GetResult();
             var jsonData = System.Runtime.InteropServices.WindowsRuntime.WindowsRuntimeBufferExtensions.ToArray(buffer);
-#elif __ANDROID__ && !NET6_0_ANDROID
-            var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
+#elif __ANDROID__ 
+            Android.Content.Context ctx = null;
+            #if !NET6_0_ANDROID
+            ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
+            #elif NET6_0_ANDROID
+            ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
+            #endif
             byte[] jsonData;
             using (var stream = ctx.Assets.Open(path))
             using (var ms = new MemoryStream()) {
-                stream.CopyTo(ms);
-                jsonData = ms.ToArray();
-            }
-#elif NET6_0_ANDROID
-            var ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
-            byte[] jsonData;
-            using (var stream = ctx.Assets.Open(path))
-            using (var ms = new MemoryStream())
-            {
                 stream.CopyTo(ms);
                 jsonData = ms.ToArray();
             }
