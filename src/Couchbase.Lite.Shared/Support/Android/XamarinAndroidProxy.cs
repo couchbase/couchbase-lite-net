@@ -23,7 +23,6 @@ using System.Threading.Tasks;
 
 using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
-using Java.Lang;
 using Java.Net;
 
 namespace Couchbase.Lite.Support
@@ -35,23 +34,20 @@ namespace Couchbase.Lite.Support
         public Task<WebProxy> CreateProxyAsync(Uri destination)
         {
             WebProxy webProxy = null;
-            string proxyHost = JavaSystem.GetProperty("http.proxyHost")?.TrimEnd('/');
-            if (proxyHost != null) {
-                var selector = ProxySelector.Default;
-                if (selector != null) {
-                    try {
-                        var javaUri = new URI(EncodeUrl(destination));
-                        var uriSelector = selector.Select(javaUri);
-                        var proxy = uriSelector.FirstOrDefault();
-                        if (proxy != null && proxy != Proxy.NoProxy && proxy.Address() is InetSocketAddress address) {
-                            webProxy = new WebProxy(address.HostString, address.Port);
-                        }
-                    } catch { // UriFormatException
-                        WriteLog.To.Sync.W("CreateProxyAsync", "The URI formed by combining Host and Port is not a valid URI. Please check your system proxy setting.");
+            var selector = ProxySelector.Default;
+            if (selector != null) {
+                try {
+                    var javaUri = new URI(EncodeUrl(destination));
+                    var uriSelector = selector.Select(javaUri);
+                    var proxy = uriSelector.FirstOrDefault();
+                    if (proxy != null && proxy != Proxy.NoProxy && proxy.Address() is InetSocketAddress address) {
+                        webProxy = new WebProxy(address.HostString, address.Port);
                     }
+                } catch { // UriFormatException
+                    WriteLog.To.Sync.W("CreateProxyAsync", "The URI formed by combining Host and Port is not a valid URI. Please check your system proxy setting.");
                 }
             }
-            
+
             return Task.FromResult(webProxy);
         }
 
