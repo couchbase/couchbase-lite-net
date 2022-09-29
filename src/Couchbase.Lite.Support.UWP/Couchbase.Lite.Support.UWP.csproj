@@ -1,7 +1,7 @@
 ﻿<Project Sdk="MSBuild.Sdk.Extras">
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;PackagingDebug</Configurations>
-    <Platforms>AnyCPU;x64;arm64</Platforms>
+    <Platforms>x64;arm64</Platforms>
     <TargetFramework>uap10.0.19041</TargetFramework>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -29,8 +29,7 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <PlatformTarget>$(Platform)</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
-    <OutputPath Condition="'$(Platform)' == 'AnyCPU'">bin\Debug\</OutputPath>
-    <OutputPath Condition="'$(Platform)' != 'AnyCPU'">bin\$(Platform)\Debug\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
     <NoWarn>;2008</NoWarn>
     <DebugType>portable</DebugType>
@@ -39,8 +38,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <PlatformTarget>$(Platform)</PlatformTarget>
-    <OutputPath Condition="'$(Platform)' == 'AnyCPU'">bin\Release\</OutputPath>
-    <OutputPath Condition="'$(Platform)' != 'AnyCPU'">bin\$(Platform)\Release\</OutputPath>
+    <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
     <Optimize>true</Optimize>
     <NoWarn>;2008</NoWarn>
@@ -50,8 +48,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Packaging'">
     <PlatformTarget>$(Platform)</PlatformTarget>
-    <OutputPath Condition="'$(Platform)' == 'AnyCPU'">bin\Packaging\</OutputPath>
-    <OutputPath Condition="'$(Platform)' != 'AnyCPU'">bin\$(Platform)\Packaging\</OutputPath>
+    <OutputPath>bin\Packaging\</OutputPath>
     <DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
     <Optimize>true</Optimize>
     <NoWarn>;2008</NoWarn>
@@ -60,14 +57,12 @@
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>bin\Packaging\Couchbase.Lite.Support.UWP.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'PackagingDebug'">
     <DebugSymbols>true</DebugSymbols>
-    <OutputPath Condition="'$(Platform)' == 'AnyCPU'">bin\PackagingDebug\</OutputPath>
-    <OutputPath Condition="'$(Platform)' != 'AnyCPU'">bin\$(Platform)\PackagingDebug\</OutputPath>
+    <OutputPath>bin\PackagingDebug\</OutputPath>
     <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>;2008</NoWarn>
     <NoStdLib>true</NoStdLib>
     <DebugType>portable</DebugType>

@@ -58,7 +58,7 @@
     <PackageReference Include="SimpleInjector" Version="5.4.0" />
     <PackageReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="SourceLink.Create.GitHub" Version="2.7.5" PrivateAssets="all" />
     <PackageReference Include="GitInfo" Version="2.0.20" PrivateAssets="all" />
-	<PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
+    <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
     <DotNetCliToolReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="dotnet-sourcelink-git" Version="2.1.2" />
   </ItemGroup>
   <ItemGroup Condition=" $(TargetFramework.StartsWith('netcoreapp')) or '$(TargetFramework)' == 'net6.0' ">
