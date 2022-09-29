@@ -75,7 +75,7 @@ namespace Couchbase.Lite.Support
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                var arch = RuntimeInformation.OSArchitecture;
+                var arch = RuntimeInformation.ProcessArchitecture;
                 if (arch == Architecture.X86 || arch == Architecture.Arm) {
                     throw new PlatformNotSupportedException("32-bit Windows is no longer supported");
                 }
