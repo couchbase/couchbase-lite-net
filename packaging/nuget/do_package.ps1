@@ -2,7 +2,7 @@
 Push-Location $PSScriptRoot
 Remove-Item *.nupkg
 if(-Not (Test-Path ..\..\nuget.exe)) {
-    Invoke-WebRequest https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile -DisableBuffering ..\..\nuget.exe
+    Invoke-WebRequest https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile ..\..\nuget.exe
 }
 
 if(-Not $env:NUGET_VERSION) {
@@ -35,10 +35,10 @@ ForEach-Object {
 
 Get-ChildItem "." -Filter *.nupkg |
 ForEach-Object {
-    ..\..\nuget.exe push $_.Name $env:API_KEY -Source $env:NUGET_REPO
+    ..\..\nuget.exe push -DisableBuffering $_.Name $env:API_KEY -Source $env:NUGET_REPO
     if($LASTEXITCODE) {
         Pop-Location
-        throw "Failed to push $_"
+        throw "Failed to push -DisableBuffering $_"
     }
 }
 
