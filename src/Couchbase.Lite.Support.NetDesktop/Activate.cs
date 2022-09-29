@@ -75,7 +75,8 @@ namespace Couchbase.Lite.Support
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-				if(IntPtr.Size == 4) {
+                var arch = RuntimeInformation.ProcessArchitecture;
+                if (arch == Architecture.X86 || arch == Architecture.Arm) {
                     throw new PlatformNotSupportedException("32-bit Windows is no longer supported");
                 }
 				
@@ -85,7 +86,7 @@ namespace Couchbase.Lite.Support
                         "Couldn't find directory of the loaded support assembly, very weird!");
                 }
 
-                var architecture = "x64";
+                var architecture = arch.ToString();
                 var nugetBase = codeBase;
                 for (int i = 0; i < 2; i++) {
                     nugetBase = Path.GetDirectoryName(nugetBase);

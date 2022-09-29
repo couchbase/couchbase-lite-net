@@ -15,7 +15,7 @@
         https://docs.couchbase.com/couchbase-lite/current/csharp/releasenotes.html
     </releaseNotes>
     <copyright>Copyright 2018-2022</copyright>
-    <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
+    <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin maui ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
         <dependency id="Microsoft.NETCore.UniversalWindowsPlatform" version="6.0.6" />
@@ -25,9 +25,6 @@
     <file target="" src="packaging\nuget\LICENSE.txt" />
 	<file target="logo.png" src="packaging\nuget\logo.png" />
     <file target="build\Couchbase.Lite.Support.UWP.targets" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\uap10.0.19041\uwp.targets" />
-	<file target="lib\net6.0-windows10.0.19041.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\net6.0-windows10.0.19041.0\Couchbase.Lite.Support.UWP.dll" />
-    <file target="lib\net6.0-windows10.0.19041.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\net6.0-windows10.0.19041.0\Couchbase.Lite.Support.UWP.pdb" />
-    <file target="lib\net6.0-windows10.0.19041.0\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\net6.0-windows10.0.19041.0\Couchbase.Lite.Support.UWP.xml" />
     <file target="lib\uap10.0.19041\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\uap10.0.19041\Couchbase.Lite.Support.UWP.dll" />
     <file target="lib\uap10.0.19041\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\uap10.0.19041\Couchbase.Lite.Support.UWP.pdb" />
     <file target="lib\uap10.0.19041\" src="src\Couchbase.Lite.Support.UWP\bin\Packaging\uap10.0.19041\Couchbase.Lite.Support.UWP.xml" />

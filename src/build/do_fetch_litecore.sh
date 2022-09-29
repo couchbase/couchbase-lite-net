@@ -28,9 +28,9 @@ if [ -f "linux/x86_64/lib/libLiteCore.so" ]; then
     mv -f linux/x86_64/lib/libLiteCore.so libLiteCore.so
 	mv -f linux/x86_64/lib/libstdc++.so.6 libstdc++.so.6
     mv -f linux/x86_64/lib/libstdc++.so libstdc++.so
-    mv -f linux/x86_64/lib/libicudata.so.54 libicudata.so.54
-    mv -f linux/x86_64/lib/libicui18n.so.54 libicui18n.so.54
-    mv -f linux/x86_64/lib/libicuuc.so.54 libicuuc.so.54
+    mv -f linux/x86_64/lib/libicudata.so.71 libicudata.so.71
+    mv -f linux/x86_64/lib/libicui18n.so.71 libicui18n.so.71
+    mv -f linux/x86_64/lib/libicuuc.so.71 libicuuc.so.71
 	cd linux
     rm -rf x86_64
 	cd ..
