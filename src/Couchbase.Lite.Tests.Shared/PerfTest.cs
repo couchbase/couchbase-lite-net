@@ -59,15 +59,10 @@ namespace Test
 
         public Database Db { get; private set; }
 
-#if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__MOBILE__
+#if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !NET6_0_ANDROID
         static PerfTest()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
-        }
-#elif NET6_0_ANDROID
-        static PerfTest()
-        {
-            Couchbase.Lite.Support.Droid.CheckVersion();
         }
 #endif
 

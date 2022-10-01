@@ -96,11 +96,6 @@ namespace Test
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
         }
-#elif NET6_0_ANDROID
-        static TestCase()
-        {
-            Couchbase.Lite.Support.Droid.CheckVersion();
-        }
 #endif
 
 

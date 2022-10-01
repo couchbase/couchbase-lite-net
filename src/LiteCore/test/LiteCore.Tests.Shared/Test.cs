@@ -91,8 +91,6 @@ namespace LiteCore.Tests
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
             #elif NET6_0_WINDOWS10
             Couchbase.Lite.Support.WinUI.CheckVersion();
-            #elif NET6_0_ANDROID
-            Couchbase.Lite.Support.Droid.CheckVersion();
             #endif
             var enc = Native.FLEncoder_New();
             Native.FLEncoder_BeginDict(enc, 1);

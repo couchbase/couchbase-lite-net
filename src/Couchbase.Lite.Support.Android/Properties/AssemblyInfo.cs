@@ -17,3 +17,5 @@ using System.Runtime.InteropServices;
 [assembly: NeutralResourcesLanguage("en")]
 [assembly: ComVisible(false)]
 [assembly: InternalsVisibleTo("Couchbase.Lite")]
+
+[assembly: InternalsVisibleTo("Couchbase.Lite.Tests.Maui")]

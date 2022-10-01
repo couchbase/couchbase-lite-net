@@ -53,13 +53,7 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <DocumentationFile>bin\Packaging\Couchbase.Lite.Support.Android.xml</DocumentationFile>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(TargetFramework)' == 'Debug|net6.0-android31' ">
-    <DefineConstants>$(DefineConstants);NET6_0_ANDROID</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(TargetFramework)' == 'Release|net6.0-android31' ">
-    <DefineConstants>$(DefineConstants);NET6_0_ANDROID</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)' == 'Packaging|net6.0-android31'">
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net6.0-android31' ">
     <DefineConstants>$(DefineConstants);NET6_0_ANDROID</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
