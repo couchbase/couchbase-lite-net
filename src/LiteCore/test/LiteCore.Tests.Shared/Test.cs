@@ -42,15 +42,15 @@ namespace LiteCore.Tests
 #endif
     public unsafe class Test : TestBase
     {
-#if __ANDROID__
+        #if __ANDROID__
         public static readonly string TestDir = System.Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-#elif false
+        #elif false
         public static readonly string TestDir = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
-#elif __IOS__
+        #elif __IOS__
         public static readonly string TestDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "..", "tmp");
-#else
+        #else
         public static readonly string TestDir = Path.GetTempPath();
-#endif
+        #endif
 
         internal static readonly FLSlice FleeceBody;
 
@@ -101,12 +101,12 @@ namespace LiteCore.Tests
             FleeceBody = (FLSlice)result;
         }
 
-#if !WINDOWS_UWP
+        #if !WINDOWS_UWP
         public Test(ITestOutputHelper output) : base(output)
         {
 
         }
-#endif
+        #endif
 
         internal static C4Document* c4enum_nextDocument(C4DocEnumerator* e, C4Error* outError)
         {
@@ -269,7 +269,7 @@ namespace LiteCore.Tests
         #if !CBL_NO_EXTERN_FILES
         internal bool ReadFileByLines(string path, Func<FLSlice, bool> callback)
         {
-#if WINDOWS_UWP || NET6_0_WINDOWS10
+            #if WINDOWS_UWP || NET6_0_WINDOWS10
             var url = $"ms-appx:///Assets/{path}";
             var file = Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri(url))
                 .AsTask()
@@ -279,7 +279,7 @@ namespace LiteCore.Tests
 
             var lines = Windows.Storage.FileIO.ReadLinesAsync(file).AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
             foreach(var line in lines) {
-#elif __ANDROID__
+            #elif __ANDROID__
             Android.Content.Context ctx = null;
             #if !NET6_0_ANDROID
             ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
@@ -289,27 +289,27 @@ namespace LiteCore.Tests
             using (var tr = new StreamReader(ctx.Assets.Open(path))) {
                 string line;
                 while((line = tr.ReadLine()) != null) {
-#elif __IOS__
+            #elif __IOS__
 			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			using (var tr = new StreamReader(File.Open(bundlePath, FileMode.Open, FileAccess.Read)))
 			{
 				string line;
 				while ((line = tr.ReadLine()) != null)
 				{
-#else
+            #else
             using(var tr = new StreamReader(File.Open(path, FileMode.Open))) {
                 string line;
                 while((line = tr.ReadLine()) != null) {
-#endif
+            #endif
                     using (var c4 = new C4String(line)) {
                         if(!callback((FLSlice)c4.AsFLSlice())) {
                             return false;
                         }
                     }
                 }
-#if !WINDOWS_UWP && !NET6_0_WINDOWS10
+        #if !WINDOWS_UWP && !NET6_0_WINDOWS10
         }
-#endif
+        #endif
 
             return true;
         }
@@ -382,7 +382,7 @@ namespace LiteCore.Tests
 
             return numDocs;
         }
-#endif
+        #endif
 
         protected void ReopenDB()
         {
@@ -469,7 +469,7 @@ namespace LiteCore.Tests
         {
             WriteLine($"Reading {path} ...");
             var st = Stopwatch.StartNew();
-#if WINDOWS_UWP || NET6_0_WINDOWS10
+            #if WINDOWS_UWP || NET6_0_WINDOWS10
             var url = $"ms-appx:///Assets/{path}";
             var file = Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri(url))
                 .AsTask()
@@ -480,7 +480,7 @@ namespace LiteCore.Tests
             var buffer = Windows.Storage.FileIO.ReadBufferAsync(file).AsTask().ConfigureAwait(false).GetAwaiter()
                 .GetResult();
             var jsonData = System.Runtime.InteropServices.WindowsRuntime.WindowsRuntimeBufferExtensions.ToArray(buffer);
-#elif __ANDROID__ 
+            #elif __ANDROID__ 
             Android.Content.Context ctx = null;
             #if !NET6_0_ANDROID
             ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
@@ -493,17 +493,17 @@ namespace LiteCore.Tests
                 stream.CopyTo(ms);
                 jsonData = ms.ToArray();
             }
-#elif __IOS__
-			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
-			byte[] jsonData;
+            #elif __IOS__
+            var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
+            byte[] jsonData;
             using (var stream = File.Open(bundlePath, FileMode.Open, FileAccess.Read))
             using (var ms = new MemoryStream()) {
                 stream.CopyTo(ms);
                 jsonData = ms.ToArray();
             }
-#else
+            #else
             var jsonData = File.ReadAllBytes(path);
-#endif
+            #endif
 
             FLError error;
             FLSliceResult fleeceData;

@@ -68,9 +68,9 @@ namespace Test
         internal static readonly ISelectResult RevID = SelectResult.Expression(Meta.RevisionID);
 
         protected static int _counter;
-#if !WINDOWS_UWP
+        #if !WINDOWS_UWP
         protected readonly ITestOutputHelper _output;
-#else
+        #else
         private TestContext _testContext;
         public TestContext TestContext
         {
@@ -80,7 +80,7 @@ namespace Test
                 Database.Log.Custom = new MSTestLogger(_testContext) { Level = LogLevel.Info };
             }
         }
-#endif
+        #endif
 
         protected Database Db { get; private set; }
 
@@ -91,24 +91,24 @@ namespace Test
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
 
-#if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__MOBILE__
+        #if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__MOBILE__
         static TestCase()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
         }
-#endif
+        #endif
 
 
 
-#if !WINDOWS_UWP
+        #if !WINDOWS_UWP
         public TestCase(ITestOutputHelper output)
         {
             Database.Log.Custom = new XunitLogger(output) { Level = LogLevel.Info };
             _output = output;
-#else
+        #else
         public TestCase()
         { 
-#endif
+        #endif
             var nextCounter = Interlocked.Increment(ref _counter);
             Database.Delete($"{DatabaseName}{nextCounter}", Directory);
             OpenDB(nextCounter);
@@ -116,11 +116,11 @@ namespace Test
 
         protected void WriteLine(string line)
         {
-#if !WINDOWS_UWP
+            #if !WINDOWS_UWP
             _output.WriteLine(line ?? "<null>");
-#else
+            #else
             TestContext.WriteLine(line ?? "<null>");
-#endif
+            #endif
         }
 
 
@@ -646,7 +646,7 @@ namespace Test
 
         internal static bool ReadFileByLines(string path, Func<string, bool> callback)
         {
-#if WINDOWS_UWP || NET6_0_WINDOWS10
+            #if WINDOWS_UWP || NET6_0_WINDOWS10
             var url = $"ms-appx:///Assets/{path}";
                 var file = Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri(url))
                     .AsTask()
@@ -656,7 +656,7 @@ namespace Test
 
                 var lines = Windows.Storage.FileIO.ReadLinesAsync(file).AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
                 foreach(var line in lines) {
-#elif __ANDROID__ 
+            #elif __ANDROID__ 
             Android.Content.Context ctx = null;
             #if !NET6_0_ANDROID
             ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
@@ -665,31 +665,31 @@ namespace Test
             #endif
             using (var tr = new StreamReader(ctx.Assets.Open(path))) {
                 string line;
-                while ((line = tr.ReadLine()) != null) {  
-#elif __IOS__
+                while ((line = tr.ReadLine()) != null) {
+            #elif __IOS__
 			var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			using (var tr = new StreamReader(File.Open(bundlePath, FileMode.Open, FileAccess.Read))) {
 				string line;
 				while ((line = tr.ReadLine()) != null) {
-#else
+            #else
             using (var tr = new StreamReader(typeof(TestCase).GetTypeInfo().Assembly.GetManifestResourceStream(path.Replace("C/tests/data/", "")))) {
-                        string line;
-                        while ((line = tr.ReadLine()) != null) {
-#endif
+				string line;
+				while ((line = tr.ReadLine()) != null) {
+            #endif
                     if (!callback(line)) {
-						return false;
-					}
+                        return false;
+                    }
 				}
-#if !WINDOWS_UWP &&  !NET6_0_WINDOWS10
+        #if !WINDOWS_UWP &&  !NET6_0_WINDOWS10
         }
-#endif
+        #endif
 
             return true;
         }
 
         internal Stream GetTestAsset(string path)
         {
-#if WINDOWS_UWP || NET6_0_WINDOWS10
+            #if WINDOWS_UWP || NET6_0_WINDOWS10
             var url = $"ms-appx:///Assets/{path}";
                 var file = Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri(url))
                     .AsTask()
@@ -698,21 +698,21 @@ namespace Test
                     .GetResult();
 
                 return file.OpenStreamForReadAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-#elif __ANDROID__ && !NET6_0_ANDROID
+            #elif __ANDROID__ && !NET6_0_ANDROID
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
             return ctx.Assets.Open(path);
-#elif NET6_0_ANDROID
+            #elif NET6_0_ANDROID
             var ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
             return ctx.Assets.Open(path);
-#elif __IOS__
+            #elif __IOS__
             var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			return File.Open(bundlePath, FileMode.Open, FileAccess.Read);
-#else
+            #else
             return File.Open(path, FileMode.Open, FileAccess.Read);
-#endif
+            #endif
 
         }
-#endif
+        #endif
 
         public void Dispose()
         {
