@@ -2052,7 +2052,7 @@ namespace Test
             
             Db.GetDocument(docId).Should().NotBeNull("because the expiration has not been set yet");
             Db.SetDocumentExpiration(docId, DateTimeOffset.Now);
-            Thread.Sleep(5);
+            Thread.Sleep(50);
             Db.GetDocument(docId).Should().BeNull("because the purge should happen immediately");
         }
 

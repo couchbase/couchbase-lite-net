@@ -209,7 +209,7 @@ namespace Couchbase.Lite.Sync
 			var runtimePlatform = Service.GetInstance<IRuntimePlatform>();
 			var osDescription = runtimePlatform?.OSDescription ?? RuntimeInformation.OSDescription;
 			var hardware = runtimePlatform != null ? $"; {runtimePlatform.HardwareName}" : "";
-			return $"CouchbaseLite/{version} (.NET; {osDescription}{hardware}) Build/{build} LiteCore/{Native.c4_getVersion()} Commit/{commit}";
+            return $"CouchbaseLite/{version} (.NET; {osDescription}{hardware}) Build/{build} LiteCore/{Native.c4_getVersion()} Commit/{commit}";
 		}
 
         private string CreateAuthHeader()
