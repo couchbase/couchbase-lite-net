@@ -31,12 +31,6 @@ namespace LiteCore.Interop
         public static extern void c4enum_close(C4DocEnumerator* e);
 
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4DocEnumerator* c4db_enumerateChanges(C4Database* database, ulong since, C4EnumeratorOptions* options, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern C4DocEnumerator* c4db_enumerateAllDocs(C4Database* database, C4EnumeratorOptions* options, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4enum_next(C4DocEnumerator* e, C4Error* outError);
 
