@@ -408,8 +408,10 @@ namespace Test
                     .Should()
                     .ContainInOrder(fragment.Array,
                         "because both of these accessors should return the same value");
-                fragment.Array.Should().ContainInOrder(nested, "because that is what was stored");
                 fragment.Array.Count.Should().Be(3, "because there are three elements inside");
+                var list = fragment.Array.ToList();
+                for (int i = 0; i < fragment.Array.Count; i++)
+                    Assert.Equal(list[i], nested[i]);
             });
         }
 

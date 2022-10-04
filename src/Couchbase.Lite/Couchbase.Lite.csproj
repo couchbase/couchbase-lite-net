@@ -67,7 +67,7 @@
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' or $(TargetFramework.StartsWith('netcoreapp')) or '$(TargetFramework)' == 'net6.0' ">
     <ProjectReference Include="..\..\src\Couchbase.Lite.Support.NetDesktop\Couchbase.Lite.Support.NetDesktop.csproj" />
   </ItemGroup>
-  <ItemGroup Condition=" ($(TargetFramework.StartsWith('MonoAndroid')) or $(TargetFramework.EndsWith('android'))) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
+  <ItemGroup Condition=" ($(TargetFramework.StartsWith('MonoAndroid')) or $(TargetFramework.StartsWith('net6.0-android'))) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">
     <ProjectReference Include="..\..\src\Couchbase.Lite.Support.Android\Couchbase.Lite.Support.Android.csproj" />
   </ItemGroup>
   <ItemGroup>

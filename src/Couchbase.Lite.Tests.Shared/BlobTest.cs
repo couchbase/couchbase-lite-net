@@ -275,7 +275,7 @@ namespace Test
             var newJsonD = JsonConvert.DeserializeObject<Dictionary<string, object>>(newJson);
 
             foreach (var kv in bjsonD) {
-                newJsonD[kv.Key].Should().Equals(kv.Value);
+                Assert.Equal(newJsonD[kv.Key].ToString(), kv.Value.ToString());
             }
         }
 
