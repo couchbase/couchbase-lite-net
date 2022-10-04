@@ -23,7 +23,6 @@ using System.IO;
 using System.Text;
 using Couchbase.Lite;
 using Couchbase.Lite.Logging;
-using Couchbase.Lite.Support;
 using FluentAssertions;
 using Test.Util;
 #if !WINDOWS_UWP
@@ -60,7 +59,7 @@ namespace Test
 
         public Database Db { get; private set; }
 
-#if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10
+#if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !NET6_0_ANDROID
         static PerfTest()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();

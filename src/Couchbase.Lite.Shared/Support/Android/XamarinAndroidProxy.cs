@@ -53,6 +53,7 @@ namespace Couchbase.Lite.Support
 
         #endregion
 
+        #region Private Methods
         private string EncodeUrl(Uri url)
         {
             // Copied from https://github.com/xamarin/xamarin-android/blob/master/src/Mono.Android/Xamarin.Android.Net/AndroidClientHandler.cs
@@ -69,6 +70,7 @@ namespace Couchbase.Lite.Support
             // bldr.Uri.ToString () would ruin the good job UriBuilder did
             return bldr.ToString();
         }
+        #endregion
     }
 }
 #endif

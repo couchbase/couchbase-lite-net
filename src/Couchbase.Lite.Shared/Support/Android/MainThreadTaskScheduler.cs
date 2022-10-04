@@ -33,35 +33,35 @@ namespace Couchbase.Lite.Support
 {
     internal sealed class MainThreadTaskScheduler : TaskScheduler, IMainThreadTaskScheduler
     {
-#region Constants
+        #region Constants
 
         private const string Tag = nameof(MainThreadTaskScheduler);
 
-#endregion
+        #endregion
 
-#region Variables
+        #region Variables
 
         [NotNull]
         private static Handler _Handler;
 
-#endregion
+        #endregion
 
-#region Properties
+        #region Properties
 
         public bool IsMainThread => Looper.MainLooper == Looper.MyLooper();
 
-#endregion
+        #endregion
 
-#region Constructors
+        #region Constructors
 
         public MainThreadTaskScheduler([NotNull]Context context)
         {
             Interlocked.CompareExchange(ref _Handler, new Handler(context.MainLooper), null);
         }
 
-#endregion
+        #endregion
 
-#region Overrides
+        #region Overrides
 
         protected override IEnumerable<Task> GetScheduledTasks()
         {
@@ -87,16 +87,16 @@ namespace Couchbase.Lite.Support
             return TryExecuteTask(task);
         }
 
-#endregion
+        #endregion
 
-#region IMainThreadTaskScheduler
+        #region IMainThreadTaskScheduler
 
         public TaskScheduler AsTaskScheduler()
         {
             return this;
         }
 
-#endregion
+        #endregion
     }
 }
 #endif

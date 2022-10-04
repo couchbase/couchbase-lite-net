@@ -185,12 +185,14 @@ namespace System.IO.Compression
 
                     Directory.CreateDirectory(fileDestinationPath);
                 }
+                #if !__ANDROID__
                 else {
                     // If it is a file:
                     // Create containing directory:
                     Directory.CreateDirectory(Path.GetDirectoryName(fileDestinationPath));
                     entry.ExtractToFile(fileDestinationPath, overwrite: overwrite);
                 }
+                #endif
             }
         }
 
