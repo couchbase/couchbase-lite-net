@@ -27,14 +27,6 @@ namespace LiteCore.Interop
 
     internal unsafe static partial class Native
     {
-        public static bool c4db_createIndex(C4Database* database, string name, string indexSpecJSON, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError)
-        {
-            using(var name_ = new C4String(name))
-            using(var indexSpecJSON_ = new C4String(indexSpecJSON)) {
-                return NativeRaw.c4db_createIndex(database, name_.AsFLSlice(), indexSpecJSON_.AsFLSlice(), indexType, indexOptions, outError);
-            }
-        }
-
         public static bool c4db_createIndex2(C4Database* database, string name, string indexSpec, C4QueryLanguage queryLanguage, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError)
         {
             using(var name_ = new C4String(name))
@@ -42,34 +34,12 @@ namespace LiteCore.Interop
                 return NativeRaw.c4db_createIndex2(database, name_.AsFLSlice(), indexSpec_.AsFLSlice(), queryLanguage, indexType, indexOptions, outError);
             }
         }
-
-        public static bool c4db_deleteIndex(C4Database* database, string name, C4Error* outError)
-        {
-            using(var name_ = new C4String(name)) {
-                return NativeRaw.c4db_deleteIndex(database, name_.AsFLSlice(), outError);
-            }
-        }
-
-
     }
 
     internal unsafe static partial class NativeRaw
     {
         [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_createIndex(C4Database* database, FLSlice name, FLSlice indexSpecJSON, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
         public static extern bool c4db_createIndex2(C4Database* database, FLSlice name, FLSlice indexSpec, C4QueryLanguage queryLanguage, C4IndexType indexType, C4IndexOptions* indexOptions, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        public static extern FLSliceResult c4db_getIndexesInfo(C4Database* database, C4Error* outError);
-
-        [DllImport(Constants.DllName, CallingConvention = CallingConvention.Cdecl)]
-        [return: MarshalAs(UnmanagedType.U1)]
-        public static extern bool c4db_deleteIndex(C4Database* database, FLSlice name, C4Error* outError);
-
-
     }
 }
