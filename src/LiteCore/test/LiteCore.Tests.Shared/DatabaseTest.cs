@@ -69,84 +69,6 @@ namespace LiteCore.Tests
         }
 
         [Fact]
-        public void TestAllDocs()
-        {
-            RunTestVariants(() => {
-                SetupAllDocs();
-
-                Native.c4coll_getDocumentCount(Native.c4db_getDefaultCollection(Db, null)).Should().Be(99UL, "because there are 99 non-deleted documents");
-
-                // No start or end ID:
-                var options = C4EnumeratorOptions.Default;
-                options.flags &= ~C4EnumeratorFlags.IncludeBodies;
-                var e = (C4DocEnumerator *)LiteCoreBridge.Check(err => {
-                    var localOpts = options;
-                    return Native.c4db_enumerateAllDocs(Db, &localOpts, err);
-                });
-
-                int i = 1;
-                C4Error error;
-                while(Native.c4enum_next(e, &error)) {
-                    var doc = (C4Document *)LiteCoreBridge.Check(err => Native.c4enum_getDocument(e, err));
-                    var docID = $"doc-{i:D3}";
-                    doc->docID.CreateString().Should().Be(docID, "because the doc should have the correct doc ID");
-                    doc->revID.Equals(RevID).Should().BeTrue("because the doc should have the current revID");
-                    doc->selectedRev.revID.Equals(RevID).Should().BeTrue("because the selected rev should have the correct rev ID");
-                    doc->selectedRev.sequence.Should().Be((ulong)i, "because the sequences should come in order");
-                    Native.c4doc_hasRevisionBody(doc).Should().BeFalse("because the body is not loaded yet");
-                    LiteCoreBridge.Check(err => Native.c4doc_loadRevisionBody(doc, err));
-                    NativeRaw.c4doc_getRevisionBody(doc).Equals(FleeceBody).Should().BeTrue("because the loaded body should be correct");
-
-                    C4DocumentInfo info;
-                    Native.c4enum_getDocumentInfo(e, &info).Should().BeTrue("because otherwise the doc info load failed");
-                    info.docID.CreateString().Should().Be(docID, "because the doc info should have the correct doc ID");
-                    info.revID.Equals(RevID).Should().BeTrue("because the doc info should have the correct rev ID");
-                    info.bodySize.Should().BeGreaterOrEqualTo(11).And
-                        .BeLessOrEqualTo(40, "because the body should have some data");
-
-                    Native.c4doc_release(doc);
-                    i++;
-                }
-
-                Native.c4enum_free(e);
-                i.Should().Be(100);
-            });
-        }
-
-        [Fact]
-        public void TestAllDocsInfo()
-        {
-            RunTestVariants(() => {
-                SetupAllDocs();
-
-                var options = C4EnumeratorOptions.Default;
-                var e = (C4DocEnumerator *)LiteCoreBridge.Check(err => {
-                    var localOpts = options;
-                    return Native.c4db_enumerateAllDocs(Db, &localOpts, err);
-                });
-
-                int i = 1;
-                C4Error error;
-                while(Native.c4enum_next(e, &error)) {
-                    C4DocumentInfo doc;
-                    Native.c4enum_getDocumentInfo(e, &doc).Should().BeTrue("because otherwise getting the doc info failed");
-                    var docID = $"doc-{i:D3}";
-                    doc.docID.CreateString().Should().Be(docID, "because the doc info should have the correct doc ID");
-                    doc.revID.Equals(RevID).Should().BeTrue("because the doc info should have the correct rev ID");
-                    doc.sequence.Should().Be((ulong)i, "because the doc info should have the correct sequence");
-                    doc.flags.Should().Be(C4DocumentFlags.DocExists, "because the doc info should have the correct flags");
-                    doc.bodySize.Should().BeGreaterOrEqualTo(11).And
-                        .BeLessOrEqualTo(40, "because the body should have some data");
-                    i++;
-                }
-
-                Native.c4enum_free(e);
-                error.code.Should().Be(0, "because otherwise an error occurred somewhere");
-                i.Should().Be(100, "because all docs should be iterated, even deleted ones");
-            });
-        }
-
-        [Fact]
         public void TestCancelExpire()
         {
             RunTestVariants(() =>
@@ -162,53 +84,6 @@ namespace LiteCore.Tests
                 Native.c4coll_setDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, 0, &err).Should().BeTrue();
                 Native.c4coll_getDocExpiration(Native.c4db_getDefaultCollection(Db, null), docID, null).Should().Be(0);
                 Native.c4coll_nextDocExpiration(Native.c4db_getDefaultCollection(Db, null)).Should().Be(0);
-            });
-        }
-
-        [Fact]
-        public void TestChanges()
-        {
-            RunTestVariants(() => {
-                CreateNumberedDocs(99);
-
-                // Since start:
-                var options = C4EnumeratorOptions.Default;
-                options.flags &= ~C4EnumeratorFlags.IncludeBodies;
-                var e = (C4DocEnumerator *)LiteCoreBridge.Check(err => {
-                    var localOpts = options;
-                    return Native.c4db_enumerateChanges(Db, 0, &localOpts, err);
-                });
-
-                var seq = 1UL;
-                C4Document* doc;
-                C4Error error;
-                while(null != (doc = c4enum_nextDocument(e, &error))) {
-                    doc->selectedRev.sequence.Should().Be(seq, "because the sequence numbers should be ascending");
-                    var docID = $"doc-{seq:D3}";
-                    doc->docID.CreateString().Should().Be(docID, "because the doc should have the correct doc ID");
-                    Native.c4doc_release(doc);
-                    seq++;
-                }
-
-                Native.c4enum_free(e);
-
-                // Since 6:
-                e = (C4DocEnumerator *)LiteCoreBridge.Check(err => {
-                    var localOpts = options;
-                    return Native.c4db_enumerateChanges(Db, 6, &localOpts, err);
-                });
-
-                seq = 7;
-                while(null != (doc = c4enum_nextDocument(e, &error))) {
-                    doc->selectedRev.sequence.Should().Be(seq, "because the sequence numbers should be ascending");
-                    var docID = $"doc-{seq:D3}";
-                    doc->docID.CreateString().Should().Be(docID, "because the doc should have the correct doc ID");
-                    Native.c4doc_release(doc);
-                    seq++;
-                }
-
-                Native.c4enum_free(e);
-                seq.Should().Be(100UL, "because that is the highest sequence in the DB");
             });
         }
 
