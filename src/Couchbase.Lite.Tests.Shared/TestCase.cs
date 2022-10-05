@@ -264,7 +264,7 @@ namespace Test
                     var b2JsonD = ((Blob) dic[i.Key]).JsonRepresentation;
 
                     foreach (var kv in b2JsonD) {
-                        Assert.Equal(b1JsonD[kv.Key].ToString(), kv.Value.ToString());
+                        b1JsonD[kv.Key].ToString().Should().Be(kv.Value.ToString());
                     }
 
                     var blob = new Blob(Db, b1JsonD);

@@ -411,7 +411,7 @@ namespace Test
                 fragment.Array.Count.Should().Be(3, "because there are three elements inside");
                 var list = fragment.Array.ToList();
                 for (int i = 0; i < fragment.Array.Count; i++)
-                    Assert.Equal(list[i], nested[i]);
+                    list[i].Should().Be(nested[i]);
             });
         }
 
