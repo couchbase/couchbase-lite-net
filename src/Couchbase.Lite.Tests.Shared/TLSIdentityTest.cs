@@ -111,12 +111,12 @@ namespace Test
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
         }
         
-        [Fact]
+        [Fact] //Note: Maui Android cert requirement: https://stackoverflow.com/questions/70100597/read-x509-certificate-in-android-net-6-0-application
         public void TestImportIdentity()
         {
             TLSIdentity id;
             byte[] data = null;
-            using(var stream = typeof(TLSIdentityTest).GetTypeInfo().Assembly.GetManifestResourceStream("certs.p12"))
+            using (var stream = typeof(TLSIdentityTest).GetTypeInfo().Assembly.GetManifestResourceStream("certs.pfx"))
             using (var reader = new BinaryReader(stream)) {
                 data = reader.ReadBytes((int)stream.Length);
             }
