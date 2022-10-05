@@ -1399,7 +1399,7 @@ namespace Test
                         blob.Should().BeEquivalentTo((Blob) array[i]);
 
                         foreach (var kv in b1JsonD) {
-                            b2JsonD[kv.Key].Should().Equals(kv.Value);
+                            b2JsonD[kv.Key].ToString().Should().Be(kv.Value.ToString());
                         }
                     } else if (array[i] != null && array[i].GetType().Equals(typeof(float))) {
                         DataOps.ConvertToFloat(jList[i]).Should().BeApproximately((float) array[i], 0.0000000001f);

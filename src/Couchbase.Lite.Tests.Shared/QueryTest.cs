@@ -74,7 +74,7 @@ namespace Test
                     .Where(Meta.ID.EqualTo(Expression.String(docId)))) {
 
                     VerifyQuery(q, (n, row) => {
-                        row.GetString(0).Should().Equals(doc.RevisionID);
+                        row.GetString(0).Should().Be(doc.RevisionID.ToString());
                     });
 
                     // Update doc:
@@ -82,7 +82,7 @@ namespace Test
                     Db.Save(doc);
 
                     VerifyQuery(q, (n, row) => {
-                        row.GetString(0).Should().Equals(doc.RevisionID);
+                        row.GetString(0).Should().Be(doc.RevisionID.ToString());
                     });
                 }
 
@@ -92,7 +92,7 @@ namespace Test
                 .Where(Meta.RevisionID.EqualTo(Expression.String(docId)))) {
 
                     VerifyQuery(q, (n, row) => {
-                        row.GetString(0).Should().Equals(docId);
+                        row.GetString(0).Should().Be(docId.ToString());
                     });
                 }
 
@@ -103,7 +103,7 @@ namespace Test
                 .From(DataSource.Database(Db))
                 .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(true)))) {
                     VerifyQuery(q, (n, row) => {
-                        row.GetString(0).Should().Equals(doc.RevisionID);
+                        row.GetString(0).Should().Be(doc.RevisionID.ToString());
                     });
                 }
             }

@@ -128,8 +128,8 @@ namespace Test
                     {
                         var pred = result.GetDictionary(0);
                         pred.GetValue("sum").Should().BeNull("because the model should have been replaced");
-                        pred.GetArray("numbers").Should().ContainInOrder(new[] { 1L, 2L, 3L, 4L, 5L },
-                            "because the document should simply be echoed back");
+                        pred.GetArray("numbers").SequenceEqual(new List<object> { 1L, 2L, 3L, 4L, 5L })
+                            .Should().BeTrue("because the document should simply be echoed back");
                     });
                     rows.Should().Be(1);
                 }
