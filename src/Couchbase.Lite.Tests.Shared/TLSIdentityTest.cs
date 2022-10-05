@@ -56,20 +56,20 @@ using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
 
 namespace Test
 {
-#if WINDOWS_UWP
+    #if WINDOWS_UWP
     [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
+    #endif
     public sealed class TLSIdentityTest : TestCase
     {
         const string ServerCertLabel = "CBL-Server-Cert";
         const string ClientCertLabel = "CBL-Client-Cert";
 
         private X509Store _store;
-#if !WINDOWS_UWP
+        #if !WINDOWS_UWP
         public TLSIdentityTest(ITestOutputHelper output) : base(output)
-#else
+        #else
         public TLSIdentityTest()
-#endif
+        #endif
         {
             _store = new X509Store(StoreName.My);
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
@@ -111,12 +111,16 @@ namespace Test
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
         }
         
-        [Fact] //Note: Maui Android cert requirement: https://stackoverflow.com/questions/70100597/read-x509-certificate-in-android-net-6-0-application
+        [Fact]
         public void TestImportIdentity()
         {
             TLSIdentity id;
             byte[] data = null;
+            #if __ANDROID__ && !NET6_0_ANDROID
+            using (var stream = typeof(TLSIdentityTest).GetTypeInfo().Assembly.GetManifestResourceStream("certs.p12"))
+            #else //Note: Maui Android cert requirement: https://stackoverflow.com/questions/70100597/read-x509-certificate-in-android-net-6-0-application
             using (var stream = typeof(TLSIdentityTest).GetTypeInfo().Assembly.GetManifestResourceStream("certs.pfx"))
+            #endif
             using (var reader = new BinaryReader(stream)) {
                 data = reader.ReadBytes((int)stream.Length);
             }
