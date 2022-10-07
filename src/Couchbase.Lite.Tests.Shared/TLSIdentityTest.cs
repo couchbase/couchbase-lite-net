@@ -116,12 +116,12 @@ namespace Test
         {
             TLSIdentity id;
             byte[] data = null;
-            #if __ANDROID__ && !NET6_0_ANDROID
-            using (var stream = typeof(TLSIdentityTest).GetTypeInfo().Assembly.GetManifestResourceStream("certs.p12"))
-            #else 
+            #if NET6_0_ANDROID
             //Note: Maui Android cert requirement: https://stackoverflow.com/questions/70100597/read-x509-certificate-in-android-net-6-0-application
             //When export the cert, encryption has to be TripleDES-SHA1, AES256-SHA256 will not work...
-            using (var stream = typeof(TLSIdentityTest).GetTypeInfo().Assembly.GetManifestResourceStream("certs.pfx")) 
+            using (var stream = typeof(TLSIdentityTest).GetTypeInfo().Assembly.GetManifestResourceStream("certs.pfx"))
+            #else 
+            using (var stream = typeof(TLSIdentityTest).GetTypeInfo().Assembly.GetManifestResourceStream("certs.p12")) 
             #endif
             using (var reader = new BinaryReader(stream)) {
                 data = reader.ReadBytes((int)stream.Length);

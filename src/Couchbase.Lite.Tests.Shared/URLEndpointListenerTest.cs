@@ -413,7 +413,11 @@ namespace Test
                 caData = reader.ReadBytes((int)stream.Length);
             }
 
+            #if NET6_0_ANDROID
             using(var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client.pfx"))
+			#else 
+            using(var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client.p12")) 
+            #endif
             using (var reader = new BinaryReader(stream)) {
                 clientData = reader.ReadBytes((int)stream.Length);
             }
@@ -448,7 +452,11 @@ namespace Test
         public void TestListenerWithImportIdentity()
         {
             byte[] serverData = null;
-            using (var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client.pfx"))
+			#if NET6_0_ANDROID
+            using(var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client.pfx"))
+			#else 
+            using(var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client.p12")) 
+            #endif
             using (var reader = new BinaryReader(stream)) {
                 serverData = reader.ReadBytes((int) stream.Length);
             }
