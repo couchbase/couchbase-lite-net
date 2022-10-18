@@ -54,9 +54,9 @@ using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
 
 namespace Test
 {
-#if WINDOWS_UWP
+    #if WINDOWS_UWP
     [TestClass]
-#endif
+    #endif
     public class TestCase : IDisposable
     {
         public const string DatabaseName = "testdb";
@@ -91,7 +91,7 @@ namespace Test
         protected static string Directory => Path.Combine(Path.GetTempPath().Replace("cache", "files"), "CouchbaseLite");
 
 
-        #if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__MOBILE__
+        #if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__ANDROID__ && !__IOS__
         static TestCase()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();

@@ -185,7 +185,7 @@ namespace System.IO.Compression
 
                     Directory.CreateDirectory(fileDestinationPath);
                 }
-                #if !__ANDROID__
+                #if !__ANDROID__ && !__IOS__
                 else {
                     // If it is a file:
                     // Create containing directory:

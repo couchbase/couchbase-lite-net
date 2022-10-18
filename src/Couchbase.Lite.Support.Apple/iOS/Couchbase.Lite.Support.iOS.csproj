@@ -8,8 +8,8 @@
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.2</SupportedOSPlatformVersion>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Support.iOS</RootNamespace>
-    <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
     <AssemblyName>Couchbase.Lite.Support.iOS</AssemblyName>
+    <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
     <CopyNuGetImplementations>True</CopyNuGetImplementations>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
@@ -53,6 +53,9 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <DocumentationFile>bin\Packaging\Couchbase.Lite.Support.iOS.xml</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net6.0-ios14.2' or '$(TargetFramework)' == 'net6.0-maccatalyst14.2' ">
+    <DefineConstants>$(DefineConstants);NET6_0_APPLE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="..\..\Couchbase.Lite\Properties\DynamicAssemblyInfo.tt">

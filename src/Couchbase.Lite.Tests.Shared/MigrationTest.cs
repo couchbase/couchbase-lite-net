@@ -15,7 +15,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-#if !CBL_NO_EXTERN_FILES && !__ANDROID__
+#if !CBL_NO_EXTERN_FILES && !__ANDROID__ && !__IOS__
 using System;
 using System.Collections.Generic;
 using System.IO.Compression;
@@ -31,17 +31,17 @@ using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
 
 namespace Test
 {
-#if WINDOWS_UWP
+    #if WINDOWS_UWP
     [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
+    #endif
     public sealed class MigrationTest : TestCase
     {
-#if !WINDOWS_UWP
+        #if !WINDOWS_UWP
         public MigrationTest(ITestOutputHelper output) : base(output)
         {
 
         }
-#endif
+        #endif
 
         [Fact]
         public void TestOpenExistingDBv1x()

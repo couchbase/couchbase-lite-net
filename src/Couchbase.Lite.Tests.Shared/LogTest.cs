@@ -46,26 +46,26 @@ using Fact = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
 
 namespace Test
 {
-#if WINDOWS_UWP
+    #if WINDOWS_UWP
     [Microsoft.VisualStudio.TestTools.UnitTesting.TestClass]
-#endif
+    #endif
     public sealed class LogTest
     {
-#if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__ANDROID__
+        #if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__ANDROID__ && !__IOS__
         static LogTest()
         {
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
         }
-#endif
+        #endif
 
-#if !WINDOWS_UWP
+        #if !WINDOWS_UWP
         public LogTest(ITestOutputHelper output)
         {
             Database.Log.Custom = new XunitLogger(output) { Level = LogLevel.Info };
         }
-#endif
+        #endif
 
-#if WINDOWS_UWP
+        #if WINDOWS_UWP
         private TestContext _testContext;
         public TestContext TestContext
         {
@@ -75,7 +75,7 @@ namespace Test
                 Database.Log.Custom = new MSTestLogger(_testContext) { Level = LogLevel.Info };
             }
         }
-#endif
+        #endif
 
         [Fact]
         public void TestDefaultLogFormat()
@@ -138,9 +138,9 @@ namespace Test
                 }
                 
                 var totalCount = (Database.Log.File.Config.MaxRotateCount + 1) * 5;
-#if !DEBUG
+                #if !DEBUG
                 totalCount -= 1; // Non-debug builds won't log debug files
-#endif
+                #endif
 
                 Directory.EnumerateFiles(logDirectory).Should()
                     .HaveCount(totalCount, "because old log files should be getting pruned");
@@ -248,7 +248,7 @@ namespace Test
             });
         }
 
-#if !__ANDROID__
+        #if !__ANDROID__
         [Fact]
         public void TestConsoleLoggingLevels()
         {
@@ -330,7 +330,7 @@ namespace Test
             // There is a helper method in debug builds that can clear the "run once"
             // logic.  Otherwise there has to be a guarantee that this method will run
             // first.
-#if DEBUG
+            #if DEBUG
             Run.Clear("CheckFileLogger");
             using (var sw = new StringWriter()) {
                 Console.SetOut(sw);
@@ -339,7 +339,7 @@ namespace Test
                     db.Delete();
                 }
             }
-#endif
+            #endif
 
             using (var sw = new StringWriter()) {
                 Console.SetOut(sw);
@@ -349,7 +349,7 @@ namespace Test
                 sw.ToString().Contains("file logging is disabled").Should().BeTrue();
             }
 
-#if DEBUG
+            #if DEBUG
             using (var sw = new StringWriter()) {
                 Console.SetOut(sw);
                 using (var db = new Database("tmp")) {
@@ -357,11 +357,11 @@ namespace Test
                     db.Delete();
                 }
             }
-#endif
+            #endif
             
             Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
         }
-#endif
+        #endif
 
         [Fact]
         public void TestCustomLoggingLevels()
