@@ -15,35 +15,123 @@
 //  limitations under the License.
 //
 using Couchbase.Lite.Sync;
+using Couchbase.Lite.P2P;
+using Couchbase.Lite.Query;
+using Couchbase.Lite.Logging;
+
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Couchbase.Lite.Info
 {
-    internal class Constants
+    public static class Constants
     {
-        // URLEndpointListenerConfiguration
-        internal const ushort DefaultListenerPort = 0;
-        internal const bool DefaultListenerDisableTLS = false;
-        internal const bool DefaultListenerReadOnly = false;
-        internal const bool DefaultListenerEnableDeltaSync = false;
+        #region Constants in URLEndpointListenerConfiguration
 
-        // ReplicatorConfiguration
-        internal const ReplicatorType DefaultReplicatorType = ReplicatorType.PushAndPull;
-        internal const bool DefaultReplicatorContinuous = false;
-        internal const long DefaultReplicatorHeartbeat = 300; //seconds
-        internal const int DefaultReplicatorMaxAttemptsSingleShot = 9;
-        internal const int DefaultReplicatorMaxAttemptsContinuous = int.MaxValue;
-        internal const long DefaultReplicatorMaxAttemptWaitTime = 300; //seconds
-        internal const bool DefaultReplicatorEnableAutoPurge = true;
+        /// <summary>
+        /// Default port <see cref="URLEndpointListenerConfiguration.Port" /> property value in URLEndpointListenerConfiguration.
+        /// The default value is zero which means that the listener will automatically select an available port to listen to when the listener is started.
+        /// </summary>
+        public static readonly ushort DefaultListenerPort = 0;
 
-        // FullTextIndexConfiguration
-        internal const bool DefaultFullTextIndexIgnoreAccents = false;
+        /// <summary>
+        /// Default DisableTLS <see cref="URLEndpointListenerConfiguration.DisableTLS" /> property value in URLEndpointListenerConfiguration.
+        /// The default value is <c>false</c> which means that the TLS will be enabled by default.
+        /// </summary>
+        public static readonly bool DefaultListenerDisableTLS = false;
 
-        // LogFileConfiguration
-        internal const bool DefaultLogFileUsePlainText = false;
-        internal const long DefaultLogFileMaxSize = 52428;
-        internal const int DefaultLogFileMaxRotateCount = 1;
+        /// <summary>
+        /// Default ReadOnly <see cref="URLEndpointListenerConfiguration.ReadOnly" /> property value in URLEndpointListenerConfiguration.
+        /// The default value is <c>false</c> which means both push and pull replications are allowed to/from the listener.
+        /// </summary>
+        public static readonly bool DefaultListenerReadOnly = false;
+
+        /// <summary>
+        /// Default EnableDeltaSync <see cref="URLEndpointListenerConfiguration.EnableDeltaSync" /> property value in URLEndpointListenerConfiguration.
+        /// The default value is <c>false</c> which means delta sync is diabled in replicating with the listener.
+        /// </summary>
+        public static readonly bool DefaultListenerEnableDeltaSync = false;
+
+        #endregion
+
+        #region Constants in ReplicatorConfiguration
+
+        /// <summary>
+        /// Default ReplicatorType <see cref="ReplicatorConfiguration.ReplicatorType" /> property value in ReplicatorConfiguration.
+        /// The default is <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
+        /// </summary>
+        public static readonly ReplicatorType DefaultReplicatorType = ReplicatorType.PushAndPull;
+
+        /// <summary>
+        /// Default Continuous <see cref="ReplicatorConfiguration.Continuous" /> property value in ReplicatorConfiguration.
+        /// The default value is <c>false</c> which means <see cref="Replicator"/> is not stay active indefinitely.
+        /// </summary>
+        public static readonly bool DefaultReplicatorContinuous = false;
+
+        /// <summary>
+        /// Default Heartbeat <see cref="ReplicatorConfiguration.Heartbeat" /> property value in ReplicatorConfiguration.
+        /// The replicator heartbeat keep-alive interval default is 5 min.
+        /// </summary>
+        public static readonly TimeSpan DefaultReplicatorHeartbeat = TimeSpan.FromMinutes(5);
+
+        /// <summary>
+        /// Default MaxAttempts <see cref="ReplicatorConfiguration.MaxAttempts" /> property value in Single Shot ReplicatorConfiguration.
+        /// The default value is 9 max number of retry attempts to connect to peer in a single shot replication.
+        /// </summary>
+        public static readonly int DefaultReplicatorMaxAttemptsSingleShot = 9;
+
+        /// <summary>
+        /// Default MaxAttempts <see cref="ReplicatorConfiguration.MaxAttempts" /> property value in Continuous ReplicatorConfiguration.
+        /// The default value is <see cref="int.MaxValue" /> max number of retry attempts to connect to peer in a continuous replication.
+        /// </summary>
+        public static readonly int DefaultReplicatorMaxAttemptsContinuous = int.MaxValue;
+
+        /// <summary>
+        /// Default MaxAttemptsWaitTime <see cref="ReplicatorConfiguration.MaxAttemptsWaitTime" /> property value in ReplicatorConfiguration.
+        /// The max delay between retries default value is 5 min interval.
+        /// </summary>
+        public static readonly TimeSpan DefaultReplicatorMaxAttemptsWaitTime = TimeSpan.FromMinutes(5);
+
+        /// <summary>
+        /// Default EnableAutoPurge <see cref="ReplicatorConfiguration.EnableAutoPurge" /> property value in ReplicatorConfiguration.
+        /// The default value is <c>true</c> which means that the document will be automatically purged by the pull replicator when 
+        /// the user loses access to the document from both removed and revoked scenarios.
+        /// </summary>
+        public static readonly bool DefaultReplicatorEnableAutoPurge = true;
+
+        #endregion
+
+        #region Constants in FullTextIndexConfiguration
+
+        /// <summary>
+        /// Default IgnoreAccents <see cref="FullTextIndexConfiguration.IgnoreAccents" /> property value in FullTextIndexConfiguration.
+        /// The default value is <c>false</c> which means not to ignore accents when performing the full text search.
+        /// </summary>
+        public static readonly bool DefaultFullTextIndexIgnoreAccents = false;
+
+        #endregion
+
+        #region Constants in LogFileConfiguration
+
+        /// <summary>
+        /// Default UsePlaintext <see cref="LogFileConfiguration.UsePlaintext" /> property value in LogFileConfiguration.
+        /// The default is to log in a binary encoded format that is more CPU and I/O friendly and enabling plaintext is 
+        /// not recommended in production.
+        /// </summary>
+        public static readonly bool DefaultLogFileUsePlainText = false;
+
+        /// <summary>
+        /// Default MaxSize <see cref="LogFileConfiguration.MaxSize" /> property value in LogFileConfiguration.
+        /// The default max size of the log files in bytes is 52428.
+        /// </summary>
+        public static readonly long DefaultLogFileMaxSize = 52428;
+
+        /// <summary>
+        /// Default MaxRotateCount <see cref="LogFileConfiguration.MaxRotateCount" /> property value in LogFileConfiguration.
+        /// The default number of rotated logs that are saved is 1. 
+        /// If the value is 1, then 2 logs will be present: the 'current' and the 'rotated'
+        /// </summary>
+        public static readonly int DefaultLogFileMaxRotateCount = 1;
+
+        #endregion
     }
 }
