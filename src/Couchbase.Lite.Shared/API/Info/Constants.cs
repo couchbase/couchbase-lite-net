@@ -15,9 +15,11 @@
 //  limitations under the License.
 //
 using Couchbase.Lite.Sync;
-using Couchbase.Lite.P2P;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Logging;
+#if COUCHBASE_ENTERPRISE
+using Couchbase.Lite.P2P;
+#endif
 
 using System;
 
@@ -25,6 +27,7 @@ namespace Couchbase.Lite.Info
 {
     public static class Constants
     {
+        #if COUCHBASE_ENTERPRISE
         #region Constants in URLEndpointListenerConfiguration
 
         /// <summary>
@@ -52,6 +55,7 @@ namespace Couchbase.Lite.Info
         public static readonly bool DefaultListenerEnableDeltaSync = false;
 
         #endregion
+        #endif
 
         #region Constants in ReplicatorConfiguration
 
