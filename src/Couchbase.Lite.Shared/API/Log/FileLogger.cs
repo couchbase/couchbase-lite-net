@@ -25,12 +25,14 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Info;
 
 using JetBrains.Annotations;
 
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+using Constants = Couchbase.Lite.Info.Constants;
 
 namespace Couchbase.Lite.Logging
 {
@@ -53,9 +55,9 @@ namespace Couchbase.Lite.Logging
         [NotNull]
         private readonly Freezer _freezer = new Freezer();
 
-        private int _maxRotateCount = 1;
-        private long _maxSize = 1024 * 500;
-        private bool _usePlaintext;
+        private int _maxRotateCount = Constants.DefaultLogFileMaxRotateCount;
+        private long _maxSize = Constants.DefaultLogFileMaxSize;
+        private bool _usePlaintext = Constants.DefaultLogFileUsePlainText;
 
         #endregion
 

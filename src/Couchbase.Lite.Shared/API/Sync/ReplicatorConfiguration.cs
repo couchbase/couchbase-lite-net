@@ -20,7 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
-
+using Couchbase.Lite.Info;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
@@ -89,10 +89,10 @@ namespace Couchbase.Lite.Sync
 
         [NotNull]private readonly Freezer _freezer = new Freezer();
         private Authenticator _authenticator;
-        private bool _continuous;
+        private bool _continuous = Constants.DefaultReplicatorContinuous;
         private Database _otherDb;
         private Uri _remoteUrl;
-        private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
+        private ReplicatorType _replicatorType = Constants.DefaultReplicatorType;
         private C4SocketFactory _socketFactory;
 
         #endregion

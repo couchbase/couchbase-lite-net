@@ -14,6 +14,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+using Couchbase.Lite.Sync;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -22,10 +23,27 @@ namespace Couchbase.Lite.Info
 {
     internal class Constants
     {
-        //URLEndpointListenerConfiguration
+        // URLEndpointListenerConfiguration
         internal const ushort DefaultListenerPort = 0;
         internal const bool DefaultListenerDisableTLS = false;
         internal const bool DefaultListenerReadOnly = false;
         internal const bool DefaultListenerEnableDeltaSync = false;
+
+        // ReplicatorConfiguration
+        internal const ReplicatorType DefaultReplicatorType = ReplicatorType.PushAndPull;
+        internal const bool DefaultReplicatorContinuous = false;
+        internal const long DefaultReplicatorHeartbeat = 300; //seconds
+        internal const int DefaultReplicatorMaxAttemptsSingleShot = 9;
+        internal const int DefaultReplicatorMaxAttemptsContinuous = int.MaxValue;
+        internal const long DefaultReplicatorMaxAttemptWaitTime = 300; //seconds
+        internal const bool DefaultReplicatorEnableAutoPurge = true;
+
+        // FullTextIndexConfiguration
+        internal const bool DefaultFullTextIndexIgnoreAccents = false;
+
+        // LogFileConfiguration
+        internal const bool DefaultLogFileUsePlainText = false;
+        internal const long DefaultLogFileMaxSize = 52428;
+        internal const int DefaultLogFileMaxRotateCount = 1;
     }
 }
