@@ -125,9 +125,9 @@ namespace Couchbase.Lite.Info
 
         /// <summary>
         /// Default MaxSize <see cref="LogFileConfiguration.MaxSize" /> property value in LogFileConfiguration.
-        /// The default max size of the log files in bytes is 52428.
+        /// The default max size of the log files is 512 * 1024 (524288) bytes.
         /// </summary>
-        public static readonly long DefaultLogFileMaxSize = 52428;
+        public static readonly long DefaultLogFileMaxSize = 512 * 1024;
 
         /// <summary>
         /// Default MaxRotateCount <see cref="LogFileConfiguration.MaxRotateCount" /> property value in LogFileConfiguration.
