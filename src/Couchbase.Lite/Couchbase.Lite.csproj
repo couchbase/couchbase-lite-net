@@ -1,8 +1,8 @@
 ﻿<Project Sdk="MSBuild.Sdk.Extras">
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
-    <TargetFrameworks>netstandard2.0;netcoreapp3.1;net6.0;net6.0-android31;net6.0-ios14.2;net6.0-maccatalyst14.2;net462;MonoAndroid90;Xamarin.iOS10</TargetFrameworks>
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);uap10.0.19041;net6.0-windows10.0.19041.0</TargetFrameworks>
+	<TargetFrameworks>netstandard2.0;netcoreapp3.1;net6.0;net6.0-android31;net6.0-ios14.2;net6.0-maccatalyst14.2;MonoAndroid90;Xamarin.iOS10</TargetFrameworks>
+	<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net462;uap10.0.19041;net6.0-windows10.0.19041.0</TargetFrameworks>
     <SingleProject>true</SingleProject>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.2</SupportedOSPlatformVersion>
@@ -52,7 +52,6 @@
     <DefineConstants>$(DefineConstants);NEEDS_LITECORE_LOAD</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-	<PackageReference Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'" Include="Microsoft.WindowsAppSDK" Version="1.1.5" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <DotNetCliToolReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="dotnet-sourcelink" Version="2.1.2" />
     <PackageReference Include="SimpleInjector" Version="5.4.0" />
