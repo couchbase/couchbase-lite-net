@@ -134,7 +134,7 @@ namespace Couchbase.Lite.Info
         /// The default number of rotated logs that are saved is 1. 
         /// If the value is 1, then 2 logs will be present: the 'current' and the 'rotated'
         /// </summary>
-        public static readonly int DefaultLogFileMaxRotateCount = 1;
+        public static readonly uint DefaultLogFileMaxRotateCount = 1;
 
         #endregion
     }
