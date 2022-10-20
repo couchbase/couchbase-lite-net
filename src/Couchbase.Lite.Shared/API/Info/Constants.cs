@@ -79,13 +79,13 @@ namespace Couchbase.Lite.Info
 
         /// <summary>
         /// Default MaxAttempts <see cref="ReplicatorConfiguration.MaxAttempts" /> property value in Single Shot ReplicatorConfiguration.
-        /// The default value is 9 max number of retry attempts to connect to peer in a single shot replication.
+        /// The default value is 10 max number of connection attempts to connect to peer in a single shot replication.
         /// </summary>
-        public static readonly int DefaultReplicatorMaxAttemptsSingleShot = 9;
+        public static readonly int DefaultReplicatorMaxAttemptsSingleShot = 10;
 
         /// <summary>
         /// Default MaxAttempts <see cref="ReplicatorConfiguration.MaxAttempts" /> property value in Continuous ReplicatorConfiguration.
-        /// The default value is <see cref="int.MaxValue" /> max number of retry attempts to connect to peer in a continuous replication.
+        /// The default value is <see cref="int.MaxValue" /> max number of connection attempts to connect to peer in a continuous replication.
         /// </summary>
         public static readonly int DefaultReplicatorMaxAttemptsContinuous = int.MaxValue;
 
