@@ -19,6 +19,7 @@
 using Couchbase.Lite.Internal.Query;
 using LiteCore.Interop;
 using System.Globalization;
+using Couchbase.Lite.Info;
 
 namespace Couchbase.Lite.Query
 {
@@ -32,6 +33,7 @@ namespace Couchbase.Lite.Query
         /// <summary>
         /// Gets whether or not to ignore accents when performing 
         /// the full text search
+        /// Default value is <see cref="Constants.DefaultFullTextIndexIgnoreAccents" />
         /// </summary>
         public bool IgnoreAccents { get; }
 

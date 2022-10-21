@@ -757,6 +757,7 @@ namespace Test
 
             var config = new URLEndpointListenerConfiguration(OtherDb)
             {
+                DisableTLS = true,
                 ReadOnly = true
             };
 

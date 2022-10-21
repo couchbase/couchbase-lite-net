@@ -25,12 +25,14 @@ using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Info;
 
 using JetBrains.Annotations;
 
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+using Constants = Couchbase.Lite.Info.Constants;
 
 namespace Couchbase.Lite.Logging
 {
@@ -53,9 +55,9 @@ namespace Couchbase.Lite.Logging
         [NotNull]
         private readonly Freezer _freezer = new Freezer();
 
-        private int _maxRotateCount = 1;
-        private long _maxSize = 1024 * 500;
-        private bool _usePlaintext;
+        private int _maxRotateCount = Constants.DefaultLogFileMaxRotateCount;
+        private long _maxSize = Constants.DefaultLogFileMaxSize;
+        private bool _usePlaintext = Constants.DefaultLogFileUsePlainText;
 
         #endregion
 
@@ -71,6 +73,7 @@ namespace Couchbase.Lite.Logging
         /// Gets or sets the number of rotated logs that are saved (i.e.
         /// if the value is 1, then 2 logs will be present:  the 'current'
         /// and the 'rotated')
+        /// Default value is <see cref="Constants.DefaultLogFileMaxRotateCount" />
         /// </summary>
         public int MaxRotateCount
         {
@@ -82,6 +85,7 @@ namespace Couchbase.Lite.Logging
         /// Gets or sets the max size of the log files in bytes.  If a log file
         /// passes this size then a new log file will be started.  This
         /// number is a best effort and the actual size may go over slightly.
+        /// Default value is <see cref="Constants.DefaultLogFileMaxSize" />
         /// </summary>
         public long MaxSize
         {
@@ -93,6 +97,7 @@ namespace Couchbase.Lite.Logging
         /// Gets or sets whether or not to log in plaintext.  The default is
         /// to log in a binary encoded format that is more CPU and I/O friendly
         /// and enabling plaintext is not recommended in production.
+        /// Default value is <see cref="Constants.DefaultLogFileUsePlainText" />
         /// </summary>
         public bool UsePlaintext
         {

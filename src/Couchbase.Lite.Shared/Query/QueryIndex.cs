@@ -19,6 +19,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using Couchbase.Lite.Info;
 using Couchbase.Lite.Query;
 using Couchbase.Lite.Util;
 using JetBrains.Annotations;
@@ -32,7 +33,7 @@ namespace Couchbase.Lite.Internal.Query
         #region Variables
 
         private readonly IFullTextIndexItem[] _ftsItems;
-        private bool _ignoreAccents;
+        private bool _ignoreAccents = Constants.DefaultFullTextIndexIgnoreAccents;
         private string _locale = CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
         private readonly IValueIndexItem[] _valueItems;
 

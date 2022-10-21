@@ -20,7 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
-
+using Couchbase.Lite.Info;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
@@ -89,10 +89,10 @@ namespace Couchbase.Lite.Sync
 
         [NotNull]private readonly Freezer _freezer = new Freezer();
         private Authenticator _authenticator;
-        private bool _continuous;
+        private bool _continuous = Constants.DefaultReplicatorContinuous;
         private Database _otherDb;
         private Uri _remoteUrl;
-        private ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
+        private ReplicatorType _replicatorType = Constants.DefaultReplicatorType;
         private C4SocketFactory _socketFactory;
 
         #endregion
@@ -131,6 +131,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets or sets whether or not the <see cref="Replicator"/> should stay
         /// active indefinitely.  The default is <c>false</c>
+        /// Default value is <see cref="Constants.DefaultReplicatorContinuous" />
         /// </summary>
         public bool Continuous
         {
@@ -234,6 +235,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// A value indicating the direction of the replication.  The default is
         /// <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
+        /// Default value is <see cref="Constants.DefaultReplicatorType" />
         /// </summary>
         public ReplicatorType ReplicatorType
         {
@@ -265,6 +267,7 @@ namespace Couchbase.Lite.Sync
         /// The default is null (5 min interval is applied). 
         /// * <c>5</c> min interval is applied when Heartbeat is set to null.
         /// * null will be returned when default <c>5</c> min interval is applied.
+        /// Default value is <see cref="Constants.DefaultReplicatorHeartbeat" />
         /// </summary>
         /// <exception cref="ArgumentException"> 
         /// Throw if set the Heartbeat to less or equal to 0 full seconds.
@@ -286,6 +289,10 @@ namespace Couchbase.Lite.Sync
         /// <see cref="int.MaxValue" /> for a continuous replicator is applied.
         /// * Setting the value to 1 means that the replicator will try connect once and 
         /// the replicator will stop if there is a transient error.
+        /// * Default value is <see cref="Constants.DefaultReplicatorMaxAttemptsSingleShot" />
+        /// for a single shot replicator.
+        /// * Default value is <see cref="Constants.DefaultReplicatorMaxAttemptsContinuous" />
+        /// for a continuous replicator.
         /// </summary>
         /// <exception cref="ArgumentException">
         /// Throw if set the MaxAttempts to a negative value.
@@ -301,6 +308,7 @@ namespace Couchbase.Lite.Sync
         /// The default is null (5 min interval is applied).
         /// * <c>5</c> min interval is applied when MaxAttemptsWaitTime is set to null.
         /// * null will be returned when default <c>5</c> min interval is applied.
+        /// Default value is <see cref="Constants.DefaultReplicatorMaxAttemptsWaitTime" />
         /// </summary>
         /// <exception cref="ArgumentException"> 
         /// Throw if set the MaxRetryWaitTime to less than 0 full seconds.
