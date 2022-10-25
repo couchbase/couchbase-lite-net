@@ -106,7 +106,7 @@ namespace Test
 
 
         #endregion
-
+#if !NET6_0_APPLE
         #region Public Methods
         
         [Fact]
@@ -187,11 +187,11 @@ namespace Test
         {
             _listener = CreateListener(false);
 
-            _listener.Urls.Count.Should().NotBe(0);
+            _listener.Urls.Count.Should().NotBe(0); //android urls count here is 0 which is wrong
             _listener.Stop();
             _listener.Urls.Count.Should().Be(0);
         }
-
+        
         [Fact]
         public void TestStatus()
         {
@@ -368,12 +368,7 @@ namespace Test
         [Fact]
         public void TestClientCertAuthRootCertsError()
         {
-            byte[] caData;
-            using (var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client-ca.der"))
-            using (var reader = new BinaryReader(stream)) {
-                caData = reader.ReadBytes((int) stream.Length);
-            }
-
+            byte[] caData = GetFileByteArray("client-ca.der", typeof(URLEndpointListenerTest));
             var rootCert = new X509Certificate2(caData);
             var auth = new ListenerCertificateAuthenticator(new X509Certificate2Collection(rootCert));
             _listener = CreateListener(true, true, auth);
@@ -407,20 +402,13 @@ namespace Test
         [Fact]
         public void TestClientCertAuthenticatorRootCerts()
         {
-            byte[] caData, clientData;
-            using(var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client-ca.der"))
-            using (var reader = new BinaryReader(stream)) {
-                caData = reader.ReadBytes((int)stream.Length);
-            }
+            byte[] caData = GetFileByteArray("client-ca.der", typeof(URLEndpointListenerTest));
 
             #if NET6_0_ANDROID
-            using(var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client.pfx"))
-			#else 
-            using(var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client.p12")) 
+            byte[] clientData = GetFileByteArray("client.pfx", typeof(URLEndpointListenerTest));
+            #else
+            byte[] clientData = GetFileByteArray("client.p12", typeof(URLEndpointListenerTest)); 
             #endif
-            using (var reader = new BinaryReader(stream)) {
-                clientData = reader.ReadBytes((int)stream.Length);
-            }
 
             var rootCert = new X509Certificate2(caData);
             var auth = new ListenerCertificateAuthenticator(new X509Certificate2Collection(rootCert));
@@ -451,15 +439,11 @@ namespace Test
         [Fact]
         public void TestListenerWithImportIdentity()
         {
-            byte[] serverData = null;
 			#if NET6_0_ANDROID
-            using(var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client.pfx"))
+            byte[] serverData = GetFileByteArray("client.pfx", typeof(URLEndpointListenerTest));
 			#else 
-            using(var stream = typeof(URLEndpointListenerTest).Assembly.GetManifestResourceStream("client.p12")) 
+            byte[] serverData = GetFileByteArray("client.p12", typeof(URLEndpointListenerTest)); 
             #endif
-            using (var reader = new BinaryReader(stream)) {
-                serverData = reader.ReadBytes((int) stream.Length);
-            }
 
             // Cleanup
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
@@ -870,7 +854,7 @@ namespace Test
                 ((int)error.Error).Should().Be((int)CouchbaseLiteError.WebSocketGoingAway);
             }
         }
-
+        
         #endregion
 
         #region 8.15 Collections replication in URLEndpointListener
@@ -924,7 +908,7 @@ namespace Test
         }
 
         #endregion
-        
+        #endif
         #region Private Methods
 
         private void CollectionsPushPullReplication(bool continuous)

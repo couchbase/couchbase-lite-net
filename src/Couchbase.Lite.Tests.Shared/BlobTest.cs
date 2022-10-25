@@ -60,12 +60,7 @@ namespace Test
         [Fact]
         public void TestGetContent()
         {
-            byte[] bytes = null;
-            using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("attachment.png"))
-            using (var sr = new BinaryReader(stream)) {
-                bytes = sr.ReadBytes((int)stream.Length);
-            }
-
+            byte[] bytes = GetFileByteArray("attachment.png", typeof(BlobTest));
             var blob = new Blob("image/png", bytes);
             using (var mDoc = new MutableDocument("doc1")) {
                 mDoc.SetBlob("blob", blob);
@@ -83,12 +78,7 @@ namespace Test
         [Fact]
         public void TestGetContent6MBFile()
         {
-            byte[] bytes = null;
-            using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("iTunesMusicLibrary.json"))
-            using (var sr = new BinaryReader(stream)) {
-                bytes = sr.ReadBytes((int)stream.Length);
-            }
-
+            byte[] bytes = GetFileByteArray("iTunesMusicLibrary.json", typeof(BlobTest));
             var blob = new Blob("application/json", bytes);
             using (var mDoc = new MutableDocument("doc1")) {
                 mDoc.SetBlob("blob", blob);
@@ -105,12 +95,7 @@ namespace Test
         [Fact]
         public unsafe void TestBlobStream()
         {
-            byte[] bytes = null;
-            using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("iTunesMusicLibrary.json"))
-            using (var sr = new BinaryReader(stream)) {
-                bytes = sr.ReadBytes((int)stream.Length);
-            }
-
+            byte[] bytes = GetFileByteArray("iTunesMusicLibrary.json", typeof(BlobTest));
             C4BlobKey key;
             long tmp;
             using (var stream = new BlobWriteStream(Db.BlobStore)) {
@@ -149,15 +134,14 @@ namespace Test
         [Fact]
         public unsafe void TestBlobStreamCopyTo()
         {
-            byte[] bytes = null;
-            using (var stream = typeof(BlobTest).GetTypeInfo().Assembly.GetManifestResourceStream("iTunesMusicLibrary.json"))
-            using (var sr = new BinaryReader(stream)) {
-                bytes = sr.ReadBytes((int)stream.Length);
-            }
-
+            byte[] bytes = GetFileByteArray("iTunesMusicLibrary.json", typeof(BlobTest));
             C4BlobKey key;
+            #if NET6_0_WINDOWS10 || NET6_0_ANDROID || NET6_0_APPLE
+            using (var stream = FileSystem.OpenAppPackageFileAsync("iTunesMusicLibrary.json").Result) {
+            #else
             using (var stream = typeof(BlobTest).GetTypeInfo().Assembly
                 .GetManifestResourceStream("iTunesMusicLibrary.json")) {
+            #endif
                 using (var writeStream = new BlobWriteStream(Db.BlobStore)) {
                     stream.CopyTo(writeStream);
                     writeStream.Flush();

@@ -77,7 +77,7 @@ namespace Test
         }
 
         #region TLSIdentity tests
-
+        #if !NET6_0_APPLE
         [Fact]
         public void TestCreateGetDeleteServerIdentity() => CreateGetDeleteServerIdentity(true);
 
@@ -115,17 +115,13 @@ namespace Test
         public void TestImportIdentity()
         {
             TLSIdentity id;
-            byte[] data = null;
             #if NET6_0_ANDROID
             //Note: Maui Android cert requirement: https://stackoverflow.com/questions/70100597/read-x509-certificate-in-android-net-6-0-application
             //When export the cert, encryption has to be TripleDES-SHA1, AES256-SHA256 will not work...
-            using (var stream = typeof(TLSIdentityTest).GetTypeInfo().Assembly.GetManifestResourceStream("certs.pfx"))
+            byte[] data = GetFileByteArray("certs.pfx", typeof(TLSIdentityTest));
             #else 
-            using (var stream = typeof(TLSIdentityTest).GetTypeInfo().Assembly.GetManifestResourceStream("certs.p12")) 
+            byte[] data = GetFileByteArray("certs.p12", typeof(TLSIdentityTest));
             #endif
-            using (var reader = new BinaryReader(stream)) {
-                data = reader.ReadBytes((int)stream.Length);
-            }
 
             // Import
             id = TLSIdentity.ImportIdentity(_store, data, "123", ServerCertLabel, null);
@@ -193,7 +189,7 @@ namespace Test
             // Delete 
             TLSIdentity.DeleteIdentity(_store, ServerCertLabel, null);
         }
-
+        #endif
         #endregion
 
         #region TLSIdentity tests helpers

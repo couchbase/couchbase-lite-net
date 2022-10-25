@@ -72,7 +72,11 @@ namespace Test
         public X509Certificate2 DefaultServerCert
         {
             get {
+                #if NET6_0_WINDOWS10 || NET6_0_ANDROID || NET6_0_APPLE
+                using (var cert =  FileSystem.OpenAppPackageFileAsync("SelfSigned.cer").Result)
+                #else
                 using (var cert = typeof(ReplicatorTestBase).GetTypeInfo().Assembly.GetManifestResourceStream("SelfSigned.cer"))
+                #endif
                 using (var ms = new MemoryStream()) {
                     cert.CopyTo(ms);
                     return new X509Certificate2(ms.ToArray());
@@ -80,11 +84,11 @@ namespace Test
             }
         }
 
-#if !WINDOWS_UWP
+        #if !WINDOWS_UWP
         protected ReplicatorTestBase(ITestOutputHelper output) : base(output)
-#else
+        #else
         protected ReplicatorTestBase()
-#endif
+        #endif
         {
             ReopenDB();
             ReopenOtherDb();
