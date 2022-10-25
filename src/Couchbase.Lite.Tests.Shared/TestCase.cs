@@ -500,6 +500,24 @@ namespace Test
             }
         }
 
+        internal static byte[] GetFileByteArray(string filename, Type type = null)
+        {
+            byte[] bytes = null;
+            #if NET6_0_WINDOWS10 || NET6_0_ANDROID || NET6_0_APPLE
+            using (var stream = FileSystem.Current.OpenAppPackageFileAsync(filename).Result)
+            using (var memoryStream = new MemoryStream()) {
+                stream.CopyTo(memoryStream);
+                bytes = memoryStream.ToArray();
+            }
+            #else
+            using (var stream = type.GetTypeInfo().Assembly.GetManifestResourceStream(filename))
+            using (var sr = new BinaryReader(stream)) {
+                bytes = sr.ReadBytes((int)stream.Length);
+            }
+            #endif
+            return bytes;
+        }
+
         #if !CBL_NO_EXTERN_FILES
         protected void TestQueryObserverWithQuery(IQuery query, bool isLegacy = true)
         {
@@ -642,24 +660,6 @@ namespace Test
                     return true;
                 });
             });
-        }
-
-        internal static byte[] GetFileByteArray(string filename, Type type = null)
-        {
-            byte[] bytes = null;
-            #if NET6_0_WINDOWS10 || NET6_0_ANDROID || NET6_0_APPLE
-            using (var stream = FileSystem.Current.OpenAppPackageFileAsync(filename).Result)
-            using (var memoryStream = new MemoryStream()) {
-                stream.CopyTo(memoryStream);
-                bytes = memoryStream.ToArray();
-            }
-            #else
-            using (var stream = type.GetTypeInfo().Assembly.GetManifestResourceStream(filename))
-            using (var sr = new BinaryReader(stream)) {
-                bytes = sr.ReadBytes((int)stream.Length);
-            }
-            #endif
-            return bytes;
         }
 
         internal static bool ReadFileByLines(string path, Func<string, bool> callback)
