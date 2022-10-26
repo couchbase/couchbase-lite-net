@@ -47,7 +47,6 @@
     <OutputPath>bin\Packaging\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <Optimize>true</Optimize>
-    <NoStdLib>true</NoStdLib>
     <DebugType>portable</DebugType>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
