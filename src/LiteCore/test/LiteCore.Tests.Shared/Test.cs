@@ -269,7 +269,7 @@ namespace LiteCore.Tests
         #if !CBL_NO_EXTERN_FILES
         internal bool ReadFileByLines(string path, Func<FLSlice, bool> callback)
         {
-            #if WINDOWS_UWP || NET6_0_WINDOWS10
+            #if WINDOWS_UWP
             var url = $"ms-appx:///Assets/{path}";
             var file = Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri(url))
                 .AsTask()
@@ -279,13 +279,14 @@ namespace LiteCore.Tests
 
             var lines = Windows.Storage.FileIO.ReadLinesAsync(file).AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
             foreach(var line in lines) {
+            #elif NET6_0_WINDOWS10 || NET6_0_ANDROID || NET6_0_APPLE
+            using(var stream = FileSystem.Current.OpenAppPackageFileAsync(path).Result)
+            using (var tr = new StreamReader(stream)) { 
+                string line;
+				while ((line = tr.ReadLine()) != null) {
             #elif __ANDROID__
             Android.Content.Context ctx = null;
-            #if !NET6_0_ANDROID
             ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
-            #elif NET6_0_ANDROID
-            ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
-            #endif
             using (var tr = new StreamReader(ctx.Assets.Open(path))) {
                 string line;
                 while((line = tr.ReadLine()) != null) {
@@ -307,9 +308,9 @@ namespace LiteCore.Tests
                         }
                     }
                 }
-        #if !WINDOWS_UWP && !NET6_0_WINDOWS10
-        }
-        #endif
+            #if !WINDOWS_UWP
+            }
+            #endif
 
             return true;
         }
@@ -469,7 +470,7 @@ namespace LiteCore.Tests
         {
             WriteLine($"Reading {path} ...");
             var st = Stopwatch.StartNew();
-            #if WINDOWS_UWP || NET6_0_WINDOWS10
+            #if WINDOWS_UWP 
             var url = $"ms-appx:///Assets/{path}";
             var file = Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri(url))
                 .AsTask()
@@ -480,13 +481,16 @@ namespace LiteCore.Tests
             var buffer = Windows.Storage.FileIO.ReadBufferAsync(file).AsTask().ConfigureAwait(false).GetAwaiter()
                 .GetResult();
             var jsonData = System.Runtime.InteropServices.WindowsRuntime.WindowsRuntimeBufferExtensions.ToArray(buffer);
+            #elif NET6_0_WINDOWS10 || NET6_0_ANDROID || NET6_0_APPLE
+            byte[] jsonData;
+            using (var stream = FileSystem.Current.OpenAppPackageFileAsync(path).Result)
+            using (var memoryStream = new MemoryStream()) {
+                stream.CopyTo(memoryStream);
+                jsonData = memoryStream.ToArray();
+            }
             #elif __ANDROID__ 
             Android.Content.Context ctx = null;
-            #if !NET6_0_ANDROID
             ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
-            #elif NET6_0_ANDROID
-            ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
-            #endif
             byte[] jsonData;
             using (var stream = ctx.Assets.Open(path))
             using (var ms = new MemoryStream()) {

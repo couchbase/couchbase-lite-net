@@ -500,6 +500,24 @@ namespace Test
             }
         }
 
+        internal static byte[] GetFileByteArray(string filename, Type type = null)
+        {
+            byte[] bytes = null;
+            #if NET6_0_WINDOWS10 || NET6_0_ANDROID || NET6_0_APPLE
+            using (var stream = FileSystem.Current.OpenAppPackageFileAsync(filename).Result)
+            using (var memoryStream = new MemoryStream()) {
+                stream.CopyTo(memoryStream);
+                bytes = memoryStream.ToArray();
+            }
+            #else
+            using (var stream = type.GetTypeInfo().Assembly.GetManifestResourceStream(filename))
+            using (var sr = new BinaryReader(stream)) {
+                bytes = sr.ReadBytes((int)stream.Length);
+            }
+            #endif
+            return bytes;
+        }
+
         #if !CBL_NO_EXTERN_FILES
         protected void TestQueryObserverWithQuery(IQuery query, bool isLegacy = true)
         {
@@ -646,7 +664,7 @@ namespace Test
 
         internal static bool ReadFileByLines(string path, Func<string, bool> callback)
         {
-            #if WINDOWS_UWP || NET6_0_WINDOWS10
+            #if WINDOWS_UWP
             var url = $"ms-appx:///Assets/{path}";
                 var file = Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri(url))
                     .AsTask()
@@ -656,13 +674,13 @@ namespace Test
 
                 var lines = Windows.Storage.FileIO.ReadLinesAsync(file).AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
                 foreach(var line in lines) {
-            #elif __ANDROID__ 
-            Android.Content.Context ctx = null;
-            #if !NET6_0_ANDROID
-            ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
-            #elif NET6_0_ANDROID
-            ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
-            #endif
+            #elif NET6_0_WINDOWS10 || NET6_0_ANDROID || NET6_0_APPLE
+            using(var stream = FileSystem.Current.OpenAppPackageFileAsync(path.Replace("C/tests/data/", "")).Result)
+            using (var tr = new StreamReader(stream)) { 
+                string line;
+				while ((line = tr.ReadLine()) != null) {
+            #elif __ANDROID__ && !NET6_0_ANDROID
+            var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
             using (var tr = new StreamReader(ctx.Assets.Open(path))) {
                 string line;
                 while ((line = tr.ReadLine()) != null) {
@@ -680,16 +698,16 @@ namespace Test
                         return false;
                     }
 				}
-        #if !WINDOWS_UWP &&  !NET6_0_WINDOWS10
-        }
-        #endif
+            #if !WINDOWS_UWP
+            }
+            #endif
 
             return true;
         }
 
         internal Stream GetTestAsset(string path)
         {
-            #if WINDOWS_UWP || NET6_0_WINDOWS10
+            #if WINDOWS_UWP
             var url = $"ms-appx:///Assets/{path}";
                 var file = Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri(url))
                     .AsTask()
@@ -698,13 +716,12 @@ namespace Test
                     .GetResult();
 
                 return file.OpenStreamForReadAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+            #elif NET6_0_WINDOWS10 || NET6_0_APPLE || NET6_0_ANDROID
+            return FileSystem.Current.OpenAppPackageFileAsync(path).Result;
             #elif __ANDROID__ && !NET6_0_ANDROID
             var ctx = global::Couchbase.Lite.Tests.Android.MainActivity.ActivityContext;
             return ctx.Assets.Open(path);
-            #elif NET6_0_ANDROID
-            var ctx = global::Couchbase.Lite.Tests.Maui.MainActivity.ActivityContext;
-            return ctx.Assets.Open(path);
-            #elif __IOS__
+            #elif __IOS__ && !NET6_0_APPLE
             var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			return File.Open(bundlePath, FileMode.Open, FileAccess.Read);
             #else
