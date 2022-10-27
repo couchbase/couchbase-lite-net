@@ -15,7 +15,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-#if !CBL_NO_EXTERN_FILES && !NET6_0_ANDROID && !NET6_0_APPLE
+#if !CBL_NO_EXTERN_FILES && !__ANDROID__ && !NET6_0_APPLE //CBL-3822
 using System;
 using System.Collections.Generic;
 using System.IO.Compression;

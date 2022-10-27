@@ -181,7 +181,7 @@ namespace Test
             _listener.Stop();
             _listener.TlsIdentity.Should().BeNull();
         }
-
+        #if !__ANDROID__ //CBL-3818
         [Fact]
         public void TestUrls()
         {
@@ -191,7 +191,7 @@ namespace Test
             _listener.Stop();
             _listener.Urls.Count.Should().Be(0);
         }
-        
+        #endif
         [Fact]
         public void TestStatus()
         {
