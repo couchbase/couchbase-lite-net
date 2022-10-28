@@ -41,7 +41,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\IMockConnectionErrorLogic.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\MockConnection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Try.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\ZipFileExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\WaitAssert.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\XunitLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocketTest.cs" />
