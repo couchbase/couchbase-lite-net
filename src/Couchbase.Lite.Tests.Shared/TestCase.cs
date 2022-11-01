@@ -249,7 +249,6 @@ namespace Test
                         break;
                     default:
                         throw new Exception("This should not happen because all test input values are CBL supported values.");
-                        break;
                 }
             }
         }

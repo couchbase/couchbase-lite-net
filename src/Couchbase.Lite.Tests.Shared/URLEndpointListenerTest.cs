@@ -109,6 +109,7 @@ namespace Test
 #if !NET6_0_APPLE
         #region Public Methods
         
+
         [Fact]
         public void TestPort()
         {
@@ -181,17 +182,17 @@ namespace Test
             _listener.Stop();
             _listener.TlsIdentity.Should().BeNull();
         }
-        #if !__ANDROID__ //CBL-3818
+
         [Fact]
         public void TestUrls()
         {
             _listener = CreateListener(false);
 
-            _listener.Urls.Count.Should().NotBe(0); //android urls count here is 0 which is wrong
+            _listener.Urls.Count.Should().NotBe(0);
             _listener.Stop();
             _listener.Urls.Count.Should().Be(0);
         }
-        #endif
+
         [Fact]
         public void TestStatus()
         {
@@ -363,7 +364,6 @@ namespace Test
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
             
         }
-        #endif
         
         [Fact]
         public void TestClientCertAuthRootCertsError()
@@ -398,7 +398,6 @@ namespace Test
             _listener.Stop();
         }
 
-        #if !NET6_0_ANDROID
         [Fact]
         public void TestClientCertAuthenticatorRootCerts()
         {
@@ -754,6 +753,7 @@ namespace Test
             _listener.Stop();
         }
 
+        #if !NET6_0_ANDROID
         [Fact]
         public void TestCloseWithActiveListener()
         {
@@ -763,6 +763,7 @@ namespace Test
             _listener.Urls.Should().BeEmpty();
         }
 
+        #endif
         [Fact]
         public void TestReplicatorServerCertNoTLS() => CheckReplicatorServerCert(false, false);
 
@@ -786,6 +787,7 @@ namespace Test
             ValidateMultipleReplicationsTo(ReplicatorType.PushAndPull);
         }
 
+        #endif
         //[Fact] Looks like MSBuild doesn't understand RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 
         public void TestMultipleReplicatorsOnReadOnlyListener()
         {
@@ -803,20 +805,19 @@ namespace Test
                 ValidateMultipleReplicationsTo(ReplicatorType.Pull);
 			}
         }
-
+        #if !NET6_0_ANDROID
         [Fact] //hang maui android
         public void TestCloseWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(true);
 
         [Fact]//hang maui android
         public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
-        #endif
 
         [Fact]
         public void TestCloseWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(true);
 
         [Fact]
         public void TestDeleteWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(false);
-
+        #endif
         [Fact]
         public void TestStopListener()
         {
