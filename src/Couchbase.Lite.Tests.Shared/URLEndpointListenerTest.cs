@@ -109,6 +109,7 @@ namespace Test
 #if !NET6_0_APPLE
         #region Public Methods
         
+
         [Fact]
         public void TestPort()
         {
@@ -181,17 +182,17 @@ namespace Test
             _listener.Stop();
             _listener.TlsIdentity.Should().BeNull();
         }
-        #if !__ANDROID__ //CBL-3818
+
         [Fact]
         public void TestUrls()
         {
             _listener = CreateListener(false);
 
-            _listener.Urls.Count.Should().NotBe(0); //android urls count here is 0 which is wrong
+            _listener.Urls.Count.Should().NotBe(0);
             _listener.Stop();
             _listener.Urls.Count.Should().Be(0);
         }
-        #endif
+
         [Fact]
         public void TestStatus()
         {
