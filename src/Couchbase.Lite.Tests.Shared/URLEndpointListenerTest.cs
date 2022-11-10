@@ -364,6 +364,7 @@ namespace Test
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
             
         }
+        #endif
         
         [Fact]
         public void TestClientCertAuthRootCertsError()
@@ -398,6 +399,7 @@ namespace Test
             _listener.Stop();
         }
 
+        #if !NET6_0_ANDROID
         [Fact]
         public void TestClientCertAuthenticatorRootCerts()
         {
@@ -753,7 +755,6 @@ namespace Test
             _listener.Stop();
         }
 
-        #if !NET6_0_ANDROID
         [Fact]
         public void TestCloseWithActiveListener()
         {
@@ -763,7 +764,6 @@ namespace Test
             _listener.Urls.Should().BeEmpty();
         }
 
-        #endif
         [Fact]
         public void TestReplicatorServerCertNoTLS() => CheckReplicatorServerCert(false, false);
 
@@ -787,7 +787,6 @@ namespace Test
             ValidateMultipleReplicationsTo(ReplicatorType.PushAndPull);
         }
 
-        #endif
         //[Fact] Looks like MSBuild doesn't understand RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 
         public void TestMultipleReplicatorsOnReadOnlyListener()
         {
@@ -805,19 +804,20 @@ namespace Test
                 ValidateMultipleReplicationsTo(ReplicatorType.Pull);
 			}
         }
-        #if !NET6_0_ANDROID
+
         [Fact] //hang maui android
         public void TestCloseWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(true);
 
         [Fact]//hang maui android
         public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
+        #endif
 
         [Fact]
         public void TestCloseWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(true);
 
         [Fact]
         public void TestDeleteWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(false);
-        #endif
+
         [Fact]
         public void TestStopListener()
         {
