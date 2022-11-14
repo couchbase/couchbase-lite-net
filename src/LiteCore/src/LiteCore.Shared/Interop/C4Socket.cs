@@ -102,7 +102,7 @@ namespace LiteCore.Interop
             }
         }
 
-        #if __IOS__T
+        #if __IOS__
         [ObjCRuntime.MonoPInvokeCallback(typeof(SocketDisposeDelegate))]
         #endif
         private static void SocketDispose(C4Socket* socket)

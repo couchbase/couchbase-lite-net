@@ -23,9 +23,9 @@
   <files>
     <file target="" src="packaging\nuget\LICENSE.txt" />
     <file target="logo.png" src="packaging\nuget\logo.png" />
-    <file target="lib\net6.0-android31\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\net6.0-android31\Couchbase.Lite.Support.Android.dll" />
-    <file target="lib\net6.0-android31\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\net6.0-android31\Couchbase.Lite.Support.Android.pdb" />
-    <file target="lib\net6.0-android31\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\net6.0-android31\Couchbase.Lite.Support.Android.xml" />
+    <file target="lib\net6.0-android\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\net6.0-android\Couchbase.Lite.Support.Android.dll" />
+    <file target="lib\net6.0-android\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\net6.0-android\Couchbase.Lite.Support.Android.pdb" />
+    <file target="lib\net6.0-android\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\net6.0-android\Couchbase.Lite.Support.Android.xml" />
     <file target="lib\monoandroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\monoandroid90\Couchbase.Lite.Support.Android.dll" />
     <file target="lib\monoandroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\monoandroid90\Couchbase.Lite.Support.Android.pdb" />
     <file target="lib\monoandroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\monoandroid90\Couchbase.Lite.Support.Android.xml" />
