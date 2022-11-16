@@ -274,27 +274,20 @@ namespace Test
         {
             Action badAction = null;
             var config = CreateConfig(true, false, false);
-            using (var repl = new Replicator(config))
-            {
-                repl.Config.Options.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec is applied, and no value returns from Core..");
-
+            using (var repl = new Replicator(config)) {
                 badAction = (() => repl.Config.Heartbeat = TimeSpan.FromSeconds(2));
                 badAction.Should().Throw<InvalidOperationException>("Cannot modify a ReplicatorConfiguration (Heartbeat) that is in use.");
 
-                repl.Config.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
+                repl.Config.Heartbeat.Should().Be(Couchbase.Lite.Info.Constants.DefaultReplicatorHeartbeat, "Because default Heartbeat Interval is 300 sec and null is returned.");
             }
 
             config.Heartbeat = TimeSpan.FromSeconds(60);
-            using (var repl = new Replicator(config))
-            {
-                repl.Config.Options.Heartbeat.Should().Be(TimeSpan.FromSeconds(60));
+            using (var repl = new Replicator(config)) {
                 repl.Config.Heartbeat.Should().Be(TimeSpan.FromSeconds(60));
             }
 
             config.Heartbeat = null;
-            using (var repl = new Replicator(config))
-            {
-                repl.Config.Options.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec is applied, and no value returns from Core..");
+            using (var repl = new Replicator(config)) {
                 repl.Config.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
             }
 
@@ -304,9 +297,7 @@ namespace Test
             badAction = (() => config.Heartbeat = TimeSpan.FromMilliseconds(800));
             badAction.Should().Throw<ArgumentException>("Assigning Heartbeat to an invalid value.");
 
-            using (var repl = new Replicator(config))
-            {
-                repl.Config.Options.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec is applied, and no value returns from Core..");
+            using (var repl = new Replicator(config)) {
                 repl.Config.Heartbeat.Should().Be(null, "Because default Heartbeat Interval is 300 sec and null is returned.");
             }
         }
@@ -317,24 +308,19 @@ namespace Test
             Action badAction = null;
             var config = CreateConfig(true, false, false);
             using (var repl = new Replicator(config)) {
-                repl.Config.Options.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Interval is 300 sec is applied, and no value returns from Core..");
-
                 badAction = (() => repl.Config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(2));
                 badAction.Should().Throw<InvalidOperationException>("Cannot modify a ReplicatorConfiguration (MaxAttemptsWaitTime) that is in use.");
 
-                repl.Config.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
+                repl.Config.MaxAttemptsWaitTime.Should().Be(Couchbase.Lite.Info.Constants.DefaultReplicatorMaxAttemptsWaitTime, "Because default Max Retry Wait Time is 300 sec and null is returned.");
             }
 
             config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(60);
             using (var repl = new Replicator(config)) {
-                repl.Config.Options.MaxAttemptsWaitTime.Should().Be(TimeSpan.FromSeconds(60));
                 repl.Config.MaxAttemptsWaitTime.Should().Be(TimeSpan.FromSeconds(60));
             }
 
             config.MaxAttemptsWaitTime = null;
-            using (var repl = new Replicator(config))
-            {
-                repl.Config.Options.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Interval is 300 sec is applied, and no value returns from Core..");
+            using (var repl = new Replicator(config)) {
                 repl.Config.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
             }
 
@@ -344,9 +330,7 @@ namespace Test
             badAction = (() => config.MaxAttemptsWaitTime = TimeSpan.FromMilliseconds(800));
             badAction.Should().Throw<ArgumentException>("Assigning Max Retry Wait Time to an invalid value.");
 
-            using (var repl = new Replicator(config))
-            {
-                repl.Config.Options.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Interval is 300 sec is applied, and no value returns from Core..");
+            using (var repl = new Replicator(config)) {
                 repl.Config.MaxAttemptsWaitTime.Should().Be(null, "Because default Max Retry Wait Time is 300 sec and null is returned.");
             }
         }
@@ -357,48 +341,38 @@ namespace Test
             Action badAction = null;
             var config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb));
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.Should().Be(0, "Because default Max Attempts is 10 times for a Single Shot Replicator and 0 is returned.");
+                repl.Config.MaxAttempts.Should().Be(Couchbase.Lite.Info.Constants.DefaultReplicatorMaxAttemptsSingleShot, "Because default Max Attempts is 10 times for a Single Shot Replicator and 0 is returned.");
 
                 badAction = (() => repl.Config.MaxAttempts = 2);
                 badAction.Should().Throw<InvalidOperationException>("Cannot modify a ReplicatorConfiguration (MaxAttempts) that is in use.");
-
-                repl.Config.Options.MaxAttempts.Should().Be( 0 , $"Because default value 9 is for Max Retries for a Single Shot Replicator is applied, and no value returns from Core..");
             }
 
             config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb)) { Continuous = true };
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.Should().Be(0, "Because default Max Attempts is Max int times for a Continuous Replicator and 0 is returned.");
-                repl.Config.Options.MaxAttempts.Should().Be(0, $"Because default value int.MaxValue is for Max Retries for a Continuous Replicator is applied, and no value returns from Core..");
+                repl.Config.MaxAttempts.Should().Be(Couchbase.Lite.Info.Constants.DefaultReplicatorMaxAttemptsContinuous, "Because default Max Attempts is Max int times for a Continuous Replicator and 0 is returned.");
             }
             
             var attempts = 5;
             config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb)) { MaxAttempts = attempts };
             using (var repl = new Replicator(config)) {
                 repl.Config.MaxAttempts.Should().Be(attempts, $"Because {attempts} is the value set for MaxAttempts.");
-                repl.Config.Options.MaxAttempts.Should().Be(attempts, $"Because {attempts} is the value set for MaxAttempts.");
             }
 
             config.MaxAttempts = 0;
-            using (var repl = new Replicator(config))
-            {
-                repl.Config.MaxAttempts.Should().Be(0, "Because default Max Attempts is 10 times for a Single Shot Replicator and 0 is returned.");
-                repl.Config.Options.MaxAttempts.Should().Be(0, $"Because default value 9 is for Max Retries for a Single Shot Replicator is applied, and no value returns from Core..");
+            using (var repl = new Replicator(config)) {
+                repl.Config.MaxAttempts.Should().Be(Couchbase.Lite.Info.Constants.DefaultReplicatorMaxAttemptsSingleShot, "Because default Max Attempts is 10 times for a Single Shot Replicator and 0 is returned.");
             }
 
             config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb)) { MaxAttempts = attempts, Continuous = true };
-            using (var repl = new Replicator(config))
-            {
+            using (var repl = new Replicator(config)) {
                 repl.Config.MaxAttempts.Should().Be(attempts, $"Because {attempts} is the value set for MaxAttempts.");
-                repl.Config.Options.MaxAttempts.Should().Be(attempts, $"Because {attempts}  is the value set for MaxAttempts.");
             }
 
             badAction = (() => config.MaxAttempts = -1);
             badAction.Should().Throw<ArgumentException>("Assigning Max Retries to an invalid value (< 0).");
 
-            using (var repl = new Replicator(config))
-            {
+            using (var repl = new Replicator(config)) {
                 repl.Config.MaxAttempts.Should().Be(attempts, $"Because {attempts}  is the value set for MaxAttempts.");
-                repl.Config.Options.MaxAttempts.Should().Be(attempts, $"Because {attempts} is the value set for MaxAttempts.");
             }
         }
 

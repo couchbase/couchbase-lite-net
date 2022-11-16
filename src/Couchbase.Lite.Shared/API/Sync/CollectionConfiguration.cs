@@ -16,6 +16,7 @@
 //  limitations under the License.
 // 
 
+using Couchbase.Lite.Info;
 using Couchbase.Lite.Support;
 using JetBrains.Annotations;
 using System;
@@ -34,7 +35,7 @@ namespace Couchbase.Lite.Sync
         #region Variables
 
         [NotNull] private readonly Freezer _freezer = new Freezer();
-        private IConflictResolver _resolver;
+        private IConflictResolver _resolver = Lite.ConflictResolver.Default;
         private Func<Document, DocumentFlags, bool> _pushFilter;
         private Func<Document, DocumentFlags, bool> _pullValidator;
         internal ReplicatorType _replicatorType = ReplicatorType.PushAndPull;
@@ -45,14 +46,20 @@ namespace Couchbase.Lite.Sync
 
         /// <summary>
         /// The implemented custom conflict resolver object can be registered to the replicator 
-        /// at ConflictResolver property. The default value of the conflictResolver is null. 
-        /// When the value is null, the default conflict resolution will be applied.
+        /// at ConflictResolver property. 
+        /// The default value is <see cref="ConflictResolver.Default" />. 
         /// </summary>
         [CanBeNull]
         public IConflictResolver ConflictResolver
         {
             get => _resolver;
-            set => _freezer.PerformAction(() => _resolver = value);
+            set 
+            { 
+                if(value == null) 
+                    _freezer.PerformAction(() => _resolver = Lite.ConflictResolver.Default);
+                else
+                    _freezer.PerformAction(() => _resolver = value); 
+            }
         }
 
         /// <summary>
