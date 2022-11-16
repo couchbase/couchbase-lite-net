@@ -280,7 +280,7 @@ namespace Couchbase.Lite.Sync
                         } else {
                             throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
                         }
-                    } else { // Backward compatible if 0 is set
+                    } else { // Backward compatible if null is set
                         this[HeartbeatIntervalKey] = Constants.DefaultReplicatorMaxAttemptsWaitTime.Ticks / TimeSpan.TicksPerSecond;
                     }
 

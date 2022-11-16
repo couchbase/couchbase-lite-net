@@ -47,6 +47,7 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// The implemented custom conflict resolver object can be registered to the replicator 
         /// at ConflictResolver property. 
+        /// When the value is null, the default conflict resolution will be applied.
         /// The default value is <see cref="ConflictResolver.Default" />. 
         /// </summary>
         [CanBeNull]
