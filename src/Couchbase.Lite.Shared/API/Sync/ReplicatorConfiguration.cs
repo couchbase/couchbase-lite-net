@@ -94,7 +94,7 @@ namespace Couchbase.Lite.Sync
         private Uri _remoteUrl;
         private ReplicatorType _replicatorType = Constants.DefaultReplicatorType;
         private C4SocketFactory _socketFactory;
-        private bool _isDefaultMaxAttempt = true;
+        private bool _isDefaultMaxAttemptSet = true;
 
         #endregion
 
@@ -140,7 +140,7 @@ namespace Couchbase.Lite.Sync
             set
             {
                 _freezer.SetValue(ref _continuous, value);
-                if (_isDefaultMaxAttempt)
+                if (_isDefaultMaxAttemptSet)
                     MaxAttempts = 0;
             }
         }
@@ -303,11 +303,14 @@ namespace Couchbase.Lite.Sync
             {
                 if (value == 0) { // backward compatible when user set the value to 0
                     _freezer.PerformAction(() => Options.MaxAttempts = Continuous ? Constants.DefaultReplicatorMaxAttemptsContinuous : Constants.DefaultReplicatorMaxAttemptsSingleShot);
+                    _isDefaultMaxAttemptSet = true;
                 } else {
                     _freezer.PerformAction(() => Options.MaxAttempts = value);
+                    if ((Continuous && value == Constants.DefaultReplicatorMaxAttemptsContinuous) || (!Continuous && value == Constants.DefaultReplicatorMaxAttemptsSingleShot))
+                        _isDefaultMaxAttemptSet = true;
+                    else
+                        _isDefaultMaxAttemptSet = false;
                 }
-
-                _isDefaultMaxAttempt = false;
             }
         }
 

@@ -31,6 +31,7 @@ using Couchbase.Lite.Logging;
 using Couchbase.Lite.Sync;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Query;
+using Constants = Couchbase.Lite.Info.Constants;
 
 using FluentAssertions;
 using LiteCore;
@@ -278,7 +279,7 @@ namespace Test
                 badAction = (() => repl.Config.Heartbeat = TimeSpan.FromSeconds(2));
                 badAction.Should().Throw<InvalidOperationException>("Cannot modify a ReplicatorConfiguration (Heartbeat) that is in use.");
 
-                repl.Config.Heartbeat.Should().Be(Couchbase.Lite.Info.Constants.DefaultReplicatorHeartbeat, "Because default Heartbeat Interval is 300 sec and null is returned.");
+                repl.Config.Heartbeat.Should().Be(Constants.DefaultReplicatorHeartbeat, $"Because default Heartbeat Interval is 300 sec and {Constants.DefaultReplicatorHeartbeat} is returned.");
             }
 
             config.Heartbeat = TimeSpan.FromSeconds(60);
@@ -311,7 +312,7 @@ namespace Test
                 badAction = (() => repl.Config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(2));
                 badAction.Should().Throw<InvalidOperationException>("Cannot modify a ReplicatorConfiguration (MaxAttemptsWaitTime) that is in use.");
 
-                repl.Config.MaxAttemptsWaitTime.Should().Be(Couchbase.Lite.Info.Constants.DefaultReplicatorMaxAttemptsWaitTime, "Because default Max Retry Wait Time is 300 sec and null is returned.");
+                repl.Config.MaxAttemptsWaitTime.Should().Be(Constants.DefaultReplicatorMaxAttemptsWaitTime, "Because default Max Retry Wait Time is 300 sec and null is returned.");
             }
 
             config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(60);
@@ -341,7 +342,7 @@ namespace Test
             Action badAction = null;
             var config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb));
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.Should().Be(Couchbase.Lite.Info.Constants.DefaultReplicatorMaxAttemptsSingleShot, "Because default Max Attempts is 10 times for a Single Shot Replicator and 0 is returned.");
+                repl.Config.MaxAttempts.Should().Be(Constants.DefaultReplicatorMaxAttemptsSingleShot, $"Because default Max Attempts is 10 times for a Single Shot Replicator and {Constants.DefaultReplicatorMaxAttemptsSingleShot} is returned.");
 
                 badAction = (() => repl.Config.MaxAttempts = 2);
                 badAction.Should().Throw<InvalidOperationException>("Cannot modify a ReplicatorConfiguration (MaxAttempts) that is in use.");
@@ -349,7 +350,7 @@ namespace Test
 
             config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb)) { Continuous = true };
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.Should().Be(Couchbase.Lite.Info.Constants.DefaultReplicatorMaxAttemptsContinuous, "Because default Max Attempts is Max int times for a Continuous Replicator and 0 is returned.");
+                repl.Config.MaxAttempts.Should().Be(Constants.DefaultReplicatorMaxAttemptsContinuous, $"Because default Max Attempts is Max int times for a Continuous Replicator and {Constants.DefaultReplicatorMaxAttemptsContinuous} is returned.");
             }
             
             var attempts = 5;
@@ -360,7 +361,7 @@ namespace Test
 
             config.MaxAttempts = 0;
             using (var repl = new Replicator(config)) {
-                repl.Config.MaxAttempts.Should().Be(Couchbase.Lite.Info.Constants.DefaultReplicatorMaxAttemptsSingleShot, "Because default Max Attempts is 10 times for a Single Shot Replicator and 0 is returned.");
+                repl.Config.MaxAttempts.Should().Be(Constants.DefaultReplicatorMaxAttemptsSingleShot, $"Because default Max Attempts is 10 times for a Single Shot Replicator and {Constants.DefaultReplicatorMaxAttemptsSingleShot} is returned.");
             }
 
             config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb)) { MaxAttempts = attempts, Continuous = true };
