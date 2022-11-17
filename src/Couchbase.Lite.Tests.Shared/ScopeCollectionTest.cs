@@ -592,6 +592,11 @@ namespace Test
                 colA.Invoking(d => d.CreateQuery($"SELECT firstName, lastName FROM *"))
                         .Should().Throw<CouchbaseLiteException>("Because CreateQuery after collection colA is deleted.");
 
+                var item = ValueIndexItem.Expression(Expression.Property("firstName"));
+                var index = IndexBuilder.ValueIndex(item);
+                colA.Invoking(d => d.CreateIndex("myindex", index))
+                    .Should().Throw<CouchbaseLiteException>("Because CreateIndex after collection colA is deleted.");
+
                 var index1 = new ValueIndexConfiguration(new string[] { "firstName", "lastName" });
                 colA.Invoking(d => d.CreateIndex("index1", index1))
                     .Should().Throw<CouchbaseLiteException>("Because CreateIndex after collection colA is deleted.");
@@ -656,6 +661,11 @@ namespace Test
 
                 colA1.Invoking(d => d.CreateQuery($"SELECT firstName, lastName FROM *"))
                         .Should().Throw<CouchbaseLiteException>("Because CreateQuery after collection colA is deleted from the other db.");
+
+                var item = ValueIndexItem.Expression(Expression.Property("firstName"));
+                var index = IndexBuilder.ValueIndex(item);
+                colA1.Invoking(d => d.CreateIndex("myindex", index))
+                    .Should().Throw<CouchbaseLiteException>("Because CreateIndex after collection colA is deleted from the other db.");
 
                 var index1 = new ValueIndexConfiguration(new string[] { "firstName", "lastName" });
                 colA1.Invoking(d => d.CreateIndex("index1", index1))
@@ -820,6 +830,106 @@ namespace Test
 
         #endregion
 
+        #region Create Index from Query / Index Builder Using Collection
+
+        [Fact]
+        public void TestPerformMaintenanceReindex()
+        {
+            int n = 20;
+            var docs = new List<Document>();
+            for (int i = 0; i < n; i++) {
+                var doc = new MutableDocument($"doc_{i:D3}");
+                doc.SetInt("key", i);
+                CollA.Save(doc);
+                docs.Add(doc);
+            }
+
+            CollA.Count.Should().Be((ulong)n, "because otherwise an incorrect number of documents were made");
+
+            // Reindex when there is no index
+            Db.PerformMaintenance(MaintenanceType.Reindex);
+
+            //Create an index
+            var key = Expression.Property("key");
+            var keyItem = ValueIndexItem.Expression(key);
+            var keyIndex = IndexBuilder.ValueIndex(keyItem);
+            CollA.CreateIndex("KeyIndex", keyIndex);
+            CollA.GetIndexes().Count.Should().Be(1);
+
+            var q = QueryBuilder.Select(SelectResult.Expression(key))
+                .From(DataSource.Collection(CollA))
+                .Where(key.GreaterThan(Expression.Int(9)));
+            q.Explain().Contains("USING INDEX KeyIndex").Should().BeTrue();
+
+            //Reindex
+            Db.PerformMaintenance(MaintenanceType.Reindex);
+
+            //Check if the index is still there and used
+            CollA.GetIndexes().Count.Should().Be(1);
+            q.Explain().Contains("USING INDEX KeyIndex").Should().BeTrue();
+        }
+
+        [Fact]
+        public void TestCreateIndex()
+        {
+            CollA.GetIndexes().Should().BeEmpty();
+
+            var fName = Expression.Property("firstName");
+            var lName = Expression.Property("lastName");
+
+            var fNameItem = ValueIndexItem.Property("firstName");
+            var lNameItem = ValueIndexItem.Expression(lName);
+
+            var index1 = IndexBuilder.ValueIndex(fNameItem, lNameItem);
+            CollA.CreateIndex("index1", index1);
+
+            var detailItem = FullTextIndexItem.Property("detail");
+            var index2 = IndexBuilder.FullTextIndex(detailItem);
+            CollA.CreateIndex("index2", index2);
+
+            var detailItem2 = FullTextIndexItem.Property("es-detail");
+            var index3 = IndexBuilder.FullTextIndex(detailItem2).IgnoreAccents(true).SetLanguage("es");
+            CollA.CreateIndex("index3", index3);
+
+            CollA.GetIndexes().Should().BeEquivalentTo(new[] { "index1", "index2", "index3" });
+        }
+
+        [Fact]
+        public void TestCreateSameIndexTwice()
+        {
+            var item = ValueIndexItem.Expression(Expression.Property("firstName"));
+            var index = IndexBuilder.ValueIndex(item);
+            CollA.CreateIndex("myindex", index);
+            CollA.CreateIndex("myindex", index);
+
+            CollA.GetIndexes().Should().BeEquivalentTo(new[] { "myindex" });
+        }
+
+        [Fact]
+        public void TestCreateSameNameIndexes()
+        {
+            var fName = Expression.Property("firstName");
+            var lName = Expression.Property("lastName");
+
+            var fNameItem = ValueIndexItem.Expression(fName);
+            var fNameIndex = IndexBuilder.ValueIndex(fNameItem);
+            CollA.CreateIndex("myindex", fNameIndex);
+
+            var lNameItem = ValueIndexItem.Expression(lName);
+            var lNameIndex = IndexBuilder.ValueIndex(lNameItem);
+            CollA.CreateIndex("myindex", lNameIndex);
+
+            CollA.GetIndexes().Should().BeEquivalentTo(new[] { "myindex" }, "because lNameIndex should overwrite fNameIndex");
+
+            var detailItem = FullTextIndexItem.Property("detail");
+            var detailIndex = IndexBuilder.FullTextIndex(detailItem);
+            CollA.CreateIndex("myindex", detailIndex);
+
+            CollA.GetIndexes().Should().BeEquivalentTo(new[] { "myindex" }, "because detailIndex should overwrite lNameIndex");
+        }
+
+        #endregion
+
         #region Private Methods
 
         private void TestGetScopesOrCollections(Action dbDispose)
@@ -888,6 +998,11 @@ namespace Test
 
                 colA.Invoking(d => d.CreateQuery($"SELECT firstName, lastName FROM *"))
                         .Should().Throw<CouchbaseLiteException>("Because CreateQuery after db is disposed.");
+
+                var item = ValueIndexItem.Expression(Expression.Property("firstName"));
+                var index = IndexBuilder.ValueIndex(item);
+                colA.Invoking(d => d.CreateIndex("myindex", index))
+                    .Should().Throw<CouchbaseLiteException>("Because CreateIndex after db is disposed.");
 
                 var index1 = new ValueIndexConfiguration(new string[] { "firstName", "lastName" });
                 colA.Invoking(d => d.CreateIndex("index1", index1))

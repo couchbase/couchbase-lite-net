@@ -112,6 +112,7 @@ namespace Test
             var nextCounter = Interlocked.Increment(ref _counter);
             Database.Delete($"{DatabaseName}{nextCounter}", Directory);
             OpenDB(nextCounter);
+            CollA = Db.CreateCollection("CollA");
         }
 
         protected void WriteLine(string line)
@@ -449,6 +450,7 @@ namespace Test
 
         protected virtual void Dispose(bool disposing)
         {
+            CollA?.Dispose();
             Exception ex = null;
             var name = Db?.Name;
             Db?.Close();
