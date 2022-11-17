@@ -26,7 +26,7 @@ if($env:WORKSPACE) {
 
 Get-ChildItem "." -Filter *.nuspec |
 ForEach-Object {
-    ..\..\nuget.exe pack $_.Name /Properties version=$env:NUGET_VERSION /BasePath ..\..\
+    ..\..\nuget.exe pack $_.Name -Properties version=$env:NUGET_VERSION -BasePath ..\..\ -Symbols -SymbolPackageFormat snupkg
     if($LASTEXITCODE) {
         Pop-Location
         throw "Failed to package $_"

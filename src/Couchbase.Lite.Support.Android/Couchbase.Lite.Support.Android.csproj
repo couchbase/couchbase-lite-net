@@ -92,8 +92,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Condition="!$(TargetFramework.StartsWith('net6'))" Include="SourceLink.Embed.AllSourceFiles">
-      <Version>2.7.5</Version>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 </Project>
