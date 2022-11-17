@@ -243,7 +243,7 @@ namespace Couchbase.Lite.Sync
                             throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
                         }
                     } else { // Backward compatible if null is set
-                        this[HeartbeatIntervalKey] = Constants.DefaultReplicatorHeartbeat.Ticks / TimeSpan.TicksPerSecond;
+                        this[HeartbeatIntervalKey] = Constants.DefaultReplicatorHeartbeat.TotalSeconds;
                     }
                     
                     _heartbeat = value;
@@ -281,7 +281,7 @@ namespace Couchbase.Lite.Sync
                             throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
                         }
                     } else { // Backward compatible if null is set
-                        this[HeartbeatIntervalKey] = Constants.DefaultReplicatorMaxAttemptsWaitTime.Ticks / TimeSpan.TicksPerSecond;
+                        this[HeartbeatIntervalKey] = Constants.DefaultReplicatorMaxAttemptsWaitTime.TotalSeconds;
                     }
 
                     _maxAttemptsWaitTime = value;

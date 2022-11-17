@@ -306,9 +306,6 @@ namespace Couchbase.Lite.Sync
                     _isDefaultMaxAttemptSet = true;
                 } else {
                     _freezer.PerformAction(() => Options.MaxAttempts = value);
-                    if ((Continuous && value == Constants.DefaultReplicatorMaxAttemptsContinuous) || (!Continuous && value == Constants.DefaultReplicatorMaxAttemptsSingleShot))
-                        _isDefaultMaxAttemptSet = true;
-                    else
                         _isDefaultMaxAttemptSet = false;
                 }
             }
