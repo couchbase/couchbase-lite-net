@@ -874,9 +874,7 @@ namespace Test
         {
             CollA.GetIndexes().Should().BeEmpty();
 
-            var fName = Expression.Property("firstName");
             var lName = Expression.Property("lastName");
-
             var fNameItem = ValueIndexItem.Property("firstName");
             var lNameItem = ValueIndexItem.Expression(lName);
 
