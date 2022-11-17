@@ -22,7 +22,7 @@
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
     <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
-    <DebugType Condition= " !$(TargetFramework.StartsWith('uap')) and !$(TargetFramework.StartsWith('net6.0-windows')) ">portable</DebugType>
+    <DebugType Condition=" !$(TargetFramework.StartsWith('uap')) and !$(TargetFramework.StartsWith('net6.0-windows')) ">portable</DebugType>
     <DebugSymbols>True</DebugSymbols>
 	<LangVersion Condition=" $(TargetFramework.StartsWith('net6')) ">9.0</LangVersion>
   </PropertyGroup>
@@ -52,13 +52,14 @@
     <DefineConstants>$(DefineConstants);NEEDS_LITECORE_LOAD</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <DotNetCliToolReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="dotnet-sourcelink" Version="2.1.2" />
     <PackageReference Include="SimpleInjector" Version="5.4.0" />
-    <PackageReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="SourceLink.Create.GitHub" Version="2.7.5" PrivateAssets="all" />
     <PackageReference Include="GitInfo" Version="2.0.20" PrivateAssets="all" />
     <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
-    <DotNetCliToolReference Condition=" !$(Configuration.StartsWith('Debug')) " Include="dotnet-sourcelink-git" Version="2.1.2" />
   </ItemGroup>
   <ItemGroup Condition=" $(TargetFramework.StartsWith('netcoreapp')) or '$(TargetFramework)' == 'net6.0' ">
     <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
@@ -86,5 +87,5 @@
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" />
   <Import Project="..\LiteCore\src\LiteCore.Shared\LiteCore.Shared.projitems" Label="Shared" />
-  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TextTemplating\Microsoft.TextTemplating.targets" Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TextTemplating\Microsoft.TextTemplating.targets')"  />
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TextTemplating\Microsoft.TextTemplating.targets" Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TextTemplating\Microsoft.TextTemplating.targets')" />
 </Project>
