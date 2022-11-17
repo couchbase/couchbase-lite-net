@@ -255,6 +255,7 @@ namespace Couchbase.Lite.Sync
         /// any DocumentReplicationListeners added <see cref="Replicator.AddDocumentReplicationListener"/> to the replicator 
         /// after the replicator is started will not receive the access removed events until the replicator is restarted or 
         /// reconnected with Sync Gateway.
+        /// * auto-purge will not be performed when DocumentIDs filter <see cref="CollectionConfiguration.DocumentIDs"/> is used.
         /// </summary>
         public bool EnableAutoPurge
         {
