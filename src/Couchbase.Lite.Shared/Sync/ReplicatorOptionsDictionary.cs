@@ -76,7 +76,8 @@ namespace Couchbase.Lite.Sync
         private TimeSpan? _heartbeat = Constants.DefaultReplicatorHeartbeat;
         private int _maxAttempts = Constants.DefaultReplicatorMaxAttemptsSingleShot;
         private TimeSpan? _maxAttemptsWaitTime = Constants.DefaultReplicatorMaxAttemptsWaitTime;
-        private bool _enableAutoPurge;
+        private bool _selfSignedCertificateOnly = Constants.DefaultSelfSignedCertificateOnly;
+        private bool _enableAutoPurge = Constants.DefaultReplicatorEnableAutoPurge;
 
         #endregion
 
@@ -292,8 +293,14 @@ namespace Couchbase.Lite.Sync
         #if COUCHBASE_ENTERPRISE
         internal bool AcceptOnlySelfSignedServerCertificate
         {
-            get => this.GetCast<bool>(OnlySelfSignedServerCert);
-            set => this[OnlySelfSignedServerCert] = value;
+            get => _selfSignedCertificateOnly;
+            set
+            {
+                if (_selfSignedCertificateOnly != value) {
+                    _selfSignedCertificateOnly = value;
+                    this[OnlySelfSignedServerCert] = value;
+                }
+            }
         }
         #endif
 

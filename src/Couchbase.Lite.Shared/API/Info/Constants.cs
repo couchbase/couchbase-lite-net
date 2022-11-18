@@ -25,6 +25,10 @@ using System;
 
 namespace Couchbase.Lite.Info
 {
+    /// <summary>
+    /// Default Values in Configuration API
+    /// </summary>
+    /// Default values source: https://github.com/couchbaselabs/couchbase-mobile-tools/blob/master/gen_defaults/cbl-defaults.json
     public static class Constants
     {
         #if COUCHBASE_ENTERPRISE
@@ -101,6 +105,16 @@ namespace Couchbase.Lite.Info
         /// the user loses access to the document from both removed and revoked scenarios.
         /// </summary>
         public static readonly bool DefaultReplicatorEnableAutoPurge = true;
+
+        #if COUCHBASE_ENTERPRISE
+        /// <summary>
+        /// Default AcceptOnlySelfSignedServerCertificate <see cref="ReplicatorConfiguration.AcceptOnlySelfSignedServerCertificate" /> 
+        /// property value in ReplicatorConfiguration.
+        /// The default value is <c>false</c> which means the replicator not to accepts self-signed only certificates from the remote.
+        /// Default value determins whether or not a replicator only accepts self-signed certificates from the remote.
+        /// </summary>
+        public static readonly bool DefaultSelfSignedCertificateOnly = false;
+        #endif
 
         #endregion
 
