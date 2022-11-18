@@ -28,6 +28,7 @@ using JetBrains.Annotations;
 using LiteCore;
 using LiteCore.Interop;
 using LiteCore.Util;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -517,7 +518,52 @@ namespace Couchbase.Lite
 
         #endregion
 
-        # region Public Methods - Indexable
+        #region Public Method - Query / Index Builder CreateIndex
+
+        /// <summary>
+        /// Creates an index which could be a value index from <see cref="IndexBuilder.ValueIndex"/> or a full-text search index
+        /// from <see cref="IndexBuilder.FullTextIndex"/> with the given name.
+        /// The name can be used for deleting the index. Creating a new different index with an existing
+        /// index name will replace the old index; creating the same index with the same name will be no-ops.
+        /// </summary>
+        /// <param name="name">The index name</param>
+        /// <param name="index">The index</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="name"/> or <paramref name="index"/>
+        /// is <c>null</c></exception>
+        /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
+        /// <exception cref="NotSupportedException">Thrown if an implementation of <see cref="IIndex"/> other than one of the library
+        /// provided ones is used</exception>
+        /// <exception cref="CouchbaseLiteException">Thrown with <see cref="C4ErrorCode.NotOpen"/>
+        /// if this method is called after the collection is closed</exception>
+        public void CreateIndex([NotNull] string name, [NotNull] IIndex index)
+        {
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(name), name);
+            CBDebug.MustNotBeNull(WriteLog.To.Database, Tag, nameof(index), index);
+
+            ThreadSafety.DoLocked(() =>
+            {
+                CheckCollectionValid();
+                var concreteIndex = Misc.TryCast<IIndex, QueryIndex>(index);
+                var jsonObj = concreteIndex.ToJSON();
+                var json = JsonConvert.SerializeObject(jsonObj);
+                LiteCoreBridge.Check(err =>
+                {
+                    var internalOpts = concreteIndex.Options;
+
+                    // For some reason a "using" statement here causes a compiler error
+                    try {
+                        return Native.c4coll_createIndex(c4coll, name, json, C4QueryLanguage.JSONQuery, concreteIndex.IndexType, &internalOpts, err);
+                    } finally {
+                        internalOpts.Dispose();
+                    }
+                });
+            });
+        }
+
+        #endregion
+
+        #region Public Methods - Indexable
 
         /// <summary>
         /// Gets a list of index names that are present in the collection
