@@ -94,6 +94,7 @@ namespace Couchbase.Lite.Sync
         private Uri _remoteUrl;
         private ReplicatorType _replicatorType = Constants.DefaultReplicatorType;
         private C4SocketFactory _socketFactory;
+        private bool _isDefaultMaxAttemptSet = true;
 
         #endregion
 
@@ -136,7 +137,12 @@ namespace Couchbase.Lite.Sync
         public bool Continuous
         {
             get => _continuous;
-            set =>_freezer.SetValue(ref _continuous, value);
+            set
+            {
+                _freezer.SetValue(ref _continuous, value);
+                if (_isDefaultMaxAttemptSet)
+                    MaxAttempts = 0;
+            }
         }
 
         /// <summary>
@@ -256,6 +262,7 @@ namespace Couchbase.Lite.Sync
         /// after the replicator is started will not receive the access removed events until the replicator is restarted or 
         /// reconnected with Sync Gateway.
         /// * auto-purge will not be performed when DocumentIDs filter <see cref="CollectionConfiguration.DocumentIDs"/> is used.
+        /// Default value is <see cref="Constants.DefaultReplicatorEnableAutoPurge" />
         /// </summary>
         public bool EnableAutoPurge
         {
@@ -265,10 +272,8 @@ namespace Couchbase.Lite.Sync
 
         /// <summary>
         /// Gets or sets the replicator heartbeat keep-alive interval. 
-        /// The default is null (5 min interval is applied). 
-        /// * <c>5</c> min interval is applied when Heartbeat is set to null.
-        /// * null will be returned when default <c>5</c> min interval is applied.
-        /// Default value is <see cref="Constants.DefaultReplicatorHeartbeat" />
+        /// Default value is <see cref="Constants.DefaultReplicatorHeartbeat" /> 
+        /// (5 min interval). 
         /// </summary>
         /// <exception cref="ArgumentException"> 
         /// Throw if set the Heartbeat to less or equal to 0 full seconds.
@@ -282,18 +287,12 @@ namespace Couchbase.Lite.Sync
         /// <summary>
         /// Gets or sets the Max number of retry attempts. The retry attempts will reset
         /// after the replicator is connected to a remote peer. 
-        /// The default is <c>0</c> (<c>10</c> for a single shot replicator or 
-        /// <see cref="int.MaxValue" /> for a continuous replicator is applied.)
-        /// * <c>10</c> for a single shot replicator or <see cref="int.MaxValue" /> for a 
-        /// continuous replicator is applied when user set MaxAttempts to 0.
-        /// * 0 will be returned when default <c>10</c> for a single shot replicator or 
-        /// <see cref="int.MaxValue" /> for a continuous replicator is applied.
         /// * Setting the value to 1 means that the replicator will try connect once and 
         /// the replicator will stop if there is a transient error.
         /// * Default value is <see cref="Constants.DefaultReplicatorMaxAttemptsSingleShot" />
-        /// for a single shot replicator.
+        /// (<c>10</c>) for a single shot replicator.
         /// * Default value is <see cref="Constants.DefaultReplicatorMaxAttemptsContinuous" />
-        /// for a continuous replicator.
+        /// (<see cref="int.MaxValue" />) for a continuous replicator.
         /// </summary>
         /// <exception cref="ArgumentException">
         /// Throw if set the MaxAttempts to a negative value.
@@ -301,7 +300,16 @@ namespace Couchbase.Lite.Sync
         public int MaxAttempts
         {
             get => Options.MaxAttempts;
-            set => _freezer.PerformAction(() => Options.MaxAttempts = value);
+            set 
+            {
+                if (value == 0) { // backward compatible when user set the value to 0
+                    _freezer.PerformAction(() => Options.MaxAttempts = Continuous ? Constants.DefaultReplicatorMaxAttemptsContinuous : Constants.DefaultReplicatorMaxAttemptsSingleShot);
+                    _isDefaultMaxAttemptSet = true;
+                } else {
+                    _freezer.PerformAction(() => Options.MaxAttempts = value);
+                        _isDefaultMaxAttemptSet = false;
+                }
+            }
         }
 
         /// <summary>

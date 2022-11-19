@@ -82,7 +82,7 @@ namespace Test
             var collConfig = config.GetCollectionConfig(Db.DefaultCollection);
             collConfig.GetType().Should().Be(typeof(CollectionConfiguration));
             collConfig.Equals(config.DefaultCollectionConfig).Should().BeTrue();
-            collConfig.ConflictResolver.Should().BeNull();
+            collConfig.ConflictResolver.Should().Be(ConflictResolver.Default);
             collConfig.PushFilter.Should().BeNull();
             collConfig.PullFilter.Should().BeNull();
             collConfig.Channels.Should().BeNull();
@@ -202,10 +202,10 @@ namespace Test
             var colAConfig = config.GetCollectionConfig(colA);
             var colBConfig = config.GetCollectionConfig(colB);
             colAConfig.Should().NotBeSameAs(colBConfig, "Because the returned configs should be different instances.");
-            colAConfig.ConflictResolver.Should().BeNull("Property was never assigned and default value was null.");
+            colAConfig.ConflictResolver.Should().Be(ConflictResolver.Default, $"Property was never assigned and default value was {ConflictResolver.Default}.");
             colAConfig.PushFilter.Should().BeNull("Property was never assigned and default value was null.");
             colAConfig.PullFilter.Should().BeNull("Property was never assigned and default value was null.");
-            colBConfig.ConflictResolver.Should().BeNull("Property was never assigned and default value was null.");
+            colBConfig.ConflictResolver.Should().Be(ConflictResolver.Default, $"Property was never assigned and default value was {ConflictResolver.Default}.");
             colBConfig.PushFilter.Should().BeNull("Property was never assigned and default value was null.");
             colBConfig.PullFilter.Should().BeNull("Property was never assigned and default value was null.");
         }
@@ -252,7 +252,7 @@ namespace Test
             config.Collections.Contains(colB).Should().BeTrue("Because collection colB just added via AddCollection method");
             var colAConfig = config.GetCollectionConfig(colA);
             var colBConfig = config.GetCollectionConfig(colB);
-            colAConfig.ConflictResolver.Should().BeNull("Property was never assigned and default value was null.");
+            colAConfig.ConflictResolver.Should().Be(ConflictResolver.Default, $"Property was never assigned and default value was {ConflictResolver.Default}.");
             colAConfig.PushFilter.Should().BeNull("Property was never assigned and default value was null.");
             colAConfig.PullFilter.Should().BeNull("Property was never assigned and default value was null.");
             colBConfig.ConflictResolver.Should().Be(colConfig.ConflictResolver, "Property was just updated via AddCollection.");
@@ -297,7 +297,7 @@ namespace Test
 
             colAConfig = config.GetCollectionConfig(colA);
             colBConfig = config.GetCollectionConfig(colB);
-            colAConfig.ConflictResolver.Should().Be(null);
+            colAConfig.ConflictResolver.Should().Be(ConflictResolver.Default);
             colBConfig.ConflictResolver.Should().Be(colConfig.ConflictResolver);
             colAConfig.PullFilter.Should().Be(null);
             colBConfig.PullFilter.Should().Be(colConfig.PullFilter);

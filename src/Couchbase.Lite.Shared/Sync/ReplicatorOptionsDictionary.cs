@@ -23,6 +23,7 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 
+using Couchbase.Lite.Info;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Util;
 
@@ -72,10 +73,9 @@ namespace Couchbase.Lite.Sync
 
         private GCHandle _pinnedCertHandle;
         private GCHandle _clientCertHandle;
-        private TimeSpan? _heartbeat = null;
-        private int _maxAttempts = 0;
-        private TimeSpan? _maxAttemptsWaitTime = null;
-        private bool _enableAutoPurge;
+        private TimeSpan? _heartbeat = Constants.DefaultReplicatorHeartbeat;
+        private int _maxAttempts = Constants.DefaultReplicatorMaxAttemptsSingleShot;
+        private TimeSpan? _maxAttemptsWaitTime = Constants.DefaultReplicatorMaxAttemptsWaitTime;
 
         #endregion
 
@@ -218,14 +218,8 @@ namespace Couchbase.Lite.Sync
 
         internal bool EnableAutoPurge
         {
-            get => _enableAutoPurge;
-            set
-            {
-                if (_enableAutoPurge != value) {
-                    _enableAutoPurge = value;
-                    this[EnableAutoPurgeKey] = value;
-                }
-            }
+            get => this.GetCast<bool>(EnableAutoPurgeKey);
+            set => this[EnableAutoPurgeKey] = value;
         }
 
         internal TimeSpan? Heartbeat
@@ -241,8 +235,8 @@ namespace Couchbase.Lite.Sync
                         } else {
                             throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidHeartbeatInterval);
                         }
-                    } else {
-                        this[HeartbeatIntervalKey] = 0;
+                    } else { // Backward compatible if null is set
+                        this[HeartbeatIntervalKey] = Constants.DefaultReplicatorHeartbeat.TotalSeconds;
                     }
                     
                     _heartbeat = value;
@@ -279,8 +273,8 @@ namespace Couchbase.Lite.Sync
                         } else {
                             throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
                         }
-                    } else {
-                        this[HeartbeatIntervalKey] = 0;
+                    } else { // Backward compatible if null is set
+                        this[HeartbeatIntervalKey] = Constants.DefaultReplicatorMaxAttemptsWaitTime.TotalSeconds;
                     }
 
                     _maxAttemptsWaitTime = value;
@@ -310,7 +304,10 @@ namespace Couchbase.Lite.Sync
         public ReplicatorOptionsDictionary()
         {
             Headers = new Dictionary<string, string>();
-            EnableAutoPurge = true;
+            EnableAutoPurge = Constants.DefaultReplicatorEnableAutoPurge;
+            #if COUCHBASE_ENTERPRISE
+            AcceptOnlySelfSignedServerCertificate = Constants.DefaultSelfSignedCertificateOnly;
+            #endif
         }
 
         ~ReplicatorOptionsDictionary()
