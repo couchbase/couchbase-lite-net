@@ -76,8 +76,6 @@ namespace Couchbase.Lite.Sync
         private TimeSpan? _heartbeat = Constants.DefaultReplicatorHeartbeat;
         private int _maxAttempts = Constants.DefaultReplicatorMaxAttemptsSingleShot;
         private TimeSpan? _maxAttemptsWaitTime = Constants.DefaultReplicatorMaxAttemptsWaitTime;
-        private bool _selfSignedCertificateOnly = Constants.DefaultSelfSignedCertificateOnly;
-        private bool _enableAutoPurge = Constants.DefaultReplicatorEnableAutoPurge;
 
         #endregion
 
@@ -220,14 +218,8 @@ namespace Couchbase.Lite.Sync
 
         internal bool EnableAutoPurge
         {
-            get => _enableAutoPurge;
-            set
-            {
-                if (_enableAutoPurge != value) {
-                    _enableAutoPurge = value;
-                    this[EnableAutoPurgeKey] = value;
-                }
-            }
+            get => this.GetCast<bool>(EnableAutoPurgeKey);
+            set => this[EnableAutoPurgeKey] = value;
         }
 
         internal TimeSpan? Heartbeat
@@ -293,14 +285,8 @@ namespace Couchbase.Lite.Sync
         #if COUCHBASE_ENTERPRISE
         internal bool AcceptOnlySelfSignedServerCertificate
         {
-            get => _selfSignedCertificateOnly;
-            set
-            {
-                if (_selfSignedCertificateOnly != value) {
-                    _selfSignedCertificateOnly = value;
-                    this[OnlySelfSignedServerCert] = value;
-                }
-            }
+            get => this.GetCast<bool>(OnlySelfSignedServerCert);
+            set => this[OnlySelfSignedServerCert] = value;
         }
         #endif
 
@@ -318,7 +304,10 @@ namespace Couchbase.Lite.Sync
         public ReplicatorOptionsDictionary()
         {
             Headers = new Dictionary<string, string>();
-            EnableAutoPurge = true;
+            EnableAutoPurge = Constants.DefaultReplicatorEnableAutoPurge;
+            #if COUCHBASE_ENTERPRISE
+            AcceptOnlySelfSignedServerCertificate = Constants.DefaultSelfSignedCertificateOnly;
+            #endif
         }
 
         ~ReplicatorOptionsDictionary()
