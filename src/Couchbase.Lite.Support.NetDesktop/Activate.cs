@@ -92,12 +92,12 @@ namespace Couchbase.Lite.Support
                     nugetBase = Path.GetDirectoryName(nugetBase);
                 }
 
-                var dllPath = Path.Combine(codeBase??"", architecture, "LiteCore.dll");
-                var dllPathAsp = Path.Combine(codeBase??"", "bin", architecture, "LiteCore.dll");
-                var dllPathNuget =
-                    Path.Combine(nugetBase??"", "runtimes", $"win10-{architecture}", "native", "LiteCore.dll");
+                var dllPath = Path.Combine(codeBase ?? "", architecture, "LiteCore.dll");
+                var dllPathAsp = Path.Combine(codeBase ?? "", "bin", architecture, "LiteCore.dll");
+                var dllPathRuntimes =
+                    Path.Combine(codeBase ?? "", "runtimes", $"win10-{architecture}", "native", "LiteCore.dll");
                 var foundPath = default(string);
-                foreach (var path in new[] {dllPathNuget, dllPath, dllPathAsp}) {
+                foreach (var path in new[] { dllPathRuntimes, dllPath, dllPathAsp}) {
                     foundPath = File.Exists(path) ? path : null;
                     if (foundPath != null) {
                         break;
@@ -107,7 +107,7 @@ namespace Couchbase.Lite.Support
                 if (foundPath == null) {
                     throw new DllNotFoundException("Could not find LiteCore.dll!  Nothing is going to work!\r\n" +
                                                    "Tried searching in:\r\n" +
-                                                   $"{dllPathNuget}\r\n" +
+                                                   $"{dllPathRuntimes}\r\n" +
                                                    $"{dllPath}\r\n" +
                                                    $"{dllPathAsp}\r\n");
                 }
