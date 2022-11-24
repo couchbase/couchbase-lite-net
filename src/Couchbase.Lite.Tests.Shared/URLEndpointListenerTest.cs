@@ -954,13 +954,13 @@ namespace Test
 
                 RunReplication(replConfig, 0, 0);
 
-                listener.Stop();
-
                 // Check docs are replicated between collections colADb & colAOtherDb
                 colAOtherDb.GetDocument("doc").GetString("str").Should().Be("string");
                 colAOtherDb.GetDocument("doc1").GetString("str1").Should().Be("string1");
                 colADb.GetDocument("doc2").GetString("str2").Should().Be("string2");
                 colADb.GetDocument("doc3").GetString("str3").Should().Be("string3");
+                
+                listener.Stop();
             }
         }
 
