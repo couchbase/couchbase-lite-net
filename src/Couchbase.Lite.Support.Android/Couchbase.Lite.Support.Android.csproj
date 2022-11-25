@@ -5,6 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <TargetFrameworks>net6.0-android;monoandroid90</TargetFrameworks>
     <SupportedOSPlatformVersion>22.0</SupportedOSPlatformVersion>
+    <TargetPlatformVersion Condition="$(TargetFramework.StartsWith('net6'))">31.0</TargetPlatformVersion>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Support.Android</RootNamespace>
     <AssemblyName>Couchbase.Lite.Support.Android</AssemblyName>
