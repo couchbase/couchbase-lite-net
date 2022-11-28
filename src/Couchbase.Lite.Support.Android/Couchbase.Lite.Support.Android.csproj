@@ -3,9 +3,8 @@
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging</Configurations>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <TargetFrameworks>net6.0-android;monoandroid90</TargetFrameworks>
+    <TargetFrameworks>net6.0-android31;monoandroid90</TargetFrameworks>
     <SupportedOSPlatformVersion>22.0</SupportedOSPlatformVersion>
-    <TargetPlatformVersion Condition="$(TargetFramework.StartsWith('net6'))">31.0</TargetPlatformVersion>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Support.Android</RootNamespace>
     <AssemblyName>Couchbase.Lite.Support.Android</AssemblyName>
@@ -52,7 +51,7 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <DocumentationFile>bin\Packaging\Couchbase.Lite.Support.Android.xml</DocumentationFile>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'net6.0-android' ">
+  <PropertyGroup Condition="$(TargetFramework.StartsWith('net6.0-android'))">
     <DefineConstants>$(DefineConstants);NET6_0_ANDROID</DefineConstants>
   </PropertyGroup>
   <ItemGroup>

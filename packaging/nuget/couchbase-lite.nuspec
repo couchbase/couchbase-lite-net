@@ -55,7 +55,7 @@
 		<dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
         <dependency id="Couchbase.Lite.Support.UWP" version="[$version$]" />
       </group>
-      <group targetFramework="net6.0-android">
+      <group targetFramework="net6.0-android31">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
 		<dependency id="System.Collections.Immutable" version="6.0.0" />
@@ -69,14 +69,14 @@
 		<dependency id="System.Collections.Immutable" version="6.0.0" />
         <dependency id="Couchbase.Lite.Support.Android" version="[$version$]" />
       </group>
-      <group targetFramework="net6.0-ios">
+      <group targetFramework="net6.0-ios14.2">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
 		<dependency id="System.Collections.Immutable" version="6.0.0" />
 		<dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
         <dependency id="Couchbase.Lite.Support.iOS" version="[$version$]" />
       </group>
-      <group targetFramework="net6.0-maccatalyst">
+      <group targetFramework="net6.0-maccatalyst14.2">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
 		<dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
@@ -107,9 +107,9 @@
     <file target="lib\net6.0-windows10.0.19041.0\" src="src\Couchbase.Lite\bin\Packaging\net6.0-windows10.0.19041.0\Couchbase.Lite.dll" />
     <file target="lib\net6.0-windows10.0.19041.0\" src="src\Couchbase.Lite\bin\Packaging\net6.0-windows10.0.19041.0\Couchbase.Lite.pdb" />
     <file target="lib\net6.0-windows10.0.19041.0\" src="src\Couchbase.Lite\bin\Packaging\net6.0-windows10.0.19041.0\Couchbase.Lite.xml" />
-    <file target="lib\net6.0-android\" src="src\Couchbase.Lite\bin\Packaging\net6.0-android\Couchbase.Lite.dll" />
-    <file target="lib\net6.0-android\" src="src\Couchbase.Lite\bin\Packaging\net6.0-android\Couchbase.Lite.pdb" />
-    <file target="lib\net6.0-android\" src="src\Couchbase.Lite\bin\Packaging\net6.0-android\Couchbase.Lite.xml" />
+    <file target="lib\net6.0-android31\" src="src\Couchbase.Lite\bin\Packaging\net6.0-android31\Couchbase.Lite.dll" />
+    <file target="lib\net6.0-android31\" src="src\Couchbase.Lite\bin\Packaging\net6.0-android31\Couchbase.Lite.pdb" />
+    <file target="lib\net6.0-android31\" src="src\Couchbase.Lite\bin\Packaging\net6.0-android31\Couchbase.Lite.xml" />
     <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid90\Couchbase.Lite.dll" />
     <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid90\Couchbase.Lite.pdb" />
     <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid90\Couchbase.Lite.xml" />
@@ -120,12 +120,12 @@
     <file target="lib\uap10.0.19041\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.19041\Couchbase.Lite.pdb" />
     <file target="lib\uap10.0.19041\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.19041\Couchbase.Lite.xml" />
     <file target="lib\uap10.0.19041\" src="src\Couchbase.Lite\bin\Packaging\uap10.0.19041\Couchbase.Lite.pri" />
-    <file target="lib\net6.0-maccatalyst\" src="src\Couchbase.Lite\bin\Packaging\net6.0-maccatalyst\Couchbase.Lite.dll" />
-    <file target="lib\net6.0-maccatalyst\" src="src\Couchbase.Lite\bin\Packaging\net6.0-maccatalyst\Couchbase.Lite.pdb" />
-    <file target="lib\net6.0-maccatalyst\" src="src\Couchbase.Lite\bin\Packaging\net6.0-maccatalyst\Couchbase.Lite.xml" />
-    <file target="lib\net6.0-ios\" src="src\Couchbase.Lite\bin\Packaging\net6.0-ios\Couchbase.Lite.dll" />
-    <file target="lib\net6.0-ios\" src="src\Couchbase.Lite\bin\Packaging\net6.0-ios\Couchbase.Lite.pdb" />
-    <file target="lib\net6.0-ios\" src="src\Couchbase.Lite\bin\Packaging\net6.0-ios\Couchbase.Lite.xml" />
+    <file target="lib\net6.0-maccatalyst14.2\" src="src\Couchbase.Lite\bin\Packaging\net6.0-maccatalyst14.2\Couchbase.Lite.dll" />
+    <file target="lib\net6.0-maccatalyst14.2\" src="src\Couchbase.Lite\bin\Packaging\net6.0-maccatalyst14.2\Couchbase.Lite.pdb" />
+    <file target="lib\net6.0-maccatalyst14.2\" src="src\Couchbase.Lite\bin\Packaging\net6.0-maccatalyst14.2\Couchbase.Lite.xml" />
+    <file target="lib\net6.0-ios14.2\" src="src\Couchbase.Lite\bin\Packaging\net6.0-ios14.2\Couchbase.Lite.dll" />
+    <file target="lib\net6.0-ios14.2\" src="src\Couchbase.Lite\bin\Packaging\net6.0-ios14.2\Couchbase.Lite.pdb" />
+    <file target="lib\net6.0-ios14.2\" src="src\Couchbase.Lite\bin\Packaging\net6.0-ios14.2\Couchbase.Lite.xml" />
     <file target="lib\xamarinios\" src="src\Couchbase.Lite\bin\Packaging\xamarin.ios10\Couchbase.Lite.dll" />
     <file target="lib\xamarinios\" src="src\Couchbase.Lite\bin\Packaging\xamarin.ios10\Couchbase.Lite.pdb" />
     <file target="lib\xamarinios\" src="src\Couchbase.Lite\bin\Packaging\xamarin.ios10\Couchbase.Lite.xml" />
