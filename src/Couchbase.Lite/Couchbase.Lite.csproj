@@ -1,7 +1,7 @@
 ﻿<Project Sdk="MSBuild.Sdk.Extras">
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
-	<TargetFrameworks>netstandard2.0;netcoreapp3.1;net6.0;net6.0-android;net6.0-ios;net6.0-maccatalyst;MonoAndroid90;Xamarin.iOS10</TargetFrameworks>
+	<TargetFrameworks>netstandard2.0;netcoreapp3.1;net6.0;net6.0-android31;net6.0-ios14.2;net6.0-maccatalyst14.2;MonoAndroid90;Xamarin.iOS10</TargetFrameworks>
 	<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net462;uap10.0.19041;net6.0-windows10.0.19041.0</TargetFrameworks>
     <SingleProject>true</SingleProject>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
