@@ -882,6 +882,117 @@ namespace Test
         [Fact]
         public void TestCollectionIsDocumentPendingWithFilter() => ValidateIsDocumentPending(PENDING_DOC_ID_SEL.FILTER);
 
+        [Fact]
+        public void TestCreateReplicatorWithNoCollections()
+        {
+            var config = CreateConfig(ReplicatorType.PushAndPull);
+            config.AddCollections(new List<Collection>());
+            Action badAction = (() => new Replicator(config));
+            badAction.Should().Throw<CouchbaseLiteException>("Replicator Configuration must contain at least one collection.");
+        }
+
+        [Fact]
+        public void TestAddCollectionsToDatabaseInitiatedConfig()
+        {
+            var config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb));
+            LoadCollectionsDocs(config);
+
+            RunReplication(config, 0, 0);
+
+            // Check docs in Db - make sure all docs are pulled from the OtherDb to the Db
+            var colAInDb = Db.GetCollection("colA", "scopeA");
+            var colBInDb = Db.GetCollection("colB", "scopeA");
+            colAInDb.GetDocument("doc").GetString("str").Should().Be("string");
+            colAInDb.GetDocument("doc1").GetString("str1").Should().Be("string1");
+            colBInDb.GetDocument("doc2").GetString("str2").Should().Be("string2");
+            colBInDb.GetDocument("doc3").GetString("str3").Should().Be("string3");
+            colAInDb.GetDocument("doc4").GetString("str4").Should().Be("string4");
+            colAInDb.GetDocument("doc5").GetString("str5").Should().Be("string5");
+            colBInDb.GetDocument("doc6").GetString("str6").Should().Be("string6");
+            colBInDb.GetDocument("doc7").GetString("str7").Should().Be("string7");
+
+            // Check docs in OtherDb - make sure docs are pushed to the OtherDb from the Db
+            var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA");
+            var colBInOtherDb = OtherDb.GetCollection("colB", "scopeA");
+            colAInOtherDb.GetDocument("doc").GetString("str").Should().Be("string");
+            colAInOtherDb.GetDocument("doc1").GetString("str1").Should().Be("string1");
+            colBInOtherDb.GetDocument("doc2").GetString("str2").Should().Be("string2");
+            colBInOtherDb.GetDocument("doc3").GetString("str3").Should().Be("string3");
+            colAInOtherDb.GetDocument("doc4").GetString("str4").Should().Be("string4");
+            colAInOtherDb.GetDocument("doc5").GetString("str5").Should().Be("string5");
+            colBInOtherDb.GetDocument("doc6").GetString("str6").Should().Be("string6");
+            colBInOtherDb.GetDocument("doc7").GetString("str7").Should().Be("string7");
+        }
+
+        [Fact]
+        public void TestOuterFiltersWithCollections()
+        {
+            var colA = Db.CreateCollection("colA", "scopeA");
+            var colB = Db.CreateCollection("colB", "scopeA");
+
+            var targetEndpoint = new URLEndpoint(new Uri("wss://foo:4984/"));
+            var config = new ReplicatorConfiguration(targetEndpoint); ;
+
+            config.AddCollections(new List<Collection>() { colA, colB });
+
+            var defaultCollection = Db.DefaultCollection;
+
+            // set the outer filters after adding default collection
+            config.AddCollection(defaultCollection);
+
+            config.Channels = new List<string> { "channelA", "channelB" };
+            config.DocumentIDs = new List<string> { "doc1", "doc2" };
+            config.ConflictResolver = new FakeConflictResolver();
+            config.PullFilter = _replicator__filterCallbackTrue;
+            config.PushFilter = _replicator__filterCallbackTrue;
+
+            var defaultCollConfig = config.GetCollectionConfig(defaultCollection);
+            defaultCollConfig.Channels.Should().BeSameAs(config.Channels);
+            defaultCollConfig.DocumentIDs.Should().BeSameAs(config.DocumentIDs);
+            defaultCollConfig.ConflictResolver.Should().BeSameAs(config.ConflictResolver);
+            defaultCollConfig.PullFilter.Should().BeSameAs(config.PullFilter);
+            defaultCollConfig.PushFilter.Should().BeSameAs(config.PushFilter);
+        }
+
+        [Fact]
+        public void TestUpdateCollectionConfigWithDefault()
+        {
+            var colA = Db.CreateCollection("colA", "scopeA");
+            var defaultCollection = Db.DefaultCollection;
+
+            var targetEndpoint = new URLEndpoint(new Uri("wss://foo:4984/"));
+            var replConfig = new ReplicatorConfiguration(targetEndpoint);
+
+            var collConfig = new CollectionConfiguration()
+            {
+                PullFilter = _replicator__filterCallbackTrue
+            };
+
+            // Use addCollections() to add both colA and the default collection to the replicator config 
+            // configured with the the CollectionConfiguration.
+            replConfig.AddCollections(new List<Collection>() { defaultCollection, colA }, collConfig);
+
+            collConfig = replConfig.GetCollectionConfig(defaultCollection);
+            collConfig.PullFilter.Should().NotBeNull("Because defaultCollection's collConfig PullFilter is assigned");
+            collConfig.PushFilter.Should().BeNull("Because no PushFilter is assigned in defaultCollection's collConfig");
+
+            collConfig = replConfig.GetCollectionConfig(colA);
+            collConfig.PullFilter.Should().NotBeNull("Because colA's collConfig PullFilter is assigned");
+            collConfig.PushFilter.Should().BeNull("Because no PushFilter is assigned in colA's collConfig");
+
+            // Set ReplicationFilter as the push filter using the deprecated ReplicatorConfiguration.setPushFilter method.
+            replConfig.PushFilter = _replicator__filterCallbackTrue;
+
+            collConfig = replConfig.GetCollectionConfig(defaultCollection);
+            collConfig.PullFilter.Should().NotBeNull("Because defaultCollection's collConfig PullFilter is assigned");
+            collConfig.PushFilter.Should().NotBeNull("Because defaultCollection's collConfig PushFilter is assigned");
+
+            // Verify that the only thing that has changed is the default collection's push filter.
+            collConfig = replConfig.GetCollectionConfig(colA);
+            collConfig.PullFilter.Should().NotBeNull("Because colA's collConfig PullFilter is assigned");
+            collConfig.PushFilter.Should().BeNull("Because no PushFilter is assigned in colA's collConfig");
+        }
+
         #endregion
 
         #region Private Methods
