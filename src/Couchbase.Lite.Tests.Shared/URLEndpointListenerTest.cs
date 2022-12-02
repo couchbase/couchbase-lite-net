@@ -963,11 +963,11 @@ namespace Test
 
         [Fact]
         public void TestReplicatorInValidNetworkInterface() => RunReplicationNI(TestReplicatorNIType.InValidNI,
-            errorCode: (int)CouchbaseLiteError.UnknownHost, errorType: CouchbaseLiteErrorType.CouchbaseLite);
+            errorCode: (int)CouchbaseLiteError.UnknownInterface, errorType: CouchbaseLiteErrorType.CouchbaseLite);
 
         [Fact]
         public void TestReplicatorInValidNIIPAddress() => RunReplicationNI(TestReplicatorNIType.InValidAddress,
-            errorCode: (int)CouchbaseLiteError.UnknownHost, errorType: CouchbaseLiteErrorType.CouchbaseLite);
+            errorCode: (int)CouchbaseLiteError.UnknownInterface, errorType: CouchbaseLiteErrorType.CouchbaseLite);
 
         #endregion
 
