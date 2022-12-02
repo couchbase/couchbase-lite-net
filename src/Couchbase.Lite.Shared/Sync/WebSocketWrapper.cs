@@ -297,7 +297,7 @@ namespace Couchbase.Lite.Sync
                 //Throw if input network adapter does not exist
                 if (ni == null) {
                     WriteLog.To.Sync.I(Tag, $"Unknown Network Interface {_options.NetworkInterface}.");
-                    throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownHost);
+                    throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownInterface);
                 }
 
                 //Get UnicastIPAddressInformationCollection from the NI adapter
@@ -317,7 +317,7 @@ namespace Couchbase.Lite.Sync
                 }
 
                 WriteLog.To.Sync.I(Tag, $"Network Interface {_options.NetworkInterface} supports neither IPv6 nor IPv4.");
-                throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownHost);
+                throw new CouchbaseNetworkException(C4NetworkErrorCode.UnknownInterface);
 
             } catch (Exception ex) {
                 WriteLog.To.Sync.I(Tag, $"Failed Creating Tcp Client with Network Interface {_options.NetworkInterface}.");

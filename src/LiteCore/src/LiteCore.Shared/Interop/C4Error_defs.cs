@@ -102,6 +102,7 @@ namespace LiteCore.Interop
         HostUnreachable,
         AddressNotAvailable,
         BrokenPipe,
+        UnknownInterface,
         NumNetErrorCodesPlus1
     }
 

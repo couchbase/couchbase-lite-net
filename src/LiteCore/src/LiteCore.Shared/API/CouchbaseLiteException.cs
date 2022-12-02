@@ -327,6 +327,11 @@ namespace Couchbase.Lite
         BrokenPipe = C4NetworkErrorCode.BrokenPipe + NetworkBase,
 
         /// <summary>
+        /// Invalid Network Interface
+        /// </summary>
+        UnknownInterface = C4NetworkErrorCode.UnknownInterface + NetworkBase,
+
+        /// <summary>
         /// Not an actual error, but serves as the lower bound for HTTP related
         /// errors
         /// </summary>
