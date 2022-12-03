@@ -106,7 +106,7 @@ namespace Test
 
 
         #endregion
-#if !NET6_0_APPLE
+        #if !NET6_0_APPLE
         #region Public Methods
         
 
@@ -927,17 +927,21 @@ namespace Test
         [Fact]
         public void TestReplicatorValidNetworkInterface()
         {
-            // valid address and able to connect to server
-            RunReplicationNI(TestReplicatorNIType.ValidAddress_SERVER_REACHABLE);
             // valid ni and able to connect to server
             RunReplicationNI(TestReplicatorNIType.ValidNI);
         }
 
         [Fact]
+        public void TestReplicatorValidNetworkInterfaceAddr()
+        {
+            // valid address and able to connect to server
+            RunReplicationNI(TestReplicatorNIType.ValidAddress_SERVER_REACHABLE);
+        }
+
+        [Fact]
         public void TestReplicatorValidAdapterNotConnectNetwork()
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 RunReplicationNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE,
                     errorCode: (int)CouchbaseLiteError.AddressNotAvailable, errorType: CouchbaseLiteErrorType.CouchbaseLite);
             } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
@@ -991,7 +995,6 @@ namespace Test
                 NetworkInterface = ni
             };
 
-
             if (errorCode == 0 && (type == TestReplicatorNIType.ValidNI ||
                     type == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE))
                 RunReplication(replicatorConfig, errorCode, errorType);
@@ -1024,25 +1027,42 @@ namespace Test
             }
         }
 
-        private string GetNetworkInterface(TestReplicatorNIType tyep)
+        private string GetNetworkInterface(TestReplicatorNIType type)
         {
-            if (tyep == TestReplicatorNIType.InValidNI)
+            if (type == TestReplicatorNIType.InValidNI)
                 return "INVALID";
 
-            if (tyep == TestReplicatorNIType.InValidAddress)
+            if (type == TestReplicatorNIType.InValidAddress)
                 return "1.1.1.256";
 
             foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
-                if (tyep <= TestReplicatorNIType.ValidNI && ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) {
-                    if (tyep == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE) {
+                /* List Network Interfaces Example
+                 lo      IPv4 127.0.0.1
+                 enp0s3  IPv4 192.168.0.110
+                 docker0 IPv4 172.17.0.1
+                 lo      IPv6 ::1
+                 enp0s3  IPv6 fe80::4e2c:5835:897b:6ec7%enp0s3
+                 */
+                if (type <= TestReplicatorNIType.ValidNI && ni.OperationalStatus == OperationalStatus.Up) {
+                    if (type == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE) {
                         if (ni.Supports(NetworkInterfaceComponent.IPv6))
+                            #if ANDROID
+                            // "::1" doesn't work in Android device, so mask to ipv4
+                            return ni.GetIPProperties().UnicastAddresses.FirstOrDefault(x => x.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)?.IPv4Mask.ToString();
+                            #else
                             return ni.GetIPProperties().UnicastAddresses.FirstOrDefault(x => x.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)?.Address.ToString();
+                            #endif
                         else
                             return ni.GetIPProperties().UnicastAddresses.FirstOrDefault(x => x.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)?.Address.ToString();
                     }
 
-                    return ni.Name;
-                } else if (tyep == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE &&
+                    #if ANDROID
+                    // "lo" doesn't work in Android device, so mask to ipv4
+                    return ni.GetIPProperties().UnicastAddresses.FirstOrDefault(x => x.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)?.IPv4Mask.ToString();
+                    #else
+                    return ni.Name; 
+                    #endif
+                } else if (type == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE &&
                     ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
                     return ni.Name;
             }
