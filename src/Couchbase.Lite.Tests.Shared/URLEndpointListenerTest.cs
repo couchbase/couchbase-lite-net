@@ -1043,7 +1043,7 @@ namespace Test
                  lo      IPv6 ::1
                  enp0s3  IPv6 fe80::4e2c:5835:897b:6ec7%enp0s3
                  */
-                if (type <= TestReplicatorNIType.ValidNI && ni.OperationalStatus == OperationalStatus.Up) {
+                if (type <= TestReplicatorNIType.ValidNI && ni.NetworkInterfaceType == NetworkInterfaceType.Loopback && ni.OperationalStatus == OperationalStatus.Up) {
                     if (type == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE) {
                         if (ni.Supports(NetworkInterfaceComponent.IPv6))
                             #if ANDROID
