@@ -924,19 +924,11 @@ namespace Test
 
         #if !__ANDROID__ && !__IOS__ //Cannot run this test in emulators
 
-        [Fact]
-        public void TestReplicatorValidNetworkInterface()
-        {
-            // valid ni and able to connect to server
-            RunReplicationNI(TestReplicatorNIType.ValidNI);
-        }
+        [Fact] // valid ni and able to connect to server
+        public void TestReplicatorValidNetworkInterface() => RunReplicationNI(TestReplicatorNIType.ValidNI);
 
-        [Fact]
-        public void TestReplicatorValidNetworkInterfaceAddr()
-        {
-            // valid address and able to connect to server
-            RunReplicationNI(TestReplicatorNIType.ValidAddress_SERVER_REACHABLE);
-        }
+        [Fact] // valid address and able to connect to server
+        public void TestReplicatorValidNetworkInterfaceAddr() =>  RunReplicationNI(TestReplicatorNIType.ValidAddress_SERVER_REACHABLE);
 
         [Fact]
         public void TestReplicatorValidAdapterNotConnectNetwork()
@@ -1062,8 +1054,7 @@ namespace Test
                     #else
                     return ni.Name; 
                     #endif
-                } else if (type == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE &&
-                    ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
+                } else if (type == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE && ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet && ni.OperationalStatus == OperationalStatus.Up)
                     return ni.Name;
             }
 
