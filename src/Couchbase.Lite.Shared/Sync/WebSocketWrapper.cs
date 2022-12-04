@@ -282,8 +282,7 @@ namespace Couchbase.Lite.Sync
             IPAddress addr, hostAddr;
             bool isRemoteHostIP = false;
 
-            try
-            {
+            try {
                 //Input NI can be IPAddress string
                 if (IPAddress.TryParse(_options.NetworkInterface, out addr)) {
                     var localEndPoint = new IPEndPoint(addr, 0);

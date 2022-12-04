@@ -106,7 +106,7 @@ namespace Test
 
 
         #endregion
-#if !NET6_0_APPLE
+        #if !NET6_0_APPLE
         #region Public Methods
         
 
@@ -910,6 +910,159 @@ namespace Test
 
         #endregion
         #endif
+
+        #region Replicator Config Network Interface
+
+        enum TestReplicatorNIType
+        {
+            ValidAddress_SERVER_REACHABLE,
+            ValidNI,
+            ValidNI_SERVER_UNREACHABLE,
+            InValidNI,
+            InValidAddress
+        }
+
+        #if !__ANDROID__ && !__IOS__ //Cannot run this test in emulators
+
+        [Fact] // valid ni and able to connect to server
+        public void TestReplicatorValidNetworkInterface() => RunReplicationNI(TestReplicatorNIType.ValidNI);
+
+        [Fact] // valid address and able to connect to server
+        public void TestReplicatorValidNetworkInterfaceAddr() =>  RunReplicationNI(TestReplicatorNIType.ValidAddress_SERVER_REACHABLE);
+
+        [Fact]
+        public void TestReplicatorValidAdapterNotConnectNetwork()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                RunReplicationNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE,
+                    errorCode: (int)CouchbaseLiteError.AddressNotAvailable, errorType: CouchbaseLiteErrorType.CouchbaseLite);
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) { // ethernet available no cable connected, so throw CouchbaseLiteError.UnknownInterface ?
+                RunReplicationNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE,
+                    errorCode: (int)CouchbaseLiteError.UnknownInterface, errorType: CouchbaseLiteErrorType.CouchbaseLite);
+            }
+        }
+
+        [Fact]
+        public void TestReplicatorValidNIUnreachableServer()
+        {
+            //unreachable server
+            var targetEndpoint = new URLEndpoint(new Uri("ws://192.168.0.117:4984/app"));
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                RunReplicationNI(TestReplicatorNIType.ValidNI, targetEndpoint, (int)CouchbaseLiteError.NetworkUnreachable, CouchbaseLiteErrorType.CouchbaseLite);
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                RunReplicationNI(TestReplicatorNIType.ValidNI, targetEndpoint, (int)CouchbaseLiteError.AddressNotAvailable, CouchbaseLiteErrorType.CouchbaseLite);
+            }
+        }
+
+        #endif
+
+        [Fact]
+        public void TestReplicatorInValidNetworkInterface() => RunReplicationNI(TestReplicatorNIType.InValidNI,
+            errorCode: (int)CouchbaseLiteError.UnknownInterface, errorType: CouchbaseLiteErrorType.CouchbaseLite);
+
+        [Fact]
+        public void TestReplicatorInValidNIIPAddress() => RunReplicationNI(TestReplicatorNIType.InValidAddress,
+            errorCode: (int)CouchbaseLiteError.UnknownInterface, errorType: CouchbaseLiteErrorType.CouchbaseLite);
+
+        #endregion
+
+        #region Private Methods - NI Helper
+
+        private void RunReplicationNI(TestReplicatorNIType type, URLEndpoint endpoint = null, int errorCode = 0, CouchbaseLiteErrorType errorType = 0)
+        {
+            var ni = GetNetworkInterface(type);
+            ni.Should().NotBeNull();
+
+            if (endpoint == null) {
+                var listenerConfig = CreateListenerConfig(false);
+                _listener = Listen(listenerConfig);
+                endpoint = _listener.LocalEndpoint();
+            }
+
+            var replicatorConfig = new ReplicatorConfiguration(Db, endpoint)
+            {
+                ReplicatorType = ReplicatorType.PushAndPull,
+                Continuous = true,
+                NetworkInterface = ni
+            };
+
+            if (errorCode == 0 && (type == TestReplicatorNIType.ValidNI ||
+                    type == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE))
+                RunReplication(replicatorConfig, errorCode, errorType);
+            else {
+                _waitAssert = new WaitAssert();
+                using (var repl = new Replicator(replicatorConfig)) {
+                    var token = repl.AddChangeListener((sender, args) =>
+                    {
+                        _waitAssert.RunConditionalAssert(() =>
+                        {
+                            VerifyChange(args, errorCode, errorType);
+                            if (args.Status.Activity == ReplicatorActivityLevel.Offline) {
+                                ((Replicator)sender).Stop();
+                            }
+
+                            return args.Status.Activity == ReplicatorActivityLevel.Stopped;
+                        });
+                    });
+
+                    repl.Start();
+                    try {
+                        _waitAssert.WaitForResult(TimeSpan.FromSeconds(10));
+                    } catch {
+                        repl.Stop();
+                        throw;
+                    } finally {
+                        token.Remove();
+                    }
+                }
+            }
+        }
+
+        private string GetNetworkInterface(TestReplicatorNIType type)
+        {
+            if (type == TestReplicatorNIType.InValidNI)
+                return "INVALID";
+
+            if (type == TestReplicatorNIType.InValidAddress)
+                return "1.1.1.256";
+
+            foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces()) {
+                /* List Network Interfaces Example
+                 lo      IPv4 127.0.0.1
+                 enp0s3  IPv4 192.168.0.110
+                 docker0 IPv4 172.17.0.1
+                 lo      IPv6 ::1
+                 enp0s3  IPv6 fe80::4e2c:5835:897b:6ec7%enp0s3
+                 */
+                if (type <= TestReplicatorNIType.ValidNI && ni.NetworkInterfaceType == NetworkInterfaceType.Loopback && ni.OperationalStatus == OperationalStatus.Up) {
+                    if (type == TestReplicatorNIType.ValidAddress_SERVER_REACHABLE) {
+                        if (ni.Supports(NetworkInterfaceComponent.IPv6))
+                            #if ANDROID
+                            // "::1" doesn't work in Android device, so mask to ipv4
+                            return ni.GetIPProperties().UnicastAddresses.FirstOrDefault(x => x.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)?.IPv4Mask.ToString();
+                            #else
+                            return ni.GetIPProperties().UnicastAddresses.FirstOrDefault(x => x.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)?.Address.ToString();
+                            #endif
+                        else
+                            return ni.GetIPProperties().UnicastAddresses.FirstOrDefault(x => x.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)?.Address.ToString();
+                    }
+
+                    #if ANDROID
+                    // "lo" doesn't work in Android device, so mask to ipv4
+                    return ni.GetIPProperties().UnicastAddresses.FirstOrDefault(x => x.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)?.IPv4Mask.ToString();
+                    #else
+                    return ni.Name; 
+                    #endif
+                } else if (type == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE && ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
+                    return ni.Name;
+            }
+
+            return null;
+        }
+
+        #endregion
+
         #region Private Methods
 
         private void CollectionsPushPullReplication(bool continuous)
