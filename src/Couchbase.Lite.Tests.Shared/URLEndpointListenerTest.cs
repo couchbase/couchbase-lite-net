@@ -936,9 +936,9 @@ namespace Test
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 RunReplicationNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE,
                     errorCode: (int)CouchbaseLiteError.AddressNotAvailable, errorType: CouchbaseLiteErrorType.CouchbaseLite);
-            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) { // ethernet available no cable connected, so throw CouchbaseLiteError.UnknownInterface ?
                 RunReplicationNI(TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE,
-                    errorCode: (int)CouchbaseLiteError.UnknownHost, errorType: CouchbaseLiteErrorType.CouchbaseLite);
+                    errorCode: (int)CouchbaseLiteError.UnknownInterface, errorType: CouchbaseLiteErrorType.CouchbaseLite);
             }
         }
 
@@ -1054,7 +1054,7 @@ namespace Test
                     #else
                     return ni.Name; 
                     #endif
-                } else if (type == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE && ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet && ni.OperationalStatus == OperationalStatus.Up)
+                } else if (type == TestReplicatorNIType.ValidNI_SERVER_UNREACHABLE && ni.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
                     return ni.Name;
             }
 
