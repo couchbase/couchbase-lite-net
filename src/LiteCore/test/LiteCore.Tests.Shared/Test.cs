@@ -87,7 +87,7 @@ namespace LiteCore.Tests
 
         static Test()
         {
-            #if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__ANDROID__ && !__IOS__
+            #if NETCOREAPP3_1_OR_GREATER && !CBL_NO_VERSION_CHECK && !NET6_0_WINDOWS10 && !__ANDROID__ && !__IOS__ && !WINUI
             Couchbase.Lite.Support.NetDesktop.CheckVersion();
             #elif NET6_0_WINDOWS10
             Couchbase.Lite.Support.WinUI.CheckVersion();
