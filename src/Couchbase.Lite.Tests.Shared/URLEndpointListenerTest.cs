@@ -106,7 +106,7 @@ namespace Test
 
 
         #endregion
-#if !NET6_0_APPLE
+        #if !NET6_0_APPLE && !NET6_0_ANDROID
         #region Public Methods
         
 
@@ -758,7 +758,7 @@ namespace Test
         [Fact]
         public void TestCloseWithActiveListener()
         {
-            Listen(CreateListenerConfig());
+            Listen(CreateListenerConfig(false));
             OtherDb.Close();
             _listener.Port.Should().Be(0);
             _listener.Urls.Should().BeEmpty();
@@ -932,8 +932,7 @@ namespace Test
                     colAOtherDb.Save(doc1);
                 }
 
-                var collsOtherDb = new List<Collection>();
-                collsOtherDb.Add(colAOtherDb);
+                var collsOtherDb = new List<Collection>() { colAOtherDb };
 
                 var config = new URLEndpointListenerConfiguration(collsOtherDb)
                 {
@@ -985,7 +984,7 @@ namespace Test
             WaitAssert waitIdleAssert1 = new WaitAssert();
             WaitAssert waitStoppedAssert1 = new WaitAssert();
 
-            _listener = CreateListener();
+            _listener = CreateListener(false);
             var listener2 = CreateNewListener();
 
             _listener.Config.Database.ActiveStoppables.Count.Should().Be(2);
