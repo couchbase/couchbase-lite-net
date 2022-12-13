@@ -284,7 +284,9 @@ namespace Couchbase.Lite.Sync
 
 
         /// <summary>
-        /// Stops the replication
+        /// Stops a running replicator.  This method returns immediately; when the replicator actually
+        /// stops, the replicator will change its status's activity level to <see cref="ReplicatorActivityLevel.Stopped"/>
+        /// and the replicator change notification will be notified accordingly.
         /// </summary>
         public void Stop()
         {
