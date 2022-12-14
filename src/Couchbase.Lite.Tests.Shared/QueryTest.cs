@@ -2687,7 +2687,6 @@ namespace Test
             }
         }
 
-        [ForIssue("CBL-4010")]
         [ForIssue("CBL-3994")]
         [Fact]
         public void TestFTSQueryWithJoin()
