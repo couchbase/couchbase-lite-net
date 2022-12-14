@@ -96,6 +96,14 @@ namespace Couchbase.Lite.Query
         public static IExpression Float(float value) => new QueryConstantExpression<float>(value);
 
         /// <summary>
+        /// Returns an expression to represent a full text index to use when performing FTS queries
+        /// </summary>
+        /// <param name="name">The name of the index</param>
+        /// <returns>An expression representing the index</returns>
+        [NotNull]
+        public static IFullTextIndexExpression FullTextIndex(string name) => new FullTextIndexExpression(name);
+
+        /// <summary>
         /// Returns an expression to represent a fixed <see cref="Int32"/> value
         /// </summary>
         /// <param name="value">The value to use</param>
