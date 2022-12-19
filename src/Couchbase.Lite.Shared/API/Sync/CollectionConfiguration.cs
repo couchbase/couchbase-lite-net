@@ -127,7 +127,7 @@ namespace Couchbase.Lite.Sync
 
         #region Constructor
 
-        internal CollectionConfiguration() {}
+        public CollectionConfiguration() {}
 
         internal CollectionConfiguration(CollectionConfiguration copy)
         {
