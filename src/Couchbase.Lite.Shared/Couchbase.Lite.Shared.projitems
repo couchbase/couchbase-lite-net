@@ -66,12 +66,14 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IFrom.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IFromRouter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IFullTextExpression.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Query\IFullTextIndexExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IGroupBy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IGroupByRouter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IHaving.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IHavingRouter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IIndex.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IIndexable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Query\IIndexExpression.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IIndexItem.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IJoin.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Query\IJoinRouter.cs" />

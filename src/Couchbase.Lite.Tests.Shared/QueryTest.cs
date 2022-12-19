@@ -2630,7 +2630,7 @@ namespace Test
             }
         }
 
-        [ForIssue("issues.couchbase.com/browse/CBL-3356")]
+        [ForIssue("CBL-3356")]
         [Fact]
         public void TestSelectGreatOrEqualThan32Items()
         {
@@ -2640,6 +2640,101 @@ namespace Test
                 `25`,`26`,`27`,`28`,`29`,`30`,`31`,`32`, `key` from _ limit 1")) {
                 //ColumnNames is an internal property.
                 ((QueryBase)q).ColumnNames.Count.Should().BeGreaterOrEqualTo(32);
+            }
+        }
+
+        [ForIssue("CBL-4010")]
+        [Fact]
+        public void TestFullTextIndexExpression()
+        {
+            Db.GetDefaultCollection()
+                .CreateIndex("passageIndex", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("passage"))
+                .SetLanguage("en"));
+
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("passage", "The boy said to the child, 'Mommy, I want a cat.'")
+                    .SetString("lang", "en");
+                Db.GetDefaultCollection().Save(doc1);
+            }
+
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("passage", "The mother replied 'No, you already have too many cats.'")
+                    .SetString("lang", "en");
+                Db.GetDefaultCollection().Save(doc2);
+            }
+
+            var plainIndex = Expression.FullTextIndex("passageIndex");
+            var qualifiedIndex = Expression.FullTextIndex("passageIndex").From("main");
+
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
+                .From(DataSource.Collection(Db.GetDefaultCollection()).As("main"))
+                .Where(FullTextFunction.Match(plainIndex, "cat"))) {
+                var count = VerifyQuery(q, (n, row) =>
+                {
+                    row.GetString(0).Should().Be($"doc{n}");
+                });
+                count.Should().Be(2);
+            }
+
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
+                .From(DataSource.Collection(Db.GetDefaultCollection()).As("main"))
+                .Where(FullTextFunction.Match(qualifiedIndex, "cat"))) {
+                var count = VerifyQuery(q, (n, row) =>
+                {
+                    row.GetString(0).Should().Be($"doc{n}");
+                });
+                count.Should().Be(2);
+            }
+        }
+
+        [ForIssue("CBL-3994")]
+        [Fact]
+        public void TestFTSQueryWithJoin()
+        {
+            Db.GetDefaultCollection()
+                .CreateIndex("passageIndex", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("passage"))
+                .SetLanguage("en"));
+
+            using (var doc1 = new MutableDocument("doc1")) {
+                doc1.SetString("passage", "The boy said to the child, 'Mommy, I want a cat.'")
+                    .SetString("lang", "en");
+                Db.GetDefaultCollection().Save(doc1);
+            }
+
+            using (var doc2 = new MutableDocument("doc2")) {
+                doc2.SetString("passage", "The mother replied 'No, you already have too many cats.'")
+                    .SetString("lang", "en");
+                Db.GetDefaultCollection().Save(doc2);
+            }
+
+            var plainIndex = Expression.FullTextIndex("passageIndex");
+            var qualifiedIndex = Expression.FullTextIndex("passageIndex").From("main");
+
+            // CBL-3994
+            //using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID.From("main")))
+            //    .From(DataSource.Collection(Db.GetDefaultCollection()).As("main"))
+            //    .Join(Join.LeftJoin(DataSource.Collection(Db.GetDefaultCollection()).As("secondary"))
+            //        .On(Expression.Property("lang").From("main").EqualTo(Expression.Property("lang").From("secondary"))))
+            //    .Where(FullTextFunction.Match(plainIndex, "cat"))
+            //    .OrderBy(Ordering.Expression(Meta.ID.From("main")))) {
+            //    var count = VerifyQuery(q, (n, row) =>
+            //    {
+            //        row.GetString(0).Should().StartWith("doc");
+            //    });
+            //    count.Should().Be(4);
+            //}
+
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID.From("main")))
+                .From(DataSource.Collection(Db.GetDefaultCollection()).As("main"))
+                .Join(Join.LeftJoin(DataSource.Collection(Db.GetDefaultCollection()).As("secondary"))
+                    .On(Expression.Property("lang").From("main").EqualTo(Expression.Property("lang").From("secondary"))))
+                .Where(FullTextFunction.Match(qualifiedIndex, "cat"))
+                .OrderBy(Ordering.Expression(Meta.ID.From("main")))) {
+                var count = VerifyQuery(q, (n, row) =>
+                {
+                    row.GetString(0).Should().StartWith("doc");
+                });
+                count.Should().Be(4);
             }
         }
 

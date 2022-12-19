@@ -19,6 +19,7 @@
 using Couchbase.Lite.Internal.Query;
 
 using JetBrains.Annotations;
+using System;
 
 namespace Couchbase.Lite.Query
 {
@@ -36,8 +37,9 @@ namespace Couchbase.Lite.Query
         /// <param name="query">The query expression to perform the check against</param>
         /// <returns>A function that will perform the matching</returns>
         [NotNull]
+        [Obsolete("Use Match(index, query) instead")]
         public static IExpression Match(string indexName, string query) =>
-            new QueryCompoundExpression("MATCH()", Expression.String(indexName), Expression.String(query));
+            Match(Expression.FullTextIndex(indexName), query);
 
         /// <summary>
         /// Creates a full-text ranking value function indicating how well the current
@@ -46,6 +48,28 @@ namespace Couchbase.Lite.Query
         /// <param name="indexName">The FTS index name to use when performing the calculation</param>
         /// <returns>A function that will perform the ranking</returns>
         [NotNull]
-        public static IExpression Rank(string indexName) => new QueryCompoundExpression("RANK()", Expression.String(indexName));
+        [Obsolete("Use Rank(index) instead")]
+        public static IExpression Rank(string indexName) => Rank(Expression.FullTextIndex(indexName));
+
+        /// <summary>
+        /// Create a full-text matching function that will check for matches between given 
+        /// full text index name and the given query expression
+        /// </summary>
+        /// <param name="index">The full-text index to perform the
+        /// check against</param>
+        /// <param name="query">The query expression to perform the check against</param>
+        /// <returns>A function that will perform the matching</returns>
+        [NotNull]
+        public static IExpression Match(IIndexExpression index, string query) =>
+            new QueryCompoundExpression("MATCH()", Expression.String(index.ToString()), Expression.String(query));
+
+        /// <summary>
+        /// Creates a full-text ranking value function indicating how well the current
+        /// query result matches the full-text query when performing the match comparison.
+        /// </summary>
+        /// <param name="index">The FTS index to use when performing the calculation</param>
+        /// <returns>A function that will perform the ranking</returns>
+        [NotNull]
+        public static IExpression Rank(IIndexExpression index) => new QueryCompoundExpression("RANK()", Expression.String(index.ToString()));
     }
 }
