@@ -726,7 +726,7 @@ namespace Test
             var bundlePath = Foundation.NSBundle.MainBundle.PathForResource(Path.GetFileNameWithoutExtension(path), Path.GetExtension(path));
 			return File.Open(bundlePath, FileMode.Open, FileAccess.Read);
             #elif WINUI
-            return File.Open(path.Replace("replacedb/", "AppX/"), FileMode.Open, FileAccess.Read);
+            return File.Open(path.Replace("replacedb/", ""), FileMode.Open, FileAccess.Read);
             #else 
             return File.Open(path, FileMode.Open, FileAccess.Read);
             #endif
