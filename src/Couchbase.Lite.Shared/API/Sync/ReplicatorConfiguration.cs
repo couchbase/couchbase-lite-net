@@ -206,7 +206,7 @@ namespace Couchbase.Lite.Sync
         /// depending on what is being used to communicate with the remote server.
         /// </summary>
         [CanBeNull]
-        public string NetworkInterface
+        internal string NetworkInterface
         {
             get => Options.NetworkInterface;
             set => _freezer.PerformAction(() => Options.NetworkInterface = value);
