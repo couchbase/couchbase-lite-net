@@ -73,8 +73,8 @@ namespace Test
             scopes.Contains(defaultScope).Should().BeTrue("the default scope is included in the scope list when calling Database.GetScopes()");
         }
 
-        [Fact]
-        public void TestDeleteDefaultCollection()
+        //[Fact] Test is disabled until default collection is allowed to be deleted
+        public void TestDeleteDefaultCollection_AllowDefaultCollectionToBeDeleted()
         {
             Db.DeleteCollection(Database._defaultCollectionName);
             using (var defaultColl = Db.GetDefaultCollection())
@@ -87,7 +87,18 @@ namespace Test
         }
 
         [Fact]
-        public void TestGetDefaultScopeAfterDeleteDefaultCollection()
+        public void TestDeleteDefaultCollection()
+        {
+            Action badAction = (() => Db.DeleteCollection(Database._defaultCollectionName));
+            badAction.Should().Throw<CouchbaseLiteException>("Cannot delete the default collection.");
+
+            Db.CreateCollection(Database._defaultCollectionName); //no-op since default collection is already existed and cannot be deleted
+            using (var defaultColl = Db.GetDefaultCollection())
+                defaultColl.Should().NotBeNull("default collection cannot be deleted, so the value is none null");
+        }
+
+        //[Fact] Test is disabled until default collection is allowed to be deleted
+        public void TestGetDefaultScopeAfterDeleteDefaultCollection_AllowDefaultCollectionToBeDeleted()
         {
             Db.DeleteCollection(Database._defaultCollectionName);
             var defaultScope = Db.GetDefaultScope();
@@ -722,7 +733,7 @@ namespace Test
 
         #region 8.9 Use Database API when the Default Collection is Deleted
 
-        [Fact]
+        //[Fact] Test is disabled until default collection is allowed to be deleted
         public void TestUseDatabaseAPIsWhenDefaultCollectionIsDeleted()
         {
             using (var defaultCol = Db.GetDefaultCollection()) {
