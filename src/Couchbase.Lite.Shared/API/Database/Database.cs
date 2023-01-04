@@ -397,10 +397,6 @@ namespace Couchbase.Lite
         /// <summary>
         /// Get the default collection.
         /// </summary>
-        /// <remarks>
-        /// None recoverable default collection can be deleted from the database. Once default collection is deleted from db, 
-        /// it will be gone for good.
-        /// </remarks>
         /// <returns>default collection</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
@@ -553,9 +549,6 @@ namespace Couchbase.Lite
         /// Delete a collection by name  in the specified scope. If the collection doesn't exist, the operation
         /// will be no-ops. 
         /// </summary>
-        /// <remarks>
-        /// Note: the default collection can be deleted but cannot be recreated.
-        /// </remarks>
         /// <param name="name">The name of the collection to be deleted</param>
         /// <param name="scope">The scope of the collection to be deleted</param>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
