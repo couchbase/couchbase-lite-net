@@ -1500,13 +1500,35 @@ namespace Test
             cookieStr = "id=a3fWa; Domain=www.example.com; Secure; HttpOnly";
             Db.SaveCookie(cookieStr, uri);
             Db.GetCookies(uri).Should().Be("id=a3fWa; id=a3fWa");
-            uri = new Uri("http://exampletest.com/");
-            cookieStr = "id=a3fWa; Expires=Wed, 20 Oct 2100 05:54:52 GMT; Secure; HttpOnly";
-            Db.SaveCookie(cookieStr, uri);
-            Db.GetCookies(uri).Should().Be("id=a3fWa");
-            cookieStr = "id=a3fWa; Expires=Wed, 21 Oct 2015 07:28:00 GMT; Secure; HttpOnly";
+        }
+
+        [ForIssue("CBL-3947")]
+        [Fact]
+        public void TestCookiesExpiration()
+        {
+            var uri = new Uri("http://exampletest.com/");
+            var cookieStr = "id=a3fWa; Expires=Wed, 21 Oct 2015 07:28:00 GMT; Secure; HttpOnly";
             Db.SaveCookie(cookieStr, uri);
             Db.GetCookies(uri).Should().BeNull("cookie is expired");
+
+            string[] noneExpiredCookies =
+            {
+                "id=a3fWa; Expires=Wed, 06 Jan 2100 05:54:52 GMT; Secure; HttpOnly",
+                // RFC 822, updated by RFC 1123
+                "id=a3fWa;expires=Wed, 06 Jan 2100 05:54:52 GMT;Path=/",
+                "id=a3fWa;expires=Wed, 04 Jan 2100 05:54:52 GMT;Path=/",
+                // ANSI C's time format
+                "id=a3fWa;expires=Wed Jan  4 05:54:52 2100       ;Path=/",
+                "id=a3fWa;expires=Wed Jan  4 05:54:52 2100;Path=/",
+                // GCLB cookie format
+                "id=a3fWa; path=/; HttpOnly; expires=Wed, 4-Jan-2100 05:54:52 GMT",
+                "id=a3fWa;path=/;HttpOnly;expires=Wed, 4-Jan-2100 05:54:52 GMT"
+            };
+
+            foreach (var cookie in noneExpiredCookies) {
+                Db.SaveCookie(cookie, uri);
+                Db.GetCookies(uri).Should().Be("id=a3fWa");
+            }
         }
 
         private void WithActiveLiveQueries(bool isCloseNotDelete)
