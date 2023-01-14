@@ -115,6 +115,9 @@ namespace Couchbase.Lite.Sync
         /// The default value is null, meaning that all accessible channels will be pulled.
         /// Note: channels that are not accessible to the user will be ignored by Sync Gateway.
         /// </summary>
+        /// <remarks>
+        /// Note: Channels property is only applicable in the replications with Sync Gateway.
+        /// </remarks>
         [Obsolete("Channels is deprecated, please use CollectionConfiguration.Channels")]
         [CanBeNull]
         public IList<string> Channels
