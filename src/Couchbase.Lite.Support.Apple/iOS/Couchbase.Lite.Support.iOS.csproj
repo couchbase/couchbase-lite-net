@@ -5,7 +5,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <TargetFrameworks>net6.0-ios14.2;net6.0-maccatalyst14.2;Xamarin.iOS10</TargetFrameworks>
     <SupportedOSPlatformVersion Condition="$(TargetFramework.StartsWith('net6')) and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">11.0</SupportedOSPlatformVersion>
-    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">10.15</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">13.1</SupportedOSPlatformVersion>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Support.iOS</RootNamespace>
     <AssemblyName>Couchbase.Lite.Support.iOS</AssemblyName>
