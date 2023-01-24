@@ -106,7 +106,7 @@ namespace Test
 
 
         #endregion
-        #if !NET6_0_APPLE && !NET6_0_ANDROID
+        #if !NET6_0_APPLE
         #region Public Methods
         
 

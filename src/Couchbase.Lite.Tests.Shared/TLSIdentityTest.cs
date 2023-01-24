@@ -77,7 +77,7 @@ namespace Test
         }
 
         #region TLSIdentity tests
-        #if !NET6_0_APPLE && !NET6_0_ANDROID
+        #if !NET6_0_APPLE
         [Fact]
         public void TestCreateGetDeleteServerIdentity() => CreateGetDeleteServerIdentity(true);
 
