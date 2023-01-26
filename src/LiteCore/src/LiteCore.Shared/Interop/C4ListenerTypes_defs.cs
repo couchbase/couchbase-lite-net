@@ -71,6 +71,8 @@ namespace LiteCore.Interop
         public FLSlice directory;
         private byte _allowCreateDBs;
         private byte _allowDeleteDBs;
+        private byte _allowCreateCollections;
+        private byte _allowDeleteCollections;
         private byte _allowPush;
         private byte _allowPull;
         private byte _enableDeltaSync;
