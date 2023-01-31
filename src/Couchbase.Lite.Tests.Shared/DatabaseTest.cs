@@ -1499,26 +1499,27 @@ namespace Test
         {
             var uri = new Uri("http://example.com/");
             var cookieStr = "id=a3fWa; Domain=.example.com; Secure; HttpOnly";
-            Db.SaveCookie(cookieStr, uri);
+            Db.SaveCookie(cookieStr, uri, false).Should().BeTrue("because otherwise the cookie did not save");
             Db.GetCookies(uri).Should().Be("id=a3fWa");
             cookieStr = "id=a3fWa; Domain=www.example.com; Secure; HttpOnly";
-            Db.SaveCookie(cookieStr, uri);
+            Db.SaveCookie(cookieStr, uri, false).Should().BeTrue("because otherwise the cookie did not save");
             Db.GetCookies(uri).Should().Be("id=a3fWa");
             uri = new Uri("http://www.example.com/");
-            cookieStr = "id=a3fWa; Domain=.example.com; Secure; HttpOnly";
-            //No longer throw exception. Will log warning messages.
-            //Action badAction = (() => Db.SaveCookie(cookieStr, uri));
-            //badAction.Should().Throw<CouchbaseLiteException>(); //CouchbaseLiteException (LiteCoreDomain / 9): Invalid cookie.
             cookieStr = "id=a3fWa; Domain=www.example.com; Secure; HttpOnly";
-            Db.SaveCookie(cookieStr, uri);
+            Db.SaveCookie(cookieStr, uri, false).Should().BeTrue("because otherwise the cookie did not save");
             Db.GetCookies(uri).Should().Be("id=a3fWa; id=a3fWa");
             uri = new Uri("http://exampletest.com/");
             cookieStr = "id=a3fWa; Expires=Wed, 20 Oct 2100 05:54:52 GMT; Secure; HttpOnly";
-            Db.SaveCookie(cookieStr, uri);
+            Db.SaveCookie(cookieStr, uri, false).Should().BeTrue("because otherwise the cookie did not save");
             Db.GetCookies(uri).Should().Be("id=a3fWa");
             cookieStr = "id=a3fWa; Expires=Wed, 21 Oct 2015 07:28:00 GMT; Secure; HttpOnly";
-            Db.SaveCookie(cookieStr, uri);
+            Db.SaveCookie(cookieStr, uri, false).Should().BeTrue("because otherwise the cookie did not save");
             Db.GetCookies(uri).Should().BeNull("cookie is expired");
+
+            uri = new Uri("http://foo.example.com");
+            cookieStr = "id=a3fWa; Domain=.example.com; Secure; HttpOnly";
+            Db.SaveCookie(cookieStr, uri, true).Should().BeTrue("because otherwise the cookie did not save");
+            Db.SaveCookie(cookieStr, uri, false).Should().BeFalse("because otherwise the cookie saved improperly");
         }
 
         private void WithActiveLiveQueries(bool isCloseNotDelete)

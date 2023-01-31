@@ -459,7 +459,7 @@ namespace Couchbase.Lite.Sync
                 return;
             }
 
-            Config.Database.SaveCookie(e, remoteUrl);
+            Config.Database.SaveCookie(e, remoteUrl, Config.AcceptParentDomainCookies);
         }
 
         #if __IOS__
