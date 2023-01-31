@@ -102,6 +102,18 @@ namespace Couchbase.Lite.Sync
         #region Properties
 
         /// <summary>
+        /// Gets or sets whether or not a cookie can be set on a parent domain
+        /// of the host that issued it (i.e. foo.bar.com can set a cookie for all
+        /// of bar.com).  This is only recommended if the host issuing the cookie
+        /// is well trusted.
+        /// </summary>
+        public bool AcceptParentDomainCookies
+        {
+            get => Options.AcceptParentDomainCookies;
+            set => _freezer.PerformAction(() => Options.AcceptParentDomainCookies = value);
+        }
+
+        /// <summary>
         /// Gets or sets the class which will authenticate the replication
         /// </summary>
         [CanBeNull]
