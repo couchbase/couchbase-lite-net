@@ -1763,6 +1763,7 @@ namespace Couchbase.Lite
                 foreach (var q in ActiveStoppables) {
                     WriteLog.To.Database.V(Tag, q.Key.ToString());
                 }
+            }
 
             ThreadSafety.DoLocked(() =>
             {
