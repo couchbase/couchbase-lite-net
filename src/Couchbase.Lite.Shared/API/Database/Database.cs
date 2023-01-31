@@ -1759,7 +1759,10 @@ namespace Couchbase.Lite
 
             while (!_closeCondition.Wait(TimeSpan.FromSeconds(5))) {
                 WriteLog.To.Database.W(Tag, "Taking a while for active items to stop...");
-            }
+                WriteLog.To.Database.W(Tag, $"{ActiveStoppables.Count} items remaining (see verbose log for details)...");
+                foreach (var q in ActiveStoppables) {
+                    WriteLog.To.Database.V(Tag, q.Key.ToString());
+                }
 
             ThreadSafety.DoLocked(() =>
             {

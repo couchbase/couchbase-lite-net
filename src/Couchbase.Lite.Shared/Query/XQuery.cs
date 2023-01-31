@@ -280,5 +280,14 @@ namespace Couchbase.Lite.Internal.Query
             return JsonConvert.SerializeObject(parameters);
         }
         #endregion
+
+        #region Overrides
+
+        public override string ToString()
+        {
+            return $"QueryBuilder query -> {EncodeAsJSON()}";
+        }
+
+        #endregion
     }
 }
