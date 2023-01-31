@@ -103,6 +103,12 @@ namespace Couchbase.Lite.Internal.Query
                 _c4Query = null;
             }
         }
+
+        public override string ToString()
+        {
+            return $"N1QL Query -> {_n1qlQueryExpression}";
+        }
+
         #endregion
 
         #region Private Methods
