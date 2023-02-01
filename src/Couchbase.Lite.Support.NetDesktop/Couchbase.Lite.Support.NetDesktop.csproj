@@ -92,16 +92,16 @@
       <Link>libstdc++.so.6</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libicudata.so.54">
-      <Link>libicudata.so.54</Link>
+    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libicudata.so.71">
+      <Link>libicudata.so.71</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libicui18n.so.54">
-      <Link>libicui18n.so.54</Link>
+    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libicui18n.so.71">
+      <Link>libicui18n.so.71</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libicuuc.so.54">
-      <Link>libicuuc.so.54</Link>
+    <None Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\libicuuc.so.71">
+      <Link>libicuuc.so.71</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

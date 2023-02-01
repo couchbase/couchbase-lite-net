@@ -17,16 +17,16 @@
                 <Link>libstdc++.so.6</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </Content>
-            <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libicuuc.so.54">
-                <Link>libicuuc.so.54</Link>
+            <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libicuuc.so.71">
+                <Link>libicuuc.so.71</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </Content>
-            <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libicui18n.so.54">
-                <Link>libicui18n.so.54</Link>
+            <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libicui18n.so.71">
+                <Link>libicui18n.so.71</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </Content>
-            <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libicudata.so.54">
-                <Link>libicudata.so.54</Link>
+            <Content Condition=" !$(IsMac) AND '$(OS)' == 'Unix' " Include="$(MSBuildThisFileDirectory)..\runtimes\linux-x64\native\libicudata.so.71">
+                <Link>libicudata.so.71</Link>
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </Content>
             <Content Include="$(MSBuildThisFileDirectory)..\runtimes\osx-x64\native\libLiteCore.dylib" Condition=" $(IsMac) ">
