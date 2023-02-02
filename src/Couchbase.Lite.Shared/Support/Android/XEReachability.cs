@@ -17,6 +17,7 @@
 // 
 #if __ANDROID__
 using Couchbase.Lite.DI;
+using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Sync;
 using System;
 using Xamarin.Essentials;
@@ -52,11 +53,20 @@ namespace Couchbase.Lite.Support
 
         public void Start()
         {
+            if(!Droid.HasReachability) {
+                WriteLog.To.Sync.W("CouchbaseLite", "Xamarin essentials has not been initialized, disabling reachability (be sure to call Xamarin.Essentials.Platform.Init");
+                return;
+            }
+
             Connectivity.ConnectivityChanged += OnConnectivityChanged;
         }
 
         public void Stop()
         {
+            if(!Droid.HasReachability) {
+                return;
+            }
+
             Connectivity.ConnectivityChanged -= OnConnectivityChanged;
         }
 

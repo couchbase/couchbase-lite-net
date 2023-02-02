@@ -34,6 +34,10 @@ namespace Couchbase.Lite.Support
 
         private static int _Activated;
 
+        // If the current activity is null, that means that the init function has not been called
+        // and therefore connectivity cannot be used without throwing a runtime exception
+        internal static bool HasReachability => Xamarin.Essentials.Platform.CurrentActivity != null;
+
         #endregion
 
         internal static Context Context { get; private set; }
