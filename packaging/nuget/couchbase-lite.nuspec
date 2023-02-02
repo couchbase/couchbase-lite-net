@@ -37,7 +37,7 @@
 		    <dependency id="System.Collections.Immutable" version="1.3.0" />
         <dependency id="Couchbase.Lite.Support.UWP" version="[$version$]" />
       </group>
-      <group targetFramework="monoandroid">
+      <group targetFramework="monoandroid10.0">
         <dependency id="Newtonsoft.Json" version="13.0.2" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
 		    <dependency id="System.Collections.Immutable" version="1.3.0" />
@@ -60,9 +60,9 @@
     <file target="lib\netcoreapp3.1\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp3.1\Couchbase.Lite.dll" />
     <file target="lib\netcoreapp3.1\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp3.1\Couchbase.Lite.pdb" />
     <file target="lib\netcoreapp3.1\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp3.1\Couchbase.Lite.xml" />
-    <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid80\Couchbase.Lite.dll" />
-    <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid80\Couchbase.Lite.pdb" />
-    <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid80\Couchbase.Lite.xml" />
+    <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid10.0\Couchbase.Lite.dll" />
+    <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid10.0\Couchbase.Lite.pdb" />
+    <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid10.0\Couchbase.Lite.xml" />
     <file target="lib\net461\" src="src\Couchbase.Lite\bin\Packaging\net461\Couchbase.Lite.dll" />
     <file target="lib\net461\" src="src\Couchbase.Lite\bin\Packaging\net461\Couchbase.Lite.pdb" />
     <file target="lib\net461\" src="src\Couchbase.Lite\bin\Packaging\net461\Couchbase.Lite.xml" />
