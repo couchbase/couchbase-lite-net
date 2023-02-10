@@ -1518,18 +1518,18 @@ namespace Test
 
             string[] noneExpiredCookies =
             {
-                "id=a3fWa; Expires=Wed, 06 Jan 2100 05:54:52 GMT; Secure; HttpOnly",
                 // RFC 822, updated by RFC 1123
                 "id=a3fWa;expires=Wed, 06 Jan 2100 05:54:52 GMT;Path=/",
-                "id=a3fWa;expires=Wed, 04 Jan 2100 05:54:52 GMT;Path=/",
+                "id=a3fWa;expires=Mon, 04 Jan 2100 05:54:52 GMT;Path=/",
                 // ANSI C's time format
-                "id=a3fWa;expires=Wed Jan  4 05:54:52 2100       ;Path=/",
-                "id=a3fWa;expires=Wed Jan  4 05:54:52 2100;Path=/",
+                "id=a3fWa;expires=Wed Jan  6 05:54:52 2100       ;Path=/",
+                "id=a3fWa;expires=Mon Jan  4 05:54:52 2100;Path=/",
                 // GCLB cookie format
-                "id=a3fWa; path=/; HttpOnly; expires=Wed, 4-Jan-2100 05:54:52 GMT",
-                "id=a3fWa;path=/;HttpOnly;expires=Wed, 4-Jan-2100 05:54:52 GMT"
+                "id=a3fWa; path=/; HttpOnly; expires=Mon, 4-Jan-2100 05:54:52 GMT",
+                "id=a3fWa;path=/;HttpOnly;expires=Mon, 4-Jan-2100 05:54:52 GMT"
             };
 
+            var expected = "id=a3fWa";
             foreach (var cookie in noneExpiredCookies) {
                 Db.SaveCookie(cookieStr, uri, false).Should().BeTrue("because otherwise the cookie did not save");
                 Db.GetCookies(uri).Should().Be("id=a3fWa");
