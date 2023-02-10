@@ -53,6 +53,7 @@ namespace Couchbase.Lite.Sync
         private const string MaxRetryIntervalKey = "maxRetryInterval";
         private const string EnableAutoPurgeKey = "autoPurge";
         private const string HeartbeatIntervalKey = "heartbeat"; //Interval in secs to send a keepalive ping
+        private const string AcceptParentDomainCookiesKey = "acceptParentDomainCookies";
 
         // HTTP options:
         private const string HeadersKey = "headers";
@@ -80,6 +81,17 @@ namespace Couchbase.Lite.Sync
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Gets or sets whether or not a cookie can be set on a parent domain
+        /// of the host that issued it (i.e. foo.bar.com can set a cookie for all
+        /// of bar.com)
+        /// </summary>
+        public bool AcceptParentDomainCookies
+        {
+            get => this.GetCast<bool>(AcceptParentDomainCookiesKey);
+            set => this[AcceptParentDomainCookiesKey] = value;
+        }
 
         /// <summary>
         /// Gets or sets the authentication parameters
