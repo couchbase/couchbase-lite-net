@@ -20,6 +20,7 @@
 #if NETFRAMEWORK || NET462 || NETCOREAPP || NETCOREAPP3_1_OR_GREATER
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -34,15 +35,18 @@ namespace Couchbase.Lite.Support
         private const string libSystemLibrary = "/usr/lib/libSystem.dylib";
 
         private const string CFNetworkLibrary =
+            "/System/Library/Frameworks/CFNetwork.framework/CFNetwork";
+
+        private const string CFNetworkLibraryOld =
             "/System/Library/Frameworks/CoreServices.framework/Frameworks/CFNetwork.framework/CFNetwork";
 
         private const string CoreFoundationLibrary =
             "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
 
-        private static readonly IntPtr kCFProxyTypeKey = GetPointer(CFNetworkLibrary, nameof(kCFProxyTypeKey));
-        private static readonly IntPtr kCFProxyTypeNone = GetPointer(CFNetworkLibrary, nameof(kCFProxyTypeNone));
-        private static readonly IntPtr kCFProxyHostNameKey = GetPointer(CFNetworkLibrary, nameof(kCFProxyHostNameKey));
-        private static readonly IntPtr kCFProxyPortNumberKey  = GetPointer(CFNetworkLibrary, nameof(kCFProxyPortNumberKey));
+        private static readonly IntPtr kCFProxyTypeKey = ReadCFNetworkPointer(nameof(kCFProxyTypeKey));
+        private static readonly IntPtr kCFProxyTypeNone = ReadCFNetworkPointer(nameof(kCFProxyTypeNone));
+        private static readonly IntPtr kCFProxyHostNameKey = ReadCFNetworkPointer(nameof(kCFProxyHostNameKey));
+        private static readonly IntPtr kCFProxyPortNumberKey = ReadCFNetworkPointer(nameof(kCFProxyPortNumberKey));
 
         private static readonly uint kCFStringEncodingASCII = 0x0600;
 
@@ -50,7 +54,12 @@ namespace Couchbase.Lite.Support
 
         public unsafe Task<WebProxy> CreateProxyAsync(Uri destination)
         {
-            var proxySettings = CFNetworkCopySystemProxySettings();
+            IntPtr cFNetworkHandle = LoadCFNetwork();
+            if (cFNetworkHandle == IntPtr.Zero) {
+                return Task.FromResult<WebProxy>(null);
+            }
+
+            var proxySettings = CFNetworkCopySystemProxySettings(cFNetworkHandle);
             if (proxySettings == IntPtr.Zero) {
                 return Task.FromResult<WebProxy>(null);
             }
@@ -69,7 +78,7 @@ namespace Couchbase.Lite.Support
                 return Task.FromResult<WebProxy>(null);
             }
 
-            var proxies = CFNetworkCopyProxiesForURL(cfDestination, proxySettings);
+            var proxies = CFNetworkCopyProxiesForURL(cFNetworkHandle, cfDestination, proxySettings);
             CFRelease(proxySettings);
             CFRelease(cfDestination);
             CFRelease(cfUrlString);
@@ -99,19 +108,43 @@ namespace Couchbase.Lite.Support
             return Task.FromResult(new WebProxy(new Uri($"{hostUrlString}:{port}")));
         }
 
-        private static IntPtr GetPointer(string libPath, string symbolName)
+        private static IntPtr LoadCFNetwork()
+        {
+            if (File.Exists(CFNetworkLibraryOld)) {
+                return LoadLibrary(CFNetworkLibraryOld);
+            }
+            return LoadLibrary(CFNetworkLibrary);
+        }
+
+        private static IntPtr LoadLibrary(string libPath)
         {
             var libHandle = dlopen(libPath, 0);
             if (libHandle == IntPtr.Zero) {
                 throw new DllNotFoundException($"Unable to find or open library at {libPath}");
             }
+            return libHandle;
+        }
 
-            var indirect = dlsym(libHandle, symbolName);
-            if (indirect == IntPtr.Zero) {
-                throw new EntryPointNotFoundException($"Unable to find the symbol {symbolName} in {libPath}");
+        private static IntPtr GetPointer(IntPtr libHandle, string symbolName, string libPath = null)
+        {
+            var symbolHandle = dlsym(libHandle, symbolName);
+            if (symbolHandle == IntPtr.Zero) {
+                throw new EntryPointNotFoundException($"Unable to find the symbol {symbolName} in {libPath ?? libHandle.ToString()}");
             }
+            return symbolHandle;
+        }
 
-            return Marshal.ReadIntPtr(indirect);
+        private static T GetDelegate<T>(IntPtr libHandle)
+        {
+            IntPtr symbolHandle = GetPointer(libHandle, typeof(T).Name);
+            return Marshal.GetDelegateForFunctionPointer<T>(symbolHandle);
+        }
+
+        private static IntPtr ReadCFNetworkPointer(string symbolName)
+        {
+            var libHandle = LoadCFNetwork();
+            var symbolHandle = GetPointer(libHandle, symbolName, "CFNetwork");
+            return Marshal.ReadIntPtr(symbolHandle);
         }
 
         private static string GetCString(IntPtr /* CFStringRef */ theString)
@@ -119,6 +152,19 @@ namespace Couchbase.Lite.Support
             var pointer = CFStringGetCStringPtr(theString, kCFStringEncodingASCII);
             return Marshal.PtrToStringAnsi(pointer);
         }
+
+        private IntPtr CFNetworkCopySystemProxySettings(IntPtr cFNetworkHandle) {
+            return GetDelegate<CFNetworkCopySystemProxySettingsDel>(cFNetworkHandle)();
+        }
+
+        private IntPtr CFNetworkCopyProxiesForURL(IntPtr cFNetworkHandle, IntPtr url, IntPtr proxySettings)
+        {
+            return GetDelegate<CFNetworkCopyProxiesForURLDel>(cFNetworkHandle)(url, proxySettings);
+        }
+
+        private delegate /* CFDictionaryRef __nullable */ IntPtr CFNetworkCopySystemProxySettingsDel();
+
+        private delegate /* CFArrayRef __nonnull */ IntPtr CFNetworkCopyProxiesForURLDel(/* CFURLRef __nonnull */ IntPtr url, /* CFDictionaryRef __nonnull */ IntPtr proxySettings);
 
         [DllImport(CoreFoundationLibrary)]
         private static extern unsafe bool CFNumberGetValue(IntPtr /* CFNumberRef */ number, int /* CFNumberType */ theType, void *valuePtr);
