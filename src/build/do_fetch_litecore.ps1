@@ -51,19 +51,6 @@ if(Test-Path linux){
 if(Test-Path "ios-fat") {
 	Remove-Item "ios-fat" -Recurse
 }
-	
-$framework = "LiteCore.xcframework"
-if($DebugLib) {
-	$framework = "LiteCore-Debug.xcframework"
-}
-
-if(Test-Path ios/$framework/LiteCore) {
-    New-Item -Type directory -ErrorAction Ignore ios-fat\$framework
-    Set-Location ios-fat\$framework
-	Move-Item ..\..\ios\$framework\LiteCore,..\..\ios\$framework\Info.plist .
-    Set-Location ..\..
-	Remove-Item "ios" -Recurse
-}
 
 # Process Android Libraries
 if(Test-Path android\lib){

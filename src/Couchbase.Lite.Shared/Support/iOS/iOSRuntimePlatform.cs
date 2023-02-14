@@ -25,9 +25,15 @@ namespace Couchbase.Lite.Support
     [CouchbaseDependency]
 	internal sealed class iOSRuntimePlatform : IRuntimePlatform
 	{
+#if MACCATALYST
+        public string OSDescription => $"macOS (Catalyst) {NSProcessInfo.ProcessInfo.OperatingSystemVersion}";
+
+        public string HardwareName => null;
+#else
 		public string OSDescription => $"iOS {NSProcessInfo.ProcessInfo.OperatingSystemVersion}";
 
 		public string HardwareName => UIDevice.CurrentDevice.Model;
-	}
+#endif
+    }
 }
 #endif

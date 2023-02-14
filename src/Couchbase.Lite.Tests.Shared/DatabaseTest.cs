@@ -1530,7 +1530,7 @@ namespace Test
             };
 
             foreach (var cookie in noneExpiredCookies) {
-                Db.SaveCookie(cookieStr, uri, false).Should().BeTrue("because otherwise the cookie did not save");
+                Db.SaveCookie(cookie, uri, false).Should().BeTrue("because otherwise the cookie did not save");
                 Db.GetCookies(uri).Should().Be("id=a3fWa");
             }
         }
