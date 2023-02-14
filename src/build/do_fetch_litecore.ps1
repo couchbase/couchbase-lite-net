@@ -52,9 +52,9 @@ if(Test-Path "ios-fat") {
 	Remove-Item "ios-fat" -Recurse
 }
 	
-$framework = "LiteCore.framework"
+$framework = "LiteCore.xcframework"
 if($DebugLib) {
-	$framework = "LiteCore-Debug.framework"
+	$framework = "LiteCore-Debug.xcframework"
 }
 
 if(Test-Path ios/$framework/LiteCore) {

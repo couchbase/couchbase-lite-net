@@ -1,16 +1,13 @@
 pipeline {
     agent none
     options {
-        timeout(time: 40, unit: 'MINUTES') 
+        timeout(time: 60, unit: 'MINUTES') 
     }
     stages {
 	    stage("Entry") {
             parallel {
                 stage("Windows Node") {
                     agent { label 'couchbase-lite-net-validation' }
-                    environment {
-                        NETCORE_VERSION = "${env.BRANCH_NAME == "release/hydrogen" ? "netcoreapp2.0" : "netcoreapp3.1"}"
-                    }
                     stages {
                         stage("Checkout") {
                             steps {
@@ -36,25 +33,26 @@ pipeline {
                                 '''
                             }
                         }
-                        stage(".NET Core Windows") {
+                        stage(".NET 6 Windows") {
                             steps {
-                                powershell 'jenkins\\run_win_tests.ps1'
+                                catchError {
+                                    powershell 'jenkins\\run_net6_tests.ps1'
+                                }
+								
+                                echo currentBuild.result
                             }
                         }
-                        // Note: Jenkins is a PITA for this, so I will remove UWP from PR
-                        // validation, but it will get checked in post-commit
-                        // stage("UWP") {
-                        //     steps {
-                        //         powershell 'jenkins\\run_uwp_tests.ps1'
-                        //     }
-                        // }
+                        stage("WinUI") {
+                            steps {
+                                powershell 'jenkins\\run_winui_tests.ps1'
+                            }
+                        }
                     }
                 }
 	            stage("Mac Node") {
 		            agent { label 'dotnet-mobile-mac-mini'  }
 			        environment {
 				        KEYCHAIN_PWD = credentials("mobile-mac-mini-keychain")
-					    NETCORE_VERSION = "${BRANCH_NAME == "release/hydrogen" ? "netcoreapp2.0" : "netcoreapp3.1"}"
                     }
 				    stages {
 				        stage("Checkout") {
@@ -80,31 +78,9 @@ pipeline {
                                 '''
                             }
                         }
-                        stage(".NET Core Mac") {
+                        stage("Maui iOS") {
                             steps {
-                                catchError {
-                                    sh 'jenkins/run_unix_tests.sh'
-                                }
-								
-                                echo currentBuild.result
-                            }
-                        }
-                        stage("Xamarin iOS") {
-                            steps {
-                                catchError {
-                                    sh 'jenkins/run_ios_tests.sh'
-                                }
-								
-                                echo currentBuild.result
-                            }
-                        }
-                        stage("Xamarin Android") {
-                            steps {
-                                catchError {
-                                    sh 'jenkins/run_android_tests.sh'
-                                }
-								
-                                echo currentBuild.result
+                                sh 'jenkins/run_net6_ios_tests.sh'
                             }
                         }
                     }
