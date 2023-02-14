@@ -1529,7 +1529,6 @@ namespace Test
                 "id=a3fWa;path=/;HttpOnly;expires=Mon, 4-Jan-2100 05:54:52 GMT"
             };
 
-            var expected = "id=a3fWa";
             foreach (var cookie in noneExpiredCookies) {
                 Db.SaveCookie(cookieStr, uri, false).Should().BeTrue("because otherwise the cookie did not save");
                 Db.GetCookies(uri).Should().Be("id=a3fWa");
