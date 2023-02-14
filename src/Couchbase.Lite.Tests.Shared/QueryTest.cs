@@ -2738,6 +2738,53 @@ namespace Test
             }
         }
 
+        [Fact]
+        public void TestSelectAllResultKey()
+        {
+            // Section 8.11.10 / 8.12.4 - CBL Helium - Scope and Collection API
+            using var c = Db.CreateCollection("flowers", "test");
+            using var d = Db.GetDefaultCollection();
+
+            var iterations = new List<(string queryID, string resultName)>
+            {
+               (Db.Name, Db.Name),
+               ("_", "_"),
+               ("_default._default", "_default"),
+               ("test.flowers", "flowers"),
+               ("test.flowers as f", "f")
+            };
+
+            var qbIterations = new List<(IDataSource querySource, string resultName)>
+            {
+                (DataSource.Database(Db), Db.Name),
+                (DataSource.Database(Db).As("db-alias"), "db-alias"),
+                (DataSource.Collection(d), "_default"),
+                (DataSource.Collection(c), "flowers"),
+                (DataSource.Collection(c).As("collection-alias"), "collection-alias")
+            };
+
+            
+            using var doc1 = new MutableDocument("foo1");
+            doc1.SetString("test", "test");
+            c.Save(doc1);
+
+            using var doc2 = new MutableDocument("foo2");
+            doc2.SetString("test", "test");
+            d.Save(doc2);
+
+            foreach (var i in iterations) {
+                using var q = Db.CreateQuery($"SELECT * FROM {i.queryID}");
+                var results = q.Execute();
+                results.First()[i.resultName].Exists.Should().BeTrue($"because otherwise the result column name {i.resultName} was not present");
+            }
+
+            foreach (var i in qbIterations) {
+                using var q = QueryBuilder.Select(SelectResult.All()).From(i.querySource);
+                var results = q.Execute();
+                results.First()[i.resultName].Exists.Should().BeTrue($"because otherwise the result column name {i.resultName} was not present");
+            }
+        }
+
         private void CreateDateDocs()
         {
             using (var doc = new MutableDocument()) {
