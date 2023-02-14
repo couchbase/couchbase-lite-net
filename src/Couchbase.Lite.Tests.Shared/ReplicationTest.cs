@@ -312,7 +312,7 @@ namespace Test
                 badAction = (() => repl.Config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(2));
                 badAction.Should().Throw<InvalidOperationException>("Cannot modify a ReplicatorConfiguration (MaxAttemptsWaitTime) that is in use.");
 
-                repl.Config.MaxAttemptsWaitTime.Should().Be(Constants.DefaultReplicatorMaxAttemptsWaitTime, "Because default Max Retry Wait Time is 300 sec and null is returned.");
+                repl.Config.MaxAttemptsWaitTime.Should().Be(Constants.DefaultReplicatorMaxAttemptWaitTime, "Because default Max Retry Wait Time is 300 sec and null is returned.");
             }
 
             config.MaxAttemptsWaitTime = TimeSpan.FromSeconds(60);

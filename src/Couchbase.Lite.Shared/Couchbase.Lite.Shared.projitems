@@ -43,7 +43,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\MutableArrayObject.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\MutableDictionaryObject.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Document\MutableDocument.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)API\Info\Constants.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)API\Info\Defaults.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Info\CouchbaseLiteErrorMessage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Info\CouchbaseLiteErrorMessageNetOnly.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)API\Log\ConsoleLogger.cs" />
