@@ -2745,7 +2745,7 @@ namespace Test
             using var c = Db.CreateCollection("flowers", "test");
             using var d = Db.GetDefaultCollection();
 
-            var iterations = new List<(string queryID, string resultName)>
+            var sqlInputAndResult = new List<(string queryID, string resultName)>
             {
                (Db.Name, Db.Name),
                ("_", "_"),
@@ -2754,7 +2754,7 @@ namespace Test
                ("test.flowers as f", "f")
             };
 
-            var qbIterations = new List<(IDataSource querySource, string resultName)>
+            var queryBuilderInputAndResult = new List<(IDataSource querySource, string resultName)>
             {
                 (DataSource.Database(Db), Db.Name),
                 (DataSource.Database(Db).As("db-alias"), "db-alias"),
@@ -2772,16 +2772,16 @@ namespace Test
             doc2.SetString("test", "test");
             d.Save(doc2);
 
-            foreach (var i in iterations) {
-                using var q = Db.CreateQuery($"SELECT * FROM {i.queryID}");
+            foreach (var pair in sqlInputAndResult) {
+                using var q = Db.CreateQuery($"SELECT * FROM {pair.queryID}");
                 var results = q.Execute();
-                results.First()[i.resultName].Exists.Should().BeTrue($"because otherwise the result column name {i.resultName} was not present");
+                results.First()[pair.resultName].Exists.Should().BeTrue($"because otherwise the result column name {pair.resultName} was not present");
             }
 
-            foreach (var i in qbIterations) {
-                using var q = QueryBuilder.Select(SelectResult.All()).From(i.querySource);
+            foreach (var pair in queryBuilderInputAndResult) {
+                using var q = QueryBuilder.Select(SelectResult.All()).From(pair.querySource);
                 var results = q.Execute();
-                results.First()[i.resultName].Exists.Should().BeTrue($"because otherwise the result column name {i.resultName} was not present");
+                results.First()[pair.resultName].Exists.Should().BeTrue($"because otherwise the result column name {pair.resultName} was not present");
             }
         }
 
