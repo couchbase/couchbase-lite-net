@@ -24,9 +24,25 @@ Write-Host *** COPYING NATIVE RESOURCES ***
 Write-Host
 if(-Not (Test-Path "Couchbase.Lite.Support.Apple\iOS\Native")) {
     New-Item -ItemType Directory Couchbase.Lite.Support.Apple\iOS\Native
+    New-Item -ItemType Directory Couchbase.Lite.Support.Apple\iOS\Native\LiteCore.xcframework
 } 
 
-Copy-Item -Recurse -Force ..\vendor\couchbase-lite-core\build_cmake\ios-fat\LiteCore.framework Couchbase.Lite.Support.Apple\iOS\Native
+
+Copy-Item -Force ..\vendor\couchbase-lite-core\build_cmake\ios\LiteCore.xcframework\Info.plist Couchbase.Lite.Support.Apple\iOS\Native\LiteCore.xcframework
+Copy-Item -Recurse -Force ..\vendor\couchbase-lite-core\build_cmake\ios\LiteCore.xcframework\ios-arm64\ Couchbase.Lite.Support.Apple\iOS\Native\LiteCore.xcframework
+Copy-Item -Recurse -Force ..\vendor\couchbase-lite-core\build_cmake\ios\LiteCore.xcframework\ios-arm64_x86_64-simulator\ Couchbase.Lite.Support.Apple\iOS\Native\LiteCore.xcframework
+
+# Windows absolutely loses its mind at any notion of symbolic links, so restructure to get rid of them
+$catalystBaseDir = "..\vendor\couchbase-lite-core\build_cmake\ios\LiteCore.xcframework\ios-arm64_x86_64-maccatalyst\LiteCore.framework"
+$catalystDestDir = "Couchbase.Lite.Support.Apple\iOS\Native\LiteCore.xcframework\ios-arm64_x86_64-maccatalyst\LiteCore.framework"
+New-Item -ItemType Directory Couchbase.Lite.Support.Apple\iOS\Native\LiteCore.xcframework\ios-arm64_x86_64-maccatalyst
+New-Item -ItemType Directory $catalystDestDir
+Copy-Item -Recurse -Force $catalystBaseDir\Versions\A\* $catalystDestDir
+
+if(Test-Path ..\vendor\couchbase-lite-core\build_cmake\ios\LiteCore.xcframework\ios-arm64_x86_64-maccatalyst\dSYMs) {
+    Copy-Item -Recurse -Force ..\vendor\couchbase-lite-core\build_cmake\ios\LiteCore.xcframework\ios-arm64_x86_64-maccatalyst\dSYMs $catalystDestDir\..
+}
+
 Write-Host *** BUILDING ***
 Write-Host
 

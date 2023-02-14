@@ -110,9 +110,9 @@
     <file target="lib\net6.0-android31\" src="src\Couchbase.Lite\bin\Packaging\net6.0-android31\Couchbase.Lite.dll" />
     <file target="lib\net6.0-android31\" src="src\Couchbase.Lite\bin\Packaging\net6.0-android31\Couchbase.Lite.pdb" />
     <file target="lib\net6.0-android31\" src="src\Couchbase.Lite\bin\Packaging\net6.0-android31\Couchbase.Lite.xml" />
-    <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid90\Couchbase.Lite.dll" />
-    <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid90\Couchbase.Lite.pdb" />
-    <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid90\Couchbase.Lite.xml" />
+    <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid10.0\Couchbase.Lite.dll" />
+    <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid10.0\Couchbase.Lite.pdb" />
+    <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid10.0\Couchbase.Lite.xml" />
     <file target="lib\net462\" src="src\Couchbase.Lite\bin\Packaging\net462\Couchbase.Lite.dll" />
     <file target="lib\net462\" src="src\Couchbase.Lite\bin\Packaging\net462\Couchbase.Lite.pdb" />
     <file target="lib\net462\" src="src\Couchbase.Lite\bin\Packaging\net462\Couchbase.Lite.xml" />
