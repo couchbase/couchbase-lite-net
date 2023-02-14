@@ -1174,7 +1174,7 @@ namespace Couchbase.Lite
                 } else {
                     var pathStr = String.Concat(uri.Segments.Take(uri.Segments.Length - 1));
                     C4Error err = new C4Error();
-                    cookieSaved = Native.c4db_setCookie(_c4db, cookieStr, uri.Host, pathStr, acceptParentDomain, &err);
+                    cookieSaved = Native.c4db_setCookie(_c4db, cookie, uri.Host, pathStr, acceptParentDomain, &err);
                     if(err.code > 0) {
                         WriteLog.To.Sync.W(Tag, $"{err.domain}/{err.code} Failed saving Cookie {cookie}.");
                     }
