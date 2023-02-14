@@ -64,6 +64,10 @@ namespace Couchbase.Lite.Info
         #region Constants in ReplicatorConfiguration
 
         /// <summary>
+        /// Whether or not a replicator only accepts cookies for the sender's parent domains
+        /// </summary>
+        public static readonly bool DefaultAllowParentCookies = false;
+        /// <summary>
         /// Default ReplicatorType <see cref="ReplicatorConfiguration.ReplicatorType" /> property value in ReplicatorConfiguration.
         /// The default is <see cref="ReplicatorType.PushAndPull"/> which is bidirectional
         /// </summary>

@@ -1164,7 +1164,7 @@ namespace Couchbase.Lite
             return cookies;
         }
 
-        internal bool SaveCookie(string cookie, [@NotNull] Uri uri)
+        internal bool SaveCookie(string cookie, [@NotNull] Uri uri, bool acceptParentDomain)
         {
             bool cookieSaved = false;
             ThreadSafety.DoLocked(() =>
@@ -1175,7 +1175,7 @@ namespace Couchbase.Lite
                     var cookieStr = cookie.ToCBLCookieString();
                     var pathStr = String.Concat(uri.Segments.Take(uri.Segments.Length - 1));
                     C4Error err = new C4Error();
-                    cookieSaved = Native.c4db_setCookie(_c4db, cookieStr, uri.Host, pathStr, &err);
+                    cookieSaved = Native.c4db_setCookie(_c4db, cookieStr, uri.Host, pathStr, acceptParentDomain, &err);
                     if(err.code > 0) {
                         WriteLog.To.Sync.W(Tag, $"{err.domain}/{err.code} Failed saving Cookie {cookieStr}.");
                     }
