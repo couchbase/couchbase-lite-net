@@ -1,7 +1,7 @@
 ﻿<Project Sdk="MSBuild.Sdk.Extras">
   <PropertyGroup>
     <Configurations>Debug;Release;Packaging;Debug_Coverage;Release_Coverage</Configurations>
-	<TargetFrameworks>netstandard2.0;netcoreapp3.1;net6.0;net6.0-android31;net6.0-ios14.2;net6.0-maccatalyst14.2;MonoAndroid10.0;Xamarin.iOS10</TargetFrameworks>
+	<TargetFrameworks>netstandard2.0;net6.0;net6.0-android31;net6.0-ios14.2;net6.0-maccatalyst14.2;MonoAndroid10.0;Xamarin.iOS10</TargetFrameworks>
 	<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net462;uap10.0.19041;net6.0-windows10.0.19041.0</TargetFrameworks>
     <SingleProject>true</SingleProject>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -48,7 +48,7 @@
     <DefineConstants>TRACE;LITECORE_PACKAGED;TEST_COVERAGE</DefineConstants>
     <EnableSourceLink>false</EnableSourceLink>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'net462' or $(TargetFramework.StartsWith('netcoreapp')) or '$(TargetFramework)' == 'net6.0' ">
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'net6.0' ">
     <DefineConstants>$(DefineConstants);NEEDS_LITECORE_LOAD</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
@@ -61,10 +61,10 @@
     <PackageReference Include="GitInfo" Version="2.0.20" PrivateAssets="all" />
     <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
   </ItemGroup>
-  <ItemGroup Condition=" $(TargetFramework.StartsWith('netcoreapp')) or '$(TargetFramework)' == 'net6.0' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net6.0' ">
     <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' or $(TargetFramework.StartsWith('netcoreapp')) or '$(TargetFramework)' == 'net6.0' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'net6.0' ">
     <ProjectReference Include="..\..\src\Couchbase.Lite.Support.NetDesktop\Couchbase.Lite.Support.NetDesktop.csproj" />
   </ItemGroup>
   <ItemGroup Condition=" ($(TargetFramework.StartsWith('MonoAndroid')) or $(TargetFramework.StartsWith('net6.0-android'))) and !$(DefineConstants.Contains('TEST_COVERAGE')) ">

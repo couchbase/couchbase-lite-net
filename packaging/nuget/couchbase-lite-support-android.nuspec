@@ -18,6 +18,8 @@
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
+      <group targetFramework="net6.0-android31" />
+      <group targetFramework="monoandroid10.0" />
     </dependencies>
   </metadata>
   <files>
@@ -26,9 +28,9 @@
     <file target="lib\net6.0-android31\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\net6.0-android31\Couchbase.Lite.Support.Android.dll" />
     <file target="lib\net6.0-android31\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\net6.0-android31\Couchbase.Lite.Support.Android.pdb" />
     <file target="lib\net6.0-android31\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\net6.0-android31\Couchbase.Lite.Support.Android.xml" />
-	<file target="lib\net6.0-android31\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\net6.0-android31\Couchbase.Lite.Support.Android.aar" />
-    <file target="lib\monoandroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\monoandroid10.0\Couchbase.Lite.Support.Android.dll" />
-    <file target="lib\monoandroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\monoandroid10.0\Couchbase.Lite.Support.Android.pdb" />
-    <file target="lib\monoandroid\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\monoandroid10.0\Couchbase.Lite.Support.Android.xml" />
+    <file target="lib\net6.0-android31\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\net6.0-android31\Couchbase.Lite.Support.Android.aar" />
+    <file target="lib\monoandroid10.0\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\monoandroid10.0\Couchbase.Lite.Support.Android.dll" />
+    <file target="lib\monoandroid10.0\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\monoandroid10.0\Couchbase.Lite.Support.Android.pdb" />
+    <file target="lib\monoandroid10.0\" src="src\Couchbase.Lite.Support.Android\bin\Packaging\monoandroid10.0\Couchbase.Lite.Support.Android.xml" />
   </files>
 </package>

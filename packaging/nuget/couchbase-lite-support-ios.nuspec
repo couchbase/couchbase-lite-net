@@ -18,11 +18,14 @@
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
+      <group targetFramework="net6.0-maccatalyst14.2" />
+      <group targetFramework="net6.0-ios14.2" />
+      <group targetFramework="xamarinios" />
     </dependencies>
   </metadata>
   <files>
     <file target="" src="packaging\nuget\LICENSE.txt" />
-	<file target="logo.png" src="packaging\nuget\logo.png" />
+    <file target="logo.png" src="packaging\nuget\logo.png" />
     <file target="lib\net6.0-maccatalyst14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net6.0-maccatalyst14.2\Couchbase.Lite.Support.iOS.dll" />
     <file target="lib\net6.0-maccatalyst14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net6.0-maccatalyst14.2\Couchbase.Lite.Support.iOS.pdb" />
     <file target="lib\net6.0-maccatalyst14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net6.0-maccatalyst14.2\Couchbase.Lite.Support.iOS.xml" />

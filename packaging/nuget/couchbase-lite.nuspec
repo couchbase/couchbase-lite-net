@@ -26,69 +26,61 @@
         <dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
         <dependency id="Couchbase.Lite.Support.NetDesktop" version="[$version$]" />
       </group>
-	  <group targetFramework="net6.0-windows10.0.19041.0">
+      <group targetFramework="net6.0-windows10.0.19041.0">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
         <dependency id="System.Collections.Immutable" version="6.0.0" />
         <dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
         <dependency id="Couchbase.Lite.Support.WinUI" version="[$version$]" />
       </group>
-      <group targetFramework="netcoreapp3.1">
-        <dependency id="Newtonsoft.Json" version="13.0.1" />
-        <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
-        <dependency id="System.Collections.Immutable" version="6.0.0" />
-        <dependency id="System.Security.Cryptography.Cng" version="[5.0.0]" />
-        <dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
-        <dependency id="Couchbase.Lite.Support.NetDesktop" version="[$version$]" />
-      </group>
       <group targetFramework="net462">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
-		<dependency id="System.Collections.Immutable" version="6.0.0" />
-		<dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
+        <dependency id="System.Collections.Immutable" version="6.0.0" />
+        <dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
         <dependency id="Couchbase.Lite.Support.NetDesktop" version="[$version$]" />
       </group>
       <group targetFramework="uap10.0.19041">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
-		<dependency id="System.Collections.Immutable" version="6.0.0" />
-		<dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
+        <dependency id="System.Collections.Immutable" version="6.0.0" />
+        <dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
         <dependency id="Couchbase.Lite.Support.UWP" version="[$version$]" />
       </group>
       <group targetFramework="net6.0-android31">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
-		<dependency id="System.Collections.Immutable" version="6.0.0" />
-		<dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
+        <dependency id="System.Collections.Immutable" version="6.0.0" />
+        <dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
         <dependency id="Couchbase.Lite.Support.Android" version="[$version$]" />
       </group>
-      <group targetFramework="monoandroid">
+      <group targetFramework="monoandroid10.0">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
-		<dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
-		<dependency id="System.Collections.Immutable" version="6.0.0" />
+        <dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
+        <dependency id="System.Collections.Immutable" version="6.0.0" />
         <dependency id="Xamarin.Essentials" version="1.7.4" />
         <dependency id="Couchbase.Lite.Support.Android" version="[$version$]" />
       </group>
       <group targetFramework="net6.0-ios14.2">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
-		<dependency id="System.Collections.Immutable" version="6.0.0" />
-		<dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
+        <dependency id="System.Collections.Immutable" version="6.0.0" />
+        <dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
         <dependency id="Couchbase.Lite.Support.iOS" version="[$version$]" />
       </group>
       <group targetFramework="net6.0-maccatalyst14.2">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
-		<dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
-		<dependency id="System.Collections.Immutable" version="6.0.0" />
+        <dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
+        <dependency id="System.Collections.Immutable" version="6.0.0" />
         <dependency id="Couchbase.Lite.Support.iOS" version="[$version$]" />
       </group>
       <group targetFramework="xamarinios">
         <dependency id="Newtonsoft.Json" version="13.0.1" />
         <dependency id="SimpleInjector" version="[5.0.0,6.0.0)" />
-		<dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
-		<dependency id="System.Collections.Immutable" version="6.0.0" />
+        <dependency id="Microsoft.Bcl.AsyncInterfaces" version="[5.0.0,6.0.0]" />
+        <dependency id="System.Collections.Immutable" version="6.0.0" />
         <dependency id="Couchbase.Lite.Support.iOS" version="[$version$]" />
       </group>
     </dependencies>
@@ -99,10 +91,7 @@
     <file target="lib\netstandard2.0\" src="src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.dll" />
     <file target="lib\netstandard2.0\" src="src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.pdb" />
     <file target="lib\netstandard2.0\" src="src\Couchbase.Lite\bin\Packaging\netstandard2.0\Couchbase.Lite.xml" />
-    <file target="lib\netcoreapp3.1\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp3.1\Couchbase.Lite.dll" />
-    <file target="lib\netcoreapp3.1\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp3.1\Couchbase.Lite.pdb" />
-    <file target="lib\netcoreapp3.1\" src="src\Couchbase.Lite\bin\Packaging\netcoreapp3.1\Couchbase.Lite.xml" />
-	<file target="lib\net6.0\" src="src\Couchbase.Lite\bin\Packaging\net6.0\Couchbase.Lite.dll" />
+    <file target="lib\net6.0\" src="src\Couchbase.Lite\bin\Packaging\net6.0\Couchbase.Lite.dll" />
     <file target="lib\net6.0\" src="src\Couchbase.Lite\bin\Packaging\net6.0\Couchbase.Lite.pdb" />
     <file target="lib\net6.0\" src="src\Couchbase.Lite\bin\Packaging\net6.0\Couchbase.Lite.xml" />
     <file target="lib\net6.0-windows10.0.19041.0\" src="src\Couchbase.Lite\bin\Packaging\net6.0-windows10.0.19041.0\Couchbase.Lite.dll" />
@@ -111,9 +100,9 @@
     <file target="lib\net6.0-android31\" src="src\Couchbase.Lite\bin\Packaging\net6.0-android31\Couchbase.Lite.dll" />
     <file target="lib\net6.0-android31\" src="src\Couchbase.Lite\bin\Packaging\net6.0-android31\Couchbase.Lite.pdb" />
     <file target="lib\net6.0-android31\" src="src\Couchbase.Lite\bin\Packaging\net6.0-android31\Couchbase.Lite.xml" />
-    <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid10.0\Couchbase.Lite.dll" />
-    <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid10.0\Couchbase.Lite.pdb" />
-    <file target="lib\monoandroid\" src="src\Couchbase.Lite\bin\Packaging\monoandroid10.0\Couchbase.Lite.xml" />
+    <file target="lib\monoandroid10.0\" src="src\Couchbase.Lite\bin\Packaging\monoandroid10.0\Couchbase.Lite.dll" />
+    <file target="lib\monoandroid10.0\" src="src\Couchbase.Lite\bin\Packaging\monoandroid10.0\Couchbase.Lite.pdb" />
+    <file target="lib\monoandroid10.0\" src="src\Couchbase.Lite\bin\Packaging\monoandroid10.0\Couchbase.Lite.xml" />
     <file target="lib\net462\" src="src\Couchbase.Lite\bin\Packaging\net462\Couchbase.Lite.dll" />
     <file target="lib\net462\" src="src\Couchbase.Lite\bin\Packaging\net462\Couchbase.Lite.pdb" />
     <file target="lib\net462\" src="src\Couchbase.Lite\bin\Packaging\net462\Couchbase.Lite.xml" />

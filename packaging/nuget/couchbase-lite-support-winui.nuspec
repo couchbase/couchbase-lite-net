@@ -17,6 +17,9 @@
     <copyright>Copyright 2022</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile netcore xamarin maui ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
+    <dependencies>
+      <group targetFramework="net6.0-windows10.0.19041.0" />
+    </dependencies>
   </metadata>
   <files>
     <file target="" src="packaging\nuget\LICENSE.txt" />
