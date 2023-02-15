@@ -76,7 +76,7 @@ namespace Couchbase.Lite.Sync
         private GCHandle _clientCertHandle;
         private TimeSpan? _heartbeat = Constants.DefaultReplicatorHeartbeat;
         private int _maxAttempts = Constants.DefaultReplicatorMaxAttemptsSingleShot;
-        private TimeSpan? _maxAttemptsWaitTime = Constants.DefaultReplicatorMaxAttemptsWaitTime;
+        private TimeSpan? _maxAttemptsWaitTime = Constants.DefaultReplicatorMaxAttemptWaitTime;
 
         #endregion
 
@@ -286,7 +286,7 @@ namespace Couchbase.Lite.Sync
                             throw new ArgumentException(CouchbaseLiteErrorMessage.InvalidMaxAttemptsInterval);
                         }
                     } else { // Backward compatible if null is set
-                        this[HeartbeatIntervalKey] = Constants.DefaultReplicatorMaxAttemptsWaitTime.TotalSeconds;
+                        this[HeartbeatIntervalKey] = Constants.DefaultReplicatorMaxAttemptWaitTime.TotalSeconds;
                     }
 
                     _maxAttemptsWaitTime = value;
@@ -318,7 +318,7 @@ namespace Couchbase.Lite.Sync
             Headers = new Dictionary<string, string>();
             EnableAutoPurge = Constants.DefaultReplicatorEnableAutoPurge;
             #if COUCHBASE_ENTERPRISE
-            AcceptOnlySelfSignedServerCertificate = Constants.DefaultSelfSignedCertificateOnly;
+            AcceptOnlySelfSignedServerCertificate = Constants.DefaultReplicatorSelfSignedCertificateOnly;
             #endif
         }
 
