@@ -22,7 +22,7 @@
 
 // Windows 2012 doesn't define the more generic variants
 
-#if (NETFRAMEWORK || NET462 || NETCOREAPP || NETCOREAPP3_1_OR_GREATER) && !NET6_0_WINDOWS10_0_19041_0 && !__MOBILE__
+#if (NETFRAMEWORK || NET462 || NET6_0_OR_GREATER) && !NET6_0_WINDOWS10_0_19041_0 && !__MOBILE__
 #define DEBUG
 using System;
 using System.Diagnostics;

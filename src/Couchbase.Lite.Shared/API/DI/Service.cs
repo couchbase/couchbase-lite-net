@@ -57,7 +57,7 @@ namespace Couchbase.Lite.DI
         static Service()
         {
             // Windows 2012 doesn't define NETFRAMEWORK for some reason
-            #if (NETCOREAPP3_1_OR_GREATER || NETCOREAPP || NETFRAMEWORK || NET462) && !NET6_0_WINDOWS10_0_19041_0 && !__MOBILE__
+            #if (NET6_0_OR_GREATER || NETFRAMEWORK || NET462) && !NET6_0_WINDOWS10_0_19041_0 && !__MOBILE__
             AutoRegister(typeof(Database).GetTypeInfo().Assembly);
             
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
