@@ -78,10 +78,10 @@ namespace Couchbase.Lite.Info {
 		public static readonly int DefaultReplicatorMaxAttemptsSingleShot = 10;
 
 		/// <summary>
-		/// Default value for <see cref="ReplicatorConfiguration.MaxAttempts" /> (-1)
+		/// Default value for <see cref="ReplicatorConfiguration.MaxAttempts" /> (Int32.MaxValue)
 		/// When replicator is continuous, never give up unless explicitly stopped
 		/// </summary>
-		public static readonly int DefaultReplicatorMaxAttemptsContinuous = -1;
+		public static readonly int DefaultReplicatorMaxAttemptsContinuous = Int32.MaxValue;
 
 		/// <summary>
 		/// Default value for <see cref="ReplicatorConfiguration.MaxAttemptWaitTime" /> (TimeSpan.FromSeconds(300))
