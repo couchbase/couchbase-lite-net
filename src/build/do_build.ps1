@@ -2,7 +2,7 @@ Push-Location $PSScriptRoot\..\Couchbase.Lite
 
 $VSInstall = (Get-CimInstance MSFT_VSInstance).InstallLocation
 if(-Not $VSInstall) {
-    throw "Unable to locate VS2019 installation"
+    throw "Unable to locate VS installation"
 }
 
 $MSBuild = "$VSInstall\MSBuild\Current\Bin\MSBuild.exe"
