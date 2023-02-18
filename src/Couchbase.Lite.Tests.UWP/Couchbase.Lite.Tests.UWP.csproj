@@ -105,21 +105,8 @@
     <Content Include="Assets\StoreLogo.png" />
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
-  <Choose>
-  <When Condition="'$(Configuration)'=='Debug'">
-    <ItemGroup>
-      <PackageReference Include="Couchbase.Lite.Enterprise.Debug" Version="2.5.0-b0027" />
-    </ItemGroup>
-  </When>
-  </Choose>
-  <Choose>
-  <When Condition="'$(Configuration)'== 'Release'">
-    <ItemGroup>
-      <PackageReference Include="Couchbase.Lite.Enterprise" Version="2.5.0-b0027" />
-    </ItemGroup>
-  </When>
-  </Choose>
   <ItemGroup>
+    <PackageReference Include="Couchbase.Lite.Enterprise" Version="3.1.0-b0161" />
     <PackageReference Include="FluentAssertions">
       <Version>5.10.0</Version>
     </PackageReference>
@@ -141,6 +128,7 @@
     <None Include="Couchbase.Lite.Tests.UWP_TemporaryKey.pfx" />
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" />
+  <Import Project="..\LiteCore\test\LiteCore.Tests.Shared\LiteCore.Tests.Shared.projitems" Label="Shared" />
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '16.0' ">
     <VisualStudioVersion>16.0</VisualStudioVersion>
   </PropertyGroup>
