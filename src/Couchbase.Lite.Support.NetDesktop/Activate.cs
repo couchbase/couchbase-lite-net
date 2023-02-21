@@ -79,19 +79,21 @@ namespace Couchbase.Lite.Support
                 if (arch == Architecture.X86 || arch == Architecture.Arm) {
                     throw new PlatformNotSupportedException("32-bit Windows is no longer supported");
                 }
-				
+
+#if NET6_0_OR_GREATER
                 var codeBase = Path.GetDirectoryName(typeof(NetDesktop).GetTypeInfo().Assembly.Location);
+#else
+                var originalCodeBase = typeof(NetDesktop).GetTypeInfo().Assembly.CodeBase;
+                var uri = new UriBuilder(originalCodeBase);
+                var uriPath = Uri.UnescapeDataString(uri.Path);
+                var codeBase = Path.GetDirectoryName(uriPath);
+#endif
                 if (codeBase == null) {
                     throw new DllNotFoundException(
                         "Couldn't find directory of the loaded support assembly, very weird!");
                 }
 
-                var architecture = arch.ToString();
-                var nugetBase = codeBase;
-                for (int i = 0; i < 2; i++) {
-                    nugetBase = Path.GetDirectoryName(nugetBase);
-                }
-
+                var architecture = arch.ToString().ToLowerInvariant();
                 var dllPath = Path.Combine(codeBase ?? "", architecture, "LiteCore.dll");
                 var dllPathAsp = Path.Combine(codeBase ?? "", "bin", architecture, "LiteCore.dll");
                 var dllPathRuntimes =
@@ -127,9 +129,9 @@ namespace Couchbase.Lite.Support
             }
         }
 
-        #endregion
+#endregion
 
-        #region Private Methods
+#region Private Methods
 
         private static bool CheckVSRedist(string architecture)
         {
@@ -169,6 +171,6 @@ namespace Couchbase.Lite.Support
         [DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern IntPtr LoadLibraryEx(string lpFileName, IntPtr hFile, uint dwFlags);
 
-        #endregion
+#endregion
     }
 }

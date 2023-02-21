@@ -787,7 +787,8 @@ namespace Test
             ValidateMultipleReplicationsTo(ReplicatorType.PushAndPull);
         }
 
-        //[Fact] Looks like MSBuild doesn't understand RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 
+#if NET6_0_OR_GREATER
+        [Fact] // Looks like MSBuild doesn't understand RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 
         public void TestMultipleReplicatorsOnReadOnlyListener()
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) //Mac OS 8-23-21 hang with LiteCore Commit: 5d9539fae43e9282787c2b68772bb85ecbc00b5c [5d9539f]
@@ -804,13 +805,14 @@ namespace Test
                 ValidateMultipleReplicationsTo(ReplicatorType.Pull);
 			}
         }
+#endif
 
         [Fact] //hang maui android
         public void TestCloseWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(true);
 
         [Fact]//hang maui android
         public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
-        #endif
+#endif
 
         [Fact]
         public void TestCloseWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(true);
@@ -963,8 +965,10 @@ namespace Test
             }
         }
 
+
         private int GetEADDRINUSECode()
         {
+#if NET6_0_OR_GREATER
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 return 100;
@@ -977,7 +981,11 @@ namespace Test
             {
                 return 98; // Linux
             }
+#else   
+            return 100;
+#endif
         }
+
 
         private void WithActiveReplicatorAndURLEndpointListeners(bool isCloseNotDelete)
         {
@@ -1367,7 +1375,7 @@ namespace Test
             return listener;
         }
 
-        #endregion
+#endregion
 
         protected override void Dispose(bool disposing)
         {

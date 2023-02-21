@@ -19,10 +19,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal.Doc;
+using Couchbase.Lite.Support;
 using FluentAssertions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
