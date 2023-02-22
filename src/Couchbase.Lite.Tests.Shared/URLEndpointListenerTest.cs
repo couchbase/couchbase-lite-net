@@ -968,7 +968,7 @@ namespace Test
 
         private int GetEADDRINUSECode()
         {
-#if NET6_0_OR_GREATER
+#if NET6_0_OR_GREATER || __MOBILE__
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 return 100;
