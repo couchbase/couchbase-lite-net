@@ -70,6 +70,9 @@ namespace LiteCore.Interop
         private bool _hasFactory;
         private C4ReplicatorDocumentEndedCallback _onDocumentEnded;
         private C4ReplicatorStatusChangedCallback _onStatusChanged;
+        private ReplicationCollection[] _replicationCollections;
+        private C4ReplicationCollection[] _rawReplicationCollectionHandles;
+        private GCHandle _replicationCollectionsHandle;
 
         #endregion
 
@@ -130,16 +133,10 @@ namespace LiteCore.Interop
             }
         }
 
-        public unsafe C4ReplicationCollection* ReplicationCollection
+        public ReplicationCollection[] ReplicationCollections
         {
-            get => _c4Params.collections;
-            set => _c4Params.collections = value;
-        }
-
-        public long CollectionCount
-        {
-            get => _c4Params.collectionCount.ToInt64();
-            set => _c4Params.collectionCount = (IntPtr)value;
+            get => _replicationCollections;
+            set => _replicationCollections = value;
         }
 
         #endregion
@@ -160,10 +157,71 @@ namespace LiteCore.Interop
 
         #endregion
 
+        #region Public Methods
+
+        public interface IReplicatorParametersToken : IDisposable { }
+
+        private sealed class ReplicatorParametersToken : IReplicatorParametersToken
+        {
+            private readonly ReplicatorParameters _parent;
+
+            public ReplicatorParametersToken(ReplicatorParameters parent)
+            {
+                _parent = parent;
+                _parent.Lock();
+            }
+
+            public void Dispose()
+            {
+                _parent.Unlock();
+            }
+        }
+
+        public IReplicatorParametersToken Pinned()
+        {
+            return new ReplicatorParametersToken(this);
+        }
+
+        #endregion
+
         #region Private Methods
+
+        private unsafe void Lock()
+        {
+            if (_replicationCollectionsHandle.IsAllocated) {
+                return;
+            }
+
+            _rawReplicationCollectionHandles = new C4ReplicationCollection[_replicationCollections.Length];
+            for (int i = 0; i < _replicationCollections.Length; i++) {
+                _rawReplicationCollectionHandles[i] = _replicationCollections[i].C4ReplicationCol;
+            }
+
+            _replicationCollectionsHandle = GCHandle.Alloc(_rawReplicationCollectionHandles, GCHandleType.Pinned);
+            _c4Params.collectionCount = (IntPtr)_rawReplicationCollectionHandles.Length;
+            _c4Params.collections = (C4ReplicationCollection*)_replicationCollectionsHandle.AddrOfPinnedObject();
+        }
+
+        private void Unlock()
+        {
+            if (!_replicationCollectionsHandle.IsAllocated) {
+                return;
+            }
+
+            _replicationCollectionsHandle.Free();
+        }
 
         private unsafe void Dispose(bool finalizing)
         {
+            if(finalizing && ReplicationCollections != null) {
+                foreach (var col in ReplicationCollections) {
+                    if (col != null) {
+                        col.Dispose();
+                    }
+                }
+
+                ReplicationCollections = null;
+            }
             Native.FLSliceResult_Release((FLSliceResult)_c4Params.optionsDictFleece);
             Context = null;
             if (_hasFactory) {
@@ -192,6 +250,7 @@ namespace LiteCore.Interop
         private C4ReplicationCollection _c4ReplicationCol;
         private C4ReplicatorValidationFunction _pushFilter;
         private C4ReplicatorValidationFunction _validation;
+        private CollectionSpec _spec;
 
         #endregion
 
@@ -244,6 +303,15 @@ namespace LiteCore.Interop
             }
         }
 
+        public CollectionSpec Spec
+        {
+            get => _spec;
+            set {
+                _spec = value;
+                _c4ReplicationCol.collection = _spec;
+            }
+        }
+
         #endregion
 
         #region Constructors
@@ -266,6 +334,11 @@ namespace LiteCore.Interop
 
         private unsafe void Dispose(bool finalizing)
         {
+            if(finalizing) {
+                _spec?.Dispose();
+            }
+
+            Context = null;
             Native.FLSliceResult_Release((FLSliceResult)_c4ReplicationCol.optionsDictFleece);
         }
 

@@ -1420,18 +1420,15 @@ namespace Test
             var config = CreateConfig(false, true, false);
             config.ConflictResolver = new TestConflictResolver((conflict) => {
                 if (resolveCnt == 0) {
-                    Task.Run(() =>
-                    {
-                        using (var d = Db.GetDocument("doc1"))
-                        using (var doc = d.ToMutable()) {
-                            d.GetString("name").Should().Be("Cat");
-                            doc.SetString("name", "Cougar");
-                            Db.Save(doc);
-                            using (var docCheck = Db.GetDocument("doc1")) {
-                                docCheck.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
-                            }
+                    using (var d = Db.GetDocument("doc1"))
+                    using (var doc = d.ToMutable()) {
+                        d.GetString("name").Should().Be("Cat");
+                        doc.SetString("name", "Cougar");
+                        Db.Save(doc);
+                        using (var docCheck = Db.GetDocument("doc1")) {
+                            docCheck.GetString("name").Should().Be("Cougar", "Because database save operation was not blocked");
                         }
-                    });
+                    }
                 }
 
                 resolveCnt++;
@@ -1911,29 +1908,6 @@ namespace Test
                 Action badAct = () => replicator.IsDocumentPending("doc1");
                 badAct.Should().Throw<InvalidOperationException>().WithMessage(CouchbaseLiteErrorMessage.DBClosed);
             }
-        }
-
-        [Fact]
-        public void TestForum()
-        {
-            var bucketstring = "anything";
-            var _database = new Database(bucketstring);
-            var targetEndpoint = new URLEndpoint(new Uri("ws://zzz:4984/" + bucketstring));
-            var replConfig = new ReplicatorConfiguration(_database, targetEndpoint);
-            replConfig.ReplicatorType = ReplicatorType.PushAndPull;
-            replConfig.Continuous = true;
-            replConfig.Authenticator = new BasicAuthenticator("user", "password");
-
-            var _replicator = new Replicator(replConfig);
-            _replicator.AddChangeListener((sender, args) =>
-            {
-                if (args.Status.Error != null)
-                {
-                    Console.WriteLine($"Error :: {args.Status.Error}");
-                    _replicator.Stop();
-                }
-            });
-            _replicator.Start();
         }
 
         //end pending doc id tests
