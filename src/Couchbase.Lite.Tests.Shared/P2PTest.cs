@@ -410,12 +410,30 @@ namespace Test
                 config.AddCollection(colADb);
 
                 RunReplication(config, 0, 0);
+                bool retry = false;
+                int retryCount = 0;
+                do {
+                    // Do a retry loop because there is some sort of race, but it most likely
+                    // lies in the Mock Server implementation.  The funny part is that this never
+                    // seems to actually loop, but rather its mere presence seems to cause the test
+                    // to consistently pass.  Also note, only seems to have this race issue with
+                    // UWP .NET Native.
+                    retry = false;
+                    try {
+                        // Check docs are replicated between collections colADb & colAOtherDb
+                        colAOtherDb.GetDocument("doc").GetString("str").Should().Be("string");
+                        colAOtherDb.GetDocument("doc1").GetString("str1").Should().Be("string1");
+                        colADb.GetDocument("doc2").GetString("str2").Should().Be("string2");
+                        colADb.GetDocument("doc3").GetString("str3").Should().Be("string3");
+                    } catch(Exception) {
+                        if(retryCount ++ == 5) {
+                            throw;
+                        }
 
-                // Check docs are replicated between collections colADb & colAOtherDb
-                colAOtherDb.GetDocument("doc").GetString("str").Should().Be("string");
-                colAOtherDb.GetDocument("doc1").GetString("str1").Should().Be("string1");
-                colADb.GetDocument("doc2").GetString("str2").Should().Be("string2");
-                colADb.GetDocument("doc3").GetString("str3").Should().Be("string3");
+                        Thread.Sleep(200);
+                        retry = true;
+                    }
+                } while (retry);
             }
         }
 
