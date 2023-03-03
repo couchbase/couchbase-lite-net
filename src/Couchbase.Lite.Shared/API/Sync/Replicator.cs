@@ -109,8 +109,6 @@ namespace Couchbase.Lite.Sync
         /// </summary>
         public X509Certificate2 ServerCertificate { get; private set; }
 
-        private ReplicationCollection[] replicationCollections => new ReplicationCollection[Config.Collections.Count];
-
         #endregion
 
         #region Constructors
@@ -781,13 +779,6 @@ namespace Couchbase.Lite.Sync
                         return;
                     }
 
-                    foreach(var col in replicationCollections) {
-                        if (col != null) {
-                            GCHandle.FromIntPtr((IntPtr)col.C4ReplicationCol.callbackContext).Free();
-                            col.Dispose();
-                        }
-                    }
-
                     _nativeParams?.Dispose();
                     Config.Options.Dispose();
                     if (Status.Activity != ReplicatorActivityLevel.Stopped) {
@@ -873,11 +864,9 @@ namespace Couchbase.Lite.Sync
                 options.Reset = false;
 
                 var collCnt = (long)Config.Collections.Count;
-                _nativeParams.CollectionCount = collCnt;
                 DispatchQueue.DispatchSync(() =>
                 {
-                    C4ReplicationCollection[] c4ReplicationCollections = new C4ReplicationCollection[collCnt];
-                    C4CollectionSpec[] c4CollectionSpec = new C4CollectionSpec[collCnt];
+                    var replicationCollections = new ReplicationCollection[collCnt];
                     for (int i = 0; i < collCnt; i++) {
                         var collectionConfig = Config.CollectionConfigs.ElementAt(i);
                         var col = collectionConfig.Key;
@@ -892,19 +881,14 @@ namespace Couchbase.Lite.Sync
 
                         colConfigOptions.Build();
 
-                        var collName = new C4String(col.Name);
-                        var scopeName = new C4String(col.Scope.Name);
-                        c4CollectionSpec[i] = new C4CollectionSpec()
-                        {
-                            name = collName.AsFLSlice(),
-                            scope = scopeName.AsFLSlice()
-                        };
+                        var spec = new CollectionSpec(col.Scope.Name, col.Name);
 
                         var replicationCollection = new ReplicationCollection(colConfigOptions)
                         {
                             Push = Mkmode(push, continuous),
                             Pull = Mkmode(pull, continuous),
-                            Context = this
+                            Context = this,
+                            Spec = spec
                         };
 
                         if (config.PushFilter != null)
@@ -912,21 +896,18 @@ namespace Couchbase.Lite.Sync
                         if (config.PullFilter != null)
                             replicationCollection.PullFilter = PullValidateCallback;
 
-                        var localC4ReplicationCol = replicationCollection.C4ReplicationCol;
-                        localC4ReplicationCol.collection = c4CollectionSpec[i];
-                        c4ReplicationCollections[i] = localC4ReplicationCol;
                         replicationCollections[i] = replicationCollection;
                     }
 
                     C4Error localErr = new C4Error();
-                    fixed (C4ReplicationCollection* ptr = c4ReplicationCollections) {
-                        _nativeParams.ReplicationCollection = ptr;
-                        #if COUCHBASE_ENTERPRISE
+                    _nativeParams.ReplicationCollections = replicationCollections;
+                    using (var replParamsPinned = _nativeParams.Pinned()) {
+#if COUCHBASE_ENTERPRISE
                         if (otherDB != null)
                             _repl = Native.c4repl_newLocal(Config.Database.c4db, otherDB.c4db, _nativeParams.C4Params,
                                 &localErr);
                         else
-                        #endif
+#endif
                             _repl = Native.c4repl_new(Config.Database.c4db, addr, dbNameStr, _nativeParams.C4Params, &localErr);
                     }
 

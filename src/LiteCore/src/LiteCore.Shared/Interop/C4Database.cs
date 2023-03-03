@@ -65,4 +65,49 @@ namespace LiteCore.Interop
             return true;
         }*/
     }
+
+    internal sealed class CollectionSpec : IDisposable
+    {
+        private C4String _name;
+        private C4String _scope;
+        private bool disposedValue;
+
+        public FLSlice Name => _name.AsFLSlice();
+
+        public FLSlice Scope => _scope.AsFLSlice();
+
+        public CollectionSpec(string scope, string name)
+        {
+            _name = new C4String(name);
+            _scope = new C4String(scope);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (!disposedValue) {
+                _name.Dispose();
+                _scope.Dispose();
+            }
+        }
+
+        public static implicit operator C4CollectionSpec(CollectionSpec c)
+        {
+            return new C4CollectionSpec()
+            {
+                name = c.Name,
+                scope = c.Scope
+            };
+        }
+
+        ~CollectionSpec()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+    }
 }
