@@ -59,7 +59,7 @@ namespace Couchbase.Lite.Support
                 return Task.FromResult<WebProxy>(null);
             }
 
-            var proxySettings = CFNetworkCopySystemProxySettings(cFNetworkHandle);
+            var proxySettings = CopySystemProxySettings(cFNetworkHandle);
             if (proxySettings == IntPtr.Zero) {
                 return Task.FromResult<WebProxy>(null);
             }
@@ -78,7 +78,7 @@ namespace Couchbase.Lite.Support
                 return Task.FromResult<WebProxy>(null);
             }
 
-            var proxies = CFNetworkCopyProxiesForURL(cFNetworkHandle, cfDestination, proxySettings);
+            var proxies = CopyProxiesForURL(cFNetworkHandle, cfDestination, proxySettings);
             CFRelease(proxySettings);
             CFRelease(cfDestination);
             CFRelease(cfUrlString);
@@ -153,18 +153,18 @@ namespace Couchbase.Lite.Support
             return Marshal.PtrToStringAnsi(pointer);
         }
 
-        private IntPtr CFNetworkCopySystemProxySettings(IntPtr cFNetworkHandle) {
-            return GetDelegate<CFNetworkCopySystemProxySettingsDel>(cFNetworkHandle)();
+        private IntPtr CopySystemProxySettings(IntPtr cFNetworkHandle) {
+            return GetDelegate<CFNetworkCopySystemProxySettings>(cFNetworkHandle)();
         }
 
-        private IntPtr CFNetworkCopyProxiesForURL(IntPtr cFNetworkHandle, IntPtr url, IntPtr proxySettings)
+        private IntPtr CopyProxiesForURL(IntPtr cFNetworkHandle, IntPtr url, IntPtr proxySettings)
         {
-            return GetDelegate<CFNetworkCopyProxiesForURLDel>(cFNetworkHandle)(url, proxySettings);
+            return GetDelegate<CFNetworkCopyProxiesForURL>(cFNetworkHandle)(url, proxySettings);
         }
 
-        private delegate /* CFDictionaryRef __nullable */ IntPtr CFNetworkCopySystemProxySettingsDel();
+        private delegate /* CFDictionaryRef __nullable */ IntPtr CFNetworkCopySystemProxySettings();
 
-        private delegate /* CFArrayRef __nonnull */ IntPtr CFNetworkCopyProxiesForURLDel(/* CFURLRef __nonnull */ IntPtr url, /* CFDictionaryRef __nonnull */ IntPtr proxySettings);
+        private delegate /* CFArrayRef __nonnull */ IntPtr CFNetworkCopyProxiesForURL(/* CFURLRef __nonnull */ IntPtr url, /* CFDictionaryRef __nonnull */ IntPtr proxySettings);
 
         [DllImport(CoreFoundationLibrary)]
         private static extern unsafe bool CFNumberGetValue(IntPtr /* CFNumberRef */ number, int /* CFNumberType */ theType, void *valuePtr);
@@ -186,14 +186,6 @@ namespace Couchbase.Lite.Support
 
         [DllImport (CoreFoundationLibrary)]
         private static extern /* CFIndex */ long CFArrayGetCount (/* CFArrayRef */ IntPtr theArray);
-
-        [DllImport (CFNetworkLibrary)]
-        private static extern /* CFArrayRef __nonnull */ IntPtr CFNetworkCopyProxiesForURL (
-            /* CFURLRef __nonnull */ IntPtr url, 
-            /* CFDictionaryRef __nonnull */ IntPtr proxySettings);
-
-        [DllImport(CFNetworkLibrary)]
-        private static extern /* CFDictionaryRef __nullable */ IntPtr CFNetworkCopySystemProxySettings ();
 
         [DllImport (CoreFoundationLibrary)]
         private static extern void CFRelease (IntPtr obj);
