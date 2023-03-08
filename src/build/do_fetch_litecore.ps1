@@ -18,21 +18,16 @@ python.exe "..\tools\fetch_litecore.py" -v $Variants $isDebug -s $Sha -o .
 deactivate
 
 # Process MacOS Library
-if(Test-Path "libLiteCore.dylib"){
-	Remove-item "libLiteCore.dylib"
-}
-	
-if(Test-Path "macos/lib/libLiteCore.dylib"){
+if(Test-Path "macos/lib/libLiteCore.dylib") {
+	if(Test-Path "libLiteCore.dylib"){
+		Remove-item "libLiteCore.dylib"
+	}
 	Move-Item "macos/lib/libLiteCore.dylib" .
 	Remove-Item "macos" -Recurse
 }
 
 # Process Linux Libraries
 foreach($arch in @("libLiteCore.so", "libstdc++.so", "libstdc++.so.6", "libicudata.so.71", "libicui18n.so.71", "libicuuc.so.71")) {
-	if(Test-Path $arch){
-		Remove-item $arch
-	}
-	
     if(Test-Path linux\x86_64\lib\$arch){
 	    if($arch -eq 'libicudata.so.71' -Or $arch -eq 'libicui18n.so.71' -Or $arch -eq 'libicuuc.so.71'){
 			$arch1 = $arch.Replace(".71", ".71.1")
@@ -41,20 +36,6 @@ foreach($arch in @("libLiteCore.so", "libstdc++.so", "libstdc++.so.6", "libicuda
 	        Move-Item -Force linux\x86_64\lib\$arch .
 		}
     }
-}
-
-if(Test-Path linux){
-    Remove-Item linux -Recurse
-}
-	
-# Process iOS Library
-if(Test-Path "ios-fat") {
-	Remove-Item "ios-fat" -Recurse
-}
-
-# Process Android Libraries
-if(Test-Path android\lib){
-    Remove-Item android\lib -Recurse
 }
 
 foreach($arch in @("x86", "x86_64", "armeabi-v7a", "arm64-v8a")) {
@@ -68,11 +49,8 @@ foreach($arch in @("x86", "x86_64", "armeabi-v7a", "arm64-v8a")) {
     }
 }
 
-# Process Windows Libraries
-foreach($arch in @("x64", "x64_store", "arm64_store")) {
-	if(Test-Path $arch){
-		Remove-item $arch -Recurse
-	}
+if(Test-Path linux){
+    Remove-Item linux -Recurse
 }
 
 if(Test-Path "windows/arm64-store/bin"){
