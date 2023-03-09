@@ -17,6 +17,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -31,8 +32,9 @@ namespace Couchbase.Lite
 
         public static void WaitFor(TimeSpan timeout, params WaitAssert[] asserts)
         {
-            foreach (var assert in asserts) {
-                assert.WaitForResult(timeout);
+            var handles = asserts.Select(x => x._mre).ToArray();
+            if (!WaitHandle.WaitAll(handles, timeout)) {
+                throw new TimeoutException("Timeout waiting for array of WaitAsserts");
             }
         }
 
@@ -51,13 +53,11 @@ namespace Couchbase.Lite
         public async Task RunAssertAsync(Action assertAction)
         {
             try {
-                await Task.Factory.StartNew(assertAction).ConfigureAwait(false);
-            }
-            catch (Exception e) {
+                await Task.Run(assertAction).ConfigureAwait(false);
+            } catch (Exception e) {
                 _caughtException = e;
                 CaughtExceptions.Add(e);
-            }
-            finally {
+            } finally {
                 _mre.Set();
             }
         }
@@ -65,7 +65,7 @@ namespace Couchbase.Lite
         public async Task RunAssertAsync<T>(Action<T> assertAction, T arg)
         {
             try {
-                await Task.Factory.StartNew(() => assertAction(arg));
+                await Task.Run(() => assertAction(arg)).ConfigureAwait(false);
             } catch (Exception e) {
                 _caughtException = e;
                 CaughtExceptions.Add(e);

@@ -152,8 +152,8 @@ namespace Test
 
             var docIDs = CreateDocs(nDocs, "Create").Select(x => x.Id).ToList();
 
-            var t1 = Task.Factory.StartNew(() => ReadDocs(docIDs, nRounds));
-            var t2 = Task.Factory.StartNew(() => UpdateDocs(docIDs, nRounds, tag));
+            var t1 = Task.Run(() => ReadDocs(docIDs, nRounds));
+            var t2 = Task.Run(() => UpdateDocs(docIDs, nRounds, tag));
 
             Task.WaitAll(new[] { t1, t2 }, TimeSpan.FromSeconds(60)).Should().BeTrue();
         }
@@ -454,7 +454,6 @@ namespace Test
         {
             for (uint i = 1; i <= count; i++) {
                 var doc = CreateDocument(tag);
-                WriteLine($"[{tag}] rounds: {i} saving {doc.Id}");
                 Db.Save(doc);
                 yield return doc;
             }
@@ -468,9 +467,7 @@ namespace Test
                 var ignore = expectations[i].RunAssertAsync(block, i);
             }
 
-            foreach (var exp in expectations) {
-                exp.WaitForResult(TimeSpan.FromSeconds(60));
-            }
+            WaitAssert.WaitFor(TimeSpan.FromSeconds(60), expectations);
         }
     }
 }
