@@ -14,7 +14,7 @@ if($DebugLib) {
 python.exe -m venv venv
 venv\Scripts\activate 
 pip3 install GitPython
-python.exe "..\tools\fetch_litecore.py" -v $Variants $isDebug -s $Sha -o .
+python.exe "$PSScriptRoot\..\LiteCore\tools\fetch_litecore.py" -v $Variants $isDebug -s $Sha -o .
 deactivate
 
 # Process MacOS Library
@@ -42,7 +42,7 @@ foreach($arch in @("x86", "x86_64", "armeabi-v7a", "arm64-v8a")) {
     if(Test-Path android\$arch\lib\libLiteCore.so) {
         New-Item -Type directory -ErrorAction Ignore android\lib\$arch
         Set-Location android\lib\$arch
-        Move-Item ..\..\$arch\lib\libLiteCore.so .
+        Move-Item ..\..\$arch\lib\libLiteCore.so . -Force
         Set-Location ..\..
 		Remove-Item $arch -Recurse
 		Set-Location ..
