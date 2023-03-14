@@ -599,8 +599,13 @@ namespace Couchbase.Lite.Sync
 
                     _documentEndedUpdate.Fire(this, new DocumentReplicationEventArgs(new[] { replication }, false));
                 });
+                    
+                t.ContinueWith(task =>
+                {
+                    _conflictTasks.TryRemove(task, out var dummy);
+                });
 
-                _conflictTasks.TryAdd(t.ContinueWith(task => _conflictTasks.TryRemove(t, out var dummy)), 0);
+                _conflictTasks.TryAdd(t, 0);
             }
         }
 
@@ -683,13 +688,10 @@ namespace Couchbase.Lite.Sync
 
         private void WaitPendingConflictTasks(C4ReplicatorStatus status)
         {
-            if (status.error.code == 0 && status.error.domain == 0)
-                return;
-
             if (status.level == C4ReplicatorActivityLevel.Stopped
                 || status.level == C4ReplicatorActivityLevel.Idle) {
                 var array = _conflictTasks?.Keys?.ToArray();
-                if (array != null) {
+                if (array?.Length > 0) {
                     Task.WaitAll(array);
                 }
             }
