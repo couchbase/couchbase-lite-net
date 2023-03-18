@@ -161,9 +161,10 @@ namespace Couchbase.Lite.Sync
         }
 
         /// <summary>
-        /// Gets the local database participating in the replication. 
+        /// [DEPRECATED] Gets the local database participating in the replication. 
         /// </summary>
         /// <exception cref="CouchbaseLiteException">Thrown if Database doesn't exist in the replicator configuration.</exception>
+        [Obsolete("Database is deprecated, please use Collections")]
         [NotNull]
         public Database Database => Collections.Count > 0 && Collections[0].Database != null ? Collections[0].Database
             : throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter, "Cannot operate on a missing Database in the Replication Configuration.");
