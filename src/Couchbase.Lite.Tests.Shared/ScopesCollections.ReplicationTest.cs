@@ -902,26 +902,35 @@ namespace Test
             // Check docs in Db - make sure all docs are pulled from the OtherDb to the Db
             var colAInDb = Db.GetCollection("colA", "scopeA");
             var colBInDb = Db.GetCollection("colB", "scopeA");
-            colAInDb.GetDocument("doc").GetString("str").Should().Be("string");
-            colAInDb.GetDocument("doc1").GetString("str1").Should().Be("string1");
-            colBInDb.GetDocument("doc2").GetString("str2").Should().Be("string2");
-            colBInDb.GetDocument("doc3").GetString("str3").Should().Be("string3");
-            colAInDb.GetDocument("doc4").GetString("str4").Should().Be("string4");
-            colAInDb.GetDocument("doc5").GetString("str5").Should().Be("string5");
-            colBInDb.GetDocument("doc6").GetString("str6").Should().Be("string6");
-            colBInDb.GetDocument("doc7").GetString("str7").Should().Be("string7");
-
-            // Check docs in OtherDb - make sure docs are pushed to the OtherDb from the Db
             var colAInOtherDb = OtherDb.GetCollection("colA", "scopeA");
             var colBInOtherDb = OtherDb.GetCollection("colB", "scopeA");
-            colAInOtherDb.GetDocument("doc").GetString("str").Should().Be("string");
-            colAInOtherDb.GetDocument("doc1").GetString("str1").Should().Be("string1");
-            colBInOtherDb.GetDocument("doc2").GetString("str2").Should().Be("string2");
-            colBInOtherDb.GetDocument("doc3").GetString("str3").Should().Be("string3");
-            colAInOtherDb.GetDocument("doc4").GetString("str4").Should().Be("string4");
-            colAInOtherDb.GetDocument("doc5").GetString("str5").Should().Be("string5");
-            colBInOtherDb.GetDocument("doc6").GetString("str6").Should().Be("string6");
-            colBInOtherDb.GetDocument("doc7").GetString("str7").Should().Be("string7");
+            for (int i = 0; i < 8; i++) {
+                var docName = "doc";
+                var propName = "str";
+                var val = "string";
+                if(i > 0) {
+                    docName += i;
+                    propName += i;
+                    val += i;
+                }
+
+                var b = ((i / 2) & 1) == 1;
+                var coll = b ? colBInDb : colAInDb;
+                var msg = b ? "Db/colB" : "Db/colA";
+                using var doc = coll.GetDocument(docName);
+
+                // Check docs in Db - make sure all docs are pulled from the OtherDb to the Db
+                doc.Should().NotBeNull("because {0} should now exist in {1}", docName, msg);
+                doc.GetString(propName).Should().Be(val, "because otherwise {0} got corrupted", docName);
+
+                coll = b ? colBInOtherDb : colAInOtherDb;
+                msg = b ? "OtherDb/colB" : "OtherDb/colA";
+                using var otherDoc = coll.GetDocument(docName);
+
+                // Check docs in OtherDb - make sure docs are pushed to the OtherDb from the Db
+                otherDoc.Should().NotBeNull("because {0} should now exist in {1}", docName, msg);
+                otherDoc.GetString(propName).Should().Be(val, "because otherwise {0} got corrupted", docName);
+            }
         }
 
         [Fact]
@@ -1259,10 +1268,10 @@ namespace Test
             // Check docs in Db - before replication
             var colAInDb = Db.GetCollection("colA", "scopeA");
             var colBInDb = Db.GetCollection("colB", "scopeA");
-            colAInDb.GetDocument("doc").GetString("str").Should().Be("string");
-            colAInDb.GetDocument("doc1").GetString("str1").Should().Be("string1");
-            colBInDb.GetDocument("doc2").GetString("str2").Should().Be("string2");
-            colBInDb.GetDocument("doc3").GetString("str3").Should().Be("string3");
+            colAInDb.GetDocument("doc").GetString("str").Should().Be("string", "because doc should initially exist in Db/colA");
+            colAInDb.GetDocument("doc1").GetString("str1").Should().Be("string1", "because doc1 should initially exist in DB/colA");
+            colBInDb.GetDocument("doc2").GetString("str2").Should().Be("string2", "because doc2 should initially exist in Db/colB");
+            colBInDb.GetDocument("doc3").GetString("str3").Should().Be("string3", "because doc3 should initially exist in Db/colB");
             colAInDb.GetDocument("doc4").Should().BeNull("Because doc4 is not created in colA in Db");
             colAInDb.GetDocument("doc5").Should().BeNull("Because doc5 is not created in colA in Db");
             colBInDb.GetDocument("doc6").Should().BeNull("Because doc6 is not created in colB in Db");
@@ -1275,10 +1284,10 @@ namespace Test
             colAInOtherDb.GetDocument("doc1").Should().BeNull("Because doc1 is not created in colA in OtherDb");
             colBInOtherDb.GetDocument("doc2").Should().BeNull("Because doc2 is not created in colA in OtherDb");
             colBInOtherDb.GetDocument("doc3").Should().BeNull("Because doc3 is not created in colA in OtherDb");
-            colAInOtherDb.GetDocument("doc4").GetString("str4").Should().Be("string4");
-            colAInOtherDb.GetDocument("doc5").GetString("str5").Should().Be("string5");
-            colBInOtherDb.GetDocument("doc6").GetString("str6").Should().Be("string6");
-            colBInOtherDb.GetDocument("doc7").GetString("str7").Should().Be("string7");
+            colAInOtherDb.GetDocument("doc4").GetString("str4").Should().Be("string4", "because doc4 should initially exist in OtherDb/colA");
+            colAInOtherDb.GetDocument("doc5").GetString("str5").Should().Be("string5", "because doc5 should initially exist in OtherDb/colA");
+            colBInOtherDb.GetDocument("doc6").GetString("str6").Should().Be("string6", "because doc6 should initially exist in OtherDb/colB");
+            colBInOtherDb.GetDocument("doc7").GetString("str7").Should().Be("string7", "because doc7 should initially exist in OtherDb/colB");
 
             config.AddCollection(colA);
             config.AddCollection(colB);
