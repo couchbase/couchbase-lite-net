@@ -3,7 +3,7 @@ Couchbase Lite for .NET [![GitHub release](https://img.shields.io/nuget/v/Couchb
 
 Couchbase Lite is a lightweight embedded NoSQL database that has built-in sync to larger backend structures, such as Couchbase Server.
 
-This is the source repo of Couchbase Lite C#.  The main supported platforms are .NET 6 Desktop (Linux will run anywhere, but is most tested on CentOS and Ubuntu), .NET 6 iOS, .NET 6 Android, .NET 6 MAc Catalyst, UWP, Xamarin iOS, and Xamarin Android.
+This is the source repo of Couchbase Lite C#.  The main supported platforms are .NET 6 Desktop (Linux will run anywhere, but is most tested on CentOS and Ubuntu), .NET 6 iOS, .NET 6 Android, .NET 6 Mac Catalyst, UWP, Xamarin iOS, and Xamarin Android.
 
 ## Documentation Overview
 
