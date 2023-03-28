@@ -146,8 +146,8 @@ namespace Couchbase.Lite.Query
         /// the result</param>
         /// <returns>A function that will calculate the count</returns>
         [NotNull]
-        public static IExpression Count([NotNull]IExpression expression) => 
-            new QueryCompoundExpression("COUNT()", CBDebug.MustNotBeNull(WriteLog.To.Query, Tag, nameof(expression), expression));
+        public static IExpression Count([CanBeNull]IExpression expression) => 
+            new QueryCompoundExpression("COUNT()", expression ?? Expression.All());
 
         /// <summary>
         /// Creates a function that will convert a numeric expression to degrees from radians
