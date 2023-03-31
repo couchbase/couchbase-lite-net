@@ -18,7 +18,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)NestedQueryTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ObserverTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PathsQueryTest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PerfTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)QueryTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)QueryTestBase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ScopeCollectionTest.cs" />
