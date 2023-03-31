@@ -970,7 +970,24 @@ namespace Test
 
         private int GetEADDRINUSECode()
         {
-#if NET6_0_OR_GREATER || __MOBILE__
+#if NET6_0_OR_GREATER
+            if (OperatingSystem.IsAndroid() || OperatingSystem.IsLinux())
+            {
+                return 98;
+            }
+
+            if (OperatingSystem.IsIOS() || OperatingSystem.IsMacCatalyst() || OperatingSystem.IsMacOS())
+            {
+                return 48;
+            }
+
+            if (OperatingSystem.IsWindows())
+            {
+                return 100;
+            }
+
+            throw new PlatformNotSupportedException();
+#elif __MOBILE__
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 return 100;
