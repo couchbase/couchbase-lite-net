@@ -36,7 +36,6 @@ using Couchbase.Lite.DI;
 using Couchbase.Lite.Internal.Logging;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-
 using JetBrains.Annotations;
 
 using LiteCore.Interop;
@@ -927,6 +926,30 @@ namespace Couchbase.Lite.Sync
             #endif
 
             if (!onlySelfSigned && sslPolicyErrors != SslPolicyErrors.None) {
+#if NET6_0_OR_GREATER && __ANDROID__
+                // Workaround (part 1) for https://github.com/dotnet/runtime/issues/84202
+                WriteLog.To.Sync.I(Tag, "Checking system TrustManagerFactory");
+                var tmf = Javax.Net.Ssl.TrustManagerFactory.GetInstance(Javax.Net.Ssl.TrustManagerFactory.DefaultAlgorithm);
+                tmf.Init(default(Java.Security.KeyStore));
+                var cf = Java.Security.Cert.CertificateFactory.GetInstance("X.509");
+                foreach (var tm in tmf.GetTrustManagers()) {
+                    if(tm is Javax.Net.Ssl.IX509TrustManager x509tm) {
+                        var javaCert = cf.GenerateCertificate(new MemoryStream(cert2.GetRawCertData())) as Java.Security.Cert.X509Certificate;
+                        try { 
+                            x509tm.CheckServerTrusted(new[] { javaCert }, "RSA"); 
+                        } catch(Exception) {
+                            WriteLog.To.Sync.W(Tag, "TrustManager does not trust this server cert, moving to next one...");
+                            continue;
+                        }
+
+                        WriteLog.To.Sync.I(Tag, "TrustManager trusts this server cert");
+                        return true;
+                    }
+                }
+
+                WriteLog.To.Sync.W(Tag, "No more TrustManagers found, server cert is not trusted by system");
+#endif
+
                 WriteLog.To.Sync.W(Tag, $"Error validating TLS chain: {sslPolicyErrors}");
                 if (chain.ChainElements != null) {
                     foreach(var element in chain.ChainElements) {
@@ -956,6 +979,20 @@ namespace Couchbase.Lite.Sync
                     }
                 }
             } else if (onlySelfSigned) {
+#if NET6_0_OR_GREATER && __ANDROID__
+                // Workaround (part 2) for https://github.com/dotnet/runtime/issues/84202
+                if (chain.ChainElements.Count == 0) {
+                    WriteLog.To.Sync.I(Tag, "Working around weird behavior in .NET 6 Android (X509Chain empty...)");
+                    var isSelfSigned = cert2.IssuerName.Name == cert2.SubjectName.Name;
+                    if(!isSelfSigned) {
+                        WriteLog.To.Sync.E(Tag, "ValidateServerCert failed due to received lone cert not being self signed");
+                        _validationException = new TlsCertificateException("A non self-signed certificate was received in self-signed mode.",
+                        C4NetworkErrorCode.TLSCertUnknownRoot, X509ChainStatusFlags.ExplicitDistrust);
+                    }
+
+                    return isSelfSigned;
+                }
+#endif
                 if (chain.ChainElements.Count != 1) {
                     WriteLog.To.Sync.E(Tag, "ValidateServerCert failed due to cert chain ChainElements's Count != 1");
                     _validationException = new TlsCertificateException("A non self-signed certificate was received in self-signed mode.",
