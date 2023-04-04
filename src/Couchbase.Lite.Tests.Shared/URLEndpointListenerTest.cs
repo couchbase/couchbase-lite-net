@@ -106,7 +106,6 @@ namespace Test
 
 
         #endregion
-        #if !NET6_0_APPLE && !NET6_0_ANDROID
         #region Public Methods
         
 
@@ -436,7 +435,10 @@ namespace Test
             TLSIdentity.DeleteIdentity(_store, ClientCertLabel, null);
             _listener.Stop();
         }
+#endif
 
+        
+        #if !NET6_0_ANDROID
         [Fact]
         public void TestListenerWithImportIdentity()
         {
@@ -536,7 +538,7 @@ namespace Test
                 false,//accept only self signed server cert
                 null,
                 //TODO: Need to handle Linux throwing different error TLSCertUntrusted (5008)
-                (int)CouchbaseLiteError.TLSCertUnknownRoot, //maui android 5006
+                (int)CouchbaseLiteError.TLSCertUnknownRoot,
                 CouchbaseLiteErrorType.CouchbaseLite
             );
 
@@ -812,13 +814,14 @@ namespace Test
 
         [Fact]//hang maui android
         public void TestDeleteWithActiveReplicationsAndURLEndpointListener() => WithActiveReplicationsAndURLEndpointListener(false);
-#endif
 
         [Fact]
         public void TestCloseWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(true);
 
         [Fact]
         public void TestDeleteWithActiveReplicatorAndURLEndpointListeners() => WithActiveReplicatorAndURLEndpointListeners(false);
+
+#endif
 
         [Fact]
         public void TestStopListener()
@@ -911,7 +914,6 @@ namespace Test
         }
 
         #endregion
-        #endif
         #region Private Methods
 
         private void CollectionsPushPullReplication(bool continuous)
@@ -968,7 +970,24 @@ namespace Test
 
         private int GetEADDRINUSECode()
         {
-#if NET6_0_OR_GREATER || __MOBILE__
+#if NET6_0_OR_GREATER
+            if (OperatingSystem.IsAndroid() || OperatingSystem.IsLinux())
+            {
+                return 98;
+            }
+
+            if (OperatingSystem.IsIOS() || OperatingSystem.IsMacCatalyst() || OperatingSystem.IsMacOS())
+            {
+                return 48;
+            }
+
+            if (OperatingSystem.IsWindows())
+            {
+                return 100;
+            }
+
+            throw new PlatformNotSupportedException();
+#elif __MOBILE__
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 return 100;
