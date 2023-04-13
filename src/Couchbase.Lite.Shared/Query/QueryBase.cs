@@ -93,7 +93,7 @@ namespace Couchbase.Lite.Internal.Query
 
         public void Stop()
         {
-            Database?.RemoveActiveStoppable(this);
+            Collection?.Database?.RemoveActiveStoppable(this);
             foreach (var t in _listenerTokens) {
                 var token = t.Key;
                 var querier = t.Value;
@@ -164,7 +164,7 @@ namespace Couchbase.Lite.Internal.Query
             _disposalWatchdog.CheckDisposed();
 
             if (Interlocked.Increment(ref _observingCount) == 1) {
-                Database?.AddActiveStoppable(this);
+                Collection?.Database?.AddActiveStoppable(this);
             }
 
             var cbHandler = new CouchbaseEventHandler<QueryChangedEventArgs>(handler, scheduler);

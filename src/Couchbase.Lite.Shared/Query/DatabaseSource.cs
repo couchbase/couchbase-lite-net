@@ -41,6 +41,7 @@ namespace Couchbase.Lite.Internal.Query
         private string _as;
         private string _collection;
         private string _scope;
+        private bool _legacyColumn;
 
         #endregion
 
@@ -53,11 +54,9 @@ namespace Couchbase.Lite.Internal.Query
                     return _as;
                 }
 
-                return Database?.Name;
+                return _legacyColumn ? Collection?.Database?.Name : null;
             }
         }
-
-        internal Database Database => Source as Database;
 
         internal Collection Collection => Source as Collection;
 
@@ -72,9 +71,10 @@ namespace Couchbase.Lite.Internal.Query
             _scope = collection.Scope.Name;
         }
 
-        internal DatabaseSource([NotNull]Database database, [NotNull]ThreadSafety threadSafety) : base(database, threadSafety)
+        internal DatabaseSource([NotNull]Database database, [NotNull]ThreadSafety threadSafety)
+            : this(database?.GetDefaultCollection(), threadSafety)
         {
-            Debug.Assert(database != null);
+            _legacyColumn = true;
         }
 
         #endregion
