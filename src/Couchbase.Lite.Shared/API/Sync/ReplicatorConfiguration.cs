@@ -527,8 +527,9 @@ namespace Couchbase.Lite.Sync
         [NotNull]
         internal ReplicatorConfiguration Freeze()
         {
+            var frozenConfigs = new Dictionary<Collection, CollectionConfiguration>();
             foreach (var cc in CollectionConfigs) {
-                cc.Value.Freeze();
+                frozenConfigs[cc.Key] = cc.Value.Freeze();
             }
 
             var retVal = new ReplicatorConfiguration(Target)
@@ -540,7 +541,7 @@ namespace Couchbase.Lite.Sync
                 Continuous = Continuous,
                 ReplicatorType = ReplicatorType,
                 Options = Options,
-                CollectionConfigs = CollectionConfigs
+                CollectionConfigs = frozenConfigs
             };
 
             retVal._freezer.Freeze("Cannot modify a ReplicatorConfiguration that is in use");
