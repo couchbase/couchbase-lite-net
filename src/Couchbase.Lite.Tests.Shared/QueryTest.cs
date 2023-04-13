@@ -2330,7 +2330,7 @@ namespace Test
                     Expression.Property("timestamp").EqualTo(Expression.Date(dto1))
                 )) {
                 resultset = (QueryResultSet)query.Execute();
-                resultset.Database.Should().Be(Db);
+                resultset.Collection.Should().Be(DefaultCollection); 
                 List<Result> allRes = resultset.AllResults();
                 allRes.Count.Should().Be(1);
                 var columnName = resultset.ColumnNames;
