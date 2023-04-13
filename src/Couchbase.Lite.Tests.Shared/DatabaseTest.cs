@@ -61,11 +61,11 @@ namespace Test
             {
                 d.SetString("firstName", "Jerry");
                 d.SetString("lastName", "Ice Cream");
-                Db.Save(d);
+                DefaultCollection.Save(d);
 
                 d2.SetString("firstName", "Ben");
                 d2.SetString("lastName", "Ice Cream");
-                Db.Save(d2);
+                DefaultCollection.Save(d2);
             }
 
             // Test to catch N1QL query compile error in database CreateQuery() call
@@ -113,7 +113,7 @@ namespace Test
         public void TestCreateWithDefaultConfiguration()
         {
             using (var db = new Database("db", new DatabaseConfiguration())) {
-                db.Count.Should().Be(0);
+                db.GetDefaultCollection().Count.Should().Be(0);
                 DeleteDB(db);
             }
         }
@@ -124,7 +124,7 @@ namespace Test
             using (var db = OpenDB("`~@#$%&'()_+{}][=-.,;'")) {
                 db.Name.Should().Be("`~@#$%&'()_+{}][=-.,;'", "because that is the (weird) name that was set");
                 Path.GetDirectoryName(db.Path).Should().EndWith(".cblite2", "because that is the current DB extension");
-                db.Count.Should().Be(0UL, "because the database is empty");
+                db.GetDefaultCollection().Count.Should().Be(0UL, "because the database is empty");
 
                 db.Delete();
             }
@@ -159,7 +159,7 @@ namespace Test
                 Path.GetDirectoryName(db.Path).Should().EndWith(".cblite2", "because that is the current CBL extension");
                 db.Path.Should().Contain(dir, "because the directory should be present in the custom path");
                 Database.Exists("db", dir).Should().BeTrue("because it was just created");
-                db.Count.Should().Be(0, "because the database is empty");
+                db.GetDefaultCollection().Count.Should().Be(0, "because the database is empty");
 
                 DeleteDB(db);
             }
@@ -168,13 +168,13 @@ namespace Test
         [Fact]
         public void TestGetDocumentWithEmptyStringId()
         {
-            Db.Invoking(o => o.GetDocument("")).Should().Throw<CouchbaseLiteException>(@"CouchbaseLiteException (LiteCoreDomain / 29): Invalid docID "".");
+            DefaultCollection.Invoking(o => o.GetDocument("")).Should().Throw<CouchbaseLiteException>(@"CouchbaseLiteException (LiteCoreDomain / 29): Invalid docID "".");
         }
 
         [Fact]
         public void TestGetNonExistingDocWithID()
         {
-            Db.GetDocument("non-exist").Should().BeNull("because it doesn't exist");
+            DefaultCollection.GetDocument("non-exist").Should().BeNull("because it doesn't exist");
         }
 
         [Fact]
@@ -192,11 +192,11 @@ namespace Test
             for (var i = 0; i < NumDocs; i++) {
                 using (var doc = new MutableDocument($"doc_{i:D3}")) {
                     doc.SetInt("key", i);
-                    Db.Save(doc);
+                    DefaultCollection.Save(doc);
                 }
             }
 
-            Db.Count.Should().Be(NumDocs);
+            DefaultCollection.Count.Should().Be(NumDocs);
             ValidateDocs(NumDocs);
         }
 
@@ -207,7 +207,7 @@ namespace Test
             GenerateDocument(docID);
 
             using (var otherDB = OpenDB(Db.Name)) {
-                otherDB.Count.Should()
+                otherDB.GetDefaultCollection().Count.Should()
                     .Be(1UL, "because the other database instance should reflect existing data");
 
                 VerifyGetDocument(otherDB, docID);
@@ -233,7 +233,7 @@ namespace Test
 
                 Db.Close();
 
-                Db.Invoking(d => d.GetDocument("doc1"))
+                Db.Invoking(d => d.GetDefaultCollection().GetDocument("doc1"))
                     .Should().Throw<InvalidOperationException>();
             }
         }
@@ -256,9 +256,9 @@ namespace Test
             var docID = "doc1";
             using(var doc = GenerateDocument(docID).ToMutable()) {
                 doc.SetInt("key", 2);
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
 
-                Db.Count.Should().Be(1, "because a document was updated, not added");
+                DefaultCollection.Count.Should().Be(1, "because a document was updated, not added");
 
                 VerifyGetDocument(docID, 2);
             }
@@ -270,10 +270,10 @@ namespace Test
             var docID = "doc1";
             using (var doc = GenerateDocument(docID).ToMutable())
             using (var otherDB = OpenDB(Db.Name)) {
-                otherDB.Count.Should()
+                otherDB.GetDefaultCollection().Count.Should()
                     .Be(1UL, "because the other database instance should reflect existing data");
                 doc.SetInt("key", 2);
-                otherDB.Invoking(d => d.Save(doc))
+                otherDB.GetDefaultCollection().Invoking(d => d.Save(doc))
                     .Should().Throw<CouchbaseLiteException>()
                     .Where(
                         e => e.Error == CouchbaseLiteError.InvalidParameter &&
@@ -289,10 +289,10 @@ namespace Test
             var docID = "doc1";
             using (var doc = GenerateDocument(docID).ToMutable())
             using (var otherDB = OpenDB("otherDB")) {
-                otherDB.Count.Should()
+                otherDB.GetDefaultCollection().Count.Should()
                     .Be(0UL, "because the other database is empty");
                 doc.SetInt("key", 2);
-                otherDB.Invoking(d => d.Save(doc))
+                otherDB.GetDefaultCollection().Invoking(d => d.Save(doc))
                     .Should().Throw<CouchbaseLiteException>()
                     .Where(
                         e => e.Error == CouchbaseLiteError.InvalidParameter &&
@@ -307,9 +307,9 @@ namespace Test
         {
             var docID = "doc1";
             using(var doc = GenerateDocument(docID).ToMutable()) {
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
                 doc.Id.Should().Be(docID, "because the doc ID should never change");
-                Db.Count.Should().Be(1UL, "because there is still only one document");
+                DefaultCollection.Count.Should().Be(1UL, "because there is still only one document");
             }
         }
 
@@ -317,7 +317,7 @@ namespace Test
         public void TestSaveInBatch()
         {
             Db.InBatch(() => CreateDocs(10));
-            Db.Count.Should().Be(10UL, "because 10 documents were added");
+            DefaultCollection.Count.Should().Be(10UL, "because 10 documents were added");
 
             ValidateDocs(10);
         }
@@ -328,16 +328,16 @@ namespace Test
             using(var doc1a = new MutableDocument("doc1"))
             using (var doc1b = new MutableDocument("doc1")) {
                 doc1a.SetString("name", "Jim");
-                Db.Save(doc1a);
+                DefaultCollection.Save(doc1a);
                 doc1b.SetString("name", "Tim");
-                Db.Save(doc1b, ConcurrencyControl.FailOnConflict).Should()
+                DefaultCollection.Save(doc1b, ConcurrencyControl.FailOnConflict).Should()
                     .BeFalse("beacuse a conflict should not be allowed in this mode");
-                using (var gotDoc = Db.GetDocument(doc1a.Id)) {
+                using (var gotDoc = DefaultCollection.GetDocument(doc1a.Id)) {
                     gotDoc.GetString("name").Should().Be("Jim");
                 }
 
-                Db.Save(doc1b, ConcurrencyControl.LastWriteWins);
-                using (var gotDoc = Db.GetDocument(doc1a.Id)) {
+                DefaultCollection.Save(doc1b, ConcurrencyControl.LastWriteWins);
+                using (var gotDoc = DefaultCollection.GetDocument(doc1a.Id)) {
                     gotDoc.GetString("name").Should().Be("Tim");
                 }
             }
@@ -348,27 +348,27 @@ namespace Test
         {
             using (var doc1 = new MutableDocument("doc1")){
                 doc1.SetString("name", "Jim");
-                
-                Db.Save(doc1);
+
+                DefaultCollection.Save(doc1);
 
                 // Get two doc1 document objects (doc1a and doc1b):
-                var doc1a = Db.GetDocument(doc1.Id).ToMutable();
-                var doc1b = Db.GetDocument(doc1.Id).ToMutable();
+                var doc1a = DefaultCollection.GetDocument(doc1.Id).ToMutable();
+                var doc1b = DefaultCollection.GetDocument(doc1.Id).ToMutable();
 
                 // Modify doc1a:
                 doc1a.SetString("name", "Jim");
                 doc1a.SetString("language", "English");
-                        
-                Db.Save(doc1a);
+
+                DefaultCollection.Save(doc1a);
 
                 // Modify doc1b:
                 doc1b.SetString("name", "Jim");
                 doc1b.SetString("language", "C#");
-                doc1b.SetString("location", "Japan");        
-                Db.Save(doc1b, ResolveConflict);
+                doc1b.SetString("location", "Japan");
+                DefaultCollection.Save(doc1b, ResolveConflict);
             }
 
-            using (var doc1 = Db.GetDocument("doc1")) {
+            using (var doc1 = DefaultCollection.GetDocument("doc1")) {
                 doc1.GetString("name").Should().Be("Jim");
                 var lanStr = doc1.GetString("language");
                 lanStr.Should().Contain("English");
@@ -382,18 +382,18 @@ namespace Test
         {
             using (var doc = new MutableDocument("doc1")) {
                 doc.SetString("firstName", "Tiger");
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
             }
 
-            using (var doc = Db.GetDocument("doc1")) {
+            using (var doc = DefaultCollection.GetDocument("doc1")) {
                 doc.Generation.Should().Be(1);
             }
 
-            using (var doc1 = Db.GetDocument("doc1"))
+            using (var doc1 = DefaultCollection.GetDocument("doc1"))
             using (var doc1b = doc1.ToMutable()) {
-                Db.Purge("doc1");
+                DefaultCollection.Purge("doc1");
                 doc1b.SetString("nickName", "Scott");
-                Db.Invoking(d => Db.Save(doc1b, (updated, current) =>
+                DefaultCollection.Invoking(d => d.Save(doc1b, (updated, current) =>
                 {
                     return true;
                 })).Should().Throw<CouchbaseLiteException>()
@@ -409,19 +409,19 @@ namespace Test
         {
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Jim");
-                Db.Save(doc1, (updated, current) => {
+                DefaultCollection.Save(doc1, (updated, current) => {
                     return true;
                 });
 
-                Db.GetDocument("doc1").GetString("name").Should().Be("Jim");
+                DefaultCollection.GetDocument("doc1").GetString("name").Should().Be("Jim");
 
                 var doc1a = new MutableDocument(doc1.Id);
                 doc1a.SetString("name", "Kim");
-                Db.Save(doc1a, (updated, current) => {
+                DefaultCollection.Save(doc1a, (updated, current) => {
                     return true;
                 });
 
-                Db.GetDocument("doc1").GetString("name").Should().Be("Kim");
+                DefaultCollection.GetDocument("doc1").GetString("name").Should().Be("Kim");
             }
         }
 
@@ -430,19 +430,19 @@ namespace Test
         {
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Jim");
-                Db.Save(doc1, (updated, current) => {
+                DefaultCollection.Save(doc1, (updated, current) => {
                     return false;
                 });
 
-                Db.GetDocument(doc1.Id).GetString("name").Should().Be("Jim");
+                DefaultCollection.GetDocument(doc1.Id).GetString("name").Should().Be("Jim");
 
                 var doc1a = new MutableDocument(doc1.Id);
                 doc1a.SetString("name", "Kim");
-                Db.Save(doc1a, (updated, current) => {
+                DefaultCollection.Save(doc1a, (updated, current) => {
                     return false;
                 });
 
-                Db.GetDocument("doc1").GetString("name").Should().Be("Jim");
+                DefaultCollection.GetDocument("doc1").GetString("name").Should().Be("Jim");
             }
         }
 
@@ -454,10 +454,10 @@ namespace Test
             using (var doc1b = new MutableDocument("doc1")) {
                 var waitObj = new AutoResetEvent(true);
                 doc1.SetString("name", "Jim");
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
                 Task task2 = Task.Factory.StartNew(() => {
                     doc1a.SetString("name", "Kim");
-                    Db.Save(doc1a, (updated, current) => {
+                    DefaultCollection.Save(doc1a, (updated, current) => {
                         waitObj.Set();
                         Thread.Sleep(250);
                         waitObj.WaitOne(TimeSpan.FromMilliseconds(250));
@@ -468,12 +468,12 @@ namespace Test
                 });
                 waitObj.WaitOne(TimeSpan.FromMilliseconds(250));
                 doc1b.SetString("name", "Tim");
-                Db.Save(doc1b);
-                Db.GetDocument("doc1").GetString("name").Should().Be("Tim");
+                DefaultCollection.Save(doc1b);
+                DefaultCollection.GetDocument("doc1").GetString("name").Should().Be("Tim");
                 waitObj.Set();
                 Thread.Sleep(250);
                 waitObj.WaitOne(TimeSpan.FromMilliseconds(250));
-                Db.GetDocument("doc1").GetString("name").Should().Be("Tim");
+                DefaultCollection.GetDocument("doc1").GetString("name").Should().Be("Tim");
             }
         }
 
@@ -482,17 +482,17 @@ namespace Test
         {
             using (var doc1 = new MutableDocument("doc1")){
                 doc1.SetString("name", "Jim");
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
 
-                var doc1a = Db.GetDocument("doc1").ToMutable();
+                var doc1a = DefaultCollection.GetDocument("doc1").ToMutable();
                 doc1a.SetString("name", "Kim");
 
                 Document currDoc = null;
                 var updatedDocName = "";
 
                 //delete old doc
-                Db.Delete(doc1);
-                Db.Save(doc1a, (updated, current) =>
+                DefaultCollection.Delete(doc1);
+                DefaultCollection.Save(doc1a, (updated, current) =>
                 {
                     currDoc = current;
                     updatedDocName = updated.GetString("name");
@@ -501,7 +501,7 @@ namespace Test
 
                 currDoc.Should().BeNull();
                 updatedDocName.Should().Be("Kim");
-                Db.GetDocument("doc1").GetString("name").Should().Be("Kim");
+                DefaultCollection.GetDocument("doc1").GetString("name").Should().Be("Kim");
             }
         }
 
@@ -512,7 +512,7 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc.SetInt("key", 1);
 
-            Db.Invoking(d => d.Save(doc))
+            Db.Invoking(d => d.GetDefaultCollection().Save(doc))
                 .Should().Throw<InvalidOperationException>()
                 .WithMessage("Attempt to perform an operation on a closed database.",
                     "because this operation is invalid");
@@ -525,7 +525,7 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc.SetInt("key", 1);
 
-            Db.Invoking(d => d.Save(doc))
+            Db.Invoking(d => d.GetDefaultCollection().Save(doc))
                 .Should().Throw<InvalidOperationException>()
                 .WithMessage("Attempt to perform an operation on a closed database.",
                     "because this operation is invalid");
@@ -537,13 +537,13 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc.SetInt("key", 1);
 
-            Db.Invoking(d => d.Delete(doc))
+            DefaultCollection.Invoking(d => d.Delete(doc))
                 .Should().Throw<CouchbaseLiteException>()
                 .Where(
                     e => e.Error == CouchbaseLiteError.NotFound &&
                          e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
                     "because deleting an unsaved document is not allowed");
-            Db.Count.Should().Be(0UL, "because the database should still be empty");
+            DefaultCollection.Count.Should().Be(0UL, "because the database should still be empty");
         }
 
         [Fact]
@@ -552,11 +552,11 @@ namespace Test
             var docID = "doc1";
             using (var doc = GenerateDocument(docID)) {
 
-                Db.Delete(doc);
-                Db.Count.Should().Be(0UL, "because the only document was deleted");
+                DefaultCollection.Delete(doc);
+                DefaultCollection.Count.Should().Be(0UL, "because the only document was deleted");
             }
 
-            var gotDoc = Db.GetDocument(docID);
+            var gotDoc = DefaultCollection.GetDocument(docID);
             gotDoc.Should().BeNull("because the document was deleted");
         }
 
@@ -567,17 +567,17 @@ namespace Test
             var doc = GenerateDocument(docID);
 
             using (var otherDB = OpenDB(Db.Name)) {
-                otherDB.Count.Should()
+                otherDB.GetDefaultCollection().Count.Should()
                     .Be(1UL, "because the other database instance should reflect existing data");
-                otherDB.Invoking(d => d.Delete(doc))
+                otherDB.GetDefaultCollection().Invoking(d => d.Delete(doc))
                     .Should().Throw<CouchbaseLiteException>()
                     .Where(
                         e => e.Error == CouchbaseLiteError.InvalidParameter &&
                              e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
                         "because a document cannot be deleted from another database instance");
 
-                otherDB.Count.Should().Be(1UL, "because the delete failed");
-                Db.Count.Should().Be(1UL, "because the delete failed");
+                otherDB.GetDefaultCollection().Count.Should().Be(1UL, "because the delete failed");
+                DefaultCollection.Count.Should().Be(1UL, "because the delete failed");
                 doc.IsDeleted.Should().BeFalse("because the delete failed");
             }
         }
@@ -590,17 +590,17 @@ namespace Test
             var doc = GenerateDocument(docID);
 
             using (var otherDB = OpenDB("otherDB")) {
-                otherDB.Count.Should()
+                otherDB.GetDefaultCollection().Count.Should()
                     .Be(0UL, "because the other database should be empty");
-                otherDB.Invoking(d => d.Delete(doc))
+                otherDB.GetDefaultCollection().Invoking(d => d.Delete(doc))
                     .Should().Throw<CouchbaseLiteException>()
                     .Where(
                         e => e.Error == CouchbaseLiteError.InvalidParameter &&
                              e.Domain == CouchbaseLiteErrorType.CouchbaseLite,
                         "because a document cannot be deleted from another database");
 
-                otherDB.Count.Should().Be(0UL, "because the database is still empty");
-                Db.Count.Should().Be(1UL, "because the delete failed");
+                otherDB.GetDefaultCollection().Count.Should().Be(0UL, "because the database is still empty");
+                DefaultCollection.Count.Should().Be(1UL, "because the delete failed");
                 doc.IsDeleted.Should().BeFalse("because the delete failed");
 
                 otherDB.Delete();
@@ -615,13 +615,13 @@ namespace Test
             {
                 for (int i = 0; i < 10; i++) {
                     var docID = $"doc_{i:D3}";
-                    var doc = Db.GetDocument(docID);
-                    Db.Delete(doc);
-                    Db.Count.Should().Be(9UL - (ulong)i, "because the document count should be accurate after deletion");
+                    var doc = DefaultCollection.GetDocument(docID);
+                    DefaultCollection.Delete(doc);
+                    DefaultCollection.Count.Should().Be(9UL - (ulong)i, "because the document count should be accurate after deletion");
                 }
             });
 
-            Db.Count.Should().Be(0, "because all documents were deleted");
+            DefaultCollection.Count.Should().Be(0, "because all documents were deleted");
         }
 
         [Fact]
@@ -630,7 +630,7 @@ namespace Test
             var doc = GenerateDocument("doc1");
 
             Db.Close();
-            Db.Invoking(d => d.Delete(doc))
+            Db.Invoking(d => d.GetDefaultCollection().Delete(doc))
                 .Should().Throw<InvalidOperationException>();
         }
 
@@ -640,7 +640,7 @@ namespace Test
             var doc = GenerateDocument("doc1");
 
             DeleteDB(Db);
-            Db.Invoking(d => d.Delete(doc))
+            Db.Invoking(d => d.GetDefaultCollection().Delete(doc))
                 .Should().Throw<InvalidOperationException>();
         }
 
@@ -650,10 +650,10 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc.SetInt("key", 1);
 
-            Db.Invoking(db => db.Purge(doc)).Should().Throw<CouchbaseLiteException>()
+            DefaultCollection.Invoking(db => db.Purge(doc)).Should().Throw<CouchbaseLiteException>()
                 .Where(e => e.Error == CouchbaseLiteError.NotFound);
 
-            Db.Count.Should().Be(0UL, "because the database should still be empty");
+            DefaultCollection.Count.Should().Be(0UL, "because the database should still be empty");
         }
 
         [Fact]
@@ -662,7 +662,7 @@ namespace Test
             var doc = GenerateDocument("doc1");
 
             PurgeDocAndVerify(doc);
-            Db.Count.Should().Be(0UL, "because the only document was purged");
+            DefaultCollection.Count.Should().Be(0UL, "because the only document was purged");
         }
 
         [Fact]
@@ -672,16 +672,16 @@ namespace Test
             var doc = GenerateDocument(docID);
 
             using (var otherDB = OpenDB(Db.Name)) {
-                otherDB.Count.Should()
+                otherDB.GetDefaultCollection().Count.Should()
                     .Be(1UL, "because the other database instance should reflect existing data");
-                otherDB.Invoking(d => d.Purge(doc))
+                otherDB.GetDefaultCollection().Invoking(d => d.Purge(doc))
                     .Should().Throw<CouchbaseLiteException>()
                     .Where(
                         e => e.Error == CouchbaseLiteError.InvalidParameter &&
                              e.Domain == CouchbaseLiteErrorType.CouchbaseLite, "because a document cannot be purged from another database instance");
 
-                otherDB.Count.Should().Be(1UL, "because the delete failed");
-                Db.Count.Should().Be(1UL, "because the delete failed");
+                otherDB.GetDefaultCollection().Count.Should().Be(1UL, "because the delete failed");
+                DefaultCollection.Count.Should().Be(1UL, "because the delete failed");
                 doc.IsDeleted.Should().BeFalse("because the delete failed");
             }
         }
@@ -694,16 +694,16 @@ namespace Test
             Database.Delete("otherDB", Directory);
 
             using (var otherDB = OpenDB("otherDB")) {
-                otherDB.Count.Should()
+                otherDB.GetDefaultCollection().Count.Should()
                     .Be(0UL, "because the other database should be empty");
-                otherDB.Invoking(d => d.Purge(doc))
+                otherDB.GetDefaultCollection().Invoking(d => d.Purge(doc))
                     .Should().Throw<CouchbaseLiteException>()
                     .Where(
                         e => e.Error == CouchbaseLiteError.InvalidParameter &&
                              e.Domain == CouchbaseLiteErrorType.CouchbaseLite, "because a document cannot be purged from another database");
 
-                otherDB.Count.Should().Be(0UL, "because the database is still empty");
-                Db.Count.Should().Be(1UL, "because the delete failed");
+                otherDB.GetDefaultCollection().Count.Should().Be(0UL, "because the database is still empty");
+                DefaultCollection.Count.Should().Be(1UL, "because the delete failed");
                 doc.IsDeleted.Should().BeFalse("because the delete failed");
 
                 otherDB.Delete();
@@ -716,14 +716,14 @@ namespace Test
             var docID = "doc1";
             var doc = GenerateDocument(docID);
 
-            var doc1 = Db.GetDocument(docID);
+            var doc1 = DefaultCollection.GetDocument(docID);
             doc1.Should().NotBeNull("because the document was just created and it should exist");
 
             PurgeDocAndVerify(doc);
-            Db.Count.Should().Be(0UL, "because the only document was purged");
+            DefaultCollection.Count.Should().Be(0UL, "because the only document was purged");
 
             // Second purge and throw error
-            Db.Invoking(db => db.Purge(doc)).Should().Throw<CouchbaseLiteException>().Where(e =>
+            DefaultCollection.Invoking(db => db.Purge(doc)).Should().Throw<CouchbaseLiteException>().Where(e =>
                 e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
         }
 
@@ -735,13 +735,13 @@ namespace Test
             {
                 for (int i = 0; i < 10; i++) {
                     var docID = $"doc_{i:D3}";
-                    var doc = Db.GetDocument(docID);
+                    var doc = DefaultCollection.GetDocument(docID);
                     PurgeDocAndVerify(doc);
-                    Db.Count.Should().Be(9UL - (ulong)i, "because the document count should be accurate after deletion");
+                    DefaultCollection.Count.Should().Be(9UL - (ulong)i, "because the document count should be accurate after deletion");
                 }
             });
 
-            Db.Count.Should().Be(0, "because all documents were purged");
+            DefaultCollection.Count.Should().Be(0, "because all documents were purged");
         }
 
         [Fact]
@@ -750,7 +750,7 @@ namespace Test
             var doc = GenerateDocument("doc1");
 
             Db.Close();
-            Db.Invoking(d => d.Purge(doc))
+            Db.Invoking(d => d.GetDefaultCollection().Purge(doc))
                 .Should().Throw<InvalidOperationException>();
         }
 
@@ -760,7 +760,7 @@ namespace Test
             var doc = GenerateDocument("doc1");
 
             DeleteDB(Db);
-            Db.Invoking(d => d.Purge(doc))
+            Db.Invoking(d => d.GetDefaultCollection().Purge(doc))
                 .Should().Throw<InvalidOperationException>();
         }
 
@@ -1080,7 +1080,7 @@ namespace Test
                 SaveDocument(mDoc);
             }
 
-            Db.Count.Should().Be(20, "because that is the number of documents that were added");
+            DefaultCollection.Count.Should().Be(20, "because that is the number of documents that were added");
 
             var attsDir = new DirectoryInfo(Path.Combine(Db.Path, "Attachments"));
             var atts = attsDir.EnumerateFiles();
@@ -1089,12 +1089,12 @@ namespace Test
             Db.PerformMaintenance(MaintenanceType.Compact);
 
             foreach (var doc in docs) {
-                var savedDoc = Db.GetDocument(doc.Id);
-                Db.Delete(savedDoc);
-                Db.GetDocument(savedDoc.Id).Should().BeNull("because the document was just deleted");
+                var savedDoc = DefaultCollection.GetDocument(doc.Id);
+                DefaultCollection.Delete(savedDoc);
+                DefaultCollection.GetDocument(savedDoc.Id).Should().BeNull("because the document was just deleted");
             }
 
-            Db.Count.Should().Be(0, "because all documents were deleted");
+            DefaultCollection.Count.Should().Be(0, "because all documents were deleted");
             Db.PerformMaintenance(MaintenanceType.Compact);
 
             atts = attsDir.EnumerateFiles();
@@ -1126,7 +1126,7 @@ namespace Test
                 SaveDocument(mDoc);
             }
 
-            Db.Count.Should().Be(20, "because that is the number of documents that were added");
+            DefaultCollection.Count.Should().Be(20, "because that is the number of documents that were added");
 
             var attsDir = new DirectoryInfo(Path.Combine(Db.Path, "Attachments"));
             var atts = attsDir.EnumerateFiles();
@@ -1135,12 +1135,12 @@ namespace Test
             Db.PerformMaintenance(MaintenanceType.Compact);
 
             foreach (var doc in docs) {
-                var savedDoc = Db.GetDocument(doc.Id);
-                Db.Delete(savedDoc);
-                Db.GetDocument(savedDoc.Id).Should().BeNull("because the document was just deleted");
+                var savedDoc = DefaultCollection.GetDocument(doc.Id);
+                DefaultCollection.Delete(savedDoc);
+                DefaultCollection.GetDocument(savedDoc.Id).Should().BeNull("because the document was just deleted");
             }
 
-            Db.Count.Should().Be(0, "because all documents were deleted");
+            DefaultCollection.Count.Should().Be(0, "because all documents were deleted");
             Db.PerformMaintenance(MaintenanceType.Compact);
 
             atts = attsDir.EnumerateFiles();
@@ -1159,11 +1159,11 @@ namespace Test
             var key = Expression.Property("key");
             var keyItem = ValueIndexItem.Expression(key);
             var keyIndex = IndexBuilder.ValueIndex(keyItem);
-            Db.CreateIndex("KeyIndex", keyIndex);
-            Db.GetIndexes().Count.Should().Be(1);
+            DefaultCollection.CreateIndex("KeyIndex", keyIndex);
+            DefaultCollection.GetIndexes().Count.Should().Be(1);
 
             var q = QueryBuilder.Select(SelectResult.Expression(key))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(key.GreaterThan(Expression.Int(9)));
             q.Explain().Contains("USING INDEX KeyIndex").Should().BeTrue();
 
@@ -1171,7 +1171,7 @@ namespace Test
             Db.PerformMaintenance(MaintenanceType.Reindex);
 
             //Check if the index is still there and used
-            Db.GetIndexes().Count.Should().Be(1);
+            DefaultCollection.GetIndexes().Count.Should().Be(1);
             q.Explain().Contains("USING INDEX KeyIndex").Should().BeTrue();
         }
 
@@ -1202,16 +1202,16 @@ namespace Test
                 SaveDocument(mDoc);
             }
 
-            Db.Count.Should().Be(20, "because that is the number of documents that were added");
+            DefaultCollection.Count.Should().Be(20, "because that is the number of documents that were added");
 
             // Integrity Check
             Db.PerformMaintenance(MaintenanceType.IntegrityCheck);
 
             foreach (var doc in docs) {
-                Db.Delete(doc);
+                DefaultCollection.Delete(doc);
             }
 
-            Db.Count.Should().Be(0);
+            DefaultCollection.Count.Should().Be(0);
             // Integrity Check
             Db.PerformMaintenance(MaintenanceType.IntegrityCheck);
         }
@@ -1273,7 +1273,7 @@ namespace Test
                     var blob = new Blob("text/plain", data);
                     doc.SetBlob("data", blob);
 
-                    Db.Save(doc);
+                    DefaultCollection.Save(doc);
                 }
             }
 
@@ -1286,16 +1286,16 @@ namespace Test
 
             Database.Exists(dbName, dir).Should().BeTrue();
             using (var nudb = new Database(dbName, config)) {
-                nudb.Count.Should().Be(10, "because it is a copy of another database with 10 items");
+                nudb.GetDefaultCollection().Count.Should().Be(10, "because it is a copy of another database with 10 items");
                 var DOCID = Meta.ID;
                 var S_DOCID = SelectResult.Expression(DOCID);
-                using (var q = QueryBuilder.Select(S_DOCID).From(DataSource.Database(nudb))) {
+                using (var q = QueryBuilder.Select(S_DOCID).From(DataSource.Collection(nudb.GetDefaultCollection()))) {
                     var rs = q.Execute();
                     foreach (var r in rs) {
                         var docID = r.GetString(0);
                         docID.Should().NotBeNull();
 
-                        var doc = nudb.GetDocument(docID);
+                        var doc = nudb.GetDefaultCollection().GetDocument(docID);
                         doc.Should().NotBeNull();
                         doc.GetString("name").Should().Be(docID);
 
@@ -1314,28 +1314,28 @@ namespace Test
         [Fact]
         public void TestCreateN1QLQueryIndex()
         {
-            Db.GetIndexes().Should().BeEmpty();
+            DefaultCollection.GetIndexes().Should().BeEmpty();
 
             var index1 = new ValueIndexConfiguration(new string[] { "firstName", "lastName" });
-            Db.CreateIndex("index1", index1);
+            DefaultCollection.CreateIndex("index1", index1);
 
             var index2 = new FullTextIndexConfiguration("detail");
-            Db.CreateIndex("index2", index2);
+            DefaultCollection.CreateIndex("index2", index2);
 
             // '-' in "es-detail" caused Couchbase.Lite.CouchbaseLiteException : CouchbaseLiteException (LiteCoreDomain / 23): Invalid N1QL in index expression.
             // Basically '-' is the minus sign in N1QL expression. So needs to escape the expression string.
             // But I just couldn't get it to work...
             // var index3 = new FullTextIndexConfiguration(new string[]{ "es"+@"\-"+"detail" }, true, "es");
             var index3 = new FullTextIndexConfiguration(new string[] { "es_detail" }, true, "es");
-            Db.CreateIndex("index3", index3);
+            DefaultCollection.CreateIndex("index3", index3);
 
-            Db.GetIndexes().Should().BeEquivalentTo(new[] { "index1", "index2", "index3" });
+            DefaultCollection.GetIndexes().Should().BeEquivalentTo(new[] { "index1", "index2", "index3" });
         }
 
         [Fact]
         public void TestCreateIndex()
         {
-            Db.GetIndexes().Should().BeEmpty();
+            DefaultCollection.GetIndexes().Should().BeEmpty();
 
             var fName = Expression.Property("firstName");
             var lName = Expression.Property("lastName");
@@ -1344,17 +1344,17 @@ namespace Test
             var lNameItem = ValueIndexItem.Expression(lName);
 
             var index1 = IndexBuilder.ValueIndex(fNameItem, lNameItem);
-            Db.CreateIndex("index1", index1);
+            DefaultCollection.CreateIndex("index1", index1);
 
             var detailItem = FullTextIndexItem.Property("detail");
             var index2 = IndexBuilder.FullTextIndex(detailItem);
-            Db.CreateIndex("index2", index2);
+            DefaultCollection.CreateIndex("index2", index2);
 
             var detailItem2 = FullTextIndexItem.Property("es-detail");
             var index3 = IndexBuilder.FullTextIndex(detailItem2).IgnoreAccents(true).SetLanguage("es");
-            Db.CreateIndex("index3", index3);
+            DefaultCollection.CreateIndex("index3", index3);
 
-            Db.GetIndexes().Should().BeEquivalentTo(new[] { "index1", "index2", "index3" });
+            DefaultCollection.GetIndexes().Should().BeEquivalentTo(new[] { "index1", "index2", "index3" });
         }
 
         [Fact]
@@ -1362,10 +1362,10 @@ namespace Test
         {
             var item = ValueIndexItem.Expression(Expression.Property("firstName"));
             var index = IndexBuilder.ValueIndex(item);
-            Db.CreateIndex("myindex", index);
-            Db.CreateIndex("myindex", index);
+            DefaultCollection.CreateIndex("myindex", index);
+            DefaultCollection.CreateIndex("myindex", index);
 
-            Db.GetIndexes().Should().BeEquivalentTo(new[] {"myindex"});
+            DefaultCollection.GetIndexes().Should().BeEquivalentTo(new[] {"myindex"});
         }
 
         [Fact]
@@ -1376,19 +1376,19 @@ namespace Test
 
             var fNameItem = ValueIndexItem.Expression(fName);
             var fNameIndex = IndexBuilder.ValueIndex(fNameItem);
-            Db.CreateIndex("myindex", fNameIndex);
+            DefaultCollection.CreateIndex("myindex", fNameIndex);
 
             var lNameItem = ValueIndexItem.Expression(lName);
             var lNameIndex = IndexBuilder.ValueIndex(lNameItem);
-            Db.CreateIndex("myindex", lNameIndex);
+            DefaultCollection.CreateIndex("myindex", lNameIndex);
 
-            Db.GetIndexes().Should().BeEquivalentTo(new[] {"myindex"}, "because lNameIndex should overwrite fNameIndex");
+            DefaultCollection.GetIndexes().Should().BeEquivalentTo(new[] {"myindex"}, "because lNameIndex should overwrite fNameIndex");
 
             var detailItem = FullTextIndexItem.Property("detail");
             var detailIndex = IndexBuilder.FullTextIndex(detailItem);
-            Db.CreateIndex("myindex", detailIndex);
+            DefaultCollection.CreateIndex("myindex", detailIndex);
 
-            Db.GetIndexes().Should().BeEquivalentTo(new[] { "myindex" }, "because detailIndex should overwrite lNameIndex");
+            DefaultCollection.GetIndexes().Should().BeEquivalentTo(new[] { "myindex" }, "because detailIndex should overwrite lNameIndex");
         }
 
         [Fact]
@@ -1396,19 +1396,19 @@ namespace Test
         {
             TestCreateIndex();
 
-            Db.DeleteIndex("index1");
-            Db.GetIndexes().Should().BeEquivalentTo(new[] {"index2", "index3"});
+            DefaultCollection.DeleteIndex("index1");
+            DefaultCollection.GetIndexes().Should().BeEquivalentTo(new[] {"index2", "index3"});
 
-            Db.DeleteIndex("index2");
-            Db.GetIndexes().Should().BeEquivalentTo(new[] { "index3" });
+            DefaultCollection.DeleteIndex("index2");
+            DefaultCollection.GetIndexes().Should().BeEquivalentTo(new[] { "index3" });
 
-            Db.DeleteIndex("index3");
-            Db.GetIndexes().Should().BeEmpty();
+            DefaultCollection.DeleteIndex("index3");
+            DefaultCollection.GetIndexes().Should().BeEmpty();
 
-            Db.DeleteIndex("dummy");
-            Db.DeleteIndex("index1");
-            Db.DeleteIndex("index2");
-            Db.DeleteIndex("index3");
+            DefaultCollection.DeleteIndex("dummy");
+            DefaultCollection.DeleteIndex("index1");
+            DefaultCollection.DeleteIndex("index2");
+            DefaultCollection.DeleteIndex("index3");
         }
 
         [Fact]
@@ -1418,7 +1418,7 @@ namespace Test
 
                 Db.Delete();
 
-                Db.Invoking(d => d.GetDocument("doc1"))
+                Db.Invoking(d => d.GetDefaultCollection().GetDocument("doc1"))
                     .Should().Throw<InvalidOperationException>();
             }
         }
@@ -1445,12 +1445,12 @@ namespace Test
                 mDoc2.SetString("somekey", "newVar");
 
                 // This causes a conflict, the default conflict resolver should be applied
-                Db.Save(mDoc1);
-                Db.Save(mDoc2);
+                DefaultCollection.Save(mDoc1);
+                DefaultCollection.Save(mDoc2);
 
                 // NOTE: Both doc1 and doc2 are generation 1.  Last write should win.
-                Db.Count.Should().Be(1UL);
-                using (var doc = Db.GetDocument("abc")) {
+                DefaultCollection.Count.Should().Be(1UL);
+                using (var doc = DefaultCollection.GetDocument("abc")) {
                     doc.Should().NotBeNull();
                     doc.GetString("somekey").Should().Be("newVar", "because the last write should win");
                 }  
@@ -1474,7 +1474,7 @@ namespace Test
                                     doc.SetInt($"item_{j}", j);
                                 }
 
-                                database2.Save(doc);
+                                database2.GetDefaultCollection().Save(doc);
                             }
                         }
                     });
@@ -1493,10 +1493,12 @@ namespace Test
             Db.SaveCookie(cookieStr, uri, false).Should().BeTrue("because otherwise the cookie did not save");
             Db.GetCookies(uri).Should().Be("id=a3fWa");
             uri = new Uri("http://www.example.com/");
-            cookieStr = "id=a3fWa; Domain=.example.com; Secure; HttpOnly";
+
+            //cookieStr = "id=a3fWa; Domain=.example.com; Secure; HttpOnly";
             //No longer throw exception. Will log warning messages.
             //Action badAction = (() => Db.SaveCookie(cookieStr, uri));
             //badAction.Should().Throw<CouchbaseLiteException>(); //CouchbaseLiteException (LiteCoreDomain / 9): Invalid cookie.
+
             cookieStr = "id=a3fWa; Domain=www.example.com; Secure; HttpOnly";
             Db.SaveCookie(cookieStr, uri, false).Should().BeTrue("because otherwise the cookie did not save");
             Db.GetCookies(uri).Should().Be("id=a3fWa; id=a3fWa");
@@ -1539,8 +1541,9 @@ namespace Test
         {
             Database.Delete("closeDB", Db.Config.Directory);
             using (var otherDb = new Database("closeDB", Db.Config)) {
-                var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
-                var query1 = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(otherDb));
+                var otherDefaultColl = otherDb.GetDefaultCollection();
+                var query = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Collection(otherDefaultColl));
+                var query1 = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Collection(otherDefaultColl));
                 var doc1Listener = new WaitAssert();
                 var token = query.AddChangeListener(null, (sender, args) => {
                     foreach (var row in args.Results) {
@@ -1561,7 +1564,7 @@ namespace Test
 
                 using (var doc = new MutableDocument("doc1")) {
                     doc.SetString("value", "string");
-                    otherDb.Save(doc); // Should still trigger since it is pointing to the same DB
+                    otherDefaultColl.Save(doc); // Should still trigger since it is pointing to the same DB
                 }
 
                 otherDb.ActiveStoppables.Count.Should().Be(2);
@@ -1615,8 +1618,8 @@ namespace Test
             var doc = new MutableDocument(docID);
             doc.SetInt("key", 1);
 
-            Db.Save(doc);
-            Db.Count.Should().Be(1UL, "because this is the first document");
+            DefaultCollection.Save(doc);
+            DefaultCollection.Count.Should().Be(1UL, "because this is the first document");
             doc.Sequence.Should().Be(1UL, "because this is the first document");
             return doc;
         }
@@ -1638,7 +1641,7 @@ namespace Test
 
         private void VerifyGetDocument(Database db, string docID, int value)
         {
-            var doc = Db.GetDocument(docID);
+            var doc = DefaultCollection.GetDocument(docID);
             doc.Id.Should().Be(docID, "because that was the requested ID");
             doc.IsDeleted.Should().BeFalse("because the test uses a non-deleted document");
             doc.GetInt("key").Should().Be(value, "because that is the value that was passed as expected");
@@ -1650,11 +1653,11 @@ namespace Test
             for (int i = 0; i < n; i++) {
                 var doc = new MutableDocument($"doc_{i:D3}");
                 doc.SetInt("key", i);
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
                 docs.Add(doc);
             }
 
-            Db.Count.Should().Be((ulong)n, "because otherwise an incorrect number of documents were made");
+            DefaultCollection.Count.Should().Be((ulong)n, "because otherwise an incorrect number of documents were made");
             return docs;
         }
 
@@ -1669,7 +1672,7 @@ namespace Test
         {
             GenerateDocument(docID);
 
-            Db.Count.Should().Be(1UL, "because the database only has one document");
+            DefaultCollection.Count.Should().Be(1UL, "because the database only has one document");
 
             VerifyGetDocument(docID);
         }
@@ -1677,16 +1680,16 @@ namespace Test
         private void PurgeDocAndVerify(Document doc)
         {
             var docID = doc.Id;
-            Db.Purge(doc);
-            Db.GetDocument(docID).Should().BeNull("because it no longer exists");
+            DefaultCollection.Purge(doc);
+            DefaultCollection.GetDocument(docID).Should().BeNull("because it no longer exists");
         }
 
         private Document StoreBlob(Database db, MutableDocument doc, byte[] content)
         {
             var blob = new Blob("text/plain", content);
             doc.SetBlob("data", blob);
-            Db.Save(doc);
-            return Db.GetDocument(doc.Id);
+            DefaultCollection.Save(doc);
+            return DefaultCollection.GetDocument(doc.Id);
         }
     }
 }

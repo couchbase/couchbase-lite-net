@@ -129,8 +129,8 @@ namespace Test
         {
             WriteLine("Before Save...");
             eval(document);
-            Db.Save(document);
-            using (var retVal = Db.GetDocument(document.Id)) {
+            DefaultCollection.Save(document);
+            using (var retVal = DefaultCollection.GetDocument(document.Id)) {
                 WriteLine("After Save...");
                 eval(retVal);
             }
@@ -146,7 +146,7 @@ namespace Test
                     var doc = new MutableDocument(docID);
                     doc.SetInt("number1", i);
                     doc.SetInt("number2", num - i);
-                    Db.Save(doc);
+                    DefaultCollection.Save(doc);
                     numbers.Add(doc.ToDictionary());
                 }
             });
@@ -190,9 +190,9 @@ namespace Test
 
         protected void SaveDocument(MutableDocument document)
         {
-            Db.Save(document);
+            DefaultCollection.Save(document);
 
-            using (var savedDoc = Db.GetDocument(document.Id)) {
+            using (var savedDoc = DefaultCollection.GetDocument(document.Id)) {
                 savedDoc.Id.Should().Be(document.Id);
                 if (!TestObjectEquality(document.ToDictionary(), savedDoc.ToDictionary())) {
                     throw new AssertionFailedException($"Expected the saved document to match the original");
@@ -495,7 +495,7 @@ namespace Test
 
                 // Save document:
                 if (isLegacy)
-                    Db.Save(doc);
+                    DefaultCollection.Save(doc);
                 else
                     CollA.Save(doc);
             }
@@ -550,7 +550,7 @@ namespace Test
                 wa2.WaitForResult(TimeSpan.FromSeconds(2));
                 count.Should().Be(2, "because we should have received a callback, query result has updated");
                 if(isLegacy)
-                    Db.Purge("after2");
+                    DefaultCollection.Purge("after2");
                 else
                     CollA.Purge("after2");
 
@@ -653,7 +653,7 @@ namespace Test
                     var doc = new MutableDocument(docID);
                     doc.SetData(json);
                     if(coll == null)
-                        db.Save(doc);
+                        db.GetDefaultCollection().Save(doc);
                     else {
                         coll.Save(doc);
                     }

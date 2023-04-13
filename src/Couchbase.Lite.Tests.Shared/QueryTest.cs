@@ -67,10 +67,10 @@ namespace Test
             using (var doc = new MutableDocument(docId)) {
                 doc.SetInt("answer", 42);
                 doc.SetString("a", "string");
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
 
                 using (var q = QueryBuilder.Select(RevID)
-                    .From(DataSource.Database(Db))
+                    .From(DataSource.Collection(DefaultCollection))
                     .Where(Meta.ID.EqualTo(Expression.String(docId)))) {
 
                     VerifyQuery(q, (n, row) => {
@@ -79,7 +79,7 @@ namespace Test
 
                     // Update doc:
                     doc.SetString("foo", "bar");
-                    Db.Save(doc);
+                    DefaultCollection.Save(doc);
 
                     VerifyQuery(q, (n, row) => {
                         row.GetString(0).Should().Be(doc.RevisionID.ToString());
@@ -88,7 +88,7 @@ namespace Test
 
                 // Use meta.revisionID in WHERE clause
                 using (var q = QueryBuilder.Select(DocID)
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(Meta.RevisionID.EqualTo(Expression.String(docId)))) {
 
                     VerifyQuery(q, (n, row) => {
@@ -97,10 +97,10 @@ namespace Test
                 }
 
                 // Delete doc:
-                Db.Delete(doc);
+                DefaultCollection.Delete(doc);
 
                 using (var q = QueryBuilder.Select(RevID)
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(true)))) {
                     VerifyQuery(q, (n, row) => {
                         row.GetString(0).Should().Be(doc.RevisionID.ToString());
@@ -122,19 +122,19 @@ namespace Test
             using (var doc1c = new MutableDocument("doc3")) {
                 doc1a.SetInt("answer", 42);
                 doc1a.SetString("a", "string");
-                Db.Save(doc1a);
+                DefaultCollection.Save(doc1a);
 
                 doc1b.SetInt("answer", 42);
                 doc1b.SetString("b", "string");
-                Db.Save(doc1b);
+                DefaultCollection.Save(doc1b);
 
                 doc1c.SetInt("answer", 42);
                 doc1c.SetString("c", "string");
-                Db.Save(doc1c);
+                DefaultCollection.Save(doc1c);
 
-                Db.SetDocumentExpiration("doc1", dto2).Should().Be(true);
-                Db.SetDocumentExpiration("doc2", dto3).Should().Be(true);
-                Db.SetDocumentExpiration("doc3", dto4).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc1", dto2).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc2", dto3).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc3", dto4).Should().Be(true);
             }
 
             Thread.Sleep(4100);
@@ -142,7 +142,7 @@ namespace Test
             Try.Assertion(() =>
             {
                 using (var r = QueryBuilder.Select(DocID, Expiration)
-                    .From(DataSource.Database(Db))
+                    .From(DataSource.Collection(DefaultCollection))
                     .Where(Meta.Expiration
                         .LessThan(Expression.Long(dto6InMS)))) {
 
@@ -165,23 +165,23 @@ namespace Test
             using (var doc1c = new MutableDocument("doc3")) {
                 doc1a.SetInt("answer", 42);
                 doc1a.SetString("a", "string");
-                Db.Save(doc1a);
+                DefaultCollection.Save(doc1a);
 
                 doc1b.SetInt("answer", 42);
                 doc1b.SetString("b", "string");
-                Db.Save(doc1b);
+                DefaultCollection.Save(doc1b);
 
                 doc1c.SetInt("answer", 42);
                 doc1c.SetString("c", "string");
-                Db.Save(doc1c);
+                DefaultCollection.Save(doc1c);
 
-                Db.SetDocumentExpiration("doc1", dto20).Should().Be(true);
-                Db.SetDocumentExpiration("doc2", dto30).Should().Be(true);
-                Db.SetDocumentExpiration("doc3", dto40).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc1", dto20).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc2", dto30).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc3", dto40).Should().Be(true);
             }
 
             using (var r = QueryBuilder.Select(DocID, Expiration)
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(Meta.Expiration
                 .LessThan(Expression.Long(dto60InMS)))) {
 
@@ -196,18 +196,18 @@ namespace Test
             using (var doc1 = new MutableDocument("doc1")){
                 doc1.SetInt("answer", 42);
                 doc1.SetString("a", "string");
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
             }
 
             using (var doc2 = new MutableDocument("doc2")) {
                 doc2.SetInt("answer", 42);
                 doc2.SetString("a", "string");
-                Db.Save(doc2);
-                Db.Delete(doc2);
+                DefaultCollection.Save(doc2);
+                DefaultCollection.Delete(doc2);
             }
             
             using (var q = QueryBuilder.Select(DocID, IsDeleted)
-                 .From(DataSource.Database(Db))
+                 .From(DataSource.Collection(DefaultCollection))
                  .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(false)))) {
                 var count = VerifyQuery(q, (n, r) =>
                 {
@@ -224,18 +224,18 @@ namespace Test
             using (var doc1 = new MutableDocument("doc1")){
                 doc1.SetInt("answer", 42);
                 doc1.SetString("a", "string");
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
             }
 
             using (var doc2 = new MutableDocument("doc2")) {
                 doc2.SetInt("answer", 42);
                 doc2.SetString("a", "string");
-                Db.Save(doc2);
-                Db.Delete(doc2);
+                DefaultCollection.Save(doc2);
+                DefaultCollection.Delete(doc2);
             }
 
             using (var q = QueryBuilder.Select(DocID, IsDeleted)
-                 .From(DataSource.Database(Db))
+                 .From(DataSource.Collection(DefaultCollection))
                  .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(true)))) {
                 var count = VerifyQuery(q, (n, r) =>
                 {
@@ -252,25 +252,25 @@ namespace Test
             const string docId = "byebye";
             using (var doc1 = new MutableDocument(docId)) {
                 doc1.SetString("expire_me", "now");
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
             }
             
-            Db.SetDocumentExpiration(docId, DateTimeOffset.Now);
+            DefaultCollection.SetDocumentExpiration(docId, DateTimeOffset.Now);
             Thread.Sleep(50);
 
             using (var doc2 = new MutableDocument("doc2")) {
                 doc2.SetString("expire_me", "never");
-                Db.Save(doc2);
+                DefaultCollection.Save(doc2);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var count = VerifyQuery(q, (n, r) => { r.GetString(0).Should().Be("doc2"); });
                 count.Should().Be(1);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(Meta.IsDeleted.EqualTo(Expression.Boolean(true)))) {
                 var count = VerifyQuery(q, (n, r) => throw new AssertionFailedException("No results should be present"));
                 count.Should().Be(0);
@@ -280,7 +280,7 @@ namespace Test
         [Fact]
         public void TestReadOnlyParameters()
         {
-            using (var q = QueryBuilder.Select(DocID, Sequence).From(DataSource.Database(Db))) {
+            using (var q = QueryBuilder.Select(DocID, Sequence).From(DataSource.Collection(DefaultCollection))) {
                 var parameters = new Parameters().SetString("foo", "bar");
                 q.Parameters = parameters;
                 q.Parameters.GetValue("foo").Should().Be("bar");
@@ -304,14 +304,14 @@ namespace Test
         public void TestNoWhereQuery()
         {
             LoadJSONResource("names_100");
-            using (var q = QueryBuilder.Select(DocID, Sequence).From(DataSource.Database(Db))) {
+            using (var q = QueryBuilder.Select(DocID, Sequence).From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     var expectedID = $"doc-{n:D3}";
                     row.GetString(0).Should().Be(expectedID, "because otherwise the IDs were out of order");
                     row.GetLong(1).Should().Be(n, "because otherwise the sequences were out of order");
 
-                    var doc = Db.GetDocument(row.GetString(0));
+                    var doc = DefaultCollection.GetDocument(row.GetString(0));
                     doc.Id.Should().Be(expectedID, "because the document ID on the row should match the document");
                     doc.Sequence.Should()
                         .Be((ulong)n, "because the sequence on the row should match the document");
@@ -322,19 +322,20 @@ namespace Test
         }
         #endif
 
-        [Fact] //[Deprecated]
+        [Fact]
+        [Obsolete]
         public void TestWhereNullOrMissing()
         {
             MutableDocument doc1 = null, doc2 = null;
             doc1 = new MutableDocument("doc1");
             doc1.SetString("name", "Scott");
-            Db.Save(doc1);
+            DefaultCollection.Save(doc1);
 
             doc2 = new MutableDocument("doc2");
             doc2.SetString("name", "Tiger");
             doc2.SetString("address", "123 1st ave.");
             doc2.SetInt("age", 20);
-            Db.Save(doc2);
+            DefaultCollection.Save(doc2);
 
             var name = Expression.Property("name");
             var address = Expression.Property("address");
@@ -356,7 +357,7 @@ namespace Test
             foreach (var test in tests) {
                 var exp = test.Item1;
                 var expectedDocs = test.Item2;
-                using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(Db)).Where(exp)) {
+                using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Collection(DefaultCollection)).Where(exp)) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         if (n <= expectedDocs.Length) {
@@ -379,13 +380,13 @@ namespace Test
             MutableDocument doc1 = null, doc2 = null;
             doc1 = new MutableDocument("doc1");
             doc1.SetString("name", "Scott");
-            Db.Save(doc1);
+            DefaultCollection.Save(doc1);
 
             doc2 = new MutableDocument("doc2");
             doc2.SetString("name", "Tiger");
             doc2.SetString("address", "123 1st ave.");
             doc2.SetInt("age", 20);
-            Db.Save(doc2);
+            DefaultCollection.Save(doc2);
 
             var name = Expression.Property("name");
             var address = Expression.Property("address");
@@ -408,7 +409,7 @@ namespace Test
             {
                 var exp = test.Item1;
                 var expectedDocs = test.Item2;
-                using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Database(Db)).Where(exp))
+                using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID)).From(DataSource.Collection(DefaultCollection)).Where(exp))
                 {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
@@ -520,15 +521,15 @@ namespace Test
         {
             var doc1 = new MutableDocument();
             doc1.SetString("string", "string");
-            Db.Save(doc1);
+            DefaultCollection.Save(doc1);
 
             using (var q = QueryBuilder.Select(DocID)
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(Expression.Property("string").EqualTo(Expression.String("string")))) {
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    var doc = Db.GetDocument(row.GetString(0));
+                    var doc = DefaultCollection.GetDocument(row.GetString(0));
                     doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
                     doc["string"].ToString().Should().Be("string", "because otherwise garbage data was inserted");
                 });
@@ -536,12 +537,12 @@ namespace Test
             }
 
             using (var q = QueryBuilder.Select(DocID)
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(Expression.Property("string").NotEqualTo(Expression.String("string1")))) {
 
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
-                    var doc = Db.GetDocument(row.GetString(0));
+                    var doc = DefaultCollection.GetDocument(row.GetString(0));
                     doc.Id.Should().Be(doc1.Id, "because otherwise the wrong document ID was populated");
                     doc["string"].ToString().Should().Be("string", "because otherwise garbage data was inserted");
                 });
@@ -573,7 +574,7 @@ namespace Test
 
             var firstName = Expression.Property("name.first");
             using (var q = QueryBuilder.Select(SelectResult.Expression(firstName))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(firstName.In(inExpression.ToArray()))
                 .OrderBy(Ordering.Property("name.first"))) {
 
@@ -595,7 +596,7 @@ namespace Test
 
             var where = Expression.Property("name.first").Like(Expression.String("%Mar%"));
             using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("name.first")))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(where)
                 .OrderBy(Ordering.Property("name.first").Ascending())) {
 
@@ -621,7 +622,7 @@ namespace Test
 
             var where = Expression.Property("name.first").Regex(Expression.String("^Mar.*"));
             using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("name.first")))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(where)
                 .OrderBy(Ordering.Property("name.first").Ascending())) {
 
@@ -645,7 +646,7 @@ namespace Test
         public void TestN1QLFTSQuery()
         {
             LoadJSONResource("sentences");
-            Db.CreateIndex("sentence", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("sentence")));
+            DefaultCollection.CreateIndex("sentence", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("sentence")));
 
             using (var q = Db.CreateQuery("SELECT _id FROM _ WHERE MATCH(sentence, 'Dummie woman')")) 
             { // CBL developer notes: use '_default' instead of '_' also valid. (No one else needs to know about this ;) )
@@ -659,7 +660,7 @@ namespace Test
 
             using(var db = new Database("testN1QLDB")) {
                 LoadJSONResource("sentences", db);
-                db.CreateIndex("sentence", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("sentence")));
+                db.GetDefaultCollection().CreateIndex("sentence", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("sentence")));
 
                 using (var q = db.CreateQuery("SELECT _id FROM testN1QLDB WHERE MATCH(sentence, 'Dummie woman')")) { 
                     var numRows = VerifyQuery(q, (n, row) =>
@@ -680,14 +681,13 @@ namespace Test
             var sentence = Expression.Property("sentence");
             var s_sentence = SelectResult.Expression(sentence);
 
-            //var w = FullTextExpression.Index("sentence").Match("'Dummie woman'"); //deprecated
-            var w = FullTextFunction.Match("sentence", "'Dummie woman'");
-            var o = Ordering.Expression(FullTextFunction.Rank("sentence")).Descending();
+            var w = FullTextFunction.Match(Expression.FullTextIndex("sentence"), "'Dummie woman'");
+            var o = Ordering.Expression(FullTextFunction.Rank(Expression.FullTextIndex("sentence"))).Descending();
 
             var index = IndexBuilder.FullTextIndex(FullTextIndexItem.Property("sentence"));
-            Db.CreateIndex("sentence", index);
+            DefaultCollection.CreateIndex("sentence", index);
             using (var q = QueryBuilder.Select(DocID, s_sentence)
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(w)
                 .OrderBy(o)) {
                 var numRows = VerifyQuery(q, (n, row) =>
@@ -712,7 +712,7 @@ namespace Test
                 }
 
                 using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("name.first")))
-                    .From(DataSource.Database(Db)).OrderBy(order))  {
+                    .From(DataSource.Collection(DefaultCollection)).OrderBy(order))  {
                     var firstNames = new List<object>();
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
@@ -742,7 +742,7 @@ namespace Test
             TestQueryObserverWithQuery(n1qlQ, isLegacy: true);
             n1qlQ.Dispose();
             var query = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(Expression.Property("contact.address.state").EqualTo(Expression.String("CA")));
             TestQueryObserverWithQuery(query, isLegacy: true);
             query.Dispose();
@@ -755,7 +755,7 @@ namespace Test
             TestMultipleQueryObserversWithQuery(n1qlQ);
             n1qlQ.Dispose();
             var query = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(Expression.Property("contact.address.state").EqualTo(Expression.String("CA")));
             TestMultipleQueryObserversWithQuery(query);
             query.Dispose();
@@ -770,7 +770,7 @@ namespace Test
             TestQueryObserverWithChangingQueryParametersWithQuery(n1qlQ);
             n1qlQ.Dispose();
             var query = QueryBuilder.Select(DocID, SelectResult.Expression(Expression.Property("contact")))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(Expression.Property("contact.address.state").EqualTo(Expression.Parameter("state")));
             TestQueryObserverWithChangingQueryParametersWithQuery(query);
             query.Dispose();
@@ -783,14 +783,14 @@ namespace Test
         {
             var doc1 = new MutableDocument();
             doc1.SetInt("number", 1);
-            Db.Save(doc1);
+            DefaultCollection.Save(doc1);
 
             var doc2 = new MutableDocument();
             doc2.SetInt("number", 1);
-            Db.Save(doc2);
+            DefaultCollection.Save(doc2);
 
             using (var q = QueryBuilder.SelectDistinct(SelectResult.Expression(Expression.Property("number")))
-                .From(DataSource.Database(Db)))
+                .From(DataSource.Collection(DefaultCollection)))
             {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
@@ -806,7 +806,7 @@ namespace Test
         public async Task TestLiveQuery()
         {
             LoadNumbers(100);
-            using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("number1"))).From(DataSource.Database(Db))
+            using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("number1"))).From(DataSource.Collection(DefaultCollection))
                 .Where(Expression.Property("number1").LessThan(Expression.Int(10))).OrderBy(Ordering.Property("number1"))) {
                 var wa = new WaitAssert();
                 var wa2 = new WaitAssert();
@@ -842,11 +842,11 @@ namespace Test
             LoadNumbers(100);
             var testDoc = new MutableDocument("joinme");
             testDoc.SetInt("theone", 42);
-            Db.Save(testDoc);
+            DefaultCollection.Save(testDoc);
             var number2Prop = Expression.Property("number2");
             using (var q = QueryBuilder.Select(SelectResult.Expression(number2Prop.From("main")))
-                .From(DataSource.Database(Db).As("main"))
-                .Join(Join.InnerJoin(DataSource.Database(Db).As("secondary"))
+                .From(DataSource.Collection(DefaultCollection).As("main"))
+                .Join(Join.InnerJoin(DataSource.Collection(DefaultCollection).As("secondary"))
                     .On(Expression.Property("number1").From("main")
                         .EqualTo(Expression.Property("theone").From("secondary"))))) {
                 var results = q.Execute().ToList();
@@ -856,8 +856,8 @@ namespace Test
             }
 
             using (var q = QueryBuilder.Select(SelectResult.All().From("main"))
-                .From(DataSource.Database(Db).As("main"))
-                .Join(Join.InnerJoin(DataSource.Database(Db).As("secondary"))
+                .From(DataSource.Collection(DefaultCollection).As("main"))
+                .Join(Join.InnerJoin(DataSource.Collection(DefaultCollection).As("secondary"))
                     .On(Expression.Property("number1").From("main")
                         .EqualTo(Expression.Property("theone").From("secondary"))))) {
                 var results = q.Execute().ToList();
@@ -872,11 +872,11 @@ namespace Test
             LoadNumbers(100);
             var testDoc = new MutableDocument("joinme");
             testDoc.SetInt("theone", 42);
-            Db.Save(testDoc);
+            DefaultCollection.Save(testDoc);
             var number2Prop = Expression.Property("number2");
             using (var q = QueryBuilder.Select(SelectResult.Expression(number2Prop.From("main")), SelectResult.Expression(Expression.Property("theone").From("secondary")))
-                .From(DataSource.Database(Db).As("main"))
-                .Join(Join.LeftJoin(DataSource.Database(Db).As("secondary"))
+                .From(DataSource.Collection(DefaultCollection).As("main"))
+                .Join(Join.LeftJoin(DataSource.Collection(DefaultCollection).As("secondary"))
                     .On(Expression.Property("number1").From("main")
                         .EqualTo(Expression.Property("theone").From("secondary"))))) {
                 var results = q.Execute().ToList();
@@ -888,8 +888,8 @@ namespace Test
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(number2Prop.From("main")), SelectResult.Expression(Expression.Property("theone").From("secondary")))
-                .From(DataSource.Database(Db).As("main"))
-                .Join(Join.LeftOuterJoin(DataSource.Database(Db).As("secondary"))
+                .From(DataSource.Collection(DefaultCollection).As("main"))
+                .Join(Join.LeftOuterJoin(DataSource.Collection(DefaultCollection).As("secondary"))
                     .On(Expression.Property("number1").From("main")
                         .EqualTo(Expression.Property("theone").From("secondary"))))) {
                 var results = q.Execute().ToList();
@@ -909,15 +909,15 @@ namespace Test
 
             using (var joinme = new MutableDocument("joinme")) {
                 joinme.SetInt("theone", 42);
-                Db.Save(joinme);
+                DefaultCollection.Save(joinme);
             }
 
             var on = Expression.Property("number1").From("main").EqualTo(Expression.Property("theone").From("secondary"));
-            var join = Join.LeftJoin(DataSource.Database(Db).As("secondary")).On(on);
+            var join = Join.LeftJoin(DataSource.Collection(DefaultCollection).As("secondary")).On(on);
 
             using (var q = QueryBuilder.Select(SelectResult.All().From("main"),
                     SelectResult.All().From("secondary"))
-                .From(DataSource.Database(Db).As("main"))
+                .From(DataSource.Collection(DefaultCollection).As("main"))
                 .Join(join)) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
@@ -946,8 +946,8 @@ namespace Test
             var num2 = Expression.Property("number2").From("secondary");
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(num1), SelectResult.Expression(num2))
-                .From(DataSource.Database(Db).As("main"))
-                .Join(Join.CrossJoin(DataSource.Database(Db).As("secondary")))
+                .From(DataSource.Collection(DefaultCollection).As("main"))
+                .Join(Join.CrossJoin(DataSource.Collection(DefaultCollection).As("secondary")))
                 .OrderBy(Ordering.Expression(num2))) {
                 var count = VerifyQuery(q, (n, row) =>
                 {
@@ -970,7 +970,7 @@ namespace Test
             var max = SelectResult.Expression(Function.Max(Expression.Property("number1")));
             var sum = SelectResult.Expression(Function.Sum(Expression.Property("number1")));
             using (var q = QueryBuilder.Select(avg, cnt, min, max, sum)
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, row) =>
                 {
                     row.GetDouble(0).Should().BeApproximately(50.5, Double.Epsilon);
@@ -1001,7 +1001,7 @@ namespace Test
             var MAXZIP = Function.Max(zip);
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(STATE), SelectResult.Expression(COUNT), SelectResult.Expression(MAXZIP))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(gender.EqualTo(Expression.String("female")))
                 .GroupBy(STATE)
                 .OrderBy(Ordering.Expression(STATE))) {
@@ -1024,7 +1024,7 @@ namespace Test
             expectedZips = new[] { "94153", "50801", "47952" };
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(STATE), SelectResult.Expression(COUNT), SelectResult.Expression(MAXZIP))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(gender.EqualTo(Expression.String("female")))
                 .GroupBy(STATE)
                 .Having(COUNT.GreaterThan(Expression.Int(1)))
@@ -1055,7 +1055,7 @@ namespace Test
             var PARAM_N2 = Expression.Parameter("num2");
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(NUMBER1))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(NUMBER1.Between(PARAM_N1, PARAM_N2))
                 .OrderBy(Ordering.Expression(NUMBER1))) {
                 var parameters = new Parameters().SetInt("num1", 2).SetInt("num2", 5);
@@ -1091,9 +1091,9 @@ namespace Test
                 .SetString("$description", "puppy")
                 .SetString("$price", "$195");
 
-            Db.Save(prod1);
-            Db.Save(prod2);
-            Db.Save(prod3);
+            DefaultCollection.Save(prod1);
+            DefaultCollection.Save(prod2);
+            DefaultCollection.Save(prod3);
 
             int bookPriceLessThan100Cnt = 0;
             int totalBooksCnt = 0;
@@ -1101,7 +1101,7 @@ namespace Test
             using (var q = QueryBuilder.Select(DocID, 
                     SelectResult.Expression(Expression.Property("$type")),
                     SelectResult.Expression(Expression.Property("$price")))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(Expression.Property("$type").EqualTo(Expression.String("book")))) {
 
                 var res = q.Execute();
@@ -1126,7 +1126,7 @@ namespace Test
             var RES_NUMBER1 = SelectResult.Expression(NUMBER1);
 
             using (var q = QueryBuilder.Select(DocID, Sequence, RevID, RES_NUMBER1)
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .OrderBy(Ordering.Expression(Meta.Sequence))) {
                 var expectedDocIDs = new[] {"doc1", "doc2", "doc3", "doc4", "doc5"};
                 var expectedSeqs = new[] {1, 2, 3, 4, 5};
@@ -1147,7 +1147,7 @@ namespace Test
 
                     docID.Should().Be(expectedDocIDs[n - 1]);
                     seq.Should().Be(expectedSeqs[n - 1]);
-                    using (var d = Db.GetDocument(docID)) {
+                    using (var d = DefaultCollection.GetDocument(docID)) {
                         revID1.Should().Be(d.RevisionID);
                     }
                     number.Should().Be(expectedNumbers[n - 1]);
@@ -1166,7 +1166,7 @@ namespace Test
             var NUMBER = Expression.Property("number1");
 
             using (var q = QueryBuilder.Select(SelectResult.Property("number1"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .OrderBy(Ordering.Expression(NUMBER))
                 .Limit(Expression.Int(5))) {
 
@@ -1180,7 +1180,7 @@ namespace Test
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Property("number1"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .OrderBy(Ordering.Expression(NUMBER))
                 .Limit(LIMIT)) {
                 var parameters = new Parameters().SetInt("limit", 3);
@@ -1206,7 +1206,7 @@ namespace Test
             var NUMBER = Expression.Property("number1");
 
             using (var q = QueryBuilder.Select(SelectResult.Property("number1"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .OrderBy(Ordering.Expression(NUMBER))
                 .Limit(Expression.Int(5), Expression.Int(3))) {
 
@@ -1220,7 +1220,7 @@ namespace Test
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Property("number1"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .OrderBy(Ordering.Expression(NUMBER))
                 .Limit(LIMIT, OFFSET)) {
                 var parameters = new Parameters().SetInt("limit", 3).SetInt("offset", 5);
@@ -1253,7 +1253,7 @@ namespace Test
             var RES_CITY = SelectResult.Expression(CITY);
 
             using (var q = QueryBuilder.Select(RES_FNAME, RES_LNAME, RES_GENDER, RES_CITY)
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
                     r.GetValue("firstname").Should().Be(r.GetValue(0));
@@ -1278,7 +1278,7 @@ namespace Test
             var max = SelectResult.Expression(Function.Max(Expression.Property("number1")));
             var sum = SelectResult.Expression(Function.Sum(Expression.Property("number1"))).As("sum");
             using (var q = QueryBuilder.Select(avg, cnt, min, max, sum)
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
                     r.GetDouble("$1").Should().Be(r.GetDouble(0));
@@ -1298,11 +1298,11 @@ namespace Test
                 array.AddString("650-123-0001");
                 array.AddString("650-123-0002");
                 doc.SetArray("array", array);
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(ArrayFunction.Length(Expression.Property("array"))))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
                     r.GetInt(0).Should().Be(2);
@@ -1313,7 +1313,7 @@ namespace Test
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(ArrayFunction.Contains(Expression.Property("array"), Expression.String("650-123-0001"))),
                     SelectResult.Expression(ArrayFunction.Contains(Expression.Property("array"), Expression.String("650-123-0003"))))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
                     r.GetBoolean(0).Should().BeTrue();
@@ -1330,7 +1330,7 @@ namespace Test
             const double num = 0.6;
             using (var doc = new MutableDocument("doc1")) {
                 doc.SetDouble("number", num);
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
             }
 
             var expectedValues = new[] {
@@ -1355,7 +1355,7 @@ namespace Test
                 Function.Trunc(prop), Function.Trunc(prop, Expression.Int(1))
             }) {
                 using (var q = QueryBuilder.Select(SelectResult.Expression(function))
-                    .From(DataSource.Database(Db))) {
+                    .From(DataSource.Collection(DefaultCollection))) {
                     var numRows = VerifyQuery(q, (n, r) =>
                     {
                         r.GetDouble(0).Should().Be(expectedValues[index++]);
@@ -1367,7 +1367,7 @@ namespace Test
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Function.E().Multiply(Expression.Int(2))),
                     SelectResult.Expression(Function.Pi().Multiply(Expression.Int(2))))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
                     r.GetDouble(0).Should().Be(Math.E * 2);
@@ -1384,13 +1384,13 @@ namespace Test
             const string str = "  See you l8r  ";
             using (var doc = new MutableDocument("doc1")) {
                 doc.SetString("greeting", str);
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
             }
 
             var prop = Expression.Property("greeting");
             using (var q = QueryBuilder.Select(SelectResult.Expression(Function.Contains(prop, Expression.String("8"))),
                     SelectResult.Expression(Function.Contains(prop, Expression.String("9"))))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
                     r.GetBoolean(0).Should().BeTrue();
@@ -1401,7 +1401,7 @@ namespace Test
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Function.Length(prop)))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
                     r.GetInt(0).Should().Be(str.Length);
@@ -1415,7 +1415,7 @@ namespace Test
                     SelectResult.Expression(Function.Rtrim(prop)),
                     SelectResult.Expression(Function.Trim(prop)),
                     SelectResult.Expression(Function.Upper(prop)))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
                     r.GetString(0).Should().Be(str.ToLowerInvariant());
@@ -1436,7 +1436,7 @@ namespace Test
             LoadJSONResource("names_100");
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(ArrayExpression.Any(ArrayExpression.Variable("like")).In(Expression.Property("likes"))
                     .Satisfies(ArrayExpression.Variable("like").EqualTo(Expression.String("climbing"))))) {
                 var expected = new[] {"doc-017", "doc-021", "doc-023", "doc-045", "doc-060"};
@@ -1446,7 +1446,7 @@ namespace Test
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(ArrayExpression.Every(ArrayExpression.Variable("like")).In(Expression.Property("likes"))
                     .Satisfies(ArrayExpression.Variable("like").EqualTo(Expression.String("taxes"))))) {
                 var results = q.Execute();
@@ -1456,7 +1456,7 @@ namespace Test
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(ArrayExpression.AnyAndEvery(ArrayExpression.Variable("like")).In(Expression.Property("likes"))
                     .Satisfies(ArrayExpression.Variable("like").EqualTo(Expression.String("taxes"))))) {
                 var results = q.Execute();
@@ -1498,7 +1498,7 @@ namespace Test
                     doc.SetValue("paths", cities);
                     var d = JsonConvert.SerializeObject(doc.ToDictionary());
                     WriteLine(d);
-                    Db.Save(doc);
+                    DefaultCollection.Save(doc);
                 }
             }
 
@@ -1510,7 +1510,7 @@ namespace Test
             var where = ArrayExpression.Any(ArrayExpression.Variable("path")).In(PATHS).Satisfies(VAR_PATH.EqualTo(Expression.String("San Francisco")));
 
             using (var q = QueryBuilder.Select(S_DOC_ID)
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(where)) {
                 var expected = new[] { "doc-0", "doc-2" };
                 var numRows = VerifyQuery(q, (n, row) => { row.GetString(0).Should().Be(expected[n - 1]); });
@@ -1523,7 +1523,7 @@ namespace Test
         {
             LoadNumbers(100);
             using (var q = QueryBuilder.Select(SelectResult.All(), SelectResult.Expression(Expression.Property("number1")))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
                     var all = r.GetDictionary(0);
@@ -1536,7 +1536,7 @@ namespace Test
             }
 
             using (var q = QueryBuilder.Select(SelectResult.All().From("db"), SelectResult.Expression(Expression.Property("number1").From("db")))
-                .From(DataSource.Database(Db).As("db"))) {
+                .From(DataSource.Collection(DefaultCollection).As("db"))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
                     var all = r.GetDictionary(0);
@@ -1614,14 +1614,14 @@ namespace Test
             foreach (var letter in new[] {"B", "A", "Z", "Å"}) {
                 using (var doc = new MutableDocument()) {
                     doc.SetString("string", letter);
-                    Db.Save(doc);
+                    DefaultCollection.Save(doc);
                 }
             }
 
             var stringProp = Expression.Property("string");
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("string")))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .OrderBy(Ordering.Expression(stringProp.Collate(Collation.Unicode())))) {
                 var results = q.Execute();
                 results.Select(x => x.GetString(0)).Should().BeEquivalentTo(new[] {"A", "Å", "B", "Z"},
@@ -1629,7 +1629,7 @@ namespace Test
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("string")))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .OrderBy(Ordering.Expression(stringProp.Collate(Collation.Unicode().Locale("se"))))) {
                 var results = q.Execute();
                 results.Select(x => x.GetString(0)).Should().BeEquivalentTo(new[] { "A", "B", "Z", "Å" },
@@ -1713,21 +1713,21 @@ namespace Test
             foreach (var data in testData) {
                 using (var doc = new MutableDocument()) {
                     doc.SetString("value", data.Item1);
-                    Db.Save(doc);
+                    DefaultCollection.Save(doc);
 
                     var comparison = data.Item3
                         ? Expression.Property("value").Collate(data.Item4).EqualTo(Expression.String(data.Item2))
                         : Expression.Property("value").Collate(data.Item4).LessThan(Expression.String(data.Item2));
 
                     using (var q = QueryBuilder.Select(SelectResult.All())
-                        .From(DataSource.Database(Db))
+                        .From(DataSource.Collection(DefaultCollection))
                         .Where(comparison)) {
                         var result = q.Execute();
                         result.Should().HaveCount(1,
                             $"because otherwise the comparison failed for {data.Item1} and {data.Item2} (position {i})");
                     }
 
-                    Db.Delete(Db.GetDocument(doc.Id));
+                    DefaultCollection.Delete(DefaultCollection.GetDocument(doc.Id));
                 }
 
                 i++;
@@ -1740,7 +1740,7 @@ namespace Test
             foreach (var val in new[] {"Apple", "Aardvark", "Ångström", "Zebra", "äpple"}) {
                 using (var doc = new MutableDocument()) {
                     doc.SetString("hey", val);
-                    Db.Save(doc);
+                    DefaultCollection.Save(doc);
                 }
             }
 
@@ -1766,7 +1766,7 @@ namespace Test
             foreach (var data in testData) {
                 WriteLine(data.Item1);
                 using (var q = QueryBuilder.Select(SelectResult.Expression(Expression.Property("hey")))
-                    .From(DataSource.Database(Db))
+                    .From(DataSource.Collection(DefaultCollection))
                     .OrderBy(Ordering.Expression(property.Collate(data.Item2)))) {
                     var results = q.Execute();
                     results.Select(x => x.GetString(0)).Should().ContainInOrder(data.Item3);
@@ -1780,7 +1780,7 @@ namespace Test
         {
             LoadNumbers(100);
 
-            var ds = DataSource.Database(Db);
+            var ds = DataSource.Collection(DefaultCollection);
             var cnt = Function.Count(Expression.Property("number1"));
             var rsCnt = SelectResult.Expression(cnt);
             using (var q = QueryBuilder.Select(rsCnt).From(ds)) {
@@ -1799,33 +1799,33 @@ namespace Test
             using (var bookmark2 = new MutableDocument("bookmark2")) {
                 hotel1.SetString("type", "hotel");
                 hotel1.SetString("name", "Hilton");
-                Db.Save(hotel1);
+                DefaultCollection.Save(hotel1);
 
                 hotel2.SetString("type", "hotel");
                 hotel2.SetString("name", "Sheraton");
-                Db.Save(hotel2);
+                DefaultCollection.Save(hotel2);
 
                 hotel3.SetString("type", "hotel");
                 hotel3.SetString("name", "Marriot");
-                Db.Save(hotel3);
+                DefaultCollection.Save(hotel3);
 
                 bookmark1.SetString("type", "bookmark");
                 bookmark1.SetString("title", "Bookmark for Hawaii");
                 var hotels1 = new MutableArrayObject();
                 hotels1.AddString("hotel1").AddString("hotel2");
                 bookmark1.SetArray("hotels", hotels1);
-                Db.Save(bookmark1);
+                DefaultCollection.Save(bookmark1);
 
                 bookmark2.SetString("type", "bookmark");
                 bookmark2.SetString("title", "Bookmark for New York");
                 var hotels2 = new MutableArrayObject();
                 hotels2.AddString("hotel3");
                 bookmark2.SetArray("hotels", hotels2);
-                Db.Save(bookmark2);
+                DefaultCollection.Save(bookmark2);
             }
 
-            var mainDS = DataSource.Database(Db).As("main");
-            var secondaryDS = DataSource.Database(Db).As("secondary");
+            var mainDS = DataSource.Collection(DefaultCollection).As("main");
+            var secondaryDS = DataSource.Collection(DefaultCollection).As("secondary");
 
             var typeExpr = Expression.Property("type").From("main");
             var hotelsExpr = Expression.Property("hotels").From("main");
@@ -1853,7 +1853,7 @@ namespace Test
             using (var task1 = CreateTaskDocument("Task 1", false))
             using (var task2 = CreateTaskDocument("Task 2", false)) {
                 using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID), SelectResult.All())
-                    .From(DataSource.Database(Db))
+                    .From(DataSource.Collection(DefaultCollection))
                     .Where(Expression.Property("type").EqualTo(Expression.String("task")))) {
                     var rs = q.Execute();
                     var counter = 0;
@@ -1865,9 +1865,9 @@ namespace Test
                     counter.Should().Be(2);
 
                     task1.IsDeleted.Should().BeFalse();
-                    Db.Delete(task1);
-                    Db.Count.Should().Be(1);
-                    Db.GetDocument(task1.Id).Should().BeNull();
+                    DefaultCollection.Delete(task1);
+                    DefaultCollection.Count.Should().Be(1);
+                    DefaultCollection.GetDocument(task1.Id).Should().BeNull();
 
                     rs = q.Execute();
                     counter = 0;
@@ -1889,18 +1889,18 @@ namespace Test
             using (var task1 = CreateTaskDocument("Task 1", false))
             using (var task2 = CreateTaskDocument("Task 2", true))
             using (var task3 = CreateTaskDocument("Task 3", true)) {
-                Db.Count.Should().Be(3);
+                DefaultCollection.Count.Should().Be(3);
 
                 var exprType = Expression.Property("type");
                 var exprComplete = Expression.Property("complete");
                 var srCount = SelectResult.Expression(Function.Count(Expression.All()));
                 using (var q = QueryBuilder.Select(SelectResult.All())
-                    .From(DataSource.Database(Db))
+                    .From(DataSource.Collection(DefaultCollection))
                     .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(true))))) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
-                        var dict = row.GetDictionary(Db.Name);
+                        var dict = row.GetDictionary("_default");
                         dict.GetBoolean("complete").Should().BeTrue();
                         dict.GetString("type").Should().Be("task");
                         dict.GetString("title").Should().StartWith("Task ");
@@ -1910,12 +1910,12 @@ namespace Test
                 }
 
                 using (var q = QueryBuilder.Select(SelectResult.All())
-                    .From(DataSource.Database(Db))
+                    .From(DataSource.Collection(DefaultCollection))
                     .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(false))))) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
                         WriteLine($"res -> {JsonConvert.SerializeObject(row.ToDictionary())}");
-                        var dict = row.GetDictionary(Db.Name);
+                        var dict = row.GetDictionary("_default");
                         dict.GetBoolean("complete").Should().BeFalse();
                         dict.GetString("type").Should().Be("task");
                         dict.GetString("title").Should().StartWith("Task ");
@@ -1925,7 +1925,7 @@ namespace Test
                 }
 
                 using (var q = QueryBuilder.Select(srCount)
-                    .From(DataSource.Database(Db))
+                    .From(DataSource.Collection(DefaultCollection))
                     .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(true))))) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
@@ -1937,7 +1937,7 @@ namespace Test
                 }
 
                 using (var q = QueryBuilder.Select(srCount)
-                    .From(DataSource.Database(Db))
+                    .From(DataSource.Collection(DefaultCollection))
                     .Where(exprType.EqualTo(Expression.String("task")).And(exprComplete.EqualTo(Expression.Boolean(false))))) {
                     var numRows = VerifyQuery(q, (n, row) =>
                     {
@@ -1958,11 +1958,11 @@ namespace Test
 
             using (var doc1 = new MutableDocument("joinme")) {
                 doc1.SetInt("theone", 42);
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
             }
 
-            var mainDS = DataSource.Database(Db).As("main");
-            var secondaryDS = DataSource.Database(Db).As("secondary");
+            var mainDS = DataSource.Collection(DefaultCollection).As("main");
+            var secondaryDS = DataSource.Collection(DefaultCollection).As("secondary");
 
             var mainPropExpr = Expression.Property("number1").From("main");
             var secondaryExpr = Expression.Property("theone").From("secondary");
@@ -2007,11 +2007,11 @@ namespace Test
             using (var doc1 = new MutableDocument("joinme")) {
                 doc1.SetInt("theone", 42);
                 doc1.SetString("numberID", "doc1");
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
             }
 
-            var mainDS = DataSource.Database(Db).As("main");
-            var secondaryDS = DataSource.Database(Db).As("secondary");
+            var mainDS = DataSource.Collection(DefaultCollection).As("main");
+            var secondaryDS = DataSource.Collection(DefaultCollection).As("secondary");
 
             var mainPropExpr = Meta.ID.From("main");
             var secondaryExpr = Expression.Property("numberID").From("secondary");
@@ -2029,7 +2029,7 @@ namespace Test
                 {
                     n.Should().Be(1);
                     var docID = row.GetString("mainDocID");
-                    using (var doc = Db.GetDocument(docID)) {
+                    using (var doc = DefaultCollection.GetDocument(docID)) {
                         doc.GetInt("number1").Should().Be(1);
                         doc.GetInt("number2").Should().Be(99);
 
@@ -2049,11 +2049,11 @@ namespace Test
                 doc1.SetInt("theone", 42);
                 doc1.SetString("numberID", "doc1");
                 doc1.SetString("nullval", null);
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Property("name"), SelectResult.Property("nullval"))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var results = q.Execute();
                 foreach (var result in results) {
                     result.Count.Should().Be(1);
@@ -2113,7 +2113,7 @@ namespace Test
                 doc.SetFloat("simple_pi", 3.14159f);
                 doc.SetLong("big_num", Int64.MaxValue);
                 doc.SetBoolean("boolean", true);
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Property("array"),
@@ -2122,7 +2122,7 @@ namespace Test
                     SelectResult.Property("simple_pi"),
                     SelectResult.Property("big_num"),
                     SelectResult.Property("boolean"))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 VerifyQuery(q, (n, row) =>
                 {
                     row.GetArray(0).Should().ContainInOrder(1L, 2L, 3L);
@@ -2152,23 +2152,22 @@ namespace Test
         public void TestFTSStemming()
         {
             // Can't rely on the default locale, it could be anything and that would fail the test
-            Db.CreateIndex("passageIndex", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("passage")).SetLanguage("en"));
-            Db.CreateIndex("passageIndexStemless", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("passage")).SetLanguage(null));
+            DefaultCollection.CreateIndex("passageIndex", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("passage")).SetLanguage("en"));
+            DefaultCollection.CreateIndex("passageIndexStemless", IndexBuilder.FullTextIndex(FullTextIndexItem.Property("passage")).SetLanguage(null));
 
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("passage", "The boy said to the child, 'Mommy, I want a cat.'");
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
             }
 
             using (var doc2 = new MutableDocument("doc2")) {
                 doc2.SetString("passage", "The mother replied 'No, you already have too many cats.'");
-                Db.Save(doc2);
+                DefaultCollection.Save(doc2);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
-                .From(DataSource.Database(Db))
-                //.Where(FullTextExpression.Index("passageIndex").Match("cat"))) { //deprecated
-                .Where(FullTextFunction.Match("passageIndex", "cat"))) {
+                .From(DataSource.Collection(DefaultCollection))
+                .Where(FullTextFunction.Match(Expression.FullTextIndex("passageIndex"), "cat"))) {
                 var count = VerifyQuery(q, (n, row) =>
                 {
                     row.GetString(0).Should().Be($"doc{n}");
@@ -2177,9 +2176,8 @@ namespace Test
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(Meta.ID))
-                .From(DataSource.Database(Db))
-                //.Where(FullTextExpression.Index("passageIndexStemless").Match("cat"))) { //deprecated
-                .Where(FullTextFunction.Match("passageIndexStemless", "cat"))) {
+                .From(DataSource.Collection(DefaultCollection))
+                .Where(FullTextFunction.Match(Expression.FullTextIndex("passageIndexStemless"), "cat"))) {
                 var count = VerifyQuery(q, (n, row) =>
                 {
                     row.GetString(0).Should().Be($"doc{n}");
@@ -2203,23 +2201,23 @@ namespace Test
 
             using (var document = new MutableDocument("ExpressionTypes")) {
                 document.SetDouble("doubleValue", doubleValue);
-                Db.Save(document);
+                DefaultCollection.Save(document);
 
                 document.SetFloat("floatValue", floatValue);
-                Db.Save(document);
+                DefaultCollection.Save(document);
 
                 document.SetLong("longValue", longValue);
-                Db.Save(document);
+                DefaultCollection.Save(document);
 
                 document.SetValue("value", value);
-                Db.Save(document);
+                DefaultCollection.Save(document);
             }
 
-            var v = Db.GetDocument("ExpressionTypes").GetDouble("doubleValue");
+            var v = DefaultCollection.GetDocument("ExpressionTypes").GetDouble("doubleValue");
 
             using (var query = QueryBuilder
                 .Select(SelectResult.All())
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(
                     Expression.Property("doubleValue").EqualTo(Expression.Double(doubleValue))
                 )) {
@@ -2228,7 +2226,7 @@ namespace Test
 
             using (var query = QueryBuilder
                 .Select(SelectResult.All())
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(
                     Expression.Property("floatValue").EqualTo(Expression.Float(floatValue))
                 )) {
@@ -2237,7 +2235,7 @@ namespace Test
 
             using (var query = QueryBuilder
                 .Select(SelectResult.All())
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(
                     Expression.Property("longValue").EqualTo(Expression.Long(longValue))
                 )) {
@@ -2246,7 +2244,7 @@ namespace Test
 
             using (var query = QueryBuilder
                 .Select(SelectResult.All())
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(
                     Expression.Property("value").EqualTo(Expression.Value(value))
                 )) {
@@ -2282,19 +2280,19 @@ namespace Test
 
             using (var document = new MutableDocument("TestQueryExpression")) {
                 document.SetInt("onesixeight", dto1);
-                Db.Save(document);
+                DefaultCollection.Save(document);
             }
 
             using (var from = QueryBuilder
                 .Select(SelectResult.All())
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var l = from.Execute().ToArray();
                 l.Count().Should().Be(1);
             }
 ;
             using (var query = QueryBuilder
                 .Select(SelectResult.All())
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(
                     Expression.Property("onesixeight").Is(Expression.Int(dto1))
                 )) {
@@ -2303,7 +2301,7 @@ namespace Test
 
             using (var query = QueryBuilder
                 .Select(SelectResult.All())
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(
                     Expression.Property("onesixeight").IsNot(Expression.Int(dto2))
                 )) {
@@ -2321,16 +2319,16 @@ namespace Test
             var dto1 = DateTimeOffset.UtcNow;
             using (var document = new MutableDocument("TestQueryResultSet")) {
                 document.SetDate("timestamp", dto1);
-                Db.Save(document);
+                DefaultCollection.Save(document);
             }
             using (var query = QueryBuilder
                 .Select(SelectResult.All())
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(
                     Expression.Property("timestamp").EqualTo(Expression.Date(dto1))
                 )) {
                 resultset = (QueryResultSet)query.Execute();
-                resultset.Database.Should().Be(Db);
+                resultset.Collection.Should().Be(DefaultCollection);
                 List<Result> allRes = resultset.AllResults();
                 allRes.Count.Should().Be(1);
                 var columnName = resultset.ColumnNames;
@@ -2355,20 +2353,20 @@ namespace Test
 
             using (var document = new MutableDocument("TestQueryDateTimeOffset.1")) {
                 document.SetDate("timestamp", dto1);
-                Db.Save(document);
+                DefaultCollection.Save(document);
             }
             using (var document = new MutableDocument("TestQueryDateTimeOffset.2")) {
                 document.SetDate("timestamp", dto2);
-                Db.Save(document);
+                DefaultCollection.Save(document);
             }
             using (var document = new MutableDocument("TestQueryDateTimeOffset.3")) {
                 document.SetDate("timestamp", dto3);
-                Db.Save(document);
+                DefaultCollection.Save(document);
             }
 
             using (var query = QueryBuilder
                 .Select(SelectResult.All())
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(
                     Expression.Property("timestamp").EqualTo(Expression.Date(dto1))
                 )) {
@@ -2377,7 +2375,7 @@ namespace Test
 
             using (var query = QueryBuilder
                 .Select(SelectResult.All())
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(
                     Expression.Property("timestamp").EqualTo(Expression.Date(dto2))
                 )) {
@@ -2386,7 +2384,7 @@ namespace Test
 
             using (var query = QueryBuilder
                 .Select(SelectResult.All())
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(
                     Expression.Property("timestamp").EqualTo(Expression.Date(dto3))
                 )) {
@@ -2406,11 +2404,11 @@ namespace Test
 
             using (var doc1 = new MutableDocument("joinme")) {
                 doc1.SetInt("theone", 42);
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
             }
 
-            var mainDS = DataSource.Database(Db).As("main");
-            var secondaryDS = DataSource.Database(Db).As("secondary");
+            var mainDS = DataSource.Collection(DefaultCollection).As("main");
+            var secondaryDS = DataSource.Collection(DefaultCollection).As("secondary");
 
             var mainPropExpr = Expression.Property("number1").From("main");
             var secondaryExpr = Expression.Property("theone").From("secondary");
@@ -2474,7 +2472,7 @@ namespace Test
             var i = 0;
             using (
                 var q = QueryBuilder.Select(selections)
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .OrderBy(Ordering.Property("local").Ascending())) {
                 foreach (var result in q.Execute()) {
                     result.GetLong(0).Should().Be(expectedLocal[i]);
@@ -2517,7 +2515,7 @@ namespace Test
 
             var i = 0;
             using (var q = QueryBuilder.Select(selections)
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .OrderBy(Ordering.Property("local").Ascending())) {
                 foreach (var result in q.Execute()) {
                     result.GetString(0).Should().Be(expectedLocal.ElementAt(i));
@@ -2538,7 +2536,7 @@ namespace Test
             foreach (var millis in millisToUse) {
                 using (var doc = new MutableDocument()) {
                     doc.SetLong("timestamp", millis);
-                    Db.Save(doc);
+                    DefaultCollection.Save(doc);
                 }
             }
 
@@ -2568,7 +2566,7 @@ namespace Test
 
             var i = 0;
             using (var q = QueryBuilder.Select(selections)
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .OrderBy(Ordering.Property("timestamp").Ascending())) {
                 foreach (var result in q.Execute()) {
                     result.GetString(0).Should().Be(expectedLocal.ElementAt(i));
@@ -2582,7 +2580,7 @@ namespace Test
         public void TestSelectEmptyClause()
         {
             LoadNumbers(100);
-            using (var q = QueryBuilder.Select().From(DataSource.Database(Db))
+            using (var q = QueryBuilder.Select().From(DataSource.Collection(DefaultCollection))
                 .Where(Expression.Property("number1").LessThan(Expression.Int(10))).OrderBy(Ordering.Property("number1"))) {
                 var res = q.Execute();
                 foreach(var result in res) {
@@ -2601,7 +2599,7 @@ namespace Test
                     doc.SetValue(item.Key, item.Value);
                 }
 
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Property("nullObj"),
@@ -2621,7 +2619,7 @@ namespace Test
                     SelectResult.Property("array"),
                     SelectResult.Property("dictionary"),
                     SelectResult.Property("blob"))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 VerifyQuery(q, (n, row) =>
                 {
                     var json = row.ToJSON();
@@ -2743,7 +2741,6 @@ namespace Test
         {
             // Section 8.11.10 / 8.12.4 - CBL Helium - Scope and Collection API
             using var c = Db.CreateCollection("flowers", "test");
-            using var d = Db.GetDefaultCollection();
 
             var sqlInputAndResult = new List<(string queryID, string resultName)>
             {
@@ -2754,23 +2751,25 @@ namespace Test
                ("test.flowers as f", "f")
             };
 
+#pragma warning disable CS0618 // Type or member is obsolete
             var queryBuilderInputAndResult = new List<(IDataSource querySource, string resultName)>
             {
                 (DataSource.Database(Db), Db.Name),
-                (DataSource.Database(Db).As("db-alias"), "db-alias"),
-                (DataSource.Collection(d), "_default"),
+                (DataSource.Collection(DefaultCollection).As("db-alias"), "db-alias"),
+                (DataSource.Collection(DefaultCollection), "_default"),
                 (DataSource.Collection(c), "flowers"),
                 (DataSource.Collection(c).As("collection-alias"), "collection-alias")
             };
+#pragma warning restore CS0618 // Type or member is obsolete
 
-            
+
             using var doc1 = new MutableDocument("foo1");
             doc1.SetString("test", "test");
             c.Save(doc1);
 
             using var doc2 = new MutableDocument("foo2");
             doc2.SetString("test", "test");
-            d.Save(doc2);
+            DefaultCollection.Save(doc2);
 
             foreach (var pair in sqlInputAndResult) {
                 using var q = Db.CreateQuery($"SELECT * FROM {pair.queryID}");
@@ -2789,7 +2788,7 @@ namespace Test
         {
             using (var doc = new MutableDocument()) {
                 doc.SetString("local", "1985-10-26");
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
             }
 
             var dateTimeFormats = new[]
@@ -2807,7 +2806,7 @@ namespace Test
                     doc.SetString("PST", format + "-08:00");
                     doc.SetString("PST2", format + "-0800");
                     doc.SetString("UTC", format + "Z");
-                    Db.Save(doc);
+                    DefaultCollection.Save(doc);
                 }
             }
         }
@@ -2818,14 +2817,14 @@ namespace Test
             doc.SetString("type", "task");
             doc.SetString("title", title);
             doc.SetBoolean("complete", complete);
-            Db.Save(doc);
+            DefaultCollection.Save(doc);
             return doc;
         }
 
         private async Task TestLiveQueryNoUpdateInternal(bool consumeAll)
         {
             LoadNumbers(100);
-            using (var q = QueryBuilder.Select().From(DataSource.Database(Db))
+            using (var q = QueryBuilder.Select().From(DataSource.Collection(DefaultCollection))
                 .Where(Expression.Property("number1").LessThan(Expression.Int(10))).OrderBy(Ordering.Property("number1"))) {
 
                 var are = new AutoResetEvent(false);
@@ -2889,11 +2888,11 @@ namespace Test
         {
             int index = 0;
             foreach (var c in validator) {
-                using (var q = QueryBuilder.Select(DocID).From(DataSource.Database(Db)).Where(c.Item1)) {
+                using (var q = QueryBuilder.Select(DocID).From(DataSource.Collection(DefaultCollection)).Where(c.Item1)) {
                     var lastN = 0;
                     VerifyQuery(q, (n, row) =>
                     {
-                        var doc = Db.GetDocument(row.GetString(0));
+                        var doc = DefaultCollection.GetDocument(row.GetString(0));
                         var props =doc.ToDictionary();
                         c.Item2(props, c.Item3).Should().BeTrue("because otherwise the row failed validation");
                         lastN = n;
@@ -2911,7 +2910,7 @@ namespace Test
             var doc = new MutableDocument(docID);
             doc.SetInt("number1", entry);
             doc.SetInt("number2", max - entry);
-            Db.Save(doc);
+            DefaultCollection.Save(doc);
             return doc;
         }
     }

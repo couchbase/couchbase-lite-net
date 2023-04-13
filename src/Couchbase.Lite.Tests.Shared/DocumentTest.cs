@@ -90,7 +90,7 @@ namespace Test
             doc.IsDeleted.Should().BeFalse("because the document is not deleted");
             doc.ToDictionary().Should().BeEmpty("because the document has no properties");
 
-            Db.Invoking(d => d.Save(doc))
+            DefaultCollection.Invoking(d => d.Save(doc))
                 .Should().Throw<CouchbaseLiteException>()
                 .Where(e => e.Error == CouchbaseLiteError.BadDocID &&
                                      e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
@@ -228,7 +228,7 @@ namespace Test
             });
 
             using (var doc1 = new MutableDocument("doc1")) {
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
                 var gene = doc1.Generation;
                 var encode1 = doc1.Encode();
                 Type mutableDocumentType = typeof(MutableDocument);
@@ -246,10 +246,10 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc.SetString("name", "Scott Tiger");
 
-            Db.Save(doc);
+            DefaultCollection.Save(doc);
 
             using (var anotherDb = new Database(Db)) {
-                var doc1b = anotherDb.GetDocument("doc1");
+                var doc1b = anotherDb.GetDefaultCollection().GetDocument("doc1");
                 doc1b.As<object>().Should().NotBeSameAs(doc, "because unique instances should be returned");
                 doc.Id.Should().Be(doc1b.Id, "because object for the same document should have matching IDs");
                 doc.ToDictionary().Should().BeEquivalentTo(doc1b.ToDictionary(), "because the contents should match");
@@ -263,11 +263,11 @@ namespace Test
             doc1a.SetString("name", "Scott Tiger");
             SaveDocument(doc1a);
 
-            var doc1b = Db.GetDocument("doc1");
-            var doc1c = Db.GetDocument("doc1");
+            var doc1b = DefaultCollection.GetDocument("doc1");
+            var doc1c = DefaultCollection.GetDocument("doc1");
 
             using (var anotherDb = new Database(Db)) {
-                var doc1d = anotherDb.GetDocument("doc1");
+                var doc1d = anotherDb.GetDefaultCollection().GetDocument("doc1");
 
                 doc1a.As<object>().Should().NotBeSameAs(doc1b, "because unique instances should be returned");
                 doc1a.As<object>().Should().NotBeSameAs(doc1c, "because unique instances should be returned");
@@ -306,7 +306,7 @@ namespace Test
             });
 
             doc.Dispose();
-            doc = Db.GetDocument("doc1").ToMutable();
+            doc = DefaultCollection.GetDocument("doc1").ToMutable();
             doc.SetString("string2", "");
             doc.SetString("string1", "string");
 
@@ -359,7 +359,7 @@ namespace Test
             });
 
             doc.Dispose();
-            doc = Db.GetDocument("doc1").ToMutable();
+            doc = DefaultCollection.GetDocument("doc1").ToMutable();
             doc.SetInt("number1", 0);
             doc.SetInt("number2", 1);
             doc.SetDouble("number3", 1.1);
@@ -533,7 +533,7 @@ namespace Test
             });
 
             doc.Dispose();
-            doc = Db.GetDocument("doc1").ToMutable();
+            doc = DefaultCollection.GetDocument("doc1").ToMutable();
             doc.SetBoolean("boolean1", false);
             doc.SetBoolean("boolean2", true);
 
@@ -582,7 +582,7 @@ namespace Test
             });
 
             doc.Dispose();
-            doc = Db.GetDocument("doc1").ToMutable();
+            doc = DefaultCollection.GetDocument("doc1").ToMutable();
             var nuDate = date + TimeSpan.FromSeconds(60);
             var nuDateStr = nuDate.ToString("o");
             doc.SetDate("date", nuDate);
@@ -639,7 +639,7 @@ namespace Test
             });
 
             doc.Dispose();
-            doc = Db.GetDocument("doc1").ToMutable();
+            doc = DefaultCollection.GetDocument("doc1").ToMutable();
             var nuContent = Encoding.UTF8.GetBytes("1234567890");
             var nuBlob = new Blob("text/plain", nuContent);
             doc.SetBlob("blob", nuBlob);
@@ -1186,7 +1186,7 @@ namespace Test
             shipping.Should().BeSameAs(address, "because the dictionaries should remain the same until the save");
             billing.Should().BeSameAs(address, "because the dictionaries should remain the same until the save");
 
-            using(var savedDoc = Db.GetDocument(doc.Id)) {
+            using(var savedDoc = DefaultCollection.GetDocument(doc.Id)) {
                 shipping = savedDoc.GetDictionary("shipping");
                 billing = savedDoc.GetDictionary("billing");
                 
@@ -1224,7 +1224,7 @@ namespace Test
             mobile.Should().BeSameAs(phones, "because all the arrays should still be the same");
             home.Should().BeSameAs(phones, "because all the arrays should still be the same");
 
-            using (var savedDoc = Db.GetDocument(doc.Id)) {
+            using (var savedDoc = DefaultCollection.GetDocument(doc.Id)) {
                 mobile = savedDoc.GetArray("mobile");
                 home = savedDoc.GetArray("home");
                 mobile.Should().NotBeSameAs(phones, "because after save the arrays should be independent");
@@ -1243,7 +1243,7 @@ namespace Test
                 SaveDocument(doc);
             }
 
-            using (var doc1 = Db.GetDocument("doc1"))
+            using (var doc1 = DefaultCollection.GetDocument("doc1"))
             using (var mDoc1 = doc1.ToMutable()) {
                 var phones1 = mDoc1.GetArray("mobile");
                 for (int i = 0; i < phones1.Count; i++) {
@@ -1259,7 +1259,7 @@ namespace Test
                 SaveDocument(mDoc1);
             }
 
-            using (var doc2 = Db.GetDocument("doc1"))
+            using (var doc2 = DefaultCollection.GetDocument("doc1"))
             using (var mDoc2 = doc2.ToMutable()) {
                 mDoc2.GetArray("mobile")
                 .Should()
@@ -1352,16 +1352,16 @@ namespace Test
             };
 
             var newDoc = new MutableDocument("docName", props);
-            Db.Save(newDoc);
+            DefaultCollection.Save(newDoc);
 
             var newProps = new Dictionary<string, object> {
                 ["PropName3"] = "Val3",
                 ["PropName4"] = 84
             };
 
-            var existingDoc = Db.GetDocument("docName").ToMutable();
+            var existingDoc = DefaultCollection.GetDocument("docName").ToMutable();
             existingDoc.SetData(newProps);
-            Db.Save(existingDoc);
+            DefaultCollection.Save(existingDoc);
 
             existingDoc.ToDictionary().Should().BeEquivalentTo(new Dictionary<string, object> {
                 ["PropName3"] = "Val3",
@@ -1395,7 +1395,7 @@ namespace Test
             doc.SetString("name", "Scott Tiger");
             doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
 
-            Db.Invoking(d => d.Delete(doc))
+            DefaultCollection.Invoking(d => d.Delete(doc))
                 .Should().Throw<CouchbaseLiteException>()
                 .Where(
                     e => e.Error == CouchbaseLiteError.NotFound &&
@@ -1410,9 +1410,9 @@ namespace Test
             var doc1 = new MutableDocument("doc1");
             doc1.SetString("name", "Scott Tiger");
             SaveDocument(doc1);
-            
-            Db.Delete(doc1);
-            Db.GetDocument(doc1.Id).Should().BeNull();
+
+            DefaultCollection.Delete(doc1);
+            DefaultCollection.GetDocument(doc1.Id).Should().BeNull();
         }
 
         [Fact]
@@ -1429,13 +1429,13 @@ namespace Test
             var doc = new MutableDocument("doc1", dict);
             SaveDocument(doc);
 
-            using (var savedDoc = Db.GetDocument(doc.Id)) {
+            using (var savedDoc = DefaultCollection.GetDocument(doc.Id)) {
                 var address = savedDoc.GetDictionary("address");
                 address.GetString("street").Should().Be("1 Main street", "because that is the street that was stored");
                 address.GetString("city").Should().Be("Mountain View", "because that is the city that was stored");
                 address.GetString("state").Should().Be("CA", "because that is the state that was stored");
 
-                Db.Delete(savedDoc);
+                DefaultCollection.Delete(savedDoc);
 
                 address.GetString("street").Should().Be("1 Main street", "because the dictionary is independent");
                 address.GetString("city").Should().Be("Mountain View", "because the dictionary is independent");
@@ -1453,12 +1453,12 @@ namespace Test
             var doc = new MutableDocument("doc1", dict);
             SaveDocument(doc);
 
-            using (var savedDoc = Db.GetDocument(doc.Id)) {
+            using (var savedDoc = DefaultCollection.GetDocument(doc.Id)) {
                 var members = savedDoc.GetArray("members");
                 members.Count.Should().Be(3, "because three elements were added");
                 members.SequenceEqual(dict["members"].As<IList<object>>()).Should().BeTrue("because otherwise the array has incorrect elements");
 
-                Db.Delete(savedDoc);
+                DefaultCollection.Delete(savedDoc);
 
                 members.Count.Should().Be(3, "because the array is independent of the document");
                 members.SequenceEqual(dict["members"].As<IList<object>>()).Should().BeTrue("because the array is independent of the document");
@@ -1472,15 +1472,15 @@ namespace Test
             doc.SetString("type", "profile");
             doc.SetString("name", "Scott");
             doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
-            
-            Db.Invoking(db => db.Purge(doc)).Should().Throw<CouchbaseLiteException>().Where(e =>
+
+            DefaultCollection.Invoking(db => db.Purge(doc)).Should().Throw<CouchbaseLiteException>().Where(e =>
                 e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
 
             // Save:
             SaveDocument(doc);
 
             // Purge should not throw:
-            Db.Purge(doc);
+            DefaultCollection.Purge(doc);
         }
 
         [Fact]
@@ -1491,16 +1491,16 @@ namespace Test
             doc.SetString("name", "Scott");
             doc.IsDeleted.Should().BeFalse("beacuse the document is not deleted");
 
-            Db.Invoking(db => db.Purge("doc1")).Should().Throw<CouchbaseLiteException>().Where(e =>
+            DefaultCollection.Invoking(db => db.Purge("doc1")).Should().Throw<CouchbaseLiteException>().Where(e =>
                 e.Error == CouchbaseLiteError.NotFound && e.Domain == CouchbaseLiteErrorType.CouchbaseLite);
 
             // Save:
             SaveDocument(doc);
 
             // Purge should not throw:
-            Db.Purge("doc1");
+            DefaultCollection.Purge("doc1");
 
-            Db.GetDocument("doc1").Should().BeNull();
+            DefaultCollection.GetDocument("doc1").Should().BeNull();
         }
 
         [Fact]
@@ -1508,11 +1508,11 @@ namespace Test
         {
             var doc = new MutableDocument("doc1");
             doc.SetString("string", "str");
-            Db.Save(doc);
+            DefaultCollection.Save(doc);
 
             ReopenDB();
 
-            var gotDoc = Db.GetDocument("doc1");
+            var gotDoc = DefaultCollection.GetDocument("doc1");
             gotDoc.ToDictionary().Should().Equal(new Dictionary<string, object> { ["string"] = "str" }, "because otherwise the property didn't get saved");
             gotDoc["string"].ToString().Should().Be("str", "because otherwise the property didn't get saved");
         }
@@ -1525,10 +1525,10 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc.SetBlob("data", data);
             doc.SetString("name", "Jim");
-            Db.Save(doc);
+            DefaultCollection.Save(doc);
 
             using(var otherDb = new Database(Db.Name, Db.Config)) {
-                var doc1 = otherDb.GetDocument("doc1");
+                var doc1 = otherDb.GetDefaultCollection().GetDocument("doc1");
                 doc1["name"].ToString().Should().Be("Jim", "because the document should be persistent after save");
                 doc1["data"].Value.Should().BeAssignableTo<Blob>("because otherwise the data did not save correctly");
                 data = doc1.GetBlob("data");
@@ -1554,10 +1554,10 @@ namespace Test
             var data = new Blob("text/plain", content);
             var doc = new MutableDocument("doc1");
             doc.SetBlob("data", data);
-            Db.Save(doc);
+            DefaultCollection.Save(doc);
 
             using(var otherDb = new Database(Db.Name, Db.Config)) {
-                var doc1 = otherDb.GetDocument("doc1");
+                var doc1 = otherDb.GetDefaultCollection().GetDocument("doc1");
                 doc1["data"].Value.Should().BeAssignableTo<Blob>("because otherwise the data did not save correctly");
                 data = doc1.GetBlob("data");
 
@@ -1579,10 +1579,10 @@ namespace Test
             var data = new Blob("text/plain", contentStream);
             var doc = new MutableDocument("doc1");
             doc.SetBlob("data", data);
-            Db.Save(doc);
+            DefaultCollection.Save(doc);
 
             using(var otherDb = new Database(Db.Name, Db.Config)) {
-                var doc1 = otherDb.GetDocument("doc1");
+                var doc1 = otherDb.GetDefaultCollection().GetDocument("doc1");
                 doc1["data"].Value.Should().BeAssignableTo<Blob>("because otherwise the data did not save correctly");
                 data = doc1.GetBlob("data");
 
@@ -1613,10 +1613,10 @@ namespace Test
                 }
             }
 
-            Db.Save(doc);
+            DefaultCollection.Save(doc);
             
             using(var otherDb = new Database(Db.Name, Db.Config)) {
-                var doc1 = otherDb.GetDocument("doc1");
+                var doc1 = otherDb.GetDefaultCollection().GetDocument("doc1");
                 doc1["data"].Value.Should().BeAssignableTo<Blob>("because otherwise the data did not save correctly");
                 data = doc1.GetBlob("data");
 
@@ -1638,18 +1638,18 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc.SetBlob("data", data);
             doc.SetString("name", "Jim");
-            Db.Save(doc);
+            DefaultCollection.Save(doc);
 
             ReopenDB();
 
-            var gotDoc = Db.GetDocument("doc1");
+            var gotDoc = DefaultCollection.GetDocument("doc1");
             gotDoc.GetBlob("data").Content.Should().Equal(content, "because the data should have been retrieved correctly");
 
             ReopenDB();
 
-            doc = Db.GetDocument("doc1").ToMutable();
+            doc = DefaultCollection.GetDocument("doc1").ToMutable();
             doc.SetString("foo", "bar");
-            Db.Save(doc);
+            DefaultCollection.Save(doc);
             doc.GetBlob("data").Content.Should().Equal(content, "because the data should have been retrieved correctly");
         }
 
@@ -1709,7 +1709,7 @@ namespace Test
                 }
 
                 SaveDocument(mDoc1);
-                using (var doc1 = Db.GetDocument(mDoc1.Id)) 
+                using (var doc1 = DefaultCollection.GetDocument(mDoc1.Id)) 
                 using (var mDoc3 = doc1.ToMutable()) {
                     doc1.GetBlob("data").Should().Be(mDoc3.GetBlob("data"));
                     doc1.GetString("name").Should().Be(mDoc3.GetString("name"));
@@ -1752,8 +1752,8 @@ namespace Test
                 doc1c.As<object>().Should().NotBe(doc1b);
                 doc1c.As<object>().Should().Be(doc1c);
 
-                Db.Save(doc1c);
-                using(var savedDoc = Db.GetDocument(doc1c.Id))
+                DefaultCollection.Save(doc1c);
+                using(var savedDoc = DefaultCollection.GetDocument(doc1c.Id))
                 using (var mDoc = savedDoc.ToMutable()) {
                     mDoc.As<object>().Should().Be(savedDoc);
                     mDoc.SetInt("answer", 50);
@@ -1769,10 +1769,10 @@ namespace Test
             using (var doc2 = new MutableDocument("doc2")) {
                 doc1.SetInt("answer", 42);
                 doc2.SetInt("answer", 42);
-                Db.Save(doc1);
-                Db.Save(doc2);
-                using (var sDoc1 = Db.GetDocument(doc1.Id))
-                using (var sDoc2 = Db.GetDocument(doc2.Id)) {
+                DefaultCollection.Save(doc1);
+                DefaultCollection.Save(doc2);
+                using (var sDoc1 = DefaultCollection.GetDocument(doc1.Id))
+                using (var sDoc2 = DefaultCollection.GetDocument(doc2.Id)) {
                     sDoc1.As<object>().Should().Be(doc1);
                     sDoc2.As<object>().Should().Be(doc2);
 
@@ -1792,7 +1792,7 @@ namespace Test
         [Fact]
         public void TestEqualityDifferentDB()
         {
-            var otherDB = OpenDB("other");
+            using var otherDB = OpenDB("other");
             try {
                 using (var doc1a = new MutableDocument("doc1"))
                 using (var doc1b = new MutableDocument("doc1")) {
@@ -1800,10 +1800,10 @@ namespace Test
                     doc1b.SetInt("answer", 42);
                     doc1a.As<object>().Should().Be(doc1b);
 
-                    Db.Save(doc1a);
-                    otherDB.Save(doc1b);
-                    using (var sdoc1a = Db.GetDocument(doc1a.Id))
-                    using (var sdoc1b = otherDB.GetDocument(doc1b.Id)) {
+                    DefaultCollection.Save(doc1a);
+                    otherDB.GetDefaultCollection().Save(doc1b);
+                    using (var sdoc1a = DefaultCollection.GetDocument(doc1a.Id))
+                    using (var sdoc1b = otherDB.GetDefaultCollection().GetDocument(doc1b.Id)) {
                         sdoc1a.As<object>().Should().Be(doc1a);
                         sdoc1b.As<object>().Should().Be(doc1b);
                         doc1a.As<object>().Should().NotBe(doc1b);
@@ -1811,14 +1811,14 @@ namespace Test
                     }
                 }
 
-                using (var sdoc1a = Db.GetDocument("doc1"))
-                using (var sdoc1b = otherDB.GetDocument("doc1")) {
+                using (var sdoc1a = DefaultCollection.GetDocument("doc1"))
+                using (var sdoc1b = otherDB.GetDefaultCollection().GetDocument("doc1")) {
                     sdoc1a.As<object>().Should().NotBe(sdoc1b);
 
-                    using (var sameDB = new Database(Db))
-                    using (var anotherDoc1a = sameDB.GetDocument("doc1")) {
-                        sdoc1a.As<object>().Should().Be(anotherDoc1a);
-                    }
+
+                    using var sameDB = new Database(Db);
+                    using var anotherDoc1a = sameDB.GetDefaultCollection().GetDocument("doc1");
+                    sdoc1a.As<object>().Should().Be(anotherDoc1a);
                 }
             } finally {
                 otherDB.Delete();
@@ -1831,41 +1831,41 @@ namespace Test
         public void TestDeleteDocAndGetDoc()
         {
             const string docID = "doc-1";
-            Db.GetDocument(docID).Should().BeNull();
+            DefaultCollection.GetDocument(docID).Should().BeNull();
             using (var mDoc = new MutableDocument(docID)) {
                 mDoc.SetString("key", "value");
-                Db.Save(mDoc);
-                using (var doc = Db.GetDocument(mDoc.Id)) {
+                DefaultCollection.Save(mDoc);
+                using (var doc = DefaultCollection.GetDocument(mDoc.Id)) {
                     doc.Should().NotBeNull();
-                    Db.Count.Should().Be(1);
+                    DefaultCollection.Count.Should().Be(1);
                 }
 
-                using (var doc = Db.GetDocument(docID)) {
+                using (var doc = DefaultCollection.GetDocument(docID)) {
                     doc.Should().NotBeNull();
                     doc.GetString("key").Should().Be("value");
-                    Db.Delete(doc);
-                    Db.Count.Should().Be(0);
+                    DefaultCollection.Delete(doc);
+                    DefaultCollection.Count.Should().Be(0);
                 }
 
-                Db.GetDocument(docID).Should().BeNull();
+                DefaultCollection.GetDocument(docID).Should().BeNull();
             }
 
             using (var mDoc = new MutableDocument(docID)) {
                 mDoc.SetString("key", "value");
-                Db.Save(mDoc);
-                using (var doc = Db.GetDocument(mDoc.Id)) {
+                DefaultCollection.Save(mDoc);
+                using (var doc = DefaultCollection.GetDocument(mDoc.Id)) {
                     doc.Should().NotBeNull();
-                    Db.Count.Should().Be(1);
+                    DefaultCollection.Count.Should().Be(1);
                 }
 
-                using (var doc = Db.GetDocument(docID)) {
+                using (var doc = DefaultCollection.GetDocument(docID)) {
                     doc.Should().NotBeNull();
                     doc.GetString("key").Should().Be("value");
-                    Db.Delete(doc);
-                    Db.Count.Should().Be(0);
+                    DefaultCollection.Delete(doc);
+                    DefaultCollection.Count.Should().Be(0);
                 }
 
-                Db.GetDocument(docID).Should().BeNull();
+                DefaultCollection.GetDocument(docID).Should().BeNull();
             }
         }
 
@@ -1879,24 +1879,24 @@ namespace Test
             using (var doc1c = new MutableDocument("doc3")) {
                 doc1a.SetInt("answer", 12);
                 doc1a.SetValue("options", new[] { 1, 2, 3 });
-                Db.Save(doc1a);
+                DefaultCollection.Save(doc1a);
 
                 doc1b.SetInt("answer", 22);
                 doc1b.SetValue("options", new[] { 1, 2, 3 });
-                Db.Save(doc1b);
+                DefaultCollection.Save(doc1b);
 
                 doc1c.SetInt("answer", 32);
                 doc1c.SetValue("options", new[] { 1, 2, 3 });
-                Db.Save(doc1c);
+                DefaultCollection.Save(doc1c);
 
-                Db.SetDocumentExpiration("doc1", dto30).Should().Be(true);
-                Db.SetDocumentExpiration("doc3", dto30).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc1", dto30).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc3", dto30).Should().Be(true);
             }
-            Db.SetDocumentExpiration("doc3", null).Should().Be(true);
-            var v = Db.GetDocumentExpiration("doc1").Value;
+            DefaultCollection.SetDocumentExpiration("doc3", null).Should().Be(true);
+            var v = DefaultCollection.GetDocumentExpiration("doc1").Value;
             v.Should().BeSameDateAs(dto30.DateTime);
-            Db.GetDocumentExpiration("doc2").Should().Be(null);
-            Db.GetDocumentExpiration("doc3").Should().Be(null);
+            DefaultCollection.GetDocumentExpiration("doc2").Should().Be(null);
+            DefaultCollection.GetDocumentExpiration("doc3").Should().Be(null);
         }
 
         [Fact]
@@ -1906,13 +1906,13 @@ namespace Test
             using (var doc1a = new MutableDocument("doc_to_expired")) {
                 doc1a.SetInt("answer", 12);
                 doc1a.SetValue("options", new[] { 1, 2, 3 });
-                Db.Save(doc1a);
+                DefaultCollection.Save(doc1a);
 
-                Db.SetDocumentExpiration("doc_to_expired", dto3).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc_to_expired", dto3).Should().Be(true);
 
             }
             Thread.Sleep(3100);
-            Try.Condition(() => Db.GetDocument("doc_to_expired") == null)
+            Try.Condition(() => DefaultCollection.GetDocument("doc_to_expired") == null)
                 .Times(5)
                 .WriteProgress(WriteLine)
                 .Delay(TimeSpan.FromMilliseconds(500))
@@ -1926,13 +1926,13 @@ namespace Test
             using (var doc1a = new MutableDocument("deleted_doc1")) {
                 doc1a.SetInt("answer", 12);
                 doc1a.SetValue("options", new[] { 1, 2, 3 });
-                Db.Save(doc1a);
-                Db.Delete(doc1a);
+                DefaultCollection.Save(doc1a);
+                DefaultCollection.Delete(doc1a);
 
-                Db.SetDocumentExpiration("deleted_doc1", dto3).Should().BeTrue();
+                DefaultCollection.SetDocumentExpiration("deleted_doc1", dto3).Should().BeTrue();
                 Thread.Sleep(3100);
 
-                Action badAction = (() => Db.SetDocumentExpiration("deleted_doc1", dto3));
+                Action badAction = (() => DefaultCollection.SetDocumentExpiration("deleted_doc1", dto3));
                 Try.Assertion(() => badAction.Should().Throw<CouchbaseLiteException>("Cannot find the document."))
                     .Times(5).WriteProgress(WriteLine).Delay(TimeSpan.FromMilliseconds(500)).Go().Should().BeTrue();
             }
@@ -1945,11 +1945,11 @@ namespace Test
             using (var doc1a = new MutableDocument("deleted_doc")) {
                 doc1a.SetInt("answer", 12);
                 doc1a.SetValue("options", new[] { 1, 2, 3 });
-                Db.Save(doc1a);
-                Db.SetDocumentExpiration("deleted_doc", dto3).Should().Be(true);
-                Db.Delete(doc1a);  
+                DefaultCollection.Save(doc1a);
+                DefaultCollection.SetDocumentExpiration("deleted_doc", dto3).Should().Be(true);
+                DefaultCollection.Delete(doc1a);  
             }
-            var exp = Db.GetDocumentExpiration("deleted_doc");
+            var exp = DefaultCollection.GetDocumentExpiration("deleted_doc");
             exp.Should().BeSameDateAs(dto3);
         }
 
@@ -1957,14 +1957,14 @@ namespace Test
         public void TestSetExpirationOnNoneExistDoc()
         {
             var dto30 = DateTimeOffset.Now.AddSeconds(30);
-            Action badAction = (() => Db.SetDocumentExpiration("not_exist", dto30));
+            Action badAction = (() => DefaultCollection.SetDocumentExpiration("not_exist", dto30));
             badAction.Should().Throw<CouchbaseLiteException>("Cannot find the document.");
         }
         
         [Fact]
         public void TestGetExpirationFromNoneExistDoc()
         {
-            Action badAction = (() => Db.GetDocumentExpiration("not_exist"));
+            Action badAction = (() => DefaultCollection.GetDocumentExpiration("not_exist"));
             badAction.Should().Throw<CouchbaseLiteException>("Cannot find the document.");
         }
 
@@ -1975,12 +1975,12 @@ namespace Test
             using (var doc = new MutableDocument("doc")) {
                 doc.SetInt("answer", 42);
                 doc.SetValue("options", new[] { 1, 2, 3 });
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
 
-                Db.GetDocumentExpiration("doc").Should().BeNull();
-                Db.SetDocumentExpiration("doc", DateTimeOffset.UtcNow.AddDays(60));
+                DefaultCollection.GetDocumentExpiration("doc").Should().BeNull();
+                DefaultCollection.SetDocumentExpiration("doc", DateTimeOffset.UtcNow.AddDays(60));
 
-                var exp = Db.GetDocumentExpiration("doc");
+                var exp = DefaultCollection.GetDocumentExpiration("doc");
                 exp.Should().NotBeNull();
                 (Math.Abs((exp.Value - now).TotalDays - 60.0) < 1.0).Should().BeTrue();
             }
@@ -1993,15 +1993,15 @@ namespace Test
             using (var doc1a = new MutableDocument("doc_to_expired")) {
                 doc1a.SetInt("answer", 12);
                 doc1a.SetValue("options", new[] { 1, 2, 3 });
-                Db.Save(doc1a);
+                DefaultCollection.Save(doc1a);
 
-                Db.SetDocumentExpiration("doc_to_expired", dto3).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc_to_expired", dto3).Should().Be(true);
 
             }
-            Db.SetDocumentExpiration("doc_to_expired", null).Should().Be(true);
+            DefaultCollection.SetDocumentExpiration("doc_to_expired", null).Should().Be(true);
 
             Thread.Sleep(3100);
-            Db.GetDocument("doc_to_expired").Should().NotBeNull();
+            DefaultCollection.GetDocument("doc_to_expired").Should().NotBeNull();
         }
 
         [Fact]
@@ -2016,28 +2016,28 @@ namespace Test
             using (var doc1c = new MutableDocument("doc3")) {
                 doc1a.SetInt("answer", 42);
                 doc1a.SetString("a", "string");
-                Db.Save(doc1a);
+                DefaultCollection.Save(doc1a);
 
                 doc1b.SetInt("answer", 42);
                 doc1b.SetString("b", "string");
-                Db.Save(doc1b);
+                DefaultCollection.Save(doc1b);
 
                 doc1c.SetInt("answer", 42);
                 doc1c.SetString("c", "string");
-                Db.Save(doc1c);
+                DefaultCollection.Save(doc1c);
 
-                Db.SetDocumentExpiration("doc1", dto2).Should().Be(true);
-                Db.SetDocumentExpiration("doc2", dto3).Should().Be(true);
-                Db.SetDocumentExpiration("doc3", dto4).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc1", dto2).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc2", dto3).Should().Be(true);
+                DefaultCollection.SetDocumentExpiration("doc3", dto4).Should().Be(true);
             }
 
             Thread.Sleep(4100);
 
             Try.Assertion(() =>
             {
-                Db.GetDocument("doc1").Should().BeNull();
-                Db.GetDocument("doc2").Should().BeNull();
-                Db.GetDocument("doc3").Should().BeNull();
+                DefaultCollection.GetDocument("doc1").Should().BeNull();
+                DefaultCollection.GetDocument("doc2").Should().BeNull();
+                DefaultCollection.GetDocument("doc3").Should().BeNull();
             }).Times(5).WriteProgress(WriteLine).Delay(TimeSpan.FromMilliseconds(500)).Go().Should().BeTrue();
         }
 
@@ -2047,13 +2047,13 @@ namespace Test
             const string docId = "byebye";
             using (var doc1 = new MutableDocument(docId)) {
                 doc1.SetString("expire_me", "now");
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
             }
-            
-            Db.GetDocument(docId).Should().NotBeNull("because the expiration has not been set yet");
-            Db.SetDocumentExpiration(docId, DateTimeOffset.Now);
+
+            DefaultCollection.GetDocument(docId).Should().NotBeNull("because the expiration has not been set yet");
+            DefaultCollection.SetDocumentExpiration(docId, DateTimeOffset.Now);
             Thread.Sleep(50);
-            Db.GetDocument(docId).Should().BeNull("because the purge should happen immediately");
+            DefaultCollection.GetDocument(docId).Should().BeNull("because the purge should happen immediately");
         }
 
         [Fact]
@@ -2061,13 +2061,13 @@ namespace Test
         {
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("directory", "garbage");
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
             }
             
             var mre = new ManualResetEventSlim();
-            Db.AddChangeListener((sender, args) => mre.Set());
+            DefaultCollection.AddChangeListener((sender, args) => mre.Set());
 
-            Db.Purge("doc1");
+            DefaultCollection.Purge("doc1");
             Thread.Sleep(1000);
             try {
                 mre.Wait(TimeSpan.FromSeconds(1)).Should().BeTrue("because purge should fire a changed event");
@@ -2081,7 +2081,7 @@ namespace Test
         {
             using (var doc = new MutableDocument()) {
                 doc.RevisionID.Should().BeNull();
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
                 doc.RevisionID.Should().NotBeNull();
             }
         }
@@ -2090,15 +2090,15 @@ namespace Test
         public void TestRevisionIDExistingDoc()
         {
             using (var doc = new MutableDocument("doc1")) {
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
             }
 
-            using (var doc = Db.GetDocument("doc1"))
+            using (var doc = DefaultCollection.GetDocument("doc1"))
             using (var mutabledoc = doc.ToMutable()) {
                 var docRevId = doc.RevisionID;
                 doc.RevisionID.Should().Be(mutabledoc.RevisionID);
                 mutabledoc.SetInt("int", 88);
-                Db.Save(mutabledoc);
+                DefaultCollection.Save(mutabledoc);
                 doc.RevisionID.Should().NotBe(mutabledoc.RevisionID);
                 docRevId.Should().Be(doc.RevisionID);
             }
@@ -2113,10 +2113,10 @@ namespace Test
                     md.SetValue(item.Key, item.Value);
                 }
 
-                Db.Save(md);
+                DefaultCollection.Save(md);
             }
 
-            using (var doc = Db.GetDocument("doc1")) {
+            using (var doc = DefaultCollection.GetDocument("doc1")) {
                 var json = doc.ToJSON();
                 ValidateToJsonValues(json, dic);
             }

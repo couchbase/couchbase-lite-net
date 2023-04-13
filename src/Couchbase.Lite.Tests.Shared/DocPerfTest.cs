@@ -67,12 +67,12 @@ namespace Test
 
         private void AddRevisions(uint count)
         {
-            var doc = Db.GetDocument("doc").ToMutable();
+            var doc = Db.GetDefaultCollection().GetDocument("doc").ToMutable();
             Db.InBatch(() =>
             {
                 for (int i = 0; i < count; i++) {
                     doc.SetInt("count", i);
-                    Db.Save(doc);
+                    Db.GetDefaultCollection().Save(doc);
                 }
             });
         }

@@ -63,7 +63,7 @@ namespace Test
                 listener.Config.DisableTLS ? "ws" : "wss",
                 "localhost",
                 listener.Port,
-                $"/{listener.Config.Database.Name}"
+                $"/{listener.Config.Collections[0].Database.Name}"
             );
 
             return builder.Uri;
@@ -209,13 +209,15 @@ namespace Test
             using (var doc1 = new MutableDocument())
             using (var doc2 = new MutableDocument()) {
                 doc1.SetString("name", "Sam");
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
                 doc2.SetString("name", "Mary");
-                OtherDb.Save(doc2);
+                OtherDefaultCollection.Save(doc2);
             }
 
             var targetEndpoint = _listener.LocalEndpoint();
-            var config = new ReplicatorConfiguration(Db, targetEndpoint);
+            var config = new ReplicatorConfiguration(targetEndpoint);
+            config.AddCollection(DefaultCollection);
+
             using (var repl = new Replicator(config)) {
                 var waitAssert = new WaitAssert();
                 var token = repl.AddChangeListener((sender, args) =>
@@ -269,7 +271,9 @@ namespace Test
 
             // Replicator - No authenticator
             var targetEndpoint = _listener.LocalEndpoint();
-            var config = new ReplicatorConfiguration(Db, targetEndpoint);
+            var config = new ReplicatorConfiguration(targetEndpoint);
+            config.AddCollection(DefaultCollection);
+
             RunReplication(config, (int) CouchbaseLiteError.HTTPAuthRequired, CouchbaseLiteErrorType.CouchbaseLite);
             var pw = "123";
             var wrongPw = "456";
@@ -460,10 +464,10 @@ namespace Test
 
             using (var doc1 = new MutableDocument("doc1")) {
                 doc1.SetString("name", "Sam");
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
             }
 
-            OtherDb.Count.Should().Be(0);
+            OtherDefaultCollection.Count.Should().Be(0);
 
             RunReplication(
                 _listener.LocalEndpoint(),
@@ -476,7 +480,7 @@ namespace Test
                 0
             );
 
-            OtherDb.Count.Should().Be(1);
+            OtherDefaultCollection.Count.Should().Be(1);
 
             _listener.Stop();
         }
@@ -612,7 +616,8 @@ namespace Test
             config.NetworkInterface = "blah";
             Listen(config, (int) CouchbaseLiteError.UnknownHost, CouchbaseLiteErrorType.CouchbaseLite);
         }
-        
+
+#if false
         //[Fact] //CouchbaseLiteException (POSIXDomain / 101): The requested address is not valid in its context.
         public void TestNetworkInterfaceName()
         {
@@ -630,8 +635,9 @@ namespace Test
                 }
             }
         }
+#endif
 
-        #if !NET6_0_ANDROID
+#if !NET6_0_ANDROID
         [Fact]
         public void TestMultipleListenersOnSameDatabase()
         {
@@ -641,9 +647,9 @@ namespace Test
             using (var doc1 = new MutableDocument("doc1"))
             using (var doc2 = new MutableDocument("doc2")) {
                 doc1.SetString("name", "Sam");
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
                 doc2.SetString("name", "Mary");
-                OtherDb.Save(doc2);
+                OtherDefaultCollection.Save(doc2);
             }
 
             RunReplication(
@@ -658,7 +664,7 @@ namespace Test
             );
 
             listener2.Stop();
-            OtherDb.Count.Should().Be(2);
+            OtherDefaultCollection.Count.Should().Be(2);
         }
 
         // A three way replication with one database acting as both a listener
@@ -667,12 +673,12 @@ namespace Test
         public void TestReplicatorAndListenerOnSameDatabase()
         {
             using (var doc = new MutableDocument()) {
-                OtherDb.Save(doc);
+                OtherDefaultCollection.Save(doc);
             }
 
             CreateListener();
             using (var doc1 = new MutableDocument()) {
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
             }
 
             var target = new DatabaseEndpoint(Db);
@@ -682,7 +688,7 @@ namespace Test
             Database.Delete("urlepTestDb", Directory);
             var urlepTestDb = OpenDB("urlepTestDb");
             using (var doc2 = new MutableDocument()) {
-                urlepTestDb.Save(doc2);
+                urlepTestDb.GetDefaultCollection().Save(doc2);
             }
 
             var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
@@ -695,7 +701,7 @@ namespace Test
             {
                 if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
                     args.Status.Progress.Total) {
-                    if (OtherDb.Count == 3 && Db.Count == 3 && urlepTestDb.Count == 3) {
+                    if (OtherDefaultCollection.Count == 3 && DefaultCollection.Count == 3 && urlepTestDb.GetDefaultCollection().Count == 3) {
                         ((Replicator) sender).Stop();
                     }
 
@@ -719,9 +725,9 @@ namespace Test
             token1.Remove();
             token2.Remove();
 
-            Db.Count.Should().Be(3, "because otherwise not all docs were received into Db");
-            OtherDb.Count.Should().Be(3, "because otherwise not all docs were received into OtherDb");
-            urlepTestDb.Count.Should().Be(3, "because otherwise not all docs were received into urlepTestDb");
+            DefaultCollection.Count.Should().Be(3, "because otherwise not all docs were received into Db");
+            OtherDefaultCollection.Count.Should().Be(3, "because otherwise not all docs were received into OtherDb");
+            urlepTestDb.GetDefaultCollection().Count.Should().Be(3, "because otherwise not all docs were received into urlepTestDb");
             
             repl1.Dispose();
             repl2.Dispose();
@@ -731,16 +737,16 @@ namespace Test
 
             Thread.Sleep(500); // wait for everything to stop
         }
-        #endif
+#endif
         
         [Fact]
         public void TestReadOnlyListener()
         {
             using (var doc1 = new MutableDocument()) {
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
             }
 
-            var config = new URLEndpointListenerConfiguration(OtherDb)
+            var config = new URLEndpointListenerConfiguration(new[] { OtherDefaultCollection })
             {
                 DisableTLS = true,
                 ReadOnly = true
@@ -767,7 +773,7 @@ namespace Test
         [Fact]
         public void TestReplicatorServerCertNoTLS() => CheckReplicatorServerCert(false, false);
 
-        #if !NET6_0_ANDROID
+#if !NET6_0_ANDROID
         [Fact]
         public void TestReplicatorServerCertWithTLS() => CheckReplicatorServerCert(true, true);
 
@@ -781,7 +787,7 @@ namespace Test
 
             // save a doc on listenerDB
             using (var doc = new MutableDocument()) {
-                OtherDb.Save(doc);
+                OtherDefaultCollection.Save(doc);
             }
 
             ValidateMultipleReplicationsTo(ReplicatorType.PushAndPull);
@@ -799,7 +805,7 @@ namespace Test
 
                 // save a doc on listener DB
                 using (var doc = new MutableDocument()) {
-                    OtherDb.Save(doc);
+                    OtherDefaultCollection.Save(doc);
                 }
 
                 ValidateMultipleReplicationsTo(ReplicatorType.Pull);
@@ -858,7 +864,7 @@ namespace Test
             }
         }
         
-        #endregion
+#endregion
 
         #region 8.15 Collections replication in URLEndpointListener
 
@@ -911,7 +917,7 @@ namespace Test
         }
 
         #endregion
-        #endif
+#endif
         #region Private Methods
 
         private void CollectionsPushPullReplication(bool continuous)
@@ -995,15 +1001,15 @@ namespace Test
             _listener = CreateListener(false);
             var listener2 = CreateNewListener();
 
-            _listener.Config.Database.ActiveStoppables.Count.Should().Be(2);
-            listener2.Config.Database.ActiveStoppables.Count.Should().Be(2);
+            _listener.Config.Collections[0].Database.ActiveStoppables.Count.Should().Be(2);
+            listener2.Config.Collections[0].Database.ActiveStoppables.Count.Should().Be(2);
 
             using (var doc1 = new MutableDocument("doc1"))
             using (var doc2 = new MutableDocument("doc2")) {
                 doc1.SetString("name", "Sam");
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
                 doc2.SetString("name", "Mary");
-                OtherDb.Save(doc2);
+                OtherDefaultCollection.Save(doc2);
             }
 
             var target = new DatabaseEndpoint(Db);
@@ -1044,14 +1050,14 @@ namespace Test
             var waitStoppedAssert2 = new ManualResetEventSlim();
 
             using (var doc = new MutableDocument()) {
-                OtherDb.Save(doc);
+                OtherDefaultCollection.Save(doc);
             }
 
             _listener = CreateListener();
-            _listener.Config.Database.ActiveStoppables.Count.Should().Be(1);
+            _listener.Config.Collections[0].Database.ActiveStoppables.Count.Should().Be(1);
 
             using (var doc1 = new MutableDocument()) {
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
             }
 
             var target = new DatabaseEndpoint(Db);
@@ -1061,7 +1067,7 @@ namespace Test
             Database.Delete("urlepTestDb", Directory);
             var urlepTestDb = OpenDB("urlepTestDb");
             using (var doc2 = new MutableDocument()) {
-                urlepTestDb.Save(doc2);
+                urlepTestDb.GetDefaultCollection().Save(doc2);
             }
 
             var config2 = CreateConfig(_listener.LocalEndpoint(), ReplicatorType.PushAndPull, true,
@@ -1127,11 +1133,11 @@ namespace Test
             ulong maxConnectionCount = 0UL;
             ulong maxActiveCount = 0UL;
 
-            var existingDocsInListener = _listener.Config.Database.Count;
+            var existingDocsInListener = _listener.Config.Collections[0].Count;
             existingDocsInListener.Should().Be(1);
 
             using (var doc1 = new MutableDocument()) {
-                Db.Save(doc1);
+                DefaultCollection.Save(doc1);
             }
 
             var target = _listener.LocalEndpoint();
@@ -1143,7 +1149,7 @@ namespace Test
             Database.Delete("urlepTestDb", Directory);
             var urlepTestDb = OpenDB("urlepTestDb");
             using (var doc2 = new MutableDocument()) {
-                urlepTestDb.Save(doc2);
+                urlepTestDb.GetDefaultCollection().Save(doc2);
             }
 
             var config2 = CreateConfig(target, replicatorType, true,
@@ -1160,9 +1166,9 @@ namespace Test
                 if (args.Status.Activity == ReplicatorActivityLevel.Idle && args.Status.Progress.Completed ==
                     args.Status.Progress.Total) {
 
-                    if ((replicatorType == ReplicatorType.PushAndPull && OtherDb.Count == 3
-                    && Db.Count == 3 && urlepTestDb.Count == 3) || (replicatorType == ReplicatorType.Pull && OtherDb.Count == 1
-                    && Db.Count == 2 && urlepTestDb.Count == 2)) {
+                    if ((replicatorType == ReplicatorType.PushAndPull && OtherDefaultCollection.Count == 3
+                    && DefaultCollection.Count == 3 && urlepTestDb.GetDefaultCollection().Count == 3) || (replicatorType == ReplicatorType.Pull && OtherDefaultCollection.Count == 1
+                    && DefaultCollection.Count == 2 && urlepTestDb.GetDefaultCollection().Count == 2)) {
                         ((Replicator) sender).Stop();
                     }
                 } else if (args.Status.Activity == ReplicatorActivityLevel.Stopped) {
@@ -1198,13 +1204,13 @@ namespace Test
 
             // all data are transferred to/from
             if (replicatorType == ReplicatorType.PushAndPull) {
-                _listener.Config.Database.Count.Should().Be(existingDocsInListener + 2UL);
-                Db.Count.Should().Be(existingDocsInListener + 2UL);
-                urlepTestDb.Count.Should().Be(existingDocsInListener + 2UL);
+                _listener.Config.Collections[0].Count.Should().Be(existingDocsInListener + 2UL);
+                DefaultCollection.Count.Should().Be(existingDocsInListener + 2UL);
+                urlepTestDb.GetDefaultCollection().Count.Should().Be(existingDocsInListener + 2UL);
             } else if(replicatorType == ReplicatorType.Pull) {
-                _listener.Config.Database.Count.Should().Be(1);
-                Db.Count.Should().Be(existingDocsInListener + 1UL);
-                urlepTestDb.Count.Should().Be(existingDocsInListener + 1UL);
+                _listener.Config.Collections[0].Count.Should().Be(1);
+                DefaultCollection.Count.Should().Be(existingDocsInListener + 1UL);
+                urlepTestDb.GetDefaultCollection().Count.Should().Be(existingDocsInListener + 1UL);
             }
 
             token1.Remove();
@@ -1289,7 +1295,7 @@ namespace Test
             if(stopListener)
                 _listener?.Stop();
 
-            var config = new URLEndpointListenerConfiguration(OtherDb);
+            var config = new URLEndpointListenerConfiguration(new[] { OtherDefaultCollection });
             if (useDynamicPort) {
                 config.Port = 0;
             } else {
@@ -1307,7 +1313,7 @@ namespace Test
         {
             _listener?.Stop();
 
-            var config = new URLEndpointListenerConfiguration(OtherDb);
+            var config = new URLEndpointListenerConfiguration(new[] { OtherDefaultCollection });
             //In order to get the test to pass on Linux, Port needs to be 0.
             if (useDynamicPort) {
                 config.Port = 0;
@@ -1365,7 +1371,7 @@ namespace Test
 
         private URLEndpointListener CreateNewListener(bool enableTls = false)
         {
-            var config = new URLEndpointListenerConfiguration(OtherDb) {
+            var config = new URLEndpointListenerConfiguration(new[] { OtherDefaultCollection }) {
                 Port = 0,
                 DisableTLS = !enableTls
             };

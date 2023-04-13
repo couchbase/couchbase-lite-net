@@ -77,7 +77,7 @@ namespace Test
             });
             using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
                     SelectResult.Expression(Function.Prediction(aggregateModel.Name, input)))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 Action badAction = () => q.Execute();
                 badAction.Should().Throw<CouchbaseSQLiteException>().Which.Error.Should().Be((int)SQLiteStatus.Error);
 
@@ -113,7 +113,7 @@ namespace Test
                 var input = AggregateModel.CreateInput("numbers");
                 var prediction = Function.Prediction(model, input);
                 using (var q = QueryBuilder.Select(SelectResult.Expression(prediction))
-                    .From(DataSource.Database(Db))) {
+                    .From(DataSource.Collection(DefaultCollection))) {
                     var rows = VerifyQuery(q, (n, result) =>
                     {
                         var pred = result.GetDictionary(0);
@@ -150,7 +150,7 @@ namespace Test
                 doc.SetString("name", "Daniel");
                 doc.SetInt("number", 2);
                 doc.SetDouble("max", Double.MaxValue);
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
             }
 
             var date = DateTimeOffset.Now;
@@ -194,7 +194,7 @@ namespace Test
             var model = nameof(EchoModel);
             var prediction = Function.Prediction(model, input);
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction))
-                .From(DataSource.Database(Db)))
+                .From(DataSource.Collection(DefaultCollection)))
             {
                 var rows = VerifyQuery(q, (n, result) =>
                 {
@@ -247,7 +247,7 @@ namespace Test
             });
             using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
                     SelectResult.Expression(Function.Prediction(aggregateModel.Name, input).Property("sum")).As("sum"))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (i, result) =>
                 {
                     var numbers = result.GetArray(0)?.ToList();
@@ -280,7 +280,7 @@ namespace Test
                     SelectResult.Expression(prediction.Property("min")).As("min"),
                     SelectResult.Expression(prediction.Property("max")).As("max"),
                     SelectResult.Expression(prediction.Property("avg")).As("avg"))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var rows = VerifyQuery(q, (n, result) =>
                 {
                     var numbers = result.GetArray(0);
@@ -331,7 +331,7 @@ namespace Test
             var prediction = Function.Prediction(textModel.Name, input).Property("wc");
             using (var q = QueryBuilder
                 .Select(SelectResult.Property("text"), SelectResult.Expression(prediction).As("wc"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.GreaterThan(Expression.Int(15)))) {
                 foreach (var row in q.Execute()) {
                     WriteLine(row.GetInt("wc").ToString());
@@ -356,7 +356,7 @@ namespace Test
             });
             var prediction = Function.Prediction(textModel.Name, input).Property("wc");
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction).As("wc"))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var parameters = new Parameters();
                 parameters.SetBlob("text",
                     new Blob("text/plain",
@@ -389,7 +389,7 @@ namespace Test
             }
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 q.Invoking(x => x.Execute()).Should().Throw<CouchbaseSQLiteException>()
                     .Where(x => x.BaseError == SQLiteStatus.Error);
             }
@@ -399,7 +399,7 @@ namespace Test
             prediction = Function.Prediction(model, input);
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 q.Invoking(x => x.Execute()).Should().Throw<ArgumentException>();
             }
         }
@@ -422,7 +422,7 @@ namespace Test
                     SelectResult.Expression(prediction.Property("min")).As("min"),
                     SelectResult.Expression(prediction.Property("max")).As("max"),
                     SelectResult.Expression(prediction.Property("avg")).As("avg"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
                 var rows = VerifyQuery(q, (n, result) =>
                 {
@@ -454,7 +454,7 @@ namespace Test
             var prediction = Function.Prediction(model, input);
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction.Property("sum")).As("sum"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("sum").GreaterThan(Expression.Int(1)))
                 .OrderBy(Ordering.Expression(prediction.Property("sum")).Descending())) {
                 var rows = VerifyQuery(q, (n, result) =>
@@ -473,7 +473,7 @@ namespace Test
 
             using (var doc = new MutableDocument()) {
                 doc.SetString("text", "Knox on fox in socks in box.  Socks on Knox and Knox in box.");
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
             }
 
             var aggregateModel = new AggregateModel();
@@ -485,7 +485,7 @@ namespace Test
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction),
                     SelectResult.Expression(prediction.Property("sum")))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var rows = VerifyQuery(q, (n, result) =>
                 {
                     if (n == 1) {
@@ -501,8 +501,7 @@ namespace Test
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction),
                     SelectResult.Expression(prediction.Property("sum")))
-                .From(DataSource.Database(Db))
-                //.Where(prediction.NotNullOrMissing())) { //deprecated
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.IsValued())) {
                 var explain = q.Explain();
                 var rows = VerifyQuery(q, (n, result) =>
@@ -526,11 +525,11 @@ namespace Test
             var sumPrediction = Function.Prediction(aggregateModel.Name, input).Property("sum");
 
             var index = IndexBuilder.ValueIndex(ValueIndexItem.Expression(sumPrediction));
-            Db.CreateIndex("SumIndex", index);
+            DefaultCollection.CreateIndex("SumIndex", index);
 
             using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
                     SelectResult.Expression(sumPrediction))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(sumPrediction.EqualTo(Expression.Int(15)))) {
                 q.Explain().IndexOf("USING INDEX SumIndex").Should()
                     .NotBe(-1, "because the query should make use of the index");
@@ -560,13 +559,13 @@ namespace Test
             var avgPrediction = Function.Prediction(aggregateModel.Name, input).Property("avg");
 
             var sumIndex = IndexBuilder.ValueIndex(ValueIndexItem.Expression(sumPrediction));
-            Db.CreateIndex("SumIndex", sumIndex);
+            DefaultCollection.CreateIndex("SumIndex", sumIndex);
             var avgIndex = IndexBuilder.ValueIndex(ValueIndexItem.Expression(avgPrediction));
-            Db.CreateIndex("AvgIndex", avgIndex);
+            DefaultCollection.CreateIndex("AvgIndex", avgIndex);
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(sumPrediction).As("s"),
                     SelectResult.Expression(avgPrediction).As("a"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(sumPrediction.LessThanOrEqualTo(Expression.Int(15)).Or(avgPrediction.EqualTo(Expression.Int(8))))) {
                 var explain = q.Explain();
                 explain.IndexOf("USING INDEX SumIndex").Should().NotBe(-1, "because the sum index should be used");
@@ -597,13 +596,13 @@ namespace Test
 
             var index = IndexBuilder.ValueIndex(ValueIndexItem.Expression(sumPrediction),
                 ValueIndexItem.Expression(avgPrediction));
-            Db.CreateIndex("SumAvgIndex", index);
+            DefaultCollection.CreateIndex("SumAvgIndex", index);
 
             aggregateModel.AllowCalls = false;
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(sumPrediction).As("s"),
                     SelectResult.Expression(avgPrediction).As("a"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(sumPrediction.EqualTo(Expression.Int(15)).And(avgPrediction.EqualTo(Expression.Int(3))))) {
                 var explain = q.Explain();
                 explain.IndexOf("USING INDEX SumAvgIndex").Should().NotBe(-1, "because the sum index should be used");
@@ -632,13 +631,13 @@ namespace Test
             var prediction = Function.Prediction(model, input);
 
             var index = IndexBuilder.PredictiveIndex(model, input, null);
-            Db.CreateIndex("AggIndex", index);
+            DefaultCollection.CreateIndex("AggIndex", index);
 
             aggregateModel.AllowCalls = false;
 
             using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
                     SelectResult.Expression(prediction.Property("sum")).As("sum"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
                 var explain = q.Explain();
                 explain.Contains("USING INDEX AggIndex").Should()
@@ -665,13 +664,13 @@ namespace Test
             var prediction = Function.Prediction(model, input);
 
             var index = IndexBuilder.PredictiveIndex(model, input, "sum");
-            Db.CreateIndex("SumIndex", index);
+            DefaultCollection.CreateIndex("SumIndex", index);
 
             aggregateModel.AllowCalls = false;
 
             using (var q = QueryBuilder.Select(SelectResult.Property("numbers"),
                     SelectResult.Expression(prediction.Property("sum")).As("sum"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
                 var explain = q.Explain();
                 explain.Contains("USING INDEX SumIndex").Should().BeTrue();
@@ -697,16 +696,16 @@ namespace Test
             var prediction = Function.Prediction(model, input);
 
             var sumIndex = IndexBuilder.PredictiveIndex(model, input, "sum");
-            Db.CreateIndex("SumIndex", sumIndex);
+            DefaultCollection.CreateIndex("SumIndex", sumIndex);
 
             var avgIndex = IndexBuilder.PredictiveIndex(model, input, "avg");
-            Db.CreateIndex("AvgIndex", avgIndex);
+            DefaultCollection.CreateIndex("AvgIndex", avgIndex);
 
             aggregateModel.AllowCalls = false;
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction.Property("sum")).As("sum"),
                     SelectResult.Expression(prediction.Property("avg")).As("avg"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("sum").LessThanOrEqualTo(Expression.Int(15)).Or(
                     prediction.Property("avg").EqualTo(Expression.Int(8))))) {
                 var explain = q.Explain();
@@ -737,13 +736,13 @@ namespace Test
             var prediction = Function.Prediction(model, input);
 
             var sumIndex = IndexBuilder.PredictiveIndex(model, input, "sum", "avg");
-            Db.CreateIndex("SumAvgIndex", sumIndex);
+            DefaultCollection.CreateIndex("SumAvgIndex", sumIndex);
 
             aggregateModel.AllowCalls = false;
 
             using (var q = QueryBuilder.Select(SelectResult.Expression(prediction.Property("sum")).As("sum"),
                     SelectResult.Expression(prediction.Property("avg")).As("avg"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("sum").LessThanOrEqualTo(Expression.Int(15)).And(
                     prediction.Property("avg").EqualTo(Expression.Int(3))))) {
                 var explain = q.Explain();
@@ -775,12 +774,12 @@ namespace Test
             var prediction = Function.Prediction(model, input);
 
             var sumIndex = IndexBuilder.PredictiveIndex(model, input, "sum");
-            Db.CreateIndex("SumIndex", sumIndex);
+            DefaultCollection.CreateIndex("SumIndex", sumIndex);
 
             aggregateModel.AllowCalls = false;
 
             using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
                 var explain = q.Explain();
                 explain.Contains("USING INDEX SumIndex").Should().BeTrue();
@@ -791,11 +790,11 @@ namespace Test
                 aggregateModel.NumberOfCalls.Should().Be(2);
             }
 
-            Db.DeleteIndex("SumIndex");
+            DefaultCollection.DeleteIndex("SumIndex");
 
             aggregateModel.Reset();
             using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
                 var explain = q.Explain();
                 explain.Contains("USING INDEX SumIndex").Should().BeFalse();
@@ -821,16 +820,16 @@ namespace Test
             var prediction = Function.Prediction(model, input);
 
             var aggIndex = IndexBuilder.PredictiveIndex(model, input, null);
-            Db.CreateIndex("AggIndex", aggIndex);
+            DefaultCollection.CreateIndex("AggIndex", aggIndex);
 
             var sumIndex = IndexBuilder.PredictiveIndex(model, input, "sum");
-            Db.CreateIndex("SumIndex", sumIndex);
+            DefaultCollection.CreateIndex("SumIndex", sumIndex);
 
             var avgIndex = IndexBuilder.PredictiveIndex(model, input, "avg");
-            Db.CreateIndex("AvgIndex", avgIndex);
+            DefaultCollection.CreateIndex("AvgIndex", avgIndex);
 
             using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("sum").LessThanOrEqualTo(Expression.Int(15)).Or(
                     prediction.Property("avg").EqualTo(Expression.Int(8))))) {
                 var explain = q.Explain();
@@ -843,7 +842,7 @@ namespace Test
                 aggregateModel.NumberOfCalls.Should().Be(2);
             }
 
-            Db.DeleteIndex("SumIndex");
+            DefaultCollection.DeleteIndex("SumIndex");
 
             // Note: With only one index, the SQLite optimizer does not utilize the index
             // when using an OR expression.  So test each query individually.
@@ -852,7 +851,7 @@ namespace Test
             aggregateModel.AllowCalls = false;
 
             using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("sum").EqualTo(Expression.Int(15)))) {
                 var explain = q.Explain();
                 explain.Contains("USING INDEX SumIndex").Should().BeFalse();
@@ -866,7 +865,7 @@ namespace Test
             aggregateModel.Reset();
             aggregateModel.AllowCalls = false;
             using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
-                .From(DataSource.Database(Db))
+                .From(DataSource.Collection(DefaultCollection))
                 .Where(prediction.Property("avg").EqualTo(Expression.Int(8)))) {
                 var explain = q.Explain();
                 explain.Contains("USING INDEX AvgIndex").Should().BeTrue();
@@ -877,14 +876,14 @@ namespace Test
                 aggregateModel.NumberOfCalls.Should().Be(0);
             }
 
-            Db.DeleteIndex("AvgIndex");
+            DefaultCollection.DeleteIndex("AvgIndex");
 
             for (int i = 0; i < 2; i++) {
                 aggregateModel.Reset();
                 aggregateModel.AllowCalls = i == 1;
 
                 using (var q = QueryBuilder.Select(SelectResult.Property("numbers"))
-                    .From(DataSource.Database(Db))
+                    .From(DataSource.Collection(DefaultCollection))
                     .Where(prediction.Property("avg").EqualTo(Expression.Int(8)))) {
                     var explain = q.Explain();
                     explain.Contains("USING INDEX SumIndex").Should().BeFalse();
@@ -900,7 +899,7 @@ namespace Test
                     }
                 }
 
-                Db.DeleteIndex("AggIndex");
+                DefaultCollection.DeleteIndex("AggIndex");
             }
         }
 
@@ -952,7 +951,7 @@ namespace Test
             }
             
             using (var q = QueryBuilder.Select(SelectResult.Expression(distance), SelectResult.Property("distance"))
-                .From(DataSource.Database(Db))) {
+                .From(DataSource.Collection(DefaultCollection))) {
                 var numRows = VerifyQuery(q, (n, r) =>
                 {
                     r.GetValue(0).Should().Be(r.GetValue(1));

@@ -53,9 +53,9 @@ namespace Test
 
             var config = new DatabaseConfiguration{ Directory = Directory };
             using(var db = new Database("android-sqlite", config)) {
-                db.Count.Should().Be(2);
+                db.GetDefaultCollection().Count.Should().Be(2);
                 for (int i = 1; i < 2; i++) {
-                    var doc = db.GetDocument($"doc{i}");
+                    var doc = db.GetDefaultCollection().GetDocument($"doc{i}");
                     doc.Should().NotBeNull();
                     doc.GetString("key").Should().Be(i.ToString());
 
@@ -82,9 +82,9 @@ namespace Test
 
             var config = new DatabaseConfiguration { Directory = Directory };
             using (var db = new Database("android-sqlite", config)) {
-                db.Count.Should().Be(2);
+                db.GetDefaultCollection().Count.Should().Be(2);
                 for (int i = 1; i < 2; i++) {
-                    var doc = db.GetDocument($"doc{i}");
+                    var doc = db.GetDefaultCollection().GetDocument($"doc{i}");
                     doc.Should().NotBeNull();
                     doc.GetString("key").Should().Be(i.ToString());
                 }
@@ -103,9 +103,9 @@ namespace Test
 
             var config = new DatabaseConfiguration { Directory = Directory };
             using (var db = new Database("android-sqlite", config)) {
-                db.Count.Should().Be(2);
+                db.GetDefaultCollection().Count.Should().Be(2);
                 for (int i = 1; i < 2; i++) {
-                    var doc = db.GetDocument($"doc{i}");
+                    var doc = db.GetDefaultCollection().GetDocument($"doc{i}");
                     doc.Should().NotBeNull();
                     doc.GetString("key").Should().Be(i.ToString());
                     

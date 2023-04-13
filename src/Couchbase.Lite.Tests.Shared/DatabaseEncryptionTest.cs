@@ -59,7 +59,7 @@ namespace Test
             using (var seekrit = OpenSeekrit(null)) {
                 using (var doc = new MutableDocument(new Dictionary<string, object>
                     { ["answer"] = 42 })) {
-                    seekrit.Save(doc);
+                    seekrit.GetDefaultCollection().Save(doc);
                 }
             }
 
@@ -67,7 +67,7 @@ namespace Test
                 .Be(CouchbaseLiteError.UnreadableDatabase);
 
             using (var seekrit = OpenSeekrit(null)) {
-                seekrit.Count.Should().Be(1UL);
+                seekrit.GetDefaultCollection().Count.Should().Be(1UL);
             }
         }
 
@@ -78,7 +78,7 @@ namespace Test
             using (var seekrit = OpenSeekrit("letmein")) {
                 using (var doc = new MutableDocument(new Dictionary<string, object>
                     { ["answer"] = 42 })) {
-                    seekrit.Save(doc);
+                    seekrit.GetDefaultCollection().Save(doc);
                 }
             }
 
@@ -88,7 +88,7 @@ namespace Test
                 .Be(CouchbaseLiteError.UnreadableDatabase);
 
             using (var seekrit = OpenSeekrit("letmein")) {
-                seekrit.Count.Should().Be(1UL);
+                seekrit.GetDefaultCollection().Count.Should().Be(1UL);
             }
         }
 
@@ -102,12 +102,12 @@ namespace Test
 
             // Recreate
             using (var seekrit = OpenSeekrit(null)) {
-                seekrit.Count.Should().Be(0UL);
+                seekrit.GetDefaultCollection().Count.Should().Be(0UL);
             }
 
             // Reopen
             using (var seekrit = OpenSeekrit(null)) {
-                seekrit.Count.Should().Be(0UL);
+                seekrit.GetDefaultCollection().Count.Should().Be(0UL);
             }
 
             this.Invoking(t => OpenSeekrit("letmein")).Should().Throw<CouchbaseLiteException>().Which.Error.Should()
@@ -119,21 +119,20 @@ namespace Test
         {
             Database.Delete("seekrit", Directory);
             using (var seekrit = OpenSeekrit("letmein")) {
-
                 using (var doc = new MutableDocument(new Dictionary<string, object>
                     { ["answer"] = 42 })) {
-                    seekrit.Save(doc);
+                    seekrit.GetDefaultCollection().Save(doc);
                     doc.SetInt("answer", 84);
 
                     seekrit.PerformMaintenance(MaintenanceType.Compact);
 
                     doc.SetInt("answer", 85);
-                    seekrit.Save(doc);
+                    seekrit.GetDefaultCollection().Save(doc);
                 }
             }
 
             using (var seekrit = OpenSeekrit("letmein")) {
-                seekrit.Count.Should().Be(1UL);
+                seekrit.GetDefaultCollection().Count.Should().Be(1UL);
             }
         }
 
@@ -171,9 +170,9 @@ namespace Test
 
             using (var db1 = new Database("master3", config)) {
                 db1.ChangeEncryptionKey(new EncryptionKey("password")); // setting encryption key on the database file, the database file didn't exist yet in this case
-                using (MutableDocument saveDoc = db1.GetDocument("my-doc")?.ToMutable() ?? new MutableDocument("my-doc")) {
+                using (MutableDocument saveDoc = db1.GetDefaultCollection().GetDocument("my-doc")?.ToMutable() ?? new MutableDocument("my-doc")) {
                     saveDoc.SetString("prop", "value");
-                    db1.Save(saveDoc);
+                    db1.GetDefaultCollection().Save(saveDoc);
                 }
             }
         }
@@ -197,7 +196,7 @@ namespace Test
                     for (var i = 0; i < 100; i++) {
                         using (var doc = new MutableDocument(new Dictionary<string, object>
                             { ["seq"] = i })) {
-                            seekrit.Save(doc);
+                            seekrit.GetDefaultCollection().Save(doc);
                         }
                     }
                 });
@@ -208,7 +207,7 @@ namespace Test
             
 
             using(var seekrit = OpenSeekrit(newPass)) {
-                using (var doc = seekrit.GetDocument("att")) {
+                using (var doc = seekrit.GetDefaultCollection().GetDocument("att")) {
                     var blob = doc.GetBlob("blob");
                     blob.Digest.Should().NotBeNull();
                     var content = Encoding.UTF8.GetString(blob.Content);
@@ -216,7 +215,7 @@ namespace Test
                 }
 
                 using (var q = QueryBuilder.Select(SelectResult.Property("seq"))
-                    .From(DataSource.Database(seekrit))
+                    .From(DataSource.Collection(seekrit.GetDefaultCollection()))
                     //.Where(Expression.Property("seq").NotNullOrMissing()) //deprecated
                     .Where(Expression.Property("seq").IsValued())
                     .OrderBy(Ordering.Property("seq"))) {
@@ -239,7 +238,7 @@ namespace Test
 
             using (var doc = new MutableDocument("att")) {
                 doc.SetBlob("blob", blob);
-                seekrit.Save(doc);
+                seekrit.GetDefaultCollection().Save(doc);
 
                 blob = doc.GetBlob("blob");
                 blob.Digest.Should().NotBeNull();
@@ -261,7 +260,7 @@ namespace Test
                 }
             }
 
-            using (var savedDoc = seekrit.GetDocument("att")) {
+            using (var savedDoc = seekrit.GetDefaultCollection().GetDocument("att")) {
                 blob = savedDoc.GetBlob("blob");
                 blob.Digest.Should().NotBeNull();
                 var content = Encoding.UTF8.GetString(blob.Content);

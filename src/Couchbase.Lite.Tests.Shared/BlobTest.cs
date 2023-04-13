@@ -64,8 +64,8 @@ namespace Test
             var blob = new Blob("image/png", bytes);
             using (var mDoc = new MutableDocument("doc1")) {
                 mDoc.SetBlob("blob", blob);
-                Db.Save(mDoc);
-                using (var doc = Db.GetDocument(mDoc.Id)) {
+                DefaultCollection.Save(mDoc);
+                using (var doc = DefaultCollection.GetDocument(mDoc.Id)) {
                     var savedBlob = doc.GetBlob("blob");
                     savedBlob.Should().NotBeNull();
                     savedBlob.ContentType.Should().Be("image/png");
@@ -82,8 +82,8 @@ namespace Test
             var blob = new Blob("application/json", bytes);
             using (var mDoc = new MutableDocument("doc1")) {
                 mDoc.SetBlob("blob", blob);
-                Db.Save(mDoc);
-                using (var doc = Db.GetDocument(mDoc.Id)) {
+                DefaultCollection.Save(mDoc);
+                using (var doc = DefaultCollection.GetDocument(mDoc.Id)) {
                     var savedBlob = doc.GetBlob("blob");
                     savedBlob.Should().NotBeNull();
                     savedBlob.ContentType.Should().Be("application/json");
@@ -97,7 +97,6 @@ namespace Test
         {
             byte[] bytes = GetFileByteArray("iTunesMusicLibrary.json", typeof(BlobTest));
             C4BlobKey key;
-            long tmp;
             using (var stream = new BlobWriteStream(Db.BlobStore)) {
                 stream.CanSeek.Should().BeFalse();
                 stream.Invoking(s => s.Position = 10).Should().Throw<NotSupportedException>();
@@ -202,10 +201,10 @@ namespace Test
             var blob = ArrayTestBlob();
             using (var md = new MutableDocument("doc1")) {
                 md.SetBlob("blob", blob);
-                Db.Save(md);
+                DefaultCollection.Save(md);
             }
 
-            using(var d = Db.GetDocument("doc1")) {
+            using(var d = DefaultCollection.GetDocument("doc1")) {
                 var b = d.GetBlob("blob");
                 var json = b.ToJSON();
                 var blobFromJson = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
@@ -247,10 +246,10 @@ namespace Test
 
             using (var cbDoc = new MutableDocument("doc1")) {
                 cbDoc.SetValue("dict", mdictFromJObj);
-                Db.Save(cbDoc);
+                DefaultCollection.Save(cbDoc);
             }
 
-            var doc = Db.GetDocument("doc1").GetValue("dict");
+            var doc = DefaultCollection.GetDocument("doc1").GetValue("dict");
 
             doc.GetType().Should().Be(typeof(Blob));
             var newJson = ((Blob) doc).ToJSON();
@@ -311,10 +310,10 @@ namespace Test
             var md = new MutableDictionaryObject(dicJson);
             using (var mdoc = new MutableDocument("doc1")) {
                 mdoc.SetDictionary("dict", md);
-                Db.Save(mdoc);
+                DefaultCollection.Save(mdoc);
             }
 
-            var dic = Db.GetDocument("doc1").GetDictionary("dict");
+            var dic = DefaultCollection.GetDocument("doc1").GetDictionary("dict");
 
             var blob1 = dic.GetBlob("blob");
             blob1.Content.Should().NotBeNull();
