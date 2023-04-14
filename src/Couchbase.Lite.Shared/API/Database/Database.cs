@@ -142,7 +142,6 @@ namespace Couchbase.Lite
         private ManualResetEventSlim _closeCondition = new ManualResetEventSlim(true);
 
         //Pre 3.1 Database's Collection
-        private bool _defaultCollectionIsDeleted = false;
         private Collection _defaultCollection = null;
         private Scope _defaultScope = null;
 
@@ -268,11 +267,12 @@ namespace Couchbase.Lite
             }
         }
 
+        // TODO: This is redundant now, remove it in master (default collection cannot be deleted)
         internal Collection DefaultCollection
         {
             get {
                 GetDefaultCollection();
-                if (_defaultCollectionIsDeleted || ThreadSafety.DoLocked(() => _defaultCollection?.IsClosed) == true)
+                if (ThreadSafety.DoLocked(() => _defaultCollection?.IsClosed) == true)
                     throw new InvalidOperationException($"Default Collection is deleted from the database {ToString()}.");
 
                 return _defaultCollection;
@@ -374,7 +374,7 @@ namespace Couchbase.Lite
         #region Public Methods - Scopes and Collections Management
 
         /// <summary>
-        /// Get the default scope. 
+        /// Get the default scope.  This is a cached object so there is no need to dispose it.
         /// </summary>
         /// <returns>default scope</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
@@ -395,7 +395,8 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Get the default collection.
+        /// Get the default collection.  This is a cached object so there is no need to dispose it.  If you do,
+        /// a new one will be created on the next call.
         /// </summary>
         /// <returns>default collection</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
@@ -406,21 +407,16 @@ namespace Couchbase.Lite
             return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                if (_defaultCollection == null && !_defaultCollectionIsDeleted) {
+                if (_defaultCollection == null || !_defaultCollection.IsValid) {
                     var c4coll = (C4Collection*)LiteCoreBridge.Check(err =>
                     {
                         return Native.c4db_getDefaultCollection(c4db, err);
                     });
 
-                    if (c4coll != null) {
-                        _defaultCollection = new Collection(this, _defaultCollectionName, GetDefaultScope(), c4coll);
-                    } else {
-                        _defaultCollectionIsDeleted = true;
-                        WriteLog.To.Database.W(Tag, $"The none-recoverable default collection is now deleted from database {ToString()}.");
-                    }
+                    _defaultCollection = new Collection(this, _defaultCollectionName, GetDefaultScope(), c4coll);
                 }
-                
-                return _defaultCollection?.IsValid == true ? _defaultCollection : null;
+
+                return _defaultCollection;
             });
         }
 

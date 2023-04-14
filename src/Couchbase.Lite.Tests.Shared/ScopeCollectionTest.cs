@@ -939,6 +939,29 @@ namespace Test
 
         #endregion
 
+        [Fact]
+        public void TestDisposingDefaultScopeCollection()
+        {
+            // This is advised against, but need to make sure nothing too bad happens.
+            // Previously, if the caller disposed the result of GetDefaultCollection, 
+            // further calls returned null with no recourse other than re-opening the db
+            var scope = Db.GetDefaultScope();
+            var collection = scope.CreateCollection("foo");
+            var defaultCollection = Db.GetDefaultCollection();
+
+            scope.Dispose();
+            collection.Dispose();
+            defaultCollection.Dispose();
+
+            scope = Db.GetDefaultScope();
+            collection = scope.GetCollection("foo");
+            collection.IsValid.Should().BeTrue("because it still exists in LiteCore");
+            defaultCollection = Db.GetDefaultCollection();
+            defaultCollection.Should().NotBeNull("because a new object should be created");
+            defaultCollection.IsValid.Should().BeTrue("because the new created object should be valid");
+            defaultCollection.Count.Should().Be(0);
+        }
+
         #region Private Methods
 
         private void TestGetScopesOrCollections(Action dbDispose)
