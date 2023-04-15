@@ -32,11 +32,11 @@
     <file target="lib\net6.0-ios14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net6.0-ios14.2\Couchbase.Lite.Support.iOS.dll" />
     <file target="lib\net6.0-ios14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net6.0-ios14.2\Couchbase.Lite.Support.iOS.pdb" />
     <file target="lib\net6.0-ios14.2\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\net6.0-ios14.2\Couchbase.Lite.Support.iOS.xml" />
-    <file target="runtimes/ios/native/LiteCore.xcframework.zip" src="vendor\couchbase-lite-core\build_cmake\ios\couchbase-lite-core-ios.zip" />
+    <file target="runtimes/ios/native/LiteCore.xcframework.zip" src="vendor\prebuilt_core\ios\couchbase-lite-core-ios.zip" />
     <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\xamarin.ios10\Couchbase.Lite.Support.iOS.dll" />
     <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\xamarin.ios10\Couchbase.Lite.Support.iOS.pdb" />
     <file target="lib\xamarinios\" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\xamarin.ios10\Couchbase.Lite.Support.iOS.xml" />
     <file target="build\xamarinios\Couchbase.Lite.Support.iOS.targets" src="src\Couchbase.Lite.Support.Apple\iOS\bin\Packaging\xamarin.ios10\ios.targets" />
-    <file target="build\xamarinios\LiteCore.xcframework\" src="src\Couchbase.Lite.Support.Apple\iOS\Native\LiteCore.xcframework\" />
+    <file target="build\xamarinios\LiteCore.xcframework\" src="vendor\prebuilt_core\ios\LiteCore.xcframework\" />
   </files>
 </package>
