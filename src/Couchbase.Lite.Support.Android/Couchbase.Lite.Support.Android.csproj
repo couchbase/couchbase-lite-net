@@ -70,18 +70,10 @@
     </None>
   </ItemGroup>
   <ItemGroup Condition=" '$(JUST_CSHARP)' == '' ">
-    <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\x86\libLiteCore.so">
-      <Link>x86\libLiteCore.so</Link>
-    </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\x86_64\libLiteCore.so">
-      <Link>x86_64\libLiteCore.so</Link>
-    </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\armeabi-v7a\libLiteCore.so">
-      <Link>armeabi-v7a\libLiteCore.so</Link>
-    </EmbeddedNativeLibrary>
-    <EmbeddedNativeLibrary Include="..\..\vendor\couchbase-lite-core\build_cmake\android\lib\arm64-v8a\libLiteCore.so">
-      <Link>arm64-v8a\libLiteCore.so</Link>
-    </EmbeddedNativeLibrary>
+    <AndroidNativeLibrary Include="..\..\vendor\prebuilt_core\android\x86\lib\libLiteCore.so" Abi="x86"/>
+    <AndroidNativeLibrary Include="..\..\vendor\prebuilt_core\android\x86_64\lib\libLiteCore.so" Abi="x86_64" />
+    <AndroidNativeLibrary Include="..\..\vendor\prebuilt_core\android\armeabi-v7a\lib\libLiteCore.so" Abi="armeabi-v7a" />
+    <AndroidNativeLibrary Include="..\..\vendor\prebuilt_core\android\arm64-v8a\lib\libLiteCore.so" Abi="arm64-v8a" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Couchbase.Lite\Properties\DynamicAssemblyInfo.tt">

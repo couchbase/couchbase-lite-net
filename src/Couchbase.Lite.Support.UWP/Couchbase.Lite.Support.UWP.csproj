@@ -93,37 +93,37 @@
     <Content Include="Properties\Couchbase.Lite.Support.UWP.rd.xml" />
   </ItemGroup>
   <ItemGroup Condition="$(Configuration.Contains('Packaging'))">
-    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x64_store\RelWithDebInfo\LiteCore.dll">
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\x86_64-store\bin\LiteCore.dll">
       <Link>x64\LiteCore.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x64_store\RelWithDebInfo\LiteCore.pdb">
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\x86_64-store\bin\LiteCore.pdb">
       <Link>x64\LiteCore.pdb</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\arm64_store\RelWithDebInfo\LiteCore.dll">
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\arm64-store\bin\LiteCore.dll">
       <Link>arm64\LiteCore.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\arm64_store\RelWithDebInfo\LiteCore.pdb">
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\arm64-store\bin\LiteCore.pdb">
       <Link>arm64\LiteCore.pdb</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <ItemGroup Condition="!$(Configuration.Contains('Packaging'))">
-    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x64_store\RelWithDebInfo\LiteCore.dll">
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\x86_64-store\bin\LiteCore.dll">
       <Link>LiteCore.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\x64_store\RelWithDebInfo\LiteCore.pdb">
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\x86_64-store\bin\LiteCore.pdb">
       <Link>LiteCore.pdb</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\arm64_store\RelWithDebInfo\LiteCore.dll">
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\arm64-store\bin\LiteCore.dll">
       <Link>LiteCore.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\build_cmake\arm64_store\RelWithDebInfo\LiteCore.pdb">
+    <Content Include="$(MSBuildThisFileDirectory)..\..\vendor\prebuilt_core\windows\arm64-store\bin\LiteCore.pdb">
       <Link>LiteCore.pdb</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
