@@ -49,8 +49,5 @@
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)C\tests\data\*.*">
       <LogicalName>%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\..\vendor\couchbase-lite-core\C\tests\data\iTunesMusicLibrary.json">
-      <LogicalName>iTunesMusicLibrary.json</LogicalName>
-    </EmbeddedResource>
   </ItemGroup>
 </Project>
