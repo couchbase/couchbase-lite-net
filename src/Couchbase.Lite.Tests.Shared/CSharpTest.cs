@@ -646,10 +646,10 @@ Transfer-Encoding: chunked";
                 var dict = new MutableDictionaryObject();
                 dict.SetValue("high_value", UInt64.MaxValue);
                 doc.SetDictionary("nested", dict);
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
             }
 
-            using (var doc = Db.GetDocument("test_ulong")) {
+            using (var doc = DefaultCollection.GetDocument("test_ulong")) {
                 doc["nested"]["high_value"].Value.Should().Be(UInt64.MaxValue);
             }
         }

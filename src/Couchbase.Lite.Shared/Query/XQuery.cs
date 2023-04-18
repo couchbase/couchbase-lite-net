@@ -96,12 +96,11 @@ namespace Couchbase.Lite.Internal.Query
 
         public override unsafe IResultSet Execute()
         {
-            if (Database == null && Collection == null) {
+            if (Collection == null) {
                 throw new InvalidOperationException(CouchbaseLiteErrorMessage.InvalidQueryDBNull);
             }
 
-            if (Database == null)
-                Database = Collection.Database;
+            Database = Collection.Database;
 
             var fromImpl = FromImpl;
             if (SelectImpl == null || fromImpl == null) {

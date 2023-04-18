@@ -102,7 +102,7 @@ namespace Test
             var doc = new MutableDocument("doc1");
             doc.SetArray("array", array);
             SaveDocument(doc);
-            doc = Db.GetDocument(doc.Id).ToMutable();
+            doc = DefaultCollection.GetDocument(doc.Id).ToMutable();
 
             var gotArray = doc.GetArray("array");
             data = new[] {"4", "5", "6"};
@@ -237,7 +237,7 @@ namespace Test
 
             var doc = new MutableDocument("doc1");
             doc.SetArray("array", array);
-            Db.Save(doc);
+            DefaultCollection.Save(doc);
             var gotArray = doc.GetArray("array");
 
             var data = CreateArrayOfAllTypes();
@@ -717,7 +717,7 @@ namespace Test
                 mDoc.SetArray("array", mArray);
 
                 SaveDocument(mDoc);
-                using (var doc = Db.GetDocument(mDoc.Id)) {
+                using (var doc = DefaultCollection.GetDocument(mDoc.Id)) {
                     var array = doc.GetArray("array");
                     array.Should().NotBeNull();
                     array.GetArray(0).Should().BeNull();
@@ -1384,10 +1384,10 @@ namespace Test
 
             using (var doc = new MutableDocument("doc1")) {
                 doc.SetArray("array", ma);
-                Db.Save(doc);
+                DefaultCollection.Save(doc);
             }
 
-            using (var savedDoc = Db.GetDocument("doc1")) {
+            using (var savedDoc = DefaultCollection.GetDocument("doc1")) {
                 var savedArray = savedDoc.GetArray("array");
                 var json = savedArray.ToJSON();
                 var jList = DataOps.ParseTo<List<object>>(json);
@@ -1468,7 +1468,6 @@ namespace Test
                         break;
                     default:
                         throw new Exception("This should not happen because all test input values are CBL supported values.");
-                        break;
                 }
             }
         }
@@ -1550,8 +1549,8 @@ namespace Test
             eval(array);
 
             doc.SetArray(key, array);
-            Db.Save(doc);
-            var savedDoc = Db.GetDocument(doc.Id);
+            DefaultCollection.Save(doc);
+            var savedDoc = DefaultCollection.GetDocument(doc.Id);
 
             var savedArray = savedDoc.GetArray("array");
             eval(savedArray);

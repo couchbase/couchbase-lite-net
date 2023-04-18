@@ -54,7 +54,7 @@ namespace Test
         public void TestDatabaseChange()
         {
             var wa = new WaitAssert();
-            Db.AddChangeListener(null, (sender, args) =>
+            DefaultCollection.AddChangeListener(null, (sender, args) =>
             {
                 var docIDs = args.DocumentIDs;
                 wa.RunAssert(() =>
@@ -69,7 +69,7 @@ namespace Test
                 for (uint i = 0; i < 10; i++) {
                     var doc = new MutableDocument($"doc-{i}");
                     doc.SetString("type", "demo");
-                    Db.Save(doc);
+                    DefaultCollection.Save(doc);
                 }
             });
 
@@ -115,9 +115,9 @@ namespace Test
             doc2.SetString("name", "Daniel");
             SaveDocument(doc2);
 
-            Db.AddDocumentChangeListener("doc1", DocumentChanged);
-            Db.AddDocumentChangeListener("doc2", DocumentChanged);
-            Db.AddDocumentChangeListener("doc3", DocumentChanged);
+            DefaultCollection.AddDocumentChangeListener("doc1", DocumentChanged);
+            DefaultCollection.AddDocumentChangeListener("doc2", DocumentChanged);
+            DefaultCollection.AddDocumentChangeListener("doc3", DocumentChanged);
 
             _expectedDocumentChanges = new HashSet<string> {
                 "doc1",
@@ -127,13 +127,13 @@ namespace Test
             _wa = new WaitAssert();
 
             doc1.SetString("name", "Scott Tiger");
-            Db.Save(doc1);
+            DefaultCollection.Save(doc1);
 
-            Db.Delete(doc2);
+            DefaultCollection.Delete(doc2);
 
             var doc3 = new MutableDocument("doc3");
             doc3.SetString("name", "Jack");
-            Db.Save(doc3);
+            DefaultCollection.Save(doc3);
 
             _wa.WaitForResult(TimeSpan.FromSeconds(5));
         }
@@ -209,18 +209,18 @@ namespace Test
             doc1.SetString("name", "Scott");
             SaveDocument(doc1);
 
-            Db.AddDocumentChangeListener("doc1", DocumentChanged);
-            Db.AddDocumentChangeListener("doc1", DocumentChanged);
-            Db.AddDocumentChangeListener("doc1", DocumentChanged);
-            Db.AddDocumentChangeListener("doc1", DocumentChanged);
-            Db.AddDocumentChangeListener("doc1", DocumentChanged);
+            DefaultCollection.AddDocumentChangeListener("doc1", DocumentChanged);
+            DefaultCollection.AddDocumentChangeListener("doc1", DocumentChanged);
+            DefaultCollection.AddDocumentChangeListener("doc1", DocumentChanged);
+            DefaultCollection.AddDocumentChangeListener("doc1", DocumentChanged);
+            DefaultCollection.AddDocumentChangeListener("doc1", DocumentChanged);
 
             _wa = new WaitAssert();
             _expectedDocumentChanges = new HashSet<string> {
                 "doc1"
             };
             doc1.SetString("name", "Scott Tiger");
-            Db.Save(doc1);
+            DefaultCollection.Save(doc1);
 
             await Task.Delay(500);
             _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
@@ -257,9 +257,9 @@ namespace Test
         {
             var doc1 = new MutableDocument("doc1");
             doc1.SetString("name", "Scott");
-            Db.Save(doc1);
+            DefaultCollection.Save(doc1);
 
-            var token = Db.AddDocumentChangeListener("doc1", DocumentChanged);
+            var token = DefaultCollection.AddDocumentChangeListener("doc1", DocumentChanged);
 
             _wa = new WaitAssert();
             _expectedDocumentChanges = new HashSet<string> {
@@ -267,20 +267,20 @@ namespace Test
             };
 
             doc1.SetString("name", "Scott Tiger");
-            Db.Save(doc1);
+            DefaultCollection.Save(doc1);
             _wa.WaitForResult(TimeSpan.FromSeconds(5));
-            Db.RemoveChangeListener(token);
+            DefaultCollection.RemoveChangeListener(token);
 
             _wa = new WaitAssert();
             _docCallbackShouldThrow = true;
             doc1.SetString("name", "Scott Pilgrim");
-            Db.Save(doc1);
+            DefaultCollection.Save(doc1);
 
             await Task.Delay(500);
             _wa.CaughtExceptions.Should().BeEmpty("because otherwise too many callbacks happened");
 
             // Remove again
-            Db.RemoveChangeListener(token);
+            DefaultCollection.RemoveChangeListener(token);
         }
 
         [Fact]
@@ -320,7 +320,7 @@ namespace Test
         {
             using (var db2 = new Database(Db)) {
                 var countdownDB = new CountdownEvent(1);
-                db2.AddChangeListener((sender, args) =>
+                db2.GetDefaultCollection().AddChangeListener((sender, args) =>
                 {
                     args.Should().NotBeNull();
                     args.DocumentIDs.Count.Should().Be(10);
@@ -329,11 +329,11 @@ namespace Test
                 });
 
                 var countdownDoc = new CountdownEvent(1);
-                db2.AddDocumentChangeListener("doc-6", (sender, args) =>
+                db2.GetDefaultCollection().AddDocumentChangeListener("doc-6", (sender, args) =>
                 {
                     args.Should().NotBeNull();
                     args.DocumentID.Should().Be("doc-6");
-                    using (var doc = db2.GetDocument(args.DocumentID)) {
+                    using (var doc = db2.GetDefaultCollection().GetDocument(args.DocumentID)) {
                         doc.GetString("type").Should().Be("demo");
                         countdownDoc.CurrentCount.Should().Be(1);
                         countdownDoc.Signal();
@@ -345,7 +345,7 @@ namespace Test
                     for (var i = 0; i < 10; i++) {
                         using (var doc = new MutableDocument($"doc-{i}")) {
                             doc.SetString("type", "demo");
-                            db2.Save(doc);
+                            db2.GetDefaultCollection().Save(doc);
                         }
                     }
                 });

@@ -75,6 +75,7 @@ namespace Test
         #region 8.13 ReplicatorConfiguration 
 
         [Fact]
+        [Obsolete]
         public void TestCreateConfigWithDatabase()
         {
             var config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb));
@@ -91,14 +92,21 @@ namespace Test
         }
 
         [Fact]
+        [Obsolete]
         public void TestCreateConfigWithDatabaseAndConflictResolver()
         {
-            var config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb)) { ConflictResolver = new FakeConflictResolver() };
+            var config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb));
+            config.AddCollection(DefaultCollection, new CollectionConfiguration
+            {
+                ConflictResolver = new FakeConflictResolver()
+            });
+
             var collConfig = config.GetCollectionConfig(Db.DefaultCollection);
             collConfig.ConflictResolver.Should().Be(config.ConflictResolver);
         }
 
         [Fact]
+        [Obsolete]
         public void TestUpdateConflictResolverForDefaultCollection()
         {
             var config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb)) { ConflictResolver = new FakeConflictResolver() };
@@ -114,6 +122,7 @@ namespace Test
         }
 
         [Fact]
+        [Obsolete]
         public void TestCreateConfigWithDatabaseAndFilters()
         {
             var config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb))
@@ -134,6 +143,7 @@ namespace Test
         }
 
         [Fact]
+        [Obsolete]
         public void TestUpdateFiltersForDefaultCollection()
         {
             var config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb))
@@ -182,6 +192,7 @@ namespace Test
         }
 
         [Fact]
+        [Obsolete]
         public void TestCreateConfigWithEndpointOnly()
         {
             var config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb));
@@ -894,7 +905,8 @@ namespace Test
         [Fact]
         public void TestAddCollectionsToDatabaseInitiatedConfig()
         {
-            var config = new ReplicatorConfiguration(Db, new DatabaseEndpoint(OtherDb));
+            var config = new ReplicatorConfiguration(new DatabaseEndpoint(OtherDb));
+            config.AddCollection(DefaultCollection);
             LoadCollectionsDocs(config);
 
             RunReplication(config, 0, 0);
@@ -925,6 +937,7 @@ namespace Test
         }
 
         [Fact]
+        [Obsolete]
         public void TestOuterFiltersWithCollections()
         {
             var colA = Db.CreateCollection("colA", "scopeA");
@@ -955,6 +968,7 @@ namespace Test
         }
 
         [Fact]
+        [Obsolete]
         public void TestUpdateCollectionConfigWithDefault()
         {
             var colA = Db.CreateCollection("colA", "scopeA");

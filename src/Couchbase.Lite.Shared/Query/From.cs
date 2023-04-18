@@ -44,7 +44,6 @@ namespace Couchbase.Lite.Internal.Query
             Copy(query);
 
             FromImpl = impl as QueryDataSource;
-            Database = (impl as DatabaseSource)?.Database;
             Collection = (impl as DatabaseSource)?.Collection;
         }
 

@@ -326,20 +326,6 @@ namespace Test
         public void TestFileLogDisabledWarning()
         {
             Database.Log.File.Config.Should().BeNull();
-            
-            // There is a helper method in debug builds that can clear the "run once"
-            // logic.  Otherwise there has to be a guarantee that this method will run
-            // first.
-            #if DEBUG
-            Run.Clear("CheckFileLogger");
-            using (var sw = new StringWriter()) {
-                Console.SetOut(sw);
-                using (var db = new Database("tmp")) {
-                    sw.ToString().Contains("file logging is disabled").Should().BeTrue();
-                    db.Delete();
-                }
-            }
-            #endif
 
             using (var sw = new StringWriter()) {
                 Console.SetOut(sw);
@@ -348,16 +334,6 @@ namespace Test
                 Database.Log.File.Config = null;
                 sw.ToString().Contains("file logging is disabled").Should().BeTrue();
             }
-
-            #if DEBUG
-            using (var sw = new StringWriter()) {
-                Console.SetOut(sw);
-                using (var db = new Database("tmp")) {
-                    sw.ToString().Contains("file logging is disabled").Should().BeFalse();
-                    db.Delete();
-                }
-            }
-            #endif
             
             Console.SetOut(new StreamWriter(Console.OpenStandardOutput()));
         }
@@ -450,10 +426,10 @@ namespace Test
                 using(var db = new Database("test_non_ascii"))
                 using (var doc = new MutableDocument()) {
                     doc.SetString("hebrew", hebrew);
-                    db.Save(doc);
+                    db.GetDefaultCollection().Save(doc);
 
                     using (var q = QueryBuilder.Select(SelectResult.All())
-                        .From(DataSource.Database(db))) {
+                        .From(DataSource.Collection(db.GetDefaultCollection()))) {
                         q.Execute().Count().Should().Be(1);
                     }
 

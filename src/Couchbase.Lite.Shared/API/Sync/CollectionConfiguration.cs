@@ -120,7 +120,7 @@ namespace Couchbase.Lite.Sync
         internal ReplicatorType ReplicatorType
         {
             get => _replicatorType;
-            set => _freezer.SetValue(ref _replicatorType, value);
+            set => _replicatorType = value;
         }
 
         [NotNull]

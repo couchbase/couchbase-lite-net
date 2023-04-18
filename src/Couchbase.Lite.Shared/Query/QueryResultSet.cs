@@ -54,8 +54,6 @@ namespace Couchbase.Lite.Internal.Query
 
         internal IDictionary<string, int> ColumnNames { get; }
 
-        internal Database Database => _query?.Database;
-
         internal Collection Collection => _query?.Collection;
 
         internal Result this[int index]

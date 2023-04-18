@@ -73,19 +73,6 @@ namespace Test
             scopes.Contains(defaultScope).Should().BeTrue("the default scope is included in the scope list when calling Database.GetScopes()");
         }
 
-        //[Fact] Test is disabled until default collection is allowed to be deleted
-        public void TestDeleteDefaultCollection_AllowDefaultCollectionToBeDeleted()
-        {
-            Db.DeleteCollection(Database._defaultCollectionName);
-            using (var defaultColl = Db.GetDefaultCollection())
-                defaultColl.Should().BeNull("default collection is deleted");
-
-            Action badAction = (() => Db.CreateCollection(Database._defaultCollectionName));
-            badAction.Should().Throw<CouchbaseLiteException>("Cannot recreate the default collection.");
-            using (var defaultColl = Db.GetDefaultCollection())
-                defaultColl.Should().BeNull("default collection cannot be recreated, so the value is still null");
-        }
-
         [Fact]
         public void TestDeleteDefaultCollection()
         {
@@ -95,17 +82,6 @@ namespace Test
             Db.CreateCollection(Database._defaultCollectionName); //no-op since default collection is already existed and cannot be deleted
             using (var defaultColl = Db.GetDefaultCollection())
                 defaultColl.Should().NotBeNull("default collection cannot be deleted, so the value is none null");
-        }
-
-        //[Fact] Test is disabled until default collection is allowed to be deleted
-        public void TestGetDefaultScopeAfterDeleteDefaultCollection_AllowDefaultCollectionToBeDeleted()
-        {
-            Db.DeleteCollection(Database._defaultCollectionName);
-            var defaultScope = Db.GetDefaultScope();
-            defaultScope.Should().NotBeNull("scope still exists after the default collection is deleted");
-            var scopes = Db.GetScopes();
-            scopes.Contains(defaultScope).Should().BeTrue("the default scope is included in the scope list when calling Database.GetScopes()");
-            defaultScope.Name.Should().Be(Database._defaultScopeName, $"default scope name is {Database._defaultScopeName}");
         }
 
         #endregion
@@ -728,73 +704,6 @@ namespace Test
 
         [Fact]
         public void TestGetScopesOrCollectionsWhenDatabaseIsDeleted() => TestGetScopesOrCollections(() => Db.Delete());
-
-        #endregion
-
-        #region 8.9 Use Database API when the Default Collection is Deleted
-
-        //[Fact] Test is disabled until default collection is allowed to be deleted
-        public void TestUseDatabaseAPIsWhenDefaultCollectionIsDeleted()
-        {
-            using (var defaultCol = Db.GetDefaultCollection()) {
-                using (var doc = new MutableDocument("doc")) {
-                    doc.SetString("str", "string");
-                    defaultCol.Save(doc);
-                }
-
-                defaultCol.GetDocument("doc").GetString("str").Should().Be("string");
-
-                Db.DeleteCollection(Database._defaultCollectionName);
-
-                Db.Invoking(d => d.GetDocument("doc"))
-                    .Should().Throw<InvalidOperationException>("Because GetDocument after default collection is deleted.");
-
-                var dto30 = DateTimeOffset.UtcNow.AddSeconds(30);
-                using (var doc1 = new MutableDocument("doc1")) {
-                    doc1.SetString("str", "string");
-
-                    Db.Invoking(d => Db.Count)
-                        .Should().Throw<InvalidOperationException>("Because Save after default collection is deleted.");
-
-                    Db.Invoking(d => d.Save(doc1))
-                        .Should().Throw<InvalidOperationException>("Because Save after default collection is deleted.");
-
-                    Db.Invoking(d => d.Delete(doc1))
-                        .Should().Throw<InvalidOperationException>("Because Delete after default collection is deleted.");
-
-                    Db.Invoking(d => d.Purge(doc1))
-                        .Should().Throw<InvalidOperationException>("Because Purge after default collection is deleted.");
-
-                    Db.Invoking(d => d.SetDocumentExpiration("doc", dto30))
-                        .Should().Throw<InvalidOperationException>("Because SetDocumentExpiration after default collection is deleted.");
-
-                    Db.Invoking(d => d.GetDocumentExpiration("doc"))
-                        .Should().Throw<InvalidOperationException>("Because GetDocumentExpiration after default collection is deleted.");
-                }
-
-                Db.Invoking(d => d.CreateQuery($"SELECT firstName, lastName FROM *"))
-                        .Should().Throw<CouchbaseLiteException>("Because CreateQuery after default collection is deleted.");
-
-                var index1 = new ValueIndexConfiguration(new string[] { "firstName", "lastName" });
-                Db.Invoking(d => d.CreateIndex("index1", index1))
-                    .Should().Throw<InvalidOperationException>("Because CreateIndex after default collection is deleted.");
-
-                Db.Invoking(d => d.GetIndexes())
-                    .Should().Throw<InvalidOperationException>("Because GetIndexes after default collection is deleted.");
-
-                Db.Invoking(d => d.DeleteIndex("index1"))
-                    .Should().Throw<InvalidOperationException>("Because DeleteIndex after default collection is deleted.");
-
-                Db.Invoking(d => d.AddChangeListener(null, (sender, args) => { } ))
-                    .Should().Throw<InvalidOperationException>("Because AddChangeListener after default collection is deleted.");
-
-                Db.Invoking(d => d.AddDocumentChangeListener("doc1", (sender, args) => { }))
-                    .Should().Throw<InvalidOperationException>("Because AddDocumentChangeListener after default collection is deleted.");
-
-                Db.Invoking(d => d.RemoveChangeListener(d.AddDocumentChangeListener("doc1", (sender, args) => { })))
-                    .Should().Throw<InvalidOperationException>("Because RemoveChangeListener after default collection is deleted.");
-            }
-        }
 
         #endregion
 

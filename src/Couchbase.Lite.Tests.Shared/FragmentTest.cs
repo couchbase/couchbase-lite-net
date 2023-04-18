@@ -55,7 +55,7 @@ namespace Test
                 }
             };
 
-            Db.Save(new MutableDocument("doc1", dict));
+            DefaultCollection.Save(new MutableDocument("doc1", dict));
 
             var doc = Db["doc1"];
             doc.Should().NotBeNull("because the subscript operator should never return null");
