@@ -21,13 +21,23 @@ The following package IDs will be on Nuget for the 2.0 release and beyond (with 
 The following package ID was added in 3.1
 - Couchbase.Lite.Support.WinUI
 
-## Building Couchbase Lite master branch from source
-
-Please use `git` to clone the repo, rather than downloading it from a zip file.  This ensures two things:  that I will always know by looking at the logs which git commit you built your source from if you file a bug report, and that you will be able to pull the appropriate submodules.  After you clone the repo, or change branches, be sure to update the submodules with this command `git submodule update --init --recursive`
-
 # Native Components Needed
 
-You will notice that Couchbase.Lite, and each of the support projects make references to some missing native libraries.  These need to be built ahead of time.  The native library project can be found in the `vendor/couchbase-lite-core` directory.  It uses CMake, and includes various build scripts in the `build_cmake/scripts` folder.  Note:  Building for Android on Windows is not supported.  For some platforms you will need to install some prerequisites, and for any build system you will need CMake available.  More info about this can be found at the [LiteCore](https://github.com/couchbase/couchbase-lite-core/) repo.
+You will notice that Couchbase.Lite, and each of the support projects make references to some missing native libraries.  These need to be built ahead of time.  For that you will need to check out [LiteCore](https://github.com/couchbase/couchbase-lite-core/).  You can look at the "ce" hash in core_version.ini in the root of this repo, or use `src/build/get_litecore_source.py` if you want to have a script do it.  LiteCore uses CMake, and includes various build scripts in the `build_cmake/scripts` folder.  Note:  Building for Android on Windows is not supported.  For some platforms you will need to install some prerequisites, and for any build system you will need CMake available.  More info about this can be found at the [LiteCore](https://github.com/couchbase/couchbase-lite-core/) repo.
+
+There are a lot of platforms that .NET has to run on, and this makes building the entire library quite annoying if you don't have the proper toolchains.  However, there are a few tricks to make this easier.  If you are only interesting in a certain platform, you can remove the others from the `TargetFrameworks` in Couchbase.Lite.csproj before building, and then you won't need to worry about so many native libs.  Alternatively, you can put empty files, or copy files out of existing nuget packages to use as placeholders.  Be warned, however, that the LiteCore API often changes and so you might not be able to use an existing build as-is (though if you are only using it for placeholders on platforms that you will not run, then it doesn't matter).
+
+The project expects these native components to exist in the `vendor/prebuilt_core` directory with the following structure:
+
+- `windows/x86_64/bin/LiteCore.{dll,pdb}`
+- `macos/lib/libLiteCore.dylib` (fat mach-o)
+- `linux/x86_64/lib/libLiteCore.so`
+  - There are many other libraries in here (icu / stdc++).  These rarely change and can usually be copied from an existing nupkg
+- `prebuilt_core\ios\LiteCore.xcframework`
+  - Remove the mac catalyst portion before attempting to build.  It contains symlinks that cause nuget.exe to fail
+- `prebuilt_core\ios\couchbase-lite-core-ios.zip`
+  - A zipped version of the full LiteCore.xcframework with mac catalyst included
+- `prebuilt_core\android\<arch>\lib\libLiteCore.so`
 
 # Once you build native
 

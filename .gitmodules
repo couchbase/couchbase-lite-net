@@ -1,6 +1,0 @@
-[submodule "vendor/couchbase-lite-core"]
-	path = vendor/couchbase-lite-core
-	url = https://github.com/couchbase/couchbase-lite-core
-[submodule "src/LiteCore/tools"]
-	path = src/LiteCore/tools
-	url = https://github.com/couchbaselabs/litecore-download-script

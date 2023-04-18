@@ -22,11 +22,14 @@ pipeline {
                                 }
 								
                                 Get-ChildItem couchbase-lite-net-ee\\* -Force | Move-Item -Destination .
+                                New-Item -Type Directory couchbase-lite-net
                                 Get-ChildItem -Force tmp\\* | Move-Item -Destination couchbase-lite-net
                                 Remove-Item tmp
-                                Push-Location couchbase-lite-net
-                                & 'C:\\Program Files\\Git\\bin\\git.exe' submodule update --init --recursive
-                                Pop-Location
+                                Remove-Item couchbase-lite-net-ee
+
+                                # Make sure the latest tools are checked out
+                                & 'C:\\Program Files\\Git\\bin\\git.exe' submodule update --init
+
                                 Push-Location jenkins
                                 & 'C:\\Program Files\\Git\\bin\\git.exe' clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 proj
                                 Pop-Location
@@ -65,12 +68,12 @@ pipeline {
                                 git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $BRANCH_NAME --depth 1 couchbase-lite-net-ee || \
                                     git clone git@github.com:couchbaselabs/couchbase-lite-net-ee --branch $CHANGE_TARGET --depth 1 couchbase-lite-net-ee
                                 mv couchbase-lite-net-ee/* .
+                                mkdir couchbase-lite-net
                                 mv tmp/* couchbase-lite-net
-                                rmdir tmp
+                                rmdir tmp couchbase-lite-net-ee
 
-                                pushd couchbase-lite-net
-                                git submodule update --init --recursive
-                                popd
+                                # Make sure the latest tools are checked out
+                                git submodule update --init
 
                                 pushd jenkins
                                 git clone https://github.com/couchbaselabs/couchbase-lite-net-validation --depth 1 proj
