@@ -142,7 +142,6 @@ namespace Couchbase.Lite
         private ManualResetEventSlim _closeCondition = new ManualResetEventSlim(true);
 
         //Pre 3.1 Database's Collection
-        private bool _defaultCollectionIsDeleted = false;
         private Collection _defaultCollection = null;
         private Scope _defaultScope = null;
 
@@ -165,7 +164,7 @@ namespace Couchbase.Lite
         /// [DEPRECATED] Gets the number of documents in the database
         /// </summary>
         [Obsolete("Count is deprecated, please use GetDefaultCollection().Count")]
-        public ulong Count => DefaultCollection == null ? 0 : DefaultCollection.Count;
+        public ulong Count => GetDefaultCollection().Count;
 
         /// <summary>
         /// Gets a <see cref="DocumentFragment"/> with the given document ID
@@ -268,17 +267,6 @@ namespace Couchbase.Lite
             }
         }
 
-        internal Collection DefaultCollection
-        {
-            get {
-                GetDefaultCollection();
-                if (_defaultCollectionIsDeleted || ThreadSafety.DoLocked(() => _defaultCollection?.IsClosed) == true)
-                    throw new InvalidOperationException($"Default Collection is deleted from the database {ToString()}.");
-
-                return _defaultCollection;
-            }
-        }
-
         private bool IsShell { get; } //this object is borrowing the C4Database from somewhere else, so don't free C4Database at the end if isshell
 
         // Must be called inside self lock
@@ -374,7 +362,7 @@ namespace Couchbase.Lite
         #region Public Methods - Scopes and Collections Management
 
         /// <summary>
-        /// Get the default scope. 
+        /// Get the default scope.  This is a cached object so there is no need to dispose it.
         /// </summary>
         /// <returns>default scope</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
@@ -395,32 +383,27 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Get the default collection.
+        /// Get the default collection.  This is a cached object so there is no need to dispose it.  If you do,
+        /// a new one will be created on the next call.
         /// </summary>
         /// <returns>default collection</returns>
         /// <exception cref="CouchbaseException">Thrown if an error condition is returned from LiteCore</exception>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the database is closed</exception>
-        [@CanBeNull]
         public Collection GetDefaultCollection()
         {
             return ThreadSafety.DoLocked(() =>
             {
                 CheckOpen();
-                if (_defaultCollection == null && !_defaultCollectionIsDeleted) {
+                if (_defaultCollection == null || !_defaultCollection.IsValid) {
                     var c4coll = (C4Collection*)LiteCoreBridge.Check(err =>
                     {
                         return Native.c4db_getDefaultCollection(c4db, err);
                     });
 
-                    if (c4coll != null) {
-                        _defaultCollection = new Collection(this, _defaultCollectionName, GetDefaultScope(), c4coll);
-                    } else {
-                        _defaultCollectionIsDeleted = true;
-                        WriteLog.To.Database.W(Tag, $"The none-recoverable default collection is now deleted from database {ToString()}.");
-                    }
+                    _defaultCollection = new Collection(this, _defaultCollectionName, GetDefaultScope(), c4coll);
                 }
-                
-                return _defaultCollection?.IsValid == true ? _defaultCollection : null;
+
+                return _defaultCollection;
             });
         }
 
@@ -689,7 +672,7 @@ namespace Couchbase.Lite
         [Obsolete("CreateIndex is deprecated, please use GetDefaultCollection().CreateIndex")]
         public void CreateIndex([@NotNull]string name, [@NotNull]IIndex index)
         {
-            DefaultCollection.CreateIndex(name, index);
+            GetDefaultCollection().CreateIndex(name, index);
         }
 
         /// <summary>
@@ -709,7 +692,7 @@ namespace Couchbase.Lite
         [Obsolete("CreateIndex is deprecated, please use GetDefaultCollection().CreateIndex")]
         public void CreateIndex([@NotNull] string name, [@NotNull] IndexConfiguration indexConfig)
         {
-            DefaultCollection.CreateIndex(name, indexConfig);
+            GetDefaultCollection().CreateIndex(name, indexConfig);
         }
 
         /// Creates a Query object from the given SQL++ string.
@@ -775,7 +758,7 @@ namespace Couchbase.Lite
         [Obsolete("Delete is deprecated, please use GetDefaultCollection().Delete")]
         public bool Delete([@NotNull]Document document, ConcurrencyControl concurrencyControl)
         {
-            return DefaultCollection.Delete(document, concurrencyControl);
+            return GetDefaultCollection().Delete(document, concurrencyControl);
         }
 
         /// <summary>
@@ -785,7 +768,7 @@ namespace Couchbase.Lite
         [Obsolete("DeleteIndex is deprecated, please use GetDefaultCollection().DeleteIndex")]
         public void DeleteIndex([@NotNull]string name)
         {
-            DefaultCollection.DeleteIndex(name);
+            GetDefaultCollection().DeleteIndex(name);
         }
 
         /// <summary>
@@ -797,7 +780,7 @@ namespace Couchbase.Lite
         [@CanBeNull]
         public Document GetDocument([@NotNull]string id)
         {
-            return DefaultCollection.GetDocument(id);
+            return GetDefaultCollection().GetDocument(id);
         }
 
         /// <summary>
@@ -809,7 +792,7 @@ namespace Couchbase.Lite
         [@ItemNotNull]
         public IList<string> GetIndexes()
         {
-            return DefaultCollection.GetIndexes();
+            return GetDefaultCollection().GetIndexes();
         }
 
         /// <summary>
@@ -851,7 +834,7 @@ namespace Couchbase.Lite
         [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
         public void Purge([@NotNull]Document document)
         {
-            DefaultCollection.Purge(document);
+            GetDefaultCollection().Purge(document);
         }
 
         /// <summary>
@@ -865,7 +848,7 @@ namespace Couchbase.Lite
         [Obsolete("Purge is deprecated, please use GetDefaultCollection().Purge")]
         public void Purge([@NotNull]string docId)
         {
-            DefaultCollection.Purge(docId);
+            GetDefaultCollection().Purge(docId);
         }
 
         /// <summary>
@@ -882,7 +865,7 @@ namespace Couchbase.Lite
         [Obsolete("SetDocumentExpiration is deprecated, please use GetDefaultCollection().SetDocumentExpiration")]
         public bool SetDocumentExpiration(string docId, DateTimeOffset? expiration)
         {
-            return DefaultCollection.SetDocumentExpiration(docId, expiration);
+            return GetDefaultCollection().SetDocumentExpiration(docId, expiration);
         }
 
         /// <summary>
@@ -897,7 +880,7 @@ namespace Couchbase.Lite
         [Obsolete("GetDocumentExpiration is deprecated, please use GetDefaultCollection().GetDocumentExpiration")]
         public DateTimeOffset? GetDocumentExpiration(string docId)
         {
-            return DefaultCollection.GetDocumentExpiration(docId);
+            return GetDefaultCollection().GetDocumentExpiration(docId);
         }
 
         /// <summary>
@@ -922,7 +905,7 @@ namespace Couchbase.Lite
         [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
         public bool Save([@NotNull]MutableDocument document, ConcurrencyControl concurrencyControl)
         {
-            return DefaultCollection.Save(document, concurrencyControl);
+            return GetDefaultCollection().Save(document, concurrencyControl);
         }
 
         /// <summary>
@@ -937,7 +920,7 @@ namespace Couchbase.Lite
         [Obsolete("Save is deprecated, please use GetDefaultCollection().Save")]
         public bool Save([@NotNull]MutableDocument document, [@NotNull]Func<MutableDocument, Document, bool> conflictHandler)
         {
-            return DefaultCollection.Save(document, conflictHandler);
+            return GetDefaultCollection().Save(document, conflictHandler);
         }
 
         /// <summary>
@@ -1029,7 +1012,7 @@ namespace Couchbase.Lite
                 {
                     handler(sender, args);
                 });
-            return DefaultCollection.AddChangeListener(scheduler, collectionChangeEventHandler);
+            return GetDefaultCollection().AddChangeListener(scheduler, collectionChangeEventHandler);
         }
 
         /// <summary>
@@ -1064,7 +1047,7 @@ namespace Couchbase.Lite
         public ListenerToken AddDocumentChangeListener([@NotNull] string id, [@CanBeNull] TaskScheduler scheduler,
             [@NotNull] EventHandler<DocumentChangedEventArgs> handler)
         {
-            return DefaultCollection.AddDocumentChangeListener(id, scheduler, handler);
+            return GetDefaultCollection().AddDocumentChangeListener(id, scheduler, handler);
         }
 
         /// <summary>
@@ -1092,7 +1075,7 @@ namespace Couchbase.Lite
         [Obsolete("RemoveChangeListener is deprecated, please use GetDefaultCollection().RemoveChangeListener")]
         public void RemoveChangeListener(ListenerToken token)
         {
-            DefaultCollection.RemoveChangeListener(token);
+            GetDefaultCollection().RemoveChangeListener(token);
         }
 
         #endregion
@@ -1197,12 +1180,12 @@ namespace Couchbase.Lite
                     {
                         // Do this in a batch so that there are no changes to the document between
                         // localDoc read and remoteDoc read
-                        localDoc = new Document(collection ?? DefaultCollection, docID);
+                        localDoc = new Document(collection ?? GetDefaultCollection(), docID);
                         if (!localDoc.Exists) {
                             throw new CouchbaseLiteException(C4ErrorCode.NotFound);
                         }
 
-                        remoteDoc = new Document(collection ?? DefaultCollection, docID, C4DocContentLevel.DocGetAll);
+                        remoteDoc = new Document(collection ?? GetDefaultCollection(), docID, C4DocContentLevel.DocGetAll);
                         if (!remoteDoc.Exists || !remoteDoc.SelectConflictingRevision()) {
                             WriteLog.To.Sync.W(Tag, "Unable to select conflicting revision for '{0}', the conflict may have been previously resolved...",
                                 new SecureLogString(docID, LogMessageSensitivity.PotentiallyInsecure));
@@ -1237,7 +1220,7 @@ namespace Couchbase.Lite
                             Misc.SafeSwap(ref resolvedDoc, new MutableDocument(docID, resolvedDoc.ToDictionary()));
                         }
                         if (resolvedDoc.Collection == null) {
-                            resolvedDoc.Collection = collection ?? DefaultCollection;
+                            resolvedDoc.Collection = collection ?? GetDefaultCollection();
                         } else if (resolvedDoc.Database != this) {
                             throw new InvalidOperationException(String.Format(CouchbaseLiteErrorMessage.ResolvedDocWrongDb,
                                 resolvedDoc.Database.Name, this.Name));
@@ -1387,7 +1370,7 @@ namespace Couchbase.Lite
             }
 
             if (resolvedDoc != null && !ReferenceEquals(resolvedDoc, localDoc)) {
-                resolvedDoc.Collection = DefaultCollection;
+                resolvedDoc.Collection = GetDefaultCollection();
             }
 
             // The remote branch has to win, so that the doc revision history matches the server's.
@@ -1461,8 +1444,8 @@ namespace Couchbase.Lite
         private void VerifyDB([@NotNull]Document document)
         {
             if (document.Collection == null) {
-                document.Collection = DefaultCollection;
-            } else if (document.Collection != DefaultCollection) {
+                document.Collection = GetDefaultCollection();
+            } else if (document.Collection != GetDefaultCollection()) {
                 throw new CouchbaseLiteException(C4ErrorCode.InvalidParameter,
                     CouchbaseLiteErrorMessage.DocumentAnotherDatabase);
             }
@@ -1470,7 +1453,7 @@ namespace Couchbase.Lite
 
         private void PurgeDocById(string id)
         {
-            DefaultCollection.Purge(id);
+            GetDefaultCollection().Purge(id);
         }
 
         private void ReleaseC4Db()

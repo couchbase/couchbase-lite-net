@@ -370,7 +370,7 @@ namespace Couchbase.Lite.Sync
         public IReadOnlyList<Collection> Collections => CollectionConfigs.Keys.ToList();
 
         //Pre 3.1 Default Collection Config
-        internal CollectionConfiguration DefaultCollectionConfig => CollectionConfigs.ContainsKey(Database?.DefaultCollection) ? CollectionConfigs[Database.DefaultCollection] 
+        internal CollectionConfiguration DefaultCollectionConfig => CollectionConfigs.ContainsKey(Database?.GetDefaultCollection()) ? CollectionConfigs[Database.GetDefaultCollection()] 
             : throw new InvalidOperationException("Cannot operate on a missing Default Collection Configuration. Please AddCollection(Database.DefaultCollection, CollectionConfiguration).");
 
         internal IDictionary<Collection, CollectionConfiguration> CollectionConfigs { get; set; } = new Dictionary<Collection, CollectionConfiguration>();
@@ -441,7 +441,7 @@ namespace Couchbase.Lite.Sync
             :this(target)
         {
             CBDebug.MustNotBeNull(WriteLog.To.Sync, Tag, nameof(database), database);
-            AddCollection(database.DefaultCollection);
+            AddCollection(database.GetDefaultCollection());
         }
 
         #endregion

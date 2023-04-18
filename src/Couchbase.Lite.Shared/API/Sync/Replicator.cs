@@ -315,7 +315,7 @@ namespace Couchbase.Lite.Sync
         [NotNull]
         public IImmutableSet<string> GetPendingDocumentIDs()
         {
-            return GetPendingDocumentIDs(Config.Database.DefaultCollection);
+            return GetPendingDocumentIDs(Config.Database.GetDefaultCollection());
         }
 
         /// <summary>
@@ -330,7 +330,7 @@ namespace Couchbase.Lite.Sync
         [Obsolete("IsDocumentPending(string documentID) is deprecated, please use IsDocumentPending(string documentID, Collection collection)")]
         public bool IsDocumentPending([NotNull]string documentID)
         {
-            return IsDocumentPending(documentID, Config.Database.DefaultCollection);
+            return IsDocumentPending(documentID, Config.Database.GetDefaultCollection());
         }
 
         /// <summary>
